@@ -22,17 +22,21 @@ Logotron, Logogenesis) uses to model entities, and the one that needs no
 rendering, physics, or platform code. This example uses exactly that,
 following `docs/GETTING_STARTED.md`:
 
-- **Ontology** (`schema/tictactoe.yaml`) declares `Board`, `Cell`,
-  `Player`, and the `OCCUPIES` relation on top of the engine's base
-  `logosphere` schema. Since `scripts/generate_ontology.py` needs an
-  unpublished maintainer toolchain (see `docs/GETTING_STARTED.md`), the
-  generated registry (`src/generated/tictactoe_ontology_registry.{h,cpp}`)
-  is hand-authored from the YAML, the same technique
-  `tests/test_ontology_extension.cpp` uses for its example ontology.
+- **Ontology** (`schema/tictactoe.yaml`) declares `Board`, `Cell` and
+  `Player` on top of the engine's base `logosphere` schema. The registry
+  in `src/generated/` is produced by the repo's own
+  `scripts/generate_registry.py`.
+- **Relations** are the engine's, not the game's, and that is deliberate:
+  the generator derives the registry's relation set solely from the
+  engine's `WorldRelationType` enum, so a game-declared relation would be
+  dropped on the next regeneration (`examples/eden/schema/eden.yaml`'s
+  `EdenRelationType` is decorative for the same reason). The game uses
+  `HAS_PART` for the board's cells and `MANAGES` for a player's claim on
+  a square, as logotron reuses the engine's set.
 - **Knowledge Graph**: the board is one `Board` entity `HAS_PART` nine
   `Cell` entities (with `row`/`col`/`mark` properties), plus two `Player`
-  entities. Making a move sets a cell's `mark` property and creates an
-  `OCCUPIES` relation from the player to the cell — see
+  entities. Making a move sets a cell's `mark` property and creates a
+  `MANAGES` relation from the player to the cell — see
   `src/tictactoe.h`.
 - **EventBus**: the KG auto-emits on `bus.relations()` and
   `bus.state_changes()` whenever a relation or property changes (see

@@ -1,6 +1,6 @@
 // Tic-Tac-Toe game state, modeled entirely on the Logosphere Knowledge
 // Graph: a Board entity HAS_PART nine Cell entities (row/col/mark
-// properties), two Player entities (symbol property), and OCCUPIES
+// properties), two Player entities (symbol property), and MANAGES
 // relations recording each move. Shared by the console game
 // (examples/tictactoe/src/main.cpp) and the headless test
 // (tests/test_tictactoe.cpp) so both exercise the same logic.
@@ -52,7 +52,12 @@ public:
         }
         auto cell_id = cells_[row][col];
         kg_.setProperty(cell_id, "mark", symbol(player_index));
-        kg_.createRelation(players_[player_index], "OCCUPIES", cell_id);
+        // MANAGES is an engine relation. Games reuse the engine's set
+        // rather than declaring their own, because
+        // scripts/generate_registry.py derives relation types solely
+        // from the engine's WorldRelationType enum -- a game-declared
+        // relation would vanish on the next regeneration.
+        kg_.createRelation(players_[player_index], "MANAGES", cell_id);
         return std::nullopt;
     }
 

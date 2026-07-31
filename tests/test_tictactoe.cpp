@@ -41,11 +41,38 @@ void test_ontology_extension_adds_tictactoe_types() {
     ASSERT(kg.getRegistry().hasEntityType("Board"), "Board type registered");
     ASSERT(kg.getRegistry().hasEntityType("Cell"), "Cell type registered");
     ASSERT(kg.getRegistry().hasEntityType("Player"), "Player type registered");
-    ASSERT(kg.getRegistry().hasRelationType("OCCUPIES"), "OCCUPIES relation registered");
-    ASSERT(kg.getRegistry().isValidRelation("OCCUPIES", "Player", "Cell"),
-           "OCCUPIES(Player, Cell) is valid");
+    // The game reuses the engine's relations rather than declaring its
+    // own: generate_registry.py derives relation types solely from the
+    // engine's WorldRelationType enum, so a game-declared relation would
+    // be dropped the next time the registry is regenerated.
+    ASSERT(kg.getRegistry().hasRelationType("MANAGES"), "MANAGES relation available");
+    ASSERT(kg.getRegistry().isValidRelation("MANAGES", "Player", "Cell"),
+           "MANAGES(Player, Cell) is valid");
+    ASSERT(kg.getRegistry().hasRelationType("HAS_PART"), "HAS_PART relation available");
     ASSERT(kg.getRegistry().isSubtypeOf("Board", "WorldEntity"), "Board is a WorldEntity");
     ASSERT(kg.getRegistry().isSubtypeOf("Cell", "WorldEntity"), "Cell is a WorldEntity");
+}
+
+// Regression guard. The registry used to be hand-authored and declared a
+// game-specific OCCUPIES relation, which scripts/generate_registry.py
+// would never re-emit -- so regenerating the ontology silently broke the
+// game. Every relation the game uses must exist in a freshly generated
+// registry, which means it must come from the engine's own set.
+void test_game_only_uses_engine_relations() {
+    kg::KGModule kg(logosphere::ontology::registry());
+    init(kg);
+    tictactoe::TicTacToe game(kg);
+
+    game.make_move(0, 0, 0);
+    game.make_move(1, 1, 1);
+
+    for (const char* rel : {"HAS_PART", "MANAGES"}) {
+        ASSERT(kg.getRegistry().hasRelationType(rel),
+               "relation survives ontology regeneration");
+    }
+    // Nothing may depend on a relation the generator does not emit.
+    ASSERT(!kg.getRegistry().hasRelationType("OCCUPIES"),
+           "no hand-authored relation lingers in the registry");
 }
 
 void test_board_setup_creates_nine_cells_and_two_players() {
@@ -79,9 +106,9 @@ void test_move_marks_cell_and_records_occupies_relation() {
     ASSERT(!err.has_value(), "valid move succeeds");
     ASSERT(game.mark_at(1, 1) == "X", "cell marked with X");
 
-    auto occupied = kg.getRelated(game.player(0), "OCCUPIES");
-    ASSERT(occupied.size() == 1, "player has one OCCUPIES relation");
-    ASSERT(occupied[0] == game.cell(1, 1), "OCCUPIES points at the marked cell");
+    auto claimed = kg.getRelated(game.player(0), "MANAGES");
+    ASSERT(claimed.size() == 1, "player has one MANAGES relation");
+    ASSERT(claimed[0] == game.cell(1, 1), "MANAGES points at the marked cell");
 }
 
 void test_move_rejects_out_of_range() {
@@ -91,7 +118,7 @@ void test_move_rejects_out_of_range() {
 
     auto err = game.make_move(0, 3, 0);
     ASSERT(err.has_value(), "out-of-range move rejected");
-    ASSERT(kg.getRelated(game.player(0), "OCCUPIES").empty(), "no relation created for rejected move");
+    ASSERT(kg.getRelated(game.player(0), "MANAGES").empty(), "no relation created for rejected move");
 }
 
 void test_move_rejects_occupied_cell() {
@@ -163,6 +190,7 @@ int main() {
     std::cout << "=== Tic-Tac-Toe Tests ===" << std::endl;
 
     test_ontology_extension_adds_tictactoe_types();
+    test_game_only_uses_engine_relations();
     test_board_setup_creates_nine_cells_and_two_players();
     test_move_marks_cell_and_records_occupies_relation();
     test_move_rejects_out_of_range();

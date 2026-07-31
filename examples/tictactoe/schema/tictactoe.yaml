@@ -3,8 +3,16 @@ name: tictactoe
 title: Tic-Tac-Toe on Logosphere
 description: >-
   Game ontology for a headless tic-tac-toe example, extending
-  Logosphere's base types with a 3x3 board, cells, players, and
-  the OCCUPIES relation used to record moves.
+  Logosphere's base types with a 3x3 board, cells, and players.
+
+  Relations: this schema declares no new relation types on purpose.
+  scripts/generate_registry.py derives the registry's relation set
+  exclusively from the engine's WorldRelationType enum, so a
+  game-declared relation enum would generate nothing (see
+  examples/eden/schema/eden.yaml, whose EdenRelationType is decorative).
+  The game therefore reuses the engine's own relations, as logotron does:
+    HAS_PART - the board owns its nine cells
+    MANAGES  - a player claims the cell they have marked
 
 default_range: string
 
@@ -32,12 +40,6 @@ enums:
       GAME_DRAWN:
         description: The board filled with no winner
 
-  TicTacToeRelationType:
-    description: Tic-tac-toe specific relation types.
-    permissible_values:
-      OCCUPIES:
-        description: Player has marked a given cell
-
 # -------------------------------------------------------------------
 # Entity types
 # -------------------------------------------------------------------
@@ -61,17 +63,6 @@ classes:
     slots:
       - symbol
       - player_name
-
-# -------------------------------------------------------------------
-# Tic-tac-toe relations
-# -------------------------------------------------------------------
-
-  TicTacToeRelation:
-    is_a: Relation
-    description: Tic-tac-toe specific typed relationship.
-    slot_usage:
-      relation_type:
-        range: TicTacToeRelationType
 
 # -------------------------------------------------------------------
 # Tic-tac-toe events

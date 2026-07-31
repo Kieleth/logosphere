@@ -34,9 +34,9 @@ int main() {
     // Same mechanism exercised by tests/test_relation_events.cpp and
     // tests/test_kg_setproperty_events.cpp.
     bus.relations().subscribe([](const logosphere::ontology::RelationEvent& e) {
-        if (e.event_type == "RELATION_CREATED" && e.relation_type && *e.relation_type == "OCCUPIES") {
+        if (e.event_type == "RELATION_CREATED" && e.relation_type && *e.relation_type == "MANAGES") {
             std::cout << "[event] move recorded: entity " << (e.source_entity_id ? *e.source_entity_id : "?")
-                      << " OCCUPIES entity " << (e.target_entity_id ? *e.target_entity_id : "?") << "\n";
+                      << " MANAGES entity " << (e.target_entity_id ? *e.target_entity_id : "?") << "\n";
         }
     });
 
