@@ -315,21 +315,20 @@ void RenderPipeline::prepare_gpu_data(
 
                 int tri_count_for_particle = 0;
 
-                // Copy vertices to shadow triangles (9 floats per triangle)
-                // ISOMETRIC BACKFACE CULLING: Skip triangles facing away from camera
+                // Copy vertices to shadow triangles (9 floats per triangle).
+                //
+                // A per-triangle normal used to be computed here, six
+                // subtractions and a cross product, and then never read. It was
+                // left over from an attempt at build-time back-face culling,
+                // which is the WRONG frame of reference for shadows: rays run
+                // from shaded points toward lights in every direction, so a
+                // triangle facing away from the camera still occludes. The
+                // correct per-ray cull already happens on the GPU, in
+                // shadow_rays_deferred.metal stage 2, which skips directional
+                // groups whose average normal faces away from THAT ray. Every
+                // face is required input for it, which is what the line below
+                // means. Deleted 2026-07-31: 196,596 dead cross products a frame.
                 for (size_t v = 0; v < temp_vertices.size(); v += 9) {
-                    // Compute triangle normal via cross product of edges
-                    float e1x = temp_vertices[v+3] - temp_vertices[v+0];
-                    float e1y = temp_vertices[v+4] - temp_vertices[v+1];
-                    float e1z = temp_vertices[v+5] - temp_vertices[v+2];
-                    float e2x = temp_vertices[v+6] - temp_vertices[v+0];
-                    float e2y = temp_vertices[v+7] - temp_vertices[v+1];
-                    float e2z = temp_vertices[v+8] - temp_vertices[v+2];
-
-                    float nx = e1y * e2z - e1z * e2y;
-                    float ny = e1z * e2x - e1x * e2z;
-                    float nz = e1x * e2y - e1y * e2x;
-
                     // Shadow triangles need all faces (no backface cull)
                     my_triangles.emplace_back(
                         temp_vertices[v+0], temp_vertices[v+1], temp_vertices[v+2],  // v0
@@ -400,20 +399,10 @@ void RenderPipeline::prepare_gpu_data(
             ptri_start[particle_idx] = static_cast<int>(shadow_triangles.size());
             int tri_count_for_particle = 0;
 
-            // ISOMETRIC BACKFACE CULLING: Skip triangles facing away from camera
+            // Same dead normal computation as the parallel path above; see the
+            // comment there for why build-time back-face culling is the wrong
+            // frame of reference for shadow casters.
             for (size_t v = 0; v < temp_vertices.size(); v += 9) {
-                // Compute triangle normal via cross product of edges
-                float e1x = temp_vertices[v+3] - temp_vertices[v+0];
-                float e1y = temp_vertices[v+4] - temp_vertices[v+1];
-                float e1z = temp_vertices[v+5] - temp_vertices[v+2];
-                float e2x = temp_vertices[v+6] - temp_vertices[v+0];
-                float e2y = temp_vertices[v+7] - temp_vertices[v+1];
-                float e2z = temp_vertices[v+8] - temp_vertices[v+2];
-
-                float nx = e1y * e2z - e1z * e2y;
-                float ny = e1z * e2x - e1x * e2z;
-                float nz = e1x * e2y - e1y * e2x;
-
                 // Shadow triangles need all faces (no backface cull)
                 shadow_triangles.emplace_back(
                     temp_vertices[v+0], temp_vertices[v+1], temp_vertices[v+2],
