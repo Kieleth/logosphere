@@ -652,3 +652,21 @@ measurable frame time.
    changes (kit study S10, CPU render -35%). Before theorising about
    architecture, count what a single element allocates and ask what part
    of the work is identical for every element.
+
+10. **Look for locks before looking at arithmetic.** `prep_shadow_tris`
+    is named after geometry and was 68% mutex: a `getEntityByRenderIndex()`
+    call per particle, locking a `recursive_mutex` from 14 worker threads,
+    at 275 ns a call against ~25 uncontended (kit study S11, frame -18%).
+    Any per-element lock inside a parallel region is a serialization
+    point, and a phase name tells you where code lives, not what it costs.
+
+11. **Size the prize by deletion before designing the fix.** Replacing
+    the suspect call with a constant took one build and one bench and
+    said the ceiling was 4.5 ms. Only then was the real fix worth
+    writing. Cheap, decisive, and it protects against spending a day on
+    something worth 0.04 ms (which the same audit also found: the second
+    back-face cull in `convert_surface_to_lit_triangles`).
+
+12. **A clean A/B moves ONE phase.** If phases unrelated to the change
+    also move, the experiment is confounded and the number is not yours
+    to claim.
