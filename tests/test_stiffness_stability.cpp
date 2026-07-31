@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <string>
 
 // ============================================================================
 // XPBD STABILITY INVESTIGATION - INCREMENTAL COMPLEXITY

@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <vector>
 #include <random>
+#include <string>
 
 using PhysicsV4::TURTLE_Z;
 

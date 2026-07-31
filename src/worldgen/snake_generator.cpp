@@ -5,6 +5,7 @@
 #include "logosphere/kg/kg_module.h"
 #include <cmath>
 #include <iostream>
+#include <string>
 
 SnakeGenerator::SnakeGenerator()
     : engine_(nullptr)

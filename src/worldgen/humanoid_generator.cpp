@@ -13,6 +13,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <cassert>
+#include <string>
 
 HumanoidGenerator::HumanoidGenerator()
     : rng_state_(static_cast<unsigned int>(time(nullptr))) {

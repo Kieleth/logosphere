@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 // Species presets - ordered by size (small → large)
 

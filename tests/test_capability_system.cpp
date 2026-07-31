@@ -23,6 +23,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <stdexcept>
 
 static int tests_passed = 0;
 static int tests_failed = 0;

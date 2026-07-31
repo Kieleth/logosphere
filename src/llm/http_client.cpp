@@ -60,6 +60,7 @@
 #include <sstream>
 #include <iostream>
 #include <cerrno>
+#include <string>
 
 namespace Logosphere {
 

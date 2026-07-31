@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "logosphere/rendering/i_draw_surface.h"
 #include <algorithm>
+#include <string>
 
 namespace ui {
 

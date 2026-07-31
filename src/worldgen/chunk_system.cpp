@@ -9,6 +9,7 @@
 #include <iostream>
 #include <chrono>
 #include <unordered_map>
+#include <string>
 
 // Chunk load latency tracking (for performance measurement)
 static std::unordered_map<uint64_t, std::chrono::high_resolution_clock::time_point> g_chunk_request_times;

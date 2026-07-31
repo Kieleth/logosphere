@@ -10,6 +10,8 @@
 #include "logosphere/physics/narrow_phase.h"
 #include <cmath>
 #include <iostream>
+#include <string>
+#include <stdexcept>
 
 static int tests_passed = 0;
 static int tests_failed = 0;

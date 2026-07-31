@@ -4,6 +4,7 @@
 #include "particle.h"
 #include "logosphere/kg/kg_module.h"
 #include <iostream>
+#include <string>
 
 ButterflyGenerator::ButterflyGenerator()
     : engine_(nullptr)

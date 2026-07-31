@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
+#include <stdexcept>
 
 static int tests_passed = 0;
 static int tests_failed = 0;

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 // Species presets
 FallenTreeSpec FallenTreeSpec::fallen_trunk() {

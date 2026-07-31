@@ -1,5 +1,6 @@
 #include "../entity_manager.h"
 #include <iostream>
+#include <string>
 
 /**
  * Simple Entity Activator

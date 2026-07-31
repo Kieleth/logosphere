@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <vector>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // TREE SHADOW WIGGLY TEST

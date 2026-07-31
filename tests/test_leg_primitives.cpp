@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include "core/force.h"
 #include "humanoid_validator.h"
+#include <string>
 
 int main(int, char**) {
     std::cout << "\n========================================" << std::endl;
