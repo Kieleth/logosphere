@@ -8,6 +8,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- Isometric camera orbit: `CameraSystem::set_view_azimuth(radians)`
+  rotates the isometric view around world +Z (clockwise-positive,
+  compass convention; 0 is the classic view, bit-identical to
+  before). The whole chain honors the angle: projection and depth,
+  mouse picking (both inverse transforms), frustum-culling probe
+  directions, the compass widget needle, camera follow offset, and
+  GPU temporal shadow reprojection (history invalidates while
+  orbiting). Games drive the animation; the engine provides the
+  parameter.
 - CMake install/export: `cmake --install` now ships the headless
   core, and external projects consume it with
   `find_package(logosphere 0.2)` + `target_link_libraries(app

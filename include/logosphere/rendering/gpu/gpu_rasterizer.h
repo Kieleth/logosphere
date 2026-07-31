@@ -455,6 +455,10 @@ public:
     //
     // NOTE: Set before calling rasterize_triangles_deferred_async
     void set_shadow_culling_camera(float camera_x, float camera_y);
+    // View azimuth (orbit) for temporal shadow reprojection: the
+    // camera-delta rotation runs in the view frame, and an azimuth
+    // change invalidates translation-based history entirely.
+    void set_view_azimuth(float radians) { view_azimuth_ = radians; }
 
     // Set projection params for temporal reprojection (soft shadow aura fix)
     // pixels_per_unit: Isometric projection scale from camera system
@@ -768,6 +772,8 @@ private:
     // GI resolution (half-res for Tier 3 optimization)
 
     // Shadow distance culling state (Pass 3 distance fade)
+    float view_azimuth_ = 0.0f;       // Orbit angle for temporal reprojection
+    float prev_view_azimuth_ = 0.0f;  // Detects orbit motion -> history reset
     float shadow_culling_camera_x_ = 0.0f;  // Camera position for distance fade
     float shadow_culling_camera_y_ = 0.0f;
 

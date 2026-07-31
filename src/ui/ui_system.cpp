@@ -12,6 +12,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_types.h"
 #include "../core/particle_system.h"
+#include "../core/camera_system.h"
 #include "../particle.h"
 #include "../core/engine.h"
 #include "../debug_control.h"  // Centralized debug control
@@ -266,6 +267,11 @@ void UISystem::update(float delta_time) {
         return;
     }
     
+    // The compass needle tracks the camera's view azimuth (orbit).
+    if (compass_widget_ && camera_) {
+        compass_widget_->set_view_azimuth(camera_->get_view_azimuth());
+    }
+
     // Update retained mode widgets
     for (auto* widget : root_widgets_) {
         if (widget) {

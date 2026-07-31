@@ -105,6 +105,19 @@ void CoordinateTransformer::screen_to_world_at_z(int screen_x, int screen_y, flo
     float view_x = 0.5f * (iso_x / 0.866f + iso_y_corrected / 0.5f);
     float view_y = 0.5f * (iso_y_corrected / 0.5f - iso_x / 0.866f);
 
+    // Undo the azimuth orbit: the forward transform rotates view XY
+    // into the azimuth frame before the fixed 45° math, so the
+    // inverse rotates back out (CCW by the same angle).
+    if (camera_system_) {
+        const float a = camera_system_->get_view_azimuth();
+        if (a != 0.0f) {
+            const float c = std::cos(a), sn = std::sin(a);
+            const float wx = view_x * c - view_y * sn;
+            const float wy = view_x * sn + view_y * c;
+            view_x = wx; view_y = wy;
+        }
+    }
+
     // Convert from view space to world space
     world_x = view_x + cam_x;
     world_y = view_y + cam_y;
@@ -156,7 +169,18 @@ void CoordinateTransformer::screen_to_world_isometric(int screen_x, int screen_y
     
     float view_x = 0.5f * (iso_x / 0.866f + iso_y_corrected / 0.5f);
     float view_y = 0.5f * (iso_y_corrected / 0.5f - iso_x / 0.866f);
-    
+
+    // Undo the azimuth orbit (see screen_to_world_at_z).
+    if (camera_system_) {
+        const float a = camera_system_->get_view_azimuth();
+        if (a != 0.0f) {
+            const float c = std::cos(a), sn = std::sin(a);
+            const float wx = view_x * c - view_y * sn;
+            const float wy = view_x * sn + view_y * c;
+            view_x = wx; view_y = wy;
+        }
+    }
+
     // Convert from view space to world space - infinite world, no clamping
     world_x = view_x + cam_x;
     world_y = view_y + cam_y;

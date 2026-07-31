@@ -204,12 +204,17 @@ public:
 
     void render(IDrawSurface* renderer) override;
 
+    // View azimuth (orbit) in radians, CW-positive; fed per frame by
+    // UISystem from the camera so the needle tracks the orbit.
+    void set_view_azimuth(float radians) { view_azimuth_ = radians; }
+
 protected:
     // Override to make entire widget draggable (no title bar)
     bool is_in_title_bar(int local_x, int local_y) const override;
 
 private:
     static constexpr int compass_size_ = 80;  // Size of compass display
+    float view_azimuth_ = 0.0f;
 };
 
 } // namespace ui

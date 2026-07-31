@@ -71,6 +71,14 @@ public:
         float look_at_x, look_at_y, look_at_z;
     };
     virtual CameraDefaults get_default_camera() const = 0;
+
+    // View azimuth: rotation of the view basis around world +Z,
+    // clockwise-positive seen from above (the engine's compass
+    // convention, same sign as Particle::rotation_z). 0 keeps each
+    // projection's classic orientation. Parallel projections that
+    // support orbiting override; the default is a fixed view.
+    virtual void set_view_azimuth(float radians) { (void)radians; }
+    virtual float get_view_azimuth() const { return 0.0f; }
 };
 
 // Classic 2.5D isometric projection
@@ -100,18 +108,49 @@ public:
 
     bool is_parallel_projection() const override { return true; }  // Isometric uses parallel rays
 
+    // Azimuth orbit: pre-rotates view-space XY around world +Z before
+    // the fixed 45° projection, so azimuth = 0 reproduces the classic
+    // view exactly and any azimuth is the same scene seen from a
+    // rotated compass bearing. CW-positive from above (compass
+    // convention). project() and compute_depth() share this rotation;
+    // consumers doing their own iso math (inverse transform, culling
+    // probes, compass widget) must apply the same rotation — they
+    // read it from here via the camera.
+    void set_view_azimuth(float radians) override {
+        azimuth_ = radians;
+        azimuth_cos_ = std::cos(radians);
+        azimuth_sin_ = std::sin(radians);
+    }
+    float get_view_azimuth() const override { return azimuth_; }
+
+    // Rotate a world/view XY delta into the azimuth frame (the frame
+    // the fixed 45° formulas run in). CW-positive around +Z: at
+    // azimuth a, world east rotates toward south on screen.
+    inline void rotate_into_view(float x, float y,
+                                 float& out_x, float& out_y) const {
+        out_x = x * azimuth_cos_ + y * azimuth_sin_;
+        out_y = -x * azimuth_sin_ + y * azimuth_cos_;
+    }
+    // Inverse: azimuth-frame XY back to world frame.
+    inline void rotate_out_of_view(float x, float y,
+                                   float& out_x, float& out_y) const {
+        out_x = x * azimuth_cos_ - y * azimuth_sin_;
+        out_y = x * azimuth_sin_ + y * azimuth_cos_;
+    }
+
     // Orthographic depth along the iso view direction.
-    // iso_x is driven by (1,-1,0), iso_y by (0.5, 0.5, height_scale).
-    // Their cross product — the view axis — is proportional to
-    // (height_scale, height_scale, -1). Depth along the into-scene
-    // direction is then (height_scale*(dx+dy) - dz), unnormalized.
-    // Higher world Z (dz > 0 when camera is below) yields smaller
-    // depth → drawn in front. Independent of camera X/Y, which is the
+    // In the azimuth frame, iso_x is driven by (1,-1,0), iso_y by
+    // (0.5, 0.5, height_scale). Their cross product — the view axis —
+    // is proportional to (height_scale, height_scale, -1). Depth along
+    // the into-scene direction is then (height_scale*(dx'+dy') - dz),
+    // unnormalized, with (dx', dy') the azimuth-rotated delta. Higher
+    // world Z (dz > 0 when camera is below) yields smaller depth →
+    // drawn in front. Independent of camera X/Y, which is the
     // parallel-projection invariant.
     float compute_depth(float world_x, float world_y, float world_z,
                         float camera_x, float camera_y, float camera_z) const override {
-        const float dx = world_x - camera_x;
-        const float dy = world_y - camera_y;
+        float dx, dy;
+        rotate_into_view(world_x - camera_x, world_y - camera_y, dx, dy);
         const float dz = world_z - camera_z;
         return height_scale_ * (dx + dy) - dz;
     }
@@ -124,6 +163,9 @@ public:
 
 private:
     float height_scale_ = 1.0f;  // How much Z affects the projection
+    float azimuth_ = 0.0f;       // View orbit angle, CW from classic view
+    float azimuth_cos_ = 1.0f;
+    float azimuth_sin_ = 0.0f;
 };
 
 // Isometric with depth-based scaling
