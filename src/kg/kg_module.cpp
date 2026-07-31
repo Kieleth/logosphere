@@ -266,6 +266,14 @@ EntityID KGModule::getEntityByRenderIndex(RenderIndex render_idx) const {
     return core->getEntityByRenderIndex(render_idx);
 }
 
+void KGModule::snapshotRenderIndexToEntity(std::vector<EntityID>& out, size_t count) const {
+    if (!checkEnabled("snapshotRenderIndexToEntity")) {
+        out.assign(count, INVALID_ENTITY);
+        return;
+    }
+    core->snapshotRenderIndexToEntity(out, count);
+}
+
 KGParticleID KGModule::getKGParticleByRenderIndex(RenderIndex render_idx) const {
     if (!checkEnabled("getKGParticleByRenderIndex")) {
         return INVALID_KG_PARTICLE_ID;

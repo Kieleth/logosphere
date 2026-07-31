@@ -134,6 +134,10 @@ public:
     // Fast O(1) lookup: get owning entity from render index (for collision detection)
     EntityID getEntityByRenderIndex(RenderIndex render_idx) const;
 
+    // Batch form of the above, taking the KG lock once. See KGCore for why:
+    // the per-index accessor inside a 14-thread loop measured 275 ns a call.
+    void snapshotRenderIndexToEntity(std::vector<EntityID>& out, size_t count) const;
+
     // Stable KGParticleID currently mapped to a render index
     // (INVALID_KG_PARTICLE_ID if the slot is not KG-backed). The
     // interaction system uses this to bind long-running transformation

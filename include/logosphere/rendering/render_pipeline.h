@@ -279,6 +279,10 @@ private:
     // Using deque for pointer stability when growing (prevents crashes with large tiles)
     std::deque<SurfaceRasterizer::SurfaceData> surface_cache_;
 
+    // Render index -> owning entity, refreshed once per frame under a single
+    // KG lock so the shadow-triangle workers never touch the KG mutex.
+    std::vector<kg::EntityID> shadow_entity_ids_;
+
     // Per-particle generated geometry, reused while the particle has not
     // moved (USE_RENDER_SURFACE_CACHE). Indexed by particle index; the stored
     // key makes it safe against swap-and-pop index reuse — see the flag

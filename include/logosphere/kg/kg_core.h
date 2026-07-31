@@ -73,6 +73,16 @@ public:
     EntityID getEntityByKGParticle(KGParticleID kg_id) const;
     std::vector<EntityID> getEntitiesByRenderIndex(RenderIndex render_idx) const;  // UI Inspector support
     EntityID getEntityByRenderIndex(RenderIndex render_idx) const;  // Fast O(1) lookup for collision detection
+
+    // Snapshot render index -> owning entity for indices [0, count), taking the
+    // lock ONCE. The per-index accessor above locks a recursive_mutex and does
+    // two hash lookups; the shadow-triangle pass called it once per particle
+    // from 14 worker threads, which measured 275 ns per call under contention
+    // against roughly 25 uncontended. Callers needing many indices inside a
+    // parallel region should snapshot first, then read lock-free. Unmapped
+    // entries are left INVALID_ENTITY, matching the per-index miss behaviour.
+    void snapshotRenderIndexToEntity(std::vector<EntityID>& out, size_t count) const;
+
     KGParticleID getKGParticleByRenderIndex(RenderIndex render_idx) const;  // Stable id for a live render slot
 
     // Recursive particle collection via relationships (for hierarchical entities)

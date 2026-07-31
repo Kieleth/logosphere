@@ -377,6 +377,24 @@ EntityID KGCore::getEntityByRenderIndex(RenderIndex render_idx) const {
     return (entity_it != kg_particle_to_entity_.end()) ? entity_it->second : INVALID_ENTITY;
 }
 
+void KGCore::snapshotRenderIndexToEntity(std::vector<EntityID>& out, size_t count) const {
+    // Size and zero OUTSIDE the lock: the point of this call is to keep the
+    // critical section to one pass, not to hold the mutex across an allocation.
+    out.assign(count, INVALID_ENTITY);
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    // Walk the bound render indices rather than probing [0, count): the map
+    // holds only mapped slots, which is far smaller than the particle array.
+    for (const auto& kv : render_to_kg_) {
+        const size_t idx = static_cast<size_t>(kv.first);
+        if (idx >= count) continue;
+        auto entity_it = kg_particle_to_entity_.find(kv.second);
+        if (entity_it != kg_particle_to_entity_.end()) {
+            out[idx] = entity_it->second;
+        }
+    }
+}
+
 // === Queries ===
 
 std::vector<EntityID> KGCore::findByType(const std::string& type) const {
