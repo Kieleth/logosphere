@@ -149,6 +149,10 @@ public:
         // 3c. Wanderers: people stroll between self-chosen spots.
         if (!wanderers_.empty()) tick_wanderers(kg, dt);
 
+        // 3d. Camera orbit: the view swings around the scene
+        // (smoothstep-eased) and lands exactly on its final bearing.
+        if (orbit_active_) tick_orbit(dt);
+
         // 4. The sky clock: when the Sky's time_of_day is ahead of
         // the sun, time ACCELERATES until the sun arrives, then
         // resumes normal pace — "make it golden hour" is a journey,
@@ -335,7 +339,7 @@ private:
             kg.getRegistry(),
             {"GroundSeed", "SunSeed", "MoonSeed", "Sky", "LightSeed",
              "TreeSeed", "GrassSeed", "RockSeed", "ButterflySeed",
-             "HumanoidSeed"});
+             "HumanoidSeed", "OrbitSeed"});
         return std::string(
             "You are the voice of Logogenesis: a calm, slightly wondrous "
             "creator that makes things exist in a black phosphor-grid void "
@@ -373,6 +377,11 @@ private:
             "dramatic) births the rock that high and lets gravity "
             "speak — on LAYERED ground the impact shoves the topsoil "
             "aside. Use for 'meteor', 'crash', 'falling rock' wishes.\n\n"
+            "THE EYE CAN MOVE: an OrbitSeed swings the camera around "
+            "the scene like a slow drone shot and lands where it began "
+            "(revolutions 1, duration_seconds 12 reads cinematic). Use "
+            "it when the human asks to look around, orbit, or see it "
+            "from all sides — pair it with a fresh scene for drama.\n\n"
             "COMPOSE WITH THE SPACE. Read the World block's positions "
             "and sizes: place new things in relation to what exists "
             "('around the redwood' = a ring of patches at its foot, not "
@@ -653,6 +662,17 @@ private:
     // candidate the learnings ledger tracks.
     void materialize_seeds(kg::KGModule& kg) {
         auto& wg = engine_->get_worldgen_system();
+
+        for (auto seed : kg.findByType("OrbitSeed")) {
+            float revs = prop_f(kg, seed, "revolutions", 1.0f);
+            float dur = prop_f(kg, seed, "duration_seconds", 12.0f);
+            kg.destroyEntity(seed);
+            orbit_base_ = engine_->get_camera_system().get_view_azimuth();
+            orbit_total_ = revs * 6.2831853f;
+            orbit_duration_ = dur;
+            orbit_t_ = 0.0f;
+            orbit_active_ = true;
+        }
 
         for (auto seed : kg.findByType("SunSeed")) {
             float wish_hour = prop_f(kg, seed, "time_of_day", -1.0f);
@@ -1341,6 +1361,29 @@ private:
     std::vector<GrowthJob> growth_jobs_;
     std::vector<GroundJob> ground_jobs_;
     float ground_top_z_ = 0.0f;   // world surface: things stand HERE
+    // ------------------------------------------------------------ orbit
+    // The engine provides the azimuth parameter; the ANIMATION is
+    // game policy (this tween). Smoothstep ease, exact landing.
+    void tick_orbit(float dt) {
+        orbit_t_ += dt;
+        float u = orbit_duration_ > 0.0f ? orbit_t_ / orbit_duration_ : 1.0f;
+        if (u >= 1.0f) {
+            engine_->get_camera_system().set_view_azimuth(
+                orbit_base_ + orbit_total_);
+            orbit_active_ = false;
+            return;
+        }
+        float ease = u * u * (3.0f - 2.0f * u);   // smoothstep
+        engine_->get_camera_system().set_view_azimuth(
+            orbit_base_ + orbit_total_ * ease);
+    }
+
+    bool orbit_active_ = false;
+    float orbit_t_ = 0.0f;
+    float orbit_duration_ = 0.0f;
+    float orbit_total_ = 0.0f;
+    float orbit_base_ = 0.0f;
+
     std::vector<Wanderer> wanderers_;
     bool wander_swap_hooked_ = false;
     kg::EntityID sky_entity_ = kg::INVALID_ENTITY;

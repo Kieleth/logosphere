@@ -1499,26 +1499,37 @@ void RenderPipeline::collect_surfaces(
                         // Diagonal offset for XYZ: half_diagonal / sqrt(3)
                         float diag_xyz = half_diagonal * 0.5774f;  // 1/sqrt(3)
 
-                        // Check (1, -1, 0) diagonal - maximizes screen_x in isometric
-                        camera_system.world_to_screen(particle.x + diag_xy, particle.y - diag_xy, particle.z,
+                        // The extremal probe directions are frame
+                        // properties, not world properties: under an
+                        // azimuth orbit they are the classic diagonals
+                        // rotated back into world space (CCW by a).
+                        const float az = camera_system.get_view_azimuth();
+                        const float az_c = std::cos(az), az_s = std::sin(az);
+                        // R_ccw(a) * (1, -1): screen_x maximizer
+                        const float ex_x = az_c + az_s, ex_y = az_s - az_c;
+                        // R_ccw(a) * (1, 1): screen_y maximizer (with z)
+                        const float ey_x = az_c - az_s, ey_y = az_s + az_c;
+
+                        // Check rotated (1, -1, 0) diagonal - maximizes screen_x
+                        camera_system.world_to_screen(particle.x + ex_x * diag_xy, particle.y + ex_y * diag_xy, particle.z,
                                                      edge_x, edge_y);
                         screen_radius = std::max(screen_radius, std::abs(edge_x - cached_screen_x));
                         screen_radius = std::max(screen_radius, std::abs(edge_y - cached_screen_y));
 
-                        // Check (-1, 1, 0) diagonal - maximizes negative screen_x
-                        camera_system.world_to_screen(particle.x - diag_xy, particle.y + diag_xy, particle.z,
+                        // Check rotated (-1, 1, 0) diagonal - maximizes negative screen_x
+                        camera_system.world_to_screen(particle.x - ex_x * diag_xy, particle.y - ex_y * diag_xy, particle.z,
                                                      edge_x, edge_y);
                         screen_radius = std::max(screen_radius, std::abs(edge_x - cached_screen_x));
                         screen_radius = std::max(screen_radius, std::abs(edge_y - cached_screen_y));
 
-                        // Check (1, 1, 1) diagonal - maximizes screen_y (toward top)
-                        camera_system.world_to_screen(particle.x + diag_xyz, particle.y + diag_xyz, particle.z + diag_xyz,
+                        // Check rotated (1, 1, 1) diagonal - maximizes screen_y (toward top)
+                        camera_system.world_to_screen(particle.x + ey_x * diag_xyz, particle.y + ey_y * diag_xyz, particle.z + diag_xyz,
                                                      edge_x, edge_y);
                         screen_radius = std::max(screen_radius, std::abs(edge_x - cached_screen_x));
                         screen_radius = std::max(screen_radius, std::abs(edge_y - cached_screen_y));
 
-                        // Check (-1, -1, -1) diagonal - maximizes screen_y (toward bottom)
-                        camera_system.world_to_screen(particle.x - diag_xyz, particle.y - diag_xyz, particle.z - diag_xyz,
+                        // Check rotated (-1, -1, -1) diagonal - maximizes screen_y (toward bottom)
+                        camera_system.world_to_screen(particle.x - ey_x * diag_xyz, particle.y - ey_y * diag_xyz, particle.z - diag_xyz,
                                                      edge_x, edge_y);
                         screen_radius = std::max(screen_radius, std::abs(edge_x - cached_screen_x));
                         screen_radius = std::max(screen_radius, std::abs(edge_y - cached_screen_y));
@@ -2208,6 +2219,7 @@ void RenderPipeline::rasterize_surfaces(
                 float target_x, target_y;
                 camera_system.get_look_at_target(target_x, target_y);
                 gpu_rasterizer_.set_shadow_culling_camera(target_x, target_y);
+                gpu_rasterizer_.set_view_azimuth(camera_system.get_view_azimuth());
                 gpu_rasterizer_.set_shadow_projection_params(camera_system.get_pixels_per_unit());
 
                 // Per-particle "is_dynamic" map for the vision-cone

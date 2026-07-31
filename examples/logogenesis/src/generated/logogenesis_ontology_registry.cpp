@@ -42,6 +42,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("MoonSeed", "WorldEntity", false);
     reg.addEntityType("NaturalFormation", "WorldEntity", true);
     reg.addEntityType("Neck", "BodyPart", false);
+    reg.addEntityType("OrbitSeed", "WorldEntity", false);
     reg.addEntityType("ParticleInteractionProfile", "Entity", false);
     reg.addEntityType("PhysicsConstants", "Entity", false);
     reg.addEntityType("PhysicsRock", "Rock", false);
@@ -107,6 +108,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("MoonSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("NaturalFormation", {"Describable", "Destructible", "Entity", "HasMaterial", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Neck", {"BodyPart", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("OrbitSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("ParticleInteractionProfile", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PhysicsRock", {"Describable", "Destructible", "Entity", "HasMaterial", "Identifiable", "NaturalFormation", "Rock", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -143,6 +145,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("HumanoidSeed", {"request"});
     reg.addFacets("LightSeed", {"request"});
     reg.addFacets("MoonSeed", {"request"});
+    reg.addFacets("OrbitSeed", {"request"});
     reg.addFacets("RockSeed", {"request"});
     reg.addFacets("SunSeed", {"request"});
     reg.addFacets("TreeSeed", {"request"});
@@ -268,6 +271,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("MoonSeed", "moon_b", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("MoonSeed", "moon_brightness", "float", false, true, 0.2, true, 3.0);
     reg.addProperty("MoonSeed", "moon_size", "float", false, true, 2.0, true, 12.0);
+    reg.addProperty("OrbitSeed", "revolutions", "float", false, true, 0.25, true, 3.0);
+    reg.addProperty("OrbitSeed", "duration_seconds", "float", false, true, 2.0, true, 60.0);
     reg.addProperty("ParticleInteractionProfile", "category_bit", "integer", false);
     reg.addProperty("ParticleInteractionProfile", "collides_with_mask", "integer", false);
     reg.addProperty("ParticleInteractionProfile", "drag_coefficient", "float", false);

@@ -4353,10 +4353,26 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                     float delta_world_x = shadow_culling_camera_x_ - prev_shadow_camera_x_;
                     float delta_world_y = shadow_culling_camera_y_ - prev_shadow_camera_y_;
 
+                    // Azimuth orbit: the iso formula below runs in the
+                    // view frame, so rotate the world delta into it
+                    // (CW by the azimuth, matching the projection).
+                    // Screen-space translation cannot compensate a
+                    // rotating frame; when the azimuth changed this
+                    // frame the delta is wrong for every pixel, so
+                    // push a huge delta to invalidate temporal history.
+                    const float az = view_azimuth_;
+                    if (az != prev_view_azimuth_) {
+                        delta_world_x += 1.0e6f;
+                        prev_view_azimuth_ = az;
+                    }
+                    const float az_c = std::cos(az), az_s = std::sin(az);
+                    const float dvx = delta_world_x * az_c + delta_world_y * az_s;
+                    const float dvy = -delta_world_x * az_s + delta_world_y * az_c;
+
                     // Isometric transform: iso_x = (view_x - view_y) * 0.866f
-                    // Camera moving +X in world shifts iso_x by -0.866, +Y shifts iso_x by +0.866
-                    float delta_iso_x = (-delta_world_x + delta_world_y) * 0.866f;
-                    float delta_iso_y = (-delta_world_x - delta_world_y) * 0.5f;
+                    // Camera moving +X in view shifts iso_x by -0.866, +Y shifts iso_x by +0.866
+                    float delta_iso_x = (-dvx + dvy) * 0.866f;
+                    float delta_iso_y = (-dvx - dvy) * 0.5f;
 
                     // Scale to shadow buffer pixels
                     float scale_factor = shadow_pixels_per_unit_ * ((float)shadow_width_ / (float)width_);
