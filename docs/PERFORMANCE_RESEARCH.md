@@ -28,14 +28,14 @@ Answers: how many shadow rays, BVH nodes, triangles, draw calls, cache
 misses by proxy. Enough to find algorithmic blowups, the class of bug
 where a count grows with the wrong variable. This tier is also the only
 one that can tell a superlinear ALGORITHM from a superlinear WORKLOAD:
-timings look identical in both cases, counts do not (a controlled study).
+timings look identical in both cases, counts do not (kit study S7).
 
 Cannot answer: where the time went.
 
 Counters must survive worker-thread death. Thread-local storage that
 deregisters on exit silently reports zero for every count incremented
 off the main thread, and a missing count is indistinguishable from
-"it did not happen" (a controlled study).
+"it did not happen" (kit study S9).
 
 ### Tier 2 — Phase timers (frame granularity, always compiled, runtime-toggleable)
 
@@ -92,8 +92,8 @@ shipping build.
 5. **Stage cost is not critical-path cost.** GPU passes overlap. At
    retina the per-stage medians sum to 21.5 ms while the frame is
    16.1 ms. A 2 ms stage win can buy zero frame time. This has now
-   happened three times: the optimization ledger, the pow-to-squarings experiment,
-   and the surface cache (a controlled study, which cut render_collect 24%
+   happened three times: ledger G4, the pow-to-squarings experiment,
+   and the surface cache (kit study S9, which cut render_collect 24%
    for no frame movement). Any claim about what removing a stage would
    buy requires tier 3 serialization, and must be reported as isolated
    cost, never as a frame prediction. (New principle.)
@@ -106,7 +106,7 @@ shipping build.
    Timings do not point at this, and neither do operation counters. The
    questions that do: what in this function is the same for every element,
    and how many allocations does one element cost? Three tells, all of them
-   present here (a controlled study):
+   present here (kit study S10):
    - a constructor called inside a per-element loop, building shared data;
    - a `get_world_*` / `to_*` helper returning a container **by value**;
    - a small fixed-size struct holding `std::vector` members, which turns
@@ -128,7 +128,7 @@ build with it compiled out.
 
 Method: A-B-A interleaved retina benches, plus the pixel oracles to
 confirm the instrumentation changes no output. Recorded in
-`the performance research notes`'s journal, not here.
+`PERF_RESEARCH_KIT.md`'s journal, not here.
 
 ## What this replaces
 
@@ -140,6 +140,11 @@ snapshot survives as the consumer-facing frame summary.
 
 ## See also
 
+- `docs/todo_plans/PERF_RESEARCH_KIT.md` — the measurement harness,
+  sweep design, and study journal (S1-S10).
+- `docs/todo_plans/GPU_OPT_LEDGER.md` — optimization items, with the
+  A/B protocol and the falsified results.
+- `docs/todo_plans/SPHERE_LOD_DESIGN.md` — dynamic LOD design discussion.
 - `src/core/telemetry.h` — the sessions/instruments/journal primitives
   this doc describes.
 - [METAL.md](METAL.md) and [SHADOW_SYSTEM.md](SHADOW_SYSTEM.md) — the
