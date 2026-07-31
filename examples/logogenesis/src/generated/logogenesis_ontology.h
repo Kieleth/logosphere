@@ -1662,4 +1662,13 @@ struct RockSeed : public WorldEntity {
 };
 
 
+/// Request to orbit the camera around the scene: the isometric view swings around the world like a slow drone shot. The world does not move; only the eye does. Use when the human asks to look around, orbit, spin the view, or see it from all sides. One full revolution ends exactly where it began.
+struct OrbitSeed : public WorldEntity {
+    /// Full turns of the view. 1 is a complete lap ending where it began; 0.5 shows the far side and stays there.
+    std::optional<float> revolutions = std::nullopt;
+    /// How long the whole orbit takes. 12 reads cinematic; under 5 feels like a whip.
+    std::optional<float> duration_seconds = std::nullopt;
+};
+
+
 } // namespace logogenesis::ontology

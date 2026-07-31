@@ -17,6 +17,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   GPU temporal shadow reprojection (history invalidates while
   orbiting). Games drive the animation; the engine provides the
   parameter.
+- Logogenesis: `OrbitSeed` joins the creative vocabulary. "Orbit
+  around the scene" swings the camera through a smoothstep-eased
+  revolution (revolutions 0.25-3, duration 2-60 s) and lands exactly
+  on its final bearing; the world never moves, only the eye.
 - CMake install/export: `cmake --install` now ships the headless
   core, and external projects consume it with
   `find_package(logosphere 0.2)` + `target_link_libraries(app

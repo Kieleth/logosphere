@@ -216,11 +216,39 @@ classes:
       - rock_b
       - drop_height
 
+  OrbitSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request to orbit the camera around the scene: the isometric
+      view swings around the world like a slow drone shot. The world
+      does not move; only the eye does. Use when the human asks to
+      look around, orbit, spin the view, or see it from all sides.
+      One full revolution ends exactly where it began.
+    slots:
+      - revolutions
+      - duration_seconds
+
 # -------------------------------------------------------------------
 # Slots
 # -------------------------------------------------------------------
 
 slots:
+  revolutions:
+    range: float
+    minimum_value: 0.25
+    maximum_value: 3.0
+    description: >-
+      Full turns of the view. 1 is a complete lap ending where it
+      began; 0.5 shows the far side and stays there.
+  duration_seconds:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 60.0
+    description: >-
+      How long the whole orbit takes. 12 reads cinematic; under 5
+      feels like a whip.
   count:
     range: integer
     minimum_value: 1

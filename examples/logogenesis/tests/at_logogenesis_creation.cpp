@@ -842,6 +842,49 @@ void test_humanoid_wanders() {
 
 }  // namespace
 
+// The eye can move: an OrbitSeed swings the camera azimuth through a
+// full revolution and lands exactly where it began (issue #9's engine
+// mechanism driven by game policy). Mid-orbit the azimuth must be off
+// the classic bearing; at the end it must equal 2*pi exactly enough
+// that the view is home again.
+void test_orbit_seed_swings_the_camera() {
+    Harness h;
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"Let us walk around it.",
+                     "ops":[
+              {"op":"create_entity","type":"OrbitSeed","properties":{
+                 "revolutions":"1","duration_seconds":"3"}}]})");
+        });
+
+    float before = h.engine.get_camera_system().get_view_azimuth();
+    AT_ASSERT_TRUE(before == 0.0f, "camera starts on the classic bearing");
+
+    h.app.submit_text_for_test("orbit around the scene");
+
+    // 1.5 s in (half of the 3 s orbit): mid-swing, azimuth well off 0.
+    for (int i = 0; i < 90; ++i) h.tick(dt);
+    float mid = h.engine.get_camera_system().get_view_azimuth();
+    AT_ASSERT_TRUE(mid > 0.5f && mid < 6.0f,
+        "mid-orbit the view is swinging (azimuth " +
+        std::to_string(mid) + ")");
+
+    // Past the end: exactly one revolution, landed home.
+    for (int i = 0; i < 150; ++i) h.tick(dt);
+    float after = h.engine.get_camera_system().get_view_azimuth();
+    AT_ASSERT_TRUE(std::fabs(after - 6.2831853f) < 1e-3f,
+        "the orbit lands exactly one revolution later (azimuth " +
+        std::to_string(after) + ")");
+
+    // The seed is consumed: requests are wishes, not objects.
+    AT_ASSERT_TRUE(h.engine.get_kg().findByType("OrbitSeed").empty(),
+        "the OrbitSeed is destroyed after materializing");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -855,6 +898,7 @@ int main() {
     AT_TEST(test_forest_in_one_breath);
     AT_TEST(test_layered_earth_and_falling_boulder);
     AT_TEST(test_humanoid_wanders);
+    AT_TEST(test_orbit_seed_swings_the_camera);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
