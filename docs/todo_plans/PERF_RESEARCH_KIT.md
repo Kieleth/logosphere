@@ -18,6 +18,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S8 | Is the per-particle allocation the cost? | No. Cost is per-surface math. Removal was +2.5%, i.e. nothing. |
 | S9 | Does caching unmoved geometry help? | Works (94-99% hits, collect -24/-36%) but no frame win. Flag OFF. |
 | S10 | What actually starves the GPU? | The unit icosphere, rebuilt per sphere per call. ~5M allocations/frame. CPU render -35%. |
+| S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 
 **Standing conclusions.** Cost tracks **surfaces**, not particles and not
 lights. A sphere at subdivision 2 emits 320 surfaces against a box's ~12.
@@ -375,6 +376,48 @@ members makes every container of it an allocation storm. (3) Four GPU
 "utilization" numbers disagreed by 20x; `powermetrics` reads the hardware
 counters and is the one to believe. (4) `GPUEndTime - GPUStartTime` per command
 buffer is residency, not work, and must not be summed.
+
+### S11: a phase named after geometry was two thirds mutex (2026-07-31)
+Audit of the three biggest CPU render phases against the new Eden baseline
+(19,104 particles, 103,920 surfaces, 196,596 shadow triangles).
+
+**`prep_shadow_tris`, 7.71 ms.** The worker tagged every triangle with its
+owning entity for BVH grouping by calling `getEntityByRenderIndex()` **once per
+particle**. That accessor locks a `std::recursive_mutex` and does two hash
+lookups, and **14 worker threads ran it concurrently**. Sized by diagnostic
+deletion first (replace the call with a constant, rebuild, measure): 6.88 to
+2.37 ms. At 16,383 particles that is **275 ns per call against roughly 25 ns
+uncontended, a 10x contention penalty.**
+
+The mapping is constant for the frame and only changes when particles are
+added, removed or rebound, so it never needed reading inside a parallel region.
+`KGCore::snapshotRenderIndexToEntity()` now fills it under ONE lock, walking the
+bound render indices rather than probing every particle slot.
+
+| Eden retina | before | after |
+|---|---|---|
+| prep_shadow_tris | 7.71 | **2.50** (-68%) |
+| render_prep | 12.29 | 7.16 |
+| frame | 27.09 | **22.28** (-18%, 36.9 to 44.9 FPS) |
+
+Every other phase moved under 0.25 ms. Entity grouping bit-identical (781
+entities, 196,524 triangles, same group-size distribution), six of six pixel
+oracles byte-identical, harness 27/27.
+
+**Two negatives from the same audit, recorded so they are not re-derived.**
+- The second back-face cull in `convert_surface_to_lit_triangles` looked like
+  pure redundancy after `CULL_SURFACES_AT_GENERATION` landed. It costs
+  **0.04 ms and rejects 60 triangles**. Leave it.
+- `USE_OCCLUSION_CULLING` costs **0.29 ms and culls 1 particle of 17,352** in
+  this scene. Negative value, but too small to be worth a flag flip on its own.
+
+**Learnings.** (1) A phase name describes where code lives, not what it costs:
+"prep_shadow_tris" was 68% lock. (2) **Any per-element lock inside a parallel
+region is a serialization point**; look for locks before looking at arithmetic.
+(3) Diagnostic deletion sizes a prize in one build, before any real fix is
+written: replace the suspect with a constant, measure, then decide whether the
+fix is worth designing. (4) A clean A/B moves ONE phase. If unrelated phases
+move too, the experiment is confounded.
 
 ---
 
