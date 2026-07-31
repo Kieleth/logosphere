@@ -2211,6 +2211,13 @@ void UISystem::remove_widget(ui::Widget* widget) {
     }
 }
 
+bool UISystem::handle_mouse_scroll(int x, int y, double dx, double dy) {
+    (void)x; (void)y; (void)dx;
+    if (!is_initialized_ || !hovered_widget_) return false;
+    if (dy == 0.0) return false;
+    return hovered_widget_->on_mouse_scroll(dy > 0.0 ? 1 : -1);
+}
+
 void UISystem::clear_widgets() {
     root_widgets_.clear();
     owned_widgets_.clear();

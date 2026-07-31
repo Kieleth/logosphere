@@ -91,6 +91,9 @@ public:
     
     // Event routing for retained mode
     bool handle_mouse_move(int x, int y);
+    // Route a scroll to the widget under the cursor (chat scrollback
+    // etc.). Returns true if a widget consumed it.
+    bool handle_mouse_scroll(int x, int y, double dx, double dy);
     bool handle_mouse_down(int x, int y, int button);
     bool handle_mouse_up(int x, int y, int button);
     bool handle_key_down(int key, bool shift = false, bool ctrl = false, bool alt = false);

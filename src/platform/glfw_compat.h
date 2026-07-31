@@ -78,6 +78,10 @@ typedef struct GLFWwindow GLFWwindow;
 #define GLFW_KEY_LEFT_BRACKET  91
 #define GLFW_KEY_BACKSLASH     92
 #define GLFW_KEY_RIGHT_BRACKET 93
+#define GLFW_KEY_RIGHT         262
+#define GLFW_KEY_LEFT          263
+#define GLFW_KEY_DOWN          264
+#define GLFW_KEY_UP            265
 #define GLFW_KEY_GRAVE_ACCENT  96
 
 // Function keys

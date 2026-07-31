@@ -257,7 +257,20 @@ void InputSystem::on_mouse_button(Platform::MouseButton button, bool pressed, co
 }
 
 void InputSystem::on_mouse_scroll(double x_offset, double y_offset) {
-    // Not currently used, but implement for completeness
+    if (!engine_) return;
+
+    // UI first: the widget under the cursor may want the scroll
+    // (chat scrollback). Widgets that don't care return false.
+    auto* ui = engine_->get_ui_system();
+    if (ui && ui->handle_mouse_scroll(static_cast<int>(input_state.mouse_x),
+                                      static_cast<int>(input_state.mouse_y),
+                                      x_offset, y_offset)) {
+        return;
+    }
+
+    // Camera-on-scroll was tried and reverted: the mouse already
+    // steers the avatar's gaze in Eden, so camera motion lives on the
+    // arrow keys (CameraController::handle_orbit) instead.
 }
 
 void InputSystem::on_window_resize(int width, int height) {
