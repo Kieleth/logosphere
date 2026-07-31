@@ -277,6 +277,127 @@ void test_boulder_craters_the_ground() {
         std::to_string(lowest) + ")");
 }
 
+// High-energy impact must not explode the field (issue #5). A pure
+// kinetic-energy budget cannot tell ballistics from explosions: the
+// impact legitimately ejects tiles, whose KE dips at apex and returns
+// on the way down. The honest invariant is TOTAL mechanical energy
+// (KE + gravitational PE) of boulder + ground: after release, gravity
+// only converts PE to KE and contacts only dissipate, so total E must
+// never rise. Any rise is energy the solver created; a big rise is
+// the explosion.
+void test_large_boulder_energy_budget() {
+    Harness h;
+    auto specs = StrataGenerator::earth_preset();
+    StrataGenerator::ChunkBounds bounds{-10.0f, 10.0f, -10.0f, 10.0f};
+    std::mt19937 rng(23);
+    auto ground = StrataGenerator::generate(h.engine, specs, bounds, rng);
+    float ground_top = ground.layers[2].max_top_z;
+
+    auto& ps = h.engine.get_particle_system();
+    std::vector<int> ids;
+    for (const auto& L : ground.layers)
+        ids.insert(ids.end(), L.particle_ids.begin(), L.particle_ids.end());
+
+    // The big one: 3.2 m stone cube (8x the crater test's mass) from
+    // 30 m. Roughly 13x the impact energy of the moderate case.
+    Particle boulder = {};
+    boulder.shape = ParticleShape::BOX;
+    boulder.x = 0.0f; boulder.y = 0.0f;
+    boulder.z = ground_top + 30.0f;
+    boulder.width = boulder.height = boulder.thickness = 3.2f;
+    boulder.size = 3.2f;
+    boulder.r = 0.4f; boulder.g = 0.38f; boulder.b = 0.36f; boulder.a = 1.0f;
+    boulder.SetMaterial(Materials::Type::STONE);
+    int boulder_id = h.engine.add_particle(boulder);
+    ids.push_back(boulder_id);
+
+    const double G = 9.8;
+    auto total_energy = [&](double& ke_out) {
+        auto view = ps.lock_particles_for_read();
+        double e = 0.0, ke = 0.0;
+        for (int id : ids) {
+            const auto& p = view[id];
+            double m = p.GetMass();
+            double k = 0.5 * m * (p.vx * p.vx + p.vy * p.vy + p.vz * p.vz);
+            ke += k;
+            e += k + m * G * p.z;
+        }
+        ke_out = ke;
+        return e;
+    };
+
+    // 2.47 s of free fall covers 30 m; give the aftermath the rest of
+    // 20 simulated seconds.
+    const int FRAMES = 1200;
+    double ke0;
+    double e_prev = total_energy(ke0), e_start = e_prev;
+    double peak_ke = 0.0;
+    double worst_rise = 0.0, total_rise = 0.0;
+    int worst_rise_frame = -1, impact_frame = -1;
+    double final_ke = 0.0;
+    for (int i = 0; i < FRAMES; ++i) {
+        h.engine.update(1.0 / 60.0);
+        {
+            auto view = ps.lock_particles_for_read();
+            if (impact_frame < 0 && view[boulder_id].z < ground_top + 1.6f)
+                impact_frame = i;
+        }
+        double ke;
+        double e = total_energy(ke);
+        peak_ke = std::max(peak_ke, ke);
+        double rise = e - e_prev;
+        if (rise > 0.0) {
+            total_rise += rise;
+            if (rise > worst_rise) { worst_rise = rise; worst_rise_frame = i; }
+        }
+        e_prev = e;
+        if (i % 60 == 0 || (impact_frame >= 0 && i < impact_frame + 90 &&
+                            i % 15 == 0))
+            std::cout << "  [energy] f" << i << " E=" << e
+                      << " J (ke=" << ke << ")" << std::endl;
+        final_ke = ke;
+    }
+    std::cout << "  [measure] impact f" << impact_frame
+              << " E_start=" << e_start
+              << " peak_ke=" << peak_ke
+              << " worst_rise=" << worst_rise << " J/frame at f"
+              << worst_rise_frame
+              << " total_rise=" << total_rise
+              << " final_ke=" << final_ke << std::endl;
+
+    AT_ASSERT_TRUE(impact_frame > 0, "the boulder reaches the ground");
+    AT_ASSERT_TRUE(peak_ke > 0.0, "impact injects energy into the field");
+    // RATCHET, not the final contract (issue #5). Measured today:
+    // the impact frame creates 1.19 MJ (position correction + capped
+    // bias velocity across dozens of deep heavy contacts), 1.96 MJ
+    // cumulative over the run, against 29.08 MJ total. Free fall and
+    // the ballistic ejecta phase conserve E cleanly; the injection is
+    // confined to the deep-penetration frames. The real contract is
+    // dissipation-only (rises within ~1% of E_start); reaching it
+    // means split-impulse-style position correction that does not
+    // feed the velocity state. Until then these bounds pin the
+    // current scale so escalation fails loudly.
+    AT_ASSERT_TRUE(worst_rise < 1.6e6,
+        "impact-frame energy creation at the known scale (worst rise " +
+        std::to_string(worst_rise) + " J at f" +
+        std::to_string(worst_rise_frame) +
+        ", ratchet 1.6 MJ) — escalation is the explosion");
+    AT_ASSERT_TRUE(total_rise < 2.6e6,
+        "cumulative solver-created energy holds the ratchet (" +
+        std::to_string(total_rise) + " J, ratchet 2.6 MJ, start " +
+        std::to_string(e_start) + " J)");
+    AT_ASSERT_TRUE(final_ke < peak_ke * 0.02,
+        "the field ends quiet (final ke " + std::to_string(final_ke) +
+        " J vs peak " + std::to_string(peak_ke) + " J)");
+
+    // The turtle is absolute at any energy.
+    float lowest = min_bottom_z(h.engine, ground.layers[0].particle_ids);
+    AT_ASSERT_TRUE(lowest > -0.01f,
+        "nothing driven below the turtle (lowest " +
+        std::to_string(lowest) + ")");
+}
+
+
 }  // namespace
 
 int main() {
@@ -284,6 +405,7 @@ int main() {
     AT_TEST(test_earth_preset_layers);
     AT_TEST(test_incremental_api_composes);
     AT_TEST(test_boulder_craters_the_ground);
+    AT_TEST(test_large_boulder_energy_budget);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
