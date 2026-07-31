@@ -4,6 +4,16 @@ project(logosphere VERSION 0.2.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# A bare `cmake -S . -B build` (the README line) must not produce an
+# unoptimized engine: an empty build type compiles with no -O flags
+# and runs the renderer ~8x slower, which reads as an engine
+# regression. Default to Release; explicit -DCMAKE_BUILD_TYPE and
+# multi-config generators are untouched.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    message(STATUS "No CMAKE_BUILD_TYPE given; defaulting to Release")
+endif()
+
 # MSVC: expose the M_PI constant family and keep <windows.h> from
 # defining min/max macros that collide with std::min / std::max.
 if(MSVC)
@@ -334,6 +344,7 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_celestial_moon)   # moon factory preset (pure config)
     add_engine_at(test_strata_earth_impact)  # earth preset + boulder crater contract
     add_engine_at(test_iso_azimuth_roundtrip)  # orbit picking round-trip (issue #9)
+    add_engine_at(test_orbit_performance)  # orbit frame-cost study + post-orbit ratchet
     add_engine_at(test_leg_spin_on_rotation) # Eden playtest repro: legs spin when human rotates
     add_engine_at(test_face_tracks_head)     # Eden playtest repro: eyes/ears/nose ride the head's yaw
     add_engine_at(test_leg_geometry_choreography) # Eden playtest repro: legs fold under walk/stop/turn transitions
