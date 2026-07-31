@@ -7,6 +7,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+- **Tic-Tac-Toe example.** A headless/console example game
+  (`examples/tictactoe/`) driven entirely through `kg::KGModule` and the
+  ontology-extension/event-bus APIs, with no rendering or `IApplication`
+  dependency, so it builds under every `LOGOSPHERE_PROFILE` (`core`,
+  `physics`, `full`) instead of `full`-only like the other examples.
+
 ## [0.2.0] - 2026-07-30
 
 First public release. Everything below describes the engine as it
