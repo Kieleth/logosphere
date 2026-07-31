@@ -86,12 +86,12 @@ bool test_simd_edge_equations() {
     
     if (scalar_mask != simd_mask) {
         std::cout << "  FAIL: Inside mask mismatch!" << std::endl;
-        std::cout << "    Scalar mask: " << std::hex << (int)scalar_mask << std::endl;
-        std::cout << "    SIMD mask:   " << std::hex << (int)simd_mask << std::endl;
+        std::cout << "    Scalar mask: " << std::hex << (int)scalar_mask << std::dec << std::endl;
+        std::cout << "    SIMD mask:   " << std::hex << (int)simd_mask << std::dec << std::endl;
         return false;
     }
     std::cout << "  ✓ Inside/outside classification matches" << std::endl;
-    std::cout << "  Inside mask: 0x" << std::hex << (int)simd_mask 
+    std::cout << "  Inside mask: 0x" << std::hex << (int)simd_mask << std::dec
               << " (" << __builtin_popcount(simd_mask) << " pixels inside)" << std::endl;
     
     // =========================================================================
