@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <functional>
 #include <cmath>
+#include <string>
 
 namespace kg {
 

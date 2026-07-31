@@ -4,6 +4,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "generated/logosphere_ontology.h"
 #include <algorithm>
+#include <string>
 
 namespace capability {
 

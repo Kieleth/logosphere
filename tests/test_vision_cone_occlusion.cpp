@@ -12,6 +12,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 using logosphere::rendering::OccluderSegment;
 using logosphere::rendering::compute_vision_cone_occlusion;

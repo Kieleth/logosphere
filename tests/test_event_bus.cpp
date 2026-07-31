@@ -8,6 +8,7 @@
 #include "logosphere/events/event_bus.h"
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 namespace onto = logosphere::ontology;
 

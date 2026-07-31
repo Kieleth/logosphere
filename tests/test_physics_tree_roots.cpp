@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <cmath>
 #include <cstdlib>
+#include <string>
 
 using PhysicsV4::TURTLE_Z;
 

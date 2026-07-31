@@ -13,17 +13,6 @@ PixelBuffer::PixelBuffer(int width, int height) : width_(width), height_(height)
     // Clear to black BGRA (0xFF000000 = black with full alpha)
     uint32_t black = 0xFF000000;  // BGRA: A=FF, R=00, G=00, B=00
     std::fill(native_buffer_.begin(), native_buffer_.end(), black);
-    #ifdef DEBUG_BUILD
-    // Also initialize debug buffer for tests
-    debug_buffer_.resize(width * height);
-    for (auto& pixel : debug_buffer_) {
-        pixel.r = 0;
-        pixel.g = 0;
-        pixel.b = 0;
-        pixel.a = 255;
-        pixel.object_id = 0;
-    }
-    #endif
 #else
     buffer_.resize(width * height);
     clear(0, 0, 0, 255, 0);  // Clear to black with full alpha
@@ -39,17 +28,11 @@ void PixelBuffer::resize(int width, int height) {
     // Clear after resize to black with full alpha
     uint32_t black = 0xFF000000;  // BGRA: A=FF, R=00, G=00, B=00
     std::fill(native_buffer_.begin(), native_buffer_.end(), black);
-    #ifdef DEBUG_BUILD
-    // Also resize debug buffer
-    debug_buffer_.resize(width * height);
-    for (auto& pixel : debug_buffer_) {
-        pixel.r = 0;
-        pixel.g = 0;
-        pixel.b = 0;
-        pixel.a = 255;
-        pixel.object_id = 0;
+    // Debug buffer follows only when a test has it enabled.
+    if (debug_mode_) {
+        debug_buffer_.assign(static_cast<size_t>(width) * height,
+                             EnhancedPixel());
     }
-    #endif
 #else
     buffer_.resize(width * height);
     clear(0, 0, 0, 255, 0);  // Clear after resize
@@ -62,23 +45,11 @@ void PixelBuffer::clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a, int object_i
     // Clear native buffer
     uint32_t bgra = (uint32_t(a) << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
 
-    // DEBUG: Track buffer clears for first 5 frames
-    static int clear_count = 0;
-    if (clear_count < 5) {
-        std::cout << "[BUFFER CLEAR " << clear_count << "] RGBA(" << (int)r << "," << (int)g
-                  << "," << (int)b << "," << (int)a << ") → BGRA=0x" << std::hex << bgra << std::dec
-                  << " pixels=" << native_buffer_.size() << std::endl;
-        clear_count++;
-    }
-
     std::fill(native_buffer_.begin(), native_buffer_.end(), bgra);
-    #ifdef DEBUG_BUILD
-    // Only clear debug buffer when needed for tests
     if (debug_mode_) {
         EnhancedPixel clear_pixel(r, g, b, a, object_id);
         std::fill(debug_buffer_.begin(), debug_buffer_.end(), clear_pixel);
     }
-    #endif
 #else
     EnhancedPixel clear_pixel(r, g, b, a, object_id);
     std::fill(buffer_.begin(), buffer_.end(), clear_pixel);
@@ -92,12 +63,9 @@ void PixelBuffer::clear(const EnhancedPixel& clear_pixel) {
     uint32_t bgra = (uint32_t(clear_pixel.a) << 24) | (uint32_t(clear_pixel.r) << 16) | 
                     (uint32_t(clear_pixel.g) << 8) | uint32_t(clear_pixel.b);
     std::fill(native_buffer_.begin(), native_buffer_.end(), bgra);
-    #ifdef DEBUG_BUILD
-    // Only clear debug buffer when needed for tests
     if (debug_mode_) {
         std::fill(debug_buffer_.begin(), debug_buffer_.end(), clear_pixel);
     }
-    #endif
 #else
     std::fill(buffer_.begin(), buffer_.end(), clear_pixel);
 #endif
@@ -136,17 +104,15 @@ void PixelBuffer::set_pixel_with_object(int x, int y, uint8_t r, uint8_t g, uint
     uint32_t bgra = (uint32_t(a) << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
     native_buffer_[idx] = bgra;
     
-    // PERFORMANCE TEST: Remove debug buffer check entirely
-    // #ifdef DEBUG_BUILD
-    // // Only update debug buffer when explicitly needed for tests
-    // if (debug_mode_) {
-    //     debug_buffer_[idx].r = r;
-    //     debug_buffer_[idx].g = g;
-    //     debug_buffer_[idx].b = b;
-    //     debug_buffer_[idx].a = a;
-    //     debug_buffer_[idx].object_id = object_id;
-    // }
-    // #endif
+    // Mirror into the debug buffer only when a test opted in; the
+    // branch is never taken (and the buffer is empty) otherwise.
+    if (debug_mode_) {
+        debug_buffer_[idx].r = r;
+        debug_buffer_[idx].g = g;
+        debug_buffer_[idx].b = b;
+        debug_buffer_[idx].a = a;
+        debug_buffer_[idx].object_id = object_id;
+    }
 #else
     buffer_[idx].r = r;
     buffer_[idx].g = g;

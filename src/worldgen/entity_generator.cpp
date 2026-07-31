@@ -1,5 +1,6 @@
 #include "logosphere/worldgen/entity_generator.h"
 #include "logosphere/events/event_bus.h"
+#include <string>
 
 void EntityGenerator::on_entity_created(kg::EntityID entity) {
     tracked_entities_.push_back(entity);

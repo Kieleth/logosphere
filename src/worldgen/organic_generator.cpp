@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 OrganicGenerator::OrganicGenerator()
     : EntityGenerator()

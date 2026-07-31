@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 
 namespace logosphere::interaction {
 

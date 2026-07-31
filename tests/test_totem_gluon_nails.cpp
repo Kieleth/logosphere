@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // PHYSICS EXPERIMENT - Gluon Constraint Testing (NAILS)

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <variant>
+#include <string>
 
 namespace kg {
 

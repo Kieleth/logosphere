@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iomanip>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // PHYSICS TREE TEST - Verify Generated Trees Stand with Gluon Constraints

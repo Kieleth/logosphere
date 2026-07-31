@@ -8,12 +8,42 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- CMake install/export: `cmake --install` now ships the headless
+  core, and external projects consume it with
+  `find_package(logosphere 0.2)` + `target_link_libraries(app
+  PRIVATE logosphere::core)`. Curated headers install to
+  `include/logosphere/`; the internal closure they still depend on
+  installs under `include/logosphere/internal/` (no stability
+  promise there). `examples/consumer-smoke/` is the reference
+  external consumer and runs in CI against a fresh install. The
+  rendering / physics stack is not installable yet; games needing
+  it keep building in-tree.
+- High-energy impact energy-budget AT (`test_strata_earth_impact`):
+  drops an 8x-mass boulder and audits total mechanical energy
+  (kinetic + potential) of boulder + ground every frame. Measured
+  today: the deep-penetration impact frame creates 1.19 MJ of
+  solver energy (position correction + capped bias velocity across
+  many heavy contacts) against a 29 MJ budget; free fall and the
+  ballistic ejecta phase conserve energy cleanly. The AT ratchets
+  the current scale so escalation fails loudly while the
+  dissipation-only contract lands (tracked in issue #5).
 - The ontology regeneration toolchain is now vendored:
   `scripts/cppgen/` carries the maintainer-authored LinkML C++
   generator, invoked via `scripts/gen_cpp_header.py`, with
   dependencies declared in `environment.yml`. Contributors can edit
   schema YAML and regenerate the committed sources reproducibly
   (verified byte-identical from a clean environment).
+- `PixelBuffer::sync_debug_from_native()`: pulls the native BGRA
+  framebuffer into the `EnhancedPixel` debug buffer so tests can
+  inspect rendered pixels after a GPU render pass.
+
+### Changed
+- The `DEBUG_BUILD` compile definition is gone from every target
+  (it was defined `PUBLIC` in all configurations, so release builds
+  and downstream consumers carried debug paths). The pixel debug
+  buffer is now a runtime opt-in via
+  `PixelBuffer::set_debug_mode(true)` with lazy allocation; builds
+  no longer pay for it unless a test enables it.
 
 ## [0.2.0] - 2026-07-30
 

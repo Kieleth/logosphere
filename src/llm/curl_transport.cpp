@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <mutex>
+#include <string>
 
 namespace Logosphere {
 

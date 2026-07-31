@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <string>
 
 StrataFloorGenerator::StrataFloorGenerator() = default;
 StrataFloorGenerator::~StrataFloorGenerator() = default;

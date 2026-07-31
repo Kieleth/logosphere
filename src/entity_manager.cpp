@@ -3,6 +3,7 @@
 #include "logosphere/physics/physics_system.h"
 #include "logosphere/events/event_bus.h"
 #include <iostream>
+#include <string>
 
 EntityManager::EntityManager(kg::KGModule* kg, ParticleSystem& particle_system,
                              PhysicsSystem* physics, logosphere::EventBus* event_bus)

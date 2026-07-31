@@ -60,18 +60,12 @@ public:
     const std::vector<uint32_t>& get_native_buffer() const { return native_buffer_; }
     std::vector<uint32_t>& get_native_buffer() { return native_buffer_; }
     
-    // Debug buffer access for tests (only available in debug builds)
-    #ifdef DEBUG_BUILD
+    // Debug buffer access for tests. Empty unless set_debug_mode(true)
+    // has run: allocation is lazy, so no build pays for it at rest.
     const std::vector<EnhancedPixel>& get_debug_buffer() const { return debug_buffer_; }
     std::vector<EnhancedPixel>& get_debug_buffer() { return debug_buffer_; }
-    // Provide get_buffer() for compatibility when debug buffer exists
     const std::vector<EnhancedPixel>& get_buffer() const { return debug_buffer_; }
     std::vector<EnhancedPixel>& get_buffer() { return debug_buffer_; }
-    #else
-    // No EnhancedPixel access in release builds with native format
-    const std::vector<EnhancedPixel>& get_buffer() const = delete;
-    std::vector<EnhancedPixel>& get_buffer() = delete;
-    #endif
 #else
     const std::vector<EnhancedPixel>& get_buffer() const { return buffer_; }
     std::vector<EnhancedPixel>& get_buffer() { return buffer_; }
@@ -133,12 +127,40 @@ public:
         dirty_max_x_ = dirty_max_y_ = std::numeric_limits<int>::min();
     }
 
-    // Debug control - only update debug buffer when tests need it
+    // Pull the current native (BGRA) contents into the debug buffer.
+    // The GPU pipeline writes the native buffer directly, bypassing
+    // set_pixel_with_object, so tests reading get_buffer() after a
+    // GPU render must call this first. object_id is not recoverable
+    // from the native format and comes back 0.
+    void sync_debug_from_native() {
+#if USE_NATIVE_PIXEL_FORMAT
+        if (!debug_mode_) return;
+        for (size_t i = 0; i < native_buffer_.size(); ++i) {
+            uint32_t bgra = native_buffer_[i];
+            EnhancedPixel& px = debug_buffer_[i];
+            px.a = uint8_t(bgra >> 24);
+            px.r = uint8_t(bgra >> 16);
+            px.g = uint8_t(bgra >> 8);
+            px.b = uint8_t(bgra);
+            px.object_id = 0;
+        }
+#endif
+    }
+
+    // Debug control: enabling allocates the debug buffer lazily; the
+    // per-frame cost exists only while a test has this on.
     void set_debug_mode(bool enabled) {
-#if defined(DEBUG_BUILD) && USE_NATIVE_PIXEL_FORMAT
+#if USE_NATIVE_PIXEL_FORMAT
         debug_mode_ = enabled;
+        if (enabled) {
+            debug_buffer_.assign(static_cast<size_t>(width_) * height_,
+                                 EnhancedPixel());
+        } else {
+            debug_buffer_.clear();
+            debug_buffer_.shrink_to_fit();
+        }
 #else
-        (void)enabled;  // Suppress unused parameter warning
+        (void)enabled;
 #endif
     }
     size_t size() const {
@@ -175,11 +197,10 @@ private:
     std::vector<uint32_t> native_buffer_;  // BGRA format as packed 32-bit values
     Platform::IPlatformSystem::PixelFormat pixel_format_ = Platform::IPlatformSystem::PixelFormat::BGRA_8888;
     
-    // Debug buffer maintained only in debug/test builds for deep inspection
-    #ifdef DEBUG_BUILD
-    std::vector<EnhancedPixel> debug_buffer_;  // Full EnhancedPixel data for tests
-    bool debug_mode_ = false;  // Only update debug buffer when explicitly enabled
-    #endif
+    // Debug buffer for test inspection; empty unless debug_mode_ is on
+    // (lazy allocation in set_debug_mode).
+    std::vector<EnhancedPixel> debug_buffer_;
+    bool debug_mode_ = false;
 #else
     std::vector<EnhancedPixel> buffer_;   // Legacy format with embedded object IDs
 #endif

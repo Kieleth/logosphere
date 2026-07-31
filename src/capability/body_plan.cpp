@@ -1,5 +1,6 @@
 #include "logosphere/capability/body_plan.h"
 #include "logosphere/kg/kg_module.h"
+#include <string>
 
 namespace body_plan {
 

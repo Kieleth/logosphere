@@ -47,7 +47,11 @@ bool test_triangle_shadow_artifacts(TestContext& ctx) {
     );
     
     // Note: Pixel-accurate lighting is always enabled
-    
+
+    // Step 7 reads rendered pixels through the debug buffer; opt in
+    // before rendering so the buffer holds real pixel data.
+    ctx.render_system.get_framebuffer_buffer().set_debug_mode(true);
+
     // Update lighting and render
     ctx.update_lighting();
     ctx.render();
@@ -144,12 +148,36 @@ bool test_triangle_shadow_artifacts(TestContext& ctx) {
     
     // Check the rendered framebuffer for visual artifacts
     std::cout << "\n7. Checking rendered pixels for artifacts" << std::endl;
-    const auto& pixel_buffer = ctx.render_system.get_framebuffer_buffer();
+    auto& pixel_buffer = ctx.render_system.get_framebuffer_buffer();
+    pixel_buffer.sync_debug_from_native();  // GPU writes native directly
     const auto& framebuffer = pixel_buffer.get_buffer();  // Get the debug buffer
     auto& res = ctx.render_system.get_resolution_manager();
     int width = res.get_window_width();
     int height = res.get_window_height();
-    
+
+    if (framebuffer.size() != static_cast<size_t>(width) * height) {
+        std::cout << "FAIL: debug buffer size " << framebuffer.size()
+                  << " != " << width << "x" << height
+                  << " (was set_debug_mode(true) called before render?)"
+                  << std::endl;
+        pixel_buffer.set_debug_mode(false);
+        return false;
+    }
+
+    // Prove we are reading real rendered data, not a cleared buffer
+    int lit_pixels = 0;
+    for (const auto& px : framebuffer) {
+        if (px.r + px.g + px.b > 0) lit_pixels++;
+    }
+    std::cout << "  Lit pixels: " << lit_pixels << " / " << framebuffer.size()
+              << std::endl;
+    if (lit_pixels == 0) {
+        std::cout << "FAIL: framebuffer is entirely black; the debug buffer "
+                  << "did not receive the rendered image" << std::endl;
+        pixel_buffer.set_debug_mode(false);
+        return false;
+    }
+
     // Look for sharp transitions in brightness (shark teeth pattern)
     int sharp_transitions = 0;
     for (int y = height/2 - 50; y < height/2 + 50; y++) {
@@ -171,7 +199,9 @@ bool test_triangle_shadow_artifacts(TestContext& ctx) {
     }
     
     std::cout << "  Found " << sharp_transitions << " sharp brightness transitions" << std::endl;
-    
+
+    pixel_buffer.set_debug_mode(false);  // don't tax later tests in the shared harness
+
     // Pass/fail based on artifacts found
     bool has_discontinuities = false;
     bool has_sharp_transitions = (sharp_transitions > 20);  // Some transitions are normal at edges

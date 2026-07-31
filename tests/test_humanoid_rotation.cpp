@@ -13,6 +13,7 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <string>
 
 bool test_humanoid_rotation(TestContext& /* ctx */) {
     std::cout << "\n=== Humanoid Rotation Test ===" << std::endl;

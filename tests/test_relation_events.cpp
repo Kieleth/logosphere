@@ -12,6 +12,7 @@
 #include "generated/logosphere_ontology_registry.h"
 #include <iostream>
 #include <vector>
+#include <string>
 
 #define ASSERT(cond, msg) do { \
     if (!(cond)) { \

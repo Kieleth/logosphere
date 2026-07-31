@@ -13,6 +13,7 @@
 #include "logosphere/events/event_bus.h"
 #include "generated/logosphere_ontology_registry.h"
 #include <iostream>
+#include <string>
 
 #define ASSERT(cond, msg) do { \
     if (!(cond)) { \

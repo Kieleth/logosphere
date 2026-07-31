@@ -8,6 +8,7 @@
 #include <cmath>
 #include <iostream>
 #include <ctime>
+#include <string>
 
 RockGenerator::RockGenerator()
     : rng_state_(static_cast<unsigned int>(time(nullptr))) {

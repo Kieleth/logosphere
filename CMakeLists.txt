@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
-project(logosphere)
+project(logosphere VERSION 0.2.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# MSVC: expose the M_PI constant family and keep <windows.h> from
+# defining min/max macros that collide with std::min / std::max.
+if(MSVC)
+    add_compile_definitions(_USE_MATH_DEFINES NOMINMAX)
+endif()
 
 # Generate include/logosphere/build_info.h with the current git SHA,
 # tag-describe, and configure timestamp. Needed by the telemetry /
@@ -149,23 +155,96 @@ set(LOGOSPHERE_CORE_SOURCES
 # once they are split out — today it is carried transitively through
 # logosphere_core.
 add_library(logosphere_events INTERFACE)
+add_library(logosphere::events ALIAS logosphere_events)
+set_target_properties(logosphere_events PROPERTIES EXPORT_NAME events)
 target_include_directories(logosphere_events INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 target_compile_features(logosphere_events INTERFACE cxx_std_17)
 
 add_library(logosphere_core STATIC ${LOGOSPHERE_CORE_SOURCES})
+add_library(logosphere::core ALIAS logosphere_core)
+set_target_properties(logosphere_core PROPERTIES EXPORT_NAME core)
 target_link_libraries(logosphere_core PUBLIC logosphere_events)
 target_include_directories(logosphere_core PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/logosphere/internal>
 )
 # nlohmann/json is header-only; only kg_ops_parse.cpp uses it.
 target_include_directories(logosphere_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(logosphere_core PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_core PUBLIC DEBUG_BUILD)
+
+# ============================================================================
+# Install / export — find_package(logosphere) consumption
+# ============================================================================
+# Installs the headless core: logosphere::core (KG, ontology, events,
+# capability, damage, game time, particle store, geometry) and the
+# header-only logosphere::events. The rendering / physics / platform
+# stack is not installable yet; games needing it build in-tree.
+#
+# Layout: the curated API goes to include/logosphere/. The public
+# headers additionally depend on a small closure of engine-internal
+# headers (particle family, materials, math/quat, generated ontology);
+# those install under include/logosphere/internal/, which is on the
+# exported include path so in-tree include spellings keep working.
+# Shrinking that internal surface is ongoing; nothing in it is a
+# stability promise.
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS logosphere_core logosphere_events
+    EXPORT logosphereTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(DIRECTORY include/logosphere
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(FILES
+    src/materials.h src/particle.h src/particle_core.h
+    src/particle_geometry_v2.h src/particle_lighting.h
+    src/particle_memory.h src/particle_types.h src/particle_vision.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal
+)
+install(FILES src/core/particle_system.h src/core/game_time.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal/core
+)
+install(FILES src/math/quat.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal/math
+)
+install(FILES
+    src/generated/logosphere_ontology.h
+    src/generated/logosphere_ontology_registry.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal/generated
+)
+install(EXPORT logosphereTargets
+    NAMESPACE logosphere::
+    FILE logosphereTargets.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/logosphere
+)
+configure_package_config_file(
+    cmake/logosphereConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/logosphere
+)
+# 0.x line: minor versions may break API, so only the same minor is
+# compatible (find_package(logosphere 0.2) accepts 0.2.x, not 0.3).
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMinorVersion
+)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/logosphere
+)
 
 # ============================================================================
 # Headless test executables — always built, link only logosphere_core
@@ -722,7 +801,7 @@ target_include_directories(logosphere_worldgen PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_worldgen PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_worldgen PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_worldgen PUBLIC HAS_LLAMA)
 
 # ---- logosphere_dynamics — animation, FK, locomotion, kinematic root ----
 set(LOGOSPHERE_DYNAMICS_SOURCES
@@ -740,7 +819,7 @@ target_include_directories(logosphere_dynamics PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_dynamics PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_dynamics PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_dynamics PUBLIC HAS_LLAMA)
 
 # ---- logosphere_physics — XPBD solver, gluons, narrow-phase, BVH ----
 set(LOGOSPHERE_PHYSICS_SOURCES
@@ -755,7 +834,7 @@ target_include_directories(logosphere_physics PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_physics PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_physics PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_physics PUBLIC HAS_LLAMA)
 
 # Locomotion smoke test — exercises HumanoidLocomotion / PhysicsSystem /
 # ParticleDynamicsSystem via the *_headless initialize variants. No
@@ -1022,9 +1101,6 @@ set(LOGOSPHERE_HEADERS
 # Create Logosphere library
 add_library(logosphere STATIC ${LOGOSPHERE_SOURCES})
 
-# Enable debug buffer for tests and debug builds
-target_compile_definitions(logosphere PUBLIC DEBUG_BUILD)
-
 # logosphere_core and the headless test suite are defined at the top of
 # this file (above the LOGOSPHERE_HEADLESS_ONLY short-circuit).
 
@@ -1229,7 +1305,7 @@ target_include_directories(logosphere_rendering PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_rendering PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_rendering PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_rendering PUBLIC HAS_LLAMA)
 
 target_link_libraries(logosphere PUBLIC logosphere_rendering)
 
