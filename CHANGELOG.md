@@ -18,6 +18,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   external consumer and runs in CI against a fresh install. The
   rendering / physics stack is not installable yet; games needing
   it keep building in-tree.
+- High-energy impact energy-budget AT (`test_strata_earth_impact`):
+  drops an 8x-mass boulder and audits total mechanical energy
+  (kinetic + potential) of boulder + ground every frame. Measured
+  today: the deep-penetration impact frame creates 1.19 MJ of
+  solver energy (position correction + capped bias velocity across
+  many heavy contacts) against a 29 MJ budget; free fall and the
+  ballistic ejecta phase conserve energy cleanly. The AT ratchets
+  the current scale so escalation fails loudly while the
+  dissipation-only contract lands (tracked in issue #5).
 - The ontology regeneration toolchain is now vendored:
   `scripts/cppgen/` carries the maintainer-authored LinkML C++
   generator, invoked via `scripts/gen_cpp_header.py`, with
