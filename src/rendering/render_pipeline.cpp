@@ -1355,6 +1355,12 @@ void RenderPipeline::collect_surfaces(
         const float ppu = camera_system.get_pixels_per_unit();
         const int margin = std::max(50, static_cast<int>(ppu * 2.0f));  // 2x particle size margin
 
+        // Azimuth-dependent culling probe directions are per-frame
+        // constants; computed once here, read by every worker.
+        const float cull_az = camera_system.get_view_azimuth();
+        const float cull_az_c = std::cos(cull_az);
+        const float cull_az_s = std::sin(cull_az);
+
         // Lambda: Thread worker function
         auto worker_func = [&](int thread_id) {
             // OPTIMIZATION: If visible_particle_indices provided, iterate ONLY those
@@ -1503,12 +1509,11 @@ void RenderPipeline::collect_surfaces(
                         // properties, not world properties: under an
                         // azimuth orbit they are the classic diagonals
                         // rotated back into world space (CCW by a).
-                        const float az = camera_system.get_view_azimuth();
-                        const float az_c = std::cos(az), az_s = std::sin(az);
+                        // Trig hoisted to per-frame (cull_az_*).
                         // R_ccw(a) * (1, -1): screen_x maximizer
-                        const float ex_x = az_c + az_s, ex_y = az_s - az_c;
+                        const float ex_x = cull_az_c + cull_az_s, ex_y = cull_az_s - cull_az_c;
                         // R_ccw(a) * (1, 1): screen_y maximizer (with z)
-                        const float ey_x = az_c - az_s, ey_y = az_s + az_c;
+                        const float ey_x = cull_az_c - cull_az_s, ey_y = cull_az_s + cull_az_c;
 
                         // Check rotated (1, -1, 0) diagonal - maximizes screen_x
                         camera_system.world_to_screen(particle.x + ex_x * diag_xy, particle.y + ex_y * diag_xy, particle.z,
