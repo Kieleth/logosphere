@@ -70,17 +70,14 @@ void EntityBVH::build(const std::vector<EntityTriangleData>& entities) {
         return;
     }
 
-    // KNOWN DEFECT (2026-07-30 hot-path scan, not yet fixed): this deep-copies
-    // every EntityTriangleData, and each carries a std::vector<ShadowTriangle>.
-    // At 470k shadow triangles that is ~30 MB of memcpy plus two allocations
-    // per entity, every frame, purely so classify_triangles can fill
-    // `triangle_directions`. `triangles` is only ever read. The fix is to keep
-    // directions in a parallel array and pass `entities` const throughout,
-    // which means changing build_recursive and create_directional_groups.
-    // Same defect class as the icosphere rebuild and get_world_faces.
-    std::vector<EntityTriangleData> processed_entities = entities;
-    for (auto& entity : processed_entities) {
-        classify_triangles(entity);
+    // Facing buckets live in a parallel array, NOT inside the entities. This
+    // used to deep-copy every EntityTriangleData, each owning a
+    // std::vector<ShadowTriangle>, purely so classify_triangles had somewhere
+    // mutable to write: ~30 MB of memcpy plus two allocations per entity,
+    // every frame, for data that is only ever read afterwards.
+    std::vector<std::vector<int>> directions(entities.size());
+    for (size_t i = 0; i < entities.size(); ++i) {
+        classify_triangles(entities[i], directions[i]);
     }
 
     // Create indices for building
@@ -94,14 +91,14 @@ void EntityBVH::build(const std::vector<EntityTriangleData>& entities) {
     parent_indices_.reserve(2 * entities.size());
 
     // Build BVH
-    root_idx_ = build_recursive(processed_entities, indices, 0, static_cast<int>(indices.size()));
+    root_idx_ = build_recursive(entities, directions, indices, 0, static_cast<int>(indices.size()));
 
     // Create directional groups and pack triangles
     int group_start = 0;
     int tri_start = 0;
 
     for (int idx : indices) {
-        const auto& entity = processed_entities[idx];
+        const auto& entity = entities[idx];
 
         // Find the leaf node for this entity
         int leaf_idx = -1;
@@ -113,7 +110,7 @@ void EntityBVH::build(const std::vector<EntityTriangleData>& entities) {
         }
 
         if (leaf_idx >= 0) {
-            create_directional_groups(entity, group_start, tri_start);
+            create_directional_groups(entity, directions[idx], group_start, tri_start);
             nodes_[leaf_idx].dir_group_start = group_start - nodes_[leaf_idx].dir_group_count;
         }
     }
@@ -121,21 +118,23 @@ void EntityBVH::build(const std::vector<EntityTriangleData>& entities) {
     is_built_ = true;
 }
 
-void EntityBVH::classify_triangles(EntityTriangleData& entity) {
-    entity.triangle_directions.resize(entity.triangles.size());
+void EntityBVH::classify_triangles(const EntityTriangleData& entity,
+                                   std::vector<int>& out_directions) const {
+    out_directions.resize(entity.triangles.size());
 
     for (size_t i = 0; i < entity.triangles.size(); ++i) {
         float nx, ny, nz;
         compute_triangle_normal(entity.triangles[i], nx, ny, nz);
-        entity.triangle_directions[i] = EntityBVHDirection::classify_normal(nx, ny, nz);
+        out_directions[i] = EntityBVHDirection::classify_normal(nx, ny, nz);
     }
 }
 
 void EntityBVH::create_directional_groups(const EntityTriangleData& entity,
+                                          const std::vector<int>& directions,
                                           int& group_start_out, int& tri_start_out) {
     // Count triangles per direction
     int counts[EntityBVHDirection::COUNT] = {0};
-    for (int dir : entity.triangle_directions) {
+    for (int dir : directions) {
         counts[dir]++;
     }
 
@@ -145,7 +144,7 @@ void EntityBVH::create_directional_groups(const EntityTriangleData& entity,
             // Accumulate normals for this direction
             float sum_nx = 0, sum_ny = 0, sum_nz = 0;
             for (size_t i = 0; i < entity.triangles.size(); ++i) {
-                if (entity.triangle_directions[i] == dir) {
+                if (directions[i] == dir) {
                     float nx, ny, nz;
                     compute_triangle_normal(entity.triangles[i], nx, ny, nz);
                     sum_nx += nx;
@@ -170,7 +169,7 @@ void EntityBVH::create_directional_groups(const EntityTriangleData& entity,
 
             // Copy triangles for this direction
             for (size_t i = 0; i < entity.triangles.size(); ++i) {
-                if (entity.triangle_directions[i] == dir) {
+                if (directions[i] == dir) {
                     triangles_.push_back(entity.triangles[i]);
                     tri_start_out++;
                 }
@@ -180,6 +179,7 @@ void EntityBVH::create_directional_groups(const EntityTriangleData& entity,
 }
 
 int EntityBVH::build_recursive(const std::vector<EntityTriangleData>& entities,
+                               const std::vector<std::vector<int>>& directions,
                                std::vector<int>& indices, int start, int end) {
     int node_idx = static_cast<int>(nodes_.size());
     nodes_.push_back(EntityBVHNode());
@@ -207,7 +207,7 @@ int EntityBVH::build_recursive(const std::vector<EntityTriangleData>& entities,
         int group_count = 0;
         for (int dir = 0; dir < EntityBVHDirection::COUNT; ++dir) {
             bool has_dir = false;
-            for (int d : entity.triangle_directions) {
+            for (int d : directions[indices[start]]) {
                 if (d == dir) { has_dir = true; break; }
             }
             if (has_dir) group_count++;
@@ -330,10 +330,10 @@ int EntityBVH::build_recursive(const std::vector<EntityTriangleData>& entities,
             }
 
             // Build children
-            node.left_child = build_recursive(entities, indices, start, best_split);
+            node.left_child = build_recursive(entities, directions, indices, start, best_split);
             parent_indices_[node.left_child] = node_idx;
 
-            node.right_child = build_recursive(entities, indices, best_split, end);
+            node.right_child = build_recursive(entities, directions, indices, best_split, end);
             parent_indices_[node.right_child] = node_idx;
 
             return node_idx;
@@ -370,10 +370,10 @@ int EntityBVH::build_recursive(const std::vector<EntityTriangleData>& entities,
             });
     }
 
-    node.left_child = build_recursive(entities, indices, start, split);
+    node.left_child = build_recursive(entities, directions, indices, start, split);
     parent_indices_[node.left_child] = node_idx;
 
-    node.right_child = build_recursive(entities, indices, split, end);
+    node.right_child = build_recursive(entities, directions, indices, split, end);
     parent_indices_[node.right_child] = node_idx;
 
     return node_idx;

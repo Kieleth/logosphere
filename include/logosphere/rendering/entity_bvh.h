@@ -202,10 +202,18 @@ private:
     std::vector<kg::EntityID> dirty_entities_;  // Entities needing AABB update
 
     // Build helpers
+    // `directions` is parallel to `entities`: directions[i][t] is the facing
+    // bucket of entities[i].triangles[t]. It is kept alongside rather than
+    // inside EntityTriangleData so build() never has to copy the entities,
+    // each of which owns a std::vector<ShadowTriangle> (~30 MB a frame at
+    // Eden scale).
     int build_recursive(const std::vector<EntityTriangleData>& entities,
+                        const std::vector<std::vector<int>>& directions,
                         std::vector<int>& indices, int start, int end);
-    void classify_triangles(EntityTriangleData& entity);
+    void classify_triangles(const EntityTriangleData& entity,
+                            std::vector<int>& out_directions) const;
     void create_directional_groups(const EntityTriangleData& entity,
+                                   const std::vector<int>& directions,
                                    int& group_start, int& tri_start);
     void refit_ancestors(int leaf_idx);
 
