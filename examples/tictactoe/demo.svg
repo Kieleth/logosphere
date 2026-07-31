@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="501" height="1080"
+     viewBox="0 0 501 1080" role="img"
+     aria-label="Terminal recording: tic-tac-toe on Logosphere, X wins the top row">
+  <title>Tic-Tac-Toe on Logosphere -- demo</title>
+  <defs>
+    <clipPath id="reveal">
+      <rect x="0" y="32" width="501" height="0">
+        <animate attributeName="height" dur="13.40s" repeatCount="indefinite"
+                 calcMode="discrete" keyTimes="0.0000;0.0597;0.1642;0.2836;0.4030;0.5224;0.6418;0.7612" values="34;194;354;514;674;834;994;1034"/>
+      </rect>
+    </clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="501" height="1080" rx="8" ry="8" fill="#0d1117"
+        stroke="#30363d" stroke-width="1"/>
+  <path d="M0,32 h501" stroke="#30363d" stroke-width="1"/>
+  <rect x="0" y="0" width="501" height="32" rx="8" ry="8" fill="#161b22"/>
+  <rect x="0" y="16" width="501" height="16" fill="#161b22"/>
+  <circle cx="20" cy="16" r="6" fill="#ff5f56"/>
+  <circle cx="40" cy="16" r="6" fill="#ffbd2e"/>
+  <circle cx="60" cy="16" r="6" fill="#27c93f"/>
+  <text x="250" y="20" text-anchor="middle" fill="#8b949e"
+        font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="12">tictactoe</text>
+
+  <g clip-path="url(#reveal)">
+    <text y="60" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#7ee787" x="16" xml:space="preserve">$ ./tictactoe</tspan></text>
+    <text y="80" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#58a6ff" x="16" xml:space="preserve">Tic-Tac-Toe on Logosphere</tspan></text>
+    <text y="100" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">Enter moves as: row col (0-2 0-2). Ctrl-D to quit.</tspan></text>
+    <text y="140" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="160" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="180" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="200" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="220" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="260" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">Player X, enter row col:</tspan><tspan fill="#d2a8ff" xml:space="preserve"> 0 0</tspan></text>
+    <text y="280" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#8b949e" x="16" xml:space="preserve">[event] move recorded: entity 12 OCCUPIES entity 3</tspan></text>
+    <text y="300" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#f78166" x="16" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | . | .</tspan></text>
+    <text y="320" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="340" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="360" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="380" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="420" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">Player O, enter row col:</tspan><tspan fill="#d2a8ff" xml:space="preserve"> 1 1</tspan></text>
+    <text y="440" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#8b949e" x="16" xml:space="preserve">[event] move recorded: entity 13 OCCUPIES entity 7</tspan></text>
+    <text y="460" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#f78166" x="16" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | . | .</tspan></text>
+    <text y="480" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="500" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | </tspan><tspan fill="#79c0ff" xml:space="preserve">O</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | .</tspan></text>
+    <text y="520" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="540" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="580" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">Player X, enter row col:</tspan><tspan fill="#d2a8ff" xml:space="preserve"> 0 1</tspan></text>
+    <text y="600" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#8b949e" x="16" xml:space="preserve">[event] move recorded: entity 12 OCCUPIES entity 4</tspan></text>
+    <text y="620" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#f78166" x="16" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | </tspan><tspan fill="#f78166" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | .</tspan></text>
+    <text y="640" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="660" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | </tspan><tspan fill="#79c0ff" xml:space="preserve">O</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | .</tspan></text>
+    <text y="680" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="700" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="740" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">Player O, enter row col:</tspan><tspan fill="#d2a8ff" xml:space="preserve"> 1 0</tspan></text>
+    <text y="760" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#8b949e" x="16" xml:space="preserve">[event] move recorded: entity 13 OCCUPIES entity 6</tspan></text>
+    <text y="780" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#f78166" x="16" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | </tspan><tspan fill="#f78166" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | .</tspan></text>
+    <text y="800" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="820" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#79c0ff" x="16" xml:space="preserve">O</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | </tspan><tspan fill="#79c0ff" xml:space="preserve">O</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | .</tspan></text>
+    <text y="840" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="860" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="900" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">Player X, enter row col:</tspan><tspan fill="#d2a8ff" xml:space="preserve"> 0 2</tspan></text>
+    <text y="920" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#8b949e" x="16" xml:space="preserve">[event] move recorded: entity 12 OCCUPIES entity 5</tspan></text>
+    <text y="940" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#f78166" x="16" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | </tspan><tspan fill="#f78166" xml:space="preserve">X</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | </tspan><tspan fill="#f78166" xml:space="preserve">X</tspan></text>
+    <text y="960" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="980" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#79c0ff" x="16" xml:space="preserve">O</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | </tspan><tspan fill="#79c0ff" xml:space="preserve">O</tspan><tspan fill="#c9d1d9" xml:space="preserve"> | .</tspan></text>
+    <text y="1000" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">--+---+--</tspan></text>
+    <text y="1020" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#c9d1d9" x="16" xml:space="preserve">. | . | .</tspan></text>
+    <text y="1060" font-family="SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace" font-size="14"><tspan fill="#7ee787" x="16" xml:space="preserve">Player X wins!</tspan></text>
+  </g>
+</svg>

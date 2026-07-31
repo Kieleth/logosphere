@@ -6,6 +6,14 @@ under every `LOGOSPHERE_PROFILE` (`core`, `physics`, `full`) — including
 plain Linux, where the full engine (software rasterizer, Metal lighting,
 GLFW) doesn't build at all (macOS arm64 only).
 
+## Demo
+
+![Terminal recording of tic-tac-toe on Logosphere: X wins the top row while the event log prints each move](demo.svg)
+
+A self-contained, looping SVG recording of a real scripted playthrough
+(`printf "0 0\n1 1\n0 1\n1 0\n0 2\n" | ./tictactoe`) — no video, no JS,
+just SMIL animation, so it plays inline right here on GitHub.
+
 ## How it maps onto the engine
 
 Logosphere's most portable layer is the Knowledge Graph (`kg::KGModule`)
