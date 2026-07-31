@@ -116,7 +116,8 @@ def generate(schema: dict) -> bool:
 
         # 1. Generate type definitions header
         cmd = [
-            "gen-cpp-header",
+            sys.executable,
+            str(ROOT / "scripts" / "gen_cpp_header.py"),
             str(staged),
             "--namespace", schema["namespace"],
         ]

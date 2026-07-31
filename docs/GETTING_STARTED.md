@@ -82,10 +82,11 @@ The `scripts/generate_ontology.py` script picks up any schema under
 python scripts/generate_ontology.py
 ```
 
-Note: regeneration needs the maintainer's LinkML C++ generator
-toolchain, which is not yet published (see CHANGELOG known issues).
-Generated sources are committed, so you only need this step when you
-edit schema YAML; building the engine and examples does not.
+The generator ships with the repository (`scripts/cppgen/`, invoked
+through `scripts/gen_cpp_header.py`); its Python dependencies are
+declared in `environment.yml` (`linkml`, `pyyaml`). Generated
+sources are committed, so you only need this step when you edit
+schema YAML; building the engine and examples does not.
 
 Output:
 ```

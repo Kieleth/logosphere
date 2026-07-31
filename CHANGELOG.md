@@ -7,6 +7,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- The ontology regeneration toolchain is now vendored:
+  `scripts/cppgen/` carries the maintainer-authored LinkML C++
+  generator, invoked via `scripts/gen_cpp_header.py`, with
+  dependencies declared in `environment.yml`. Contributors can edit
+  schema YAML and regenerate the committed sources reproducibly
+  (verified byte-identical from a clean environment).
+
 ## [0.2.0] - 2026-07-30
 
 First public release. Everything below describes the engine as it

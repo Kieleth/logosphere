@@ -6,3 +6,4 @@ dependencies:
   - ninja
   - pkg-config
   - pyyaml
+  - linkml
