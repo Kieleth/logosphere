@@ -77,9 +77,21 @@ void CameraSystem::update_follow_target(float target_x, float target_y, float ta
     // For iso_x = 0: view_x = view_y (camera on diagonal)
     // For iso_y = 0 with view_z = -30: view_x = view_y = 30
 
-    // Apply diagonal offset for isometric centering
-    float effective_target_x = target_x - camera_follow_offset_;
-    float effective_target_y = target_y - camera_follow_offset_;
+    // Apply diagonal offset for isometric centering. The offset must
+    // stay on the VIEW's diagonal, so under an azimuth orbit the
+    // world-space direction rotates with the view (rotate the classic
+    // (-1,-1) diagonal out of the view frame).
+    float off_x = camera_follow_offset_, off_y = camera_follow_offset_;
+    if (projection_system_) {
+        const float a = projection_system_->get_view_azimuth();
+        if (a != 0.0f) {
+            const float c = std::cos(a), sn = std::sin(a);
+            off_x = camera_follow_offset_ * (c - sn);
+            off_y = camera_follow_offset_ * (sn + c);
+        }
+    }
+    float effective_target_x = target_x - off_x;
+    float effective_target_y = target_y - off_y;
 
     // Store for zoom centering (CameraController uses this)
     last_follow_target_x_ = effective_target_x;

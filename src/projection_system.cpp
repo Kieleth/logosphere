@@ -12,8 +12,11 @@ void IsometricProjection::project(
     int& screen_x, int& screen_y) const {              // OUTPUT: SCREEN SPACE - pixel coordinates (origin top-left)
 
     // TRANSFORM 1: World Space → View Space (camera-relative coordinates)
-    float view_x = world_x - camera_x;  // VIEW SPACE X: East(+)/West(-) relative to camera
-    float view_y = world_y - camera_y;  // VIEW SPACE Y: North(+)/South(-) relative to camera
+    // The azimuth orbit rotates view XY around +Z first (CW-positive,
+    // compass convention); azimuth 0 is the identity and reproduces
+    // the classic fixed view exactly.
+    float view_x, view_y;
+    rotate_into_view(world_x - camera_x, world_y - camera_y, view_x, view_y);
     float view_z = world_z - camera_z;  // VIEW SPACE Z: Up(+)/Down(-) relative to camera
 
     // TRANSFORM 2: View Space → Isometric Projection Space

@@ -23,6 +23,18 @@ public:
 
     // Zoom control (adjusts pixels_per_unit for zoom effect)
     void adjust_zoom(float delta);  // Positive = zoom in, negative = zoom out
+
+    // View azimuth (orbit): rotation of the view around world +Z,
+    // CW-positive from above, forwarded to the active projection.
+    // 0 = the projection's classic orientation. Projections without
+    // orbit support ignore it (base-class no-op).
+    void set_view_azimuth(float radians) {
+        if (projection_system_) projection_system_->set_view_azimuth(radians);
+    }
+    float get_view_azimuth() const {
+        return projection_system_ ? projection_system_->get_view_azimuth()
+                                  : 0.0f;
+    }
     
     // Position control
     void set_position(float x, float y, float z);

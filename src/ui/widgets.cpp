@@ -2,6 +2,7 @@
 #include "ui_system.h"
 #include "logosphere/rendering/i_draw_surface.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 namespace ui {
@@ -618,31 +619,42 @@ void CompassWidget::render(IDrawSurface* renderer) {
 
     struct CompassDir {
         const char* label;
-        float iso_x;
-        float iso_y;
+        float world_x;
+        float world_y;
         uint8_t r, g, b;
     };
 
-    // Calculate isometric screen directions
+    // World-space unit directions; the view azimuth rotates them into
+    // the view frame before the fixed 45-degree iso mapping, so the
+    // needle tracks the camera orbit.
     CompassDir dirs[] = {
-        {"E", +COS30, +SIN30, 255, 200, 100},  // East: warm yellow
-        {"W", -COS30, -SIN30, 200, 200, 255},  // West: cool blue
-        {"N", -COS30, +SIN30, 100, 255, 100},  // North: green
-        {"S", +COS30, -SIN30, 255, 100, 100},  // South: red
+        {"E", +1.0f,  0.0f, 255, 200, 100},  // East: warm yellow
+        {"W", -1.0f,  0.0f, 200, 200, 255},  // West: cool blue
+        {"N",  0.0f, +1.0f, 100, 255, 100},  // North: green
+        {"S",  0.0f, -1.0f, 255, 100, 100},  // South: red
     };
+    const float az_c = std::cos(view_azimuth_);
+    const float az_s = std::sin(view_azimuth_);
 
     // Draw compass lines and labels
     for (const auto& dir : dirs) {
+        // World -> view frame (CW azimuth rotation), then the fixed
+        // 45-degree iso mapping used by the projection.
+        float vx = dir.world_x * az_c + dir.world_y * az_s;
+        float vy = -dir.world_x * az_s + dir.world_y * az_c;
+        float iso_x = (vx - vy) * COS30;
+        float iso_y = (vx + vy) * SIN30;
+
         // Screen coordinates (Y inverted for screen space)
-        int end_x = cx + static_cast<int>(dir.iso_x * radius);
-        int end_y = cy - static_cast<int>(dir.iso_y * radius);  // Minus for screen Y inversion
+        int end_x = cx + static_cast<int>(iso_x * radius);
+        int end_y = cy - static_cast<int>(iso_y * radius);  // Minus for screen Y inversion
 
         // Draw direction line
         renderer->draw_line(cx, cy, end_x, end_y, dir.r, dir.g, dir.b, 255);
 
         // Draw label slightly past line end
-        int label_x = cx + static_cast<int>(dir.iso_x * (radius + 8)) - 3;
-        int label_y = cy - static_cast<int>(dir.iso_y * (radius + 8)) - 5;
+        int label_x = cx + static_cast<int>(iso_x * (radius + 8)) - 3;
+        int label_y = cy - static_cast<int>(iso_y * (radius + 8)) - 5;
         renderer->draw_text(label_x, label_y, dir.label, dir.r, dir.g, dir.b);
     }
 
