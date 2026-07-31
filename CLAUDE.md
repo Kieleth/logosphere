@@ -1,4 +1,4 @@
-# Logosphere — Agent Instructions
+# Logosphere: Agent Instructions
 
 Instructions for AI coding agents working in this repository. The
 human-facing versions of these rules live in the linked docs; when
@@ -6,12 +6,12 @@ they disagree, the docs win.
 
 ## Read first
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the engine
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the engine
   invariants. They are non-negotiable: if a fix appears to require
   breaking one, the diagnosis is wrong. Go one level deeper.
-- [CONTRIBUTING.md](CONTRIBUTING.md) — repo layout, build profiles,
+- [CONTRIBUTING.md](CONTRIBUTING.md): repo layout, build profiles,
   test patterns, submission process (DCO sign-off on every commit).
-- [docs/GAME_LAYER.md](docs/GAME_LAYER.md) — the API surface games
+- [docs/GAME_LAYER.md](docs/GAME_LAYER.md): the API surface games
   consume.
 
 ## The invariants, in one breath
