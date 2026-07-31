@@ -94,6 +94,67 @@ scaling SHAPE, invalid for absolute cost. Eden is the pipelined reality check.
 
 ---
 
+## Current baseline (2026-07-31) — READ BEFORE COMPARING ANY OLDER NUMBER
+
+**Every measurement in S1-S10 was taken against a 4,195-particle Eden that no
+longer exists.** Logogenesis filled the world (moon, trees, grass carpets,
+scene lights). Same scene name, 7x the geometry:
+
+| | old Eden | current Eden |
+|---|---|---|
+| particles | 4,195 | **19,104** |
+| visible | 2,457 | **17,352** |
+| surfaces | 14,538 | **103,920** |
+| render triangles | 14,372 | **103,754** |
+| shadow triangles | 17,700 | **196,596** |
+| lights | 6 | 6 |
+
+Frame went 16.0 to 26.7 ms for 7x the geometry, so the engine scales well. But
+the REGIME FLIPPED, which changes which optimizations pay:
+
+| phase (median, steady) | retina 3200x2102 | windowed 1600x1051 |
+|---|---|---|
+| frame | 26.67 | 23.62 |
+| **render_slot_wait** | **0.00** | **0.00** |
+| CPU render work | 19.37 | 17.47 |
+| physics | 6.38 | 6.00 |
+| prep_shadow_tris | 6.88 | 6.45 |
+| render_collect | 4.54 | 3.87 |
+| prep_triangles | 2.25 | 2.23 |
+| prep_bvh | 2.16 | 2.14 |
+| render_submit | 1.50 | 1.39 |
+| gpu_busy | 18.16 | 7.29 |
+
+**Eden retina is no longer GPU-bound.** `slot_wait` is 0.00 at BOTH
+resolutions: the CPU never waits. Quadrupling the pixel count costs 3.05 ms of
+frame time while GPU busy goes 7.29 to 18.16, all of it hidden. The conclusion
+that held through S1-S10, that retina is GPU-bound and CPU wins are invisible
+there, is now FALSE for this scene.
+
+Consequences for the open work:
+- GPU-side geometry expansion, long deferred as "worth nothing at retina", now
+  addresses collect 4.54 + prep_triangles 2.25 + prep_shadow_tris 6.88 =
+  **13.67 of the 19.37 ms CPU render**.
+- `prep_shadow_tris` is the largest render item. The shadow path applies no
+  back-face culling, so it carries 196,596 triangles against the render path's
+  103,754, 1.9x.
+- **`physics` at 6.38 ms is now the second-largest item in the frame and has
+  never been profiled in this campaign.**
+
+Method note: run 1 of a cold sequence measured 35.3 ms against 26.7 for runs 2
+and 3. Discard the first run.
+
+**How this was found, because the failure mode is instructive.** The frame
+looked like an 11.6 ms regression against yesterday's 16.0 ms. It was first
+misattributed to machine contention (wrong: the pre-merge binary still gave
+16.1 ms on the same machine minutes later), then to a code regression in the
+merged commits (wrong: a bisect landed on `feat(logogenesis): conversational
+world creation`, which is content). Only the COUNTERS settled it. Same lesson
+as S7: a timing change means nothing until you have checked whether the
+workload changed. Scene composition is a variable, and Eden is not a fixed one.
+
+---
+
 # Study journal
 
 ### S1: telemetry's own cost (2026-07-29)
