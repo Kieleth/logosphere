@@ -77,7 +77,8 @@ jobs:
             test_logotron_cycle test_logotron_trails test_logotron_collision \
             test_logotron_round test_logotron_director \
             test_particle_shapes \
-            test_interaction_ontology test_interaction_events test_interaction_profiles
+            test_interaction_ontology test_interaction_events test_interaction_profiles \
+            test_tictactoe
           do
             echo "=== $t ==="
             ./build/$t || fail=1
