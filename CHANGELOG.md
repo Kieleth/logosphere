@@ -7,6 +7,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- A bare `cmake -S . -B build` (the README configure line) produced
+  an unoptimized engine: no build type meant no `-O` flags, and the
+  renderer ran ~8x slower (Eden at 6 FPS instead of ~50). The build
+  now defaults to Release when no `CMAKE_BUILD_TYPE` is given;
+  explicit build types and multi-config generators are untouched.
+
 ### Added
 - Isometric camera orbit: `CameraSystem::set_view_azimuth(radians)`
   rotates the isometric view around world +Z (clockwise-positive,
