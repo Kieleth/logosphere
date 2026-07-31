@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // Helper to wait for SPACE key press
 static void wait_for_space(Engine& engine, const std::string& title, const std::vector<std::string>& messages) {

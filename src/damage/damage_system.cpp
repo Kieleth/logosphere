@@ -4,6 +4,7 @@
 #include "logosphere/kg/kg_module.h"
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 // apply_to_particle (particle-id → entity resolution via spatial query)
 // lives in src/damage/damage_particle_bridge.cpp to keep this TU free

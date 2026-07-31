@@ -348,6 +348,7 @@ void test_wheel_separation_unchanged_under_rotation() {
 
 #include "particle.h"
 #include "particle_geometry_v2.h"
+#include <stdexcept>
 
 // =============================================================================
 // CRITICAL: rotation direction convention.

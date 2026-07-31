@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <vector>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // TREE WIGGLY TEST - Multiple Tree Sizes

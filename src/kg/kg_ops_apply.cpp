@@ -3,6 +3,7 @@
 #include "logosphere/kg/kg_module.h"
 
 #include <variant>
+#include <string>
 
 namespace kg {
 

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 using logosphere::rendering::VisionMemoryConfig;
 using logosphere::rendering::update_vision_memory;

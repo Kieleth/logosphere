@@ -6,6 +6,7 @@
 #include "optimization_flags.h"
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 // Set to 1 for verbose chunk loading logs
 #define SCENE_CHUNK_VERBOSE 1

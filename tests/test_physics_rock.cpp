@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // PHYSICS ROCK TEST - Verify Generated Rocks Settle and Don't Drift

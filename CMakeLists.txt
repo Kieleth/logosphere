@@ -4,6 +4,12 @@ project(logosphere)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# MSVC: expose the M_PI constant family and keep <windows.h> from
+# defining min/max macros that collide with std::min / std::max.
+if(MSVC)
+    add_compile_definitions(_USE_MATH_DEFINES NOMINMAX)
+endif()
+
 # Generate include/logosphere/build_info.h with the current git SHA,
 # tag-describe, and configure timestamp. Needed by the telemetry /
 # session-recording layer so saved artifacts can be correlated with

@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // PHYSICS EXPERIMENT 01 - Newtonian Gravity Basics (VISUAL)

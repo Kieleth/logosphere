@@ -109,3 +109,22 @@ jobs:
       - name: Run unit tests
         timeout-minutes: 1
         run: ./build/logosphere-tests --test
+
+  # ---------------------------------------------------------------------------
+  # Windows: headless subset under MSVC. Verifies the core profile is the
+  # portable C++17 it claims to be (issue #7). Advisory: not merge-blocking
+  # until it has a green track record.
+  # ---------------------------------------------------------------------------
+  headless-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (headless-only, MSVC)
+        run: cmake -S . -B build -DLOGOSPHERE_HEADLESS_ONLY=ON
+
+      - name: Build logosphere_core + headless tests
+        run: cmake --build build --config Release -j 4
+
+      - name: Run headless test suite
+        run: ctest --test-dir build -C Release --output-on-failure

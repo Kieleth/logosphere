@@ -14,6 +14,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 using logosphere::rendering::VisionConePixelInput;
 using logosphere::rendering::VisionConePixelParams;

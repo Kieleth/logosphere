@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
 void ShadowProbe::add_screen_region(const std::string& name,
                                      const ScreenBox& bounds,

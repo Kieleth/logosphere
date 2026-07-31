@@ -2,6 +2,7 @@
 #include "core/engine.h"
 #include "core/particle_system.h"
 #include <iostream>
+#include <string>
 
 // TotemSpec presets
 TotemSpec TotemSpec::single_trunk() {

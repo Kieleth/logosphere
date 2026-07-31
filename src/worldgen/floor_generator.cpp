@@ -5,6 +5,7 @@
 #include "logosphere/worldgen/noise.h"
 #include <iostream>
 #include <cstdlib>
+#include <string>
 
 FloorGenerator::FloorGenerator()
     : engine_(nullptr)

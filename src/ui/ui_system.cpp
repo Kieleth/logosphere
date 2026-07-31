@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cassert>
 #include "platform/glfw_compat.h"  // key codes (real GLFW, or shim)
+#include <string>
 
 // Global UI system instance removed - now accessed via Engine::get_ui_system()
 

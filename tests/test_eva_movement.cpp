@@ -8,6 +8,7 @@
 #include <vector>
 #include <cstdlib>
 #include <GLFW/glfw3.h>
+#include <string>
 
 // ============================================================================
 // EVA MOVEMENT TEST - Physics Humanoid Movement Stress Test

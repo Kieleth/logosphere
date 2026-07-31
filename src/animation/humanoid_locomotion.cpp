@@ -26,6 +26,7 @@
 #include <queue>
 #include <set>
 #include <sstream>
+#include <string>
 
 namespace logosphere::animation {
 

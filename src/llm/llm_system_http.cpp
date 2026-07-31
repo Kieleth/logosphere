@@ -18,6 +18,8 @@
 #include <sstream>
 #include <fstream>
 #include <chrono>
+#include <string>
+#include <stdexcept>
 
 namespace Logosphere {
 
