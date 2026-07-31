@@ -8,6 +8,16 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- CMake install/export: `cmake --install` now ships the headless
+  core, and external projects consume it with
+  `find_package(logosphere 0.2)` + `target_link_libraries(app
+  PRIVATE logosphere::core)`. Curated headers install to
+  `include/logosphere/`; the internal closure they still depend on
+  installs under `include/logosphere/internal/` (no stability
+  promise there). `examples/consumer-smoke/` is the reference
+  external consumer and runs in CI against a fresh install. The
+  rendering / physics stack is not installable yet; games needing
+  it keep building in-tree.
 - The ontology regeneration toolchain is now vendored:
   `scripts/cppgen/` carries the maintainer-authored LinkML C++
   generator, invoked via `scripts/gen_cpp_header.py`, with
