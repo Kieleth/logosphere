@@ -151,6 +151,14 @@ Category quick reference:
 - **Fixed** — bug fixes with user-visible impact
 - **Security** — vulnerability fixes
 
+## Where to start
+
+The [pinned roadmap issue](https://github.com/Kieleth/logosphere/issues/10)
+maps the current efforts by lane; anything labeled
+[`good first issue`](https://github.com/Kieleth/logosphere/labels/good%20first%20issue)
+is scoped and mentored. Questions belong in Discussions; concrete
+defects and proposals belong in issues.
+
 ## Submitting Changes
 
 1. **Fork** the repository and create a topic branch from `main`.
