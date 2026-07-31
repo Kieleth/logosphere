@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(logosphere)
+project(logosphere VERSION 0.2.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -155,22 +155,96 @@ set(LOGOSPHERE_CORE_SOURCES
 # once they are split out — today it is carried transitively through
 # logosphere_core.
 add_library(logosphere_events INTERFACE)
+add_library(logosphere::events ALIAS logosphere_events)
+set_target_properties(logosphere_events PROPERTIES EXPORT_NAME events)
 target_include_directories(logosphere_events INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 target_compile_features(logosphere_events INTERFACE cxx_std_17)
 
 add_library(logosphere_core STATIC ${LOGOSPHERE_CORE_SOURCES})
+add_library(logosphere::core ALIAS logosphere_core)
+set_target_properties(logosphere_core PROPERTIES EXPORT_NAME core)
 target_link_libraries(logosphere_core PUBLIC logosphere_events)
 target_include_directories(logosphere_core PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/logosphere/internal>
 )
 # nlohmann/json is header-only; only kg_ops_parse.cpp uses it.
 target_include_directories(logosphere_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(logosphere_core PUBLIC cxx_std_17)
+
+# ============================================================================
+# Install / export — find_package(logosphere) consumption
+# ============================================================================
+# Installs the headless core: logosphere::core (KG, ontology, events,
+# capability, damage, game time, particle store, geometry) and the
+# header-only logosphere::events. The rendering / physics / platform
+# stack is not installable yet; games needing it build in-tree.
+#
+# Layout: the curated API goes to include/logosphere/. The public
+# headers additionally depend on a small closure of engine-internal
+# headers (particle family, materials, math/quat, generated ontology);
+# those install under include/logosphere/internal/, which is on the
+# exported include path so in-tree include spellings keep working.
+# Shrinking that internal surface is ongoing; nothing in it is a
+# stability promise.
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS logosphere_core logosphere_events
+    EXPORT logosphereTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(DIRECTORY include/logosphere
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(FILES
+    src/materials.h src/particle.h src/particle_core.h
+    src/particle_geometry_v2.h src/particle_lighting.h
+    src/particle_memory.h src/particle_types.h src/particle_vision.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal
+)
+install(FILES src/core/particle_system.h src/core/game_time.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal/core
+)
+install(FILES src/math/quat.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal/math
+)
+install(FILES
+    src/generated/logosphere_ontology.h
+    src/generated/logosphere_ontology_registry.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/logosphere/internal/generated
+)
+install(EXPORT logosphereTargets
+    NAMESPACE logosphere::
+    FILE logosphereTargets.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/logosphere
+)
+configure_package_config_file(
+    cmake/logosphereConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/logosphere
+)
+# 0.x line: minor versions may break API, so only the same minor is
+# compatible (find_package(logosphere 0.2) accepts 0.2.x, not 0.3).
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMinorVersion
+)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/logosphereConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/logosphere
+)
 
 # ============================================================================
 # Headless test executables — always built, link only logosphere_core
