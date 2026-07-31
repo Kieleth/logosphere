@@ -334,6 +334,7 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_celestial_moon)   # moon factory preset (pure config)
     add_engine_at(test_strata_earth_impact)  # earth preset + boulder crater contract
     add_engine_at(test_iso_azimuth_roundtrip)  # orbit picking round-trip (issue #9)
+    add_engine_at(test_orbit_performance)  # orbit frame-cost study + post-orbit ratchet
     add_engine_at(test_leg_spin_on_rotation) # Eden playtest repro: legs spin when human rotates
     add_engine_at(test_face_tracks_head)     # Eden playtest repro: eyes/ears/nose ride the head's yaw
     add_engine_at(test_leg_geometry_choreography) # Eden playtest repro: legs fold under walk/stop/turn transitions
