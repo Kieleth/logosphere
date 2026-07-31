@@ -71,6 +71,7 @@ private:
     CameraSystem* camera_system_ = nullptr;
     InputSystem* input_system_ = nullptr;
     GLFWwindow* window_ = nullptr;
+    float orbit_speed_ = 1.05f;   // rad/s: a full lap in ~6 s
     
     // Current state
     CameraMode current_mode_ = CameraMode::Fixed;
@@ -99,7 +100,8 @@ private:
     void update_follow_camera(float delta_time);
     void handle_free_camera_movement(float delta_time);
     void handle_free_camera_rotation(double dx, double dy);
-    void handle_zoom(float delta_time);  // Works in all camera modes
+    void handle_zoom(float delta_time);
+    void handle_orbit(float delta_time);  // Works in all camera modes
 };
 
 #endif // CAMERA_CONTROLLER_H

@@ -37,6 +37,7 @@ void CameraController::update(float delta_time) {
     // Zoom runs LAST so it can override camera position for centering
     // This ensures zooming keeps the followed entity centered on screen
     handle_zoom(delta_time);
+    handle_orbit(delta_time);
 }
 
 void CameraController::set_mode(CameraMode mode) {
@@ -224,6 +225,28 @@ void CameraController::handle_zoom(float delta_time) {
         camera_system_->adjust_zoom(zoom_delta);
     } else if (zoom_out) {
         camera_system_->adjust_zoom(-zoom_delta);
+    }
+}
+
+void CameraController::handle_orbit(float delta_time) {
+    if (!window_) return;
+
+    // Arrow keys: left/right orbit the view azimuth, up/down zoom.
+    // Same polling pattern as handle_zoom; the mouse stays free to
+    // steer the avatar's gaze.
+    bool orbit_cw = glfwGetKey(window_, GLFW_KEY_RIGHT) == GLFW_PRESS;
+    bool orbit_ccw = glfwGetKey(window_, GLFW_KEY_LEFT) == GLFW_PRESS;
+    bool zoom_in = glfwGetKey(window_, GLFW_KEY_UP) == GLFW_PRESS;
+    bool zoom_out = glfwGetKey(window_, GLFW_KEY_DOWN) == GLFW_PRESS;
+
+    if (orbit_cw != orbit_ccw) {
+        float az = camera_system_->get_view_azimuth();
+        float delta = orbit_speed_ * delta_time;
+        camera_system_->set_view_azimuth(az + (orbit_cw ? delta : -delta));
+    }
+    if (zoom_in != zoom_out) {
+        camera_system_->adjust_zoom(zoom_in ? zoom_speed_ * delta_time
+                                            : -zoom_speed_ * delta_time);
     }
 }
 
