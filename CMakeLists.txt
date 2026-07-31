@@ -224,6 +224,29 @@ add_headless_test(test_vision_cone_pixel)
 add_headless_test(test_kg_query)          # Knowledge layer: query algebra + facet selection
 add_headless_test(test_journal_render)    # Knowledge layer: journal history renderers
 
+# ============================================================================
+# Tic-Tac-Toe example — headless/console, links only logosphere_core
+# ============================================================================
+# Unlike examples/eden, examples/logotron, and examples/logogenesis (added
+# later, after the profile short-circuits below, so they only build in the
+# `full` profile), this example needs nothing but the KG + ontology +
+# events slice of the engine, so it's registered here to build under
+# core/physics/full alike.
+add_subdirectory(examples/tictactoe)
+
+add_executable(test_tictactoe
+    tests/test_tictactoe.cpp
+    examples/tictactoe/src/generated/tictactoe_ontology_registry.cpp
+)
+target_link_libraries(test_tictactoe PRIVATE logosphere_core)
+target_include_directories(test_tictactoe PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/tictactoe/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/tictactoe/src/generated
+)
+target_compile_features(test_tictactoe PRIVATE cxx_std_17)
+add_test(NAME test_tictactoe COMMAND test_tictactoe)
+
 
 # Engine acceptance tests — link against the full engine library so
 # they can spin up Engine in headless mode + drive the real GPU

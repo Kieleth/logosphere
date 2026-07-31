@@ -1,0 +1,106 @@
+id: https://logosphere.dev/tictactoe/schema
+name: tictactoe
+title: Tic-Tac-Toe on Logosphere
+description: >-
+  Game ontology for a headless tic-tac-toe example, extending
+  Logosphere's base types with a 3x3 board, cells, players, and
+  the OCCUPIES relation used to record moves.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  tictactoe: https://logosphere.dev/tictactoe/schema/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  TicTacToeEventType:
+    description: Tic-tac-toe specific event types.
+    permissible_values:
+      MOVE_MADE:
+        description: A player marked a cell
+      GAME_WON:
+        description: A player completed a winning line
+      GAME_DRAWN:
+        description: The board filled with no winner
+
+  TicTacToeRelationType:
+    description: Tic-tac-toe specific relation types.
+    permissible_values:
+      OCCUPIES:
+        description: Player has marked a given cell
+
+# -------------------------------------------------------------------
+# Entity types
+# -------------------------------------------------------------------
+
+classes:
+  Board:
+    is_a: WorldEntity
+    description: The 3x3 tic-tac-toe board. Singleton per game.
+
+  Cell:
+    is_a: WorldEntity
+    description: A single square of the board.
+    slots:
+      - row
+      - col
+      - mark
+
+  Player:
+    is_a: Entity
+    description: A tic-tac-toe player ("X" or "O").
+    slots:
+      - symbol
+      - player_name
+
+# -------------------------------------------------------------------
+# Tic-tac-toe relations
+# -------------------------------------------------------------------
+
+  TicTacToeRelation:
+    is_a: Relation
+    description: Tic-tac-toe specific typed relationship.
+    slot_usage:
+      relation_type:
+        range: TicTacToeRelationType
+
+# -------------------------------------------------------------------
+# Tic-tac-toe events
+# -------------------------------------------------------------------
+
+  TicTacToeEvent:
+    is_a: Event
+    description: Tic-tac-toe narrative event (move, win, draw).
+    slot_usage:
+      event_type:
+        range: TicTacToeEventType
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  row:
+    range: integer
+    description: Zero-based row index (0-2) of a cell.
+  col:
+    range: integer
+    description: Zero-based column index (0-2) of a cell.
+  mark:
+    range: string
+    description: Current mark on a cell -- "", "X", or "O".
+  symbol:
+    range: string
+    description: The player's mark -- "X" or "O".
+  player_name:
+    range: string
+    description: Display name of the player.
