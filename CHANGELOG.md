@@ -14,6 +14,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   dependencies declared in `environment.yml`. Contributors can edit
   schema YAML and regenerate the committed sources reproducibly
   (verified byte-identical from a clean environment).
+- `PixelBuffer::sync_debug_from_native()`: pulls the native BGRA
+  framebuffer into the `EnhancedPixel` debug buffer so tests can
+  inspect rendered pixels after a GPU render pass.
+
+### Changed
+- The `DEBUG_BUILD` compile definition is gone from every target
+  (it was defined `PUBLIC` in all configurations, so release builds
+  and downstream consumers carried debug paths). The pixel debug
+  buffer is now a runtime opt-in via
+  `PixelBuffer::set_debug_mode(true)` with lazy allocation; builds
+  no longer pay for it unless a test enables it.
 
 ## [0.2.0] - 2026-07-30
 

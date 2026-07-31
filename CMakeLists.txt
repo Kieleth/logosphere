@@ -165,7 +165,6 @@ target_include_directories(logosphere_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(logosphere_core PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_core PUBLIC DEBUG_BUILD)
 
 # ============================================================================
 # Headless test executables — always built, link only logosphere_core
@@ -722,7 +721,7 @@ target_include_directories(logosphere_worldgen PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_worldgen PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_worldgen PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_worldgen PUBLIC HAS_LLAMA)
 
 # ---- logosphere_dynamics — animation, FK, locomotion, kinematic root ----
 set(LOGOSPHERE_DYNAMICS_SOURCES
@@ -740,7 +739,7 @@ target_include_directories(logosphere_dynamics PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_dynamics PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_dynamics PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_dynamics PUBLIC HAS_LLAMA)
 
 # ---- logosphere_physics — XPBD solver, gluons, narrow-phase, BVH ----
 set(LOGOSPHERE_PHYSICS_SOURCES
@@ -755,7 +754,7 @@ target_include_directories(logosphere_physics PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_physics PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_physics PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_physics PUBLIC HAS_LLAMA)
 
 # Locomotion smoke test — exercises HumanoidLocomotion / PhysicsSystem /
 # ParticleDynamicsSystem via the *_headless initialize variants. No
@@ -1022,9 +1021,6 @@ set(LOGOSPHERE_HEADERS
 # Create Logosphere library
 add_library(logosphere STATIC ${LOGOSPHERE_SOURCES})
 
-# Enable debug buffer for tests and debug builds
-target_compile_definitions(logosphere PUBLIC DEBUG_BUILD)
-
 # logosphere_core and the headless test suite are defined at the top of
 # this file (above the LOGOSPHERE_HEADLESS_ONLY short-circuit).
 
@@ -1229,7 +1225,7 @@ target_include_directories(logosphere_rendering PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_compile_features(logosphere_rendering PUBLIC cxx_std_17)
-target_compile_definitions(logosphere_rendering PUBLIC DEBUG_BUILD HAS_LLAMA)
+target_compile_definitions(logosphere_rendering PUBLIC HAS_LLAMA)
 
 target_link_libraries(logosphere PUBLIC logosphere_rendering)
 

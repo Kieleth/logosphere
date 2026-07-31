@@ -102,11 +102,9 @@ bool TestEngine::initialize() {
     // This ensures our tests use exactly the same systems as production.
     // No more duplicate systems or different code paths!
     
-    // Enable debug mode for pixel buffer (only for tests)
-#ifdef DEBUG_BUILD
+    // Enable the pixel debug buffer (runtime opt-in, tests only)
     engine_->get_framebuffer_buffer().set_debug_mode(true);
     engine_->get_render_buffer().set_debug_mode(true);
-#endif
     
     // Initialize character through Engine's systems
     std::cout << "DEBUG: Getting particle system..." << std::endl;
@@ -342,13 +340,8 @@ const std::vector<EnhancedPixel>& TestEngine::getEnhancedFramebuffer() const {
     if (!engine_) return empty;
     
     // Get the framebuffer's debug/enhanced buffer for tests
-#ifdef DEBUG_BUILD
     const PixelBuffer& fb = engine_->get_framebuffer_buffer();
     return fb.get_buffer();  // This works with hybrid approach
-#else
-    // Without DEBUG_BUILD, we don't have EnhancedPixel data
-    return empty;
-#endif
 }
 
 bool TestEngine::isPixelColor(int x, int y, unsigned char r, unsigned char g, unsigned char b, 
