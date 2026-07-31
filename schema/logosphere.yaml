@@ -1,0 +1,1138 @@
+id: https://logosphere.dev/schema
+name: logosphere
+title: Logosphere Game Engine Ontology
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - malleus
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  MaterialType:
+    description: Physical material classification.
+    permissible_values:
+      FLESH:
+        description: Organic living tissue
+      WOOD_SOFT:
+        description: Softwood (pine, cedar)
+      WOOD_HARD:
+        description: Hardwood (oak, mahogany)
+      LEAVES:
+        description: Foliage material
+      STONE:
+        description: Natural stone
+      CONCRETE:
+        description: Poured concrete
+      BRICK:
+        description: Fired clay brick
+      SAND:
+        description: Loose sand
+      DIRT:
+        description: Packed earth
+      IRON:
+        description: Ferrous metal
+      STEEL:
+        description: Carbon steel alloy
+      ALUMINUM:
+        description: Light nonferrous metal
+      GOLD:
+        description: Dense precious metal
+      LIGHT:
+        description: Massless light emitter
+      HEAVY_STATIC:
+        description: Immovable boundary material
+
+  GluonType:
+    description: Constraint type connecting two particles.
+    permissible_values:
+      NAIL:
+        description: Rigid connection with directional stiffness
+      JOINT:
+        description: Rotational connection with angle limits
+      CEMENT:
+        description: Brittle connection that breaks suddenly
+      GLUE:
+        description: Viscous connection resisting fast motion
+      MAGIC:
+        description: Force field with distance-based attraction
+
+  JointType:
+    description: Anatomical joint degree-of-freedom classification.
+    permissible_values:
+      BALL_SOCKET:
+        description: 3 DOF (shoulder, hip)
+      HINGE:
+        description: 1 DOF flexion (elbow, knee)
+      PIVOT:
+        description: 1 DOF twist (forearm, ankle)
+      FIXED:
+        description: 0 DOF rigid attachment
+
+  DamageType:
+    description: Classification of damage inflicted.
+    permissible_values:
+      BLUNT:
+        description: Impact from clubs, fists, falls
+      SLASH:
+        description: Cutting from blades and claws
+      PIERCE:
+        description: Penetration from arrows and fangs
+      BITE:
+        description: Creature bite damage
+      FIRE:
+        description: Heat and flame
+      COLD:
+        description: Frost and cold
+      POISON:
+        description: Toxic damage over time
+      PURE:
+        description: Ignores all resistances
+
+  OdorType:
+    description: Scent types for creature perception.
+    permissible_values:
+      NONE:
+        description: No detectable odor
+      LIVING_FLESH:
+        description: Living humans and animals
+      FRESH_MEAT:
+        description: Recently killed raw meat
+      BLOOD:
+        description: Open wounds, blood pools
+      DECAY:
+        description: Rotting organic matter
+      ROTTEN:
+        description: Severely decomposed matter
+      SMOKE:
+        description: Fire and torch smoke
+
+  MemoryLayer:
+    description: Vision memory decay states.
+    permissible_values:
+      ACTIVE_VISION:
+        description: Currently visible, full detail
+      RECENT_MEMORY:
+        description: Seen 0-10 seconds ago
+      SHORT_MEMORY:
+        description: Seen 10-60 seconds ago
+      LONG_MEMORY:
+        description: Seen 60+ seconds ago, significant drift
+
+  FloorType:
+    description: Ground surface material.
+    permissible_values:
+      GRASS:
+        description: Green grass
+      SAND:
+        description: Beige sand
+      STONE:
+        description: Gray stone
+      WOOD:
+        description: Wood planks
+      EARTH:
+        description: Brown dirt
+
+  OrganicType:
+    description: Procedural organic entity classification.
+    permissible_values:
+      TREE:
+      BUSH:
+      GRASS:
+      VINE:
+      ROOT:
+      FLOWER:
+      FERN:
+
+  RockSize:
+    description: Natural rock size classification.
+    permissible_values:
+      PEBBLE:
+        description: Small egg-shaped (~0.2m)
+      SMALL_ROCK:
+        description: Fist-sized (~0.4m)
+      MEDIUM_ROCK:
+        description: Head-sized (~0.8m)
+      LARGE_BOULDER:
+        description: Large boulder (~1.5m)
+
+  TreeVariant:
+    description: Tree species/growth variant for procedural generation.
+    permissible_values:
+      SAPLING:
+        description: Young seedling tree (~3m)
+      YOUNG_OAK:
+        description: Growing oak (~6m)
+      OAK:
+        description: Mature oak (~12m)
+      ANCIENT_OAK:
+        description: Huge ancient oak (~25m)
+      PINE:
+        description: Coniferous pine
+      WILLOW:
+        description: Trailing willow
+      DEAD:
+        description: Dead standing tree, bark stripped
+
+  TreeSpecies:
+    description: >-
+      Tree growth archetype (species only — age is expressed through
+      anatomy slots like canopy_start and lower_branches, not baked
+      into the enum). Successor vocabulary to TreeVariant, which
+      mixes species with age and remains for legacy generator paths;
+      the two fold together post-0.2.0.
+    permissible_values:
+      OAK:
+        description: Broad crown, sturdy trunk. The default tree.
+      PINE:
+        description: Tall, narrow, conical.
+      WILLOW:
+        description: Drooping, wide, melancholic.
+      PALM:
+        description: Bare trunk, crown burst at the top.
+      BAOBAB:
+        description: Massive squat trunk, sparse crown.
+      REDWOOD:
+        description: >-
+          Very tall, reddish bark, high crown. The "redwood" /
+          "sequoia" silhouette.
+
+  TerrainKind:
+    description: How ground is constructed (orthogonal to FloorType,
+      which is surface material).
+    permissible_values:
+      LAYERED:
+        description: >-
+          Real earth: stacked, physics-settled particle layers
+          (bonded bedrock slabs, rubble filler, loose topsoil).
+          Craters under impacts. See StrataGenerator.
+      SLAB:
+        description: One flat static box. Cheap, inert, for pure
+          backdrops.
+
+  LogType:
+    description: Classification of fallen wood.
+    permissible_values:
+      TRUNK:
+        description: Full fallen tree trunk
+      LOG:
+        description: Cut or broken log section
+      BRANCH:
+        description: Broken branch, arm-thick
+      TWIG:
+        description: Small twig or stick
+
+  PatternId:
+    description: Procedural surface texture pattern.
+    permissible_values:
+      NONE:
+        description: Flat color
+      WOOD:
+      STONE:
+      LEATHER:
+      LINEN:
+      COTTON:
+      SILK:
+      EMBROIDERY:
+      SKIN:
+      SKIN_REPTILE:
+      HAIR:
+
+  GOAPAction:
+    description: AI action types for goal-oriented planning.
+    permissible_values:
+      PURSUE:
+        description: Chase target
+      EAT:
+        description: Consume food
+      SCAN:
+        description: Look around for targets
+      ESCAPE_BLOCK:
+        description: Navigate around obstacle
+      INVESTIGATE_SMELL:
+        description: Follow odor trail
+      GRAB_PREY:
+        description: Catch target
+      GIVE_UP:
+        description: Abandon current action
+
+  EntityModification:
+    description: Modification state of an entity.
+    permissible_values:
+      NONE:
+      DESTROYED:
+      DAMAGED:
+      PRUNED:
+      FROZEN:
+
+  BodyRegion:
+    description: Anatomical region for animation targeting.
+    permissible_values:
+      FULL_BODY:
+        description: All joints
+      UPPER_BODY:
+        description: Shoulders, elbows, wrists, spine, neck, head
+      LOWER_BODY:
+        description: Hips, knees, ankles, toes
+
+  JointTarget:
+    description: How a joint's rotation is determined.
+    permissible_values:
+      DRIVEN:
+        description: Explicit angle in local space
+      DIRECTION:
+        description: Point toward world-space direction
+      INHERIT:
+        description: Follow parent rotation
+      PHYSICS:
+        description: Let gluon dynamics control
+      SEMANTIC:
+        description: Anatomical target (flex, abduct, twist)
+
+  SemanticChannel:
+    description: Anatomical motion axis.
+    permissible_values:
+      FLEX:
+        description: Flexion/extension
+      ABDUCT:
+        description: Abduction/adduction
+      TWIST:
+        description: Internal/external rotation
+
+  WorldEventType:
+    description: Classification of game world events.
+    permissible_values:
+      COLLISION:
+      DAMAGE:
+      SPAWN:
+      DEATH:
+      PERCEPTION:
+      CONSTRAINT_BREAK:
+      GROWTH:
+      STATE_CHANGE:
+      RELATION_CREATED:
+        description: A relation was created between two entities.
+      RELATION_REMOVED:
+        description: A relation was removed between two entities.
+
+  WorldRelationType:
+    description: Relation types between game world entities.
+    permissible_values:
+      HAS_PART:
+        description: Composition (humanoid has_part torso)
+      HAS_REGIONAL_PART:
+        description: Spatial subdivision (arm has_regional_part forearm)
+      HAS_CONSTRAINT:
+        description: Physics constraint link
+      CONTAINS:
+        description: Spatial containment (chest contains item)
+      SUPPORTS:
+        description: Physical support (floor supports entity)
+      ILLUMINATES:
+        description: Light source reaches entity
+      BURNS:
+        description: Fire spread between entities
+      PERCEIVES:
+        description: Agent perceives target entity
+      MANAGES:
+        description: System entity manages another entity
+
+# -------------------------------------------------------------------
+# Mixins (cross-cutting traits for game entities)
+# -------------------------------------------------------------------
+
+classes:
+  Spatial:
+    mixin: true
+    description: Entity with a position and orientation in 3D space.
+    slots:
+      - position_x
+      - position_y
+      - position_z
+      - facing_angle
+
+  HasMaterial:
+    mixin: true
+    description: Entity made of a physical material.
+    slots:
+      - material_type
+      - material_density
+      - material_friction
+      - material_strength
+
+  HasHealth:
+    mixin: true
+    description: Entity that can take damage and die.
+    slots:
+      - health
+      - max_health
+
+  EmitsLight:
+    mixin: true
+    description: Entity that emits light and can be seen from a distance.
+    slots:
+      - emission_strength
+      - emission_radius
+
+  HasPhysicalCapability:
+    mixin: true
+    description: Physical performance attributes of a body component or agent.
+    slots:
+      - part_strength
+      - part_max_strength
+      - part_flexibility
+      - part_responsiveness
+      - part_endurance
+
+  HasTissue:
+    mixin: true
+    description: Tissue-level health tracking for body parts. Different damage types affect different tissues.
+    slots:
+      - muscle_health
+      - nerve_health
+      - tendon_health
+      - bone_health
+
+  HasOdor:
+    mixin: true
+    description: Entity that produces a detectable scent.
+    slots:
+      - odor_type
+
+  Destructible:
+    mixin: true
+    description: Entity that can be damaged or destroyed.
+    slots:
+      - damage_threshold
+      - modification_state
+
+  Growable:
+    mixin: true
+    description: Entity that grows over time via procedural generation.
+    slots:
+      - growth_iteration
+      - is_mature
+      - species
+
+# -------------------------------------------------------------------
+# Entity type hierarchy
+# -------------------------------------------------------------------
+
+  WorldEntity:
+    is_a: Entity
+    description: Base for all entities in the game world.
+    abstract: true
+    mixins:
+      - Statusable
+      - Spatial
+
+  LivingEntity:
+    is_a: WorldEntity
+    description: An entity that is alive and can take damage.
+    abstract: true
+    mixins:
+      - HasHealth
+      - HasMaterial
+      - HasOdor
+
+  Humanoid:
+    is_a: LivingEntity
+    description: Bipedal creature with full skeletal anatomy.
+    mixins:
+      - Agent
+
+  Creature:
+    is_a: LivingEntity
+    description: Non-humanoid living entity.
+    abstract: true
+    mixins:
+      - Agent
+
+  Butterfly:
+    is_a: Creature
+    description: Flying insect creature.
+
+  Snake:
+    is_a: Creature
+    description: Limbless reptile creature.
+
+  Plant:
+    is_a: LivingEntity
+    description: Living plant entity.
+    abstract: true
+    mixins:
+      - Growable
+    slots:
+      - organic_type
+
+  Tree:
+    is_a: Plant
+    description: Living tree grown via space colonization.
+    slots:
+      - tree_variant
+      - tree_height
+      - crown_radius
+      - canopy_start
+      - canopy_density
+      - lower_branches
+
+  Branch:
+    is_a: WorldEntity
+    description: Tree branch segment.
+    mixins:
+      - HasMaterial
+
+  Leaves:
+    is_a: WorldEntity
+    description: Foliage cluster on a branch.
+
+  GrassPatch:
+    is_a: Plant
+    description: >-
+      A patch of grass: container entity whose blades hang off
+      HAS_PART relations. Root type for deferred worldgen
+      materialization (vegetation activator walks the children).
+
+  Grass:
+    is_a: Plant
+    description: A grass blade or tuft grown by the organic generator.
+
+  Structure:
+    is_a: WorldEntity
+    description: Built or placed structure.
+    abstract: true
+    mixins:
+      - HasMaterial
+
+  Wall:
+    is_a: Structure
+    description: Wall segment.
+
+  WallBlock:
+    is_a: Wall
+    description: Individual wall block unit.
+
+  Floor:
+    is_a: Structure
+    description: Floor or terrain surface.
+    slots:
+      - floor_type
+      - terrain
+
+  FloorChunk:
+    is_a: Floor
+    description: Chunk-sized floor region.
+
+  FloorTile:
+    is_a: Floor
+    description: Individual floor tile within a chunk.
+
+  NaturalFormation:
+    is_a: WorldEntity
+    description: Natural geological formation.
+    abstract: true
+    mixins:
+      - HasMaterial
+      - Destructible
+
+  Rock:
+    is_a: NaturalFormation
+    description: Rock or boulder.
+    slots:
+      - rock_size
+
+  PhysicsRock:
+    is_a: Rock
+    description: Physics-enabled rock with full collision.
+
+  FallenTree:
+    is_a: NaturalFormation
+    description: Fallen tree trunk or log.
+    mixins:
+      - HasMaterial
+    slots:
+      - log_type
+
+  PhysicsTree:
+    is_a: Tree
+    description: Physics-enabled tree with collision and breakage.
+
+  LightSource:
+    is_a: WorldEntity
+    description: Entity that emits light.
+    mixins:
+      - EmitsLight
+
+  CelestialBody:
+    is_a: WorldEntity
+    description: Sun, moon, or star.
+    mixins:
+      - EmitsLight
+    slots:
+      - period_days
+      - cast_shadows
+      - moon_r
+      - moon_g
+      - moon_b
+      - moon_brightness
+      - moon_size
+
+  Sky:
+    is_a: WorldEntity
+    description: >-
+      The day-clock made visible: exists once a sun exists. Its
+      time_of_day is the world's hour (0-24). Games may treat it as
+      writable intent (set an hour, the world journeys there) or as
+      read-only state.
+    slots:
+      - time_of_day
+
+  BodyPart:
+    is_a: WorldEntity
+    description: Anatomical part of a living entity.
+    abstract: true
+    mixins:
+      - HasMaterial
+      - HasHealth
+      - HasPhysicalCapability
+      - HasTissue
+    slots:
+      - body_part_name
+
+  Hips:
+    is_a: BodyPart
+    description: Pelvis/hip region.
+
+  Torso:
+    is_a: BodyPart
+    description: Chest/torso region.
+
+  Head:
+    is_a: BodyPart
+    description: Head region.
+
+  Neck:
+    is_a: BodyPart
+    description: Cervical spine region.
+
+  Abdomen:
+    is_a: BodyPart
+    description: Abdominal region.
+
+  Arm:
+    is_a: BodyPart
+    description: Upper limb (shoulder to hand).
+
+  Shoulder:
+    is_a: BodyPart
+    description: Glenohumeral joint region.
+
+  UpperArm:
+    is_a: BodyPart
+    description: Humerus region.
+
+  Forearm:
+    is_a: BodyPart
+    description: Radius/ulna region.
+
+  Hand:
+    is_a: BodyPart
+    description: Terminal manipulator.
+
+  Leg:
+    is_a: BodyPart
+    description: Lower limb (hip to foot).
+
+  Thigh:
+    is_a: BodyPart
+    description: Femur region.
+
+  Shin:
+    is_a: BodyPart
+    description: Tibia/fibula region.
+
+  Foot:
+    is_a: BodyPart
+    description: Terminal support structure.
+
+  Segment:
+    is_a: BodyPart
+    description: Generic body segment (serpent, worm, centipede).
+
+  Wing:
+    is_a: BodyPart
+    description: Flight surface (insect, bird, bat).
+
+  Antenna:
+    is_a: BodyPart
+    description: Sensory appendage (insect antennae, whiskers).
+
+  Thorax:
+    is_a: BodyPart
+    description: Central body section (insect thorax, cephalothorax).
+
+  SceneChunk:
+    is_a: WorldEntity
+    description: Administrative chunk for world streaming.
+
+  AutoParticle:
+    is_a: WorldEntity
+    description: Automatically created particle entity for unmanaged particles.
+
+  Totem:
+    is_a: Structure
+    description: Vertical totem structure with stacked segments.
+
+  SystemEntity:
+    is_a: Entity
+    description: Administrative entity representing an engine subsystem.
+
+  PhysicsConstants:
+    is_a: Entity
+    description: Singleton entity holding global physics parameters.
+
+  Constraint:
+    is_a: Entity
+    description: Physics constraint between two particles.
+    slots:
+      - gluon_type
+      - stiffness
+      - damping
+      - breaking_force
+
+# -------------------------------------------------------------------
+# Particle interaction model
+# -------------------------------------------------------------------
+
+  ParticleInteractionProfile:
+    is_a: Entity
+    description: >-
+      Declares how particles carrying this profile interact with other
+      particles: a category bit and a collides-with mask consulted at
+      contact broad phase, plus optional medium parameters (drag,
+      buoyancy, directional field force) applied to particles
+      overlapping a filtered pair. Profile 0 is the engine default:
+      collide with everything, no medium.
+    slots:
+      - category_bit
+      - collides_with_mask
+      - drag_coefficient
+      - buoyancy_factor
+      - field_fx
+      - field_fy
+      - field_fz
+
+  TransformationRule:
+    is_a: Entity
+    description: >-
+      Declarative particle transformation executed by the interaction
+      system: a trigger condition (on_contact_filtered, on_volume_enter,
+      on_timer) and an effect (swap_profile, fade_out, delete,
+      emit_event) with parameters.
+    slots:
+      - trigger
+      - effect
+      - target_profile
+      - duration_s
+      - trigger_profile
+
+# -------------------------------------------------------------------
+# Event types (BFO:Occurrent / PROV-O:Activity aligned)
+# -------------------------------------------------------------------
+
+  WorldEvent:
+    is_a: Event
+    description: Something that happens in the game world.
+    slot_usage:
+      event_type:
+        range: WorldEventType
+    slots:
+      - source_entity_id
+      - target_entity_id
+      - payload_keys
+      - payload_values
+
+  CollisionEvent:
+    is_a: WorldEvent
+    description: Two entities physically collide.
+    slots:
+      - collision_force
+
+  DamageEvent:
+    is_a: WorldEvent
+    description: An entity takes damage.
+    slots:
+      - damage_type
+      - damage_amount
+
+  SpawnEvent:
+    is_a: WorldEvent
+    description: An entity is created in the world.
+
+  DeathEvent:
+    is_a: WorldEvent
+    description: A living entity dies.
+
+  PerceptionEvent:
+    is_a: WorldEvent
+    description: An agent perceives another entity.
+    slots:
+      - memory_layer
+
+  RelationEvent:
+    is_a: WorldEvent
+    description: A relation between two entities was created or removed.
+    slots:
+      - relation_type
+
+  ContactFilteredEvent:
+    is_a: WorldEvent
+    description: >-
+      A particle pair overlapping in broad phase was excluded from
+      narrow-phase contact by their interaction profiles (start of a
+      pass-through episode).
+    slots:
+      - profile_a
+      - profile_b
+
+  VolumeEvent:
+    is_a: WorldEvent
+    description: >-
+      A particle entered (entered=true) or exited (entered=false) the
+      volume of a particle whose profile declares a medium.
+    slots:
+      - entered
+      - medium_profile
+
+  TransformationEvent:
+    is_a: WorldEvent
+    description: A TransformationRule fired on a particle.
+    slots:
+      - rule_name
+
+# -------------------------------------------------------------------
+# Relation types (domain/range constrained)
+# -------------------------------------------------------------------
+
+  WorldRelation:
+    is_a: Relation
+    description: A typed relationship between world entities.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+
+# -------------------------------------------------------------------
+# Slots (properties)
+# -------------------------------------------------------------------
+
+slots:
+  # --- World knowledge (promoted from Logogenesis, 2026-08-03: these
+  # describe what things ARE anywhere, not how one game asks for them) ---
+  time_of_day:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 24.0
+    description: >-
+      Hour of the world's day (0-24). 6 sunrise, 12 noon, ~18.2
+      golden hour, 19 sunset, 0 deep night.
+  tree_height:
+    range: float
+    minimum_value: 0.5
+    maximum_value: 30.0
+    description: >-
+      Tree height in meters. A garden sapling is ~1, a grand oak ~8,
+      a redwood 25-30. Bounded to what the growth algorithm reliably
+      delivers.
+  crown_radius:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 15.0
+    description: Crown radius in meters (physically capped near 60%
+      of tree height).
+  canopy_start:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 0.8
+    description: >-
+      Fraction of the height where the crown begins. 0.25 = bushy,
+      leaves almost to the ground; 0.45 = classic oak; 0.7 = palm or
+      redwood silhouette (long bare trunk, high crown).
+  canopy_density:
+    range: float
+    minimum_value: 0.3
+    maximum_value: 1.5
+    description: >-
+      Crown fullness multiplier. 0.5 = airy and sparse, 1.0 =
+      natural, 1.5 = lush and dense.
+  lower_branches:
+    range: integer
+    minimum_value: 0
+    maximum_value: 6
+    description: >-
+      Limbs sprouting from the bare trunk below the crown. Old oaks
+      and willows carry 2-4; redwoods and palms stay clean at 0.
+      Age vocabulary: ancient = more limbs + lower canopy_start.
+  organic:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: >-
+      The organicalizer: how irregular an organism grows. 0 =
+      uniform and tame; 1 = wild (strong per-individual size and hue
+      variation, blobby silhouettes). Default 0.6.
+  terrain:
+    range: TerrainKind
+    description: LAYERED is real settling earth; SLAB is one cheap
+      flat box.
+  moon_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Moon color, red channel (0..1). Omit for Earth silver.
+  moon_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Moon color, green channel (0..1).
+  moon_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Moon color, blue channel (0..1).
+  moon_brightness:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 3.0
+    description: >-
+      Moonlight strength. 1.0 = Earth full moon; 0.3 a pale sliver;
+      3.0 an impossible bright giant.
+  moon_size:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 12.0
+    description: Visual size of the moon disc (m). Earth is 5.
+
+  # --- Spatial mixin ---
+  position_x:
+    range: float
+    required: true
+  position_y:
+    range: float
+    required: true
+  position_z:
+    range: float
+    required: true
+  facing_angle:
+    range: float
+    description: Direction entity faces in radians.
+
+  # --- HasMaterial mixin ---
+  material_type:
+    range: MaterialType
+  material_density:
+    range: float
+    description: Density in kg/m3.
+  material_friction:
+    range: float
+    description: Coulomb friction coefficient.
+  material_strength:
+    range: float
+    description: Tensile strength in Pa.
+
+  # --- HasHealth mixin ---
+  health:
+    range: float
+    required: true
+  max_health:
+    range: float
+    required: true
+
+  # --- HasOdor mixin ---
+  odor_type:
+    range: OdorType
+
+  # --- EmitsLight mixin ---
+  emission_strength:
+    range: float
+    description: Light intensity (lux).
+  emission_radius:
+    range: float
+    description: Maximum light reach distance.
+
+  # --- Destructible mixin ---
+  damage_threshold:
+    range: float
+    description: Damage required to trigger destruction.
+  modification_state:
+    range: EntityModification
+
+  # --- Growable mixin ---
+  growth_iteration:
+    range: integer
+  is_mature:
+    range: boolean
+  species:
+    range: string
+
+  # --- Entity-specific ---
+  organic_type:
+    range: OrganicType
+  floor_type:
+    range: FloorType
+  rock_size:
+    range: RockSize
+  tree_variant:
+    range: TreeVariant
+    description: Tree species/growth stage for generator dispatch.
+  log_type:
+    range: LogType
+    description: Classification of fallen wood (trunk, branch, twig).
+  period_days:
+    range: float
+    description: Orbital period in game days.
+  cast_shadows:
+    range: boolean
+
+  # --- Constraint ---
+  gluon_type:
+    range: GluonType
+    required: true
+  stiffness:
+    range: float
+    required: true
+    description: Constraint stiffness in N/m.
+  damping:
+    range: float
+    description: Damping coefficient in Ns/m.
+  breaking_force:
+    range: float
+    description: Force threshold for constraint failure.
+
+  # --- HasPhysicalCapability mixin ---
+  part_strength:
+    range: float
+    description: Force production capacity in Newtons. 0 = non-functional.
+  part_flexibility:
+    range: float
+    description: Range of motion ratio. 0.0 = locked, 1.0 = full ROM.
+  part_responsiveness:
+    range: float
+    description: Neural response speed for this part in milliseconds. Lower = faster.
+  part_max_strength:
+    range: float
+    description: Maximum force capacity ceiling in Newtons. Degrades with permanent injury.
+  part_endurance:
+    range: float
+    description: Action cycles before fatigue. Drains with use, recovers with rest.
+
+  # --- HasTissue mixin ---
+  muscle_health:
+    range: float
+    description: Muscle tissue integrity 0-100. Affects power production. Damaged by CUT, CRUSH.
+  nerve_health:
+    range: float
+    description: Nerve tissue integrity 0-100. Affects control/speed. Damaged by PIERCE, CRUSH.
+  tendon_health:
+    range: float
+    description: Tendon integrity 0-100. At 0 = limb unusable. Damaged by CUT.
+  bone_health:
+    range: float
+    description: Bone integrity 0-100. At 0 = fracture. Damaged by CRUSH.
+
+  # --- BodyPart ---
+  body_part_name:
+    range: string
+    description: Anatomical name of the body part.
+
+  # --- Event ---
+  source_entity_id:
+    range: string
+    description: ID of the entity that caused the event.
+  target_entity_id:
+    range: string
+    description: ID of the entity affected by the event.
+  collision_force:
+    range: float
+    description: Magnitude of collision impact in Newtons.
+  damage_type:
+    range: DamageType
+  damage_amount:
+    range: float
+    description: Amount of damage inflicted.
+  memory_layer:
+    range: MemoryLayer
+    description: Perception memory state at time of event.
+  relation_type:
+    range: string
+    description: Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
+
+  # --- Particle interaction ---
+  category_bit:
+    range: integer
+    description: Which interaction category bit (0-31) this profile occupies.
+  collides_with_mask:
+    range: integer
+    description: Bitmask of category bits this profile exchanges rigid contact with.
+  drag_coefficient:
+    range: float
+    description: Medium drag applied to particles inside this profile's volume (0 = none).
+  buoyancy_factor:
+    range: float
+    description: Buoyant acceleration share against gravity for intruders (0 = none, 1 = neutral).
+  field_fx:
+    range: float
+    description: Directional field force X applied to intruders, Newtons.
+  field_fy:
+    range: float
+    description: Directional field force Y applied to intruders, Newtons.
+  field_fz:
+    range: float
+    description: Directional field force Z applied to intruders, Newtons.
+  trigger:
+    range: string
+    description: Transformation trigger (on_contact_filtered, on_volume_enter, on_timer).
+  effect:
+    range: string
+    description: Transformation effect (swap_profile, fade_out, delete, emit_event).
+  target_profile:
+    range: integer
+    description: Profile id the effect targets (for swap_profile).
+  duration_s:
+    range: float
+    description: Effect duration in seconds (for timed effects).
+  trigger_profile:
+    range: integer
+    description: >-
+      Interaction profile id a volume/contact trigger binds to
+      (0 = any profile fires the rule).
+  profile_a:
+    range: integer
+    description: Interaction profile of the first particle in the filtered pair.
+  profile_b:
+    range: integer
+    description: Interaction profile of the second particle in the filtered pair.
+  entered:
+    range: boolean
+    description: True on volume entry, false on exit.
+  medium_profile:
+    range: integer
+    description: Profile id of the medium volume involved.
+  rule_name:
+    range: string
+    description: Name of the transformation rule that fired.
+  payload_keys:
+    range: string
+    multivalued: true
+    description: Event payload keys (parallel to payload_values). Populated from rule.N.payload.* KG properties when emit_event fires.
+  payload_values:
+    range: string
+    multivalued: true
+    description: Event payload values (parallel to payload_keys).

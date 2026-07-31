@@ -1,0 +1,401 @@
+id: https://logosphere.dev/logotron/schema
+name: logotron
+title: Logotron — Tron-inspired light cycle grid showcase
+description: >-
+  Game ontology for Logotron, a grid-based light cycle arena on
+  Logosphere. Each cycle leaves a solid particle-trail wall behind
+  it; crashes end the round. An LLM "Weirden Director" mode mutates
+  the arena at the player's invitation — gaps, teleports, trail
+  fading, grid splits.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  logotron: https://logosphere.dev/logotron/schema/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  Direction:
+    description: Cardinal movement direction for a Cycle.
+    permissible_values:
+      NORTH:
+      EAST:
+      SOUTH:
+      WEST:
+
+  CycleState:
+    description: Lifecycle state of a cycle during a round.
+    permissible_values:
+      RIDING:
+        description: Alive and moving, laying trail every step.
+      CRASHED:
+        description: Collided with a wall or trail, out of the round.
+
+  TrailState:
+    description: State of a trail segment.
+    permissible_values:
+      SOLID:
+        description: Blocks movement. Default.
+      FADING:
+        description: Near end of life, will become PHASED soon.
+      PHASED:
+        description: Passable, will be removed next tick.
+
+  AIPersonality:
+    description: Behavior profile for a non-player Cycle.
+    permissible_values:
+      AGGRESSIVE:
+        description: Cuts toward nearest opponent.
+      DEFENSIVE:
+        description: Hugs walls, avoids confrontation.
+      CHAOTIC:
+        description: Random turns at short intervals.
+      PURSUING:
+        description: Tracks the player specifically.
+
+  LogotronEventType:
+    description: Logotron-specific event types.
+    permissible_values:
+      CYCLE_CRASHED:
+        description: A cycle hit a wall or trail.
+      TRAIL_SEGMENT_ADDED:
+        description: A cycle laid a new segment.
+      ROUND_WON:
+        description: Last cycle standing.
+      WEIRDEN_MUTATION:
+        description: LLM director applied a mutation to the arena.
+
+# -------------------------------------------------------------------
+# Entity types
+# -------------------------------------------------------------------
+
+classes:
+  Arena:
+    is_a: WorldEntity
+    annotations:
+      facets: world
+    description: >-
+      The grid container. Holds dimensions, round state, active
+      cycle count. arena_w / arena_h are the playable footprint in
+      world meters; the LLM Director is allowed to mutate them
+      mid-game (the OntologyValidator clamps to the declared range
+      so the User can't be boxed into a 0×0 corner).
+    slots:
+      - arena_w
+      - arena_h
+      - grid_fog
+
+  ArenaCell:
+    is_a: WorldEntity
+    description: >-
+      A single cell in the arena grid. Relations declare adjacency
+      and occupancy.
+    slots:
+      - grid_x
+      - grid_y
+
+  Cycle:
+    is_a: WorldEntity
+    annotations:
+      facets: world
+    description: >-
+      A light cycle. Moves continuously in one cardinal direction,
+      leaves a TrailSegment behind each step, crashes on collision.
+      Speed accumulates over time since last turn — every direction
+      change resets to base_speed and the ramp restarts. See
+      GAME_DESIGN.md §18 for the locomotion model and tuning knobs.
+    slot_usage:
+      direction:
+        range: Direction
+      cycle_state:
+        range: CycleState
+    slots:
+      - tail_length
+      - base_speed
+      - max_speed
+      - speed_ramp_rate
+      - current_speed
+      - time_since_turn
+
+  PlayerCycle:
+    is_a: Cycle
+    annotations:
+      facets: world
+    description: >-
+      The player-controlled cycle. Input changes direction.
+
+  AllyCycle:
+    is_a: Cycle
+    annotations:
+      facets: world
+    description: >-
+      A Program riding FOR the User — the Master Control's mercy (or
+      theater). Rezzes beside the player, hunts enemy Programs, and is
+      never respawned when derezzed: an ally is a gift, not a
+      guarantee. Created by the Director via create_entity AllyCycle;
+      the host wires the bike, driver, and spawn.
+
+  AICycle:
+    is_a: Cycle
+    annotations:
+      facets: world
+    description: >-
+      Non-player cycle. Behavior profile drives turn decisions.
+      The ai_personality slot is the Director's tuning knob — write
+      one of the AIPersonality enum values via set_property to swap
+      the live drive-tactic blend (see ai/personality.cpp).
+    slots:
+      - ai_personality
+    slot_usage:
+      ai_personality:
+        range: AIPersonality
+
+  TrailSegment:
+    is_a: WorldEntity
+    annotations:
+      facets: world
+    description: >-
+      A single cell of light-wall trail left by a cycle. Owned by
+      its originating Cycle via TRAIL_OF relation. Director-spawnable
+      via the Phase C KGOp vocabulary — set the position slots
+      directly. owner_cycle_id="" + spawn_time="0" + director_origin="1"
+      marks a permanent Director wall (vs an active-run head laid
+      by a live cycle).
+    slot_usage:
+      trail_state:
+        range: TrailState
+    slots:
+      - grid_x
+      - grid_y
+      - start_x
+      - start_y
+      - end_x
+      - end_y
+      - direction
+      - owner_cycle_id
+      - spawn_time
+      - trail_state
+      - director_origin
+
+  ArenaWall:
+    is_a: Structure
+    description: >-
+      Boundary wall of the arena. Static. Lethal on contact.
+
+  Wormhole:
+    is_a: WorldEntity
+    annotations:
+      facets: world
+    description: >-
+      Teleporter linking two ArenaCells, created by the Weirden
+      Director. Cycles entering one end emerge at the other.
+      Director-authorable via the Phase C KGOp vocabulary —
+      adding the type to the ontology with these slots is the
+      ONLY change required to let the LLM spawn pairs.
+    slots:
+      - x
+      - y
+      - pair_id
+
+  EnergyPellet:
+    is_a: WorldEntity
+    description: >-
+      Optional pickup. Collecting grants a speed boost or extra
+      turn. Weirden may spawn these.
+
+  Motorcycle:
+    is_a: WorldEntity
+    description: >-
+      Visual bike riding atop a Cycle. Holds the shape parameters
+      (body + wheel dimensions) and is rebuilt into a handful of
+      ellipsoid particles each frame, oriented to the Cycle's
+      heading. Game-local type today — may get promoted to a
+      generic Vehicle concept in the engine if a second consumer
+      appears.
+    slots:
+      - body_length
+      - body_width
+      - body_height
+      - wheel_radius
+      - wheel_thickness
+      - wheel_offset
+
+# -------------------------------------------------------------------
+# Logotron-specific events
+# -------------------------------------------------------------------
+
+  LogotronEvent:
+    is_a: WorldEvent
+    description: Logotron-specific event.
+    slot_usage:
+      event_type:
+        range: LogotronEventType
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  arena_w:
+    range: float
+    minimum_value: 16.0
+    maximum_value: 60.0
+    description: >-
+      Arena footprint along x in world meters. Range bounded so the
+      LLM Director can shrink / grow the Grid without making it
+      unplayable. The OntologyValidator clamps every set_property
+      against this range — see the live game's "rejected" log for
+      out-of-range attempts.
+  grid_fog:
+    range: integer
+    minimum_value: 0
+    maximum_value: 1
+    description: >-
+      Fog-of-war escalation switch. 0 = full arena visibility (the
+      default); 1 = the Master Control darkens the Grid and the
+      player sees only their vision cone. Set by the Director at high
+      escalation tiers; cleared on round reset.
+  arena_h:
+    range: float
+    minimum_value: 16.0
+    maximum_value: 60.0
+    description: >-
+      Arena footprint along y in world meters. Same range as arena_w
+      and same Director-mutability story.
+  grid_x:
+    range: integer
+    description: Column in the arena grid.
+  grid_y:
+    range: integer
+    description: Row in the arena grid.
+  direction:
+    range: Direction
+    description: Current cardinal direction of movement.
+  cycle_state:
+    range: CycleState
+    description: Lifecycle state of a cycle.
+  trail_state:
+    range: TrailState
+    description: State of a trail segment.
+  ai_personality:
+    range: AIPersonality
+    description: Behavior profile for an AICycle.
+  body_length:
+    range: float
+    description: Motorcycle body length along travel direction (meters).
+  body_width:
+    range: float
+    description: Motorcycle body width perpendicular to travel (meters).
+  body_height:
+    range: float
+    description: Motorcycle body height above the ground (meters).
+  wheel_radius:
+    range: float
+    description: Motorcycle wheel radius (meters).
+  wheel_thickness:
+    range: float
+    description: Motorcycle wheel thickness along the axle (meters).
+  wheel_offset:
+    range: float
+    description: Distance from the bike center to front / rear wheel hub (meters).
+  base_speed:
+    range: float
+    description: >-
+      Cruising speed (m/s) right after a turn. The cycle starts every
+      straight run at this speed and ramps up to `max_speed` over time
+      at `speed_ramp_rate`. Per-cycle tunable so the Weirden Director
+      and bonus packs can mutate it. See GAME_DESIGN.md §18.
+  max_speed:
+    range: float
+    minimum_value: 0.1
+    maximum_value: 25.0
+    description: >-
+      Asymptotic top speed (m/s). The recency-of-turn ramp climbs
+      toward this value but never exceeds it. Set equal to base_speed
+      to disable the ramp (constant-speed legacy behavior).
+      Range bounded so the LLM Director can't make the cycle
+      unmovable (0) or warp-speed (>25). Honoured by the Phase C
+      OntologyValidator on every set_property op.
+  tail_length:
+    range: float
+    minimum_value: 8.0
+    maximum_value: 200.0
+    description: >-
+      Light-trail ribbon budget in meters. The trail erodes
+      continuously from its oldest end so the total (sealed segments
+      plus the live run) never exceeds this — the classic light-cycle
+      look. Erosion rewrites the TrailSegment start coords in the KG,
+      so collision shortens in lockstep with the visual by
+      construction. Director-mutable (shortening the User's tail is a
+      legitimate cruelty).
+  speed_ramp_rate:
+    range: float
+    description: >-
+      Acceleration in m/s per second of straight driving. Linear ramp
+      from base_speed toward max_speed. Resets to 0 effective progress
+      on every turn.
+  current_speed:
+    range: float
+    description: >-
+      Runtime speed (m/s), recomputed each tick from base_speed +
+      speed_ramp_rate * time_since_turn, clamped at max_speed.
+      Persisted on the Cycle entity so telemetry and the Weirden
+      can read or override it mid-tick.
+  time_since_turn:
+    range: float
+    description: >-
+      Seconds elapsed since the last direction change. Drives the
+      speed ramp; reset to 0 by `turn()`.
+
+  # --- TrailSegment endpoint slots (used by both live cycles
+  #     and the Director when it spawns walls via KGOps).
+  start_x:
+    range: float
+    description: World-x of trail segment start (m).
+  start_y:
+    range: float
+    description: World-y of trail segment start (m).
+  end_x:
+    range: float
+    description: World-x of trail segment end (m).
+  end_y:
+    range: float
+    description: World-y of trail segment end (m).
+  owner_cycle_id:
+    range: string
+    description: >-
+      String-encoded entity id of the cycle that laid this trail,
+      or empty string for Director walls. Stored as string because
+      the live KG uses string property values uniformly.
+  spawn_time:
+    range: string
+    description: Seconds since round start when this segment was laid (string-encoded float).
+  director_origin:
+    range: string
+    description: >-
+      "1" if this segment was Director-spawned (permanent Master
+      Control wall, magenta colour), absent / "0" otherwise.
+
+  # --- Wormhole slots (Phase C KGOp authoring target) ---
+  x:
+    range: float
+    description: World-x position (m).
+  y:
+    range: float
+    description: World-y position (m).
+  pair_id:
+    range: string
+    description: >-
+      String tag matching a paired Wormhole's pair_id. Cycles
+      that enter one wormhole emerge at the other with the same
+      tag.

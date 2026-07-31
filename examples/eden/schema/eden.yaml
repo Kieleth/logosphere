@@ -1,0 +1,123 @@
+id: https://logosphere.dev/eden/schema
+name: eden
+title: Eden - The Knowledge Garden
+description: >-
+  Game ontology for Eden, extending Logosphere's base types
+  with narrative entities and mythological relationships.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  eden: https://logosphere.dev/eden/schema/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  EdenRelationType:
+    description: Eden-specific relation types.
+    permissible_values:
+      BEARS:
+        description: Tree bears fruit
+      TEMPTS:
+        description: Agent tempts another agent
+      FOLLOWS:
+        description: Agent follows another agent
+      FORBIDS:
+        description: Entity forbids an action or knowledge
+      DESIRES:
+        description: Agent desires entity or knowledge
+
+  EdenEventType:
+    description: Eden-specific event types.
+    permissible_values:
+      TEMPTATION:
+        description: A temptation event occurs
+      FALL:
+        description: Loss of innocence
+      EXPULSION:
+        description: Exile from the garden
+
+# -------------------------------------------------------------------
+# Entity types
+# -------------------------------------------------------------------
+
+classes:
+  Human:
+    is_a: Humanoid
+    description: A human being in the garden.
+    slots:
+      - innocence
+
+  Serpent:
+    is_a: Creature
+    description: The serpent, agent of temptation.
+
+  SerpentSegment:
+    is_a: WorldEntity
+    description: Individual body segment of a serpent chain.
+
+  Fruit:
+    is_a: WorldEntity
+    description: Fruit borne by a tree.
+
+  KnowledgeTree:
+    is_a: Tree
+    description: The tree of knowledge, bearing forbidden fruit.
+
+  Knowledge:
+    is_a: Entity
+    description: Abstract knowledge entity.
+
+  Garden:
+    is_a: WorldEntity
+    description: The garden location.
+
+  RoomBlock:
+    is_a: Structure
+    description: Structural block forming a room.
+
+  Cube:
+    is_a: WorldEntity
+    description: Simple test cube entity.
+    mixins:
+      - HasMaterial
+
+# -------------------------------------------------------------------
+# Eden relations
+# -------------------------------------------------------------------
+
+  EdenRelation:
+    is_a: Relation
+    description: Eden-specific typed relationship.
+    slot_usage:
+      relation_type:
+        range: EdenRelationType
+
+# -------------------------------------------------------------------
+# Eden events
+# -------------------------------------------------------------------
+
+  EdenEvent:
+    is_a: Event
+    description: Eden narrative event.
+    slot_usage:
+      event_type:
+        range: EdenEventType
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  innocence:
+    range: float
+    description: Level of innocence (1.0 = pure, 0.0 = fallen).

@@ -1,0 +1,72 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build artifacts
+build/
+build-*/
+*/build/
+CMakeCache.txt
+cmake_install.cmake
+CMakeFiles/
+*.o
+*.a
+*.so
+*.dylib
+
+# Generated outputs
+/models/
+/outputs/
+# src/generated/ — ontology headers are committed (CI needs them)
+# Regenerate: python3 scripts/generate_ontology.py
+
+# LLM dependencies
+/llama.cpp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# llama.cpp submodule (local build dependency, not tracked)
+llama.cpp/
+
+# Test executables
+**/debug_*_test/llama.cpp/
+/models/
+build_asan/
+__pycache__/
+
+# Auto-generated at CMake configure time — see cmake/build_info.cmake.
+# Contents are git-derived so versioning it would create churn on
+# every commit.
+include/logosphere/build_info.h
+.claude/

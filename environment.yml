@@ -1,0 +1,8 @@
+name: logosphere
+channels:
+  - conda-forge
+dependencies:
+  - cmake
+  - ninja
+  - pkg-config
+  - pyyaml

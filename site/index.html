@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logosphere, a particle engine an LLM can actually drive</title>
+<meta name="description" content="A particle-first game engine where every particle is a node in a knowledge graph, and an LLM has hands-on control of objects, context, gameplay and AI, not just narrative.">
+<style>
+  :root{
+    --bg:#07090c; --bg-2:#0b0e13; --line:#1b222d;
+    --ink:#e6ecf3; --ink-dim:#8b98a8; --ink-faint:#5d6875;
+    --cyan:#5fd7e6; --amber:#ffb454; --violet:#a98bf5;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+  section{padding:clamp(64px,9vw,120px) 0;border-top:1px solid var(--line)}
+  h1,h2,h3{line-height:1.15;letter-spacing:-.02em;margin:0}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--cyan);margin-bottom:18px;
+  }
+  .lede{font-size:clamp(1.05rem,2vw,1.3rem);color:var(--ink-dim);max-width:62ch}
+  p{margin:0 0 1rem}
+  a{color:var(--cyan)}
+
+  /* ---------- hero ---------- */
+  header{position:relative;padding:clamp(72px,11vw,140px) 0 clamp(56px,7vw,96px);overflow:hidden}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+  @media(max-width:860px){.hero-grid{grid-template-columns:1fr;gap:36px}}
+  .wordmark{
+    font-family:var(--mono);font-size:clamp(2.4rem,6.5vw,4rem);font-weight:600;
+    letter-spacing:-.04em;margin-bottom:20px;
+  }
+  .wordmark span{color:var(--cyan)}
+  .hero h1{font-size:clamp(1.5rem,3.4vw,2.15rem);font-weight:600;margin-bottom:20px}
+  .hero h1 em{font-style:normal;color:var(--amber)}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;
+    font-family:var(--mono);font-size:.74rem;color:var(--ink-faint);
+  }
+  .meta span{border:1px solid var(--line);border-radius:100px;padding:5px 12px}
+
+  /* ---------- generic bits ---------- */
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:48px}
+  @media(max-width:820px){.cols{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:26px;background:var(--bg-2)}
+  .card h3{font-size:1.02rem;margin-bottom:10px}
+  .card p{color:var(--ink-dim);font-size:.93rem;margin:0}
+  .card .k{font-family:var(--mono);font-size:.7rem;color:var(--violet);
+    letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:12px}
+
+  code{font-family:var(--mono);font-size:.85em;color:var(--amber);
+    background:#12161d;border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+
+  figure{margin:0}
+  .fig-note{font-family:var(--mono);font-size:.72rem;color:var(--ink-faint);
+    margin-top:14px;text-align:center}
+
+  /* ---------- screenshot slots ---------- */
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:44px}
+  @media(max-width:820px){.shots{grid-template-columns:1fr}}
+  .shot{
+    border:1px dashed #263041;border-radius:12px;background:
+      linear-gradient(#0a0d12,#0a0d12) padding-box,
+      repeating-linear-gradient(45deg,#0d1117 0 10px,#0a0e14 10px 20px);
+    aspect-ratio:16/10;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px;
+  }
+  .shot b{font-size:1rem;font-weight:600}
+  .shot small{font-family:var(--mono);font-size:.72rem;color:var(--ink-faint)}
+  .shot p{color:var(--ink-dim);font-size:.88rem;max-width:38ch;margin:6px 0 0}
+
+  /* ---------- origin ---------- */
+  .origin{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+  @media(max-width:820px){.origin{grid-template-columns:1fr}}
+  .rule{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .rule:last-child{border-bottom:0}
+  .rule .yr{font-family:var(--mono);font-size:.76rem;color:var(--cyan);
+    min-width:82px;padding-top:3px}
+  .rule div p{margin:0;color:var(--ink-dim);font-size:.93rem}
+  .rule div b{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
+
+  footer{border-top:1px solid var(--line);padding:44px 0;
+    font-family:var(--mono);font-size:.76rem;color:var(--ink-faint)}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+  /* ---------- svg animation ---------- */
+  .drift{animation:drift 9s ease-in-out infinite}
+  .drift-2{animation:drift 11s ease-in-out infinite reverse}
+  @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(6px,-9px)}}
+  .pulse{animation:pulse 3.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.32}50%{opacity:.9}}
+  .sweep{animation:sweep 7s linear infinite}
+  @keyframes sweep{0%{transform:translateX(-260px)}100%{transform:translateX(560px)}}
+  .flow{stroke-dasharray:5 7;animation:flow 1.6s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-24}}
+  @media(prefers-reduced-motion:reduce){
+    .drift,.drift-2,.pulse,.sweep,.flow{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header>
+  <div class="wrap hero-grid">
+    <div class="hero">
+      <div class="wordmark">logo<span>sphere</span></div>
+      <h1>A particle engine where an LLM has <em>hands on the world</em>, not just the dialogue.</h1>
+      <p class="lede">
+        Walls, creatures, trees, fire, water. All particles. Every particle is a
+        node in a queryable knowledge graph. That graph is the surface a language
+        model writes to, so a model can author objects, context, gameplay and the
+        opponent AI itself.
+      </p>
+      <div class="meta">
+        <span>C++17</span><span>~126k LOC</span><span>v0.2.0</span>
+        <span>no OpenGL · no Vulkan · no DirectX</span><span>pre-1.0</span>
+      </div>
+    </div>
+
+    <!-- particles that are also graph nodes -->
+    <figure>
+      <svg viewBox="0 0 460 380" width="100%" role="img"
+           aria-label="Particles connected as nodes of a knowledge graph, lit from one side">
+        <defs>
+          <radialGradient id="lit" cx="34%" cy="30%">
+            <stop offset="0%" stop-color="#dff6fb"/>
+            <stop offset="42%" stop-color="#5fd7e6"/>
+            <stop offset="100%" stop-color="#123a45"/>
+          </radialGradient>
+          <radialGradient id="litB" cx="34%" cy="30%">
+            <stop offset="0%" stop-color="#ffe6c2"/>
+            <stop offset="45%" stop-color="#ffb454"/>
+            <stop offset="100%" stop-color="#4a2f10"/>
+          </radialGradient>
+          <radialGradient id="litC" cx="34%" cy="30%">
+            <stop offset="0%" stop-color="#e6dcff"/>
+            <stop offset="45%" stop-color="#a98bf5"/>
+            <stop offset="100%" stop-color="#2c2247"/>
+          </radialGradient>
+          <linearGradient id="beam" x1="0" x2="1">
+            <stop offset="0%" stop-color="#5fd7e6" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#5fd7e6" stop-opacity=".16"/>
+            <stop offset="100%" stop-color="#5fd7e6" stop-opacity="0"/>
+          </linearGradient>
+          <clipPath id="frame"><rect x="0" y="0" width="460" height="380" rx="12"/></clipPath>
+        </defs>
+
+        <g clip-path="url(#frame)">
+          <rect width="460" height="380" fill="#0a0d12"/>
+          <!-- ray sweep: the lighting pass -->
+          <rect class="sweep" x="0" y="0" width="150" height="380" fill="url(#beam)"/>
+
+          <!-- relations -->
+          <g stroke="#2b3949" stroke-width="1" fill="none">
+            <path d="M120 96 L232 150 M232 150 L340 104 M232 150 L196 246
+                     M196 246 L318 268 M318 268 L340 104 M120 96 L104 214
+                     M104 214 L196 246 M232 150 L268 62 M268 62 L340 104
+                     M318 268 L214 330 M214 330 L104 214"/>
+          </g>
+          <g stroke="#5fd7e6" stroke-width="1.2" fill="none" opacity=".55">
+            <path class="flow" d="M232 150 L340 104"/>
+            <path class="flow" d="M196 246 L318 268"/>
+          </g>
+
+          <!-- particles -->
+          <g class="drift">
+            <circle cx="232" cy="150" r="27" fill="url(#lit)"/>
+            <circle cx="340" cy="104" r="17" fill="url(#litB)"/>
+            <circle cx="104" cy="214" r="14" fill="url(#lit)"/>
+          </g>
+          <g class="drift-2">
+            <circle cx="120" cy="96"  r="12" fill="url(#litC)"/>
+            <circle cx="196" cy="246" r="20" fill="url(#lit)"/>
+            <circle cx="318" cy="268" r="15" fill="url(#litB)"/>
+            <circle cx="268" cy="62"  r="8"  fill="url(#lit)"/>
+            <circle cx="214" cy="330" r="10" fill="url(#litC)"/>
+          </g>
+
+          <!-- contact shadows: the BVH pass, suggested -->
+          <g fill="#000" opacity=".33">
+            <ellipse cx="244" cy="188" rx="30" ry="6"/>
+            <ellipse cx="207" cy="272" rx="21" ry="5"/>
+            <ellipse cx="349" cy="126" rx="17" ry="4"/>
+          </g>
+
+          <!-- typed relation labels -->
+          <g font-family="ui-monospace,monospace" font-size="8.5" fill="#5d6875">
+            <text x="270" y="120" class="pulse">attracted_to</text>
+            <text x="228" y="266" class="pulse">contacts</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption class="fig-note">one particle = one typed node = one physical body</figcaption>
+    </figure>
+  </div>
+</header>
+
+<!-- ============ THESIS ============ -->
+<section id="thesis">
+  <div class="wrap">
+    <div class="eyebrow">The core thesis</div>
+    <h2 style="font-size:clamp(1.6rem,3.6vw,2.3rem);max-width:20ch;margin-bottom:20px">
+      The model doesn't narrate the world. It edits it.
+    </h2>
+    <p class="lede" style="margin-bottom:8px">
+      Most "AI in games" stops at dialogue. Here the language model, remote API or
+      a local server on your own machine, writes typed operations against the
+      knowledge graph: create an entity, destroy one, set a property, wire a
+      relation. The engine validates each op against the ontology and applies it.
+      Objects, context, gameplay rules and the opposing AI are all in reach.
+    </p>
+
+    <figure style="margin-top:52px">
+      <svg viewBox="0 0 980 260" width="100%" role="img"
+           aria-label="Control loop: model proposes graph operations, validator checks them against the ontology, the graph drives the world, world state returns to the model">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#3d4b5c"/>
+          </marker>
+          <style>
+            .bx{fill:#0b0e13;stroke:#243040;stroke-width:1;rx:10}
+            .ti{font-family:ui-monospace,monospace;font-size:12.5px;fill:#e6ecf3}
+            .sb{font-family:ui-monospace,monospace;font-size:9.5px;fill:#5d6875}
+            .ln{stroke:#3d4b5c;stroke-width:1.3;fill:none;marker-end:url(#ar)}
+          </style>
+        </defs>
+
+        <!-- model -->
+        <rect class="bx" x="8"   y="62" width="176" height="86" rx="10"/>
+        <text class="ti" x="30" y="98">LLM</text>
+        <text class="sb" x="30" y="116">local server</text>
+        <text class="sb" x="30" y="130">or remote API</text>
+
+        <!-- ops -->
+        <rect class="bx" x="236" y="42" width="204" height="126" rx="10"/>
+        <text class="ti" x="256" y="70">graph ops</text>
+        <text class="sb" x="256" y="92">CreateEntity</text>
+        <text class="sb" x="256" y="108">DestroyEntity</text>
+        <text class="sb" x="256" y="124">SetProperty</text>
+        <text class="sb" x="256" y="140">SetRelation</text>
+
+        <!-- validator -->
+        <rect class="bx" x="492" y="62" width="180" height="86" rx="10"
+              stroke="#a98bf5" stroke-opacity=".5"/>
+        <text class="ti" x="512" y="94" fill="#a98bf5">ontology validator</text>
+        <text class="sb" x="512" y="112">type · property · range</text>
+        <text class="sb" x="512" y="126">the safety envelope</text>
+
+        <!-- world -->
+        <rect class="bx" x="724" y="42" width="248" height="126" rx="10"/>
+        <text class="ti" x="746" y="70">knowledge graph</text>
+        <text class="sb" x="746" y="92">→ particles &amp; physics</text>
+        <text class="sb" x="746" y="108">→ capabilities &amp; damage</text>
+        <text class="sb" x="746" y="124">→ lighting &amp; render</text>
+        <text class="sb" x="746" y="140">→ event bus</text>
+
+        <path class="ln" d="M184 105 L232 105"/>
+        <path class="ln" d="M440 105 L488 105"/>
+        <path class="ln" d="M672 105 L720 105"/>
+        <!-- feedback -->
+        <path class="ln" d="M848 168 L848 214 L96 214 L96 152"/>
+        <text class="sb" x="404" y="232">world state snapshot: what the model sees next turn</text>
+      </svg>
+      <figcaption class="fig-note">
+        a new entity type in the YAML ontology becomes a new model capability, no engine code
+      </figcaption>
+    </figure>
+
+    <div class="cols">
+      <div class="card">
+        <span class="k">reach</span>
+        <h3>Beyond narrative</h3>
+        <p>Spawn a hazard, retune an opponent's top speed, shrink the arena,
+           rewrite a relation mid-match. The same vocabulary covers all of it.</p>
+      </div>
+      <div class="card">
+        <span class="k">safety</span>
+        <h3>The ontology is the fence</h3>
+        <p>Every op is checked against declared types, properties and ranges.
+           Invalid proposals are rejected with a readable reason instead of
+           corrupting the world.</p>
+      </div>
+      <div class="card">
+        <span class="k">extension</span>
+        <h3>Declare, don't compile</h3>
+        <p>Add <code>Wormhole</code> to the schema and the model can build one.
+           Capabilities grow by editing YAML, not by shipping a new parser.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ENGINE ============ -->
+<section id="engine">
+  <div class="wrap">
+    <div class="eyebrow">What's underneath</div>
+    <h2 style="font-size:clamp(1.6rem,3.6vw,2.3rem);max-width:22ch;margin-bottom:18px">
+      Written from the metal up.
+    </h2>
+    <p class="lede">
+      No OpenGL, no Vulkan, no DirectX. Software rasterization into a direct
+      framebuffer, with Metal compute shaders carrying shadow rays and lighting
+      through a BVH. Physics is XPBD, solved against the same particle data the
+      renderer draws. One representation, not two.
+    </p>
+
+    <div class="cols">
+      <div class="card">
+        <span class="k">geometry</span>
+        <h3>Particle-first</h3>
+        <p>No triangle meshes. Spheres and boxes carrying real mass and density.
+           Physics and rendering read the same buffers.</p>
+      </div>
+      <div class="card">
+        <span class="k">light</span>
+        <h3>Traced shadows</h3>
+        <p>Deferred lighting, all lights in a single compute pass, BVH ray
+           traversal for shadows and ambient occlusion.</p>
+      </div>
+      <div class="card">
+        <span class="k">structure</span>
+        <h3>Graph as connective tissue</h3>
+        <p>Damage, capabilities, interactions and state changes travel the graph
+           and a typed event bus, not per-system bookkeeping.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GAMES / SCREENSHOTS ============ -->
+<section id="games">
+  <div class="wrap">
+    <div class="eyebrow">Three games drive the engine</div>
+    <h2 style="font-size:clamp(1.6rem,3.6vw,2.3rem);max-width:24ch">
+      Built as workloads, kept as tests.
+    </h2>
+
+    <div class="shots">
+      <div class="shot">
+        <b>Logogenesis</b>
+        <img src="img/logogenesis.png" alt="Logogenesis" style="width:100%;border-radius:6px;margin:.5rem 0">
+        <p>Speak a world into being. Type a wish; an LLM authors validated
+           knowledge-graph operations and the engine grows real trees, earth,
+           and sky.</p>
+      </div>
+      <div class="shot">
+        <b>Eden, the Knowledge Garden</b>
+        <img src="img/eden.png" alt="Eden" style="width:100%;border-radius:6px;margin:.5rem 0">
+        <p>A mythological tableau that exercises the graph and capability stack
+           end to end. Eva, the Tree, the Apple, the Serpent: each a particle,
+           each a typed node with relations.</p>
+      </div>
+      <div class="shot">
+        <b>Logotron</b>
+        <img src="img/logotron.png" alt="Logotron" style="width:100%;border-radius:6px;margin:.5rem 0">
+        <p>Light-cycle arena with an LLM Director. Beat the AI and the model
+           designs the next opponent, sometimes mutating the arena mid-match.
+           Every trail segment is a new node.</p>
+      </div>
+    </div>
+    <p style="margin-top:1.2rem">
+      <a href="https://github.com/Kieleth/logosphere">Source on GitHub</a> ·
+      <a href="https://github.com/Kieleth/logosphere/tree/main/docs">Documentation</a> ·
+      <a href="https://github.com/Kieleth/logosphere/blob/main/CONTRIBUTING.md">Contributing</a> ·
+      <a href="https://github.com/Kieleth/logosphere/blob/main/LICENSE.md">License</a>
+    </p>
+  </div>
+</section>
+
+<!-- ============ ORIGIN ============ -->
+<section id="origin">
+  <div class="wrap">
+    <div class="eyebrow">Where it came from</div>
+    <div class="origin">
+      <div>
+        <h2 style="font-size:clamp(1.6rem,3.6vw,2.15rem);max-width:18ch;margin-bottom:20px">
+          A final degree project that outgrew its brief.
+        </h2>
+        <p class="lede">
+          Logosphere began as the final project for a degree at the
+          Universitat Oberta de Catalunya. The scope was a particle renderer with
+          physics. What kept pulling it forward was the question underneath:
+          if every object in a world is a node in a graph, how much of that world
+          can a language model be handed the keys to?
+        </p>
+        <p class="lede">
+          It has since grown well past the original brief, into an engine with a
+          typed event bus, capability aggregation, declarative physics interaction,
+          ontology-driven extension and two playable examples.
+        </p>
+      </div>
+      <div>
+        <div class="rule">
+          <div class="yr">origin</div>
+          <div><b>UOC final degree project</b>
+          <p>Particles, ray-traced light, physics.</p></div>
+        </div>
+        <div class="rule">
+          <div class="yr">then</div>
+          <div><b>The graph went in</b>
+          <p>Every particle became a typed node. Systems started talking through
+             relations instead of through each other.</p></div>
+        </div>
+        <div class="rule">
+          <div class="yr">now</div>
+          <div><b>The model got hands</b>
+          <p>A validated op vocabulary over the graph. Local or hosted, the model
+             edits the world itself.</p></div>
+        </div>
+        <div class="rule">
+          <div class="yr">now</div>
+          <div><b>Source-available</b>
+          <p>Free to read, build, and ship. A 5% royalty applies only after a
+             product earns $100K lifetime gross.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>logosphere · pre-1.0 · Logosphere License 1.0</div>
+    <div>built by <a href="https://kieleth.com">kieleth</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

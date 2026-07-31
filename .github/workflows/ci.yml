@@ -1,0 +1,111 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Linux: headless-physics profile (core + physics + dynamics + worldgen,
+  # no rendering / GLFW / Metal). Builds the solver, gluons, locomotion and
+  # runs the physics smoke tests on every PR — the engine's hardest-won
+  # correctness, previously guarded only by manual macOS runs.
+  # ---------------------------------------------------------------------------
+  physics-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure (headless-physics)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DLOGOSPHERE_PROFILE=physics \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build core + physics + dynamics + worldgen
+        run: cmake --build build -j $(nproc)
+
+      - name: Run physics smoke tests
+        run: |
+          set -e
+          for t in test_humanoid_headless test_pin_gluon_lifecycle; do
+            echo "=== $t ==="
+            ./build/$t
+          done
+
+      - name: Run locomotion guard suite (render-free Engine)
+        run: ./build/logosphere-physics-guards
+
+      - name: Run engine-infra regressions
+        run: ./build/test_deep_probe_halt
+
+  # ---------------------------------------------------------------------------
+  # Linux: headless subset (logosphere_core + the standalone test executables).
+  # Cheap runner, cheap build. This is the gating CI for PRs.
+  # ---------------------------------------------------------------------------
+  headless-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure (headless-only)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DLOGOSPHERE_HEADLESS_ONLY=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build logosphere_core + headless tests
+        run: cmake --build build -j $(nproc)
+
+      - name: Run headless test suite
+        run: |
+          set -e
+          fail=0
+          for t in \
+            test_event_log test_signal test_event_channel test_event_bus \
+            test_damage_events test_capability_system test_ontology_extension \
+            test_body_plan test_game_time test_kg_setproperty_events \
+            test_relation_events test_kg_parse_safety \
+            test_logotron_cycle test_logotron_trails test_logotron_collision \
+            test_logotron_round test_logotron_director \
+            test_particle_shapes \
+            test_interaction_ontology test_interaction_events test_interaction_profiles
+          do
+            echo "=== $t ==="
+            ./build/$t || fail=1
+          done
+          exit $fail
+
+  # ---------------------------------------------------------------------------
+  # macOS: full engine (Metal, GLFW, physics, examples). Free on public
+  # repositories; advisory (not merge-blocking) while runtimes settle.
+  # ---------------------------------------------------------------------------
+  full-macos:
+    if: true
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with: { environment-file: environment.yml }
+
+      - name: Install system libraries
+        run: brew install glfw
+
+      - name: CMake configure & build
+        run: |
+          cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64"
+          cmake --build build --config Release
+
+      - name: Run unit tests
+        timeout-minutes: 1
+        run: ./build/logosphere-tests --test

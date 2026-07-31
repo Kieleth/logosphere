@@ -1,0 +1,339 @@
+id: https://malleus.dev/schema
+name: malleus
+version: 0.3.0
+title: Malleus Root Ontology
+description: >-
+  Minimal shared identity and metadata layer.
+  All project ontologies import this as their common ancestor.
+  Covers: identifiable things, temporal metadata, events,
+  agents, relations, and emergent signals.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  malleus: https://malleus.dev/schema/
+  prov: http://www.w3.org/ns/prov#
+  bfo: http://purl.obolibrary.org/obo/BFO_
+  sosa: http://www.w3.org/ns/sosa/
+
+imports:
+  - linkml:types
+
+# -------------------------------------------------------------------
+# Types
+# -------------------------------------------------------------------
+
+types:
+  timestamp:
+    typeof: datetime
+    description: ISO 8601 datetime string.
+    uri: linkml:Datetime
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  EntityStatus:
+    description: Lifecycle state of any identifiable entity.
+    permissible_values:
+      ACTIVE:
+        description: Entity exists and is operational.
+      INACTIVE:
+        description: Entity exists but is suspended.
+      DESTROYED:
+        description: Entity has been permanently removed.
+
+# -------------------------------------------------------------------
+# Mixins (cross-cutting traits)
+# -------------------------------------------------------------------
+
+classes:
+  Identifiable:
+    mixin: true
+    description: >-
+      Anything with a stable, globally unique identity.
+      Aligned with BFO Independent Continuant: exists on its own,
+      bears qualities, participates in processes.
+    slots:
+      - id
+      - name
+    slot_usage:
+      id:
+        required: true
+        identifier: true
+
+  Temporal:
+    mixin: true
+    description: >-
+      Timestamps for creation and last modification.
+      Follows PROV-O temporal patterns.
+    slots:
+      - created_at
+      - updated_at
+
+  Describable:
+    mixin: true
+    description: Human-readable description and metadata.
+    slots:
+      - description
+      - tags
+
+  Statusable:
+    mixin: true
+    description: Entity with a lifecycle status.
+    slots:
+      - status
+
+  Agent:
+    mixin: true
+    description: >-
+      Capability of acting, deciding, or bearing responsibility.
+      Aligned with PROV:Agent and BDI model. Agency is a trait,
+      not a taxonomic position: an entity CAN act, it is not
+      defined by acting. Apply this mixin to any entity class
+      that needs volitional behavior.
+    slots:
+      - agent_type
+
+# -------------------------------------------------------------------
+# Core classes
+#
+# Disjointness: Entity, Event, and Signal are conceptually disjoint.
+#
+# - Entity and Event: BFO Continuant vs Occurrent. An instance
+#   should never be both.
+# - Signal and Entity: BFO Dependent vs Independent Continuant.
+#   A Signal inheres in Entities; it does not exist independently.
+# - Signal and Event: A Signal is derived FROM Events but is not
+#   itself an Event. Events happen; Signals emerge.
+#
+# LinkML does not enforce disjointness natively; enforce via SHACL
+# validation or runtime KG checks.
+# -------------------------------------------------------------------
+
+  Entity:
+    description: >-
+      Root class for all identifiable, enduring things.
+      Aligned with BFO:Independent Continuant. Every domain object
+      that persists through time and needs identity extends this.
+    mixins:
+      - Identifiable
+      - Temporal
+      - Describable
+
+  Event:
+    description: >-
+      Something that happens at a point or over an interval.
+      Aligned with BFO:Occurrent / PROV:Activity. Instantaneous
+      events use occurred_at. Processes with duration use
+      started_at / ended_at (Allen's interval algebra).
+    mixins:
+      - Identifiable
+      - Temporal
+    slots:
+      - event_type
+      - occurred_at
+      - started_at
+      - ended_at
+      - caused_by
+
+# -------------------------------------------------------------------
+# Signals (emergent dependent qualities)
+#
+# BFO alignment: Specifically Dependent Continuant → Quality.
+# A Signal is an observable quality that inheres in one or more
+# Entities. It does not exist independently — destroy the bearers
+# and the Signal ceases to exist. Unlike a stored Relation, a
+# Signal is derived (computed from Events) rather than asserted.
+#
+# SSN/SOSA alignment: the computation that produces a Signal
+# follows the Observation pattern — an algorithm (Procedure)
+# observes patterns (ObservableProperty) of a subject
+# (FeatureOfInterest) and produces a value (Result).
+#
+# Domain projects define specific signal types and algorithms.
+# The Signal class itself is minimal — it says "a derived quality
+# exists" without specifying how it's computed. That's Layer 2.
+# -------------------------------------------------------------------
+
+  Signal:
+    description: >-
+      A continuously derived quality that emerges from patterns
+      of Events between Entities. Aligned with BFO:Specifically
+      Dependent Continuant (Quality) and SSN/SOSA:Observation.
+      A Signal inheres in its bearer(s) — it does not exist
+      independently. It is computed, not asserted: derived on
+      demand from the Event log and Entity graph via a named
+      algorithm. Domain projects define signal types, algorithms,
+      and interpretation semantics. The Signal class captures
+      the universal pattern: something measurable that emerges
+      from activity, has a current value, and is recomputable
+      from the underlying data.
+    mixins:
+      - Identifiable
+      - Temporal
+    slots:
+      - signal_type
+      - value
+      - algorithm
+      - perspective
+      - computed_at
+      - bearer_id
+    slot_usage:
+      bearer_id:
+        required: true
+        description: >-
+          ID of the entity (or relationship) this signal inheres in.
+          Required because a Signal cannot exist without a bearer
+          (BFO: dependent continuant).
+
+# -------------------------------------------------------------------
+# Relations (reified edges)
+# -------------------------------------------------------------------
+
+  Relation:
+    description: >-
+      A typed, directed edge between two entities.
+      Reified as a class so relations can carry metadata
+      (strength, confidence, temporal validity).
+    mixins:
+      - Identifiable
+      - Temporal
+    slots:
+      - relation_type
+      - source_id
+      - target_id
+      - strength
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  id:
+    range: string
+    description: Globally unique identifier.
+
+  name:
+    range: string
+    description: Human-readable name.
+
+  description:
+    range: string
+    description: Free-text description.
+
+  tags:
+    range: string
+    multivalued: true
+    description: Arbitrary classification tags.
+
+  status:
+    range: EntityStatus
+    description: Lifecycle status.
+
+  created_at:
+    range: datetime
+    description: When this was created.
+
+  updated_at:
+    range: datetime
+    description: When this was last modified.
+
+  event_type:
+    range: string
+    required: true
+    description: >-
+      Classification of the event.
+      Domain projects should constrain this to an enum.
+
+  occurred_at:
+    range: datetime
+    description: When the event happened (instantaneous events).
+
+  started_at:
+    range: datetime
+    description: When a duration event began.
+
+  ended_at:
+    range: datetime
+    description: When a duration event ended.
+
+  caused_by:
+    range: string
+    description: >-
+      ID of the event or agent that caused this event.
+      Follows PROV-O wasInformedBy / wasAssociatedWith pattern.
+
+  agent_type:
+    range: string
+    description: >-
+      Classification of the agent.
+      Domain projects should constrain this to an enum.
+
+  relation_type:
+    range: string
+    required: true
+    description: >-
+      The type of relation (has_part, contains, depends_on, etc.).
+      Domain projects should constrain this to an enum.
+
+  source_id:
+    range: string
+    required: true
+    description: ID of the source entity.
+
+  target_id:
+    range: string
+    required: true
+    description: ID of the target entity.
+
+  strength:
+    range: float
+    description: Weight or confidence of the relation (0.0 to 1.0).
+
+  # Signal slots (new in 0.3.0)
+
+  signal_type:
+    range: string
+    required: true
+    description: >-
+      Classification of the signal.
+      Domain projects should constrain this to an enum.
+      Examples: trust_score, health_score, centrality.
+
+  value:
+    range: float
+    description: >-
+      Current computed value. Interpretation is signal-type
+      specific. Often 0.0–1.0 but not constrained at the
+      root level (domain decides range and semantics).
+
+  algorithm:
+    range: string
+    description: >-
+      Name or reference of the computation that produces
+      this signal. Domain projects should document algorithms
+      and constrain this to an enum.
+      Examples: appleseed, pagerank, ewma, linear_decay.
+
+  perspective:
+    range: string
+    description: >-
+      ID of the entity from whose perspective this signal
+      is computed. Null for global/objective signals (e.g.,
+      graph density). Set for subjective signals (e.g., trust
+      computed from one agent's viewpoint).
+
+  computed_at:
+    range: datetime
+    description: When this signal value was last computed.
+
+  bearer_id:
+    range: string
+    description: >-
+      ID of the entity or relationship this signal inheres in.
+      A Signal is a dependent continuant — it cannot exist
+      without a bearer. For trust: the agent-pair relationship.
+      For health: the server entity.

@@ -1,0 +1,430 @@
+id: https://logosphere.dev/logogenesis/schema
+name: logogenesis
+title: Logogenesis — conversational world creation
+description: >-
+  Game ontology for Logogenesis: you stand in the construct (black
+  void, phosphor grid), type
+  what you want to exist, and an LLM makes it so through the KG-ops
+  grammar. The LLM authors SEED entities (creation requests carrying
+  the full spec as validated properties); the host materializer reads
+  each seed, grows the real thing through the engine's worldgen
+  generators (Tree / GrassPatch / Rock), and destroys the seed. The
+  ontology below IS the LLM's creative vocabulary: every slot range
+  the validator enforces is a promise the prompt can rely on.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  logogenesis: https://logosphere.dev/logogenesis/schema/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  GrassSpread:
+    description: The shape of a grass dab.
+    permissible_values:
+      SOFT:
+        description: >-
+          A painter's dab: round splat, dense center, feathered
+          edge. The default; sprinkle several like brush strokes.
+      SQUARE:
+        description: Even rectangular fill, hard edges. For lawns
+          and field blocks.
+
+# -------------------------------------------------------------------
+# Classes — the creation requests the LLM may author. World concepts
+# (Sky, TreeSpecies, TerrainKind, tree anatomy, moon vocabulary) live
+# in logosphere's base schema; this file holds only the WISH GRAMMAR.
+# -------------------------------------------------------------------
+
+classes:
+  SunSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for the real sun: a celestial body that arcs across
+      the sky with game time, warm at dawn and dusk, white at noon,
+      gone at night. Creates the Sky entity. One sun only; prefer it
+      over LightSeeds for any outdoor scene. Give time_of_day and
+      the world BEGINS at that hour instantly ("golden hour with a
+      sun" = one SunSeed with time_of_day 18.2). Later hour changes
+      via the Sky play as an accelerated journey. Three faint fixed
+      stars come with the sun so night is never pitch black.
+    slots:
+      - time_of_day
+
+  MoonSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a moon. The sun brings Earth's silver moon by
+      default; MoonSeeds add EXOTIC ones — blood red, viridian,
+      sapphire, brighter or paler, up to three in the night sky.
+      Omit colors for another Earth-like moon.
+    slots:
+      - moon_r
+      - moon_g
+      - moon_b
+      - moon_brightness
+      - moon_size
+
+  ButterflySeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for living butterflies fluttering near (x, y). They
+      fly on their own. Omit wing colors for natural variety
+      (monarch orange, morpho blue); set them for a themed flock.
+    slots:
+      - x
+      - y
+      - count
+      - wing_span
+      - wing_r
+      - wing_g
+      - wing_b
+
+  GroundSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for ground centered at (x, y). THE VOID HAS NO FLOOR:
+      anything placed without ground beneath it has nothing to stand
+      on (gravity exists). Default terrain LAYERED is real earth:
+      huge bonded bedrock slabs, rubble filler, loose topsoil clods,
+      poured in and settled live; it craters under impacts. SLAB is
+      one cheap flat box for pure backdrops. Ground color tints the
+      topsoil — a green ground reads as a lawn from above.
+    slots:
+      - x
+      - y
+      - ground_width
+      - ground_depth
+      - ground_r
+      - ground_g
+      - ground_b
+      - terrain
+
+  LightSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a light at (x, y), floating at light_height. THE
+      VOID BEGINS UNLIT: nothing you create is visible until at least
+      one light exists. Create light first.
+    slots:
+      - x
+      - y
+      - light_height
+      - brightness
+      - light_radius
+      - light_r
+      - light_g
+      - light_b
+
+  TreeSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request to grow a tree at (x, y). species is one of OAK, PINE,
+      WILLOW, PALM, BAOBAB, REDWOOD (the engine's TreeSpecies
+      archetypes; OAK when omitted). The materializer maps it to a
+      TreeSpec preset, applies the overrides below, grows the tree
+      via space colonization, then destroys this seed.
+    slots:
+      - x
+      - y
+      - species
+      - tree_height
+      - crown_radius
+      - canopy_start
+      - canopy_density
+      - lower_branches
+      - grow_seconds
+      - trunk_r
+      - trunk_g
+      - trunk_b
+      - leaf_r
+      - leaf_g
+      - leaf_b
+
+  HumanoidSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a person at (x, y). They come alive and WANDER the
+      scene on foot: strolling to a spot, lingering, moving on.
+      Clothing color is their visible identity. One seed = one
+      person; several seeds = a village.
+    slots:
+      - x
+      - y
+      - cloth_r
+      - cloth_g
+      - cloth_b
+
+  GrassSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a grass patch centered at (x, y). Blade colors
+      default to living green; tint them for effect ("red tones
+      below the redwood").
+    slots:
+      - x
+      - y
+      - patch_width
+      - patch_depth
+      - blade_count
+      - spread
+      - organic
+      - blade_r
+      - blade_g
+      - blade_b
+
+  RockSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a rock at (x, y). With drop_height it becomes a
+      BOULDER FALLING FROM THE SKY: born high, it plummets, and on
+      LAYERED ground the impact shoves the topsoil aside.
+    slots:
+      - x
+      - y
+      - rock_size
+      - rock_r
+      - rock_g
+      - rock_b
+      - drop_height
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  count:
+    range: integer
+    minimum_value: 1
+    maximum_value: 12
+    description: How many butterflies in this flock.
+  wing_span:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 2.0
+    description: Wingspan in meters. 0.5 is natural; 2.0 is a dream.
+  wing_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Wing color, red channel (0..1). Omit for variety.
+  wing_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Wing color, green channel (0..1).
+  wing_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Wing color, blue channel (0..1).
+  ground_width:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 200.0
+    description: Ground slab width in meters (east-west).
+  ground_depth:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 200.0
+    description: Ground slab depth in meters (north-south).
+  ground_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Ground color, red channel (0..1).
+  ground_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Ground color, green channel (0..1).
+  ground_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Ground color, blue channel (0..1).
+  light_height:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 80.0
+    description: >-
+      Height of the light above the floor (m). Default 38 — above
+      any canopy. Trees reach 30: keep lights higher or offset so
+      the light disc never perches on a crown.
+  brightness:
+    range: float
+    minimum_value: 0.05
+    maximum_value: 1.0
+    description: >-
+      Relative brightness. 0.3 is a soft lamp over a corner; 0.8
+      floods the whole stage. The host maps this to physical lumens.
+  light_radius:
+    range: float
+    minimum_value: 10.0
+    maximum_value: 500.0
+    description: Light reach in meters. 300 covers the stage.
+  light_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Light color, red channel (0..1). Default warm white.
+  light_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Light color, green channel (0..1).
+  light_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Light color, blue channel (0..1).
+  x:
+    range: float
+    description: World-x position (m). Stage center is 0.
+  y:
+    range: float
+    description: World-y position (m). Stage center is 0.
+  grow_seconds:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 120.0
+    description: >-
+      0 (default) = the tree appears full-grown. Positive = a growth
+      time-lapse; the tree rises from sapling to full height over
+      this many seconds. 8-15 reads well on screen.
+  trunk_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Trunk/bark color, red channel (0..1).
+  trunk_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Trunk/bark color, green channel (0..1).
+  trunk_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Trunk/bark color, blue channel (0..1).
+  leaf_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Foliage color, red channel (0..1).
+  leaf_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Foliage color, green channel (0..1).
+  leaf_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Foliage color, blue channel (0..1).
+  patch_width:
+    range: float
+    minimum_value: 0.5
+    maximum_value: 30.0
+    description: Grass patch width in meters (east-west extent).
+  patch_depth:
+    range: float
+    minimum_value: 0.5
+    maximum_value: 30.0
+    description: Grass patch depth in meters (north-south extent).
+  blade_count:
+    range: integer
+    minimum_value: 5
+    maximum_value: 1000
+    description: >-
+      Number of grass blades in the patch. Bounded: enough for a
+      lush patch, not enough to melt the frame budget.
+  spread:
+    range: GrassSpread
+    description: Dab shape. SOFT (default) is the painter's splat.
+  drop_height:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 60.0
+    description: >-
+      0 (default) = the rock rests where placed. Positive = the rock
+      is BORN that many meters up and FALLS — impact shoves loose
+      ground aside on layered terrain. 20-40 reads dramatic.
+  blade_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Blade foliage color, red channel (0..1).
+  blade_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Blade foliage color, green channel (0..1).
+  blade_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Blade foliage color, blue channel (0..1).
+  rock_size:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 6.0
+    description: Rock characteristic size in meters.
+  cloth_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Clothing color, red channel (0..1).
+  cloth_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Clothing color, green channel (0..1).
+  cloth_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Clothing color, blue channel (0..1).
+  rock_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Rock base color, red channel (0..1).
+  rock_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Rock base color, green channel (0..1).
+  rock_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Rock base color, blue channel (0..1).
