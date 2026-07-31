@@ -84,7 +84,7 @@ Graph) and links what is actively being pushed on.
 - **Reference the issue from the work.** PRs and commits close their
   issue with `Closes #N` in the body. One logical change per PR.
 - **Milestones are release commitments.** The active milestone (for
-  example `v0.3.0 — Adoption`) holds what the next release promises;
+  example `v0.3.0 Adoption`) holds what the next release promises;
   do not add to it without the maintainer.
 - **`good first issue` means scoped and mentored**; keep those
   well-defined when filing them.
