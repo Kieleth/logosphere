@@ -72,6 +72,12 @@ public:
     void on_mouse_move(double x, double y) override;
     void on_mouse_button(Platform::MouseButton button, bool pressed, const Platform::ModifierKeys& mods) override;
     void on_mouse_scroll(double x_offset, double y_offset) override;
+
+    // Trackpad camera feel. Zoom is in pixels-per-unit per scroll
+    // unit (ppu range 5..200); orbit in radians per unit. Tuned on a
+    // macOS trackpad; flip a sign here if a device feels inverted.
+    static constexpr float SCROLL_ZOOM_SCALE = 3.0f;
+    static constexpr float SCROLL_ORBIT_SCALE = 0.05f;
     void on_window_resize(int width, int height) override;
     void on_window_close() override;
 

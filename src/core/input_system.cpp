@@ -257,7 +257,30 @@ void InputSystem::on_mouse_button(Platform::MouseButton button, bool pressed, co
 }
 
 void InputSystem::on_mouse_scroll(double x_offset, double y_offset) {
-    // Not currently used, but implement for completeness
+    if (!engine_) return;
+
+    // UI first: the widget under the cursor may want the scroll
+    // (chat scrollback). Widgets that don't care return false.
+    auto* ui = engine_->get_ui_system();
+    if (ui && ui->handle_mouse_scroll(static_cast<int>(input_state.mouse_x),
+                                      static_cast<int>(input_state.mouse_y),
+                                      x_offset, y_offset)) {
+        return;
+    }
+
+    // Debug-overlay mode (backtick) keeps the pointer for inspection;
+    // camera gestures apply only in play mode.
+    if (engine_->get_show_debug_overlay()) return;
+
+    // Trackpad camera: vertical scroll zooms, horizontal orbits.
+    auto& cam = engine_->get_camera_system();
+    if (y_offset != 0.0) {
+        cam.adjust_zoom(static_cast<float>(y_offset) * SCROLL_ZOOM_SCALE);
+    }
+    if (x_offset != 0.0) {
+        cam.set_view_azimuth(cam.get_view_azimuth() +
+                             static_cast<float>(x_offset) * SCROLL_ORBIT_SCALE);
+    }
 }
 
 void InputSystem::on_window_resize(int width, int height) {
