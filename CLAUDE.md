@@ -69,6 +69,32 @@ tests are individual executables under `build/`. CI runs the
 headless profiles plus a DCO check on every PR, and all required
 checks must be green before merge.
 
+## Project flow
+
+Work is tracked in GitHub issues; the
+[pinned roadmap issue](https://github.com/Kieleth/logosphere/issues/10)
+maps the current lanes (Adoption, Rendering, Physics, Knowledge
+Graph) and links what is actively being pushed on.
+
+- **Before starting anything non-trivial, find or file the issue.**
+  Check the roadmap and the open issues first; if the work has no
+  issue, create one stating the problem with measured facts, not
+  intentions. Label it with the matching `area:*` label and
+  `roadmap` if it belongs on the map.
+- **Reference the issue from the work.** PRs and commits close their
+  issue with `Closes #N` in the body. One logical change per PR.
+- **Milestones are release commitments.** The active milestone (for
+  example `v0.3.0 — Adoption`) holds what the next release promises;
+  do not add to it without the maintainer.
+- **`good first issue` means scoped and mentored**; keep those
+  well-defined when filing them.
+- **Questions go to Discussions**, concrete defects and proposals go
+  to issues.
+- **Known-issue discipline.** A bug that cannot be fixed now still
+  gets: a test that reproduces it and ratchets it from getting
+  worse, a line in the CHANGELOG known issues, and a tracked issue.
+  Silent breakage is the only forbidden state.
+
 ## Commits
 
 Present-tense imperative subject with conventional prefixes
