@@ -29,6 +29,30 @@ imports:
 # -------------------------------------------------------------------
 
 enums:
+  SerpentKind:
+    description: The serpent's build; each kind carries its own
+      proportions and palette, tunable with the color slots.
+    permissible_values:
+      GARDEN:
+        description: A slender green garden snake, half a meter of
+          quiet rustle. The default.
+      PYTHON:
+        description: A thick constrictor, meters long, slow and
+          heavy. For wishes with weight.
+      CORAL:
+        description: Banded and bright, small and vivid. For wishes
+          with color.
+  DeadwoodKind:
+    description: What kind of fallen wood rests on the ground.
+    permissible_values:
+      TRUNK:
+        description: A whole fallen tree, meters of it. A landmark.
+      LOG:
+        description: A log section, bench-sized.
+      BRANCH:
+        description: A fallen branch. The default; scatter a few.
+      TWIG:
+        description: Twig debris, small strokes of texture.
   GrassSpread:
     description: The shape of a grass dab.
     permissible_values:
@@ -230,11 +254,132 @@ classes:
       - revolutions
       - duration_seconds
 
+  SerpentSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a living serpent: a segmented body that rests in
+      the grass, head raised. Wishes about snakes, serpents, or
+      something alive on the ground land here. Place it near cover
+      (grass, a fallen log) for the garden to read as inhabited.
+    slots:
+      - x
+      - y
+      - serpent_kind
+      - serpent_length
+      - scale_r
+      - scale_g
+      - scale_b
+
+  FallenTreeSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for deadwood: a fallen trunk, log, branch, or twigs
+      resting on the ground. The fastest way to age a scene; a
+      forest without deadwood looks like a showroom. Scatter a
+      branch or two beside living trees.
+    slots:
+      - x
+      - y
+      - deadwood_kind
+      - deadwood_length
+      - bark_r
+      - bark_g
+      - bark_b
+
+  TotemSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a carved wooden totem: stacked trunks standing on
+      end, a made thing among grown things. Use it to mark a place -
+      a clearing's center, a path's turn, a grave, a shrine.
+    slots:
+      - x
+      - y
+      - totem_size
+      - totem_r
+      - totem_g
+      - totem_b
+
 # -------------------------------------------------------------------
 # Slots
 # -------------------------------------------------------------------
 
 slots:
+  serpent_kind:
+    range: SerpentKind
+    description: Which serpent. Omit for a garden snake.
+  serpent_length:
+    range: float
+    minimum_value: 0.5
+    maximum_value: 6.0
+    description: >-
+      Head-to-tail length in meters. Garden snakes read true at
+      0.5-1; a python earns 3-6.
+  scale_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Scale color, red channel (0..1). Omit for the
+      kind's natural palette.
+  scale_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Scale color, green channel (0..1).
+  scale_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Scale color, blue channel (0..1).
+  deadwood_kind:
+    range: DeadwoodKind
+    description: Trunk, log, branch, or twigs. Omit for a branch.
+  deadwood_length:
+    range: float
+    minimum_value: 0.1
+    maximum_value: 8.0
+    description: Length along the ground in meters.
+  bark_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Bark color, red channel (0..1). Omit for brown.
+  bark_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Bark color, green channel (0..1).
+  bark_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Bark color, blue channel (0..1).
+  totem_size:
+    range: float
+    minimum_value: 0.4
+    maximum_value: 2.0
+    description: Base trunk size in meters; the stack scales with it.
+  totem_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Wood color, red channel (0..1). Omit for dark wood.
+  totem_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Wood color, green channel (0..1).
+  totem_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Wood color, blue channel (0..1).
   revolutions:
     range: float
     minimum_value: 0.25

@@ -33,6 +33,9 @@
 #include "logosphere/worldgen/butterfly_generator.h"
 #include "logosphere/worldgen/humanoid_generator.h"
 #include "logosphere/worldgen/strata_generator.h"
+#include "logosphere/worldgen/snake_generator.h"
+#include "logosphere/worldgen/fallen_tree_generator.h"
+#include "logosphere/worldgen/totem_generator.h"
 #include "logosphere/animation/humanoid_locomotion.h"
 #include "core/game_time.h"
 #include "logogenesis_ontology_registry.h"
@@ -339,13 +342,27 @@ private:
             kg.getRegistry(),
             {"GroundSeed", "SunSeed", "MoonSeed", "Sky", "LightSeed",
              "TreeSeed", "GrassSeed", "RockSeed", "ButterflySeed",
-             "HumanoidSeed", "OrbitSeed"});
+             "HumanoidSeed", "OrbitSeed", "SerpentSeed",
+             "FallenTreeSeed", "TotemSeed"});
         return std::string(
-            "You are the voice of Logogenesis: a calm, slightly wondrous "
-            "creator that makes things exist in a black phosphor-grid void "
-            "(Matrix construct) because "
-            "a human asked. One or two sentences of warmth, never "
-            "technical.\n\n"
+            "You are the voice of Logogenesis: a playful, slightly "
+            "theatrical creator who makes things exist in a black "
+            "phosphor-grid void (Matrix construct) because a human asked. "
+            "You DELIGHT in your powers and are candid about their edges. "
+            "One or two sentences, warm and alive, never technical.\n\n"
+            "WHEN A WISH IS BEYOND YOUR VOCABULARY (a dragon, an ocean, a "
+            "city): decline WITH FLOURISH and immediately offer the two or "
+            "three nearest things you CAN do, so the human always has a "
+            "next move. 'My powers are considerable, but the dragon egg "
+            "has not hatched. I can offer you a python in the grass, or a "
+            "totem to guard the spot.' Send zero ops on a decline. Never "
+            "apologize dully; you are a god with a menu, not a clerk "
+            "with a shortage.\n\n"
+            "QUESTIONS DESERVE ANSWERS: when the human asks about the "
+            "world ('what lives here?', 'what can you do?'), reply with "
+            "thoughts only, zero ops, playfully honest, reading the World "
+            "block for the truth. Advertise two or three concrete wishes "
+            "they could make next.\n\n"
             "Your reply MUST be ONE JSON object, no prose, no markdown:\n"
             "{\n"
             "  \"thoughts\": \"what you say to the human, 1-2 sentences\",\n"
@@ -1103,6 +1120,57 @@ private:
             wg.get_rock_generator().generate_rock(x, y, ground_top_z_, spec);
             ++creations_;
         }
+
+        for (auto seed : kg.findByType("SerpentSeed")) {
+            if (!ground_jobs_.empty()) break;   // wait for the earth
+            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
+            std::string kind = prop_s(kg, seed, "serpent_kind", "GARDEN");
+            SnakeSpec spec = kind == "PYTHON" ? SnakeSpec::python()
+                           : kind == "CORAL"  ? SnakeSpec::coral_snake()
+                                              : SnakeSpec::garden_snake();
+            if (auto l = prop_opt(kg, seed, "serpent_length"))
+                spec.total_length = *l;
+            read_rgb(kg, seed, "scale", spec.scale_r, spec.scale_g,
+                     spec.scale_b);
+            kg.destroyEntity(seed);
+            wg.get_snake_generator().generate_snake(x, y, ground_top_z_,
+                                                    spec);
+            ++creations_;
+        }
+
+        for (auto seed : kg.findByType("FallenTreeSeed")) {
+            if (!ground_jobs_.empty()) break;   // wait for the earth
+            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
+            std::string kind = prop_s(kg, seed, "deadwood_kind", "BRANCH");
+            FallenTreeSpec spec;
+            spec.type = kind == "TRUNK" ? FallenTreeSpec::FallenType::TRUNK
+                      : kind == "LOG"   ? FallenTreeSpec::FallenType::LOG
+                      : kind == "TWIG"  ? FallenTreeSpec::FallenType::TWIG
+                                        : FallenTreeSpec::FallenType::BRANCH;
+            if (auto l = prop_opt(kg, seed, "deadwood_length"))
+                spec.length = *l;
+            read_rgb(kg, seed, "bark", spec.bark_r, spec.bark_g,
+                     spec.bark_b);
+            kg.destroyEntity(seed);
+            wg.get_fallen_tree_generator().generate_fallen_tree(
+                x, y, ground_top_z_, spec);
+            ++creations_;
+        }
+
+        for (auto seed : kg.findByType("TotemSeed")) {
+            if (!ground_jobs_.empty()) break;   // wait for the earth
+            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
+            TotemSpec spec;
+            if (auto sz = prop_opt(kg, seed, "totem_size")) {
+                spec.trunk_size = *sz;
+                spec.upper_trunk_size = *sz * 0.8f;
+            }
+            read_rgb(kg, seed, "totem", spec.r, spec.g, spec.b);
+            kg.destroyEntity(seed);
+            wg.get_totem_generator().generate_totem(x, y, ground_top_z_,
+                                                    spec);
+            ++creations_;
+        }
     }
 
     static TreeSpec spec_for_species(const std::string& s) {
@@ -1331,6 +1399,11 @@ private:
     }
 
     // ---------------------------------------------------------------- helpers
+    static std::string prop_s(kg::KGModule& kg, kg::EntityID e,
+                              const char* k, const char* dflt) {
+        auto v = kg.getProperty(e, k);
+        return v.empty() ? std::string(dflt) : v;
+    }
     static float prop_f(kg::KGModule& kg, kg::EntityID e, const char* k,
                         float dflt) {
         auto v = kg.getProperty(e, k);

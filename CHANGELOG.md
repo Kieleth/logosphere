@@ -7,6 +7,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- Logogenesis menagerie: `SerpentSeed` (garden snake / python /
+  coral, length and scale colors), `FallenTreeSeed` (trunk / log /
+  branch / twigs), and `TotemSeed` (stacked carved wood) join the
+  wish grammar, materializing through the engine's existing snake,
+  fallen-tree, and totem generators.
+
+### Changed
+- Logogenesis persona: the creator is now playful and theatrical.
+  Wishes beyond the vocabulary get a decline with flourish plus the
+  two or three nearest things it CAN do; questions get thoughts-only
+  answers that read the world snapshot. Declines and answers send
+  zero ops by contract (locked by AT).
+
 ### Fixed
 - A bare `cmake -S . -B build` (the README configure line) produced
   an unoptimized engine: no build type meant no `-O` flags, and the

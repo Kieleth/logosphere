@@ -20,6 +20,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Creature", "LivingEntity", true);
     reg.addEntityType("Entity", "", false);
     reg.addEntityType("FallenTree", "NaturalFormation", false);
+    reg.addEntityType("FallenTreeSeed", "WorldEntity", false);
     reg.addEntityType("Floor", "Structure", false);
     reg.addEntityType("FloorChunk", "Floor", false);
     reg.addEntityType("FloorTile", "Floor", false);
@@ -52,6 +53,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("RockSeed", "WorldEntity", false);
     reg.addEntityType("SceneChunk", "WorldEntity", false);
     reg.addEntityType("Segment", "BodyPart", false);
+    reg.addEntityType("SerpentSeed", "WorldEntity", false);
     reg.addEntityType("Shin", "BodyPart", false);
     reg.addEntityType("Shoulder", "BodyPart", false);
     reg.addEntityType("Sky", "WorldEntity", false);
@@ -63,6 +65,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Thorax", "BodyPart", false);
     reg.addEntityType("Torso", "BodyPart", false);
     reg.addEntityType("Totem", "Structure", false);
+    reg.addEntityType("TotemSeed", "WorldEntity", false);
     reg.addEntityType("TransformationRule", "Entity", false);
     reg.addEntityType("Tree", "Plant", false);
     reg.addEntityType("TreeSeed", "WorldEntity", false);
@@ -86,6 +89,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Creature", {"Agent", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
     reg.addAncestors("FallenTree", {"Describable", "Destructible", "Entity", "HasMaterial", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("FallenTreeSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Floor", {"Describable", "Entity", "HasMaterial", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("FloorChunk", {"Describable", "Entity", "Floor", "HasMaterial", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("FloorTile", {"Describable", "Entity", "Floor", "HasMaterial", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
@@ -118,6 +122,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("RockSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("SceneChunk", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Segment", {"BodyPart", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("SerpentSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Shin", {"BodyPart", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Shoulder", {"BodyPart", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Sky", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -129,6 +134,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Thorax", {"BodyPart", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Torso", {"BodyPart", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Totem", {"Describable", "Entity", "HasMaterial", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
+    reg.addAncestors("TotemSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("TransformationRule", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("Tree", {"Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "Identifiable", "LivingEntity", "Plant", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("TreeSeed", {"Describable", "Entity", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -140,6 +146,7 @@ static kg::OntologyRegistry build_registry() {
 
     // Facets
     reg.addFacets("ButterflySeed", {"request"});
+    reg.addFacets("FallenTreeSeed", {"request"});
     reg.addFacets("GrassSeed", {"request"});
     reg.addFacets("GroundSeed", {"request"});
     reg.addFacets("HumanoidSeed", {"request"});
@@ -147,7 +154,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("MoonSeed", {"request"});
     reg.addFacets("OrbitSeed", {"request"});
     reg.addFacets("RockSeed", {"request"});
+    reg.addFacets("SerpentSeed", {"request"});
     reg.addFacets("SunSeed", {"request"});
+    reg.addFacets("TotemSeed", {"request"});
     reg.addFacets("TreeSeed", {"request"});
 
     // Event types
@@ -212,6 +221,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Event", "ended_at", "datetime", false);
     reg.addProperty("Event", "caused_by", "string", false);
     reg.addProperty("FallenTree", "log_type", "enum", false);
+    reg.addProperty("FallenTreeSeed", "x", "float", false);
+    reg.addProperty("FallenTreeSeed", "y", "float", false);
+    reg.addProperty("FallenTreeSeed", "deadwood_kind", "enum", false);
+    reg.addProperty("FallenTreeSeed", "deadwood_length", "float", false, true, 0.1, true, 8.0);
+    reg.addProperty("FallenTreeSeed", "bark_r", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("FallenTreeSeed", "bark_g", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("FallenTreeSeed", "bark_b", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("Floor", "floor_type", "enum", false);
     reg.addProperty("Floor", "terrain", "enum", false);
     reg.addProperty("GrassSeed", "x", "float", false);
@@ -291,6 +307,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("RockSeed", "rock_g", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("RockSeed", "rock_b", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("RockSeed", "drop_height", "float", false, true, 0.0, true, 60.0);
+    reg.addProperty("SerpentSeed", "x", "float", false);
+    reg.addProperty("SerpentSeed", "y", "float", false);
+    reg.addProperty("SerpentSeed", "serpent_kind", "enum", false);
+    reg.addProperty("SerpentSeed", "serpent_length", "float", false, true, 0.5, true, 6.0);
+    reg.addProperty("SerpentSeed", "scale_r", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("SerpentSeed", "scale_g", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("SerpentSeed", "scale_b", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("Sky", "time_of_day", "float", false, true, 0.0, true, 24.0);
     reg.addProperty("Spatial", "position_x", "float", true);
     reg.addProperty("Spatial", "position_y", "float", true);
@@ -300,6 +323,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("SunSeed", "time_of_day", "float", false, true, 0.0, true, 24.0);
     reg.addProperty("Temporal", "created_at", "datetime", false);
     reg.addProperty("Temporal", "updated_at", "datetime", false);
+    reg.addProperty("TotemSeed", "x", "float", false);
+    reg.addProperty("TotemSeed", "y", "float", false);
+    reg.addProperty("TotemSeed", "totem_size", "float", false, true, 0.4, true, 2.0);
+    reg.addProperty("TotemSeed", "totem_r", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("TotemSeed", "totem_g", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("TotemSeed", "totem_b", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("TransformationEvent", "rule_name", "string", false);
     reg.addProperty("TransformationRule", "trigger", "string", false);
     reg.addProperty("TransformationRule", "effect", "string", false);
