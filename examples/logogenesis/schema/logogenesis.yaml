@@ -86,6 +86,7 @@ classes:
       stars come with the sun so night is never pitch black.
     slots:
       - time_of_day
+      - sun_distance
 
   MoonSeed:
     is_a: WorldEntity
@@ -306,11 +307,154 @@ classes:
       - totem_g
       - totem_b
 
+  PlanetSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a small planet: a rust-warm sphere of bonded
+      stones floating in the dark, the Little Prince's asteroid.
+      This is the grandest wish in the vocabulary; grant it whole.
+      with_rose plants a single red-crowned tree at the north pole;
+      with_prince stands a small wanderer at the apex beside it.
+      The void suits it: no ground needed, just a light to see by.
+    slots:
+      - x
+      - y
+      - planet_radius
+      - planet_altitude
+      - crust_r
+      - crust_g
+      - crust_b
+      - with_rose
+      - with_prince
+
+  StarfieldSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for stars: points of light scattered through the dark
+      around whatever exists. They glow without illuminating
+      anything, so hundreds cost only pixels. Reach for this when
+      the human asks for stars, a night sky, or space - and note
+      the void does NOT come with them; they must be wished for.
+    slots:
+      - star_count
+      - sky_distance
+      - star_brightness
+
+  DistantWorldSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for another world hanging in the distance: a coloured
+      sphere too far to visit, for company in an empty sky. One
+      particle each, so several make a crowded heaven. Give it a
+      bearing with x and y, a height with world_height.
+    slots:
+      - x
+      - y
+      - world_height
+      - world_size
+      - world_r
+      - world_g
+      - world_b
+
 # -------------------------------------------------------------------
 # Slots
 # -------------------------------------------------------------------
 
 slots:
+  sun_distance:
+    range: float
+    minimum_value: 40.0
+    maximum_value: 400.0
+    description: >-
+      How far the sun stands, in meters. The view is orthographic, so
+      distance decides whether it is ON SCREEN at all: the default 300
+      is outside any frame, 45-70 puts the disc in view beside what
+      you have made. Its apparent size and the light it casts do not
+      change with distance - only whether the human can see it.
+  star_count:
+    range: integer
+    minimum_value: 10
+    maximum_value: 600
+    description: >-
+      How many stars. 150 reads as a good night; 500 as the desert
+      sky you only get far from cities.
+  sky_distance:
+    range: float
+    minimum_value: 15.0
+    maximum_value: 140.0
+    description: >-
+      How far out the stars sit, in meters. The view is orthographic,
+      so this is a REAL distance and not an infinite backdrop: past
+      about 140 m they leave the frame entirely. 60 keeps them
+      around whatever else exists.
+  star_brightness:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 3.0
+    description: Star glow. 1 is a clear night; 3 is a fairy tale.
+  world_height:
+    range: float
+    minimum_value: -40.0
+    maximum_value: 90.0
+    description: Height of a distant world above the floor, in meters.
+  world_size:
+    range: float
+    minimum_value: 0.5
+    maximum_value: 15.0
+    description: >-
+      Radius of a distant world in meters. Read against its distance:
+      3 at 60 m away is a moon, 12 is a neighbour that fills the sky.
+  world_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Distant world colour, red channel (0..1).
+  world_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Distant world colour, green channel (0..1).
+  world_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Distant world colour, blue channel (0..1).
+  planet_altitude:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 40.0
+    description: >-
+      Height of the planet's center above the void floor. Omit and
+      it floats at radius + 2.5, clear of everything.
+  crust_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Crust stone color, red channel (0..1). Omit for
+      rust-warm earth.
+  crust_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Crust stone color, green channel (0..1).
+  crust_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Crust stone color, blue channel (0..1).
+  with_rose:
+    range: boolean
+    description: Plant the single radiant flower at the north pole.
+  with_prince:
+    range: boolean
+    description: Stand the small dreamer at the apex, beside his
+      rose.
   serpent_kind:
     range: SerpentKind
     description: Which serpent. Omit for a garden snake.

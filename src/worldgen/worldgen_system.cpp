@@ -33,6 +33,7 @@ void WorldGenSystem::initialize(Engine* engine, kg::KGModule* kg,
     scene_generator_.initialize(engine, kg);
     rock_generator_.initialize(engine, kg);
     fallen_tree_generator_.initialize(engine, kg);
+    planet_generator_.initialize(engine, kg);
 
     // Wire event bus to EntityGenerator subclasses (SpawnEvent on entity creation)
     if (event_bus) {

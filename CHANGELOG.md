@@ -37,6 +37,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   hardware without ray tracing must fix it first.
 
 ### Added
+- The prince planet: `PlanetGenerator` builds a small bonded-sphere
+  world (kinematic core, Fibonacci-sphere crust of stones bonded
+  through the constraint API) floating free of the world floor, and
+  the base ontology gains the `Planet` type. In Logogenesis,
+  `PlanetSeed` is the grandest wish: radius, altitude, crust
+  palette, `with_rose` (a red-crowned flower at the pole) and
+  `with_prince` (a real physics walker standing at the apex).
 - Logogenesis menagerie: `SerpentSeed` (garden snake / python /
   coral, length and scale colors), `FallenTreeSeed` (trunk / log /
   branch / twigs), and `TotemSeed` (stacked carved wood) join the

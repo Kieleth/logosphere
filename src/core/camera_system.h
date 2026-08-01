@@ -40,6 +40,17 @@ public:
     void set_position(float x, float y, float z);
     void get_position(float& x, float& y, float& z) const;
 
+    // Free movement: slide the camera and its look-at target together
+    // across the XY plane. The view DIRECTION is untouched (both ends
+    // shift by the same delta), and the shadow-culling centre travels
+    // with the camera instead of staying pinned where the view began.
+    void pan(float dx, float dy) {
+        position_x_ += dx;
+        position_y_ += dy;
+        look_at_target_x_ += dx;
+        look_at_target_y_ += dy;
+    }
+
     // Camera follow with deadzone
     void set_camera_deadzone(float size);  // Set deadzone box size (0 = immediate follow)
     void set_camera_follow_offset(float offset_y);  // Offset target position (positive = target appears lower on screen)

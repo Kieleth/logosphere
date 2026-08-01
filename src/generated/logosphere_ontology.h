@@ -1169,6 +1169,13 @@ struct PhysicsRock : public Rock {
 };
 
 
+/// A small spherical world floating clear of the world floor: a kinematic core carrying a crust of stones. Terrain rather than a dynamic body - it holds its position and collides, but is not cratered or moved by what strikes it.
+struct Planet : public NaturalFormation {
+    /// Crust radius of a small planet in meters.
+    std::optional<float> planet_radius = std::nullopt;
+};
+
+
 /// Fallen tree trunk or log.
 struct FallenTree : public NaturalFormation, public HasMaterial {
     /// Classification of fallen wood (trunk, branch, twig).

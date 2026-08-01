@@ -922,6 +922,21 @@ void test_serpent_deadwood_totem() {
     AT_ASSERT_TRUE(!kg.findByType("Snake").empty() ||
                    !kg.findByType("Serpent").empty(),
         "a serpent entity exists in the KG");
+
+    // KG entities are not bodies. Let the world settle, then count
+    // what actually exists (the planet bug: entity + constraints
+    // present, particles absent, every assertion still green).
+    for (int i = 0; i < 120; ++i) h.tick(dt);
+    int particles = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        particles = static_cast<int>(view.size());
+    }
+    std::cout << "  [measure] menagerie particles=" << particles
+              << std::endl;
+    AT_ASSERT_TRUE(particles >= 20,
+        "the menagerie materialized into real particles (count " +
+        std::to_string(particles) + ")");
 }
 
 // Playful declines are thoughts-only: zero ops must create nothing
@@ -949,6 +964,334 @@ void test_thoughts_only_reply_creates_nothing() {
         ")");
 }
 
+// The grandest wish: one PlanetSeed births the whole tableau -
+// bonded sphere, rose at the pole, prince at the apex - floating
+// clear of the turtle, crust constrained to the core.
+void test_prince_planet() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"The lonely asteroid, whole: earth, flower, dreamer.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3",
+                 "with_rose":"true","with_prince":"true"}}]})");
+        });
+
+    h.app.submit_text_for_test("the Little Prince's asteroid, please");
+    for (int i = 0; i < 900 && h.app.creations() < 3; ++i) h.tick(dt);
+
+    AT_ASSERT_TRUE(h.app.creations() == 3,
+        "planet + rose + prince (creations " +
+        std::to_string(h.app.creations()) + ")");
+    auto planets = kg.findByType("Planet");
+    AT_ASSERT_TRUE(planets.size() == 1, "one Planet entity in the KG");
+    AT_ASSERT_TRUE(kg.findByType("PlanetSeed").empty(),
+        "the seed is consumed");
+
+    // (Crust solver mode is checked on a bare planet, below: the
+    // rose stands inside this radius and is rightly dynamic.)
+
+    // Let it exist for a while, then measure what is actually where.
+    // A floating world can fail in a way "nothing below the turtle"
+    // cannot see: the body falls to the floor and still passes.
+    for (int i = 0; i < 300; ++i) h.tick(dt);
+    float min_z = 1e9f, max_z = -1e9f;
+    int below_planet = 0, total = 0;
+    const float planet_bottom = 5.5f - 3.0f;   // altitude - radius
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        total = static_cast<int>(view.size());
+        for (size_t i = 0; i < view.size(); ++i) {
+            float bottom = view[i].z - view[i].thickness * 0.5f;
+            min_z = std::min(min_z, bottom);
+            max_z = std::max(max_z, view[i].z);
+            if (view[i].z < planet_bottom - 0.5f) below_planet++;
+        }
+    }
+    std::cout << "  [measure] particles=" << total
+              << " min_bottom_z=" << min_z << " max_z=" << max_z
+              << " below_planet=" << below_planet
+              << " (planet spans " << planet_bottom << ".." << (5.5f + 3.0f)
+              << ")" << std::endl;
+
+    // The body must actually MATERIALIZE. A KG entity with
+    // constraints but no particles passed every earlier assertion
+    // while the world stayed empty (the missing chunk coordinates
+    // bug); measured 362 particles once fixed, 33 before.
+    AT_ASSERT_TRUE(total >= 100,
+        "the planet materialized into real particles (count " +
+        std::to_string(total) + ")");
+    // Nothing falls off the floating world. min_bottom_z tracks the
+    // planet's own underside (measured 2.48 against a 2.5 bottom);
+    // a body that slid off would land near the turtle and show up
+    // here long before the turtle assertion below noticed.
+    AT_ASSERT_TRUE(below_planet == 0,
+        "nothing fell off the planet (" + std::to_string(below_planet) +
+        " particles below it)");
+    AT_ASSERT_TRUE(min_z > planet_bottom - 0.5f,
+        "the world floats intact (lowest " + std::to_string(min_z) +
+        ", planet bottom " + std::to_string(planet_bottom) + ")");
+    AT_ASSERT_TRUE(min_z > -0.01f,
+        "nothing driven below the turtle (lowest " +
+        std::to_string(min_z) + ")");
+}
+
+// Anything planted while a planet exists must land ON its crust.
+// Observed before the fix: a redwood wished onto the asteroid was
+// planted at the flat-world floor height and grew clean through it,
+// roots in the void and canopy out the far side.
+void test_tree_lands_on_the_planet() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A world, and a redwood erupting from it.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3"}},
+              {"op":"create_entity","type":"TreeSeed","properties":{
+                 "x":"0","y":"0","species":"REDWOOD","tree_height":"6"}}]})");
+        });
+
+    h.app.submit_text_for_test("a little planet with a redwood on it");
+    for (int i = 0; i < 900 && h.app.creations() < 2; ++i) h.tick(dt);
+    for (int i = 0; i < 240; ++i) h.tick(dt);
+
+    AT_ASSERT_TRUE(h.app.creations() >= 2,
+        "planet and tree both made (creations " +
+        std::to_string(h.app.creations()) + ")");
+
+    // Planet floats at radius + 2.5 = 5.5, so its underside is 2.5.
+    // A tree planted at the old floor height would put trunk
+    // particles near z = 0, far below that.
+    const float planet_bottom = 2.5f;
+    int below = 0;
+    float lowest = 1e9f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i) {
+            lowest = std::min(lowest, view[i].z);
+            if (view[i].z < planet_bottom - 0.5f) below++;
+        }
+    }
+    std::cout << "  [measure] lowest particle z=" << lowest
+              << " below-planet count=" << below << std::endl;
+    AT_ASSERT_TRUE(below == 0,
+        "nothing was planted through the world (" +
+        std::to_string(below) + " particles under it, lowest z " +
+        std::to_string(lowest) + ")");
+}
+
+// The sky must be WISHED for, and must stay cheap. Stars are
+// self-emissive: they glow on their own pixels without joining the
+// lights array, so hundreds cost no shadow rays. A sky that quietly
+// added hundreds of real lights would tank every scene it touched.
+void test_sky_is_wished_for_and_cheap() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    // Nothing arrives unasked: an empty void stays empty.
+    int lights_before = 0, particles_before = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        particles_before = static_cast<int>(view.size());
+        for (size_t i = 0; i < view.size(); ++i)
+            if (view[i].is_light_source) lights_before++;
+    }
+    AT_ASSERT_TRUE(particles_before == 0,
+        "the void starts empty (" + std::to_string(particles_before) +
+        " particles)");
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"Stars, and a neighbour to keep them company.",
+                     "ops":[
+              {"op":"create_entity","type":"StarfieldSeed","properties":{
+                 "star_count":"200","sky_distance":"60"}},
+              {"op":"create_entity","type":"DistantWorldSeed","properties":{
+                 "x":"38","y":"-22","world_height":"30","world_size":"5"}}]})");
+        });
+
+    h.app.submit_text_for_test("give me stars and another world out there");
+    for (int i = 0; i < 600 && h.app.creations() < 2; ++i) h.tick(dt);
+
+    int lights = 0, emissive = 0, particles = 0;
+    float farthest = 0.0f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        particles = static_cast<int>(view.size());
+        for (size_t i = 0; i < view.size(); ++i) {
+            if (view[i].is_light_source) lights++;
+            if (view[i].is_self_emissive) emissive++;
+            float d = std::sqrt(view[i].x * view[i].x +
+                                view[i].y * view[i].y);
+            farthest = std::max(farthest, d);
+        }
+    }
+    std::cout << "  [measure] sky particles=" << particles
+              << " self_emissive=" << emissive
+              << " real_lights=" << lights
+              << " farthest=" << farthest << " m" << std::endl;
+
+    AT_ASSERT_TRUE(particles >= 200,
+        "the sky materialized (" + std::to_string(particles) +
+        " particles)");
+    AT_ASSERT_TRUE(emissive >= 200,
+        "stars glow on their own pixels (" + std::to_string(emissive) +
+        " self-emissive)");
+    AT_ASSERT_TRUE(lights == 0,
+        "and cost no shadow rays: a wished sky must add ZERO real "
+        "lights, got " + std::to_string(lights));
+    // Orthographic view: the sky is real distance, not a backdrop.
+    // Past ~140 m it leaves the frame, which is why the schema caps
+    // sky_distance there.
+    AT_ASSERT_TRUE(farthest > 20.0f && farthest < 145.0f,
+        "the sky sits where it can actually be seen (farthest " +
+        std::to_string(farthest) + " m)");
+}
+
+// A world you can stand on must OWN its position. is_at_rest is a
+// solver optimisation, never immobility - the engine says so in as
+// many words, and the first cut leaned on it anyway: a walking
+// humanoid was enough to shatter the planet, because a woken DYNAMIC
+// stone simply falls in -Z and the wake propagates to its neighbours.
+void test_planet_is_immovable_terrain() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A bare world.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3"}}]})");
+        });
+    h.app.submit_text_for_test("just the planet");
+    for (int i = 0; i < 600 && h.app.creations() < 1; ++i) h.tick(dt);
+
+    int dynamic_crust = 0, kinematic_crust = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i) {
+            if (view[i].solver_mode == ParticleSolverMode::KINEMATIC)
+                kinematic_crust++;
+            else
+                dynamic_crust++;
+        }
+    }
+    std::cout << "  [measure] crust kinematic=" << kinematic_crust
+              << " dynamic=" << dynamic_crust << std::endl;
+    AT_ASSERT_TRUE(kinematic_crust > 1000,
+        "the crust materialized (" + std::to_string(kinematic_crust) +
+        " kinematic stones)");
+    AT_ASSERT_TRUE(dynamic_crust == 0,
+        "no crust stone relies on sleeping to stay put (" +
+        std::to_string(dynamic_crust) + " dynamic) — those are the "
+        "ones that fall the moment anything touches them");
+
+    // Now hit it. A half-tonne boulder dropped on the pole must dent
+    // nothing: the world is terrain, not a heap.
+    Particle rock = {};
+    rock.shape = ParticleShape::BOX;
+    rock.x = 0.0f; rock.y = 0.0f; rock.z = 5.5f + 3.0f + 6.0f;
+    rock.width = rock.height = rock.thickness = rock.size = 0.9f;
+    rock.r = 0.5f; rock.g = 0.5f; rock.b = 0.5f; rock.a = 1.0f;
+    rock.SetMaterial(Materials::Type::STONE);
+    h.engine.add_particle(rock);
+
+    std::vector<float> radius_before;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i) {
+            if (view[i].solver_mode != ParticleSolverMode::KINEMATIC) continue;
+            float dz = view[i].z - 5.5f;
+            radius_before.push_back(std::sqrt(
+                view[i].x * view[i].x + view[i].y * view[i].y + dz * dz));
+        }
+    }
+    for (int i = 0; i < 420; ++i) h.tick(dt);
+
+    float worst = 0.0f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        size_t k = 0;
+        for (size_t i = 0; i < view.size() && k < radius_before.size(); ++i) {
+            if (view[i].solver_mode != ParticleSolverMode::KINEMATIC) continue;
+            float dz = view[i].z - 5.5f;
+            float r = std::sqrt(view[i].x * view[i].x +
+                                view[i].y * view[i].y + dz * dz);
+            worst = std::max(worst, std::fabs(r - radius_before[k]));
+            ++k;
+        }
+    }
+    std::cout << "  [measure] worst crust displacement after impact: "
+              << worst << " m" << std::endl;
+    AT_ASSERT_TRUE(worst < 0.01f,
+        "the world does not shatter when struck (worst stone moved " +
+        std::to_string(worst) + " m)");
+}
+
+// A wanderer on a little world must stay ON it. Observed: asked to
+// meander, the human strolled off the planet and fell to the floor
+// below - kWanderRadius is 12 m, four times a 3 m world's entire
+// radius, so every target it picked was off the edge.
+void test_wanderer_stays_on_the_planet() {
+    Harness h;
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A world, and someone to walk it.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3"}},
+              {"op":"create_entity","type":"HumanoidSeed","properties":{
+                 "x":"0","y":"0"}}]})");
+        });
+
+    h.app.submit_text_for_test("a planet, and a person to meander on it");
+    for (int i = 0; i < 900 && h.app.creations() < 2; ++i) h.tick(dt);
+
+    // Twenty seconds of strolling: long enough to pick several
+    // targets and walk to them.
+    float lowest_walker = 1e9f;
+    for (int i = 0; i < 1200; ++i) {
+        h.tick(dt);
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t k = 0; k < view.size(); ++k) {
+            if (view[k].solver_mode == ParticleSolverMode::KINEMATIC)
+                continue;   // crust
+            lowest_walker = std::min(lowest_walker, view[k].z);
+        }
+    }
+    std::cout << "  [measure] lowest walking particle over 20 s: "
+              << lowest_walker << " m (planet underside 2.5)" << std::endl;
+
+    // The planet spans 2.5..8.5. Anything that walked off would be
+    // on the floor near 0 long before this bound.
+    AT_ASSERT_TRUE(lowest_walker > 2.0f,
+        "the wanderer stayed on its world (lowest walking particle " +
+        std::to_string(lowest_walker) + " m; the floor is 0)");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -965,6 +1308,11 @@ int main() {
     AT_TEST(test_orbit_seed_swings_the_camera);
     AT_TEST(test_serpent_deadwood_totem);
     AT_TEST(test_thoughts_only_reply_creates_nothing);
+    AT_TEST(test_prince_planet);
+    AT_TEST(test_planet_is_immovable_terrain);
+    AT_TEST(test_tree_lands_on_the_planet);
+    AT_TEST(test_wanderer_stays_on_the_planet);
+    AT_TEST(test_sky_is_wished_for_and_cheap);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;

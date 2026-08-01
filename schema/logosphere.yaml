@@ -553,6 +553,16 @@ classes:
     is_a: Rock
     description: Physics-enabled rock with full collision.
 
+  Planet:
+    is_a: NaturalFormation
+    description: >-
+      A small spherical world floating clear of the world floor: a
+      kinematic core carrying a crust of stones. Terrain rather than
+      a dynamic body - it holds its position and collides, but is not
+      cratered or moved by what strikes it.
+    slots:
+      - planet_radius
+
   FallenTree:
     is_a: NaturalFormation
     description: Fallen tree trunk or log.
@@ -989,6 +999,11 @@ slots:
     range: FloorType
   rock_size:
     range: RockSize
+  planet_radius:
+    range: float
+    minimum_value: 1.0
+    maximum_value: 10.0
+    description: Crust radius of a small planet in meters.
   tree_variant:
     range: TreeVariant
     description: Tree species/growth stage for generator dispatch.

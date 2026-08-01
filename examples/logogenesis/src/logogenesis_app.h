@@ -36,6 +36,7 @@
 #include "logosphere/worldgen/snake_generator.h"
 #include "logosphere/worldgen/fallen_tree_generator.h"
 #include "logosphere/worldgen/totem_generator.h"
+#include "logosphere/worldgen/planet_generator.h"
 #include "logosphere/animation/humanoid_locomotion.h"
 #include "core/game_time.h"
 #include "logogenesis_ontology_registry.h"
@@ -343,7 +344,7 @@ private:
             {"GroundSeed", "SunSeed", "MoonSeed", "Sky", "LightSeed",
              "TreeSeed", "GrassSeed", "RockSeed", "ButterflySeed",
              "HumanoidSeed", "OrbitSeed", "SerpentSeed",
-             "FallenTreeSeed", "TotemSeed"});
+             "FallenTreeSeed", "TotemSeed", "PlanetSeed"});
         return std::string(
             "You are the voice of Logogenesis: a playful, slightly "
             "theatrical creator who makes things exist in a black "
@@ -394,6 +395,22 @@ private:
             "dramatic) births the rock that high and lets gravity "
             "speak — on LAYERED ground the impact shoves the topsoil "
             "aside. Use for 'meteor', 'crash', 'falling rock' wishes.\n\n"
+            "THE SKY IS NOT FREE. The void has no stars, no sun and no "
+            "companions until asked. A StarfieldSeed scatters stars "
+            "(they glow without lighting anything, so hundreds are "
+            "cheap); a DistantWorldSeed hangs another world in the "
+            "distance; a SunSeed with sun_distance 45-70 puts the sun "
+            "itself IN FRAME instead of far outside it. Offer these "
+            "when a scene looks lonely, and grant them the moment "
+            "stars, space, a night sky, or the sun are asked for.\n\n"
+            "THE GRANDEST WISH: a PlanetSeed births a small planet, a "
+            "rust-warm sphere of bonded stones floating in the dark - "
+            "the Little Prince's asteroid. with_rose plants his flower "
+            "at the pole, with_prince stands the dreamer beside it. It "
+            "needs no ground, only a light; pair it with an OrbitSeed "
+            "and the eye circles the little world. Reach for it when "
+            "the human asks for a planet, an asteroid, a tiny world, "
+            "or the Little Prince.\n\n"
             "THE EYE CAN MOVE: an OrbitSeed swings the camera around "
             "the scene like a slow drone shot and lands where it began "
             "(revolutions 1, duration_seconds 12 reads cinematic). Use "
@@ -714,9 +731,21 @@ private:
             // frame (the invariant: everything is a particle, no sky
             // layer, no cheating). Only its light arrives; emission
             // is scaled by distance^2 so noon lands ~28k lux.
-            sun.orbit.distance = 300.0f;
+            // Distance decides only whether the sun is ON SCREEN. The
+            // projection is orthographic, so a body at 300 m is drawn
+            // 300 m away - roughly 9600 px off-centre at the default
+            // zoom, and unreachable even at full zoom-out. Bringing it
+            // to ~60 m puts the disc in frame. Apparent size and
+            // illumination are held constant across that move: the
+            // radius scales linearly with distance (same angular size)
+            // and emission by distance squared (same lux), so the sun
+            // looks and lights identically wherever it stands.
+            const float sun_dist = prop_f(kg, seed, "sun_distance", 300.0f);
+            const float dist_k = sun_dist / 300.0f;
+            const float lux_k = dist_k * dist_k;
+            sun.orbit.distance = sun_dist;
             sun.orbit.inclination_deg = 60.0f;
-            sun.visual_radius = 8.0f;
+            sun.visual_radius = 8.0f * dist_k;
             sun.color_curve = {
                 {0.00f, {0.10f, 0.08f, 0.15f, 1.0f}},   // midnight
                 {0.22f, {1.00f, 0.55f, 0.25f, 1.0f}},   // dawn amber
@@ -730,9 +759,9 @@ private:
             sun.emission_curve = {
                 {0.00f, 0.0f},
                 {0.20f, 0.0f},
-                {0.25f, 1200000000.0f},    // dawn
-                {0.50f, 5200000000.0f},    // full noon (~58k lux at 300 m)
-                {0.75f, 1700000000.0f},    // sunset glow
+                {0.25f, 1200000000.0f * lux_k},    // dawn
+                {0.50f, 5200000000.0f * lux_k},    // full noon (~58k lux)
+                {0.75f, 1700000000.0f * lux_k},    // sunset glow
                 {0.82f, 0.0f},
                 {1.00f, 0.0f},
             };
@@ -879,6 +908,151 @@ private:
             ++creations_;
         }
 
+        // The planet is made BEFORE anything that stands on it.
+        // Materialiser order is world-first for the same reason the
+        // ground pours before its inhabitants: a wish that arrives in
+        // one breath ("a planet with a redwood on it") otherwise
+        // plants the tree while planet_radius_ is still zero, and it
+        // grows from the old floor straight through the world.
+        for (auto seed : kg.findByType("StarfieldSeed")) {
+            int count = static_cast<int>(prop_f(kg, seed, "star_count", 260));
+            float dist = prop_f(kg, seed, "sky_distance", 60.0f);
+            float bright = prop_f(kg, seed, "star_brightness", 1.0f);
+            kg.destroyEntity(seed);
+
+            auto ent = kg.createEntity("CelestialBody");
+            kg.setProperty(ent, "x", "0");
+            kg.setProperty(ent, "y", "0");
+            // Stars are SELF-emissive: they glow on their own pixels
+            // without joining the lights array, so hundreds cost no
+            // shadow rays. Scattered on a Fibonacci shell, upper
+            // hemisphere favoured so they read as sky rather than
+            // floor. The projection is orthographic, so this is a
+            // real distance - there is no infinite backdrop to hang
+            // them on, they are simply far-away particles.
+            const float golden = 2.399963f;
+            for (int i = 0; i < count; ++i) {
+                float t = (static_cast<float>(i) + 0.5f) / count;
+                float polar = std::acos(1.0f - 1.35f * t);   // bias upward
+                float azim = golden * i;
+                float d = dist * (0.75f + 0.5f * frac(i * 0.6180339f));
+                Particle p{};
+                p.shape = ParticleShape::SPHERE;
+                p.x = std::sin(polar) * std::cos(azim) * d;
+                p.y = std::sin(polar) * std::sin(azim) * d;
+                p.z = std::cos(polar) * d + 6.0f;
+                // Magnitude distribution. The first cut gave every star
+                // the same brightness and a narrow linear size band,
+                // which reads as a pegboard: a real sky is mostly
+                // faint pinpricks with a scattering of bright ones.
+                // Cubing crushes the spread toward faint, and size and
+                // glow move together so a bright star is also a bigger
+                // one. Note these are REAL spheres at a real distance,
+                // so they grow as you zoom in - hence the small floor.
+                const float u = frac(i * 0.7548777f);
+                const float mag = u * u * u;
+                float sz = 0.07f + 0.30f * mag;
+                p.size = p.width = p.height = p.thickness = sz;
+                float warm = frac(i * 0.3819660f);
+                p.r = 0.80f + 0.20f * warm;
+                p.g = 0.84f + 0.14f * warm;
+                p.b = 1.0f;
+                p.a = 1.0f;
+                p.is_self_emissive = true;
+                p.emission_strength = (0.9f + 3.2f * mag) * bright;
+                p.owner = ParticleOwner::STATIC;
+                p.is_at_rest = true;
+                engine_->get_particle_system().add_particle_to_entity(
+                    p, &kg, ent);
+            }
+            ++creations_;
+        }
+
+        for (auto seed : kg.findByType("DistantWorldSeed")) {
+            float x = prop_f(kg, seed, "x", 40.0f);
+            float y = prop_f(kg, seed, "y", 40.0f);
+            float z = prop_f(kg, seed, "world_height", 25.0f);
+            float sz = prop_f(kg, seed, "world_size", 4.0f);
+            float r = 0.55f, g = 0.45f, b = 0.62f;
+            if (auto v = prop_opt(kg, seed, "world_r")) r = *v;
+            if (auto v = prop_opt(kg, seed, "world_g")) g = *v;
+            if (auto v = prop_opt(kg, seed, "world_b")) b = *v;
+            kg.destroyEntity(seed);
+
+            auto ent = kg.createEntity("CelestialBody");
+            kg.setProperty(ent, "x", std::to_string(x));
+            kg.setProperty(ent, "y", std::to_string(y));
+            // One particle, self-emissive so it reads as a lit world
+            // rather than a black disc in an unlit void.
+            Particle p{};
+            p.shape = ParticleShape::SPHERE;
+            p.x = x; p.y = y; p.z = z;
+            p.size = p.width = p.height = p.thickness = sz * 2.0f;
+            p.r = r; p.g = g; p.b = b; p.a = 1.0f;
+            p.is_self_emissive = true;
+            p.emission_strength = 1.5f;
+            p.owner = ParticleOwner::STATIC;
+            p.is_at_rest = true;
+            engine_->get_particle_system().add_particle_to_entity(p, &kg, ent);
+            ++creations_;
+        }
+
+        for (auto seed : kg.findByType("PlanetSeed")) {
+            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
+            PlanetSpec pspec = PlanetSpec::small_rocky_world();
+            if (auto r = prop_opt(kg, seed, "planet_radius"))
+                pspec.radius = *r;
+            read_rgb(kg, seed, "crust", pspec.crust_r, pspec.crust_g,
+                     pspec.crust_b);
+            float alt = prop_f(kg, seed, "planet_altitude",
+                               pspec.radius + 2.5f);
+            bool rose = kg.getProperty(seed, "with_rose") == "true";
+            bool prince = kg.getProperty(seed, "with_prince") == "true";
+            kg.destroyEntity(seed);
+
+            wg.get_planet_generator().generate_planet(x, y, alt, pspec);
+            // Remember it: from here on, its crust IS the ground for
+            // anything else the human wishes into being.
+            planet_x_ = x; planet_y_ = y; planet_z_ = alt;
+            planet_radius_ = pspec.radius;
+            float apex_z = alt + pspec.radius;
+            ++creations_;
+
+            if (rose) {
+                // The single radiant flower: a sapling-scale willow
+                // with a red crown at the north pole.
+                TreeSpec rspec = TreeSpec::willow();
+                rspec.height = std::min(1.4f, pspec.radius * 0.45f);
+                rspec.crown_radius = rspec.height * 0.5f;
+                rspec.leaf_r = 0.85f; rspec.leaf_g = 0.12f;
+                rspec.leaf_b = 0.18f;
+                rspec.random_seed = static_cast<int>(seed) * 977;
+                wg.get_tree_generator().generate_tree_space_colonization(
+                    x + pspec.radius * 0.25f, y, apex_z - 0.15f, rspec);
+                ++creations_;
+            }
+            if (prince) {
+                // The dreamer at the apex, standing beside his rose.
+                // Real physics walker on real crust; v1 he stands
+                // (no wanderer registration - the apex cap is small).
+                HumanoidSpec hspec = HumanoidSpec::default_human();
+                hspec.apply_natural_variation(
+                    0.10f, static_cast<unsigned>(seed) * 131u);
+                hspec.clothing_r = 0.93f; hspec.clothing_g = 0.88f;
+                hspec.clothing_b = 0.72f;   // ochre and cream
+                auto body =
+                    wg.get_humanoid_generator().generate_humanoid_physics(
+                        x - pspec.radius * 0.2f, y, apex_z + 0.1f, -1,
+                        hspec, false);
+                body.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
+                engine_->get_humanoid_locomotion().register_humanoid_direct(
+                    body.hips_id, body.left_leg_ids, body.right_leg_ids,
+                    body.left_arm_ids, body.right_arm_ids, body.torso_ids,
+                    180.0f, 800.0f);
+                ++creations_;
+            }
+        }
+
         for (auto seed : kg.findByType("ButterflySeed")) {
             float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
             int count = static_cast<int>(prop_f(kg, seed, "count", 4));
@@ -932,7 +1106,7 @@ private:
             // body, KG entity with body-part structure, locomotion
             // registration. floor_particle_id is dead API — pass -1.
             auto body = wg.get_humanoid_generator().generate_humanoid_physics(
-                x, y, ground_top_z_ + 0.1f, -1, spec, false);
+                x, y, world_surface_z(x, y) + 0.1f, -1, spec, false);
             body.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
             engine_->get_humanoid_locomotion().register_humanoid_direct(
                 body.hips_id, body.left_leg_ids, body.right_leg_ids,
@@ -1013,7 +1187,7 @@ private:
                 GrowthJob job;
                 job.x = x;
                 job.y = y;
-                job.z = ground_top_z_;
+                job.z = world_surface_z(x, y);
                 job.final_spec = spec;
                 job.species = species;
                 job.n_stages = std::min(24, std::max(4,
@@ -1023,7 +1197,7 @@ private:
                 job.current_tree = grow_tree_stage(kg, job);
                 growth_jobs_.push_back(job);
             } else {
-                spawn_tree(kg, spec, x, y, ground_top_z_, species,
+                spawn_tree(kg, spec, x, y, world_surface_z(x, y), species,
                            /*collapse_retry=*/true);
             }
             ++creations_;
@@ -1080,7 +1254,7 @@ private:
             spec.blade_spec.foliage_count_max = 0;
             kg.destroyEntity(seed);
             wg.get_organic_generator().generate_grass_patch(
-                x, y, ground_top_z_, spec);
+                x, y, world_surface_z(x, y), spec);
             ++creations_;
         }
 
@@ -1102,7 +1276,7 @@ private:
                 read_rgb(kg, seed, "rock", pspec.r, pspec.g, pspec.b);
                 kg.destroyEntity(seed);
                 auto res = wg.get_physics_rock_generator().generate_rock(
-                    x, y, ground_top_z_ + drop, pspec);
+                    x, y, world_surface_z(x, y) + drop, pspec);
                 auto ent = kg.createEntity("Rock");
                 kg.setProperty(ent, "x", std::to_string(x));
                 kg.setProperty(ent, "y", std::to_string(y));
@@ -1117,7 +1291,7 @@ private:
             if (auto s = prop_opt(kg, seed, "rock_size")) spec.size = *s;
             read_rgb(kg, seed, "rock", spec.base_r, spec.base_g, spec.base_b);
             kg.destroyEntity(seed);
-            wg.get_rock_generator().generate_rock(x, y, ground_top_z_, spec);
+            wg.get_rock_generator().generate_rock(x, y, world_surface_z(x, y), spec);
             ++creations_;
         }
 
@@ -1133,7 +1307,7 @@ private:
             read_rgb(kg, seed, "scale", spec.scale_r, spec.scale_g,
                      spec.scale_b);
             kg.destroyEntity(seed);
-            wg.get_snake_generator().generate_snake(x, y, ground_top_z_,
+            wg.get_snake_generator().generate_snake(x, y, world_surface_z(x, y),
                                                     spec);
             ++creations_;
         }
@@ -1153,7 +1327,7 @@ private:
                      spec.bark_b);
             kg.destroyEntity(seed);
             wg.get_fallen_tree_generator().generate_fallen_tree(
-                x, y, ground_top_z_, spec);
+                x, y, world_surface_z(x, y), spec);
             ++creations_;
         }
 
@@ -1167,7 +1341,7 @@ private:
             }
             read_rgb(kg, seed, "totem", spec.r, spec.g, spec.b);
             kg.destroyEntity(seed);
-            wg.get_totem_generator().generate_totem(x, y, ground_top_z_,
+            wg.get_totem_generator().generate_totem(x, y, world_surface_z(x, y),
                                                     spec);
             ++creations_;
         }
@@ -1345,10 +1519,22 @@ private:
             if (w.idle_left > 0.0f) {
                 w.idle_left -= dt;
                 if (w.idle_left > 0.0f) continue;
-                w.tx = w.home_x +
-                       (wander_rand01(w.rng) * 2.0f - 1.0f) * kWanderRadius;
-                w.ty = w.home_y +
-                       (wander_rand01(w.rng) * 2.0f - 1.0f) * kWanderRadius;
+                // Where to stroll next. On a planet, stay on the
+                // standable cap: kWanderRadius is 12 m, four times a
+                // small world's whole radius, so an unbounded wander
+                // walks clean off the edge and drops to the floor
+                // below - which is exactly what happened the first
+                // time someone asked the prince to meander. 0.35 of
+                // the radius keeps even the corners of the square
+                // inside the cap that world_surface_z will stand on.
+                float span = kWanderRadius;
+                float cx = w.home_x, cy = w.home_y;
+                if (planet_radius_ > 0.0f) {
+                    span = planet_radius_ * 0.35f;
+                    cx = planet_x_; cy = planet_y_;
+                }
+                w.tx = cx + (wander_rand01(w.rng) * 2.0f - 1.0f) * span;
+                w.ty = cy + (wander_rand01(w.rng) * 2.0f - 1.0f) * span;
             }
             float px, py;
             {
@@ -1399,6 +1585,10 @@ private:
     }
 
     // ---------------------------------------------------------------- helpers
+    // Deterministic scatter without dragging an RNG through the
+    // materialiser: the golden-ratio sequence spreads evenly.
+    static float frac(float v) { return v - std::floor(v); }
+
     static std::string prop_s(kg::KGModule& kg, kg::EntityID e,
                               const char* k, const char* dflt) {
         auto v = kg.getProperty(e, k);
@@ -1433,6 +1623,31 @@ private:
     int moons_made_ = 0;
     std::vector<GrowthJob> growth_jobs_;
     std::vector<GroundJob> ground_jobs_;
+    // The world's surface directly under (x, y). With a planet in
+    // play its crust IS the ground there; without one, the flat
+    // floor. Seeds that skip this plant at floor height and skewer
+    // the planet - observed as a redwood growing clean through the
+    // asteroid, roots in the void and canopy out the far side.
+    //
+    // Only the upper cap counts: past ~33 degrees from the pole,
+    // -Z gravity and the surface normal disagree too much to stand
+    // on, so those wishes fall back to the floor rather than clinging
+    // sideways. Road A (central gravity) is what lifts that limit.
+    float world_surface_z(float x, float y) const {
+        if (planet_radius_ > 0.0f) {
+            const float dx = x - planet_x_, dy = y - planet_y_;
+            const float d2 = dx * dx + dy * dy;
+            const float r2 = planet_radius_ * planet_radius_;
+            const float cap = planet_radius_ * 0.55f;
+            if (d2 < cap * cap)
+                return planet_z_ + std::sqrt(r2 - d2);
+        }
+        return ground_top_z_;
+    }
+
+    float planet_x_ = 0.0f, planet_y_ = 0.0f, planet_z_ = 0.0f;
+    float planet_radius_ = 0.0f;  // > 0 once a planet exists
+
     float ground_top_z_ = 0.0f;   // world surface: things stand HERE
     // ------------------------------------------------------------ orbit
     // The engine provides the azimuth parameter; the ANIMATION is

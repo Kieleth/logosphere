@@ -93,6 +93,77 @@ int main() {
         }
     }
 
+    // ---------------------------------------------------------------
+    // Free movement (SPACE + arrows): the pan basis must be a SCREEN
+    // basis, not a world one. Pushing along screen-right has to slide
+    // the view horizontally and leave the vertical screen coordinate
+    // untouched, at every orbit bearing - otherwise flying the camera
+    // drifts diagonally the moment you have orbited.
+    // ---------------------------------------------------------------
+    const float INV_SQRT2 = 0.70710678f;
+    for (float a : azimuths) {
+        camera.set_view_azimuth(a);
+        camera.set_position(-10.0f, -10.0f, 20.0f);
+        camera.look_at(0.0f, 0.0f, 0.0f);
+
+        const float c = std::cos(a), sn = std::sin(a);
+        const float rx = (c + sn) * INV_SQRT2, ry = (sn - c) * INV_SQRT2;
+        const float ux = (c - sn) * INV_SQRT2, uy = (sn + c) * INV_SQRT2;
+
+        // A fixed world point, seen before and after the camera flies.
+        int bx, by, ax, ay;
+        camera.world_to_screen(0.0f, 0.0f, 0.0f, bx, by);
+
+        camera.pan(rx * 4.0f, ry * 4.0f);          // fly screen-right
+        camera.world_to_screen(0.0f, 0.0f, 0.0f, ax, ay);
+        if (ay == by && ax < bx) {
+            tests_passed++;
+        } else {
+            tests_failed++;
+            std::cout << "FAIL: a=" << a << " screen-right pan moved the "
+                      << "view to (" << ax << "," << ay << ") from ("
+                      << bx << "," << by << "); expected same y, smaller x"
+                      << std::endl;
+        }
+
+        camera.pan(-rx * 4.0f, -ry * 4.0f);        // back to the start
+        camera.pan(ux * 4.0f, uy * 4.0f);          // fly screen-up
+        camera.world_to_screen(0.0f, 0.0f, 0.0f, ax, ay);
+        if (ax == bx && ay > by) {
+            tests_passed++;
+        } else {
+            tests_failed++;
+            std::cout << "FAIL: a=" << a << " screen-up pan moved the view "
+                      << "to (" << ax << "," << ay << ") from (" << bx
+                      << "," << by << "); expected same x, larger y"
+                      << std::endl;
+        }
+    }
+
+    // pan() must carry the shadow-culling centre with the camera; a
+    // stale look-at target culls shadows around where the view began.
+    camera.set_view_azimuth(0.0f);
+    camera.set_position(0.0f, 0.0f, 20.0f);
+    camera.look_at(0.0f, 0.0f, 0.0f);
+    camera.pan(7.0f, -3.0f);
+    {
+        float px, py, pz, tx, ty;
+        camera.get_position(px, py, pz);
+        camera.get_look_at_target(tx, ty);
+        bool moved_together = std::fabs(px - 7.0f) < 1e-4f &&
+                              std::fabs(py + 3.0f) < 1e-4f &&
+                              std::fabs(tx - 7.0f) < 1e-4f &&
+                              std::fabs(ty + 3.0f) < 1e-4f;
+        if (moved_together) {
+            tests_passed++;
+        } else {
+            tests_failed++;
+            std::cout << "FAIL: pan left camera at (" << px << "," << py
+                      << ") and look-at at (" << tx << "," << ty
+                      << "); both should have moved by (7,-3)" << std::endl;
+        }
+    }
+
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
