@@ -994,15 +994,8 @@ void test_prince_planet() {
     AT_ASSERT_TRUE(kg.findByType("PlanetSeed").empty(),
         "the seed is consumed");
 
-    // The crust is a bonded body: constraints exist on the planet.
-    int constraints = 0;
-    for (auto c : kg.findByType("Constraint")) {
-        if (kg.getProperty(c, "entity_id") ==
-            std::to_string(planets[0])) constraints++;
-    }
-    AT_ASSERT_TRUE(constraints >= 24,
-        "crust stones are bonded to the core (constraints " +
-        std::to_string(constraints) + ")");
+    // (Crust solver mode is checked on a bare planet, below: the
+    // rose stands inside this radius and is rightly dynamic.)
 
     // Let it exist for a while, then measure what is actually where.
     // A floating world can fail in a way "nothing below the turtle"
@@ -1170,6 +1163,135 @@ void test_sky_is_wished_for_and_cheap() {
         std::to_string(farthest) + " m)");
 }
 
+// A world you can stand on must OWN its position. is_at_rest is a
+// solver optimisation, never immobility - the engine says so in as
+// many words, and the first cut leaned on it anyway: a walking
+// humanoid was enough to shatter the planet, because a woken DYNAMIC
+// stone simply falls in -Z and the wake propagates to its neighbours.
+void test_planet_is_immovable_terrain() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A bare world.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3"}}]})");
+        });
+    h.app.submit_text_for_test("just the planet");
+    for (int i = 0; i < 600 && h.app.creations() < 1; ++i) h.tick(dt);
+
+    int dynamic_crust = 0, kinematic_crust = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i) {
+            if (view[i].solver_mode == ParticleSolverMode::KINEMATIC)
+                kinematic_crust++;
+            else
+                dynamic_crust++;
+        }
+    }
+    std::cout << "  [measure] crust kinematic=" << kinematic_crust
+              << " dynamic=" << dynamic_crust << std::endl;
+    AT_ASSERT_TRUE(kinematic_crust > 1000,
+        "the crust materialized (" + std::to_string(kinematic_crust) +
+        " kinematic stones)");
+    AT_ASSERT_TRUE(dynamic_crust == 0,
+        "no crust stone relies on sleeping to stay put (" +
+        std::to_string(dynamic_crust) + " dynamic) — those are the "
+        "ones that fall the moment anything touches them");
+
+    // Now hit it. A half-tonne boulder dropped on the pole must dent
+    // nothing: the world is terrain, not a heap.
+    Particle rock = {};
+    rock.shape = ParticleShape::BOX;
+    rock.x = 0.0f; rock.y = 0.0f; rock.z = 5.5f + 3.0f + 6.0f;
+    rock.width = rock.height = rock.thickness = rock.size = 0.9f;
+    rock.r = 0.5f; rock.g = 0.5f; rock.b = 0.5f; rock.a = 1.0f;
+    rock.SetMaterial(Materials::Type::STONE);
+    h.engine.add_particle(rock);
+
+    std::vector<float> radius_before;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i) {
+            if (view[i].solver_mode != ParticleSolverMode::KINEMATIC) continue;
+            float dz = view[i].z - 5.5f;
+            radius_before.push_back(std::sqrt(
+                view[i].x * view[i].x + view[i].y * view[i].y + dz * dz));
+        }
+    }
+    for (int i = 0; i < 420; ++i) h.tick(dt);
+
+    float worst = 0.0f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        size_t k = 0;
+        for (size_t i = 0; i < view.size() && k < radius_before.size(); ++i) {
+            if (view[i].solver_mode != ParticleSolverMode::KINEMATIC) continue;
+            float dz = view[i].z - 5.5f;
+            float r = std::sqrt(view[i].x * view[i].x +
+                                view[i].y * view[i].y + dz * dz);
+            worst = std::max(worst, std::fabs(r - radius_before[k]));
+            ++k;
+        }
+    }
+    std::cout << "  [measure] worst crust displacement after impact: "
+              << worst << " m" << std::endl;
+    AT_ASSERT_TRUE(worst < 0.01f,
+        "the world does not shatter when struck (worst stone moved " +
+        std::to_string(worst) + " m)");
+}
+
+// A wanderer on a little world must stay ON it. Observed: asked to
+// meander, the human strolled off the planet and fell to the floor
+// below - kWanderRadius is 12 m, four times a 3 m world's entire
+// radius, so every target it picked was off the edge.
+void test_wanderer_stays_on_the_planet() {
+    Harness h;
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A world, and someone to walk it.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3"}},
+              {"op":"create_entity","type":"HumanoidSeed","properties":{
+                 "x":"0","y":"0"}}]})");
+        });
+
+    h.app.submit_text_for_test("a planet, and a person to meander on it");
+    for (int i = 0; i < 900 && h.app.creations() < 2; ++i) h.tick(dt);
+
+    // Twenty seconds of strolling: long enough to pick several
+    // targets and walk to them.
+    float lowest_walker = 1e9f;
+    for (int i = 0; i < 1200; ++i) {
+        h.tick(dt);
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t k = 0; k < view.size(); ++k) {
+            if (view[k].solver_mode == ParticleSolverMode::KINEMATIC)
+                continue;   // crust
+            lowest_walker = std::min(lowest_walker, view[k].z);
+        }
+    }
+    std::cout << "  [measure] lowest walking particle over 20 s: "
+              << lowest_walker << " m (planet underside 2.5)" << std::endl;
+
+    // The planet spans 2.5..8.5. Anything that walked off would be
+    // on the floor near 0 long before this bound.
+    AT_ASSERT_TRUE(lowest_walker > 2.0f,
+        "the wanderer stayed on its world (lowest walking particle " +
+        std::to_string(lowest_walker) + " m; the floor is 0)");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -1187,7 +1309,9 @@ int main() {
     AT_TEST(test_serpent_deadwood_totem);
     AT_TEST(test_thoughts_only_reply_creates_nothing);
     AT_TEST(test_prince_planet);
+    AT_TEST(test_planet_is_immovable_terrain);
     AT_TEST(test_tree_lands_on_the_planet);
+    AT_TEST(test_wanderer_stays_on_the_planet);
     AT_TEST(test_sky_is_wished_for_and_cheap);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

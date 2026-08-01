@@ -67,6 +67,12 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     kg::KGParticleID core_id =
         kg_->createKGParticle(entity, kg::INVALID_RENDER_INDEX);
     kg_->setKGParticleData(core_id, core);
+    (void)core_id;
+    // No crust-to-core constraints: with both ends KINEMATIC they are
+    // inert, and one per stone meant thousands of KG entities doing
+    // nothing. Making a planet destructible means flipping a region
+    // back to DYNAMIC and bonding it then - the constraint API has
+    // not gone anywhere.
 
     // Crust: stones on a Fibonacci sphere, each tilted to its radial
     // frame and bonded hub-and-spoke to the core. Laid down in two
@@ -120,11 +126,20 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
                                                      scatter * 0.34f);
             stone.rotation_z = azim + random_range(-scatter, scatter);
             stone.SetMaterial(Materials::Type::STONE);
-            stone.is_at_rest = true;
+            // KINEMATIC, not DYNAMIC-and-asleep. is_at_rest is a solver
+            // optimisation, never immobility - the engine says so in
+            // as many words. The first cut leaned on it anyway, and a
+            // walking humanoid was enough to break the world: a
+            // ~15 kg body part at 1.5 m/s clears the wake threshold
+            // against a 1.35 kg grain, wake_particle_with_propagation
+            // cascaded to its neighbours, and six thousand stones
+            // began falling in -Z at once. A world you can stand on
+            // must own its position; that is what KINEMATIC means.
+            stone.solver_mode = ParticleSolverMode::KINEMATIC;
+            stone.is_at_rest = true;   // contacts still generate (V4 line 601)
             kg::KGParticleID stone_id =
                 kg_->createKGParticle(entity, kg::INVALID_RENDER_INDEX);
             kg_->setKGParticleData(stone_id, stone);
-            create_constraint(entity, core_id, stone_id, spec.stiffness);
             ++made;
         }
     };

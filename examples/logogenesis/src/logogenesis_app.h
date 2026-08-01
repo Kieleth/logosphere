@@ -1519,10 +1519,22 @@ private:
             if (w.idle_left > 0.0f) {
                 w.idle_left -= dt;
                 if (w.idle_left > 0.0f) continue;
-                w.tx = w.home_x +
-                       (wander_rand01(w.rng) * 2.0f - 1.0f) * kWanderRadius;
-                w.ty = w.home_y +
-                       (wander_rand01(w.rng) * 2.0f - 1.0f) * kWanderRadius;
+                // Where to stroll next. On a planet, stay on the
+                // standable cap: kWanderRadius is 12 m, four times a
+                // small world's whole radius, so an unbounded wander
+                // walks clean off the edge and drops to the floor
+                // below - which is exactly what happened the first
+                // time someone asked the prince to meander. 0.35 of
+                // the radius keeps even the corners of the square
+                // inside the cap that world_surface_z will stand on.
+                float span = kWanderRadius;
+                float cx = w.home_x, cy = w.home_y;
+                if (planet_radius_ > 0.0f) {
+                    span = planet_radius_ * 0.35f;
+                    cx = planet_x_; cy = planet_y_;
+                }
+                w.tx = cx + (wander_rand01(w.rng) * 2.0f - 1.0f) * span;
+                w.ty = cy + (wander_rand01(w.rng) * 2.0f - 1.0f) * span;
             }
             float px, py;
             {
