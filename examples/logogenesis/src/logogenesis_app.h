@@ -888,6 +888,68 @@ private:
             ++creations_;
         }
 
+        // The planet is made BEFORE anything that stands on it.
+        // Materialiser order is world-first for the same reason the
+        // ground pours before its inhabitants: a wish that arrives in
+        // one breath ("a planet with a redwood on it") otherwise
+        // plants the tree while planet_radius_ is still zero, and it
+        // grows from the old floor straight through the world.
+        for (auto seed : kg.findByType("PlanetSeed")) {
+            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
+            PlanetSpec pspec = PlanetSpec::asteroid_b612();
+            if (auto r = prop_opt(kg, seed, "planet_radius"))
+                pspec.radius = *r;
+            read_rgb(kg, seed, "crust", pspec.crust_r, pspec.crust_g,
+                     pspec.crust_b);
+            float alt = prop_f(kg, seed, "planet_altitude",
+                               pspec.radius + 2.5f);
+            bool rose = kg.getProperty(seed, "with_rose") == "true";
+            bool prince = kg.getProperty(seed, "with_prince") == "true";
+            kg.destroyEntity(seed);
+
+            wg.get_planet_generator().generate_planet(x, y, alt, pspec);
+            // Remember it: from here on, its crust IS the ground for
+            // anything else the human wishes into being.
+            planet_x_ = x; planet_y_ = y; planet_z_ = alt;
+            planet_radius_ = pspec.radius;
+            float apex_z = alt + pspec.radius;
+            ++creations_;
+
+            if (rose) {
+                // The single radiant flower: a sapling-scale willow
+                // with a red crown at the north pole.
+                TreeSpec rspec = TreeSpec::willow();
+                rspec.height = std::min(1.4f, pspec.radius * 0.45f);
+                rspec.crown_radius = rspec.height * 0.5f;
+                rspec.leaf_r = 0.85f; rspec.leaf_g = 0.12f;
+                rspec.leaf_b = 0.18f;
+                rspec.random_seed = static_cast<int>(seed) * 977;
+                wg.get_tree_generator().generate_tree_space_colonization(
+                    x + pspec.radius * 0.25f, y, apex_z - 0.15f, rspec);
+                ++creations_;
+            }
+            if (prince) {
+                // The dreamer at the apex, standing beside his rose.
+                // Real physics walker on real crust; v1 he stands
+                // (no wanderer registration - the apex cap is small).
+                HumanoidSpec hspec = HumanoidSpec::default_human();
+                hspec.apply_natural_variation(
+                    0.10f, static_cast<unsigned>(seed) * 131u);
+                hspec.clothing_r = 0.93f; hspec.clothing_g = 0.88f;
+                hspec.clothing_b = 0.72f;   // ochre and cream
+                auto body =
+                    wg.get_humanoid_generator().generate_humanoid_physics(
+                        x - pspec.radius * 0.2f, y, apex_z + 0.1f, -1,
+                        hspec, false);
+                body.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
+                engine_->get_humanoid_locomotion().register_humanoid_direct(
+                    body.hips_id, body.left_leg_ids, body.right_leg_ids,
+                    body.left_arm_ids, body.right_arm_ids, body.torso_ids,
+                    180.0f, 800.0f);
+                ++creations_;
+            }
+        }
+
         for (auto seed : kg.findByType("ButterflySeed")) {
             float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
             int count = static_cast<int>(prop_f(kg, seed, "count", 4));
@@ -941,7 +1003,7 @@ private:
             // body, KG entity with body-part structure, locomotion
             // registration. floor_particle_id is dead API — pass -1.
             auto body = wg.get_humanoid_generator().generate_humanoid_physics(
-                x, y, ground_top_z_ + 0.1f, -1, spec, false);
+                x, y, world_surface_z(x, y) + 0.1f, -1, spec, false);
             body.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
             engine_->get_humanoid_locomotion().register_humanoid_direct(
                 body.hips_id, body.left_leg_ids, body.right_leg_ids,
@@ -1022,7 +1084,7 @@ private:
                 GrowthJob job;
                 job.x = x;
                 job.y = y;
-                job.z = ground_top_z_;
+                job.z = world_surface_z(x, y);
                 job.final_spec = spec;
                 job.species = species;
                 job.n_stages = std::min(24, std::max(4,
@@ -1032,7 +1094,7 @@ private:
                 job.current_tree = grow_tree_stage(kg, job);
                 growth_jobs_.push_back(job);
             } else {
-                spawn_tree(kg, spec, x, y, ground_top_z_, species,
+                spawn_tree(kg, spec, x, y, world_surface_z(x, y), species,
                            /*collapse_retry=*/true);
             }
             ++creations_;
@@ -1089,7 +1151,7 @@ private:
             spec.blade_spec.foliage_count_max = 0;
             kg.destroyEntity(seed);
             wg.get_organic_generator().generate_grass_patch(
-                x, y, ground_top_z_, spec);
+                x, y, world_surface_z(x, y), spec);
             ++creations_;
         }
 
@@ -1111,7 +1173,7 @@ private:
                 read_rgb(kg, seed, "rock", pspec.r, pspec.g, pspec.b);
                 kg.destroyEntity(seed);
                 auto res = wg.get_physics_rock_generator().generate_rock(
-                    x, y, ground_top_z_ + drop, pspec);
+                    x, y, world_surface_z(x, y) + drop, pspec);
                 auto ent = kg.createEntity("Rock");
                 kg.setProperty(ent, "x", std::to_string(x));
                 kg.setProperty(ent, "y", std::to_string(y));
@@ -1126,60 +1188,8 @@ private:
             if (auto s = prop_opt(kg, seed, "rock_size")) spec.size = *s;
             read_rgb(kg, seed, "rock", spec.base_r, spec.base_g, spec.base_b);
             kg.destroyEntity(seed);
-            wg.get_rock_generator().generate_rock(x, y, ground_top_z_, spec);
+            wg.get_rock_generator().generate_rock(x, y, world_surface_z(x, y), spec);
             ++creations_;
-        }
-
-        for (auto seed : kg.findByType("PlanetSeed")) {
-            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
-            PlanetSpec pspec = PlanetSpec::asteroid_b612();
-            if (auto r = prop_opt(kg, seed, "planet_radius"))
-                pspec.radius = *r;
-            read_rgb(kg, seed, "crust", pspec.crust_r, pspec.crust_g,
-                     pspec.crust_b);
-            float alt = prop_f(kg, seed, "planet_altitude",
-                               pspec.radius + 2.5f);
-            bool rose = kg.getProperty(seed, "with_rose") == "true";
-            bool prince = kg.getProperty(seed, "with_prince") == "true";
-            kg.destroyEntity(seed);
-
-            wg.get_planet_generator().generate_planet(x, y, alt, pspec);
-            float apex_z = alt + pspec.radius;
-            ++creations_;
-
-            if (rose) {
-                // The single radiant flower: a sapling-scale willow
-                // with a red crown at the north pole.
-                TreeSpec rspec = TreeSpec::willow();
-                rspec.height = std::min(1.4f, pspec.radius * 0.45f);
-                rspec.crown_radius = rspec.height * 0.5f;
-                rspec.leaf_r = 0.85f; rspec.leaf_g = 0.12f;
-                rspec.leaf_b = 0.18f;
-                rspec.random_seed = static_cast<int>(seed) * 977;
-                wg.get_tree_generator().generate_tree_space_colonization(
-                    x + pspec.radius * 0.25f, y, apex_z - 0.15f, rspec);
-                ++creations_;
-            }
-            if (prince) {
-                // The dreamer at the apex, standing beside his rose.
-                // Real physics walker on real crust; v1 he stands
-                // (no wanderer registration - the apex cap is small).
-                HumanoidSpec hspec = HumanoidSpec::default_human();
-                hspec.apply_natural_variation(
-                    0.10f, static_cast<unsigned>(seed) * 131u);
-                hspec.clothing_r = 0.93f; hspec.clothing_g = 0.88f;
-                hspec.clothing_b = 0.72f;   // ochre and cream
-                auto body =
-                    wg.get_humanoid_generator().generate_humanoid_physics(
-                        x - pspec.radius * 0.2f, y, apex_z + 0.1f, -1,
-                        hspec, false);
-                body.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
-                engine_->get_humanoid_locomotion().register_humanoid_direct(
-                    body.hips_id, body.left_leg_ids, body.right_leg_ids,
-                    body.left_arm_ids, body.right_arm_ids, body.torso_ids,
-                    180.0f, 800.0f);
-                ++creations_;
-            }
         }
 
         for (auto seed : kg.findByType("SerpentSeed")) {
@@ -1194,7 +1204,7 @@ private:
             read_rgb(kg, seed, "scale", spec.scale_r, spec.scale_g,
                      spec.scale_b);
             kg.destroyEntity(seed);
-            wg.get_snake_generator().generate_snake(x, y, ground_top_z_,
+            wg.get_snake_generator().generate_snake(x, y, world_surface_z(x, y),
                                                     spec);
             ++creations_;
         }
@@ -1214,7 +1224,7 @@ private:
                      spec.bark_b);
             kg.destroyEntity(seed);
             wg.get_fallen_tree_generator().generate_fallen_tree(
-                x, y, ground_top_z_, spec);
+                x, y, world_surface_z(x, y), spec);
             ++creations_;
         }
 
@@ -1228,7 +1238,7 @@ private:
             }
             read_rgb(kg, seed, "totem", spec.r, spec.g, spec.b);
             kg.destroyEntity(seed);
-            wg.get_totem_generator().generate_totem(x, y, ground_top_z_,
+            wg.get_totem_generator().generate_totem(x, y, world_surface_z(x, y),
                                                     spec);
             ++creations_;
         }
@@ -1494,6 +1504,31 @@ private:
     int moons_made_ = 0;
     std::vector<GrowthJob> growth_jobs_;
     std::vector<GroundJob> ground_jobs_;
+    // The world's surface directly under (x, y). With a planet in
+    // play its crust IS the ground there; without one, the flat
+    // floor. Seeds that skip this plant at floor height and skewer
+    // the planet - observed as a redwood growing clean through the
+    // asteroid, roots in the void and canopy out the far side.
+    //
+    // Only the upper cap counts: past ~33 degrees from the pole,
+    // -Z gravity and the surface normal disagree too much to stand
+    // on, so those wishes fall back to the floor rather than clinging
+    // sideways. Road A (central gravity) is what lifts that limit.
+    float world_surface_z(float x, float y) const {
+        if (planet_radius_ > 0.0f) {
+            const float dx = x - planet_x_, dy = y - planet_y_;
+            const float d2 = dx * dx + dy * dy;
+            const float r2 = planet_radius_ * planet_radius_;
+            const float cap = planet_radius_ * 0.55f;
+            if (d2 < cap * cap)
+                return planet_z_ + std::sqrt(r2 - d2);
+        }
+        return ground_top_z_;
+    }
+
+    float planet_x_ = 0.0f, planet_y_ = 0.0f, planet_z_ = 0.0f;
+    float planet_radius_ = 0.0f;  // > 0 once a planet exists
+
     float ground_top_z_ = 0.0f;   // world surface: things stand HERE
     // ------------------------------------------------------------ orbit
     // The engine provides the azimuth parameter; the ANIMATION is

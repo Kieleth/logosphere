@@ -84,7 +84,7 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     // One shell. `flatten` scales thickness (plates vs slabs),
     // `scatter` is the azimuthal jitter that reads as unsettled
     // rubble, `tint` brightens the palette for dust over rock.
-    auto place_shell = [&](int count, float size, float flatten,
+    auto place_shell = [&](int count, float size, float sink, float flatten,
                            float scatter, float tint, float jitter,
                            float variance) {
         for (int i = 0; i < count; ++i) {
@@ -96,7 +96,7 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
             float sz = std::cos(polar);
 
             float s = size * random_range(1.0f - jitter, 1.0f + jitter);
-            float r_at = spec.radius - s * 0.25f;
+            float r_at = spec.radius - s * sink;
 
             Particle stone = {};
             stone.shape = ParticleShape::BOX;
@@ -129,23 +129,39 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
         }
     };
 
-    // Structural plates (unchanged: this is the body's character).
+    const bool has_skin =
+        spec.surface_ratio > 0.0f && spec.surface_density > 0.0f;
+    const float fine = spec.stone_size * spec.surface_ratio;
+    const float BASE_FLATTEN = 0.625f;
+
+    // How deep the structural plates ride. Without dust they ARE the
+    // surface and sit proud. With dust they must sit UNDER it: their
+    // tops used to stand 5.1 cm above the grains, so 45 cm rocks lay
+    // on top of the regolith and the body read as rocky no matter how
+    // fine the dust got. Derived from the skin's own geometry so it
+    // stays correct if the skin is retuned.
+    float base_sink = 0.25f;
+    if (has_skin) {
+        const float skin_drop = fine * (0.25f + spec.surface_flatten * 0.5f);
+        base_sink = skin_drop / spec.stone_size + BASE_FLATTEN * 0.5f;
+    }
+
+    // Structural plates: the body's mass and geology, under the dust.
     int base_count = std::max(24, static_cast<int>(
         area / (spec.stone_size * spec.stone_size * 1.7f)));
-    place_shell(base_count, spec.stone_size, 0.625f, 0.35f, 1.0f,
-                spec.stone_jitter, spec.color_variance);
+    place_shell(base_count, spec.stone_size, base_sink, BASE_FLATTEN,
+                0.35f, 1.0f, spec.stone_jitter, spec.color_variance);
 
     // Fine skin: smaller, flatter, tighter, dustier.
     int skin_count = 0;
-    if (spec.surface_ratio > 0.0f && spec.surface_density > 0.0f) {
-        float fine = spec.stone_size * spec.surface_ratio;
+    if (has_skin) {
         skin_count = static_cast<int>(
             area / (fine * fine * 1.7f) * spec.surface_density);
         // Grains: a third of the plates' size jitter and half their
         // colour spread. The skin draws the limb and the light, so
         // varied protrusion there reads as a spiky gravel edge and
         // varied colour reads as scattered pebbles; dust is uniform.
-        place_shell(skin_count, fine, spec.surface_flatten,
+        place_shell(skin_count, fine, 0.25f, spec.surface_flatten,
                     spec.surface_scatter, spec.surface_tint,
                     spec.stone_jitter * 0.33f,
                     spec.color_variance * 0.5f);

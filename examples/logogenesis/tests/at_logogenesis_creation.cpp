@@ -1049,6 +1049,56 @@ void test_prince_planet() {
         std::to_string(min_z) + ")");
 }
 
+// Anything planted while a planet exists must land ON its crust.
+// Observed before the fix: a redwood wished onto the asteroid was
+// planted at the flat-world floor height and grew clean through it,
+// roots in the void and canopy out the far side.
+void test_tree_lands_on_the_planet() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A world, and a redwood erupting from it.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3"}},
+              {"op":"create_entity","type":"TreeSeed","properties":{
+                 "x":"0","y":"0","species":"REDWOOD","tree_height":"6"}}]})");
+        });
+
+    h.app.submit_text_for_test("a little planet with a redwood on it");
+    for (int i = 0; i < 900 && h.app.creations() < 2; ++i) h.tick(dt);
+    for (int i = 0; i < 240; ++i) h.tick(dt);
+
+    AT_ASSERT_TRUE(h.app.creations() >= 2,
+        "planet and tree both made (creations " +
+        std::to_string(h.app.creations()) + ")");
+
+    // Planet floats at radius + 2.5 = 5.5, so its underside is 2.5.
+    // A tree planted at the old floor height would put trunk
+    // particles near z = 0, far below that.
+    const float planet_bottom = 2.5f;
+    int below = 0;
+    float lowest = 1e9f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i) {
+            lowest = std::min(lowest, view[i].z);
+            if (view[i].z < planet_bottom - 0.5f) below++;
+        }
+    }
+    std::cout << "  [measure] lowest particle z=" << lowest
+              << " below-planet count=" << below << std::endl;
+    AT_ASSERT_TRUE(below == 0,
+        "nothing was planted through the world (" +
+        std::to_string(below) + " particles under it, lowest z " +
+        std::to_string(lowest) + ")");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -1066,6 +1116,7 @@ int main() {
     AT_TEST(test_serpent_deadwood_totem);
     AT_TEST(test_thoughts_only_reply_creates_nothing);
     AT_TEST(test_prince_planet);
+    AT_TEST(test_tree_lands_on_the_planet);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
