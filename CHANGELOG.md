@@ -240,6 +240,15 @@ ships today.
   games live in `examples/`; `find_package(logosphere)` consumption
   is the first post-release packaging milestone.
 
+- A walking humanoid is not stopped by a wall taller than she can
+  step onto. Animation writes the hips through the face, and once she
+  is inside, the depenetration pushes from every wall tile she
+  overlaps sum and drive her deeper, reaching more tiles: measured
+  0.73, 1.16, 3.07, 3.73 m in consecutive frames, ending past the far
+  side of a 12 m wall and below z = 0. Documented as a known-red
+  scenario in `test_humanoid_terrain_scenarios`, which reports it on
+  every run without gating; it flips to gating when the fix lands
+  (issue #29).
 - A heavy boulder impact on layered ground can ripple outward into
   an oversized explosion of tiles. Physics work in progress; the
   crater contract (local splash, far field still, bedrock intact)
