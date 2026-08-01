@@ -106,6 +106,10 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/ontology_validator.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
+    # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
+    # loading it: the registry function has to be called before its
+    # vocabulary exists in a world. Pure generated data, headless-safe.
+    src/generated/space_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
     src/capability/dynamics_params.cpp
@@ -297,6 +301,7 @@ add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
 add_headless_test(test_iso_azimuth)
+add_headless_test(test_ontology_packs)
 add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
@@ -989,6 +994,10 @@ set(LOGOSPHERE_SOURCES
     src/kg/kg_particle_store.cpp  # Particle-coupled subset (split for headless-core builds)
     # Generated ontology registry
     src/generated/logosphere_ontology_registry.cpp
+    # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
+    # loading it: the registry function has to be called before its
+    # vocabulary exists in a world. Pure generated data, headless-safe.
+    src/generated/space_ontology_registry.cpp
     # Spatial query module
     src/spatial/entity_spatial.cpp
     # Damage system

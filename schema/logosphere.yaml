@@ -586,6 +586,10 @@ classes:
     is_a: Floor
     description: Individual floor tile within a chunk.
 
+  # Celestial bodies (CelestialBody, Sky, Planet) moved to the space
+  # setting pack: schema/packs/space.yaml. The core describes what the
+  # engine understands and knows no astronomy; a world gains a sky by
+  # asking for the pack. See docs/ONTOLOGY_LAYERS.md.
   NaturalFormation:
     is_a: WorldEntity
     description: Natural geological formation.
@@ -604,16 +608,6 @@ classes:
     is_a: Rock
     description: Physics-enabled rock with full collision.
 
-  Planet:
-    is_a: NaturalFormation
-    description: >-
-      A small spherical world floating clear of the world floor: a
-      kinematic core carrying a crust of stones. Terrain rather than
-      a dynamic body - it holds its position and collides, but is not
-      cratered or moved by what strikes it.
-    slots:
-      - planet_radius
-
   FallenTree:
     is_a: NaturalFormation
     description: Fallen tree trunk or log.
@@ -631,30 +625,6 @@ classes:
     description: Entity that emits light.
     mixins:
       - EmitsLight
-
-  CelestialBody:
-    is_a: WorldEntity
-    description: Sun, moon, or star.
-    mixins:
-      - EmitsLight
-    slots:
-      - period_days
-      - cast_shadows
-      - moon_r
-      - moon_g
-      - moon_b
-      - moon_brightness
-      - moon_size
-
-  Sky:
-    is_a: WorldEntity
-    description: >-
-      The day-clock made visible: exists once a sun exists. Its
-      time_of_day is the world's hour (0-24). Games may treat it as
-      writable intent (set an hour, the world journeys there) or as
-      read-only state.
-    slots:
-      - time_of_day
 
   BodyPart:
     is_a: WorldEntity
@@ -897,13 +867,6 @@ classes:
 slots:
   # --- World knowledge (promoted from Logogenesis, 2026-08-03: these
   # describe what things ARE anywhere, not how one game asks for them) ---
-  time_of_day:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 24.0
-    description: >-
-      Hour of the world's day (0-24). 6 sunrise, 12 noon, ~18.2
-      golden hour, 19 sunset, 0 deep night.
   tree_height:
     range: float
     minimum_value: 0.5
@@ -953,33 +916,6 @@ slots:
     range: TerrainKind
     description: LAYERED is real settling earth; SLAB is one cheap
       flat box.
-  moon_r:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 1.0
-    description: Moon color, red channel (0..1). Omit for Earth silver.
-  moon_g:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 1.0
-    description: Moon color, green channel (0..1).
-  moon_b:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 1.0
-    description: Moon color, blue channel (0..1).
-  moon_brightness:
-    range: float
-    minimum_value: 0.2
-    maximum_value: 3.0
-    description: >-
-      Moonlight strength. 1.0 = Earth full moon; 0.3 a pale sliver;
-      3.0 an impossible bright giant.
-  moon_size:
-    range: float
-    minimum_value: 2.0
-    maximum_value: 12.0
-    description: Visual size of the moon disc (m). Earth is 5.
 
   # --- Spatial mixin ---
   position_x:
@@ -1065,22 +1001,12 @@ slots:
     range: FloorType
   rock_size:
     range: RockSize
-  planet_radius:
-    range: float
-    minimum_value: 1.0
-    maximum_value: 10.0
-    description: Crust radius of a small planet in meters.
   tree_variant:
     range: TreeVariant
     description: Tree species/growth stage for generator dispatch.
   log_type:
     range: LogType
     description: Classification of fallen wood (trunk, branch, twig).
-  period_days:
-    range: float
-    description: Orbital period in game days.
-  cast_shadows:
-    range: boolean
 
   # --- Constraint ---
   gluon_type:
