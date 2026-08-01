@@ -23,6 +23,11 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  # Celestial vocabulary (Sky, CelestialBody, Planet) is a SETTING
+  # PACK, not core. Logogenesis makes worlds and skies, so it asks
+  # for it; a game with no sky simply does not, and those types stay
+  # unknown to its knowledge graph.
+  - space
 
 # -------------------------------------------------------------------
 # Enums

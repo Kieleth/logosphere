@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace eden::ontology {
+namespace space::ontology {
 
 /// Lifecycle state of any identifiable entity.
 enum class EntityStatus {
@@ -900,67 +900,35 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
-/// Eden-specific relation types.
-enum class EdenRelationType {
-    /// Tree bears fruit
-    BEARS,
-    /// Agent tempts another agent
-    TEMPTS,
-    /// Agent follows another agent
-    FOLLOWS,
-    /// Entity forbids an action or knowledge
-    FORBIDS,
-    /// Agent desires entity or knowledge
-    DESIRES
+/// What sort of body this is. Distinct from how it is rendered: all of these are particles, lit or emitting, at a real distance.
+enum class CelestialKind {
+    /// The local star, whose light drives the day.
+    SUN,
+    /// A satellite, lit rather than emitting.
+    MOON,
+    /// A distant sun, a point of light and nothing more.
+    STAR,
+    /// A neighbouring world, too far to visit.
+    PLANET
 };
 
-/// Convert EdenRelationType to its string representation.
-inline const char* to_string(EdenRelationType value) {
+/// Convert CelestialKind to its string representation.
+inline const char* to_string(CelestialKind value) {
     switch (value) {
-        case EdenRelationType::BEARS: return "BEARS";
-        case EdenRelationType::TEMPTS: return "TEMPTS";
-        case EdenRelationType::FOLLOWS: return "FOLLOWS";
-        case EdenRelationType::FORBIDS: return "FORBIDS";
-        case EdenRelationType::DESIRES: return "DESIRES";
+        case CelestialKind::SUN: return "SUN";
+        case CelestialKind::MOON: return "MOON";
+        case CelestialKind::STAR: return "STAR";
+        case CelestialKind::PLANET: return "PLANET";
     }
     return "unknown";
 }
 
-/// Parse a string into EdenRelationType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, EdenRelationType& out) {
-    if (std::strcmp(str, "BEARS") == 0) { out = EdenRelationType::BEARS; return true; }
-    if (std::strcmp(str, "TEMPTS") == 0) { out = EdenRelationType::TEMPTS; return true; }
-    if (std::strcmp(str, "FOLLOWS") == 0) { out = EdenRelationType::FOLLOWS; return true; }
-    if (std::strcmp(str, "FORBIDS") == 0) { out = EdenRelationType::FORBIDS; return true; }
-    if (std::strcmp(str, "DESIRES") == 0) { out = EdenRelationType::DESIRES; return true; }
-    return false;
-}
-
-/// Eden-specific event types.
-enum class EdenEventType {
-    /// A temptation event occurs
-    TEMPTATION,
-    /// Loss of innocence
-    FALL,
-    /// Exile from the garden
-    EXPULSION
-};
-
-/// Convert EdenEventType to its string representation.
-inline const char* to_string(EdenEventType value) {
-    switch (value) {
-        case EdenEventType::TEMPTATION: return "TEMPTATION";
-        case EdenEventType::FALL: return "FALL";
-        case EdenEventType::EXPULSION: return "EXPULSION";
-    }
-    return "unknown";
-}
-
-/// Parse a string into EdenEventType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, EdenEventType& out) {
-    if (std::strcmp(str, "TEMPTATION") == 0) { out = EdenEventType::TEMPTATION; return true; }
-    if (std::strcmp(str, "FALL") == 0) { out = EdenEventType::FALL; return true; }
-    if (std::strcmp(str, "EXPULSION") == 0) { out = EdenEventType::EXPULSION; return true; }
+/// Parse a string into CelestialKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, CelestialKind& out) {
+    if (std::strcmp(str, "SUN") == 0) { out = CelestialKind::SUN; return true; }
+    if (std::strcmp(str, "MOON") == 0) { out = CelestialKind::MOON; return true; }
+    if (std::strcmp(str, "STAR") == 0) { out = CelestialKind::STAR; return true; }
+    if (std::strcmp(str, "PLANET") == 0) { out = CelestialKind::PLANET; return true; }
     return false;
 }
 
@@ -1546,61 +1514,43 @@ struct WorldRelation : public Relation {
 };
 
 
-/// A human being in the garden.
-struct Human : public Humanoid {
-    /// Level of innocence (1.0 = pure, 0.0 = fallen).
-    std::optional<float> innocence = std::nullopt;
+/// A body in the sky: sun, moon, star, or distant world. It is a particle at a real distance, not a backdrop - which matters under a parallel projection, where a body 300 m away is drawn 300 m away rather than at infinity, and can sit outside the frame entirely.
+struct CelestialBody : public WorldEntity, public EmitsLight {
+    /// Which sort of celestial body this is.
+    std::optional<CelestialKind> celestial_kind = std::nullopt;
+    /// Orbital period in game days.
+    std::optional<float> period_days = std::nullopt;
+    /// Whether this body's light casts shadows.
+    std::optional<bool> cast_shadows = std::nullopt;
+    /// Distance from the world centre, in meters. Under a parallel projection this is a real distance and decides whether the body is on screen at all, not merely how large it looks.
+    std::optional<float> orbit_distance = std::nullopt;
+    /// Tilt of the orbital plane, in degrees.
+    std::optional<float> orbit_inclination_deg = std::nullopt;
+    /// Moon colour, red channel.
+    std::optional<float> moon_r = std::nullopt;
+    /// Moon colour, green channel.
+    std::optional<float> moon_g = std::nullopt;
+    /// Moon colour, blue channel.
+    std::optional<float> moon_b = std::nullopt;
+    /// Moon emission strength.
+    std::optional<float> moon_brightness = std::nullopt;
+    /// Moon visual radius, in meters.
+    std::optional<float> moon_size = std::nullopt;
 };
 
 
-/// The serpent, agent of temptation.
-struct Serpent : public Creature {
+/// The day-clock made visible: exists once a sun exists. Its time_of_day is the world's hour (0-24). Games may treat it as writable intent (set an hour, the world journeys there) or as read-only state.
+struct Sky : public WorldEntity {
+    /// The world's hour.
+    std::optional<float> time_of_day = std::nullopt;
 };
 
 
-/// Individual body segment of a serpent chain.
-struct SerpentSegment : public WorldEntity {
+/// A small spherical world floating clear of the world floor: a kinematic core carrying a crust of stones. Terrain rather than a dynamic body - it holds its position and collides, but is not cratered or moved by what strikes it.
+struct Planet : public NaturalFormation {
+    /// Crust radius of a small world, in meters.
+    std::optional<float> planet_radius = std::nullopt;
 };
 
 
-/// Fruit borne by a tree.
-struct Fruit : public WorldEntity {
-};
-
-
-/// The tree of knowledge, bearing forbidden fruit.
-struct KnowledgeTree : public Tree {
-};
-
-
-/// Abstract knowledge entity.
-struct Knowledge : public Entity {
-};
-
-
-/// The garden location.
-struct Garden : public WorldEntity {
-};
-
-
-/// Structural block forming a room.
-struct RoomBlock : public Structure {
-};
-
-
-/// Simple test cube entity.
-struct Cube : public WorldEntity, public HasMaterial {
-};
-
-
-/// Eden-specific typed relationship.
-struct EdenRelation : public Relation {
-};
-
-
-/// Eden narrative event.
-struct EdenEvent : public Event {
-};
-
-
-} // namespace eden::ontology
+} // namespace space::ontology

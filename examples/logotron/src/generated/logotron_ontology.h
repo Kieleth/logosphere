@@ -1359,13 +1359,6 @@ struct PhysicsRock : public Rock {
 };
 
 
-/// A small spherical world floating clear of the world floor: a kinematic core carrying a crust of stones. Terrain rather than a dynamic body - it holds its position and collides, but is not cratered or moved by what strikes it.
-struct Planet : public NaturalFormation {
-    /// Crust radius of a small planet in meters.
-    std::optional<float> planet_radius = std::nullopt;
-};
-
-
 /// Fallen tree trunk or log.
 struct FallenTree : public NaturalFormation, public HasMaterial {
     /// Classification of fallen wood (trunk, branch, twig).
@@ -1380,31 +1373,6 @@ struct PhysicsTree : public Tree {
 
 /// Entity that emits light.
 struct LightSource : public WorldEntity, public EmitsLight {
-};
-
-
-/// Sun, moon, or star.
-struct CelestialBody : public WorldEntity, public EmitsLight {
-    /// Orbital period in game days.
-    std::optional<float> period_days = std::nullopt;
-    std::optional<bool> cast_shadows = std::nullopt;
-    /// Moon color, red channel (0..1). Omit for Earth silver.
-    std::optional<float> moon_r = std::nullopt;
-    /// Moon color, green channel (0..1).
-    std::optional<float> moon_g = std::nullopt;
-    /// Moon color, blue channel (0..1).
-    std::optional<float> moon_b = std::nullopt;
-    /// Moonlight strength. 1.0 = Earth full moon; 0.3 a pale sliver; 3.0 an impossible bright giant.
-    std::optional<float> moon_brightness = std::nullopt;
-    /// Visual size of the moon disc (m). Earth is 5.
-    std::optional<float> moon_size = std::nullopt;
-};
-
-
-/// The day-clock made visible: exists once a sun exists. Its time_of_day is the world's hour (0-24). Games may treat it as writable intent (set an hour, the world journeys there) or as read-only state.
-struct Sky : public WorldEntity {
-    /// Hour of the world's day (0-24). 6 sunrise, 12 noon, ~18.2 golden hour, 19 sunset, 0 deep night.
-    std::optional<float> time_of_day = std::nullopt;
 };
 
 

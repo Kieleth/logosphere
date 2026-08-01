@@ -8,6 +8,23 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- Ontology layering (universe core / setting pack / game extension):
+  the generator now discovers setting packs in `schema/packs/`,
+  generating a header, registry and namespace for each and staging
+  them so any schema importing one resolves. The first pack is
+  `space` (`CelestialBody`, `Sky`, `Planet`, orbital slots,
+  `CelestialKind`), and those types have LEFT the core: a world has
+  no astronomy until a game asks for it. See
+  `docs/ONTOLOGY_LAYERS.md`.
+
+### Changed
+- `CelestialBody`, `Sky` and `Planet` moved from the base schema to
+  the `space` pack. Games that use them import `space` (Logogenesis
+  does). A game that does not gets a loud rejection at
+  `createEntity` rather than a half-working type — which is what
+  makes the layering structural rather than documentary.
+
+### Added
 - Shadow acceleration backend seam: `GPURasterizer::shadow_accel_backend()`
   reports whether shadow rays trace a driver-owned structure (`HardwareRT`) or
   engine-built CPU trees (`SoftwareBVH`). Anything building acceleration data

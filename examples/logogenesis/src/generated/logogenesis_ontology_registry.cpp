@@ -206,13 +206,16 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ButterflySeed", "wing_r", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("ButterflySeed", "wing_g", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("ButterflySeed", "wing_b", "float", false, true, 0.0, true, 1.0);
+    reg.addProperty("CelestialBody", "celestial_kind", "enum", false);
     reg.addProperty("CelestialBody", "period_days", "float", false);
     reg.addProperty("CelestialBody", "cast_shadows", "boolean", false);
+    reg.addProperty("CelestialBody", "orbit_distance", "float", false, true, 0.0, true, 100000.0);
+    reg.addProperty("CelestialBody", "orbit_inclination_deg", "float", false, true, -90.0, true, 90.0);
     reg.addProperty("CelestialBody", "moon_r", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("CelestialBody", "moon_g", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("CelestialBody", "moon_b", "float", false, true, 0.0, true, 1.0);
-    reg.addProperty("CelestialBody", "moon_brightness", "float", false, true, 0.2, true, 3.0);
-    reg.addProperty("CelestialBody", "moon_size", "float", false, true, 2.0, true, 12.0);
+    reg.addProperty("CelestialBody", "moon_brightness", "float", false, true, 0.0, false, 0.0);
+    reg.addProperty("CelestialBody", "moon_size", "float", false, true, 0.0, false, 0.0);
     reg.addProperty("CollisionEvent", "collision_force", "float", false);
     reg.addProperty("Constraint", "gluon_type", "enum", true);
     reg.addProperty("Constraint", "stiffness", "float", true);
@@ -306,8 +309,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("MoonSeed", "moon_r", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("MoonSeed", "moon_g", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("MoonSeed", "moon_b", "float", false, true, 0.0, true, 1.0);
-    reg.addProperty("MoonSeed", "moon_brightness", "float", false, true, 0.2, true, 3.0);
-    reg.addProperty("MoonSeed", "moon_size", "float", false, true, 2.0, true, 12.0);
+    reg.addProperty("MoonSeed", "moon_brightness", "float", false, true, 0.0, false, 0.0);
+    reg.addProperty("MoonSeed", "moon_size", "float", false, true, 0.0, false, 0.0);
     reg.addProperty("OrbitSeed", "revolutions", "float", false, true, 0.25, true, 3.0);
     reg.addProperty("OrbitSeed", "duration_seconds", "float", false, true, 2.0, true, 60.0);
     reg.addProperty("ParticleInteractionProfile", "category_bit", "integer", false);
@@ -329,7 +332,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("PlanetSeed", "with_rose", "boolean", false);
     reg.addProperty("PlanetSeed", "with_prince", "boolean", false);
     reg.addProperty("Plant", "organic_type", "enum", false);
-    reg.addProperty("RelationEvent", "relation_type", "string", false);
+    reg.addProperty("RelationEvent", "relation_type", "string", true);
     reg.addProperty("Rock", "rock_size", "float", false, true, 0.2, true, 6.0);
     reg.addProperty("RockSeed", "x", "float", false);
     reg.addProperty("RockSeed", "y", "float", false);

@@ -21,6 +21,7 @@ from generate_registry import generate_registry_cpp
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_DIR = ROOT / "schema"
+PACK_DIR = SCHEMA_DIR / "packs"
 OUTPUT_DIR = ROOT / "src" / "generated"
 
 MINIMUM_MALLEUS_VERSION = (0, 2)
@@ -109,10 +110,15 @@ def generate(schema: dict) -> bool:
     with tempfile.TemporaryDirectory() as td:
         staged = Path(td) / yaml_path.name
         shutil.copy(yaml_path, staged)
-        for dep in ("logosphere.yaml", "malleus.yaml"):
-            dep_src = SCHEMA_DIR / dep
+        deps = [SCHEMA_DIR / "logosphere.yaml", SCHEMA_DIR / "malleus.yaml"]
+        # Setting packs (schema/packs/*.yaml) are import dependencies
+        # in exactly the same way: a schema that imports `space` has to
+        # find space.yaml beside its own file when LinkML resolves.
+        if PACK_DIR.is_dir():
+            deps.extend(sorted(PACK_DIR.glob("*.yaml")))
+        for dep_src in deps:
             if dep_src.exists() and dep_src.name != yaml_path.name:
-                shutil.copy(dep_src, Path(td) / dep)
+                shutil.copy(dep_src, Path(td) / dep_src.name)
 
         # 1. Generate type definitions header
         cmd = [
@@ -148,6 +154,23 @@ def generate(schema: dict) -> bool:
 def main():
     if not check_malleus_version():
         sys.exit(1)
+
+    # Discover setting packs. A pack is an optional layer of world
+    # vocabulary - celestial bodies, earth-like life - that sits above
+    # the setting-agnostic core and below any one game. Games opt in by
+    # importing the pack and extending the KG with its registry; a type
+    # from a pack nobody loaded is rejected at createEntity, loudly,
+    # which is the behaviour we want.
+    for pack_schema in sorted(PACK_DIR.glob("*.yaml")) if PACK_DIR.is_dir() else []:
+        if pack_schema.is_symlink():
+            continue
+        pack_name = pack_schema.stem
+        SCHEMAS.append({
+            "yaml": pack_schema,
+            "namespace": f"{pack_name}::ontology",
+            "output_header": OUTPUT_DIR / f"{pack_name}_ontology.h",
+            "output_registry": OUTPUT_DIR / f"{pack_name}_ontology_registry.cpp",
+        })
 
     # Discover game extension schemas (only the game's own yaml, not symlinks)
     for game_schema in sorted(SCHEMA_DIR.parent.glob("examples/*/schema/*.yaml")):
