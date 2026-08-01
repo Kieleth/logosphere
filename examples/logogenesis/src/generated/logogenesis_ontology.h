@@ -868,6 +868,66 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
+/// The serpent's build; each kind carries its own proportions and palette, tunable with the color slots.
+enum class SerpentKind {
+    /// A slender green garden snake, half a meter of quiet rustle. The default.
+    GARDEN,
+    /// A thick constrictor, meters long, slow and heavy. For wishes with weight.
+    PYTHON,
+    /// Banded and bright, small and vivid. For wishes with color.
+    CORAL
+};
+
+/// Convert SerpentKind to its string representation.
+inline const char* to_string(SerpentKind value) {
+    switch (value) {
+        case SerpentKind::GARDEN: return "GARDEN";
+        case SerpentKind::PYTHON: return "PYTHON";
+        case SerpentKind::CORAL: return "CORAL";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SerpentKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SerpentKind& out) {
+    if (std::strcmp(str, "GARDEN") == 0) { out = SerpentKind::GARDEN; return true; }
+    if (std::strcmp(str, "PYTHON") == 0) { out = SerpentKind::PYTHON; return true; }
+    if (std::strcmp(str, "CORAL") == 0) { out = SerpentKind::CORAL; return true; }
+    return false;
+}
+
+/// What kind of fallen wood rests on the ground.
+enum class DeadwoodKind {
+    /// A whole fallen tree, meters of it. A landmark.
+    TRUNK,
+    /// A log section, bench-sized.
+    LOG,
+    /// A fallen branch. The default; scatter a few.
+    BRANCH,
+    /// Twig debris, small strokes of texture.
+    TWIG
+};
+
+/// Convert DeadwoodKind to its string representation.
+inline const char* to_string(DeadwoodKind value) {
+    switch (value) {
+        case DeadwoodKind::TRUNK: return "TRUNK";
+        case DeadwoodKind::LOG: return "LOG";
+        case DeadwoodKind::BRANCH: return "BRANCH";
+        case DeadwoodKind::TWIG: return "TWIG";
+    }
+    return "unknown";
+}
+
+/// Parse a string into DeadwoodKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, DeadwoodKind& out) {
+    if (std::strcmp(str, "TRUNK") == 0) { out = DeadwoodKind::TRUNK; return true; }
+    if (std::strcmp(str, "LOG") == 0) { out = DeadwoodKind::LOG; return true; }
+    if (std::strcmp(str, "BRANCH") == 0) { out = DeadwoodKind::BRANCH; return true; }
+    if (std::strcmp(str, "TWIG") == 0) { out = DeadwoodKind::TWIG; return true; }
+    return false;
+}
+
 /// The shape of a grass dab.
 enum class GrassSpread {
     /// A painter's dab: round splat, dense center, feathered edge. The default; sprinkle several like brush strokes.
@@ -1668,6 +1728,61 @@ struct OrbitSeed : public WorldEntity {
     std::optional<float> revolutions = std::nullopt;
     /// How long the whole orbit takes. 12 reads cinematic; under 5 feels like a whip.
     std::optional<float> duration_seconds = std::nullopt;
+};
+
+
+/// Request for a living serpent: a segmented body that rests in the grass, head raised. Wishes about snakes, serpents, or something alive on the ground land here. Place it near cover (grass, a fallen log) for the garden to read as inhabited.
+struct SerpentSeed : public WorldEntity {
+    /// World-x position (m). Stage center is 0.
+    std::optional<float> x = std::nullopt;
+    /// World-y position (m). Stage center is 0.
+    std::optional<float> y = std::nullopt;
+    /// Which serpent. Omit for a garden snake.
+    std::optional<SerpentKind> serpent_kind = std::nullopt;
+    /// Head-to-tail length in meters. Garden snakes read true at 0.5-1; a python earns 3-6.
+    std::optional<float> serpent_length = std::nullopt;
+    /// Scale color, red channel (0..1). Omit for the kind's natural palette.
+    std::optional<float> scale_r = std::nullopt;
+    /// Scale color, green channel (0..1).
+    std::optional<float> scale_g = std::nullopt;
+    /// Scale color, blue channel (0..1).
+    std::optional<float> scale_b = std::nullopt;
+};
+
+
+/// Request for deadwood: a fallen trunk, log, branch, or twigs resting on the ground. The fastest way to age a scene; a forest without deadwood looks like a showroom. Scatter a branch or two beside living trees.
+struct FallenTreeSeed : public WorldEntity {
+    /// World-x position (m). Stage center is 0.
+    std::optional<float> x = std::nullopt;
+    /// World-y position (m). Stage center is 0.
+    std::optional<float> y = std::nullopt;
+    /// Trunk, log, branch, or twigs. Omit for a branch.
+    std::optional<DeadwoodKind> deadwood_kind = std::nullopt;
+    /// Length along the ground in meters.
+    std::optional<float> deadwood_length = std::nullopt;
+    /// Bark color, red channel (0..1). Omit for brown.
+    std::optional<float> bark_r = std::nullopt;
+    /// Bark color, green channel (0..1).
+    std::optional<float> bark_g = std::nullopt;
+    /// Bark color, blue channel (0..1).
+    std::optional<float> bark_b = std::nullopt;
+};
+
+
+/// Request for a carved wooden totem: stacked trunks standing on end, a made thing among grown things. Use it to mark a place - a clearing's center, a path's turn, a grave, a shrine.
+struct TotemSeed : public WorldEntity {
+    /// World-x position (m). Stage center is 0.
+    std::optional<float> x = std::nullopt;
+    /// World-y position (m). Stage center is 0.
+    std::optional<float> y = std::nullopt;
+    /// Base trunk size in meters; the stack scales with it.
+    std::optional<float> totem_size = std::nullopt;
+    /// Wood color, red channel (0..1). Omit for dark wood.
+    std::optional<float> totem_r = std::nullopt;
+    /// Wood color, green channel (0..1).
+    std::optional<float> totem_g = std::nullopt;
+    /// Wood color, blue channel (0..1).
+    std::optional<float> totem_b = std::nullopt;
 };
 
 
