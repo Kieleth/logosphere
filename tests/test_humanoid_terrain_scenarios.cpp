@@ -229,7 +229,13 @@ void draw(Engine& e, const Walker& w) {
             hx = view[w.hips].x; hy = view[w.hips].y; hz = view[w.hips].z;
         }
     }
-    e.get_camera_system().update_follow_target(hx, hy, hz);
+    // Rigid follow, not the deadzone follow. The deadzone is 5 m,
+    // which at this zoom is a third of the viewport, so she walks off
+    // the bottom of the frame and the thing being watched is the thing
+    // not on screen.
+    auto& cam = e.get_camera_system();
+    cam.set_position(hx - 8.0f, hy - 8.0f, hz + 9.0f);
+    cam.look_at(hx, hy, hz);
     e.render();
     e.present();
     if (auto* p = e.get_platform()) p->poll_events();
