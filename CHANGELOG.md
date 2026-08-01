@@ -25,6 +25,25 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   The header now states that per-frame windows must not be summed across
   frames, and `tests/test_gpu_occupancy_sanity.cpp` fails if any occupancy
   figure exceeds 100%.
+- `earth` setting pack (`schema/packs/earth.yaml`): `Plant`, `Tree`,
+  `PhysicsTree`, `Grass`, `GrassPatch`, `Branch`, `Leaves`,
+  `FallenTree`, `Rock`, `PhysicsRock`, `Snake`, `Butterfly`, `Totem`,
+  with `TreeSpecies`, `OrganicType`, `LogType` and `RockSize`. Eden
+  and Logogenesis import it; Logotron needs neither it nor `space`.
+
+### Changed
+- Earth-like life and terrain moved out of the base schema into the
+  `earth` pack. The core keeps the abstract bases the engine reasons
+  about (`LivingEntity`, `Creature`, `NaturalFormation`, `Structure`,
+  `Floor`); what moved is the particular. A world has no trees until
+  a game asks for them.
+
+### Removed
+- The legacy `TreeVariant` enum and its `tree_variant` slot. It baked
+  age into the species name (`SAPLING`, `YOUNG_OAK`, `ANCIENT_OAK`
+  beside `PINE` and `WILLOW`), so it could not describe a young pine
+  at all. `TreeSpecies` carries species and the anatomy slots
+  (`canopy_start`, `lower_branches`) carry age. No C++ referenced it.
 
 ### Added
 - Ontology layering (universe core / setting pack / game extension):

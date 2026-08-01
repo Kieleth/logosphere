@@ -48,7 +48,18 @@ struct ButterflyParts {
     float turn_timer = 0.0f;
 
     float altitude_velocity = 0.0f;
-    float base_altitude = 1.0f;
+    // Height above the GROUND, not above zero. There is no floor at
+    // zero: the ground is particles, it is layered, and it moves.
+    float clearance = 1.0f;          // current height over the surface
+    float preferred_clearance = 1.5f; // the band this one likes to hold
+    float surface_z = 0.0f;           // last surface found beneath it
+    // A sustained turn reads as a circle; a random new heading reads
+    // as a flit. Real butterflies do both.
+    float turn_rate = 0.0f;
+    float circle_timer = 0.0f;
+    // Every particle this butterfly owns, so flight can move the whole
+    // body in Z as one thing.
+    std::vector<unsigned int> all_particles;
 
     float world_x = 0, world_y = 0, world_z = 0;
 

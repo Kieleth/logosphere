@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace space::ontology {
+namespace earth::ontology {
 
 /// Lifecycle state of any identifiable entity.
 enum class EntityStatus {
@@ -715,35 +715,144 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
-/// What sort of body this is. Distinct from how it is rendered: all of these are particles, lit or emitting, at a real distance.
-enum class CelestialKind {
-    /// The local star, whose light drives the day.
-    SUN,
-    /// A satellite, lit rather than emitting.
-    MOON,
-    /// A distant sun, a point of light and nothing more.
-    STAR,
-    /// A neighbouring world, too far to visit.
-    PLANET
+/// Tree growth archetype (species only — age is expressed through anatomy slots like canopy_start and lower_branches, not baked into the enum). Replaced TreeVariant, which baked age into the species name (SAPLING, YOUNG_OAK, ANCIENT_OAK alongside PINE and WILLOW) and so could not describe a young pine at all.
+enum class TreeSpecies {
+    /// Broad crown, sturdy trunk. The default tree.
+    OAK,
+    /// Tall, narrow, conical.
+    PINE,
+    /// Drooping, wide, melancholic.
+    WILLOW,
+    /// Bare trunk, crown burst at the top.
+    PALM,
+    /// Massive squat trunk, sparse crown.
+    BAOBAB,
+    /// Very tall, reddish bark, high crown. The "redwood" / "sequoia" silhouette.
+    REDWOOD
 };
 
-/// Convert CelestialKind to its string representation.
-inline const char* to_string(CelestialKind value) {
+/// Convert TreeSpecies to its string representation.
+inline const char* to_string(TreeSpecies value) {
     switch (value) {
-        case CelestialKind::SUN: return "SUN";
-        case CelestialKind::MOON: return "MOON";
-        case CelestialKind::STAR: return "STAR";
-        case CelestialKind::PLANET: return "PLANET";
+        case TreeSpecies::OAK: return "OAK";
+        case TreeSpecies::PINE: return "PINE";
+        case TreeSpecies::WILLOW: return "WILLOW";
+        case TreeSpecies::PALM: return "PALM";
+        case TreeSpecies::BAOBAB: return "BAOBAB";
+        case TreeSpecies::REDWOOD: return "REDWOOD";
     }
     return "unknown";
 }
 
-/// Parse a string into CelestialKind. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, CelestialKind& out) {
-    if (std::strcmp(str, "SUN") == 0) { out = CelestialKind::SUN; return true; }
-    if (std::strcmp(str, "MOON") == 0) { out = CelestialKind::MOON; return true; }
-    if (std::strcmp(str, "STAR") == 0) { out = CelestialKind::STAR; return true; }
-    if (std::strcmp(str, "PLANET") == 0) { out = CelestialKind::PLANET; return true; }
+/// Parse a string into TreeSpecies. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, TreeSpecies& out) {
+    if (std::strcmp(str, "OAK") == 0) { out = TreeSpecies::OAK; return true; }
+    if (std::strcmp(str, "PINE") == 0) { out = TreeSpecies::PINE; return true; }
+    if (std::strcmp(str, "WILLOW") == 0) { out = TreeSpecies::WILLOW; return true; }
+    if (std::strcmp(str, "PALM") == 0) { out = TreeSpecies::PALM; return true; }
+    if (std::strcmp(str, "BAOBAB") == 0) { out = TreeSpecies::BAOBAB; return true; }
+    if (std::strcmp(str, "REDWOOD") == 0) { out = TreeSpecies::REDWOOD; return true; }
+    return false;
+}
+
+/// Procedural organic entity classification.
+enum class OrganicType {
+    TREE,
+    BUSH,
+    GRASS,
+    VINE,
+    ROOT,
+    FLOWER,
+    FERN
+};
+
+/// Convert OrganicType to its string representation.
+inline const char* to_string(OrganicType value) {
+    switch (value) {
+        case OrganicType::TREE: return "TREE";
+        case OrganicType::BUSH: return "BUSH";
+        case OrganicType::GRASS: return "GRASS";
+        case OrganicType::VINE: return "VINE";
+        case OrganicType::ROOT: return "ROOT";
+        case OrganicType::FLOWER: return "FLOWER";
+        case OrganicType::FERN: return "FERN";
+    }
+    return "unknown";
+}
+
+/// Parse a string into OrganicType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, OrganicType& out) {
+    if (std::strcmp(str, "TREE") == 0) { out = OrganicType::TREE; return true; }
+    if (std::strcmp(str, "BUSH") == 0) { out = OrganicType::BUSH; return true; }
+    if (std::strcmp(str, "GRASS") == 0) { out = OrganicType::GRASS; return true; }
+    if (std::strcmp(str, "VINE") == 0) { out = OrganicType::VINE; return true; }
+    if (std::strcmp(str, "ROOT") == 0) { out = OrganicType::ROOT; return true; }
+    if (std::strcmp(str, "FLOWER") == 0) { out = OrganicType::FLOWER; return true; }
+    if (std::strcmp(str, "FERN") == 0) { out = OrganicType::FERN; return true; }
+    return false;
+}
+
+/// Classification of fallen wood.
+enum class LogType {
+    /// Full fallen tree trunk
+    TRUNK,
+    /// Cut or broken log section
+    LOG,
+    /// Broken branch, arm-thick
+    BRANCH,
+    /// Small twig or stick
+    TWIG
+};
+
+/// Convert LogType to its string representation.
+inline const char* to_string(LogType value) {
+    switch (value) {
+        case LogType::TRUNK: return "TRUNK";
+        case LogType::LOG: return "LOG";
+        case LogType::BRANCH: return "BRANCH";
+        case LogType::TWIG: return "TWIG";
+    }
+    return "unknown";
+}
+
+/// Parse a string into LogType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, LogType& out) {
+    if (std::strcmp(str, "TRUNK") == 0) { out = LogType::TRUNK; return true; }
+    if (std::strcmp(str, "LOG") == 0) { out = LogType::LOG; return true; }
+    if (std::strcmp(str, "BRANCH") == 0) { out = LogType::BRANCH; return true; }
+    if (std::strcmp(str, "TWIG") == 0) { out = LogType::TWIG; return true; }
+    return false;
+}
+
+/// Natural rock size classification.
+enum class RockSize {
+    /// Small egg-shaped (~0.2m)
+    PEBBLE,
+    /// Fist-sized (~0.4m)
+    SMALL_ROCK,
+    /// Head-sized (~0.8m)
+    MEDIUM_ROCK,
+    /// Large boulder (~1.5m)
+    LARGE_BOULDER
+};
+
+/// Convert RockSize to its string representation.
+inline const char* to_string(RockSize value) {
+    switch (value) {
+        case RockSize::PEBBLE: return "PEBBLE";
+        case RockSize::SMALL_ROCK: return "SMALL_ROCK";
+        case RockSize::MEDIUM_ROCK: return "MEDIUM_ROCK";
+        case RockSize::LARGE_BOULDER: return "LARGE_BOULDER";
+    }
+    return "unknown";
+}
+
+/// Parse a string into RockSize. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, RockSize& out) {
+    if (std::strcmp(str, "PEBBLE") == 0) { out = RockSize::PEBBLE; return true; }
+    if (std::strcmp(str, "SMALL_ROCK") == 0) { out = RockSize::SMALL_ROCK; return true; }
+    if (std::strcmp(str, "MEDIUM_ROCK") == 0) { out = RockSize::MEDIUM_ROCK; return true; }
+    if (std::strcmp(str, "LARGE_BOULDER") == 0) { out = RockSize::LARGE_BOULDER; return true; }
     return false;
 }
 
@@ -1248,43 +1357,83 @@ struct WorldRelation : public Relation {
 };
 
 
-/// A body in the sky: sun, moon, star, or distant world. It is a particle at a real distance, not a backdrop - which matters under a parallel projection, where a body 300 m away is drawn 300 m away rather than at infinity, and can sit outside the frame entirely.
-struct CelestialBody : public WorldEntity, public EmitsLight {
-    /// Which sort of celestial body this is.
-    std::optional<CelestialKind> celestial_kind = std::nullopt;
-    /// Orbital period in game days.
-    std::optional<float> period_days = std::nullopt;
-    /// Whether this body's light casts shadows.
-    std::optional<bool> cast_shadows = std::nullopt;
-    /// Distance from the world centre, in meters. Under a parallel projection this is a real distance and decides whether the body is on screen at all, not merely how large it looks.
-    std::optional<float> orbit_distance = std::nullopt;
-    /// Tilt of the orbital plane, in degrees.
-    std::optional<float> orbit_inclination_deg = std::nullopt;
-    /// Moon colour, red channel.
-    std::optional<float> moon_r = std::nullopt;
-    /// Moon colour, green channel.
-    std::optional<float> moon_g = std::nullopt;
-    /// Moon colour, blue channel.
-    std::optional<float> moon_b = std::nullopt;
-    /// Moon emission strength.
-    std::optional<float> moon_brightness = std::nullopt;
-    /// Moon visual radius, in meters.
-    std::optional<float> moon_size = std::nullopt;
+/// Living plant entity.
+struct Plant : public LivingEntity, public Growable {
+    std::optional<OrganicType> organic_type = std::nullopt;
 };
 
 
-/// The day-clock made visible: exists once a sun exists. Its time_of_day is the world's hour (0-24). Games may treat it as writable intent (set an hour, the world journeys there) or as read-only state.
-struct Sky : public WorldEntity {
-    /// The world's hour.
-    std::optional<float> time_of_day = std::nullopt;
+/// Living tree grown via space colonization.
+struct Tree : public Plant {
+    /// Tree height in meters. A garden sapling is ~1, a grand oak ~8, a redwood 25-30. Bounded to what the growth algorithm reliably delivers.
+    std::optional<float> tree_height = std::nullopt;
+    /// Crown radius in meters (physically capped near 60% of tree height).
+    std::optional<float> crown_radius = std::nullopt;
+    /// Fraction of the height where the crown begins. 0.25 = bushy, leaves almost to the ground; 0.45 = classic oak; 0.7 = palm or redwood silhouette (long bare trunk, high crown).
+    std::optional<float> canopy_start = std::nullopt;
+    /// Crown fullness multiplier. 0.5 = airy and sparse, 1.0 = natural, 1.5 = lush and dense.
+    std::optional<float> canopy_density = std::nullopt;
+    /// Limbs sprouting from the bare trunk below the crown. Old oaks and willows carry 2-4; redwoods and palms stay clean at 0. Age vocabulary: ancient = more limbs + lower canopy_start.
+    std::optional<int32_t> lower_branches = std::nullopt;
 };
 
 
-/// A small spherical world floating clear of the world floor: a kinematic core carrying a crust of stones. Terrain rather than a dynamic body - it holds its position and collides, but is not cratered or moved by what strikes it.
-struct Planet : public NaturalFormation {
-    /// Crust radius of a small world, in meters.
-    std::optional<float> planet_radius = std::nullopt;
+/// Physics-enabled tree with collision and breakage.
+struct PhysicsTree : public Tree {
 };
 
 
-} // namespace space::ontology
+/// A patch of grass: container entity whose blades hang off HAS_PART relations. Root type for deferred worldgen materialization (vegetation activator walks the children).
+struct GrassPatch : public Plant {
+};
+
+
+/// A grass blade or tuft grown by the organic generator.
+struct Grass : public Plant {
+};
+
+
+/// Tree branch segment.
+struct Branch : public WorldEntity, public HasMaterial {
+};
+
+
+/// Foliage cluster on a branch.
+struct Leaves : public WorldEntity {
+};
+
+
+/// Fallen tree trunk or log.
+struct FallenTree : public NaturalFormation, public HasMaterial {
+    /// Classification of fallen wood (trunk, branch, twig).
+    std::optional<LogType> log_type = std::nullopt;
+};
+
+
+/// Rock or boulder.
+struct Rock : public NaturalFormation {
+    std::optional<RockSize> rock_size = std::nullopt;
+};
+
+
+/// Physics-enabled rock with full collision.
+struct PhysicsRock : public Rock {
+};
+
+
+/// Flying insect creature.
+struct Butterfly : public Creature {
+};
+
+
+/// Limbless reptile creature.
+struct Snake : public Creature {
+};
+
+
+/// Vertical totem structure with stacked segments.
+struct Totem : public Structure {
+};
+
+
+} // namespace earth::ontology

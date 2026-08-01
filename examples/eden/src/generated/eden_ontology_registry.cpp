@@ -217,7 +217,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ParticleInteractionProfile", "field_fz", "float", false);
     reg.addProperty("PerceptionEvent", "memory_layer", "enum", false);
     reg.addProperty("Plant", "organic_type", "enum", false);
-    reg.addProperty("RelationEvent", "relation_type", "string", false);
+    reg.addProperty("RelationEvent", "relation_type", "string", true);
     reg.addProperty("Rock", "rock_size", "enum", false);
     reg.addProperty("Spatial", "position_x", "float", true);
     reg.addProperty("Spatial", "position_y", "float", true);
@@ -232,7 +232,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("TransformationRule", "target_profile", "integer", false);
     reg.addProperty("TransformationRule", "duration_s", "float", false);
     reg.addProperty("TransformationRule", "trigger_profile", "integer", false);
-    reg.addProperty("Tree", "tree_variant", "enum", false);
     reg.addProperty("Tree", "tree_height", "float", false, true, 0.5, true, 30.0);
     reg.addProperty("Tree", "crown_radius", "float", false, true, 0.2, true, 15.0);
     reg.addProperty("Tree", "canopy_start", "float", false, true, 0.2, true, 0.8);

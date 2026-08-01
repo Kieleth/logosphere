@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include "generated/earth_ontology_registry.h"
 
 namespace {
 
@@ -77,7 +78,16 @@ struct TransformRig {
         KGBall b;
         auto& kg = engine.get_kg();
         auto& ps = engine.get_particle_system();
+        // Rock is earth-like vocabulary and lives in the earth pack;
+        // Engine starts with the core alone. Without this the entity
+        // is rejected and every ball is INVALID_ENTITY, which the old
+        // code never noticed because it did not check.
+        // See docs/ONTOLOGY_LAYERS.md.
         b.entity = kg.createEntity("Rock");
+        if (b.entity == kg::INVALID_ENTITY) {
+            kg.extendOntology(earth::ontology::registry());
+            b.entity = kg.createEntity("Rock");
+        }
         Particle p = {};
         p.shape = ParticleShape::SPHERE;
         p.x = x; p.y = y; p.z = z;

@@ -236,7 +236,7 @@ public:
                     auto& kg = engine_->get_kg();
 
                     // Create serpent chain as hierarchical entity (parent + children)
-                    kg::EntityID serpent_entity = kg.createEntityAtPosition("serpent_chain", world_x, world_y);
+                    kg::EntityID serpent_entity = kg.createEntityAtPosition("Serpent", world_x, world_y);
 
                     // Create 8 segments along a curved path
                     for (int i = 0; i < 8; i++) {
@@ -280,7 +280,7 @@ public:
                     auto& kg = engine_->get_kg();
 
                     // Create wall as hierarchical entity
-                    kg::EntityID wall_entity = kg.createEntityAtPosition("wall", world_x, world_y);
+                    kg::EntityID wall_entity = kg.createEntityAtPosition("Wall", world_x, world_y);
 
                     // Create 10 blocks along X axis
                     for (int i = 0; i < 10; i++) {
@@ -321,7 +321,7 @@ public:
                     auto& kg = engine_->get_kg();
 
                     // Create room as hierarchical entity (4 walls + floor)
-                    kg::EntityID room_entity = kg.createEntityAtPosition("room", world_x, world_y);
+                    kg::EntityID room_entity = kg.createEntityAtPosition("RoomBlock", world_x, world_y);
 
                     const float room_size = 8.0f;
                     const float wall_spacing = 1.5f;
@@ -804,7 +804,35 @@ public:
     }
 
     // Update game logic (movement handled by PlayerController)
+    // Serpents waiting for their ground to stream in.
+    struct PendingSerpent { float x, y; SnakeSpec spec; };
+    std::vector<PendingSerpent> pending_serpents_;
+
+    // Place anything that was waiting for ground, now that the world
+    // has had a chance to pour it. Nothing is ever placed at a guessed
+    // height; if the ground is still missing, it simply waits.
+    void place_pending(float /*dt*/) {
+        if (pending_serpents_.empty() || !engine_) return;
+        auto& snake_gen = engine_->get_worldgen_system().get_snake_generator();
+        for (auto it = pending_serpents_.begin();
+             it != pending_serpents_.end(); ) {
+            float sz = 0.0f;
+            if (engine_->get_ground_locator().surface_at(it->x, it->y, sz,
+                                                         1.0f)) {
+                kg::EntityID id = snake_gen.generate_snake(it->x, it->y, sz,
+                                                           it->spec);
+                engine_->get_serpent_locomotion().register_serpent(id);
+                std::cout << "[EDEN] serpent placed at (" << it->x << ","
+                          << it->y << ") on ground z=" << sz << std::endl;
+                it = pending_serpents_.erase(it);
+            } else {
+                ++it;   // its ground has not arrived yet
+            }
+        }
+    }
+
     void update_game(float dt) override {
+        place_pending(dt);
         if (!engine_) return;
         (void)dt;
 
@@ -1724,8 +1752,12 @@ public:
                 float sy = eva_y + 6.0f * (i == 0 ? 1.0f : -1.0f);
                 SnakeSpec sspec = SnakeSpec::python();
                 sspec.total_length *= 0.8f + i * 0.3f;
-                kg::EntityID snake_id = snake_gen.generate_snake(sx, sy, 0.0f, sspec);
-                engine_->get_serpent_locomotion().register_serpent(snake_id);
+                // Wait for ground. Spawning at zero buried both serpents
+                // under 0.55 m of strata - which is why one was never
+                // seen - but the strata streams in deferred, so at
+                // setup time there is nothing to stand on yet. Queue
+                // them and place each one the frame its ground exists.
+                pending_serpents_.push_back({sx, sy, sspec});
             }
 
             // --- 4 butterflies (flying dynamics) ---
@@ -1734,8 +1766,13 @@ public:
                 float by = eva_y + 4.0f * std::sin(i * 1.57f);
                 ButterflySpec bspec = ButterflySpec::monarch();
                 bspec.wing_span *= 0.8f + (i % 3) * 0.2f;
+                // Height above the GROUND, not above zero. Flight then
+                // holds its own band from here.
+                float bz = 0.0f;
+                if (!engine_->get_ground_locator().surface_at(bx, by, bz, 1.0f))
+                    bz = 0.0f;
                 kg::EntityID butterfly_id = butterfly_gen.generate_butterfly(
-                    bx, by, 1.0f + i * 0.3f, bspec);
+                    bx, by, bz + 1.0f + i * 0.3f, bspec);
                 engine_->get_butterfly_flight().register_butterfly(butterfly_id);
             }
 

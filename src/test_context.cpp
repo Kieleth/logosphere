@@ -6,6 +6,7 @@
 #include "vision_system.h"
 #include "particle.h"
 #include "logosphere/kg/kg_module.h"  // For entity creation
+#include "generated/earth_ontology_registry.h"
 #include <algorithm>  // For std::max
 
 TestContext::TestContext(Engine& engine)
@@ -16,6 +17,13 @@ TestContext::TestContext(Engine& engine)
       vision_system(engine.get_vision_system()),
       engine_(engine),
       kg_(engine.get_kg()) {
+    // This harness builds scenes out of rocks and cubes, which are
+    // earth-like vocabulary. Engine starts with the core alone, so
+    // ask for the pack; without it every add_cube_particle would get
+    // INVALID_ENTITY and the tests would pass while testing nothing.
+    // See docs/ONTOLOGY_LAYERS.md.
+    kg_.extendOntology(earth::ontology::registry());
+
     // Initialize clean state for testing
     clear_state();
 }

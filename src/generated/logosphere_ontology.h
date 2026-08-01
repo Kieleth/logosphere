@@ -342,159 +342,6 @@ inline bool from_string(const char* str, FloorType& out) {
     return false;
 }
 
-/// Procedural organic entity classification.
-enum class OrganicType {
-    TREE,
-    BUSH,
-    GRASS,
-    VINE,
-    ROOT,
-    FLOWER,
-    FERN
-};
-
-/// Convert OrganicType to its string representation.
-inline const char* to_string(OrganicType value) {
-    switch (value) {
-        case OrganicType::TREE: return "TREE";
-        case OrganicType::BUSH: return "BUSH";
-        case OrganicType::GRASS: return "GRASS";
-        case OrganicType::VINE: return "VINE";
-        case OrganicType::ROOT: return "ROOT";
-        case OrganicType::FLOWER: return "FLOWER";
-        case OrganicType::FERN: return "FERN";
-    }
-    return "unknown";
-}
-
-/// Parse a string into OrganicType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, OrganicType& out) {
-    if (std::strcmp(str, "TREE") == 0) { out = OrganicType::TREE; return true; }
-    if (std::strcmp(str, "BUSH") == 0) { out = OrganicType::BUSH; return true; }
-    if (std::strcmp(str, "GRASS") == 0) { out = OrganicType::GRASS; return true; }
-    if (std::strcmp(str, "VINE") == 0) { out = OrganicType::VINE; return true; }
-    if (std::strcmp(str, "ROOT") == 0) { out = OrganicType::ROOT; return true; }
-    if (std::strcmp(str, "FLOWER") == 0) { out = OrganicType::FLOWER; return true; }
-    if (std::strcmp(str, "FERN") == 0) { out = OrganicType::FERN; return true; }
-    return false;
-}
-
-/// Natural rock size classification.
-enum class RockSize {
-    /// Small egg-shaped (~0.2m)
-    PEBBLE,
-    /// Fist-sized (~0.4m)
-    SMALL_ROCK,
-    /// Head-sized (~0.8m)
-    MEDIUM_ROCK,
-    /// Large boulder (~1.5m)
-    LARGE_BOULDER
-};
-
-/// Convert RockSize to its string representation.
-inline const char* to_string(RockSize value) {
-    switch (value) {
-        case RockSize::PEBBLE: return "PEBBLE";
-        case RockSize::SMALL_ROCK: return "SMALL_ROCK";
-        case RockSize::MEDIUM_ROCK: return "MEDIUM_ROCK";
-        case RockSize::LARGE_BOULDER: return "LARGE_BOULDER";
-    }
-    return "unknown";
-}
-
-/// Parse a string into RockSize. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, RockSize& out) {
-    if (std::strcmp(str, "PEBBLE") == 0) { out = RockSize::PEBBLE; return true; }
-    if (std::strcmp(str, "SMALL_ROCK") == 0) { out = RockSize::SMALL_ROCK; return true; }
-    if (std::strcmp(str, "MEDIUM_ROCK") == 0) { out = RockSize::MEDIUM_ROCK; return true; }
-    if (std::strcmp(str, "LARGE_BOULDER") == 0) { out = RockSize::LARGE_BOULDER; return true; }
-    return false;
-}
-
-/// Tree species/growth variant for procedural generation.
-enum class TreeVariant {
-    /// Young seedling tree (~3m)
-    SAPLING,
-    /// Growing oak (~6m)
-    YOUNG_OAK,
-    /// Mature oak (~12m)
-    OAK,
-    /// Huge ancient oak (~25m)
-    ANCIENT_OAK,
-    /// Coniferous pine
-    PINE,
-    /// Trailing willow
-    WILLOW,
-    /// Dead standing tree, bark stripped
-    DEAD
-};
-
-/// Convert TreeVariant to its string representation.
-inline const char* to_string(TreeVariant value) {
-    switch (value) {
-        case TreeVariant::SAPLING: return "SAPLING";
-        case TreeVariant::YOUNG_OAK: return "YOUNG_OAK";
-        case TreeVariant::OAK: return "OAK";
-        case TreeVariant::ANCIENT_OAK: return "ANCIENT_OAK";
-        case TreeVariant::PINE: return "PINE";
-        case TreeVariant::WILLOW: return "WILLOW";
-        case TreeVariant::DEAD: return "DEAD";
-    }
-    return "unknown";
-}
-
-/// Parse a string into TreeVariant. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, TreeVariant& out) {
-    if (std::strcmp(str, "SAPLING") == 0) { out = TreeVariant::SAPLING; return true; }
-    if (std::strcmp(str, "YOUNG_OAK") == 0) { out = TreeVariant::YOUNG_OAK; return true; }
-    if (std::strcmp(str, "OAK") == 0) { out = TreeVariant::OAK; return true; }
-    if (std::strcmp(str, "ANCIENT_OAK") == 0) { out = TreeVariant::ANCIENT_OAK; return true; }
-    if (std::strcmp(str, "PINE") == 0) { out = TreeVariant::PINE; return true; }
-    if (std::strcmp(str, "WILLOW") == 0) { out = TreeVariant::WILLOW; return true; }
-    if (std::strcmp(str, "DEAD") == 0) { out = TreeVariant::DEAD; return true; }
-    return false;
-}
-
-/// Tree growth archetype (species only — age is expressed through anatomy slots like canopy_start and lower_branches, not baked into the enum). Successor vocabulary to TreeVariant, which mixes species with age and remains for legacy generator paths; the two fold together post-0.2.0.
-enum class TreeSpecies {
-    /// Broad crown, sturdy trunk. The default tree.
-    OAK,
-    /// Tall, narrow, conical.
-    PINE,
-    /// Drooping, wide, melancholic.
-    WILLOW,
-    /// Bare trunk, crown burst at the top.
-    PALM,
-    /// Massive squat trunk, sparse crown.
-    BAOBAB,
-    /// Very tall, reddish bark, high crown. The "redwood" / "sequoia" silhouette.
-    REDWOOD
-};
-
-/// Convert TreeSpecies to its string representation.
-inline const char* to_string(TreeSpecies value) {
-    switch (value) {
-        case TreeSpecies::OAK: return "OAK";
-        case TreeSpecies::PINE: return "PINE";
-        case TreeSpecies::WILLOW: return "WILLOW";
-        case TreeSpecies::PALM: return "PALM";
-        case TreeSpecies::BAOBAB: return "BAOBAB";
-        case TreeSpecies::REDWOOD: return "REDWOOD";
-    }
-    return "unknown";
-}
-
-/// Parse a string into TreeSpecies. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, TreeSpecies& out) {
-    if (std::strcmp(str, "OAK") == 0) { out = TreeSpecies::OAK; return true; }
-    if (std::strcmp(str, "PINE") == 0) { out = TreeSpecies::PINE; return true; }
-    if (std::strcmp(str, "WILLOW") == 0) { out = TreeSpecies::WILLOW; return true; }
-    if (std::strcmp(str, "PALM") == 0) { out = TreeSpecies::PALM; return true; }
-    if (std::strcmp(str, "BAOBAB") == 0) { out = TreeSpecies::BAOBAB; return true; }
-    if (std::strcmp(str, "REDWOOD") == 0) { out = TreeSpecies::REDWOOD; return true; }
-    return false;
-}
-
 /// How ground is constructed (orthogonal to FloorType, which is surface material).
 enum class TerrainKind {
     /// Real earth: stacked, physics-settled particle layers (bonded bedrock slabs, rubble filler, loose topsoil). Craters under impacts. See StrataGenerator.
@@ -516,38 +363,6 @@ inline const char* to_string(TerrainKind value) {
 inline bool from_string(const char* str, TerrainKind& out) {
     if (std::strcmp(str, "LAYERED") == 0) { out = TerrainKind::LAYERED; return true; }
     if (std::strcmp(str, "SLAB") == 0) { out = TerrainKind::SLAB; return true; }
-    return false;
-}
-
-/// Classification of fallen wood.
-enum class LogType {
-    /// Full fallen tree trunk
-    TRUNK,
-    /// Cut or broken log section
-    LOG,
-    /// Broken branch, arm-thick
-    BRANCH,
-    /// Small twig or stick
-    TWIG
-};
-
-/// Convert LogType to its string representation.
-inline const char* to_string(LogType value) {
-    switch (value) {
-        case LogType::TRUNK: return "TRUNK";
-        case LogType::LOG: return "LOG";
-        case LogType::BRANCH: return "BRANCH";
-        case LogType::TWIG: return "TWIG";
-    }
-    return "unknown";
-}
-
-/// Parse a string into LogType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, LogType& out) {
-    if (std::strcmp(str, "TRUNK") == 0) { out = LogType::TRUNK; return true; }
-    if (std::strcmp(str, "LOG") == 0) { out = LogType::LOG; return true; }
-    if (std::strcmp(str, "BRANCH") == 0) { out = LogType::BRANCH; return true; }
-    if (std::strcmp(str, "TWIG") == 0) { out = LogType::TWIG; return true; }
     return false;
 }
 
@@ -1113,59 +928,6 @@ struct Creature : public LivingEntity, public Agent {
 };
 
 
-/// Flying insect creature.
-struct Butterfly : public Creature {
-};
-
-
-/// Limbless reptile creature.
-struct Snake : public Creature {
-};
-
-
-/// Living plant entity.
-struct Plant : public LivingEntity, public Growable {
-    std::optional<OrganicType> organic_type = std::nullopt;
-};
-
-
-/// Living tree grown via space colonization.
-struct Tree : public Plant {
-    /// Tree species/growth stage for generator dispatch.
-    std::optional<TreeVariant> tree_variant = std::nullopt;
-    /// Tree height in meters. A garden sapling is ~1, a grand oak ~8, a redwood 25-30. Bounded to what the growth algorithm reliably delivers.
-    std::optional<float> tree_height = std::nullopt;
-    /// Crown radius in meters (physically capped near 60% of tree height).
-    std::optional<float> crown_radius = std::nullopt;
-    /// Fraction of the height where the crown begins. 0.25 = bushy, leaves almost to the ground; 0.45 = classic oak; 0.7 = palm or redwood silhouette (long bare trunk, high crown).
-    std::optional<float> canopy_start = std::nullopt;
-    /// Crown fullness multiplier. 0.5 = airy and sparse, 1.0 = natural, 1.5 = lush and dense.
-    std::optional<float> canopy_density = std::nullopt;
-    /// Limbs sprouting from the bare trunk below the crown. Old oaks and willows carry 2-4; redwoods and palms stay clean at 0. Age vocabulary: ancient = more limbs + lower canopy_start.
-    std::optional<int32_t> lower_branches = std::nullopt;
-};
-
-
-/// Tree branch segment.
-struct Branch : public WorldEntity, public HasMaterial {
-};
-
-
-/// Foliage cluster on a branch.
-struct Leaves : public WorldEntity {
-};
-
-
-/// A patch of grass: container entity whose blades hang off HAS_PART relations. Root type for deferred worldgen materialization (vegetation activator walks the children).
-struct GrassPatch : public Plant {
-};
-
-
-/// A grass blade or tuft grown by the organic generator.
-struct Grass : public Plant {
-};
-
-
 /// Built or placed structure.
 struct Structure : public WorldEntity, public HasMaterial {
 };
@@ -1201,29 +963,6 @@ struct FloorTile : public Floor {
 
 /// Natural geological formation.
 struct NaturalFormation : public WorldEntity, public HasMaterial, public Destructible {
-};
-
-
-/// Rock or boulder.
-struct Rock : public NaturalFormation {
-    std::optional<RockSize> rock_size = std::nullopt;
-};
-
-
-/// Physics-enabled rock with full collision.
-struct PhysicsRock : public Rock {
-};
-
-
-/// Fallen tree trunk or log.
-struct FallenTree : public NaturalFormation, public HasMaterial {
-    /// Classification of fallen wood (trunk, branch, twig).
-    std::optional<LogType> log_type = std::nullopt;
-};
-
-
-/// Physics-enabled tree with collision and breakage.
-struct PhysicsTree : public Tree {
 };
 
 
@@ -1336,11 +1075,6 @@ struct SceneChunk : public WorldEntity {
 
 /// Automatically created particle entity for unmanaged particles.
 struct AutoParticle : public WorldEntity {
-};
-
-
-/// Vertical totem structure with stacked segments.
-struct Totem : public Structure {
 };
 
 
