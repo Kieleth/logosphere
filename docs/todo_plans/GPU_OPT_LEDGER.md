@@ -625,20 +625,41 @@ measurable frame time.
    flags, two A/B sessions, two avenues permanently closed with
    numbers attached — nobody re-litigates Shared-vs-Private buffers or
    clear elimination without new evidence.
-6. **A stage win is not a frame win.** Stages overlap: at retina the
-   per-stage medians sum to 21.5 ms against a 16.1 ms frame. Three
-   changes now have cut real work and bought zero frame time (G4, and
-   kit studies S8 and S9). Claim frame time only from frame
-   measurements, and only when the A-B-A endpoints agree.
+6. **A stage win is not a frame win, but NOT for the reason recorded
+   here until 2026-08-01.** Four changes have cut real work and bought
+   zero frame time (G4, the pow-to-squarings experiment, kit S8, kit
+   S9). The explanation on this line used to be "stages overlap, so
+   their costs are not real". Serializing every pass changed per-stage
+   cost by under 1% (kit S13); the passes have data dependencies and
+   already ran effectively serially, and stage overlap measures 1.01x.
+   The stage numbers were right.
 
-7. **Per-command-buffer GPU times are residency, not work.** The sum of
-   `GPUEndTime - GPUStartTime` over a frame's command buffers came to
-   21.4 ms inside a 16.0 ms frame, which is impossible for real work.
-   Every per-pass GPU figure in this ledger rests on that subtraction and
-   is an upper bound. For actual GPU busy time use
-   `sudo powermetrics --samplers gpu_power`, which reads the hardware
-   counters. `ioreg` "Device Utilization %" is not GPU busy time either;
-   it read 100% while the hardware was at 5%.
+   The mechanism is CPU/GPU BALANCE (kit S12): retina runs CPU 19.74 ms
+   against GPU 18.92 ms, so cutting either side gains at most 0.81 ms
+   before the other becomes the wall. Windowed has 6.59 ms of GPU
+   headroom and CPU wins pay in full. Measure both sides first; the
+   only uncapped lever is work that cuts both at once.
+
+7. **CORRECTED 2026-08-01: per-command-buffer GPU times ARE work. The
+   sum was the problem.** This entry used to read "residency, not work",
+   on the evidence that `GPUEndTime - GPUStartTime` summed to 21.4 ms
+   inside a 16.0 ms frame. The impossibility was real; the diagnosis was
+   not. A frame's GPU window routinely extends past that frame's own
+   period, because the GPU runs about a frame behind the CPU, so
+   consecutive windows OVERLAP and adding them counts the shared region
+   twice. Summed that way the metric reported 122% of wall clock (kit
+   S12).
+
+   Occupancy is the UNION of the intervals, not their sum: 95.8% at
+   retina, 52.0% windowed. `telemetry::GpuWindow` now publishes
+   `start_s` / `end_s` so any consumer can compute it, and
+   `tests/test_gpu_occupancy_sanity.cpp` fails if any occupancy figure
+   exceeds 100%. Per-pass figures in this ledger are sound as ISOLATED
+   costs (confirmed by serialization, S13); it is only their sum that
+   was never GPU busy time.
+
+   Still true: `ioreg` "Device Utilization %" is not GPU busy time. It
+   read 100% while the hardware was at 5%.
 
 8. **Command-buffer count is not a lever on this hardware.** Merging the
    JFA seed and its 6 propagation steps took a frame from 18 command

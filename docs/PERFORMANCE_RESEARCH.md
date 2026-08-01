@@ -89,14 +89,29 @@ shipping build.
    GPU drain, a hardcoded stall probe in `engine.cpp`, scattered statics
    in the rasterizer.)
 
-5. **Stage cost is not critical-path cost.** GPU passes overlap. At
-   retina the per-stage medians sum to 21.5 ms while the frame is
-   16.1 ms. A 2 ms stage win can buy zero frame time. This has now
-   happened three times: ledger G4, the pow-to-squarings experiment,
-   and the surface cache (kit study S9, which cut render_collect 24%
-   for no frame movement). Any claim about what removing a stage would
-   buy requires tier 3 serialization, and must be reported as isolated
-   cost, never as a frame prediction. (New principle.)
+5. **A one-sided win is capped by the CPU/GPU gap.** REWRITTEN
+   2026-08-01; the original blamed the wrong mechanism. A 2 ms stage
+   win has bought zero frame time four times (ledger G4, the
+   pow-to-squarings experiment, kit S8, and kit S9, which cut
+   render_collect 24% for nothing). The standing explanation was that
+   GPU stages overlap so their costs are not real. **That was wrong.**
+   Serializing every pass changed per-stage cost by under 1% (kit S13):
+   the passes have data dependencies and were already running
+   effectively serially, so the stage numbers were true isolated costs
+   all along.
+
+   The actual mechanism is balance (kit S12). At retina the frame
+   carries CPU 19.74 ms against GPU 18.92 ms. Cut either side and the
+   other becomes the wall 0.81 ms later, whatever the stage-level
+   saving looks like. Windowed there is 6.59 ms of GPU headroom, so
+   CPU wins pay in full there and not at retina.
+
+   **The rule that follows.** Before optimising, measure both sides.
+   Then either (a) attack the longer side and stop at the gap, or (b)
+   pick work that reduces BOTH sides, which is the only uncapped
+   lever. Geometry is the clear case: fewer triangles cut CPU collect
+   and prep AND GPU rasterisation. Report a stage saving as isolated
+   cost and predict frame time only from the gap.
 
 6. **Count allocations, not just operations.** The costliest thing found in
    this engine was not an algorithm. It was constant data rebuilt inside a

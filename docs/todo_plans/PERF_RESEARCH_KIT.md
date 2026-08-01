@@ -31,6 +31,68 @@ floor. The reason is not stage overlap (S13 shows the passes barely overlap)
 but CPU/GPU balance: at retina the two sides are level within about 1 ms, so a
 one-sided win of any size is capped at that gap (S12).
 
+## The decision rule this campaign produced
+
+Everything below converges on one procedure. Follow it before optimising
+anything, because four separate changes cut real work and bought nothing by
+skipping it.
+
+**1. Measure both sides, per frame.** CPU frame time, and GPU busy as the UNION
+of command-buffer intervals (never their sum, see S12). `bench_report.py`
+prints both plus occupancy.
+
+**2. Read the gap.**
+- Gap is large (one side clearly longer): attack the longer side. The win is
+  real up to the gap, then stops.
+- Gap is small (balanced): a one-sided win of ANY size is capped at the gap.
+  Retina today is CPU 19.74 against GPU 18.92, a gap of 0.81 ms. This is why
+  G4, pow-to-squarings, S8 and S9 all cut real work for no frame movement.
+
+**3. When balanced, only both-sides work is uncapped.** Fewer triangles cut CPU
+collect and prep AND GPU rasterisation. That is the whole argument for LOD,
+analytic sphere shadows, and GPU-side geometry expansion, and it is a stronger
+argument than "this is the biggest number".
+
+**4. Prove the lever engaged before believing the result.** Every study this
+session that lacked a sensitivity control was blind, and two of them silently
+reported a plausible non-result: an A/B that compared sync against sync, and an
+equivalence test running with telemetry disabled. Carry a counter that is
+non-zero only when the change is active.
+
+**5. Report non-zero counts for anything spiky, not just medians.**
+`render_slot_wait` reads 0.00 as a median while firing on 21-35 of 199 frames
+up to 6.7 ms. Two entries in this journal read that median as "the CPU never
+waits". It waits on roughly one frame in eight.
+
+## What this unlocked
+
+- **A whole class of work is now correctly priced.** Stage-level GPU
+  micro-optimisation at retina (task #22, the SSDO denoise and penumbra blurs,
+  7.14 ms of 19.84) is capped at 0.81 ms no matter how well it goes. That is
+  not a reason it is worthless; it is a reason it is not next.
+- **Geometry work is promoted, with a reason.** LOD and analytic sphere shadows
+  were previously "nice to have". They are now the only identified uncapped
+  lever, because they cut both sides at once.
+- **Async GPU prep has a costed path instead of a hunch.** It is pixel-identical
+  (proven) and net zero (measured), because the handoff deep-copies 103,914
+  surfaces per frame, costing what the prep saves. The fix is named: remove the
+  copy. See S14.
+- **The instruments can now settle arguments they previously could not.**
+  Occupancy is computable (union), isolated stage cost is checkable on demand
+  (serialized mode), and both are guarded by tests that fail rather than
+  mislead.
+- **Two standing principles were corrected**, in `PERFORMANCE_RESEARCH.md`
+  principle 5 and `GPU_OPT_LEDGER.md` learnings 6 and 7. Both had the right
+  observation and the wrong mechanism, and both were actively steering work.
+
+**The meta-lesson.** In every case this session the INSTRUMENTS were honest and
+the MODEL on top of them was wrong. "Stages overlap" explained the evaporating
+wins for three weeks and was false. "Residency, not work" explained the
+impossible GPU sum and was false. "The machine was loaded" explained the async
+result and was false. Each time the correct answer was already in the data,
+one level below the summary being read. Before adding an instrument, check
+whether the existing one is being read correctly.
+
 ## Why this exists
 
 Nearly every error in the 2026-07 GPU campaign was a MEASUREMENT failure,
