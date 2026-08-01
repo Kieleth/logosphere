@@ -38,6 +38,26 @@ GPURasterizer::GPURasterizer() {
 
 GPURasterizer::~GPURasterizer() {}
 
+// --- Shadow acceleration backend (see gpu_rasterizer.h for the contract) ---
+// A build without Metal has no driver-owned acceleration structure, so the
+// only backend it can report is SoftwareBVH. That is the honest answer AND the
+// one that keeps the CPU trees being built, which a non-Metal target needs.
+//
+// Read docs/PORTING_SHADOWS.md before relying on this: the SoftwareBVH path
+// currently renders NO LIGHTING. Reporting it here is correct, but it does not
+// make it work. Fixing that path is the first task of a Linux or Windows port.
+ShadowAccelBackend GPURasterizer::shadow_accel_backend() const {
+    return ShadowAccelBackend::SoftwareBVH;
+}
+
+const char* to_string(ShadowAccelBackend b) {
+    return b == ShadowAccelBackend::HardwareRT ? "HardwareRT" : "SoftwareBVH";
+}
+
+void set_forced_shadow_accel_backend(const char* /*name*/) {
+    // No-op: there is no hardware backend to choose between on this profile.
+}
+
 bool GPURasterizer::initialize(int width, int height) {
     width_ = width;
     height_ = height;
