@@ -1557,6 +1557,8 @@ struct WorldRelation : public Relation {
 struct SunSeed : public WorldEntity {
     /// Hour of the world's day (0-24). 6 sunrise, 12 noon, ~18.2 golden hour, 19 sunset, 0 deep night.
     std::optional<float> time_of_day = std::nullopt;
+    /// How far the sun stands, in meters. The view is orthographic, so distance decides whether it is ON SCREEN at all: the default 300 is outside any frame, 45-70 puts the disc in view beside what you have made. Its apparent size and the light it casts do not change with distance - only whether the human can see it.
+    std::optional<float> sun_distance = std::nullopt;
 };
 
 
@@ -1813,6 +1815,36 @@ struct PlanetSeed : public WorldEntity {
     std::optional<bool> with_rose = std::nullopt;
     /// Stand the small dreamer at the apex, beside his rose.
     std::optional<bool> with_prince = std::nullopt;
+};
+
+
+/// Request for stars: points of light scattered through the dark around whatever exists. They glow without illuminating anything, so hundreds cost only pixels. Reach for this when the human asks for stars, a night sky, or space - and note the void does NOT come with them; they must be wished for.
+struct StarfieldSeed : public WorldEntity {
+    /// How many stars. 150 reads as a good night; 500 as the desert sky you only get far from cities.
+    std::optional<int32_t> star_count = std::nullopt;
+    /// How far out the stars sit, in meters. The view is orthographic, so this is a REAL distance and not an infinite backdrop: past about 140 m they leave the frame entirely. 60 keeps them around whatever else exists.
+    std::optional<float> sky_distance = std::nullopt;
+    /// Star glow. 1 is a clear night; 3 is a fairy tale.
+    std::optional<float> star_brightness = std::nullopt;
+};
+
+
+/// Request for another world hanging in the distance: a coloured sphere too far to visit, for company in an empty sky. One particle each, so several make a crowded heaven. Give it a bearing with x and y, a height with world_height.
+struct DistantWorldSeed : public WorldEntity {
+    /// World-x position (m). Stage center is 0.
+    std::optional<float> x = std::nullopt;
+    /// World-y position (m). Stage center is 0.
+    std::optional<float> y = std::nullopt;
+    /// Height of a distant world above the floor, in meters.
+    std::optional<float> world_height = std::nullopt;
+    /// Radius of a distant world in meters. Read against its distance: 3 at 60 m away is a moon, 12 is a neighbour that fills the sky.
+    std::optional<float> world_size = std::nullopt;
+    /// Distant world colour, red channel (0..1).
+    std::optional<float> world_r = std::nullopt;
+    /// Distant world colour, green channel (0..1).
+    std::optional<float> world_g = std::nullopt;
+    /// Distant world colour, blue channel (0..1).
+    std::optional<float> world_b = std::nullopt;
 };
 
 

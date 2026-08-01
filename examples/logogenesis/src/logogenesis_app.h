@@ -395,6 +395,14 @@ private:
             "dramatic) births the rock that high and lets gravity "
             "speak — on LAYERED ground the impact shoves the topsoil "
             "aside. Use for 'meteor', 'crash', 'falling rock' wishes.\n\n"
+            "THE SKY IS NOT FREE. The void has no stars, no sun and no "
+            "companions until asked. A StarfieldSeed scatters stars "
+            "(they glow without lighting anything, so hundreds are "
+            "cheap); a DistantWorldSeed hangs another world in the "
+            "distance; a SunSeed with sun_distance 45-70 puts the sun "
+            "itself IN FRAME instead of far outside it. Offer these "
+            "when a scene looks lonely, and grant them the moment "
+            "stars, space, a night sky, or the sun are asked for.\n\n"
             "THE GRANDEST WISH: a PlanetSeed births a small planet, a "
             "rust-warm sphere of bonded stones floating in the dark - "
             "the Little Prince's asteroid. with_rose plants his flower "
@@ -723,9 +731,21 @@ private:
             // frame (the invariant: everything is a particle, no sky
             // layer, no cheating). Only its light arrives; emission
             // is scaled by distance^2 so noon lands ~28k lux.
-            sun.orbit.distance = 300.0f;
+            // Distance decides only whether the sun is ON SCREEN. The
+            // projection is orthographic, so a body at 300 m is drawn
+            // 300 m away - roughly 9600 px off-centre at the default
+            // zoom, and unreachable even at full zoom-out. Bringing it
+            // to ~60 m puts the disc in frame. Apparent size and
+            // illumination are held constant across that move: the
+            // radius scales linearly with distance (same angular size)
+            // and emission by distance squared (same lux), so the sun
+            // looks and lights identically wherever it stands.
+            const float sun_dist = prop_f(kg, seed, "sun_distance", 300.0f);
+            const float dist_k = sun_dist / 300.0f;
+            const float lux_k = dist_k * dist_k;
+            sun.orbit.distance = sun_dist;
             sun.orbit.inclination_deg = 60.0f;
-            sun.visual_radius = 8.0f;
+            sun.visual_radius = 8.0f * dist_k;
             sun.color_curve = {
                 {0.00f, {0.10f, 0.08f, 0.15f, 1.0f}},   // midnight
                 {0.22f, {1.00f, 0.55f, 0.25f, 1.0f}},   // dawn amber
@@ -739,9 +759,9 @@ private:
             sun.emission_curve = {
                 {0.00f, 0.0f},
                 {0.20f, 0.0f},
-                {0.25f, 1200000000.0f},    // dawn
-                {0.50f, 5200000000.0f},    // full noon (~58k lux at 300 m)
-                {0.75f, 1700000000.0f},    // sunset glow
+                {0.25f, 1200000000.0f * lux_k},    // dawn
+                {0.50f, 5200000000.0f * lux_k},    // full noon (~58k lux)
+                {0.75f, 1700000000.0f * lux_k},    // sunset glow
                 {0.82f, 0.0f},
                 {1.00f, 0.0f},
             };
@@ -894,6 +914,79 @@ private:
         // one breath ("a planet with a redwood on it") otherwise
         // plants the tree while planet_radius_ is still zero, and it
         // grows from the old floor straight through the world.
+        for (auto seed : kg.findByType("StarfieldSeed")) {
+            int count = static_cast<int>(prop_f(kg, seed, "star_count", 150));
+            float dist = prop_f(kg, seed, "sky_distance", 60.0f);
+            float bright = prop_f(kg, seed, "star_brightness", 1.0f);
+            kg.destroyEntity(seed);
+
+            auto ent = kg.createEntity("CelestialBody");
+            kg.setProperty(ent, "x", "0");
+            kg.setProperty(ent, "y", "0");
+            // Stars are SELF-emissive: they glow on their own pixels
+            // without joining the lights array, so hundreds cost no
+            // shadow rays. Scattered on a Fibonacci shell, upper
+            // hemisphere favoured so they read as sky rather than
+            // floor. The projection is orthographic, so this is a
+            // real distance - there is no infinite backdrop to hang
+            // them on, they are simply far-away particles.
+            const float golden = 2.399963f;
+            for (int i = 0; i < count; ++i) {
+                float t = (static_cast<float>(i) + 0.5f) / count;
+                float polar = std::acos(1.0f - 1.35f * t);   // bias upward
+                float azim = golden * i;
+                float d = dist * (0.75f + 0.5f * frac(i * 0.6180339f));
+                Particle p{};
+                p.shape = ParticleShape::SPHERE;
+                p.x = std::sin(polar) * std::cos(azim) * d;
+                p.y = std::sin(polar) * std::sin(azim) * d;
+                p.z = std::cos(polar) * d + 6.0f;
+                float sz = 0.22f + 0.30f * frac(i * 0.7548777f);
+                p.size = p.width = p.height = p.thickness = sz;
+                float warm = frac(i * 0.3819660f);
+                p.r = 0.80f + 0.20f * warm;
+                p.g = 0.84f + 0.14f * warm;
+                p.b = 1.0f;
+                p.a = 1.0f;
+                p.is_self_emissive = true;
+                p.emission_strength = 2.2f * bright;
+                p.owner = ParticleOwner::STATIC;
+                p.is_at_rest = true;
+                engine_->get_particle_system().add_particle_to_entity(
+                    p, &kg, ent);
+            }
+            ++creations_;
+        }
+
+        for (auto seed : kg.findByType("DistantWorldSeed")) {
+            float x = prop_f(kg, seed, "x", 40.0f);
+            float y = prop_f(kg, seed, "y", 40.0f);
+            float z = prop_f(kg, seed, "world_height", 25.0f);
+            float sz = prop_f(kg, seed, "world_size", 4.0f);
+            float r = 0.55f, g = 0.45f, b = 0.62f;
+            if (auto v = prop_opt(kg, seed, "world_r")) r = *v;
+            if (auto v = prop_opt(kg, seed, "world_g")) g = *v;
+            if (auto v = prop_opt(kg, seed, "world_b")) b = *v;
+            kg.destroyEntity(seed);
+
+            auto ent = kg.createEntity("CelestialBody");
+            kg.setProperty(ent, "x", std::to_string(x));
+            kg.setProperty(ent, "y", std::to_string(y));
+            // One particle, self-emissive so it reads as a lit world
+            // rather than a black disc in an unlit void.
+            Particle p{};
+            p.shape = ParticleShape::SPHERE;
+            p.x = x; p.y = y; p.z = z;
+            p.size = p.width = p.height = p.thickness = sz * 2.0f;
+            p.r = r; p.g = g; p.b = b; p.a = 1.0f;
+            p.is_self_emissive = true;
+            p.emission_strength = 1.5f;
+            p.owner = ParticleOwner::STATIC;
+            p.is_at_rest = true;
+            engine_->get_particle_system().add_particle_to_entity(p, &kg, ent);
+            ++creations_;
+        }
+
         for (auto seed : kg.findByType("PlanetSeed")) {
             float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
             PlanetSpec pspec = PlanetSpec::asteroid_b612();
@@ -1470,6 +1563,10 @@ private:
     }
 
     // ---------------------------------------------------------------- helpers
+    // Deterministic scatter without dragging an RNG through the
+    // materialiser: the golden-ratio sequence spreads evenly.
+    static float frac(float v) { return v - std::floor(v); }
+
     static std::string prop_s(kg::KGModule& kg, kg::EntityID e,
                               const char* k, const char* dflt) {
         auto v = kg.getProperty(e, k);

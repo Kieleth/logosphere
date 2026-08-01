@@ -1099,6 +1099,77 @@ void test_tree_lands_on_the_planet() {
         std::to_string(lowest) + ")");
 }
 
+// The sky must be WISHED for, and must stay cheap. Stars are
+// self-emissive: they glow on their own pixels without joining the
+// lights array, so hundreds cost no shadow rays. A sky that quietly
+// added hundreds of real lights would tank every scene it touched.
+void test_sky_is_wished_for_and_cheap() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    // Nothing arrives unasked: an empty void stays empty.
+    int lights_before = 0, particles_before = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        particles_before = static_cast<int>(view.size());
+        for (size_t i = 0; i < view.size(); ++i)
+            if (view[i].is_light_source) lights_before++;
+    }
+    AT_ASSERT_TRUE(particles_before == 0,
+        "the void starts empty (" + std::to_string(particles_before) +
+        " particles)");
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"Stars, and a neighbour to keep them company.",
+                     "ops":[
+              {"op":"create_entity","type":"StarfieldSeed","properties":{
+                 "star_count":"200","sky_distance":"60"}},
+              {"op":"create_entity","type":"DistantWorldSeed","properties":{
+                 "x":"38","y":"-22","world_height":"30","world_size":"5"}}]})");
+        });
+
+    h.app.submit_text_for_test("give me stars and another world out there");
+    for (int i = 0; i < 600 && h.app.creations() < 2; ++i) h.tick(dt);
+
+    int lights = 0, emissive = 0, particles = 0;
+    float farthest = 0.0f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        particles = static_cast<int>(view.size());
+        for (size_t i = 0; i < view.size(); ++i) {
+            if (view[i].is_light_source) lights++;
+            if (view[i].is_self_emissive) emissive++;
+            float d = std::sqrt(view[i].x * view[i].x +
+                                view[i].y * view[i].y);
+            farthest = std::max(farthest, d);
+        }
+    }
+    std::cout << "  [measure] sky particles=" << particles
+              << " self_emissive=" << emissive
+              << " real_lights=" << lights
+              << " farthest=" << farthest << " m" << std::endl;
+
+    AT_ASSERT_TRUE(particles >= 200,
+        "the sky materialized (" + std::to_string(particles) +
+        " particles)");
+    AT_ASSERT_TRUE(emissive >= 200,
+        "stars glow on their own pixels (" + std::to_string(emissive) +
+        " self-emissive)");
+    AT_ASSERT_TRUE(lights == 0,
+        "and cost no shadow rays: a wished sky must add ZERO real "
+        "lights, got " + std::to_string(lights));
+    // Orthographic view: the sky is real distance, not a backdrop.
+    // Past ~140 m it leaves the frame, which is why the schema caps
+    // sky_distance there.
+    AT_ASSERT_TRUE(farthest > 20.0f && farthest < 145.0f,
+        "the sky sits where it can actually be seen (farthest " +
+        std::to_string(farthest) + " m)");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -1117,6 +1188,7 @@ int main() {
     AT_TEST(test_thoughts_only_reply_creates_nothing);
     AT_TEST(test_prince_planet);
     AT_TEST(test_tree_lands_on_the_planet);
+    AT_TEST(test_sky_is_wished_for_and_cheap);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
