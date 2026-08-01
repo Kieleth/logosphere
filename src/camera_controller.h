@@ -72,6 +72,7 @@ private:
     InputSystem* input_system_ = nullptr;
     GLFWwindow* window_ = nullptr;
     float orbit_speed_ = 1.05f;   // rad/s: a full lap in ~6 s
+    float pan_speed_ = 18.0f;     // m/s at the default zoom (SPACE + arrows)
     
     // Current state
     CameraMode current_mode_ = CameraMode::Fixed;

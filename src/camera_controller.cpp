@@ -3,6 +3,7 @@
 #include "core/input_system.h"
 #include "core/particle_system.h"
 #include <iostream>
+#include <algorithm>
 #include <cmath>
 
 CameraController::CameraController() {
@@ -232,21 +233,51 @@ void CameraController::handle_orbit(float delta_time) {
     if (!window_) return;
 
     // Arrow keys: left/right orbit the view azimuth, up/down zoom.
-    // Same polling pattern as handle_zoom; the mouse stays free to
-    // steer the avatar's gaze.
-    bool orbit_cw = glfwGetKey(window_, GLFW_KEY_RIGHT) == GLFW_PRESS;
-    bool orbit_ccw = glfwGetKey(window_, GLFW_KEY_LEFT) == GLFW_PRESS;
-    bool zoom_in = glfwGetKey(window_, GLFW_KEY_UP) == GLFW_PRESS;
-    bool zoom_out = glfwGetKey(window_, GLFW_KEY_DOWN) == GLFW_PRESS;
+    // Hold SPACE and the same arrows fly the camera instead.
+    // Polled (not event-driven) so the camera still answers while a
+    // chat window holds keyboard focus.
+    const bool right = glfwGetKey(window_, GLFW_KEY_RIGHT) == GLFW_PRESS;
+    const bool left  = glfwGetKey(window_, GLFW_KEY_LEFT)  == GLFW_PRESS;
+    const bool up    = glfwGetKey(window_, GLFW_KEY_UP)    == GLFW_PRESS;
+    const bool down  = glfwGetKey(window_, GLFW_KEY_DOWN)  == GLFW_PRESS;
 
-    if (orbit_cw != orbit_ccw) {
+    if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        // Free movement. The arrows push along the SCREEN axes, not
+        // world axes, so the gesture stays true at any orbit bearing:
+        // screen-right is the world direction that maximizes iso_x,
+        // screen-up the one that maximizes iso_y, each rotated out of
+        // the azimuth frame (the same basis the culling probes use).
+        const float az = camera_system_->get_view_azimuth();
+        const float c = std::cos(az), s = std::sin(az);
+        const float inv = 0.70710678f;   // 1/sqrt(2)
+        const float rx = (c + s) * inv, ry = (s - c) * inv;
+        const float ux = (c - s) * inv, uy = (s + c) * inv;
+
+        float dx = 0.0f, dy = 0.0f;
+        if (right) { dx += rx; dy += ry; }
+        if (left)  { dx -= rx; dy -= ry; }
+        if (up)    { dx += ux; dy += uy; }
+        if (down)  { dx -= ux; dy -= uy; }
+        if (dx == 0.0f && dy == 0.0f) return;
+
+        // Scale by zoom so a keypress covers the same distance ON
+        // SCREEN whether zoomed in or out; without this, flying while
+        // zoomed in feels like sprinting.
+        const float ppu = camera_system_->get_pixels_per_unit();
+        const float step = pan_speed_ * delta_time *
+                           (32.0f / std::max(1.0f, ppu));
+        camera_system_->pan(dx * step, dy * step);
+        return;   // free movement owns the arrows while SPACE is held
+    }
+
+    if (right != left) {
         float az = camera_system_->get_view_azimuth();
         float delta = orbit_speed_ * delta_time;
-        camera_system_->set_view_azimuth(az + (orbit_cw ? delta : -delta));
+        camera_system_->set_view_azimuth(az + (right ? delta : -delta));
     }
-    if (zoom_in != zoom_out) {
-        camera_system_->adjust_zoom(zoom_in ? zoom_speed_ * delta_time
-                                            : -zoom_speed_ * delta_time);
+    if (up != down) {
+        camera_system_->adjust_zoom(up ? zoom_speed_ * delta_time
+                                       : -zoom_speed_ * delta_time);
     }
 }
 
