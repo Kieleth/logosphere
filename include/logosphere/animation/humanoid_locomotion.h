@@ -570,6 +570,23 @@ public:
     // Instantaneous velocity delta to every particle in the humanoid.
     void apply_impulse(int hips_id, float velocity_x, float velocity_y);
 
+    // Player-triggered vertical (Z) impulse, gated by on-ground state --
+    // the command-driven counterpart to anticipate_step_climbing's
+    // automatic obstacle-clearing boost, reusing the same "boost hips +
+    // legs, let gravity + the FK chain carry the rest of the body" shape
+    // and the same v = sqrt(2*g*h) arc physics. jump_height is the desired
+    // apex in meters; the resulting velocity is capped (see .cpp) so this
+    // stays a deliberate hop, not a launch. No-op (returns false) if the
+    // humanoid isn't currently grounded.
+    bool try_jump(int hips_id, float jump_height = 1.0f);
+
+    // On-ground test: is there stable support directly beneath this
+    // humanoid's feet right now? Duplicates (rather than shares) the
+    // support-query logic anticipate_step_climbing/apply_entity_gravity
+    // use internally, so callers get an honest independent answer without
+    // this becoming another caller of those functions' internals.
+    bool is_grounded(int hips_id) const;
+
     // Read accessors.
     float get_base_rotation(int hips_id) const;
     float get_walk_phase(int hips_id) const;

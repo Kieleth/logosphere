@@ -1549,6 +1549,7 @@ endif()
 add_subdirectory(examples/eden)
 add_subdirectory(examples/logotron)
 add_subdirectory(examples/logogenesis)
+add_subdirectory(examples/threshold)
 
 if(LOGOSPHERE_FULL)
     # at_logogenesis_creation — chat text -> LLM ops -> seeds ->

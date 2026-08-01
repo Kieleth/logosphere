@@ -889,6 +889,89 @@ inline FKAnimationClip create_fk_guard_pose_right()
 }
 
 // ============================================================================
+// SWORD SWING (Windup -> Strike -> Hold -> Recovery, right-hand diagonal)
+// ============================================================================
+// A single committed sword swing: windup raises the blade back and up with
+// the spine winding away from the target, strike snaps the shoulder
+// forward with the elbow extending (the blade's reach) and the spine
+// unwinding into the target, then recovery settles back to the guard pose
+// (create_fk_guard_pose_right's exact angles, so looping swings don't pop).
+// skill (0..1) scales windup/strike timing -- low skill telegraphs a
+// slower swing, high skill is tighter and faster. This is a single fixed
+// weapon technique, not a tunable unarmed strike, so it doesn't need cross
+// punch's full interpolated-biomechanics-profile machinery -- just the
+// same windup/strike/recovery keyframe shape.
+inline FKAnimationClip create_fk_sword_swing_right(float skill = 0.5f) {
+    if (skill < 0.0f) skill = 0.0f;
+    if (skill > 1.0f) skill = 1.0f;
+
+    FKAnimationClip clip;
+    clip.name = "fk_sword_swing_right";
+    clip.loops = false;
+
+    const float windup_ms  = 260.0f - 80.0f * skill;  // 260ms novice -> 180ms skilled
+    const float strike_ms  = 90.0f  - 30.0f * skill;   // 90ms novice -> 60ms skilled
+    const float hold_ms    = 70.0f;
+    const float recover_ms = 260.0f;
+
+    auto guard_pose = [] {
+        RotationPose pose;
+        pose.abduct("right_shoulder", static_cast<float>(-M_PI / 6.0));
+        pose.flex("right_shoulder", static_cast<float>(M_PI / 6.0));
+        pose.twist("right_shoulder", 0.0f);
+        pose.flex("right_elbow", static_cast<float>(M_PI / 2.0));
+        pose.rigid("right_wrist");
+        pose.twist("lower_spine", 0.0f);
+        pose.twist("upper_spine", 0.0f);
+        return pose;
+    };
+
+    float t = 0.0f;
+    clip.add_keyframe(t, guard_pose());
+
+    // --- Windup: blade raised behind the shoulder, spine winds away ---
+    t += windup_ms;
+    {
+        RotationPose pose;
+        pose.abduct("right_shoulder", static_cast<float>(-M_PI / 2.2));
+        pose.flex("right_shoulder", static_cast<float>(-M_PI / 8.0));
+        pose.twist("right_shoulder", static_cast<float>(-M_PI / 6.0));
+        pose.flex("right_elbow", static_cast<float>(2.0 * M_PI / 3.0));
+        pose.rigid("right_wrist");
+        pose.twist("lower_spine", static_cast<float>(-M_PI / 10.0));
+        pose.twist("upper_spine", static_cast<float>(-M_PI / 8.0));
+        clip.add_keyframe(t, pose);
+    }
+
+    // --- Strike: shoulder snaps forward, elbow extends, spine unwinds into it ---
+    t += strike_ms;
+    RotationPose strike_pose;
+    {
+        strike_pose.abduct("right_shoulder", static_cast<float>(-M_PI / 5.0));
+        strike_pose.flex("right_shoulder", static_cast<float>(M_PI / 2.4));
+        strike_pose.twist("right_shoulder", static_cast<float>(M_PI / 5.0));
+        strike_pose.flex("right_elbow", static_cast<float>(M_PI / 8.0));  // near-extended
+        strike_pose.rigid("right_wrist");
+        strike_pose.twist("lower_spine", static_cast<float>(M_PI / 10.0));
+        strike_pose.twist("upper_spine", static_cast<float>(M_PI / 8.0));
+        clip.add_keyframe(t, strike_pose);
+    }
+
+    // --- Hold briefly at full extension (the "hit" window) ---
+    t += hold_ms;
+    clip.add_keyframe(t, strike_pose);
+
+    // --- Recovery: back to guard ---
+    t += recover_ms;
+    clip.add_keyframe(t, guard_pose());
+
+    clip.body_region = BodyRegion::UPPER_BODY;
+    clip.blend_in_ms = 120.0f;
+    clip.blend_out_ms = 120.0f;
+    return clip;
+}
+
+// ============================================================================
 // TRAINED CROSS PUNCH (Guard → Load → Strike → Guard)
 // ============================================================================
 // Biomechanically correct punch with spine torsion. Key differences vs novice:

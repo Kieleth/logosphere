@@ -31,6 +31,7 @@
 # Build artifacts
 build/
 build-*/
+build_*/
 */build/
 CMakeCache.txt
 cmake_install.cmake

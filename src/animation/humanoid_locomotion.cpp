@@ -4885,6 +4885,149 @@ void HumanoidLocomotion::anticipate_step_climbing(
     }
 }
 
+namespace {
+// Is there stable support directly beneath these feet right now? Same
+// support-query shape anticipate_step_climbing uses for its own gating
+// (support_box under the hips, foot height from the leg particles,
+// filtered by owner/velocity/size, nearest surface at-or-below foot
+// level) -- duplicated rather than factored out of that function or
+// apply_entity_gravity, so this addition doesn't touch either.
+bool compute_on_ground(const HumanoidParts& parts, ParticleSystem::WriteView& particles,
+                       const BVH* bvh) {
+    if (!bvh || !bvh->is_ready()) return false;
+
+    const auto& hips = particles[parts.hips];
+
+    // A jump sets vz before the next physics step has moved anything, so
+    // for one or more frames the feet are still positionally touching the
+    // old support surface even though the humanoid is now rising -- a
+    // pure position check alone would report "still grounded" right after
+    // take-off (this is exactly what caught it: try_jump immediately
+    // followed by a second try_jump must refuse, and didn't until this
+    // check existed). 1.0 m/s matches anticipate_step_climbing's own
+    // "already climbing/jumping, don't re-trigger" threshold just above,
+    // rather than the tighter 0.5 m/s support-candidate stability check
+    // (which would risk flickering false during ordinary bouncy gait).
+    if (hips.vz > 1.0f) return false;
+
+    float foot_z = 1000.0f;
+    if (!parts.left_leg_particles.empty()) {
+        const auto& lfoot = particles[parts.left_leg_particles[0]];
+        foot_z = std::min(foot_z, lfoot.z - lfoot.thickness / 2.0f);
+    }
+    if (!parts.right_leg_particles.empty()) {
+        const auto& rfoot = particles[parts.right_leg_particles[0]];
+        foot_z = std::min(foot_z, rfoot.z - rfoot.thickness / 2.0f);
+    }
+    if (foot_z > 500.0f) foot_z = hips.z - 1.0f;
+
+    AABB support_box;
+    support_box.min_x = hips.x - 0.3f;
+    support_box.max_x = hips.x + 0.3f;
+    support_box.min_y = hips.y - 0.3f;
+    support_box.max_y = hips.y + 0.3f;
+    support_box.min_z = -10.0f;
+    support_box.max_z = foot_z + 0.1f;
+
+    std::vector<int> candidates;
+    bvh->query_aabb(support_box, particles.get_particles(), candidates);
+
+    float support_top = -1e9f;
+    for (int cand_id : candidates) {
+        bool is_self = false;
+        for (unsigned int pid : parts.all_particle_indices) {
+            if (static_cast<int>(pid) == cand_id) { is_self = true; break; }
+        }
+        if (is_self) continue;
+
+        const auto& support = particles[cand_id];
+        if (support.owner == ParticleOwner::DYNAMICS) continue;
+
+        float vel_sq = support.vx * support.vx + support.vy * support.vy + support.vz * support.vz;
+        if (vel_sq > 0.25f) continue;
+        if (support.width < 0.25f || support.height < 0.25f) continue;
+
+        float top = support.z + support.thickness * 0.5f;
+        if (top <= foot_z + 0.15f && top > support_top) {
+            support_top = top;
+        }
+    }
+
+    if (support_top < -1e8f) return false;       // nothing beneath at all
+    return (foot_z - support_top) <= 0.5f;        // same airborne threshold anticipate_step_climbing uses
+}
+} // namespace
+
+bool HumanoidLocomotion::try_jump(int hips_id, float jump_height) {
+    if (!impl_->initialized) return false;
+    auto& dyn = impl_->get_dynamics_system();
+    auto& ps = impl_->get_particle_system();
+    const BVH* bvh = ps.get_shadow_bvh();
+
+    for (auto& parts : dyn.humanoid_look_at_entities_) {
+        if (static_cast<int>(parts.hips) != hips_id) continue;
+
+        auto particles_view = ps.lock_particles_for_write();
+        if (!compute_on_ground(parts, particles_view, bvh)) return false;
+
+        // Release the stance-foot pin before launching. Without this,
+        // maintain_entity_shape's kinematic-root constraint (stance foot
+        // pinned at anchor_world, applied every frame in
+        // update_post_physics) shifts the whole body back down each tick
+        // so the planted foot returns to its pre-jump anchor -- silently
+        // cancelling the vz boost below before any real height change
+        // shows up (this is exactly what the height-gain assertion in
+        // threshold_verify caught: 0.0m of measured rise with this step
+        // missing). Same release the walk->idle transition already does
+        // a few hundred lines up, just triggered by jumping instead of
+        // stopping.
+        if (parts.plant_anchor_particle_id >= 0) {
+            HumanoidParts::PinGluonOp op;
+            op.kind = HumanoidParts::PinGluonOp::DISENGAGE;
+            op.release_anchor_id = parts.plant_anchor_particle_id;
+            parts.pending_pin_ops.push_back(op);
+            parts.plant_anchor_particle_id = -1;
+        }
+        parts.has_planted_foot = false;
+        parts.plant_blend = 0.0f;
+
+        // v = sqrt(2*g*h): the same arc-physics formula
+        // anticipate_step_climbing uses, capped independently of
+        // MAX_STEP_BOOST (that constant is tuned for clearing a small
+        // obstacle, not a deliberate jump -- 1.2m of jump height alone
+        // needs ~4.85 m/s, already past MAX_STEP_BOOST's 4.0).
+        constexpr float kMaxJumpBoost = 6.0f;
+        float target_vz = std::sqrt(2.0f * PhysicsV4::GRAVITY * jump_height);
+        target_vz = std::min(target_vz, kMaxJumpBoost);
+
+        auto& tracer = impl_->get_particle_tracer();
+        auto boost = [&](unsigned int pid) {
+            float old_vz = particles_view[pid].vz;
+            particles_view[pid].vz = target_vz;
+            TRACE_WRITE(tracer, static_cast<int>(pid), "jump.boost", "vz", old_vz, target_vz);
+        };
+        boost(parts.hips);
+        for (unsigned int pid : parts.left_leg_particles) boost(pid);
+        for (unsigned int pid : parts.right_leg_particles) boost(pid);
+        return true;
+    }
+    return false;
+}
+
+bool HumanoidLocomotion::is_grounded(int hips_id) const {
+    if (!impl_->initialized) return false;
+    const auto& dyn = impl_->get_dynamics_system();
+    auto& ps = impl_->get_particle_system();
+    const BVH* bvh = ps.get_shadow_bvh();
+
+    for (const auto& parts : dyn.humanoid_look_at_entities_) {
+        if (static_cast<int>(parts.hips) != hips_id) continue;
+        auto particles_view = ps.lock_particles_for_write();
+        return compute_on_ground(parts, particles_view, bvh);
+    }
+    return false;
+}
+
 void HumanoidLocomotion::apply_entity_gravity(
     HumanoidParts& parts,
     float dt,
@@ -5353,7 +5496,18 @@ void HumanoidLocomotion::maintain_entity_shape(
     // then pulling it back down via the shift would create a per-frame
     // tug-of-war and slow walking. Ground correction's remaining job is
     // the swing leg + body clearance over changing terrain height.
+    //
+    // This correction is unconditional on gap alone -- it doesn't look at
+    // vz -- so it actively re-snaps the skeleton back to floor+5mm every
+    // frame the feet are still within its (-0.35, 0.3) range, which is
+    // most of a jump's initial ascent. hips.z += hips.vz*dt happens
+    // earlier this same function; without this guard the very next line
+    // below undoes it every single frame, so try_jump()'s vz boost never
+    // produces any visible height change (caught by threshold_verify's
+    // jump_rises_and_lands: 0.0m measured rise). 1.0 m/s matches
+    // try_jump/is_grounded's own "rising with intent" threshold.
     // ========================================================================
+    if (hips.vz > 1.0f) return;
     const BVH* bvh = impl_->get_particle_system().get_shadow_bvh();
     if (!bvh || !bvh->is_ready()) return;
 
