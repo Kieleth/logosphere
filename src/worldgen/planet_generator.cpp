@@ -12,7 +12,6 @@ PlanetSpec PlanetSpec::asteroid_b612() {
     spec.radius = 3.0f;
     spec.stone_size = 0.45f;
     spec.crust_r = 0.66f; spec.crust_g = 0.44f; spec.crust_b = 0.26f;
-    spec.core_r = 0.38f; spec.core_g = 0.24f; spec.core_b = 0.16f;
     return spec;
 }
 
@@ -49,8 +48,18 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     Particle core = {};
     core.shape = ParticleShape::SPHERE;
     core.x = cx; core.y = cy; core.z = cz;
-    core.size = (spec.radius - spec.stone_size * 0.45f) * 2.0f;
-    core.r = spec.core_r; core.g = spec.core_g; core.b = spec.core_b;
+    // Sit the core just under the stone layer. It used to surface a
+    // full 6.5% of the radius below the crust, so every gap looked
+    // through to a distinct inner sphere - the thing that made the
+    // body read as gravel heaped around a ball. Clearance is measured
+    // against whichever shell is outermost.
+    float inner_gap = spec.stone_size * 0.55f;
+    if (spec.surface_ratio > 0.0f && spec.surface_density > 0.0f)
+        inner_gap = spec.stone_size * spec.surface_ratio * 0.6f;
+    core.size = (spec.radius - inner_gap) * 2.0f;
+    core.r = spec.crust_r * spec.core_shade;
+    core.g = spec.crust_g * spec.core_shade;
+    core.b = spec.crust_b * spec.core_shade;
     core.a = 1.0f;
     core.SetMaterial(Materials::Type::STONE);
     core.solver_mode = ParticleSolverMode::KINEMATIC;
@@ -76,7 +85,7 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     // `scatter` is the azimuthal jitter that reads as unsettled
     // rubble, `tint` brightens the palette for dust over rock.
     auto place_shell = [&](int count, float size, float flatten,
-                           float scatter, float tint) {
+                           float scatter, float tint, float jitter) {
         for (int i = 0; i < count; ++i) {
             float t = (static_cast<float>(i) + 0.5f) / count;
             float polar = std::acos(1.0f - 2.0f * t);
@@ -85,8 +94,7 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
             float sy = std::sin(polar) * std::sin(azim);
             float sz = std::cos(polar);
 
-            float s = size * random_range(1.0f - spec.stone_jitter,
-                                          1.0f + spec.stone_jitter);
+            float s = size * random_range(1.0f - jitter, 1.0f + jitter);
             float r_at = spec.radius - s * 0.25f;
 
             Particle stone = {};
@@ -126,7 +134,8 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     // Structural plates (unchanged: this is the body's character).
     int base_count = std::max(24, static_cast<int>(
         area / (spec.stone_size * spec.stone_size * 1.7f)));
-    place_shell(base_count, spec.stone_size, 0.625f, 0.35f, 1.0f);
+    place_shell(base_count, spec.stone_size, 0.625f, 0.35f, 1.0f,
+                spec.stone_jitter);
 
     // Fine skin: smaller, flatter, tighter, dustier.
     int skin_count = 0;
@@ -134,7 +143,11 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
         float fine = spec.stone_size * spec.surface_ratio;
         skin_count = static_cast<int>(
             area / (fine * fine * 1.7f) * spec.surface_density);
-        place_shell(skin_count, fine, 0.42f, 0.15f, spec.surface_tint);
+        // Half the size jitter of the plates: the skin is what draws
+        // the limb, and varied protrusion there is what reads as a
+        // spiky gravel edge instead of a planet's smooth curve.
+        place_shell(skin_count, fine, 0.42f, 0.15f, spec.surface_tint,
+                    spec.stone_jitter * 0.5f);
     }
 
     on_entity_created(entity);

@@ -26,9 +26,13 @@ struct PlanetSpec {
     float surface_density = 1.0f;   // coverage multiplier
     float surface_tint = 1.12f;     // dust is lighter than the rock
 
-    // Rust-warm crust over a darker core
+    // Rust-warm crust. The core is a SHADE of it rather than its own
+    // colour: gaps between stones should read as the same rock in
+    // shadow, not as a different, darker object showing through. It
+    // also keeps a recoloured planet coherent - setting crust to blue
+    // used to leave a brown core behind it.
     float crust_r = 0.62f, crust_g = 0.42f, crust_b = 0.28f;
-    float core_r = 0.35f, core_g = 0.22f, core_b = 0.16f;
+    float core_shade = 0.85f;     // core colour = crust * this
     float color_variance = 0.06f;
 
     float stiffness = 90000.0f;   // Crust-to-core bond strength
