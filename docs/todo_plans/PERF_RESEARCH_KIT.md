@@ -21,7 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
-| S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. LOD 1 smooth (80 tris) looks BETTER than today's LOD 2 flat (320). |
+| S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. Shipped LOD 1 + smooth as default; LOD 2 kept as a quality setting because it still casts better SHADOWS (rays hit real triangles). |
 | S16 | What does an LOD switch cost? | 3.94 ms more GPU work: refit 1.87 to build 5.81. accel_build is the LARGEST GPU stage and was never recorded until now. |
 | S15 | Is the 1.9x shadow triangle ratio waste, and are sphere shadows worth it? | No and no. The ratio is required input for the GPU's per-ray cull, and every Eden shadow caster is a box (196,596 = 16,383 x 12 exactly). |
 | S14 | Should async GPU prep be turned back on? | Yes, once the handoff stopped copying the frame's input TWICE (lambda captured by value). Pixel-identical, +1.88 ms retina, +3.43 ms windowed. |
@@ -901,8 +901,34 @@ SILHOUETTE, which needs far fewer triangles. That changes the LOD design from
 much better trade. The screen-size LOD work (design doc step 2) can now target
 level 1 as its floor instead of level 2.
 
-Flag: `logosphere::set_smooth_sphere_normals()` / `LOGOSPHERE_SMOOTH_SPHERES=1`.
-Default OFF pending a call on shipping it.
+**OWNER VERDICT (2026-08-01): ship LOD 1 + smooth as the default, keep LOD 2 as
+a quality setting.** Judged on `test_shadow_lod_wall`, a new scene built for
+this question: four IDENTICAL spheres at increasing distance from one light,
+throwing shadows magnified 10.0x, 3.3x, 1.7x and 1.1x onto a pale wall. Verdict
+in the owner's words: "LOD1 with smoothing is great, but LOD2 shadows are
+superbly nice, this should be a quality config as well".
+
+**That distinction is the ray-tracing-first constraint, observed rather than
+argued.** Smooth normals fix how the sphere is SHADED. They do nothing for its
+SHADOW, because shadow rays hit the real triangles, so at level 1 the shadow
+silhouette is still an 80-gon. On a shadow magnified 10x that reads, and level 2
+still wins there. Shading can lie; geometry cannot.
+
+**Which points straight at the next piece of work.** Render LOD and shadow LOD
+are being forced to the same value and they want different ones: level 1 renders
+a perfect sphere, level 2 casts a better shadow. `SPHERE_LOD_DESIGN.md` trap 2
+already said the shadow path needs its own criterion; this is the first direct
+evidence for it. Decoupling them would give both at close to level 1 cost, since
+`GetShadowTriangles` is a separate call from the render geometry.
+
+**No performance number is claimed for this.** `test_shadow_lod_wall` carries
+4 spheres among ~1,463 particles, so level 2 to level 1 moves 960 shadow
+triangles out of 18,776 and the frame delta is noise. It is a QUALITY scene, by
+design. The performance figure for sphere subdivision remains the sphere-heavy
+falling-bodies measurement: 2.6x, 58.02 to 22.30 ms.
+
+Defaults now: `SPHERE_SUBDIVISIONS = 1`, smooth normals ON. Both still
+overridable at runtime (`LOGOSPHERE_SPHERE_LOD`, `LOGOSPHERE_SMOOTH_SPHERES=0`).
 
 ---
 

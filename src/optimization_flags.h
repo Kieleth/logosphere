@@ -694,16 +694,33 @@ namespace Optimizations {  // Continue namespace
     // QUALITY / PERF: icosphere subdivision for SPHERE and ELLIPSOID.
     //   0 =    20 triangles (faceted D20)
     //   1 =    80
-    //   2 =   320  (current default)
+    //   2 =   320  <- QUALITY setting, see below
     //   3 = 1,280
     // Every downstream cost scales with this: surfaces built, SurfaceData
     // written, shadow triangles, BVH input, bytes uploaded. Level 1 is a 4x
-    // cut on all of it. Whether it is visible is a judgement call, so it is
-    // overridable at runtime without a rebuild:
+    // cut on all of it. Overridable at runtime without a rebuild:
     //   LOGOSPHERE_SPHERE_LOD=<0..4>
-    // Compare with tests/test_sphere_lod_quality.cpp, which renders the same
-    // scene at every level and reports the pixel differences between them.
-    constexpr int SPHERE_SUBDIVISIONS = 2;
+    //
+    // DEFAULT IS 1 (2026-08-01), lowered from 2 and only because SMOOTH_SPHERE
+    // _NORMALS below now decouples shading from triangle count. Flat-shaded, a
+    // sphere needed 320 triangles just to push facet edges under a pixel; with
+    // analytic normals 80 renders a round sphere and looks BETTER than 320 did
+    // flat. Judged visually, not by a metric (kit study S17).
+    //
+    // *** LEVEL 2 IS THE QUALITY SETTING, AND THE REASON IS SHADOWS. ***
+    // Smooth normals fix how the sphere is SHADED. They do nothing for its
+    // SHADOW, because shadow rays hit the real triangles, so the shadow
+    // silhouette is still an 80-gon at level 1. On a magnified shadow (an
+    // object near a light throws one many times its own size) that reads.
+    // Level 2 shadows were judged "superbly nice" against level 1's; level 1
+    // plus smooth normals is the default because it is the better trade, not
+    // because it wins outright.
+    //
+    // Compare with tests/test_sphere_lod_quality.cpp (the sphere itself) and
+    // tests/test_shadow_lod_wall.cpp (the shadow it casts, which is the one
+    // that decides this). The second exists because the first cannot see the
+    // thing that makes level 2 worth paying for.
+    constexpr int SPHERE_SUBDIVISIONS = 1;
 
     // PROBE (2026-07-30): the penumbra JFA submits 7 command buffers per frame
     // (1 seed + 6 propagation steps), each one compute encoder with one

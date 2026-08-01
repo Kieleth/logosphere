@@ -144,7 +144,7 @@ bool get_async_gpu_prep()        { return g_async_gpu_prep.load(std::memory_orde
 // Analytic smooth sphere normals; see render_pipeline.h for what it is for.
 static std::atomic<bool> g_smooth_spheres{[] {
     if (const char* e = std::getenv("LOGOSPHERE_SMOOTH_SPHERES")) return std::strcmp(e, "0") != 0;
-    return false;
+    return true;   // ON since 2026-08-01; see SPHERE_SUBDIVISIONS and kit S17
 }()};
 
 namespace logosphere {

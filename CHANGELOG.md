@@ -7,7 +7,24 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Changed
+- Spheres now render at subdivision **1** (80 triangles) instead of 2 (320),
+  with **analytic smooth normals** on by default. The G-buffer derives the
+  normal per pixel as `normalize(world_pos - centre)`, which decouples shading
+  smoothness from triangle count: 80 triangles now render a round sphere that
+  looks better than 320 did flat. Quarter of the geometry on every downstream
+  cost (surfaces, shadow triangles, acceleration structure input, uploads).
+  **Subdivision 2 is retained as a quality setting**, because smooth normals do
+  not help the SHADOW: shadow rays hit the real triangles, so a level-1
+  silhouette stays an 80-gon and shows on a magnified shadow. Override either
+  with `LOGOSPHERE_SPHERE_LOD=<0..4>` and `LOGOSPHERE_SMOOTH_SPHERES=0`.
+
 ### Added
+- `tests/test_shadow_lod_wall`: judges LOD by the SHADOW an object casts rather
+  than by the object. Four identical spheres at increasing distance from one
+  light throw shadows magnified 10x, 3.3x, 1.7x and 1.1x onto a wall, which is
+  the case a camera-distance LOD rule cannot see. Interactive (SPACE cycles
+  LOD, S toggles smooth normals, ESC exits).
 - `logosphere::set_async_gpu_prep()` / `LOGOSPHERE_ASYNC_PREP=1` make the
   async GPU-prep path runtime-switchable instead of compile-time. Default
   is unchanged (off). Proven pixel-identical to the synchronous path by
