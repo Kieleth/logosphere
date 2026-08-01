@@ -1,5 +1,5 @@
 // =============================================================================
-// SHADOW ACCELERATION BACKEND — the portability seam, guarded
+// SHADOW ACCELERATION BACKEND: the portability seam, guarded
 // =============================================================================
 // Shadow rays trace against ONE structure. Which one is a property of the
 // platform, not of the renderer's callers:
@@ -12,7 +12,7 @@
 //                and therefore the safe default for a new platform.
 //
 // WHY THIS TEST EXISTS, AND WHY IT IS NOT A PIXEL DIFF.
-// The obvious guard — build the trees, skip the trees, compare pixels — is
+// The obvious guard (build the trees, skip the trees, compare pixels) is
 // WORTHLESS here and I wrote it before realising. Under HardwareRT the kernel
 // never reads the trees, so suppressing them changes nothing, and the test
 // passes while proving nothing at all. Worse, a scene of equal-depth floor
@@ -20,11 +20,11 @@
 // noise as signal. This test therefore asserts the CONTRACT instead:
 //
 //   1. Under HardwareRT the CPU trees are not built (cost is exactly zero).
-//   2. Under SoftwareBVH they ARE built (non-zero) — proving the fallback a
+//   2. Under SoftwareBVH they ARE built (non-zero), proving the fallback a
 //      port depends on is reachable and alive, ON RT HARDWARE.
 //   3. Both backends produce shadows: each differs from a no-shadow reference
 //      by far more than the measured noise floor.
-//   4. The two backends AGREE — same scene, same shadows, within noise.
+//   4. The two backends AGREE: same scene, same shadows, within noise.
 //
 // (3) and (4) are what a port actually needs: they say the portable path is
 // not merely present but correct. (1) is what stops the regression this seam
@@ -32,7 +32,7 @@
 // 2.16 ms of a 21.7 ms Eden frame, and up to 97 ms on one frame in a
 // spawning scene.
 //
-// NOTE: ParticleSystem::shadow_bvh_ is a DIFFERENT structure — a BVH over
+// NOTE: ParticleSystem::shadow_bvh_ is a DIFFERENT structure, a BVH over
 // particles that physics and humanoid locomotion query. Nothing here touches
 // it, and nothing here should ever be read as licence to.
 //
@@ -174,7 +174,7 @@ bool test_shadow_accel_backend() {
     // (3) sensitivity: if killing the lights does not move the frame far beyond
     // the noise floor, this scene cannot see shadowing and nothing below counts.
     if (hw_lit.over8 <= noise.over8) {
-        printf("\n  FAIL: unlit frame is indistinguishable from lit — the test is blind.\n");
+        printf("\n  FAIL: unlit frame is indistinguishable from lit. The test is blind.\n");
         ok = false;
     } else {
         printf("\n  sensitivity OK: %ld pixels move by >=8 when lighting is removed.\n", hw_lit.over8);
@@ -183,7 +183,7 @@ bool test_shadow_accel_backend() {
     // (1) the regression this seam exists to prevent.
     if (hw_bvh > 0.01) {
         printf("  FAIL: HardwareRT built the CPU shadow trees (%.3f ms). They are not\n"
-               "        bound by trace_shadows_deterministic — this is pure waste.\n", hw_bvh);
+               "        bound by trace_shadows_deterministic. This is pure waste.\n", hw_bvh);
         ok = false;
     } else {
         printf("  dormancy OK: HardwareRT builds no CPU shadow trees.\n");
@@ -205,8 +205,8 @@ bool test_shadow_accel_backend() {
         // KNOWN DEFECT, pre-existing and not caused by the seam. Reported, not
         // failed: every machine this engine runs on has Metal RT and takes the
         // hardware branch, so breaking CI over it would block unrelated work.
-        // FLIP THIS TO ok = false THE MOMENT THE SOFTWARE PATH LIGHTS THE SCENE
-        // — that is how a porter knows they are finished.
+        // FLIP THIS TO ok = false THE MOMENT THE SOFTWARE PATH LIGHTS THE SCENE.
+        // That is how a porter knows they are finished.
         printf("\n  *** KNOWN DEFECT: the SoftwareBVH fallback renders NO LIGHTING ***\n");
         printf("      Its frame is byte-identical to the same scene with the lights off.\n");
         printf("      The path builds its BVHs and dispatches its kernel, but produces\n");
@@ -221,7 +221,7 @@ bool test_shadow_accel_backend() {
 
     // (4) and it must produce the SAME shadows.
     if (sw_vs_dark.over8 == 0) {
-        printf("  agreement: NOT ASSESSED — the fallback renders nothing, so comparing\n"
+        printf("  agreement: NOT ASSESSED. The fallback renders nothing, so comparing\n"
                "             it to the reference measures the defect, not tie-breaking.\n");
     } else if (hw_vs_sw.over8 > 0) {
         printf("  WARN: the two backends disagree on %ld pixels (max delta %d).\n",

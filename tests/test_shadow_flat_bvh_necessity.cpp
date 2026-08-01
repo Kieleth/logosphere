@@ -195,7 +195,7 @@ bool test_shadow_flat_bvh_necessity() {
         engine.shutdown();
         return false;
     }
-    printf("\n  control OK: with no BVH at all, %ld pixels move by >=8 — the test can see shadows.\n",
+    printf("\n  control OK: with no BVH at all, %ld pixels move by >=8, the test can see shadows.\n",
            dD.over8);
 
     // ---- Assertion 2: the actual question ----------------------------------
@@ -203,7 +203,7 @@ bool test_shadow_flat_bvh_necessity() {
     if (flat_is_dead) {
         printf("\n  RESULT: the flat TriangleBVH is NEVER READ.\n");
         printf("          Suppressing it changed 0 pixels while the control proves shadows\n");
-        printf("          are visible to this test. Every flat rebuild is dead work —\n");
+        printf("          are visible to this test. Every flat rebuild is dead work,\n");
         printf("          up to 97 ms on a single frame. It can be deleted, not tuned.\n");
     } else {
         printf("\n  RESULT: the flat TriangleBVH IS read (%ld pixels move by >=8 without it).\n",
@@ -214,12 +214,12 @@ bool test_shadow_flat_bvh_necessity() {
 
     // ---- Assertion 3: does the fallback still work when forced? ------------
     if (dC.over8 == 0) {
-        printf("  fallback: forcing the flat path reproduces the reference exactly —\n");
+        printf("  fallback: forcing the flat path reproduces the reference exactly,\n");
         printf("            the two structures agree, so either alone is sufficient.\n");
     } else {
         printf("  fallback: forcing the flat path differs from the reference in %ld pixels (>=8)\n",
                dC.over8);
-        printf("            (max delta %d) — the two structures do NOT agree.\n", dC.max_delta);
+        printf("            (max delta %d). The two structures do NOT agree.\n", dC.max_delta);
     }
 
     engine.shutdown();

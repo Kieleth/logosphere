@@ -1,5 +1,5 @@
 // =============================================================================
-// SPHERE LOD QUALITY — is 320 triangles per sphere worth paying for?
+// SPHERE LOD QUALITY: is 320 triangles per sphere worth paying for?
 // =============================================================================
 // A sphere particle emits 20 / 80 / 320 / 1280 triangles at icosphere
 // subdivision 0 / 1 / 2 / 3. Level 2 is the shipped default, and study S10
@@ -191,7 +191,7 @@ bool test_sphere_lod_quality() {
         printf("\nSPACE cycles LOD. Watch the silhouettes, left (large) to right (small).\n");
         int cur = 0;
         logosphere::set_sphere_lod(levels[cur]);
-        printf("  LOD %d — %d triangles/sphere\n", levels[cur], tri_count_for(levels[cur]));
+        printf("  LOD %d: %d triangles/sphere\n", levels[cur], tri_count_for(levels[cur]));
         bool space_was_down = false;
         long frame = 0;
         while (engine.is_running()) {
@@ -202,7 +202,7 @@ bool test_sphere_lod_quality() {
             // cannot see which one you are looking at.
             if (auto* ui = engine.get_ui_system()) {
                 char hud[160];
-                snprintf(hud, sizeof(hud), "LOD %d  —  %d triangles/sphere",
+                snprintf(hud, sizeof(hud), "LOD %d  |  %d triangles/sphere",
                          levels[cur], tri_count_for(levels[cur]));
                 ui->draw_text(10, 10, hud, 255, 255, 160);
                 ui->draw_text(10, 34, "SPACE: next LOD | ESC: exit", 150, 150, 150);
@@ -216,13 +216,13 @@ bool test_sphere_lod_quality() {
             if (down && !space_was_down) {
                 cur = (cur + 1) % (int)levels.size();
                 logosphere::set_sphere_lod(levels[cur]);
-                printf("  LOD %d — %d triangles/sphere\n",
+                printf("  LOD %d: %d triangles/sphere\n",
                        levels[cur], tri_count_for(levels[cur]));
                 fflush(stdout);
             }
             space_was_down = down;
             if (input.get_input_state().keys[GLFW_KEY_ESCAPE]) {
-                printf("\n  ESC — exiting\n");
+                printf("\n  ESC: exiting\n");
                 break;
             }
         }

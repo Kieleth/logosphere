@@ -132,7 +132,7 @@ Games work with entities (groups of particles), never individual particles. Use 
 - **Show measured values** — `PASS: Floor G > R — G=211 R=56`, not just PASS/FAIL
 - **Thresholds from data** — every numeric threshold must come from measured values, not guesses
 - **Headless is source of truth** — if headless passes but interactive fails, investigate the difference
-- **Rendering changes need a visual test** — see
+- **Rendering changes need a visual test**: see
   [docs/VISUAL_TESTS.md](docs/VISUAL_TESTS.md) for the pattern and, more
   importantly, the traps. An A-vs-A noise floor is mandatory: re-rendering the
   identical frame moves ~30,000 pixels in this engine, so "pixels differ" is

@@ -6,8 +6,8 @@ noticed._
 
 A visual test does two jobs from one file:
 
-- **headless** — dumps frames, measures differences, asserts, runs in CI
-- **`INTERACTIVE=1`** — same scene in a window, so a human can judge what a
+- **headless**: dumps frames, measures differences, asserts, runs in CI
+- **`INTERACTIVE=1`**: same scene in a window, so a human can judge what a
   number cannot
 
 Write both. The headless half stops regressions; the interactive half is how
@@ -52,9 +52,9 @@ the uninitialised key array triggers spurious SPACE and ESC. A log showed 18
 state changes the user never made, and that log was then read as evidence.
 
 If you are reading input, poll. If a log shows input you did not perform, do
-not interpret the log — fix the polling.
+not interpret the log. Fix the polling.
 
-### COST: "pixels differ" is not a signal — take an A-vs-A control first
+### COST: "pixels differ" is not a signal. Take an A-vs-A control first
 
 Rendering the **identical** configuration twice moves ~30,000 pixels in this
 engine. Equal-depth geometry (a floor of identical tiles) has a documented
@@ -65,11 +65,11 @@ below that floor is noise.
 
 ```cpp
 const Shot A  = capture(config);
-const Shot A2 = capture(config);   // noise floor — do this BEFORE any comparison
+const Shot A2 = capture(config);   // noise floor: do this BEFORE any comparison
 const Shot B  = capture(changed);
 ```
 
-Cost: reported "the flat BVH IS read, 1.577% of pixels differ" — which was the
+Cost: reported "the flat BVH IS read, 1.577% of pixels differ", which was the
 noise floor, max delta 1. Confident, documented, wrong.
 
 ### Judge by magnitude, not by count
@@ -88,12 +88,12 @@ at noise no matter how many pixels changed.
 
 A test that suppresses feature X and sees no change has two possible meanings:
 X does nothing, or **the test cannot see X at all**. Distinguish them by
-including a configuration that must obviously differ — lights off, feature
-fully removed — and asserting that it does.
+including a configuration that must obviously differ (lights off, feature
+fully removed) and asserting that it does.
 
 ```cpp
 if (unlit_vs_lit.over8 <= noise.over8) {
-    printf("FAIL: the test is blind — do not read the other rows as evidence.\n");
+    printf("FAIL: the test is blind. Do not read the other rows as evidence.\n");
     return false;
 }
 ```
@@ -183,16 +183,16 @@ frame you read is the frame you rendered.
 ## RED/GREEN still applies
 
 Write the assertion first and watch it **fail for the reason you expect**. A
-visual test that passes the first time has usually proved nothing — it is
+visual test that passes the first time has usually proved nothing. It is
 measuring something other than the change, and you will not find out until it
 fails to catch a regression.
 
 When a test discovers a defect that is real but out of scope, report it loudly
-and do not fail the suite — then leave the exact line to flip:
+and do not fail the suite, then leave the exact line to flip:
 
 ```cpp
 // KNOWN DEFECT, pre-existing. Reported, not failed: no supported target hits it.
-// FLIP THIS TO ok = false THE MOMENT IT IS FIXED — that is how a porter knows
+// FLIP THIS TO ok = false THE MOMENT IT IS FIXED. That is how a porter knows
 // they are finished.
 ```
 

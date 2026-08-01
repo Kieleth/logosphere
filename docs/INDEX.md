@@ -15,8 +15,8 @@ Read in order:
 
 ## Engine internals
 
-- **[Engine Invariants](ENGINE_INVARIANTS.md)** — the rules that hold regardless of task, and why each one was expensive. Read before touching physics or animation
-- **[Visual Tests](VISUAL_TESTS.md)** — proving a rendering change: headless assertions plus an interactive mode, and the traps that produce confident wrong answers
+- **[Engine Invariants](ENGINE_INVARIANTS.md)**: the rules that hold regardless of task, and why each one was expensive. Read before touching physics or animation
+- **[Visual Tests](VISUAL_TESTS.md)**: proving a rendering change: headless assertions plus an interactive mode, and the traps that produce confident wrong answers
 
 For contributors working on the engine itself:
 

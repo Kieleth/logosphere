@@ -1,7 +1,7 @@
 # Engine invariants
 
 _Rules that hold regardless of the task. If a fix appears to require breaking
-one, the diagnosis is wrong — stop and re-investigate rather than working
+one, the diagnosis is wrong. Stop and re-investigate rather than working
 around it._
 
 These were paid for. Most of them exist because the opposite was tried, shipped,
@@ -27,15 +27,15 @@ mistake in this codebase's history.
 **The tell:** a bare literal deciding behaviour.
 
 ```cpp
-// NO — "moving up fast" is not a state, it is a coincidence
+// NO: "moving up fast" is not a state, it is a coincidence
 if (hips.vz > 1.0f) return;          // skip ground correction
 
-// YES — ask the question you actually mean
+// YES: ask the question you actually mean
 if (!is_grounded(parts)) return;     // airborne: ground correction does not apply
 ```
 
 The first version changes behaviour for a knockback, an explosion, a bouncing
-platform, a fast slope — every case nobody thought about. The second says what
+platform, a fast slope: every case nobody thought about. The second says what
 it means, and stays correct when the world gets more complicated.
 
 If the state you need does not exist yet, **add the state**. That is the
@@ -53,7 +53,7 @@ Contact normals come from geometry, never from a world-up vector.
 support_box.min_z = -10.0f;       // assumes a floor, and that it is above -10
 if (p.vz > threshold) ...         // assumes +Z is up
 
-// YES — derive direction from the contact, not the axis
+// YES: derive direction from the contact, not the axis
 const Vec3 up = contact.normal;
 ```
 
@@ -64,12 +64,12 @@ should not add to it.
 
 If it is a particle, it occupies space and collides. There are no decorative
 particles, no "skip this case" in contact handling, no visual-only ornament.
-Mass, friction, contacts and constraints are the mechanisms — there is nothing
+Mass, friction, contacts and constraints are the mechanisms. There is nothing
 else.
 
 ## 4. The turtle is the only immovable thing
 
-Everything else — floor tiles, strata, statues, boulders — is a particle with
+Everything else (floor tiles, strata, statues, boulders) is a particle with
 mass. Immobility is achieved through the turtle boundary, gluons with anchor
 points, or kinematic solver mode (an external writer owns position).
 
@@ -82,8 +82,8 @@ and nothing else about ownership. Writing `if (p.owner == ParticleOwner::X)`
 inside `src/core/physics_*.{h,cpp}` is a layering bleed.
 
 Per-consumer ownership bookkeeping (`ParticleOwner::ANIMATION`,
-`ParticleOwner::DYNAMICS`) belongs to the systems that need it — dynamics,
-rendering, animation — and stays invisible to the solver.
+`ParticleOwner::DYNAMICS`) belongs to the systems that need it: dynamics,
+rendering and animation. It stays invisible to the solver.
 
 ## 6. No springs, no damping as a patch
 
@@ -98,9 +98,9 @@ When something fails, instrument it, trace the actual path, read the actual
 values. Do not guess, do not toggle flags at random, do not paper over the
 symptom. Fix at the mechanism, add a regression test, move on.
 
-The engine ships a permanent write tracer for exactly this — see
-`ParticleTracer` — so "who moved this particle, and when?" is a question with
-an answer rather than a theory.
+The engine ships a permanent write tracer for exactly this, `ParticleTracer`,
+so "who moved this particle, and when?" is a question with an answer rather
+than a theory.
 
 ---
 
@@ -115,11 +115,11 @@ Right-handed world:
   `yaw = 0` faces +Y, `+π/2` faces +X, `+π` faces −Y, `−π/2` faces −X.
 - Position maths turning local offsets into world positions **must rotate CW
   too**. Using the textbook CCW matrix for positions while geometry rotates CW
-  produces rigs whose parts rotate in opposite directions — a silent dismember
+  produces rigs whose parts rotate in opposite directions, a silent dismember
   bug. Use `logosphere::assembly::part_world_position` rather than rolling your
   own sin/cos.
 
-Every downstream subsystem — vision, AI direction estimation, motion planning —
+Every downstream subsystem (vision, AI direction estimation, motion planning)
 assumes this. A single rig with the other convention makes all of them subtly
 wrong in ways that only appear under rotation and look like rendering
 artifacts.
@@ -142,5 +142,5 @@ addition instead.
 
 Reviewers cite the rule, not just the line. "This is invariant 1, a threshold
 standing in for state" is a teachable comment; "change this" is not. If a rule
-here is wrong or has outlived its reason, argue with it in an issue — it is
+here is wrong or has outlived its reason, argue with it in an issue. It is
 a record of what was expensive, not scripture.

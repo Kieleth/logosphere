@@ -26,7 +26,7 @@ Shadow rays trace against exactly one spatial structure, chosen per platform:
 
 | backend | who owns the structure | who traces it | cost of the CPU trees |
 |---|---|---|---|
-| `HardwareRT` | the driver (`MTLAccelerationStructure`; DXR or Vulkan RT on a port) | `trace_shadows_deterministic`, via `intersector<triangle_data>` | **none — they are not built** |
+| `HardwareRT` | the driver (`MTLAccelerationStructure`; DXR or Vulkan RT on a port) | `trace_shadows_deterministic`, via `intersector<triangle_data>` | **none, they are not built** |
 | `SoftwareBVH` | the engine (`TriangleBVH` + `EntityBVH`) | `trace_shadow_rays_deferred_batched`, walking `bvh_nodes` | built and uploaded every frame |
 
 `GPURasterizer::shadow_accel_backend()` decides. Everything that builds
@@ -38,7 +38,7 @@ frame in a spawning scene, 13% of that run.**
 
 Override with `LOGOSPHERE_SHADOW_ACCEL=hardware|software`, or
 `Logosphere::set_forced_shadow_accel_backend()`. Forcing `hardware` on a device
-without support is ignored — capability wins. Forcing `software` always works,
+without support is ignored: capability wins. Forcing `software` always works,
 which is what lets you exercise and debug the portable path on RT hardware
 before you have any other machine to test on.
 
@@ -71,7 +71,7 @@ applies to it.
    regress.
 4. If your platform has ray tracing (DXR, Vulkan RT), implement it behind
    `HardwareRT` and the CPU trees go dormant automatically. No render-pipeline
-   changes required — that is the point of the seam.
+   changes required. That is the point of the seam.
 
 ## How the defect was found
 
@@ -85,7 +85,7 @@ Two measurement lessons came out of it, both already burned once:
 
 - **An A-vs-A control is mandatory.** Re-rendering the identical configuration
   moved 30,274 pixels in this engine (equal-depth geometry has a documented
-  ±1 LSB nondeterminism). Without that control, noise reads as signal — it did,
+  ±1 LSB nondeterminism). Without that control, noise reads as signal. It did,
   and produced a confident wrong answer.
 - **Judge by magnitude, not by "pixels differ".** A lost shadow moves pixels by
   tens or hundreds. Anything with a max delta of 1 or 2 is the noise floor.

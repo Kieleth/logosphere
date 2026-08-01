@@ -1,5 +1,5 @@
 // =============================================================================
-// SHADOW BVH REBUILD LEVER — can you see the cost of a stale shadow tree?
+// SHADOW BVH REBUILD LEVER: can you see the cost of a stale shadow tree?
 // =============================================================================
 // A refit cannot place NEW triangles into the shadow BVH (no leaves exist for
 // them), so a spawning scene must fully rebuild. The rebuild trigger is
@@ -50,7 +50,7 @@ bool test_shadow_bvh_lever() {
 
     EngineConfig cfg;
     cfg.create_display = interactive;
-    cfg.window_title = "Shadow BVH rebuild lever — SPACE to cycle";
+    cfg.window_title = "Shadow BVH rebuild lever, SPACE to cycle";
     cfg.enable_chat_window = false;
     cfg.show_debug_overlay = interactive;
     Engine engine;
@@ -212,7 +212,7 @@ bool test_shadow_bvh_lever() {
             cur = (cur + 1) % kNumLevels;
             logosphere::set_shadow_bvh_rebuild_frames(kLevels[cur]);
             printf("  N = %zu%s\n", kLevels[cur],
-                   kLevels[cur] == 240 ? "   (deliberately absurd — the tree barely updates)" : "");
+                   kLevels[cur] == 240 ? "   (deliberately absurd: the tree barely updates)" : "");
             fflush(stdout);
         }
         space_was = down;
