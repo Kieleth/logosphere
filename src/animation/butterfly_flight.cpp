@@ -3,6 +3,7 @@
 #include "logosphere/animation/butterfly_flight.h"
 
 #include "core/engine.h"
+#include "logosphere/interaction/particle_interaction_system.h"
 #include "core/particle_system.h"
 #include "logosphere/dynamics/particle_dynamics_system.h"
 #include "logosphere/kg/kg_module.h"
@@ -14,6 +15,11 @@
 #include <string>
 
 namespace logosphere::animation {
+
+// Profile id for flying bodies that are present but not solid. Fixed
+// rather than allocated: the flight system owns it and registers the
+// same profile every time.
+static constexpr uint32_t kButterflyProfileId = 90001u;
 
 namespace {
 // Mirrors ParticleDynamicsSystem::calculate_sinusoidal_offset /
@@ -85,15 +91,32 @@ void ButterflyFlight::register_butterfly(kg::EntityID entity_id) {
     // fly: it falls, lands, and drifts along the floor, which is
     // exactly what these were doing. KINEMATIC is the sanctioned way
     // to say "an external writer owns this".
+    //
+    // But a KINEMATIC body is never skipped by the at-rest check -
+    // terrain must collide even while still - so left alone these
+    // would generate contacts against everything they flew past.
+    // Measured in Eden: physics went from 0.07 ms to 30 ms because
+    // four butterflies were now colliding with a garden. A butterfly
+    // does not push trees. So they also get an interaction profile
+    // that declines rigid contact, which is the engine's existing
+    // answer to "this body is present but not solid".
     {
+        auto& interaction = impl_->engine->get_interaction_system();
+        logosphere::interaction::InteractionProfile ghost;
+        ghost.id = kButterflyProfileId;
+        ghost.category = 1u << 6;
+        ghost.collides_with = 0u;      // touches nothing
+        interaction.register_profile(ghost);
+
         auto& ps = impl_->engine->get_particle_system();
         auto view = ps.lock_particles_for_write();
         auto& all = view.get_particles();
         for (unsigned int idx : parts.all_particles) {
             if (idx >= all.size()) continue;
             all[idx].solver_mode = ParticleSolverMode::KINEMATIC;
-            all[idx].is_at_rest = false;
+            all[idx].is_at_rest = true;   // nothing to integrate
             all[idx].vx = all[idx].vy = all[idx].vz = 0.0f;
+            all[idx].interaction_profile_id = kButterflyProfileId;
         }
     }
 

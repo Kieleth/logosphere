@@ -804,7 +804,35 @@ public:
     }
 
     // Update game logic (movement handled by PlayerController)
+    // Serpents waiting for their ground to stream in.
+    struct PendingSerpent { float x, y; SnakeSpec spec; };
+    std::vector<PendingSerpent> pending_serpents_;
+
+    // Place anything that was waiting for ground, now that the world
+    // has had a chance to pour it. Nothing is ever placed at a guessed
+    // height; if the ground is still missing, it simply waits.
+    void place_pending(float /*dt*/) {
+        if (pending_serpents_.empty() || !engine_) return;
+        auto& snake_gen = engine_->get_worldgen_system().get_snake_generator();
+        for (auto it = pending_serpents_.begin();
+             it != pending_serpents_.end(); ) {
+            float sz = 0.0f;
+            if (engine_->get_ground_locator().surface_at(it->x, it->y, sz,
+                                                         1.0f)) {
+                kg::EntityID id = snake_gen.generate_snake(it->x, it->y, sz,
+                                                           it->spec);
+                engine_->get_serpent_locomotion().register_serpent(id);
+                std::cout << "[EDEN] serpent placed at (" << it->x << ","
+                          << it->y << ") on ground z=" << sz << std::endl;
+                it = pending_serpents_.erase(it);
+            } else {
+                ++it;   // its ground has not arrived yet
+            }
+        }
+    }
+
     void update_game(float dt) override {
+        place_pending(dt);
         if (!engine_) return;
         (void)dt;
 
@@ -1724,20 +1752,12 @@ public:
                 float sy = eva_y + 6.0f * (i == 0 ? 1.0f : -1.0f);
                 SnakeSpec sspec = SnakeSpec::python();
                 sspec.total_length *= 0.8f + i * 0.3f;
-                // Ask where the ground is. Eden's strata surface sits
-                // at 0.55 m, so spawning at zero buried both serpents
-                // half a metre down - which is why one was never seen.
-                float sz = 0.0f;
-                if (!engine_->get_ground_locator().surface_at(sx, sy, sz,
-                                                              1.0f)) {
-                    std::cout << "[EDEN] no ground under serpent " << i
-                              << " at (" << sx << "," << sy
-                              << ") - skipping rather than burying it"
-                              << std::endl;
-                    continue;
-                }
-                kg::EntityID snake_id = snake_gen.generate_snake(sx, sy, sz, sspec);
-                engine_->get_serpent_locomotion().register_serpent(snake_id);
+                // Wait for ground. Spawning at zero buried both serpents
+                // under 0.55 m of strata - which is why one was never
+                // seen - but the strata streams in deferred, so at
+                // setup time there is nothing to stand on yet. Queue
+                // them and place each one the frame its ground exists.
+                pending_serpents_.push_back({sx, sy, sspec});
             }
 
             // --- 4 butterflies (flying dynamics) ---
