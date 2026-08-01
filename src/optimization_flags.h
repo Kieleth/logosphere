@@ -779,7 +779,41 @@ namespace Optimizations {  // Continue namespace
     //
     // SAFETY: Falls back to sync if prep not ready when GPU finishes
     // =========================================================================
-    constexpr bool USE_ASYNC_GPU_PREP = false;  // DISABLED: Test DYNAMICS shadow with sync prep
+    // Run prepare_gpu_data on a worker for frame N+1 while the GPU renders
+    // frame N, instead of synchronously on the main thread.
+    //
+    // OFF, blocked on issue #31. It was TRUE at the initial commit, set false
+    // on 2026-04-04 "(for testing)" during an Eva-shadow investigation that
+    // exonerated it (the bug reproduced in BOTH modes), and never restored.
+    // Turned on 2026-08-01 on the strength of the numbers below, and turned
+    // straight back off when a playtest showed foliage rendering as black
+    // slabs: prepare_gpu_data reads the LIVE KG for the render-index to entity
+    // mapping while holding a STALE particle snapshot, and Eden's chunk
+    // streaming reassigns render indices by swap-and-pop between those two
+    // instants. Geometry then gets another entity's material. See issue #31.
+    //
+    // Measured: +1.88 ms retina (9.2%), +3.43 ms windowed (27.4%). Retina is
+    // GPU-capped so it lands near its headroom; windowed had more to give.
+    // Pixel-identical to sync on a static scene, 0 pixels differing by >=8
+    // against an 18,277-pixel A-vs-A floor (test_async_prep_equivalence).
+    //
+    // WHAT IT COSTS: rendered geometry is ONE FRAME OLD. Frame N draws surfaces
+    // collected during frame N-1. At 60 FPS that is ~16 ms of latency on
+    // anything that moves. There is also a 500 ms timeout fallback that reuses
+    // the previous buffer, freezing geometry for a frame while the camera keeps
+    // moving. Neither is covered by the equivalence test, whose scene is
+    // entirely at rest; they were accepted on a visual playtest instead.
+    //
+    // The equivalence test could not have caught #31: its scene is entirely at
+    // rest and never adds or deletes a particle, and the bug needs churn.
+    //
+    // Known and undemonstrated: the worker captures camera_system by reference,
+    // a data race by the standard that produced no observable divergence at
+    // 7 deg/frame (see the orbit section of test_async_prep_equivalence).
+    //
+    // Runtime-switchable both ways: logosphere::set_async_gpu_prep(),
+    // or LOGOSPHERE_ASYNC_PREP=0 to fall back to synchronous prep.
+    constexpr bool USE_ASYNC_GPU_PREP = false;   // issue #31
 
     // =========================================================================
     // GPU BUFFER STORAGE MODES (QW1 - Quick Win #1)
