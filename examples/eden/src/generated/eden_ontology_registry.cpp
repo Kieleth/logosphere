@@ -46,6 +46,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("PhysicsConstants", "Entity", false);
     reg.addEntityType("PhysicsRock", "Rock", false);
     reg.addEntityType("PhysicsTree", "Tree", false);
+    reg.addEntityType("Planet", "NaturalFormation", false);
     reg.addEntityType("Plant", "LivingEntity", true);
     reg.addEntityType("Rock", "NaturalFormation", false);
     reg.addEntityType("RoomBlock", "Structure", false);
@@ -111,6 +112,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PhysicsRock", {"Describable", "Destructible", "Entity", "HasMaterial", "Identifiable", "NaturalFormation", "Rock", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("PhysicsTree", {"Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "Identifiable", "LivingEntity", "Plant", "Spatial", "Statusable", "Temporal", "Tree", "WorldEntity"});
+    reg.addAncestors("Planet", {"Describable", "Destructible", "Entity", "HasMaterial", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Plant", {"Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Rock", {"Describable", "Destructible", "Entity", "HasMaterial", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("RoomBlock", {"Describable", "Entity", "HasMaterial", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
@@ -224,6 +226,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ParticleInteractionProfile", "field_fy", "float", false);
     reg.addProperty("ParticleInteractionProfile", "field_fz", "float", false);
     reg.addProperty("PerceptionEvent", "memory_layer", "enum", false);
+    reg.addProperty("Planet", "planet_radius", "float", false, true, 1.0, true, 10.0);
     reg.addProperty("Plant", "organic_type", "enum", false);
     reg.addProperty("RelationEvent", "relation_type", "string", false);
     reg.addProperty("Rock", "rock_size", "enum", false);

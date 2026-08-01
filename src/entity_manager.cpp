@@ -22,6 +22,7 @@ EntityManager::EntityManager(kg::KGModule* kg, ParticleSystem& particle_system,
     register_type("PhysicsRock", physics_rock_activator);
     register_type("PhysicsTree", physics_tree_activator);
     register_type("FallenTree", vegetation_activator);
+    register_type("Planet", vegetation_activator);
     register_type("Weapon", rock_activator);
     register_type("Campfire", vegetation_activator);
     register_type("CelestialBody", simple_entity_activator);

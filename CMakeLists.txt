@@ -803,6 +803,7 @@ set(LOGOSPHERE_WORLDGEN_SOURCES
     src/worldgen/totem_generator.cpp
     src/worldgen/rock_generator.cpp
     src/worldgen/fallen_tree_generator.cpp
+    src/worldgen/planet_generator.cpp
     src/worldgen/scene_chunk_generator.cpp
     src/worldgen/worldgen_system.cpp
     src/worldgen/entity_generator.cpp

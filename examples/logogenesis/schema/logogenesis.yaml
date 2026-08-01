@@ -306,11 +306,63 @@ classes:
       - totem_g
       - totem_b
 
+  PlanetSeed:
+    is_a: WorldEntity
+    annotations:
+      facets: request
+    description: >-
+      Request for a small planet: a rust-warm sphere of bonded
+      stones floating in the dark, the Little Prince's asteroid.
+      This is the grandest wish in the vocabulary; grant it whole.
+      with_rose plants a single red-crowned tree at the north pole;
+      with_prince stands a small wanderer at the apex beside it.
+      The void suits it: no ground needed, just a light to see by.
+    slots:
+      - x
+      - y
+      - planet_radius
+      - planet_altitude
+      - crust_r
+      - crust_g
+      - crust_b
+      - with_rose
+      - with_prince
+
 # -------------------------------------------------------------------
 # Slots
 # -------------------------------------------------------------------
 
 slots:
+  planet_altitude:
+    range: float
+    minimum_value: 2.0
+    maximum_value: 40.0
+    description: >-
+      Height of the planet's center above the void floor. Omit and
+      it floats at radius + 2.5, clear of everything.
+  crust_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Crust stone color, red channel (0..1). Omit for
+      rust-warm earth.
+  crust_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Crust stone color, green channel (0..1).
+  crust_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Crust stone color, blue channel (0..1).
+  with_rose:
+    range: boolean
+    description: Plant the single radiant flower at the north pole.
+  with_prince:
+    range: boolean
+    description: Stand the small dreamer at the apex, beside his
+      rose.
   serpent_kind:
     range: SerpentKind
     description: Which serpent. Omit for a garden snake.

@@ -14,6 +14,7 @@
 #include "logosphere/worldgen/rock_generator.h"
 #include "logosphere/worldgen/physics_rock_generator.h"
 #include "logosphere/worldgen/fallen_tree_generator.h"
+#include "logosphere/worldgen/planet_generator.h"
 
 // Forward declarations
 class Engine;
@@ -54,6 +55,7 @@ public:
     RockGenerator& get_rock_generator() { return rock_generator_; }
     PhysicsRockGenerator& get_physics_rock_generator() { return physics_rock_generator_; }
     FallenTreeGenerator& get_fallen_tree_generator() { return fallen_tree_generator_; }
+    PlanetGenerator& get_planet_generator() { return planet_generator_; }
 
     // Future generators will be added here:
     // BiomeSystem& get_biome_system() { return biome_system_; }
@@ -76,6 +78,7 @@ private:
     RockGenerator rock_generator_;
     PhysicsRockGenerator physics_rock_generator_;
     FallenTreeGenerator fallen_tree_generator_;
+    PlanetGenerator planet_generator_;
     // etc.
 };
 

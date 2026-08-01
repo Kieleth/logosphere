@@ -1254,6 +1254,13 @@ struct PhysicsRock : public Rock {
 };
 
 
+/// A small planet or asteroid: a spherical bonded body floating free of the world floor, crust stones gluon-bonded onto a kinematic core. The Little Prince's asteroid is one of these.
+struct Planet : public NaturalFormation {
+    /// Crust radius of a small planet in meters.
+    std::optional<float> planet_radius = std::nullopt;
+};
+
+
 /// Fallen tree trunk or log.
 struct FallenTree : public NaturalFormation, public HasMaterial {
     /// Classification of fallen wood (trunk, branch, twig).
@@ -1783,6 +1790,29 @@ struct TotemSeed : public WorldEntity {
     std::optional<float> totem_g = std::nullopt;
     /// Wood color, blue channel (0..1).
     std::optional<float> totem_b = std::nullopt;
+};
+
+
+/// Request for a small planet: a rust-warm sphere of bonded stones floating in the dark, the Little Prince's asteroid. This is the grandest wish in the vocabulary; grant it whole. with_rose plants a single red-crowned tree at the north pole; with_prince stands a small wanderer at the apex beside it. The void suits it: no ground needed, just a light to see by.
+struct PlanetSeed : public WorldEntity {
+    /// World-x position (m). Stage center is 0.
+    std::optional<float> x = std::nullopt;
+    /// World-y position (m). Stage center is 0.
+    std::optional<float> y = std::nullopt;
+    /// Crust radius of a small planet in meters.
+    std::optional<float> planet_radius = std::nullopt;
+    /// Height of the planet's center above the void floor. Omit and it floats at radius + 2.5, clear of everything.
+    std::optional<float> planet_altitude = std::nullopt;
+    /// Crust stone color, red channel (0..1). Omit for rust-warm earth.
+    std::optional<float> crust_r = std::nullopt;
+    /// Crust stone color, green channel (0..1).
+    std::optional<float> crust_g = std::nullopt;
+    /// Crust stone color, blue channel (0..1).
+    std::optional<float> crust_b = std::nullopt;
+    /// Plant the single radiant flower at the north pole.
+    std::optional<bool> with_rose = std::nullopt;
+    /// Stand the small dreamer at the apex, beside his rose.
+    std::optional<bool> with_prince = std::nullopt;
 };
 
 

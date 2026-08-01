@@ -1233,6 +1233,13 @@ struct PhysicsRock : public Rock {
 };
 
 
+/// A small planet or asteroid: a spherical bonded body floating free of the world floor, crust stones gluon-bonded onto a kinematic core. The Little Prince's asteroid is one of these.
+struct Planet : public NaturalFormation {
+    /// Crust radius of a small planet in meters.
+    std::optional<float> planet_radius = std::nullopt;
+};
+
+
 /// Fallen tree trunk or log.
 struct FallenTree : public NaturalFormation, public HasMaterial {
     /// Classification of fallen wood (trunk, branch, twig).

@@ -553,6 +553,15 @@ classes:
     is_a: Rock
     description: Physics-enabled rock with full collision.
 
+  Planet:
+    is_a: NaturalFormation
+    description: >-
+      A small planet or asteroid: a spherical bonded body floating
+      free of the world floor, crust stones gluon-bonded onto a
+      kinematic core. The Little Prince's asteroid is one of these.
+    slots:
+      - planet_radius
+
   FallenTree:
     is_a: NaturalFormation
     description: Fallen tree trunk or log.
@@ -989,6 +998,11 @@ slots:
     range: FloorType
   rock_size:
     range: RockSize
+  planet_radius:
+    range: float
+    minimum_value: 1.0
+    maximum_value: 10.0
+    description: Crust radius of a small planet in meters.
   tree_variant:
     range: TreeVariant
     description: Tree species/growth stage for generator dispatch.
