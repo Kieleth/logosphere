@@ -132,6 +132,11 @@ Games work with entities (groups of particles), never individual particles. Use 
 - **Show measured values** — `PASS: Floor G > R — G=211 R=56`, not just PASS/FAIL
 - **Thresholds from data** — every numeric threshold must come from measured values, not guesses
 - **Headless is source of truth** — if headless passes but interactive fails, investigate the difference
+- **Rendering changes need a visual test** — see
+  [docs/VISUAL_TESTS.md](docs/VISUAL_TESTS.md) for the pattern and, more
+  importantly, the traps. An A-vs-A noise floor is mandatory: re-rendering the
+  identical frame moves ~30,000 pixels in this engine, so "pixels differ" is
+  not a signal on its own
 - Standard test positions: `(-10, -10, 20)` for camera setups
 - Always call `update_lighting()` before `render()` in test setup
 
@@ -162,9 +167,17 @@ defects and proposals belong in issues.
 ## Submitting Changes
 
 1. **Fork** the repository and create a topic branch from `main`.
-2. **Make the change** honoring [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-   (engine invariants) and the conventions below. New public API or
-   bug fix means a test; user-facing changes mean a CHANGELOG entry.
+2. **Make the change** honoring
+   [docs/ENGINE_INVARIANTS.md](docs/ENGINE_INVARIANTS.md) and
+   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), plus the conventions below.
+   New public API or bug fix means a test; user-facing changes mean a
+   CHANGELOG entry.
+
+   **Read the invariants before writing physics or animation code.** They are
+   short, and most of them exist because the opposite was tried and cost weeks.
+   The one that catches contributors most often: a magnitude threshold
+   (`if (v.z > 1.0f)`) standing in for a state that should be named and asked
+   for (`if (!is_grounded())`).
 3. **Sign off every commit** (`git commit -s`) — see the DCO section.
 4. **Open a pull request.** CI runs the headless-core and
    headless-physics builds and test suites on Linux plus the DCO
