@@ -36,6 +36,7 @@
 #include "logosphere/worldgen/snake_generator.h"
 #include "logosphere/worldgen/fallen_tree_generator.h"
 #include "logosphere/worldgen/totem_generator.h"
+#include "logosphere/worldgen/planet_generator.h"
 #include "logosphere/animation/humanoid_locomotion.h"
 #include "core/game_time.h"
 #include "logogenesis_ontology_registry.h"
@@ -343,7 +344,7 @@ private:
             {"GroundSeed", "SunSeed", "MoonSeed", "Sky", "LightSeed",
              "TreeSeed", "GrassSeed", "RockSeed", "ButterflySeed",
              "HumanoidSeed", "OrbitSeed", "SerpentSeed",
-             "FallenTreeSeed", "TotemSeed"});
+             "FallenTreeSeed", "TotemSeed", "PlanetSeed"});
         return std::string(
             "You are the voice of Logogenesis: a playful, slightly "
             "theatrical creator who makes things exist in a black "
@@ -394,6 +395,14 @@ private:
             "dramatic) births the rock that high and lets gravity "
             "speak — on LAYERED ground the impact shoves the topsoil "
             "aside. Use for 'meteor', 'crash', 'falling rock' wishes.\n\n"
+            "THE GRANDEST WISH: a PlanetSeed births a small planet, a "
+            "rust-warm sphere of bonded stones floating in the dark - "
+            "the Little Prince's asteroid. with_rose plants his flower "
+            "at the pole, with_prince stands the dreamer beside it. It "
+            "needs no ground, only a light; pair it with an OrbitSeed "
+            "and the eye circles the little world. Reach for it when "
+            "the human asks for a planet, an asteroid, a tiny world, "
+            "or the Little Prince.\n\n"
             "THE EYE CAN MOVE: an OrbitSeed swings the camera around "
             "the scene like a slow drone shot and lands where it began "
             "(revolutions 1, duration_seconds 12 reads cinematic). Use "
@@ -1119,6 +1128,58 @@ private:
             kg.destroyEntity(seed);
             wg.get_rock_generator().generate_rock(x, y, ground_top_z_, spec);
             ++creations_;
+        }
+
+        for (auto seed : kg.findByType("PlanetSeed")) {
+            float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
+            PlanetSpec pspec = PlanetSpec::asteroid_b612();
+            if (auto r = prop_opt(kg, seed, "planet_radius"))
+                pspec.radius = *r;
+            read_rgb(kg, seed, "crust", pspec.crust_r, pspec.crust_g,
+                     pspec.crust_b);
+            float alt = prop_f(kg, seed, "planet_altitude",
+                               pspec.radius + 2.5f);
+            bool rose = kg.getProperty(seed, "with_rose") == "true";
+            bool prince = kg.getProperty(seed, "with_prince") == "true";
+            kg.destroyEntity(seed);
+
+            wg.get_planet_generator().generate_planet(x, y, alt, pspec);
+            float apex_z = alt + pspec.radius;
+            ++creations_;
+
+            if (rose) {
+                // The single radiant flower: a sapling-scale willow
+                // with a red crown at the north pole.
+                TreeSpec rspec = TreeSpec::willow();
+                rspec.height = std::min(1.4f, pspec.radius * 0.45f);
+                rspec.crown_radius = rspec.height * 0.5f;
+                rspec.leaf_r = 0.85f; rspec.leaf_g = 0.12f;
+                rspec.leaf_b = 0.18f;
+                rspec.random_seed = static_cast<int>(seed) * 977;
+                wg.get_tree_generator().generate_tree_space_colonization(
+                    x + pspec.radius * 0.25f, y, apex_z - 0.15f, rspec);
+                ++creations_;
+            }
+            if (prince) {
+                // The dreamer at the apex, standing beside his rose.
+                // Real physics walker on real crust; v1 he stands
+                // (no wanderer registration - the apex cap is small).
+                HumanoidSpec hspec = HumanoidSpec::default_human();
+                hspec.apply_natural_variation(
+                    0.10f, static_cast<unsigned>(seed) * 131u);
+                hspec.clothing_r = 0.93f; hspec.clothing_g = 0.88f;
+                hspec.clothing_b = 0.72f;   // ochre and cream
+                auto body =
+                    wg.get_humanoid_generator().generate_humanoid_physics(
+                        x - pspec.radius * 0.2f, y, apex_z + 0.1f, -1,
+                        hspec, false);
+                body.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
+                engine_->get_humanoid_locomotion().register_humanoid_direct(
+                    body.hips_id, body.left_leg_ids, body.right_leg_ids,
+                    body.left_arm_ids, body.right_arm_ids, body.torso_ids,
+                    180.0f, 800.0f);
+                ++creations_;
+            }
         }
 
         for (auto seed : kg.findByType("SerpentSeed")) {

@@ -949,6 +949,59 @@ void test_thoughts_only_reply_creates_nothing() {
         ")");
 }
 
+// The grandest wish: one PlanetSeed births the whole tableau -
+// bonded sphere, rose at the pole, prince at the apex - floating
+// clear of the turtle, crust constrained to the core.
+void test_prince_planet() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"The lonely asteroid, whole: earth, flower, dreamer.",
+                     "ops":[
+              {"op":"create_entity","type":"PlanetSeed","properties":{
+                 "x":"0","y":"0","planet_radius":"3",
+                 "with_rose":"true","with_prince":"true"}}]})");
+        });
+
+    h.app.submit_text_for_test("the Little Prince's asteroid, please");
+    for (int i = 0; i < 900 && h.app.creations() < 3; ++i) h.tick(dt);
+
+    AT_ASSERT_TRUE(h.app.creations() == 3,
+        "planet + rose + prince (creations " +
+        std::to_string(h.app.creations()) + ")");
+    auto planets = kg.findByType("Planet");
+    AT_ASSERT_TRUE(planets.size() == 1, "one Planet entity in the KG");
+    AT_ASSERT_TRUE(kg.findByType("PlanetSeed").empty(),
+        "the seed is consumed");
+
+    // The crust is a bonded body: constraints exist on the planet.
+    int constraints = 0;
+    for (auto c : kg.findByType("Constraint")) {
+        if (kg.getProperty(c, "entity_id") ==
+            std::to_string(planets[0])) constraints++;
+    }
+    AT_ASSERT_TRUE(constraints >= 24,
+        "crust stones are bonded to the core (constraints " +
+        std::to_string(constraints) + ")");
+
+    // Let it exist for a while: the planet must float, not fall.
+    for (int i = 0; i < 300; ++i) h.tick(dt);
+    float min_z = 1e9f;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < view.size(); ++i)
+            min_z = std::min(min_z, view[i].z - view[i].thickness * 0.5f);
+    }
+    AT_ASSERT_TRUE(min_z > -0.01f,
+        "nothing driven below the turtle (lowest " +
+        std::to_string(min_z) + ")");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -965,6 +1018,7 @@ int main() {
     AT_TEST(test_orbit_seed_swings_the_camera);
     AT_TEST(test_serpent_deadwood_totem);
     AT_TEST(test_thoughts_only_reply_creates_nothing);
+    AT_TEST(test_prince_planet);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
