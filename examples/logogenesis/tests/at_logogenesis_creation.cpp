@@ -922,6 +922,21 @@ void test_serpent_deadwood_totem() {
     AT_ASSERT_TRUE(!kg.findByType("Snake").empty() ||
                    !kg.findByType("Serpent").empty(),
         "a serpent entity exists in the KG");
+
+    // KG entities are not bodies. Let the world settle, then count
+    // what actually exists (the planet bug: entity + constraints
+    // present, particles absent, every assertion still green).
+    for (int i = 0; i < 120; ++i) h.tick(dt);
+    int particles = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        particles = static_cast<int>(view.size());
+    }
+    std::cout << "  [measure] menagerie particles=" << particles
+              << std::endl;
+    AT_ASSERT_TRUE(particles >= 20,
+        "the menagerie materialized into real particles (count " +
+        std::to_string(particles) + ")");
 }
 
 // Playful declines are thoughts-only: zero ops must create nothing
