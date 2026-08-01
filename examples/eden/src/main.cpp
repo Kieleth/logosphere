@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <vector>
+#include <functional>
 #include <algorithm>
 #include <GLFW/glfw3.h>
 #include "debug_control.h"  // Centralized Eden debug control
@@ -425,7 +426,10 @@ public:
                         spec.apply_natural_variation(0.5f, variation_seed);
                         spec.random_seed = variation_seed;
 
-                        kg::EntityID tree_id = tree_gen.generate_tree_space_colonization(tree_x, tree_y, 0.0f, spec);
+                        float tz = 0.0f;
+                        if (!ground_here(tree_x, tree_y, tz,
+                                         logosphere::SupportMode::ROOTED)) continue;
+                        kg::EntityID tree_id = tree_gen.generate_tree_space_colonization(tree_x, tree_y, tz, spec);
                         EDEN_LOG("[Eden]   Tree " << (i+1) << "/5 (ID=" << tree_id << ") in cluster");
                     }
 
@@ -487,7 +491,10 @@ public:
                                                 + patch_counter++;
                     spec.blade_spec.random_seed = variation_seed;
 
-                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz,
+                                     logosphere::SupportMode::ROOTED)) return true;
+                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, gz, spec);
                     EDEN_LOG("[Eden] Grass patch (ID=" << patch_id << ") spawned at mouse (" << world_x << ", " << world_y << ")");
                     return true;
                 }
@@ -515,7 +522,10 @@ public:
                                                 + tree_counter++;
                     spec.random_seed = variation_seed;
 
-                    PhysicsTreeResult result = physics_tree_gen.generate_tree(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz,
+                                     logosphere::SupportMode::ROOTED)) return true;
+                    PhysicsTreeResult result = physics_tree_gen.generate_tree(world_x, world_y, gz, spec);
                     EDEN_LOG("[Eden] PHYSICS tree (small): " << result.total_segments << " segments, " << result.total_mass << "kg at (" << world_x << ", " << world_y << ")");
                     return true;
                 }
@@ -542,7 +552,10 @@ public:
                                                 + tree_counter_large++;
                     spec.random_seed = variation_seed;
 
-                    PhysicsTreeResult result = physics_tree_gen.generate_tree(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz,
+                                     logosphere::SupportMode::ROOTED)) return true;
+                    PhysicsTreeResult result = physics_tree_gen.generate_tree(world_x, world_y, gz, spec);
                     EDEN_LOG("[Eden] PHYSICS tree (large oak): " << result.total_segments << " segments, " << result.total_mass << "kg at (" << world_x << ", " << world_y << ")");
                     return true;
                 }
@@ -587,7 +600,10 @@ public:
                                                 + tall_patch_counter++;
                     spec.blade_spec.random_seed = variation_seed;
 
-                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz,
+                                     logosphere::SupportMode::ROOTED)) return true;
+                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, gz, spec);
                     EDEN_LOG("[Eden] TALL grass patch (ID=" << patch_id << ") spawned at mouse (" << world_x << ", " << world_y << ")");
                     return true;
                 }
@@ -613,7 +629,10 @@ public:
                                                 + dense_patch_counter++;
                     spec.blade_spec.random_seed = variation_seed;
 
-                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz,
+                                     logosphere::SupportMode::ROOTED)) return true;
+                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, gz, spec);
                     EDEN_LOG("[Eden] DENSE grass patch (ID=" << patch_id << ") spawned at mouse (" << world_x << ", " << world_y << ")");
                     return true;
                 }
@@ -639,7 +658,10 @@ public:
                                                 + sparse_patch_counter++;
                     spec.blade_spec.random_seed = variation_seed;
 
-                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz,
+                                     logosphere::SupportMode::ROOTED)) return true;
+                    kg::EntityID patch_id = organic_gen.generate_grass_patch(world_x, world_y, gz, spec);
                     EDEN_LOG("[Eden] SPARSE grass patch (ID=" << patch_id << ") spawned at mouse (" << world_x << ", " << world_y << ")");
                     return true;
                 }
@@ -677,7 +699,9 @@ public:
                     spec.scale_g *= color_variation;
                     spec.scale_b *= color_variation;
 
-                    kg::EntityID snake_id = snake_gen.generate_snake(world_x, world_y, 0.0f, spec);
+                    float gz = 0.0f;
+                    if (!ground_here(world_x, world_y, gz)) return true;
+                    kg::EntityID snake_id = snake_gen.generate_snake(world_x, world_y, gz, spec);
 
                     // Register with dynamics system for autonomous wandering
                     engine_->get_serpent_locomotion().register_serpent(snake_id);
@@ -804,27 +828,64 @@ public:
     }
 
     // Update game logic (movement handled by PlayerController)
-    // Serpents waiting for their ground to stream in.
-    struct PendingSerpent { float x, y; SnakeSpec spec; };
-    std::vector<PendingSerpent> pending_serpents_;
+    // Ground under a spawn-at-mouse point. These handlers run long
+    // after the world has streamed in, so the answer is available
+    // now; what is never available is a safe guess.
+    bool ground_here(float x, float y, float& out_z,
+                     logosphere::SupportMode mode =
+                         logosphere::SupportMode::STANDING) const {
+        logosphere::PlacementRequest req;
+        req.x = x; req.y = y;
+        req.mode = mode;
+        req.footprint = 1.0f;
+        auto p = engine_->get_ground_locator().locate(req);
+        if (!p.found) {
+            std::cout << "[EDEN] nothing to stand on at (" << x << "," << y
+                      << "): " << p.reason << std::endl;
+            return false;
+        }
+        out_z = p.z;
+        return true;
+    }
 
-    // Place anything that was waiting for ground, now that the world
-    // has had a chance to pour it. Nothing is ever placed at a guessed
-    // height; if the ground is still missing, it simply waits.
-    void place_pending(float /*dt*/) {
-        if (pending_serpents_.empty() || !engine_) return;
-        auto& snake_gen = engine_->get_worldgen_system().get_snake_generator();
-        for (auto it = pending_serpents_.begin();
-             it != pending_serpents_.end(); ) {
-            float sz = 0.0f;
-            if (engine_->get_ground_locator().surface_at(it->x, it->y, sz,
-                                                         1.0f)) {
-                kg::EntityID id = snake_gen.generate_snake(it->x, it->y, sz,
-                                                           it->spec);
-                engine_->get_serpent_locomotion().register_serpent(id);
-                std::cout << "[EDEN] serpent placed at (" << it->x << ","
-                          << it->y << ") on ground z=" << sz << std::endl;
-                it = pending_serpents_.erase(it);
+    // Anything waiting for the ground it will stand on.
+    //
+    // Eden's strata streams in deferred, so at scene-setup time there
+    // is nothing under most of the garden yet. Spawning at a guessed
+    // height is how the serpents ended up buried under 0.55 m of soil
+    // and the trees and grass with them. So: say where a thing goes
+    // and how it meets the ground, and it is placed on the frame its
+    // ground actually exists.
+    struct Pending {
+        float x, y;
+        logosphere::SupportMode mode;
+        float footprint;
+        float height;
+        const char* what;
+        std::function<void(float z)> place;
+    };
+    std::vector<Pending> pending_;
+
+    void defer(float x, float y, logosphere::SupportMode mode,
+               float footprint, float height, const char* what,
+               std::function<void(float)> place) {
+        pending_.push_back({x, y, mode, footprint, height, what,
+                            std::move(place)});
+    }
+
+    void place_pending() {
+        if (pending_.empty() || !engine_) return;
+        auto& locator = engine_->get_ground_locator();
+        for (auto it = pending_.begin(); it != pending_.end(); ) {
+            logosphere::PlacementRequest req;
+            req.x = it->x; req.y = it->y;
+            req.mode = it->mode;
+            req.footprint = it->footprint;
+            req.height = it->height;
+            auto p = locator.locate(req);
+            if (p.found) {
+                it->place(p.z);
+                it = pending_.erase(it);
             } else {
                 ++it;   // its ground has not arrived yet
             }
@@ -832,7 +893,7 @@ public:
     }
 
     void update_game(float dt) override {
-        place_pending(dt);
+        place_pending();
         if (!engine_) return;
         (void)dt;
 
@@ -1646,11 +1707,20 @@ public:
                     spec.trunk_diameter = 0.1f + spots[i][2] * 0.03f;
                     spec.branch_depth = spots[i][2] > 5.0f ? 3 : 2;
                     spec.random_seed = 500 + i * 37;
-                    PhysicsTreeResult tr = physics_tree_gen.generate_tree(
-                        spots[i][0], spots[i][1], 0.0f, spec);
-                    std::cout << "[TREE] " << i << " at (" << spots[i][0] << ","
-                              << spots[i][1] << ") h=" << spec.height
-                              << " segs=" << tr.total_segments << std::endl;
+                    const float tx = spots[i][0], ty = spots[i][1];
+                    defer(tx, ty, logosphere::SupportMode::ROOTED,
+                          1.0f, spec.height, "tree",
+                          [this, tx, ty, spec, i](float z) {
+                              auto& g = engine_->get_worldgen_system()
+                                            .get_physics_tree_generator();
+                              PhysicsTreeResult tr = g.generate_tree(tx, ty, z,
+                                                                     spec);
+                              std::cout << "[TREE] " << i << " at (" << tx
+                                        << "," << ty << ") z=" << z
+                                        << " h=" << spec.height
+                                        << " segs=" << tr.total_segments
+                                        << std::endl;
+                          });
                 }
             }
 
@@ -1720,7 +1790,13 @@ public:
                 float gy = eva_y + dist * std::sin(angle);
                 GrassPatchSpec gspec = (i % 3 == 0) ? GrassPatchSpec::tall_grass()
                                                      : GrassPatchSpec::short_grass();
-                organic_gen.generate_grass_patch(gx, gy, 0.0f, gspec);
+                defer(gx, gy, logosphere::SupportMode::ROOTED, 0.6f, 0.4f,
+                      "grass",
+                      [this, gx, gy, gspec](float z) {
+                          engine_->get_worldgen_system()
+                              .get_organic_generator()
+                              .generate_grass_patch(gx, gy, z, gspec);
+                      });
             }
 
             // --- 3 NPCs (village) ---
@@ -1757,7 +1833,14 @@ public:
                 // seen - but the strata streams in deferred, so at
                 // setup time there is nothing to stand on yet. Queue
                 // them and place each one the frame its ground exists.
-                pending_serpents_.push_back({sx, sy, sspec});
+                defer(sx, sy, logosphere::SupportMode::STANDING, 1.0f, 0.3f,
+                      "serpent",
+                      [this, sx, sy, sspec](float z) {
+                          auto& g = engine_->get_worldgen_system()
+                                        .get_snake_generator();
+                          kg::EntityID id = g.generate_snake(sx, sy, z, sspec);
+                          engine_->get_serpent_locomotion().register_serpent(id);
+                      });
             }
 
             // --- 4 butterflies (flying dynamics) ---
