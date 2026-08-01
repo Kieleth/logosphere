@@ -915,7 +915,7 @@ private:
         // plants the tree while planet_radius_ is still zero, and it
         // grows from the old floor straight through the world.
         for (auto seed : kg.findByType("StarfieldSeed")) {
-            int count = static_cast<int>(prop_f(kg, seed, "star_count", 150));
+            int count = static_cast<int>(prop_f(kg, seed, "star_count", 260));
             float dist = prop_f(kg, seed, "sky_distance", 60.0f);
             float bright = prop_f(kg, seed, "star_brightness", 1.0f);
             kg.destroyEntity(seed);
@@ -941,7 +941,17 @@ private:
                 p.x = std::sin(polar) * std::cos(azim) * d;
                 p.y = std::sin(polar) * std::sin(azim) * d;
                 p.z = std::cos(polar) * d + 6.0f;
-                float sz = 0.22f + 0.30f * frac(i * 0.7548777f);
+                // Magnitude distribution. The first cut gave every star
+                // the same brightness and a narrow linear size band,
+                // which reads as a pegboard: a real sky is mostly
+                // faint pinpricks with a scattering of bright ones.
+                // Cubing crushes the spread toward faint, and size and
+                // glow move together so a bright star is also a bigger
+                // one. Note these are REAL spheres at a real distance,
+                // so they grow as you zoom in - hence the small floor.
+                const float u = frac(i * 0.7548777f);
+                const float mag = u * u * u;
+                float sz = 0.07f + 0.30f * mag;
                 p.size = p.width = p.height = p.thickness = sz;
                 float warm = frac(i * 0.3819660f);
                 p.r = 0.80f + 0.20f * warm;
@@ -949,7 +959,7 @@ private:
                 p.b = 1.0f;
                 p.a = 1.0f;
                 p.is_self_emissive = true;
-                p.emission_strength = 2.2f * bright;
+                p.emission_strength = (0.9f + 3.2f * mag) * bright;
                 p.owner = ParticleOwner::STATIC;
                 p.is_at_rest = true;
                 engine_->get_particle_system().add_particle_to_entity(
