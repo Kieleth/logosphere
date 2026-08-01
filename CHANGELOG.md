@@ -7,6 +7,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- Serialized GPU diagnostic mode: `Logosphere::set_gpu_serialized_diagnostic()`
+  or `LOGOSPHERE_GPU_SERIALIZED=1` makes every render pass block until it
+  completes before the next is encoded, so each runs alone and its GPU
+  timestamp is its true isolated cost. Profiling only: it destroys CPU/GPU
+  overlap by construction and measured 2.54x frame time on Eden at retina,
+  so read the per-stage split from it and ignore its frame time.
+
 ### Fixed
 - `telemetry::GpuWindow` now publishes `start_s` / `end_s`, the absolute
   bounds of a frame's GPU window. Without them, GPU occupancy could only

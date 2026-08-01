@@ -58,6 +58,16 @@ void set_forced_shadow_accel_backend(const char* /*name*/) {
     // No-op: there is no hardware backend to choose between on this profile.
 }
 
+// --- Serialized diagnostic mode (see gpu_rasterizer.h for the contract) ---
+// Always off, and not merely unimplemented: this profile encodes no command
+// buffers at all, so there is nothing to serialise and no per-stage cost to
+// isolate. A port that grows a real GPU backend should implement both of these
+// alongside it. The mode is how per-stage attribution stops being guesswork:
+// pipelined stage timestamps overlap, so they are neither additive nor
+// subtractive, and "what would removing this pass buy" has no answer without it.
+bool gpu_serialized_diagnostic() { return false; }
+void set_gpu_serialized_diagnostic(bool /*on*/) {}
+
 bool GPURasterizer::initialize(int width, int height) {
     width_ = width;
     height_ = height;

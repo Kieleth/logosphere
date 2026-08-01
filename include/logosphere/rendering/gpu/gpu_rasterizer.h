@@ -98,6 +98,25 @@ const char* to_string(ShadowAccelBackend b);
 // HardwareRT on a device without support is ignored: capability still wins.
 void set_forced_shadow_accel_backend(const char* name_or_null);
 
+// -----------------------------------------------------------------------------
+// Serialized diagnostic mode: PROFILING ONLY, never the shipping path.
+// -----------------------------------------------------------------------------
+// Normally each render pass is committed and the next is encoded immediately,
+// so passes overlap on the GPU. That is correct for performance and useless for
+// attribution: overlapping per-stage timestamps are not additive, so "what
+// would removing this pass buy" cannot be answered from them. Two stage-level
+// wins in the 2026-07 campaign moved their stage and left frame time unchanged,
+// with no instrument able to say why.
+//
+// With this on, every pass blocks until it completes before the next is
+// encoded. Each pass then runs alone and its timestamp is its true isolated
+// cost. Read the per-stage split; IGNORE the frame time, which is meaningless
+// here because CPU/GPU overlap is destroyed by construction.
+//
+// LOGOSPHERE_GPU_SERIALIZED=1 does the same at startup.
+bool gpu_serialized_diagnostic();
+void set_gpu_serialized_diagnostic(bool on);
+
 class GPURasterizer {
 public:
     GPURasterizer();

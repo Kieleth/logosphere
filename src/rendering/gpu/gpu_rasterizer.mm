@@ -55,6 +55,11 @@ int forced_shadow_accel() {
     g_forced_shadow_accel.store(init, std::memory_order_relaxed);
     return init;
 }
+
+// --- Serialized diagnostic mode (see gpu_rasterizer.h for the contract) ---
+// -1 not yet initialised, 0 off, 1 on. Read from LOGOSPHERE_GPU_SERIALIZED on
+// first use; set_gpu_serialized_diagnostic() overrides at runtime.
+std::atomic<int> g_gpu_serialized{-1};
 }  // namespace
 
 namespace Logosphere {
@@ -67,6 +72,19 @@ void set_forced_shadow_accel_backend(const char* name) {
     if (!name)                              g_forced_shadow_accel.store(-1, std::memory_order_relaxed);
     else if (std::strcmp(name, "hardware") == 0) g_forced_shadow_accel.store(0, std::memory_order_relaxed);
     else if (std::strcmp(name, "software") == 0) g_forced_shadow_accel.store(1, std::memory_order_relaxed);
+}
+
+bool gpu_serialized_diagnostic() {
+    int v = g_gpu_serialized.load(std::memory_order_relaxed);
+    if (v >= 0) return v != 0;
+    const char* e = std::getenv("LOGOSPHERE_GPU_SERIALIZED");
+    const int init = (e && std::strcmp(e, "0") != 0) ? 1 : 0;
+    g_gpu_serialized.store(init, std::memory_order_relaxed);
+    return init != 0;
+}
+
+void set_gpu_serialized_diagnostic(bool on) {
+    g_gpu_serialized.store(on ? 1 : 0, std::memory_order_relaxed);
 }
 
 }  // namespace Logosphere
@@ -84,6 +102,23 @@ static id<MTLCommandBuffer> createTrackedCommandBuffer(id<MTLCommandQueue> queue
             tel_frame, cb.GPUStartTime, cb.GPUEndTime);
     }];
     return cmd;
+}
+
+// Commit a pass. In serialized diagnostic mode, block until it finishes before
+// the caller encodes the next one, so each pass runs ALONE on the GPU and its
+// timestamp is its true isolated cost rather than a figure blended with
+// whatever overlapped it.
+//
+// This is why it exists: pipelined per-stage numbers are not additive and not
+// subtractive either, so "what would removing this pass buy" had no answer.
+// Two stage-level wins in the 2026-07 campaign moved their stage and left frame
+// time unchanged, and there was no instrument that could say why.
+//
+// NEVER the shipping path. It destroys CPU/GPU overlap by construction, so the
+// frame time it reports is meaningless. Only the per-stage split is meaningful.
+static inline void commitPass(id<MTLCommandBuffer> cmd) {
+    [cmd commit];
+    if (Logosphere::gpu_serialized_diagnostic()) [cmd waitUntilCompleted];
 }
 
 // Log detailed error info from a failed command buffer, including per-encoder
@@ -3789,7 +3824,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                 }
             }
         }];
-        [cmdPass1 commit];
+        commitPass(cmdPass1);
 
         // COMMAND BUFFERS 2-N: Shadow passes (one per light OR single-pass all-lights)
         bool used_deterministic_shadows = false;  // Track if deterministic kernel ran (for light_color buffer)
@@ -3996,7 +4031,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (sc++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2 (Shadow RT): %.2f ms", ms);
                     }
                 }];
-                [cmdShadow commit];
+                commitPass(cmdShadow);
 
                 // =================================================================
                 // PENUMBRA POST-PROCESS (Pass 2.5)
@@ -4068,7 +4103,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                                 if (pc++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.5 (Penumbra): %.2f ms", ms);
                             }
                         }];
-                        [cmdPenumbraC commit];
+                        commitPass(cmdPenumbraC);
                         // Serial queue guarantees GPU executes after Pass 2
                     };
 
@@ -4158,7 +4193,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                                         if (log_jfa_m) NSLog(@"[GPU_TIMESTAMP] Pass 2.5 (JFA seed+6, merged): %.2f ms", ms);
                                     }];
                                 }
-                                [cmd commit];
+                                commitPass(cmd);
                                 // 6 swaps from an even count leaves the result in jfaA,
                                 // which is what the unmerged path also ends with.
                                 ping = jfaA; pong = jfaB;
@@ -4184,7 +4219,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (c++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.5 (JFA seed): %.2f ms", ms);
                                     }];
                                 }
-                                [cmd commit];
+                                commitPass(cmd);
                             }
 
                             // --- Step 2: JFA propagation (6 passes, ping-pong) ---
@@ -4222,7 +4257,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                                         }];
                                     }
                                 }
-                                [cmd commit];
+                                commitPass(cmd);
                                 // Swap ping-pong
                                 id<MTLBuffer> tmp = ping; ping = pong; pong = tmp;
                             }
@@ -4274,7 +4309,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (c++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.5 (Penumbra blurH): %.2f ms", ms);
                                     }
                                 }];
-                                [cmd commit];
+                                commitPass(cmd);
                             }
 
                             // --- Step 4: Vertical blur ---
@@ -4310,7 +4345,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (pc++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.5 (Penumbra blurV): %.2f ms", ms);
                                     }
                                 }];
-                                [cmd commit];
+                                commitPass(cmd);
                             }
                         } else {
                             // Fallback to old Kernel C if JFA pipelines not available
@@ -4621,7 +4656,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         }
                     }
                 }];
-                [cmdShadow commit];
+                commitPass(cmdShadow);
 
                 } // end PCSS else block
 
@@ -4852,7 +4887,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         timing->completed_passes++;
                     }];
                 }
-                [cmdShadow commit];
+                commitPass(cmdShadow);
 
                 // Measure shadow encoding time (only when sampling)
                 if (should_profile_submit) {
@@ -4900,7 +4935,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                 [cmdDenoiseShadow addCompletedHandler:^(id<MTLCommandBuffer> cb) {
                     logCommandBufferError(cb, "Pass 2.05 (Shadow Denoise)");
                 }];
-                [cmdDenoiseShadow commit];
+                commitPass(cmdDenoiseShadow);
                 // Serial queue guarantees GPU executes before Pass 3
                 shadowBufferForPass3Sync = shadowDenoisedBuffer;
             }
@@ -4998,7 +5033,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (c++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.5b (DDGI trace): %.2f ms", ms);
                             }];
                         }
-                        [cmd commit];
+                        commitPass(cmd);
                     }
 
                     // Pass 2.5c: Update probes
@@ -5022,7 +5057,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (c++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.5c (DDGI update): %.2f ms", ms);
                             }];
                         }
-                        [cmd commit];
+                        commitPass(cmd);
                     }
                 }
             }
@@ -5085,7 +5120,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                         if (c++ % 60 == 0) NSLog(@"[GPU_TIMESTAMP] Pass 2.7 (SSDO): %.2f ms", ms);
                     }];
                 }
-                [cmdSSAO commit];
+                commitPass(cmdSSAO);
 
                 // Denoise
                 id<MTLComputePipelineState> ssaoDnPipeline = compute_pipeline_denoise_ssao_
@@ -5125,7 +5160,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                                 }];
                             }
                         }
-                        [cmdDn commit];
+                        commitPass(cmdDn);
                         id<MTLBuffer> tmp = ping; ping = pong; pong = tmp;
                     }
                     ssaoBufferForPass3Sync = ssaoDnBuf;  // odd passes: result in pong=ssaoDnBuf
@@ -5706,7 +5741,7 @@ void GPURasterizer::rasterize_triangles_deferred_async(
             // the semaphore permanently loses a count → deadlock after N frames.
             dispatch_semaphore_signal(timing->semaphore);
         }];
-        [cmdPass3 commit];
+        commitPass(cmdPass3);
 
         // Measure Pass 3 encoding time (only when sampling)
         if (should_profile_submit) {

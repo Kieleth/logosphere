@@ -19,12 +19,16 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S9 | Does caching unmoved geometry help? | Works (94-99% hits, collect -24/-36%) but no frame win. Flag OFF. |
 | S10 | What actually starves the GPU? | The unit icosphere, rebuilt per sphere per call. ~5M allocations/frame. CPU render -35%. |
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
+| S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
+| S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
 
 **Standing conclusions.** Cost tracks **surfaces**, not particles and not
 lights. A sphere at subdivision 2 emits 320 surfaces against a box's ~12.
 Lights are nearly free. The engine's CPU render path is linear in surface
 count. No CPU optimization tried so far has crossed the frame-time noise
-floor, because stages overlap and the scenes tested are GPU-bound.
+floor. The reason is not stage overlap (S13 shows the passes barely overlap)
+but CPU/GPU balance: at retina the two sides are level within about 1 ms, so a
+one-sided win of any size is capped at that gap (S12).
 
 ## Why this exists
 
@@ -37,11 +41,13 @@ stage. And everything was regex-scraped from stdout into scratchpad scripts
 wiped between sessions. A performance claim should be reproducible evidence,
 not a remembered number.
 
-**The measurement problem.** Stages overlap: at retina the per-stage medians
-sum to 21.5 ms while the frame is 16.1 ms. A 2 ms stage win can buy zero
-frame time, confirmed three times now (ledger G4, S8, S9). Stage cost and
-critical-path cost are different questions, and only a serialized diagnostic
-mode (task #28) answers the second.
+**The measurement problem, and how it resolved.** A 2 ms stage win repeatedly
+bought zero frame time (ledger G4, S8, S9), and the working theory was that
+overlapping stages made stage cost and critical-path cost different questions.
+The serialized diagnostic mode was built to settle it (S13) and falsified the
+theory: the passes barely overlap, and the per-stage numbers were already true
+isolated costs. The real cause was CPU/GPU balance (S12). Both instruments were
+telling the truth; the model built on top of them was wrong.
 
 ## Owner decisions (2026-07-29)
 
@@ -61,7 +67,8 @@ mode (task #28) answers the second.
   instead of landing on whichever ran last; cooldowns; provenance manifest
   (git SHA, dirty flag, binary and metallib hashes, host, mode, trust string).
 - **Analysis.** `scripts/bench_report.py`: frame/CPU/GPU breakdown, spread,
-  THERMAL SUSPECT drift flag, OVERLAP FACTOR, baseline regression compare.
+  THERMAL SUSPECT drift flag, GPU BUSY (interval union) with occupancy and
+  stage overlap, baseline regression compare.
   `--ramp` reads a continuous-load run as a cost curve.
 - **Journal.** Below, including studies that conclude "no action".
 
@@ -490,6 +497,58 @@ rate, not physics: 7.07 ms retina against 0.00 windowed, which looks like a
 resolution effect and is not one. Any fixed-rate subsystem must be reported per
 step and per second. Per second, physics is 23.5% of wall at retina and 19.9%
 windowed.
+
+### S13: NEGATIVE, the passes were never overlapping (2026-08-01)
+
+Built the serialized diagnostic mode (task #28 B): every pass blocks until it
+completes before the next is encoded, so each runs alone and its timestamp is
+its true isolated cost. `LOGOSPHERE_GPU_SERIALIZED=1` or
+`Logosphere::set_gpu_serialized_diagnostic()`.
+
+**It confirmed the cheap instrument was already right.** Eden retina, per-stage
+medians, pipelined against serialized:
+
+| stage | pipelined | serialized | delta |
+|---|---|---|---|
+| pass1_gbuffer | 4.85 | 4.80 | -0.05 |
+| pass28_ssdo_denoise | 3.55 | 3.52 | -0.03 |
+| pass25_jfa_propagate | 2.47 | 2.46 | -0.00 |
+| pass27_ssdo | 2.04 | 2.04 | -0.00 |
+| pass25_blur_h | 1.71 | 1.70 | -0.01 |
+| pass25_blur_v | 1.45 | 1.44 | -0.00 |
+| pass2_shadow_rt | 1.19 | 1.18 | -0.01 |
+| pass3_apply | 1.06 | 1.03 | -0.03 |
+| **SUM** | **18.36** | **18.21** | **-0.14** |
+
+Under 1%. The render passes have data dependencies on each other, so they were
+already running effectively serially inside a frame. `bench_report` agrees
+independently: stage overlap is 1.01x at retina and 0.99x windowed.
+
+**So the per-stage timestamps ARE true isolated costs, and "what would removing
+this pass buy" was answerable all along.** The answer is that stage's
+milliseconds of GPU work, and then the S12 cap applies: at retina the frame only
+moves by the CPU/GPU gap, whichever side you cut. The two stage wins that
+evaporated were never a measurement problem. They were a balance problem, and
+S12 is the explanation. This entry closes the question that opened #28 B.
+
+**The mode works and must never ship.** Frame time went 20.08 ms pipelined to
+51.00 ms serialized, 2.54x, exactly as designed: it destroys CPU/GPU overlap.
+Read the per-stage split from it and ignore its frame time.
+`test_gpu_occupancy_sanity` now also fails if the mode is on without the env
+var, because a profiling aid left on would halve the frame rate.
+
+**Kept anyway, cheaply.** The result is negative for this pipeline as it stands
+today, not for the instrument. Any future pass that runs concurrently with
+another (independent compute, async blits, a second queue) reintroduces exactly
+the ambiguity this settles, and then the mode is the only way to tell isolated
+cost from blended cost.
+
+**`bench_report.py` now reports the corrected model:** GPU BUSY as the union of
+command-buffer intervals, occupancy as busy over frame, and STAGE OVERLAP as
+stage sum over busy. Above 85% occupancy it prints the headroom and the warning
+that a one-sided win is capped at that gap. The old OVERLAP FACTOR compared
+stage sum against frame time, which conflated stage overlap with CPU/GPU
+balance and is gone.
 
 ---
 

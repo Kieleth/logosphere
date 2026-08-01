@@ -37,9 +37,11 @@
 #include "../src/materials.h"
 #include "../src/particle.h"
 #include "../src/core/telemetry.h"
+#include "logosphere/rendering/gpu/gpu_rasterizer.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 namespace {
@@ -179,6 +181,19 @@ bool test_gpu_occupancy_sanity() {
         printf("  no overlap in this run, so sum and union agree (%.1f%% vs %.1f%%). That is\n"
                "                   expected on an idle GPU and is NOT evidence the sum is safe.\n",
                occ_naive * 100.0, occ_union * 100.0);
+    }
+
+    // (4) the serialized diagnostic mode must be OFF unless explicitly asked
+    // for. It blocks on every pass, destroying CPU/GPU overlap by design, and
+    // measured 51.00 ms against 20.08 ms pipelined on Eden at retina. Shipping
+    // with it on would halve the frame rate for a profiling aid.
+    if (Logosphere::gpu_serialized_diagnostic() && !std::getenv("LOGOSPHERE_GPU_SERIALIZED")) {
+        printf("\n  FAIL: serialized diagnostic mode is ON without LOGOSPHERE_GPU_SERIALIZED.\n"
+               "        It is a profiling aid that costs ~2.5x frame time. It must never\n"
+               "        be the default. See gpu_rasterizer.h.\n");
+        ok = false;
+    } else {
+        printf("  serialized mode OFF by default, as required.\n");
     }
 
     printf("\n  %s\n", ok ? "PASS" : "FAIL");

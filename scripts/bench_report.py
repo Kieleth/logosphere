@@ -9,9 +9,15 @@ Reports, per config:
   - frame time (median, IQR, and a drift figure)
   - CPU phase breakdown
   - GPU stage breakdown
-  - OVERLAP FACTOR = sum(gpu stages) / frame. Printed prominently because
-    reading a stage sum as a frame budget is how two "wins" got misread:
-    stages overlap, so removing 2 ms from a stage can buy zero frame time.
+  - GPU BUSY = union of every command buffer's execution interval. This is
+    real GPU work per frame. Do NOT sum per-frame busy across frames: windows
+    overlap because the GPU runs a frame behind, and the sum exceeds wall
+    clock (it read 122% before this was fixed). See telemetry.h.
+  - GPU OCCUPANCY = busy / frame. Near 100% means GPU-bound; near the CPU
+    figure means balanced, and then a one-sided win is capped at the gap.
+  - STAGE OVERLAP = sum(gpu stages) / busy. Above 1.0 the named stages overlap
+    each other, so their sum overstates GPU work and a stage win is worth less
+    than it reads. This is how two "wins" got misread in the 2026-07 campaign.
   - THERMAL SUSPECT flag when frame time drifts monotonically within a run.
 
 Usage:
@@ -64,6 +70,29 @@ def split_by_lights(recs):
     return groups
 
 
+def gpu_busy_per_frame(recs):
+    """Real GPU work per frame: the UNION of command-buffer intervals, divided
+    by the number of frames. Summing per-frame busy_ms instead double counts,
+    because consecutive frames' windows overlap (the GPU runs about a frame
+    behind the CPU). That sum reported 122% of wall clock on Eden at retina."""
+    iv = []
+    for r in recs:
+        w = r.get("gpu_window") or {}
+        s, e = w.get("start_s"), w.get("end_s")
+        if s is not None and e is not None and e > s:
+            iv.append((s, e))
+    if not iv:
+        return 0.0
+    iv.sort()
+    merged = [list(iv[0])]
+    for s, e in iv[1:]:
+        if s <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], e)
+        else:
+            merged.append([s, e])
+    return sum(e - s for s, e in merged) * 1000.0 / len(recs)
+
+
 def summarize(recs):
     recs = warm(recs)
     if not recs:
@@ -97,6 +126,7 @@ def summarize(recs):
     q = sorted(frame)
     iqr = q[int(len(q) * 0.75)] - q[int(len(q) * 0.25)]
     gpu_sum = sum(gpu_med.values())
+    gpu_busy = gpu_busy_per_frame(recs)
 
     return {
         "frames": len(frame),
@@ -106,7 +136,12 @@ def summarize(recs):
         "phases": phases,
         "gpu": gpu_med,
         "gpu_sum_ms": gpu_sum,
-        "overlap_factor": (gpu_sum / fmed) if fmed else 0.0,
+        # True GPU work per frame, and the share of the frame it occupies.
+        "gpu_busy_ms": gpu_busy,
+        "gpu_occupancy": (gpu_busy / fmed) if fmed else 0.0,
+        # How much the NAMED stages overlap EACH OTHER. Above 1.0 their sum
+        # overstates GPU work, so a stage win is worth less than it reads.
+        "stage_overlap": (gpu_sum / gpu_busy) if gpu_busy else 0.0,
         "counters": counters,
         "particles": recs[-1].get("particles", 0),
         "lights": recs[-1].get("lights", 0),
@@ -233,12 +268,20 @@ def main():
             print(f"  gpu stages (median, best trial):")
             for k, v in sorted(best["gpu"].items(), key=lambda kv: -kv[1]):
                 print(f"      {k:24s} {v:6.2f} ms")
-            print(f"      {'SUM':24s} {best['gpu_sum_ms']:6.2f} ms"
-                  f"   OVERLAP FACTOR {best['overlap_factor']:.2f}x")
-            if best["overlap_factor"] > 1.1:
-                print(f"      ^ stages overlap: they sum to "
-                      f"{best['overlap_factor']:.2f}x the frame. A stage win "
-                      f"does NOT convert 1:1 into frame time.")
+            print(f"      {'SUM':24s} {best['gpu_sum_ms']:6.2f} ms")
+            print(f"      {'BUSY (union)':24s} {best['gpu_busy_ms']:6.2f} ms"
+                  f"   occupancy {best['gpu_occupancy']:.0%}"
+                  f"   stage overlap {best['stage_overlap']:.2f}x")
+            if best["stage_overlap"] > 1.05:
+                print(f"      ^ the named stages overlap each other, so their "
+                      f"sum overstates GPU work by "
+                      f"{best['gpu_sum_ms'] - best['gpu_busy_ms']:.2f} ms.")
+            cpu_ms = med - 0.0
+            headroom = cpu_ms - best["gpu_busy_ms"]
+            if best["gpu_occupancy"] > 0.85:
+                print(f"      ^ GPU is {best['gpu_occupancy']:.0%} occupied and the frame "
+                      f"leads GPU work by only {headroom:.2f} ms. Near balance a "
+                      f"one-sided win is CAPPED at that gap, whichever side it is on.")
 
         cpu = {k: v for k, v in best["phases"].items() if k != "frame"}
         if cpu:

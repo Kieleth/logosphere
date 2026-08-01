@@ -1,0 +1,77 @@
+{
+  "provenance": {
+    "timestamp_utc": "2026-08-01T20:22:40.411413+00:00",
+    "git_sha": "4e3f633",
+    "git_branch": "main",
+    "git_dirty": true,
+    "metallib_md5": "539074c6fc15541cf1a3828162f479b9",
+    "eden_md5": "2f01a5be921e1d3869527d602c55d88d",
+    "tests_md5": "04d804da28ab04b38e706bd25c201ea0",
+    "eden_mtime": 1785615558.7717881,
+    "tests_mtime": 1785615574.457771,
+    "build": "release",
+    "host": "Luiss-MacBook-Pro.local",
+    "machine": "arm64",
+    "os": "macOS-15.7.7-arm64-arm-64bit",
+    "mode": "fast",
+    "args": {
+      "mode": "fast",
+      "scene": "eden",
+      "repeats": 3,
+      "cooldown": 20.0,
+      "frames": 400,
+      "particles": [
+        144,
+        576,
+        1296,
+        2304
+      ],
+      "lights": [
+        1,
+        2,
+        4,
+        6
+      ],
+      "width": 1600,
+      "height": 1051,
+      "resolutions": [
+        [
+          1600,
+          1051
+        ],
+        [
+          3200,
+          2102
+        ]
+      ],
+      "out": null
+    },
+    "trust": "INDICATIVE \u2014 single trial per config, thermal drift not controlled"
+  },
+  "runs": [
+    {
+      "scene": "eden",
+      "particles": null,
+      "lights": null,
+      "width": 1600,
+      "height": 1051,
+      "repeat": 0,
+      "file": "eden_pNone_lNone_1600x1051_rep0.jsonl",
+      "records": 399,
+      "wall_s": 6.69,
+      "returncode": 0
+    },
+    {
+      "scene": "eden",
+      "particles": null,
+      "lights": null,
+      "width": 3200,
+      "height": 2102,
+      "repeat": 0,
+      "file": "eden_pNone_lNone_3200x2102_rep0.jsonl",
+      "records": 399,
+      "wall_s": 9.92,
+      "returncode": 0
+    }
+  ]
+}
