@@ -3,15 +3,25 @@
 
 #include "logosphere/worldgen/entity_generator.h"
 
-// A small planet: one kinematic core sphere with a crust of stones
-// gluon-bonded onto it, floating above the turtle. Immobility comes
-// from the sanctioned mechanisms only: the core is KINEMATIC (no
-// writer, so it holds its place) and the crust hangs off it through
-// constraints. Everything is a particle; there is no sky-ball prop.
+// A small spherical world: a kinematic core with a crust of stones
+// laid on it, floating clear of the turtle. Everything is a particle;
+// there is no sky-ball prop and no drawn sphere.
 //
-// This is the Road-B "prince planet": the world stays -Z-gravity and
-// walkers stand on the apex where down is still down. A future
-// central-gravity field (Road A) can reuse the same body.
+// The crust is KINEMATIC, which is the sanctioned mechanism for
+// immobility (turtle boundary / anchored gluons / kinematic mode) and
+// what terrain is: it owns its position, never integrates gravity,
+// and still collides. A DYNAMIC crust held up by is_at_rest was tried
+// and is wrong - is_at_rest is a solver optimisation, not immobility,
+// and a walker was enough to wake the shell and drop it.
+//
+// Consequence, stated plainly: this body is TERRAIN, not a dynamic
+// object. It cannot be cratered, knocked, or moved. Making it
+// destructible means flipping a region back to DYNAMIC and bonding it
+// to the core with the constraint API, and needs a solver pass that
+// can hold thousands of stones against gravity every frame.
+//
+// The generator makes no gravity assumption of its own: a kinematic
+// shell is equally correct under a future central-gravity field.
 struct PlanetSpec {
     float radius = 3.0f;          // Crust radius (m)
     float stone_size = 0.45f;     // Crust stone edge (m), jittered
@@ -48,7 +58,7 @@ struct PlanetSpec {
 
     float stiffness = 90000.0f;   // Crust-to-core bond strength
 
-    static PlanetSpec asteroid_b612();  // The Little Prince preset
+    static PlanetSpec small_rocky_world();  // rust-warm default
 };
 
 class PlanetGenerator : public EntityGenerator {

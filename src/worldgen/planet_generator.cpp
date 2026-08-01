@@ -7,7 +7,7 @@
 #include <iostream>
 #include <string>
 
-PlanetSpec PlanetSpec::asteroid_b612() {
+PlanetSpec PlanetSpec::small_rocky_world() {
     PlanetSpec spec;
     spec.radius = 3.0f;
     spec.stone_size = 0.45f;

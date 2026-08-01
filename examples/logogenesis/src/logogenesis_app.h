@@ -999,7 +999,7 @@ private:
 
         for (auto seed : kg.findByType("PlanetSeed")) {
             float x = prop_f(kg, seed, "x", 0), y = prop_f(kg, seed, "y", 0);
-            PlanetSpec pspec = PlanetSpec::asteroid_b612();
+            PlanetSpec pspec = PlanetSpec::small_rocky_world();
             if (auto r = prop_opt(kg, seed, "planet_radius"))
                 pspec.radius = *r;
             read_rgb(kg, seed, "crust", pspec.crust_r, pspec.crust_g,
