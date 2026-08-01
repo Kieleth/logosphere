@@ -25,7 +25,14 @@ struct PlanetSpec {
     // Size is a fraction of stone_size; 0 disables the layer and its
     // particle cost.
     float surface_ratio = 0.32f;    // grain size / stone_size
-    float surface_density = 1.0f;   // coverage multiplier
+    // Coverage multiplier, and the single most important number here.
+    // The grain count works out to density/1.7 of the sphere's area,
+    // INDEPENDENT of grain size, so density is what decides whether
+    // the dust closes over the rock or leaves it showing through. At
+    // 1.0 only 59% of the surface was covered and the bare 41% read
+    // as dark cracks between scales. 1.8 gives 106%: grains overlap,
+    // and the surface becomes continuous.
+    float surface_density = 1.8f;   // coverage multiplier (/1.7 = fraction)
     float surface_tint = 1.10f;     // dust catches more light than rock
     float surface_flatten = 0.18f;  // grain thickness / width: flat tiles
     float surface_scatter = 0.06f;  // radians of lie; near-tangential
