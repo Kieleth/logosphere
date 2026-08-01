@@ -236,7 +236,7 @@ public:
                     auto& kg = engine_->get_kg();
 
                     // Create serpent chain as hierarchical entity (parent + children)
-                    kg::EntityID serpent_entity = kg.createEntityAtPosition("serpent_chain", world_x, world_y);
+                    kg::EntityID serpent_entity = kg.createEntityAtPosition("Serpent", world_x, world_y);
 
                     // Create 8 segments along a curved path
                     for (int i = 0; i < 8; i++) {
@@ -280,7 +280,7 @@ public:
                     auto& kg = engine_->get_kg();
 
                     // Create wall as hierarchical entity
-                    kg::EntityID wall_entity = kg.createEntityAtPosition("wall", world_x, world_y);
+                    kg::EntityID wall_entity = kg.createEntityAtPosition("Wall", world_x, world_y);
 
                     // Create 10 blocks along X axis
                     for (int i = 0; i < 10; i++) {
@@ -321,7 +321,7 @@ public:
                     auto& kg = engine_->get_kg();
 
                     // Create room as hierarchical entity (4 walls + floor)
-                    kg::EntityID room_entity = kg.createEntityAtPosition("room", world_x, world_y);
+                    kg::EntityID room_entity = kg.createEntityAtPosition("RoomBlock", world_x, world_y);
 
                     const float room_size = 8.0f;
                     const float wall_spacing = 1.5f;

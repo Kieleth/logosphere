@@ -303,6 +303,11 @@ add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
 add_headless_test(test_iso_azimuth)
 add_headless_test(test_ontology_packs)
+add_headless_test(test_entity_type_strings)
+# This one reads the source tree, so it needs to know where that is:
+# ctest runs from the build directory, not the repo root.
+target_compile_definitions(test_entity_type_strings
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)

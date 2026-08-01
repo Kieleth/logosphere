@@ -14,8 +14,6 @@ EntityManager::EntityManager(kg::KGModule* kg, ParticleSystem& particle_system,
     register_type("LightSource", simple_entity_activator);
     register_type("Totem", vegetation_activator);
     register_type("Humanoid", vegetation_activator);
-    register_type("GrassCluster", vegetation_activator);
-    register_type("TallGrass", vegetation_activator);
     register_type("GrassPatch", vegetation_activator);
     register_type("Grass", vegetation_activator);
     register_type("Rock", rock_activator);

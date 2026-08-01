@@ -226,7 +226,10 @@ kg::EntityID SnakeGenerator::generate_snake(float world_x, float world_y, float 
     std::cout << "[SnakeGenerator] Created tail at (" << tail_x << ", " << world_y << ", " << tail_z << ")" << std::endl;
 
     // Create body segments child entity
-    kg_->createChildEntityWithParticles(snake_entity, "body", body_segments);
+    // "body" is not an ontology type; Segment is. This child
+    // entity was silently never created.
+    kg_->createChildEntityWithParticles(snake_entity, "Segment",
+                                        body_segments);
 
     // Store segment spacing for dynamics system
     kg_->setProperty(snake_entity, "segment_length", std::to_string(segment_length));

@@ -932,12 +932,32 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
               << " torso=" << torso_particles.size()
               << " head=" << head_particles.size() << std::endl;
 
-    kg_->createChildEntityWithParticles(humanoid_entity, "left_leg", left_leg_particles);
-    kg_->createChildEntityWithParticles(humanoid_entity, "right_leg", right_leg_particles);
-    kg_->createChildEntityWithParticles(humanoid_entity, "left_arm", left_arm_particles);
-    kg_->createChildEntityWithParticles(humanoid_entity, "right_arm", right_arm_particles);
-    kg_->createChildEntityWithParticles(humanoid_entity, "Torso", torso_particles);
-    kg_->createChildEntityWithParticles(humanoid_entity, "Head", head_particles);
+    // A body part's TYPE comes from the ontology; which side it is on
+    // is a property, not a type. Four of these six used to pass
+    // "left_leg" and friends as types, which the KG rejected - so a
+    // humanoid's arms and legs silently never existed as entities,
+    // while its Torso and Head (correct types) did. Nothing checked
+    // the return, so it read as working for as long as nobody asked
+    // the graph about an arm.
+    auto add_part = [&](const char* type, const char* name,
+                        const std::vector<kg::RenderIndex>& parts) {
+        kg::EntityID e = kg_->createChildEntityWithParticles(
+            humanoid_entity, type, parts);
+        if (e == kg::INVALID_ENTITY) {
+            std::cerr << "[HumanoidGenerator] FAILED to create body part '"
+                      << name << "' as type '" << type
+                      << "' - is the ontology loaded?" << std::endl;
+            return e;
+        }
+        kg_->setProperty(e, "body_part_name", name);
+        return e;
+    };
+    add_part("Leg", "left_leg", left_leg_particles);
+    add_part("Leg", "right_leg", right_leg_particles);
+    add_part("Arm", "left_arm", left_arm_particles);
+    add_part("Arm", "right_arm", right_arm_particles);
+    add_part("Torso", "torso", torso_particles);
+    add_part("Head", "head", head_particles);
 
     // Store body part offsets for pivot rotation
     kg_->setProperty(humanoid_entity, "leg_spacing", std::to_string(leg_spacing));
