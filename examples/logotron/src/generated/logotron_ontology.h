@@ -816,6 +816,34 @@ inline bool from_string(const char* str, WorldEventType& out) {
     return false;
 }
 
+/// Who owns a body's position, and the ONLY way to make something immovable. Rest is not immobility: rest is a solver optimisation that a heavy enough touch undoes, so a structure held up by rest collapses the moment something walks on it. Choose authority deliberately; do not rely on stillness.
+enum class SolverAuthority {
+    /// Physics owns it. Gravity pulls it, contacts push it, impulses move it. The default, and right for anything loose, alive, or meant to be knocked about.
+    DYNAMIC,
+    /// The body owns its own position. Nothing moves it - not gravity, not impact - and it still collides, so things stand and land on it. This is what terrain IS: floors, worlds, anything that must simply be there.
+    KINEMATIC,
+    /// Immovable and inert. Like KINEMATIC, but never expected to be repositioned by anyone.
+    STATIC
+};
+
+/// Convert SolverAuthority to its string representation.
+inline const char* to_string(SolverAuthority value) {
+    switch (value) {
+        case SolverAuthority::DYNAMIC: return "DYNAMIC";
+        case SolverAuthority::KINEMATIC: return "KINEMATIC";
+        case SolverAuthority::STATIC: return "STATIC";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SolverAuthority. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SolverAuthority& out) {
+    if (std::strcmp(str, "DYNAMIC") == 0) { out = SolverAuthority::DYNAMIC; return true; }
+    if (std::strcmp(str, "KINEMATIC") == 0) { out = SolverAuthority::KINEMATIC; return true; }
+    if (std::strcmp(str, "STATIC") == 0) { out = SolverAuthority::STATIC; return true; }
+    return false;
+}
+
 /// Relation types between game world entities.
 enum class WorldRelationType {
     /// Composition (humanoid has_part torso)
@@ -835,7 +863,9 @@ enum class WorldRelationType {
     /// Agent perceives target entity
     PERCEIVES,
     /// System entity manages another entity
-    MANAGES
+    MANAGES,
+    /// Direct bond between two bodies - the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world.
+    BONDED_TO
 };
 
 /// Convert WorldRelationType to its string representation.
@@ -850,6 +880,7 @@ inline const char* to_string(WorldRelationType value) {
         case WorldRelationType::BURNS: return "BURNS";
         case WorldRelationType::PERCEIVES: return "PERCEIVES";
         case WorldRelationType::MANAGES: return "MANAGES";
+        case WorldRelationType::BONDED_TO: return "BONDED_TO";
     }
     return "unknown";
 }
@@ -865,6 +896,7 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     if (std::strcmp(str, "BURNS") == 0) { out = WorldRelationType::BURNS; return true; }
     if (std::strcmp(str, "PERCEIVES") == 0) { out = WorldRelationType::PERCEIVES; return true; }
     if (std::strcmp(str, "MANAGES") == 0) { out = WorldRelationType::MANAGES; return true; }
+    if (std::strcmp(str, "BONDED_TO") == 0) { out = WorldRelationType::BONDED_TO; return true; }
     return false;
 }
 
@@ -1175,6 +1207,20 @@ struct HasOdor {
 };
 
 
+/// Carries who owns this body's position. Every body in the world has it, because immobility is always a choice, never an accident of being still.
+struct HasSolverAuthority {
+    /// Who owns this body's position. Omit for DYNAMIC. Set KINEMATIC to make something genuinely immovable - terrain, a floor, a world. Never try to hold a structure up by leaving it still; stillness is an optimisation the physics undoes on contact.
+    std::optional<SolverAuthority> solver_authority = std::nullopt;
+};
+
+
+/// Can be cemented to other bodies through a BONDED_TO relation. bond_strength is how much load the join carries before it gives.
+struct Bondable {
+    /// Load a BONDED_TO join carries before it gives, in newtons per metre. Around 90000 behaves as rigid cement; small values give under their own weight.
+    std::optional<float> bond_strength = std::nullopt;
+};
+
+
 /// Entity that can be damaged or destroyed.
 struct Destructible {
     /// Damage required to trigger destruction.
@@ -1192,7 +1238,7 @@ struct Growable {
 
 
 /// Base for all entities in the game world.
-struct WorldEntity : public Entity, public Statusable, public Spatial {
+struct WorldEntity : public Entity, public Statusable, public Spatial, public HasSolverAuthority, public Bondable {
 };
 
 

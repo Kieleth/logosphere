@@ -438,6 +438,14 @@ int Engine::initialize(const EngineConfig& config) {
     // behavior.
     physics_system_.set_interaction_system(&interaction_system_);
 
+    // Arm the ontology levers. From here a property written to the KG
+    // (solver_authority, BONDED_TO) lands on that entity's bodies
+    // straight away, rather than waiting for something to re-read it
+    // at materialisation. The graph becomes a control surface.
+    entity_physical_state_.initialize(&particle_system_, &physics_system_,
+                                      &kg_module_);
+    entity_physical_state_.watch(event_bus_);
+
     // Connect ParticleSystem to KG for index tracking
     particle_system_.set_kg_module(&kg_module_);
     // Connect RenderPipeline to KG for entity grouping (Entity BVH optimization)
