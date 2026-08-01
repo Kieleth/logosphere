@@ -39,6 +39,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   so read the per-stage split from it and ignore its frame time.
 
 ### Fixed
+- Entity activation no longer reports a destroyed entity as one that is
+  missing chunk coordinates. The activation queue holds entity ids, and
+  an id can legitimately die before it is processed: a generator that
+  self-queues and is then thrown away by its caller (Logogenesis grows a
+  tree, sees it came out collapsed, destroys it and grows another in the
+  same breath) left a dead id in the queue. Because a destroyed entity
+  returns empty for every property, reading `chunk_x` first made a corpse
+  look like a generator that had forgotten to set its coordinates, and
+  sent the investigation after the wrong cause. Existence is now checked
+  first: a discarded entity is skipped quietly, while a live entity with
+  no coordinates stays a loud error and now names its type and the fix
+  (`createEntityAtPosition`). Regression test:
+  `tests/test_activation_queue_stale_ids.cpp` (issue #21).
 - The async GPU-prep handoff copied the frame's entire input TWICE per
   frame: the worker lambda captured the already-copied surfaces and
   particles BY VALUE, constructing 103,914 surfaces and 19,104 particles
