@@ -53,6 +53,51 @@ namespace Logosphere {
 // - All Metal API calls in .mm implementation file
 // - Safe to include in pure C++ files
 
+// =============================================================================
+// Shadow acceleration backend — the portability seam
+// =============================================================================
+// Shadow rays need a spatial structure to trace against. There are two ways to
+// supply one, and which is live decides whether the CPU-side BVHs are worth
+// building at all:
+//
+//   HardwareRT   The driver builds and owns the structure (Metal RT's
+//                MTLAccelerationStructure today; DXR or Vulkan RT for a port).
+//                The shader traces it with an intersector. The CPU BVHs are
+//                NOT read and must not be built.
+//
+//   SoftwareBVH  The engine builds a TriangleBVH (and an EntityBVH for
+//                directional culling) on the CPU, uploads them, and the shader
+//                walks them itself. Portable in PRINCIPLE to any GPU with
+//                compute.
+//
+// *** THE SoftwareBVH PATH IS CURRENTLY BROKEN: IT RENDERS NO LIGHTING. ***
+// Its output is byte-identical to the same scene with the lights off. The path
+// builds its trees and dispatches its kernel and produces nothing. No
+// supported target hits it (every one has Metal RT), which is how it stayed
+// broken unnoticed. A port to hardware without ray tracing MUST fix it first;
+// see docs/PORTING_SHADOWS.md, and test_shadow_accel_backend which reports the
+// defect on demand.
+//
+// A port that wires up DXR or Vulkan RT implements it behind HardwareRT and the
+// CPU trees go dormant automatically, with no render-pipeline changes. That is
+// what this seam is for.
+//
+// Measured cost of getting this wrong: on M3/M4 the engine built and uploaded
+// both CPU trees every frame while the hardware structure did the actual
+// tracing — 2.16 ms of a 21.7 ms Eden frame, and up to 97 ms on a single frame
+// in a spawning scene.
+enum class ShadowAccelBackend {
+    HardwareRT,
+    SoftwareBVH,
+};
+
+const char* to_string(ShadowAccelBackend b);
+
+// Force a backend regardless of hardware, for tests and for bringing up a port.
+// LOGOSPHERE_SHADOW_ACCEL=hardware|software does the same at startup. Forcing
+// HardwareRT on a device without support is ignored: capability still wins.
+void set_forced_shadow_accel_backend(const char* name_or_null);
+
 class GPURasterizer {
 public:
     GPURasterizer();
@@ -85,6 +130,11 @@ public:
     // Check if Metal Ray Tracing is available (M3+ chip required)
     // Ray tracing uses hardware-accelerated BVH traversal for faster shadows
     bool supports_raytracing() const { return supports_raytracing_; }
+
+    // Which structure the shadow kernel will actually trace against this run.
+    // Anything that builds acceleration data must consult this rather than
+    // assuming, which is the bug this API exists to make impossible.
+    ShadowAccelBackend shadow_accel_backend() const;
 
     // =====================================================================
     // METAL RT: ACCELERATION STRUCTURE (Phase 1.2)

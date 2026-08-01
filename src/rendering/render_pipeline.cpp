@@ -110,6 +110,23 @@ RenderPipeline::RenderPipeline()
 // Optimizations::SHADOW_BVH_MIN_REBUILD_FRAMES, overridable at runtime with
 // LOGOSPHERE_BVH_REBUILD_FRAMES so the quality/perf trade can be swept without
 // a rebuild. Read once.
+// DIAGNOSTIC GATES: suppress either shadow acceleration structure at dispatch
+// so a test can prove which one the Metal kernel actually traverses.
+// shadow_rays_deferred.metal takes the entity path when
+// (entity_node_count > 0 && dir_group_count > 0), and reaches the flat
+// TriangleBVH only via `else if (bvh_node_count > 0)`. Zeroing a count here is
+// exactly what the kernel branches on, so it selects the path without touching
+// shader code. Both default true: production behaviour is unchanged.
+static std::atomic<bool> g_pass_flat_shadow_bvh{true};
+static std::atomic<bool> g_pass_entity_shadow_bvh{true};
+
+namespace logosphere {
+void set_flat_shadow_bvh_enabled(bool on)   { g_pass_flat_shadow_bvh.store(on, std::memory_order_relaxed); }
+void set_entity_shadow_bvh_enabled(bool on) { g_pass_entity_shadow_bvh.store(on, std::memory_order_relaxed); }
+bool get_flat_shadow_bvh_enabled()   { return g_pass_flat_shadow_bvh.load(std::memory_order_relaxed); }
+bool get_entity_shadow_bvh_enabled() { return g_pass_entity_shadow_bvh.load(std::memory_order_relaxed); }
+}  // namespace logosphere
+
 static std::atomic<size_t> g_shadow_bvh_rebuild_frames{[] {
     if (const char* e = std::getenv("LOGOSPHERE_BVH_REBUILD_FRAMES")) {
         long v = std::atol(e);
@@ -504,8 +521,25 @@ void RenderPipeline::prepare_gpu_data(
     ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::PrepBVH);
     // STEP 3: Build/refit shadow BVH
     // =========================================================================
+    // THE SEAM. Shadow rays trace against ONE structure, and which one decides
+    // whether these CPU trees are worth building. Under HardwareRT the driver
+    // owns the acceleration structure, trace_shadows_deterministic binds it at
+    // buffer(0), and neither bvh_nodes nor entity_bvh_nodes is bound at all —
+    // so building them is pure waste (2.16 ms of a 21.7 ms Eden frame, up to
+    // 97 ms on a single frame in a spawning scene). Under SoftwareBVH the
+    // batched kernel walks them at buffer(8)/(9) and they are load-bearing.
+    // NOTE: this is NOT ParticleSystem::shadow_bvh_, a different BVH over
+    // particles that physics and animation query. That one is untouched.
+    const bool software_shadow_accel =
+        gpu_rasterizer_.shadow_accel_backend() == Logosphere::ShadowAccelBackend::SoftwareBVH;
+
+    // Declared out here: the entity-BVH region below reads it, and under
+    // HardwareRT nothing sets it (no rebuild is ever needed).
+    bool triangle_count_changed = false;
+
     auto bvh_start = Clock::now();
     ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::PrepBvhTriangle);
+    if (software_shadow_accel) {
 
     bool& bvh_built = bvh_built_[buffer_index];
     size_t& last_triangle_count = last_triangle_count_[buffer_index];
@@ -521,7 +555,7 @@ void RenderPipeline::prepare_gpu_data(
         ? count_now - last_triangle_count
         : last_triangle_count - count_now;
     size_t rebuild_threshold = std::max(size_t(100), count_now / 100);
-    bool triangle_count_changed = (count_delta >= rebuild_threshold);
+    triangle_count_changed = (count_delta >= rebuild_threshold);
 
     // BVH quality optimization: Periodic rebuild to maintain quality
     bool quality_degraded = false;
@@ -597,6 +631,7 @@ void RenderPipeline::prepare_gpu_data(
     // (Previously only set during rebuild, causing perpetual rebuilds when count drifts.)
     last_triangle_count = shadow_triangles.size();
 
+    }  // if (software_shadow_accel)
     ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::PrepBvhTriangle);
     auto bvh_ms = Duration(Clock::now() - bvh_start).count();
     static int dirty_log_counter = 0;
@@ -620,7 +655,7 @@ void RenderPipeline::prepare_gpu_data(
     auto& entity_data = entity_triangle_data_[buffer_index];
     ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::PrepBvhEntity);
 
-    if (!shadow_triangles.empty() && triangle_count_changed) {
+    if (software_shadow_accel && !shadow_triangles.empty() && triangle_count_changed) {
         entity_data.clear();
 
         // Group triangles by entity_id using unordered_map for O(1) lookup
@@ -709,7 +744,7 @@ void RenderPipeline::prepare_gpu_data(
                 }
             }
         }
-    } else if (!shadow_triangles.empty() && entity_bvh.is_ready()) {
+    } else if (software_shadow_accel && !shadow_triangles.empty() && entity_bvh.is_ready()) {
         // Same triangle count but positions may have changed - refit AABBs
         // This avoids expensive SAH tree rebuild when only positions update
 
@@ -2319,15 +2354,21 @@ void RenderPipeline::rasterize_surfaces(
                 (uint32_t)gpu_triangles.size(),
                 light_data.empty() ? nullptr : light_data.data(),
                 light_count,
-                shadow_triangle_bvh.is_ready() ? shadow_triangle_bvh.get_nodes() : nullptr,
-                shadow_triangle_bvh.is_ready() ? shadow_triangle_bvh.get_node_count() : 0,
+                (shadow_triangle_bvh.is_ready() && g_pass_flat_shadow_bvh.load(std::memory_order_relaxed))
+                    ? shadow_triangle_bvh.get_nodes() : nullptr,
+                (shadow_triangle_bvh.is_ready() && g_pass_flat_shadow_bvh.load(std::memory_order_relaxed))
+                    ? shadow_triangle_bvh.get_node_count() : 0,
                 shadow_triangles.empty() ? nullptr : shadow_triangles.data(),
                 (uint32_t)shadow_triangles.size(),
                 // Entity BVH data (for directional culling)
-                entity_bvh.is_ready() ? entity_bvh.get_nodes() : nullptr,
-                entity_bvh.is_ready() ? (uint32_t)entity_bvh.get_node_count() : 0,
-                entity_bvh.is_ready() ? entity_bvh.get_groups() : nullptr,
-                entity_bvh.is_ready() ? (uint32_t)entity_bvh.get_group_count() : 0,
+                (entity_bvh.is_ready() && g_pass_entity_shadow_bvh.load(std::memory_order_relaxed))
+                    ? entity_bvh.get_nodes() : nullptr,
+                (entity_bvh.is_ready() && g_pass_entity_shadow_bvh.load(std::memory_order_relaxed))
+                    ? (uint32_t)entity_bvh.get_node_count() : 0,
+                (entity_bvh.is_ready() && g_pass_entity_shadow_bvh.load(std::memory_order_relaxed))
+                    ? entity_bvh.get_groups() : nullptr,
+                (entity_bvh.is_ready() && g_pass_entity_shadow_bvh.load(std::memory_order_relaxed))
+                    ? (uint32_t)entity_bvh.get_group_count() : 0,
                 // Tile binning data (pass empty if binning disabled)
                 tile_indices.empty() ? nullptr : tile_indices.data(),
                 tile_offsets.empty() ? nullptr : tile_offsets.data(),
@@ -2485,8 +2526,10 @@ void RenderPipeline::rasterize_surfaces(
                 (uint32_t)gpu_triangles.size(),
                 light_data.empty() ? nullptr : light_data.data(),
                 light_count,
-                shadow_triangle_bvh.is_ready() ? shadow_triangle_bvh.get_nodes() : nullptr,
-                shadow_triangle_bvh.is_ready() ? shadow_triangle_bvh.get_node_count() : 0,
+                (shadow_triangle_bvh.is_ready() && g_pass_flat_shadow_bvh.load(std::memory_order_relaxed))
+                    ? shadow_triangle_bvh.get_nodes() : nullptr,
+                (shadow_triangle_bvh.is_ready() && g_pass_flat_shadow_bvh.load(std::memory_order_relaxed))
+                    ? shadow_triangle_bvh.get_node_count() : 0,
                 shadow_triangles.empty() ? nullptr : shadow_triangles.data(),
                 (uint32_t)shadow_triangles.size(),
                 // Tile binning data (pass empty if binning disabled)

@@ -8,6 +8,35 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- Shadow acceleration backend seam: `GPURasterizer::shadow_accel_backend()`
+  reports whether shadow rays trace a driver-owned structure (`HardwareRT`) or
+  engine-built CPU trees (`SoftwareBVH`). Anything building acceleration data
+  consults it instead of assuming. Override with
+  `LOGOSPHERE_SHADOW_ACCEL=hardware|software`. Ports that add DXR or Vulkan RT
+  implement `HardwareRT` and the CPU trees go dormant with no render-pipeline
+  changes. See `docs/PORTING_SHADOWS.md`.
+- `test_shadow_accel_backend`: guards the seam by contract rather than by pixel
+  diff, asserting the CPU trees are dormant under `HardwareRT`, built under
+  `SoftwareBVH`, and that the scene is actually lit. Includes an A-vs-A noise
+  floor, without which this engine's equal-depth nondeterminism reads as signal.
+
+### Changed
+- The CPU shadow BVHs (`TriangleBVH`, `EntityBVH`) are no longer built when the
+  platform traces a hardware acceleration structure. They were rebuilt and
+  uploaded every frame while `trace_shadows_deterministic` traced the driver's
+  structure and never bound them: 2.16 ms of a 21.7 ms Eden frame, and up to
+  97 ms on a single frame in a spawning scene. `prep_bvh` is now 0.00 ms under
+  `HardwareRT` and unchanged under `SoftwareBVH`. Unaffected:
+  `ParticleSystem::shadow_bvh_`, a different BVH over particles that physics
+  and animation query.
+
+### Fixed
+- Documented (not yet repaired) that the `SoftwareBVH` shadow fallback renders
+  no lighting: its output is byte-identical to the same scene unlit. No
+  supported target reaches it, which is why it went unnoticed. A port to
+  hardware without ray tracing must fix it first.
+
+### Added
 - Logogenesis menagerie: `SerpentSeed` (garden snake / python /
   coral, length and scale colors), `FallenTreeSeed` (trunk / log /
   branch / twigs), and `TotemSeed` (stacked carved wood) join the

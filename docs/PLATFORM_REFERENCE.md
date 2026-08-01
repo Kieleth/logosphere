@@ -156,3 +156,16 @@ if (key == ESC) {
 ```
 
 ---
+
+
+## Shadow acceleration backend (portability)
+
+Shadow rays trace against one structure, chosen per platform by
+`GPURasterizer::shadow_accel_backend()`: `HardwareRT` (driver-owned, Metal RT
+today) or `SoftwareBVH` (engine-built CPU trees walked in the shader). Under
+`HardwareRT` the CPU trees are not built at all.
+
+**The `SoftwareBVH` fallback currently renders no lighting.** Any port to
+hardware without ray tracing must fix it before anything visual will work.
+Full detail, including how to exercise it on RT hardware, in
+[PORTING_SHADOWS.md](PORTING_SHADOWS.md).

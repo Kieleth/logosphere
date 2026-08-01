@@ -38,6 +38,39 @@
 // Create a command buffer with encoder-level error reporting (macOS 11+).
 // On GPU error, this populates NSError.userInfo[MTLCommandBufferEncoderInfoErrorKey]
 // with per-encoder fault info, making GPU crashes diagnosable.
+// --- Shadow acceleration backend (see gpu_rasterizer.h for the contract) ---
+namespace {
+// -1 unset, 0 HardwareRT, 1 SoftwareBVH. Read from LOGOSPHERE_SHADOW_ACCEL on
+// first use; set_forced_shadow_accel_backend() overrides at runtime.
+std::atomic<int> g_forced_shadow_accel{-2};   // -2 = not yet initialised
+
+int forced_shadow_accel() {
+    int v = g_forced_shadow_accel.load(std::memory_order_relaxed);
+    if (v != -2) return v;
+    int init = -1;
+    if (const char* e = std::getenv("LOGOSPHERE_SHADOW_ACCEL")) {
+        if (std::strcmp(e, "hardware") == 0) init = 0;
+        else if (std::strcmp(e, "software") == 0) init = 1;
+    }
+    g_forced_shadow_accel.store(init, std::memory_order_relaxed);
+    return init;
+}
+}  // namespace
+
+namespace Logosphere {
+
+const char* to_string(ShadowAccelBackend b) {
+    return b == ShadowAccelBackend::HardwareRT ? "HardwareRT" : "SoftwareBVH";
+}
+
+void set_forced_shadow_accel_backend(const char* name) {
+    if (!name)                              g_forced_shadow_accel.store(-1, std::memory_order_relaxed);
+    else if (std::strcmp(name, "hardware") == 0) g_forced_shadow_accel.store(0, std::memory_order_relaxed);
+    else if (std::strcmp(name, "software") == 0) g_forced_shadow_accel.store(1, std::memory_order_relaxed);
+}
+
+}  // namespace Logosphere
+
 static id<MTLCommandBuffer> createTrackedCommandBuffer(id<MTLCommandQueue> queue) {
     MTLCommandBufferDescriptor *desc = [[MTLCommandBufferDescriptor alloc] init];
     desc.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
@@ -464,6 +497,23 @@ GPURasterizer::~GPURasterizer() {
     if (library_) {
         library_ = nullptr;
     }
+}
+
+ShadowAccelBackend GPURasterizer::shadow_accel_backend() const {
+    // Capability first: forcing HardwareRT on a device that lacks it, or before
+    // the deterministic pipeline / acceleration structure exist, would select a
+    // path that cannot run. Software is always available, so forcing it works
+    // anywhere — which is what lets a test exercise the portable path on RT
+    // hardware.
+    const bool hw_possible = supports_raytracing_
+                          && compute_pipeline_shadows_deterministic_ != nullptr
+                          && acceleration_structure_ != nullptr
+                          && Optimizations::PENUMBRA_MODE != Optimizations::PenumbraMode::PCSS;
+    const int forced = forced_shadow_accel();
+    if (forced == 1) return ShadowAccelBackend::SoftwareBVH;
+    if (forced == 0) return hw_possible ? ShadowAccelBackend::HardwareRT
+                                        : ShadowAccelBackend::SoftwareBVH;
+    return hw_possible ? ShadowAccelBackend::HardwareRT : ShadowAccelBackend::SoftwareBVH;
 }
 
 bool GPURasterizer::initialize(int width, int height) {
@@ -3865,9 +3915,11 @@ void GPURasterizer::rasterize_triangles_deferred_async(
                 // =========================================================================
                 id<MTLComputeCommandEncoder> shadowEncoder = [cmdShadow computeCommandEncoder];
 
-                bool use_deterministic_rt = supports_raytracing_ &&
-                                           compute_pipeline_shadows_deterministic_ &&
-                                           acceleration_structure_;
+                // Honour the SEAM, not raw capability: forcing SoftwareBVH must
+                // actually take the software path, or the guard test cannot
+                // exercise the portable fallback on RT hardware.
+                bool use_deterministic_rt =
+                    shadow_accel_backend() == ShadowAccelBackend::HardwareRT;
 
                 if (use_deterministic_rt) {
                     used_deterministic_shadows = true;

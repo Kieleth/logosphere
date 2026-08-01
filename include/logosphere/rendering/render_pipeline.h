@@ -46,6 +46,13 @@ namespace kg { class KGModule; }
 namespace logosphere {
 void   set_shadow_bvh_rebuild_frames(size_t n);
 size_t get_shadow_bvh_rebuild_frames();
+
+// DIAGNOSTIC: suppress either shadow acceleration structure at dispatch, to
+// prove which one the Metal kernel traverses. Both default true.
+void set_flat_shadow_bvh_enabled(bool on);
+void set_entity_shadow_bvh_enabled(bool on);
+bool get_flat_shadow_bvh_enabled();
+bool get_entity_shadow_bvh_enabled();
 }
 
 class RenderPipeline {
