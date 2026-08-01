@@ -2646,11 +2646,13 @@ void RenderPipeline::rasterize_surfaces(
 
             // CRITICAL: Copy surfaces AND particles — the detached thread outlives
             // the caller's scope, so references become dangling after render returns.
-            // Split so the two copies can be priced separately: surfaces is a
-            // 103,914-element std::deque (block allocations, not one memcpy),
-            // particles a 19,104-element vector.
+            // SWAP, do not copy. `surfaces` is surface_cache_ and is dead from
+            // here to the end of this function, so the worker can simply take
+            // ownership of the filled deque and hand back a spare that already
+            // owns its blocks. O(1) instead of 103,914 element constructions,
+            // and next frame's collect_surfaces still reuses the allocations.
             ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::HandoffSurfaces);
-            auto surfaces_copy = surfaces;
+            surface_pool_[next_prep_idx].swap(surface_cache_);
             ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::HandoffSurfaces);
             ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::HandoffParticles);
             auto particles_copy = particles;
@@ -2664,11 +2666,12 @@ void RenderPipeline::rasterize_surfaces(
             // into the lambda. Measured 2.06 ms of the 4.57 ms handoff, for
             // nothing. The locals are dead after this point, so a move is safe.
             std::thread prep_worker([this, next_prep_idx,
-                                     surfaces_copy  = std::move(surfaces_copy),
                                      particles_copy = std::move(particles_copy),
                                      &camera_system]() {
-                // Prepare data for next frame
-                prepare_gpu_data(next_prep_idx, surfaces_copy, particles_copy, camera_system);
+                // Surfaces come from the pool slot this worker owns; only the
+                // particle snapshot still needs carrying into the closure.
+                prepare_gpu_data(next_prep_idx, surface_pool_[next_prep_idx],
+                                 particles_copy, camera_system);
 
                 // Signal completion
                 {

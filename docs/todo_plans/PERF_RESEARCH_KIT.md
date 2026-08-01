@@ -690,10 +690,44 @@ the decision rule predicting a result before the experiment, which is the first
 time in this campaign that has happened.** Equivalence still holds: 0 pixels
 differing by >=8, shadow triangles identical.
 
-**Remaining, if someone wants the rest:** the surviving 2.44 ms retina /
-1.50 ms windowed handoff is one genuine copy of 103,914 surfaces
-(`handoff_surfaces` 2.05) and 19,104 particles (`handoff_particles` 0.37). To
-remove it rather than halve it:
+**Then the remaining copy was removed too, and the bottleneck moved twice.**
+The surviving handoff was one genuine copy of the surface deque. Replaced with
+an O(1) SWAP against a pool of spare deques (`surface_pool_[PREP_BUFFER_SLOTS]`):
+the worker takes ownership of the filled `surface_cache_` and the main thread
+gets back a deque that already owns its blocks, so next frame's
+`collect_surfaces` still reuses allocations. A plain move would also avoid the
+copy but leave an empty deque to reallocate every frame.
+
+    render_handoff   4.57  ->  2.44 (move-capture)  ->  0.44 (swap)
+    handoff_surfaces 2.05  ->  2.05                 ->  0.00
+
+`render` windowed fell 8.07 to 7.24. **Frame time did not move at either
+resolution** (retina 18.53 -> 18.22, windowed 9.08 -> 9.04, both inside
+spread), and the reason is now directly observed rather than inferred:
+
+| | `render_slot_wait` (CPU blocked on GPU) | `render_prep_wait` (main blocked on worker) |
+|---|---|---|
+| retina async | **3.00 ms, 135/149 frames** | 13/149 |
+| windowed async | 2/149 | **31/149** |
+
+Retina is GPU-bound, and this is the first time it has been shown by the CPU
+actually blocking rather than deduced from a gap. Windowed has become
+WORKER-bound: the main thread now outruns the prep worker, so waiting on prep
+appears. Two ms of real CPU work was removed and the bottleneck relocated both
+times, which is S12's cap behaving exactly as described.
+
+The swap is kept regardless: it removes real work, it is strictly better code,
+and it pays the moment either cap lifts. **No frame win is claimed for it.**
+
+**Next levers, now that the caps are named:** retina needs GPU work removed
+(or both-sides work, per the decision rule). Windowed needs `render_prep`
+itself faster, since 4.8 ms on one worker is now the floor there.
+
+**Not done, if someone wants the last of the handoff:** `handoff_particles`
+is still a real 0.42 ms copy of 19,104 particles. Removing it means
+double-buffering at the particle-system level, because physics mutates that
+array on the main thread. Options considered for the surface side, kept here
+for reference:
 - double-buffer the surface and particle INPUT arrays the way the outputs
   already are (`PREP_BUFFER_SLOTS = 3`), so the worker reads a buffer the main
   thread is not writing and nothing needs copying;

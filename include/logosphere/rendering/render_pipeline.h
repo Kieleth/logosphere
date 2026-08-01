@@ -356,6 +356,18 @@ private:
     // Triple-buffered data structures (indexed 0, 1, 2):
     static constexpr int PREP_BUFFER_SLOTS = 3;
 
+    // Spare surface buffers for the async prep handoff. The main thread SWAPS
+    // its filled surface_cache_ with one of these (O(1)) instead of copying
+    // 103,914 elements, and gets back a deque that already owns its blocks, so
+    // next frame's collect_surfaces still reuses allocations. A plain move
+    // would avoid the copy too but leave an empty deque to reallocate every
+    // frame, trading one cost for another.
+    //
+    // Pool rather than a single spare because the worker reads its slot while
+    // later frames fill others. Safe at PREP_BUFFER_SLOTS: skip_next_async_prep_
+    // keeps at most one worker live, so a slot is always free by the time the
+    // index wraps back to it.
+    std::deque<SurfaceRasterizer::SurfaceData> surface_pool_[PREP_BUFFER_SLOTS];
     std::vector<Logosphere::GPURasterizer::TriangleLit> gpu_triangles_[PREP_BUFFER_SLOTS];
     std::vector<Logosphere::GPURasterizer::TriangleLit> gpu_transparent_triangles_[PREP_BUFFER_SLOTS];  // Transparency: forward pass
     std::vector<Logosphere::ShadowTriangle> shadow_triangles_[PREP_BUFFER_SLOTS];
