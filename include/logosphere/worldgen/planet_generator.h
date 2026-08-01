@@ -17,6 +17,15 @@ struct PlanetSpec {
     float stone_size = 0.45f;     // Crust stone edge (m), jittered
     float stone_jitter = 0.20f;   // Size variation fraction
 
+    // Fine surface skin laid over the structural crust: smaller,
+    // flatter stones with less scatter, filling the gaps between the
+    // big plates so the body reads as a planet rather than a pile of
+    // shingles. Size is a fraction of stone_size; 0 disables the
+    // layer entirely (and the particle cost with it).
+    float surface_ratio = 0.5f;     // fine stone size / stone_size
+    float surface_density = 1.0f;   // coverage multiplier
+    float surface_tint = 1.12f;     // dust is lighter than the rock
+
     // Rust-warm crust over a darker core
     float crust_r = 0.62f, crust_g = 0.42f, crust_b = 0.28f;
     float core_r = 0.35f, core_g = 0.22f, core_b = 0.16f;
