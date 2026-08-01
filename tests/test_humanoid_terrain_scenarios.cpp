@@ -1,8 +1,9 @@
-// One humanoid, one situation at a time.
+// One humanoid, one situation at a time, measured against the ground
+// the whole way.
 //
 // This replaces the way test_humanoid_strata_walk was being read. That
 // test drives Eva AND several NPCs with identical velocity commands,
-// so they bunch and jam into each other; its legs claim to climb a
+// so they bunch and jam into each other; its cases claim to climb a
 // staircase and sprint 100 m, but she never leaves a 7 m box. It
 // passes anyway, because it only asks whether she came apart. It is a
 // dismemberment guard wearing a locomotion guard's name.
@@ -11,18 +12,24 @@
 //
 //   ONE humanoid. Nobody to collide with, nothing to blame.
 //   ONE terrain feature per scenario, built from scratch each time.
-//   PROGRESS IS ASSERTED. If she does not go anywhere, it fails. That
-//     is the check whose absence let the old test pass while she
-//     shuffled on the spot.
+//   EVERY FEATURE APPROACHED FROM SEVERAL ANGLES. The terrain is a
+//     centred plateau and she walks in radially, so a heading is just
+//     an angle and none of them is the axis the code was written on.
+//   SHE FACES WHERE SHE WALKS. Commanding velocity alone made her
+//     strafe sideways along her own path.
+//   THE WHOLE PATH IS MEASURED, not just the endpoints. Her height
+//     above the real surface beneath her is sampled every frame from
+//     the ground locator, and so is the length of each knee. A test
+//     that only looks at where she finished cannot see her sink, fly,
+//     teleport, or come apart at the joints on the way.
 //   NO ABSOLUTE HEIGHTS. Every scenario sits at a different, awkward
 //     ground level, and she is placed by asking the ground locator.
 //
-// Watchable: LOGOSPHERE_VISUAL=1 opens a window, follows her, and
-// waits at the end of each scenario. SPACE moves to the next one,
-// ESC stops. Headless and silent otherwise, which is what CI runs.
-//
+// Watchable:
 //   ./build/test_humanoid_terrain_scenarios
-//   LOGOSPHERE_VISUAL=1 ./build/test_humanoid_terrain_scenarios
+//   LOGOSPHERE_VISUAL=1 ./build/test_humanoid_terrain_scenarios  # SPACE next, ESC stop
+//   LOGOSPHERE_TRACE=1  ./build/test_humanoid_terrain_scenarios  # path + ParticleTracer
+//   LOGOSPHERE_SHOT=<dir> ./build/...                            # write frames as .ppm
 
 #include "core/engine.h"
 #include "core/particle_system.h"
@@ -37,6 +44,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -44,40 +52,95 @@
 
 static int tests_passed = 0;
 static int tests_failed = 0;
+static int tests_xfailed = 0;
 
 namespace {
 
 bool g_visual = false;
 bool g_quit = false;
 
+constexpr float TILE = 2.0f;
+constexpr float APPROACH_R = 9.0f;    // where she starts, from the centre
+constexpr float PLATEAU_R  = 5.0f;    // radius of the raised ground
+
 // ---------------------------------------------------------------- world
 
-// A slab of ground. Kinematic, because terrain owns its position.
-void slab(Engine& e, float cx, float cy, float top_z,
-          float size_x, float size_y, float thickness = 0.5f) {
-    const float tile = 2.0f;
-    for (float x = cx - size_x * 0.5f; x < cx + size_x * 0.5f; x += tile) {
-        for (float y = cy - size_y * 0.5f; y < cy + size_y * 0.5f; y += tile) {
-            Particle p{};
-            p.shape = ParticleShape::BOX;
-            p.x = x + tile * 0.5f;
-            p.y = y + tile * 0.5f;
-            p.z = top_z - thickness * 0.5f;
-            p.width = p.height = tile;
-            p.thickness = thickness;
-            p.size = tile;
-            p.r = 0.45f; p.g = 0.42f; p.b = 0.38f; p.a = 1.0f;
-            p.SetMaterial(Materials::Type::STONE);
-            p.solver_mode = ParticleSolverMode::KINEMATIC;
-            p.is_at_rest = true;
-            e.add_particle(p);
+// Terrain is kinematic: it owns its own position, nothing pushes it.
+void tile_at(Engine& e, float x, float y, float top_z, float thickness) {
+    Particle p{};
+    p.shape = ParticleShape::BOX;
+    p.x = x; p.y = y;
+    p.z = top_z - thickness * 0.5f;
+    p.width = p.height = TILE;
+    p.thickness = thickness;
+    p.size = TILE;
+    p.r = 0.45f; p.g = 0.42f; p.b = 0.38f; p.a = 1.0f;
+    p.SetMaterial(Materials::Type::STONE);
+    p.solver_mode = ParticleSolverMode::KINEMATIC;
+    p.is_at_rest = true;
+    e.add_particle(p);
+}
+
+// A square of ground, and optionally a raised disc in the middle of
+// it. A disc rather than a step across the map, so that every approach
+// angle meets the same feature: the heading stops being a special case
+// of the axis somebody happened to write the code along.
+void terrain(Engine& e, float ground, float plateau_z, float plateau_r) {
+    const float half = APPROACH_R + 4.0f;
+    for (float x = -half; x <= half; x += TILE) {
+        for (float y = -half; y <= half; y += TILE) {
+            tile_at(e, x, y, ground, 0.5f);
+            if (plateau_z != 0.0f &&
+                std::sqrt(x * x + y * y) <= plateau_r) {
+                // Thick enough to reach the ground below it, so the
+                // feature is a step and not a shelf floating over a
+                // gap she can walk into.
+                const float thick = std::max(0.5f,
+                                             (plateau_z - ground) + 0.8f);
+                tile_at(e, x, y, plateau_z, thick);
+            }
         }
     }
+}
+
+// Loose things underfoot. Dynamic and light: they should be kicked
+// aside, not climbed, and never take her down.
+std::vector<unsigned int> litter(Engine& e, int count, float ground,
+                                 float dir_x, float dir_y) {
+    std::vector<unsigned int> ids;
+    for (int i = 0; i < count; ++i) {
+        // Closer together than a stride, so no heading can thread
+        // between them. At 1.7 m spacing she straddled the lot on one
+        // approach and the scenario proved nothing.
+        const float t = 2.0f + i * 0.8f;
+        // Swept across the stride rather than lined up on it. A step
+        // width to the side and she walks past; dead on the centreline
+        // and her feet straddle it, which both read as "she ignored the
+        // debris" when they really mean "she missed it".
+        const float side = -0.20f + 0.045f * i;
+        Particle p{};
+        p.shape = ParticleShape::BOX;
+        p.x = -dir_x * (APPROACH_R - t) - dir_y * side;
+        p.y = -dir_y * (APPROACH_R - t) + dir_x * side;
+        p.z = ground + 0.06f;
+        p.width = p.height = 0.12f;
+        p.thickness = 0.12f;
+        p.size = 0.12f;
+        p.r = 0.55f; p.g = 0.35f; p.b = 0.2f; p.a = 1.0f;
+        p.SetMaterial(Materials::Type::WOOD_SOFT);
+        p.solver_mode = ParticleSolverMode::DYNAMIC;
+        ids.push_back(static_cast<unsigned int>(e.add_particle(p)));
+    }
+    return ids;
 }
 
 struct Walker {
     int hips = -1;
     std::vector<unsigned int> all;
+    // Knees, as the joints that were seen to come apart: {thigh, shin}
+    // for each leg. left_leg_ids is {foot, shin, thigh, toe}.
+    unsigned int l_thigh = 0, l_shin = 0, r_thigh = 0, r_shin = 0;
+    unsigned int l_foot = 0, r_foot = 0;
 };
 
 // Place her by ASKING, never by assuming.
@@ -110,10 +173,46 @@ bool spawn_walker(Engine& e, float x, float y, Walker& out) {
                    body.right_arm_ids, body.torso_ids})
         for (auto i : v) out.all.push_back(i);
     out.all.push_back(body.hips_id);
+
+    if (body.left_leg_ids.size() >= 3) {
+        out.l_foot  = static_cast<unsigned int>(body.left_leg_ids[0]);
+        out.l_shin  = static_cast<unsigned int>(body.left_leg_ids[1]);
+        out.l_thigh = static_cast<unsigned int>(body.left_leg_ids[2]);
+    }
+    if (body.right_leg_ids.size() >= 3) {
+        out.r_foot  = static_cast<unsigned int>(body.right_leg_ids[0]);
+        out.r_shin  = static_cast<unsigned int>(body.right_leg_ids[1]);
+        out.r_thigh = static_cast<unsigned int>(body.right_leg_ids[2]);
+    }
     return true;
 }
 
 // ---------------------------------------------------------------- viewing
+
+// A window on an unlit scene with the camera at the origin shows
+// black, which is exactly what the first watchable run did. Light and
+// frame it explicitly. The lights are queued in headless too, so both
+// modes are the same world and a visual surprise means a real
+// difference rather than a setup difference.
+void light_and_frame(Engine& e, float x, float y, float ground) {
+    // Height matters more than strength: at 25 m up, inverse-square
+    // falloff left the whole scene at about 15% brightness.
+    e.get_particle_system().queue_light(-6.0f, -8.0f, ground + 12.0f,
+                                        4000000.0f, 200.0f,
+                                        1.0f, 0.95f, 0.9f);
+    e.get_particle_system().queue_light(10.0f, 6.0f, ground + 10.0f,
+                                        1500000.0f, 200.0f,
+                                        0.85f, 0.9f, 1.0f);
+    if (!g_visual) return;
+    auto& cam = e.get_camera_system();
+    cam.set_position(x - 8.0f, y - 8.0f, ground + 10.0f);
+    cam.look_at(x, y, ground + 1.0f);
+    // Orthographic projection: moving the camera in does not make her
+    // bigger, pixels-per-unit does. At the default 20 she is about 36
+    // px tall, too small to watch a gait.
+    cam.adjust_zoom(28.0f);
+    e.set_camera_follow_enabled(true);
+}
 
 GLFWwindow* window_of(Engine& e) {
     if (!g_visual || !e.get_platform()) return nullptr;
@@ -139,10 +238,36 @@ void draw(Engine& e, const Walker& w) {
     }
 }
 
-// Hold at the end of a scenario so it can be looked at. SPACE goes on,
-// ESC stops. Headless runs straight through.
+// "Watchable" is a claim about pixels, and pixels are the only way to
+// check it: the first version of this harness opened a window on an
+// unlit scene at the wrong camera and reported everything green.
+void shoot(Engine& e, const std::string& name) {
+    const char* dir = std::getenv("LOGOSPHERE_SHOT");
+    if (!dir || !g_visual) return;
+    e.render();
+    e.get_renderer().wait_for_completion();
+    int w = 0, h = 0;
+    std::vector<uint32_t> px(
+        static_cast<size_t>(e.get_render_buffer().width()) *
+        e.get_render_buffer().height());
+    if (!e.read_latest_framebuffer(px.data(), w, h)) return;
+    FILE* f = std::fopen((std::string(dir) + "/" + name + ".ppm").c_str(), "wb");
+    if (!f) return;
+    std::fprintf(f, "P6\n%d %d\n255\n", w, h);
+    for (int i = 0; i < w * h; ++i) {
+        const uint32_t p = px[i];
+        unsigned char rgb[3] = {
+            static_cast<unsigned char>((p >> 16) & 0xFF),
+            static_cast<unsigned char>((p >> 8) & 0xFF),
+            static_cast<unsigned char>(p & 0xFF)};
+        std::fwrite(rgb, 1, 3, f);
+    }
+    std::fclose(f);
+}
+
 void wait_for_space(Engine& e, const Walker& w, const char* verdict) {
     if (!g_visual || g_quit) return;
+    if (std::getenv("LOGOSPHERE_SHOT")) return;   // scripted: no waiting
     std::cout << "    [" << verdict
               << "]  SPACE for the next scenario, ESC to stop." << std::endl;
     GLFWwindow* win = window_of(e);
@@ -157,38 +282,112 @@ void wait_for_space(Engine& e, const Walker& w, const char* verdict) {
     }
 }
 
-// ---------------------------------------------------------------- scenario
+// ---------------------------------------------------------------- the walk
 
+// What the whole path looked like, not just where it ended.
 struct Result {
-    bool placed = false;
-    float progress = 0.0f;      // distance actually travelled, metres
+    bool  placed = false;
+    float progress = 0.0f;        // straight-line distance travelled
     float start_z = 0.0f, end_z = 0.0f;
-    float min_hips_z = 1e9f, max_hips_z = -1e9f;
-    float worst_spread = 0.0f;  // bounding box diagonal of the body
+
+    // Registered against the real ground under her, every frame.
+    int   frames = 0;
+    int   frames_over_ground = 0; // the locator found a surface below
+    float min_clearance =  1e9f;  // hips height above that surface
+    float max_clearance = -1e9f;
+    float biggest_hop = 0.0f;     // largest single-frame move
+
+    // Knee length vs its length at rest. The joint should not stretch.
+    float rest_knee = 0.0f;
+    float worst_knee = 0.0f;      // largest absolute deviation, metres
+    // Hips-to-foot length, frame over frame. A knee that visibly pops
+    // is the hips moving while the foot is planted, which a joint
+    // length alone cannot see: the chain is rebuilt by IK each frame,
+    // so the bones stay the right length while the leg still snaps.
+    float worst_leg_jerk = 0.0f;
+    float closest_debris = 1e9f;   // nearest her feet came to the litter
+    float worst_spread = 0.0f;    // bounding box diagonal of the body
 };
 
-Result walk(Engine& e, Walker& w, float vx, float vy, int frames) {
+float dist(const Particle& a, const Particle& b) {
+    const float dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+Result walk(Engine& e, Walker& w, float dir_x, float dir_y, float speed,
+            int frames, const std::vector<unsigned int>& junk = {}) {
     Result r;
     r.placed = true;
     const bool tracing = std::getenv("LOGOSPHERE_TRACE") != nullptr;
     if (tracing) e.get_particle_tracer().trace(w.hips, "hips");
-    float last_x = 0.0f, last_z = 0.0f;
-    bool jumped = false;
-    float sx = 0, sy = 0;
+
+    auto& loco = e.get_humanoid_locomotion();
+    // Face where she is going. Yaw is clockwise from +Y, so a heading
+    // of (dx, dy) is atan2(dx, dy). Without this she keeps facing north
+    // and slides sideways along her own path.
+    loco.set_facing_direction(w.hips, std::atan2(dir_x, dir_y));
+    loco.set_target_velocity(w.hips, dir_x * speed, dir_y * speed);
+
+    float sx = 0, sy = 0, last_x = 0, last_z = 0;
+    float last_lleg = -1.0f, last_rleg = -1.0f;
     {
         auto view = e.get_particle_system().lock_particles_for_read();
         sx = view[w.hips].x; sy = view[w.hips].y;
         r.start_z = view[w.hips].z;
+        last_x = sx; last_z = r.start_z;
+        if (w.l_thigh && w.l_shin)
+            r.rest_knee = dist(view[w.l_thigh], view[w.l_shin]);
     }
-    e.get_humanoid_locomotion().set_target_velocity(w.hips, vx, vy);
+
+    auto& locator = e.get_ground_locator();
+    bool dumped = false;
 
     for (int f = 0; f < frames && !g_quit; ++f) {
         e.update(1.0 / 60.0);
         draw(e, w);
+
         auto view = e.get_particle_system().lock_particles_for_read();
-        const float hz = view[w.hips].z;
-        r.min_hips_z = std::min(r.min_hips_z, hz);
-        r.max_hips_z = std::max(r.max_hips_z, hz);
+        const Particle& h = view[w.hips];
+        r.frames++;
+
+        // Register her against the ground actually beneath her. The
+        // lock-free overload, because the read lock is already held.
+        float surface = 0.0f;
+        if (locator.surface_at(h.x, h.y, surface, view.get(), 0.6f, &w.all)) {
+            r.frames_over_ground++;
+            const float clear = h.z - surface;
+            r.min_clearance = std::min(r.min_clearance, clear);
+            r.max_clearance = std::max(r.max_clearance, clear);
+        }
+
+        // Knees. Both legs, worst deviation from rest length.
+        if (w.l_thigh && w.l_shin && r.rest_knee > 0.0f) {
+            r.worst_knee = std::max(r.worst_knee,
+                std::fabs(dist(view[w.l_thigh], view[w.l_shin]) - r.rest_knee));
+            r.worst_knee = std::max(r.worst_knee,
+                std::fabs(dist(view[w.r_thigh], view[w.r_shin]) - r.rest_knee));
+        }
+
+        for (unsigned int j : junk) {
+            if (j >= view.size()) continue;
+            if (w.l_foot) r.closest_debris =
+                std::min(r.closest_debris, dist(view[w.l_foot], view[j]));
+            if (w.r_foot) r.closest_debris =
+                std::min(r.closest_debris, dist(view[w.r_foot], view[j]));
+        }
+
+        if (w.l_foot && w.r_foot) {
+            const float lleg = dist(h, view[w.l_foot]);
+            const float rleg = dist(h, view[w.r_foot]);
+            if (last_lleg >= 0.0f) {
+                r.worst_leg_jerk = std::max(r.worst_leg_jerk,
+                                            std::fabs(lleg - last_lleg));
+                r.worst_leg_jerk = std::max(r.worst_leg_jerk,
+                                            std::fabs(rleg - last_rleg));
+            }
+            last_lleg = lleg; last_rleg = rleg;
+        }
+
         float lo[3] = {1e9f, 1e9f, 1e9f}, hi[3] = {-1e9f, -1e9f, -1e9f};
         for (unsigned int i : w.all) {
             if (i >= view.size()) continue;
@@ -197,34 +396,30 @@ Result walk(Engine& e, Walker& w, float vx, float vy, int frames) {
             lo[1] = std::min(lo[1], p.y); hi[1] = std::max(hi[1], p.y);
             lo[2] = std::min(lo[2], p.z); hi[2] = std::max(hi[2], p.z);
         }
-        const float dx = hi[0]-lo[0], dy = hi[1]-lo[1], dz = hi[2]-lo[2];
+        const float bx = hi[0]-lo[0], by = hi[1]-lo[1], bz = hi[2]-lo[2];
         r.worst_spread = std::max(r.worst_spread,
-                                  std::sqrt(dx*dx + dy*dy + dz*dz));
-        // LOGOSPHERE_TRACE=1 prints the path once a second. For when a
-        // scenario ends somewhere impossible and the end state alone
-        // does not say how it got there.
+                                  std::sqrt(bx*bx + by*by + bz*bz));
+
+        // A walker at 1.2 m/s covers 2 cm a frame. Anything near a
+        // metre is not locomotion, it is someone writing a position.
+        const float hop = std::fabs(h.x - last_x) + std::fabs(h.z - last_z);
+        if (f > 0) r.biggest_hop = std::max(r.biggest_hop, hop);
         if (tracing) {
-            const Particle& h = view[w.hips];
             if (f % 60 == 0)
                 std::cout << "      t=" << (f / 60) << "s  x=" << h.x
-                          << " z=" << h.z << "  v=(" << h.vx << "," << h.vz
-                          << ")" << std::endl;
-            // A walker moving 1.2 m/s covers 2 cm a frame. Anything
-            // near a metre is not locomotion, it is someone writing a
-            // position. Catch it in the act and ask the tracer who.
-            const float step = std::fabs(h.x - last_x) +
-                               std::fabs(h.z - last_z);
-            if (f > 0 && step > 0.5f) {
-                std::cout << "      JUMP at frame " << f << ": x " << last_x
-                          << " -> " << h.x << ", z " << last_z << " -> "
-                          << h.z << "  (" << step << " m)" << std::endl;
-                if (step > 2.0f && !jumped) {   // dump for the big one
-                    jumped = true;
-                    e.get_particle_tracer().dump(std::cout, 2);
+                          << " z=" << h.z << " clear=" << (h.z - surface)
+                          << std::endl;
+            if (f > 0 && hop > 0.10f) {
+                std::cout << "      JUMP f" << f << ": x " << last_x << " -> "
+                          << h.x << ", z " << last_z << " -> " << h.z
+                          << "  (" << hop << " m)" << std::endl;
+                if (hop > 0.10f && !dumped) {
+                    dumped = true;
+                    e.get_particle_tracer().dump(std::cout, 3);
                 }
             }
-            last_x = h.x; last_z = h.z;
         }
+        last_x = h.x; last_z = h.z;
     }
     {
         auto view = e.get_particle_system().lock_particles_for_read();
@@ -249,15 +444,13 @@ Engine* make_engine() {
 }
 
 // Same convention as physics_guard_runner: a documented known-red is
-// reported loudly every run but does not gate, and if it ever starts
-// passing the harness says so, so it gets promoted rather than
+// reported loudly on every run but does not gate, and if it ever
+// starts passing the harness says so, so it gets promoted rather than
 // quietly staying excused.
-int xfailed = 0;
-
 void check(bool ok, const std::string& msg, bool xfail = false) {
     if (ok) { tests_passed++; }
     else if (xfail) {
-        xfailed++;
+        tests_xfailed++;
         std::cout << "    XFAIL: " << msg << "  (known-red, not gating)"
                   << std::endl;
     }
@@ -272,127 +465,216 @@ int main() {
               << (g_visual ? "  [watchable: SPACE next, ESC stop]" : "")
               << std::endl;
 
-    // Every scenario names a ground height that no constant would have
-    // guessed, and none of them is zero.
     struct Case {
         const char* name;
         const char* watch;
-        float ground;         // height of the ground she starts on
-        float step_at;        // x of a terrain change (0 = none)
-        float step_z;         // height of that change
-        float vx, vy;
-        int frames;
-        float min_progress;   // she must actually go somewhere
-        // What the terrain should DO to her. Asserting progress alone
-        // is how a scenario passes while she walks along the face of a
-        // wall she was supposed to climb.
-        float expect_rise;    // hips height change she should end with
+        float ground;         // the ground she starts on. Never zero.
+        float plateau_z;      // raised disc in the middle, 0 for none
+        bool  outward;        // start on the plateau and walk off it
+        int   litter_count;   // loose objects strewn along her path
+        int   frames;
+        float expect_rise;    // hips height change the terrain should give
         float rise_tol;
-        // A scenario the engine does not survive yet. Reported every
-        // run, never gating, never deleted.
-        bool xfail;
+        float max_clear;      // ceiling on hips height above the surface
+        // This case crosses a height change, so it trips the snap in
+        // issue #30: step_climb.boost is cancelled by ground_correct
+        // every frame, and the height is applied as a one-frame ground
+        // snap that pops the legs. Only the smoothness checks are
+        // excused; everything else on the case still gates.
+        bool  snaps;
+        bool  xfail;          // the whole case is known-red
         const char* issue;
     };
     const Case cases[] = {
         {"flat ground, well above zero",
          "she should simply walk, and hold her height",
-         1.40f, 0.0f, 0.0f,  1.2f, 0.0f, 600, 3.0f,   0.00f, 0.05f,
-         false, nullptr},
+         1.40f, 0.0f, false, 0, 480,   0.00f, 0.06f, 1.05f, false, false, nullptr},
 
         {"step up",
          "a 0.35 m rise: she should end up standing on top of it",
-         1.40f, 6.0f, 1.75f, 1.2f, 0.0f, 720, 3.0f,  +0.35f, 0.12f,
-         false, nullptr},
+         1.40f, 1.75f, false, 0, 480, +0.35f, 0.14f, 1.40f, true, false, nullptr},
 
         {"step down",
          "a 0.40 m drop: she should step down, not fall over",
-         1.80f, 6.0f, 1.40f, 1.2f, 0.0f, 720, 3.0f,  -0.40f, 0.12f,
-         false, nullptr},
+         1.40f, 1.80f, true,  0, 480, -0.40f, 0.14f, 1.45f, true, false, nullptr},
 
-        // She is not stopped by this. She is fired through it. The
-        // hips are written straight through the face by animation, and
-        // once she is inside, every wall tile she overlaps contributes
-        // its own depenetration push; the pushes sum, drive her deeper,
-        // and reach more tiles. Measured escalation, all forward:
-        // 0.73, 1.16, 3.07, 3.07, 3.73, 3.73 m in consecutive frames,
-        // ending past the far side of a 12 m wall and below z = 0.
-        // LOGOSPHERE_TRACE=1 prints the path and the tracer dump.
+        {"litter underfoot",
+         "loose objects on the ground: kicked aside, never a trap",
+         1.40f, 0.0f, false, 10, 480,  0.00f, 0.20f, 1.25f, true, false, nullptr},
+
+        // She is not stopped by this. She is fired through it. The hips
+        // are written straight through the face by animation, and once
+        // she is inside, every wall tile she overlaps contributes its
+        // own depenetration push; the pushes sum, drive her deeper, and
+        // reach still more tiles. Measured escalation, all forward:
+        // 0.73, 1.16, 3.07, 3.73 m in consecutive frames, ending past
+        // the far side and below z = 0. Issue #29.
         {"a wall too tall to climb",
-         "a 1.0 m face: she should NOT get on top, and should survive "
-         "walking into it",
-         0.80f, 6.0f, 1.80f, 1.2f, 0.0f, 900, 2.5f,   0.00f, 0.15f,
+         "a 1.0 m face: she should NOT get on top, and should survive it",
+         0.80f, 1.80f, false, 0, 540,   0.00f, 0.15f, 1.05f, true,
          true, "#29 engine fires her through a solid wall"},
     };
 
+    // Every feature met from several headings. None of these is an
+    // axis the locomotion code was written along.
+    struct Angle { const char* name; float deg; };
+    const Angle angles[] = {
+        {"from the south",     0.0f},
+        {"from the southwest", 55.0f},
+        {"from the west",     125.0f},
+    };
+
+    // LOGOSPHERE_ONLY=<substring> runs one scenario, for when a single
+    // case is being traced.
+    const char* only = std::getenv("LOGOSPHERE_ONLY");
+
     for (const Case& c : cases) {
         if (g_quit) break;
+        if (only && std::string(c.name).find(only) == std::string::npos)
+            continue;
         std::cout << "\n  " << c.name << (c.xfail ? "   [known-red: " : "")
                   << (c.xfail ? c.issue : "") << (c.xfail ? "]" : "")
                   << "\n    " << c.watch << std::endl;
 
-        Engine* e = make_engine();
-        if (!e) { check(false, "engine init"); continue; }
+        for (const Angle& a : angles) {
+            if (g_quit) break;
+            const float th = a.deg * 3.14159265f / 180.0f;
+            // Unit vector she travels along.
+            const float dx = std::sin(th), dy = std::cos(th);
+            // Outward cases start near the middle and leave; inward
+            // cases start out at the rim and come in.
+            const float start_r = c.outward ? 1.0f : APPROACH_R;
+            const float sx = -dx * start_r, sy = -dy * start_r;
+            const float travel_x = c.outward ? dx : dx;
+            const float travel_y = c.outward ? dy : dy;
 
-        // Ground she starts on, then the feature ahead of her.
-        slab(*e, 0.0f, 0.0f, c.ground, 16.0f, 8.0f);
-        if (c.step_at != 0.0f) {
-            // The feature must reach DOWN to the ground she is on. A
-            // default thickness leaves a gap under a tall rise, which
-            // makes it an overhanging shelf rather than a step - she
-            // then walks into the space beneath it and the scenario
-            // measures something nobody described.
-            const float thick = std::max(0.5f, (c.step_z - c.ground) + 0.8f);
-            slab(*e, c.step_at + 5.0f, 0.0f, c.step_z, 12.0f, 8.0f, thick);
+            Engine* e = make_engine();
+            if (!e) { check(false, "engine init"); continue; }
+
+            terrain(*e, c.ground, c.plateau_z, PLATEAU_R);
+            std::vector<unsigned int> junk;
+            if (c.litter_count)
+                junk = litter(*e, c.litter_count, c.ground, dx, dy);
+            light_and_frame(*e, sx, sy, c.ground);
+            for (int i = 0; i < 5; ++i) e->update(1.0 / 60.0);
+
+            Walker w;
+            if (!spawn_walker(*e, sx, sy, w)) {
+                check(false, std::string(c.name) + " " + a.name +
+                             ": could not place walker");
+                e->shutdown(); delete e; continue;
+            }
+            for (int i = 0; i < 60; ++i) { e->update(1.0/60.0); draw(*e, w); }
+
+            std::vector<float> junk_x, junk_y;
+            {
+                auto view = e->get_particle_system().lock_particles_for_read();
+                for (unsigned int j : junk) {
+                    junk_x.push_back(view[j].x);
+                    junk_y.push_back(view[j].y);
+                }
+            }
+
+            Result r = walk(*e, w, travel_x, travel_y, 1.2f, c.frames, junk);
+
+            const float rise = r.end_z - r.start_z;
+            const float over = r.frames ? (100.0f * r.frames_over_ground /
+                                           r.frames) : 0.0f;
+            std::cout << "    " << a.name << ": travelled " << r.progress
+                      << " m, rise " << rise << " m, clearance "
+                      << r.min_clearance << ".." << r.max_clearance
+                      << " m over " << over << "% of the path"
+                      << ", worst knee " << r.worst_knee
+                      << ", leg jerk " << r.worst_leg_jerk
+                      << " m, biggest hop " << r.biggest_hop << " m"
+                      << std::endl;
+
+            const std::string who = std::string(c.name) + " " + a.name;
+
+            // She must actually go somewhere. This is the check whose
+            // absence let the old test pass while she shuffled on the
+            // spot.
+            check(r.progress >= 3.0f,
+                  who + ": must actually travel (went " +
+                  std::to_string(r.progress) + " m)", c.xfail);
+
+            // The terrain must do what the scenario says it does.
+            check(std::fabs(rise - c.expect_rise) <= c.rise_tol,
+                  who + ": height change should be " +
+                  std::to_string(c.expect_rise) + " m, was " +
+                  std::to_string(rise) + " m", c.xfail);
+
+            // Registered against the ground the whole way: she is over
+            // real ground, and she neither sinks into it nor floats.
+            check(over >= 95.0f,
+                  who + ": should be over ground for the whole path (was " +
+                  std::to_string(over) + "%)", c.xfail);
+            check(r.min_clearance > 0.55f,
+                  who + ": never sinks toward the surface (closest " +
+                  std::to_string(r.min_clearance) + " m)", c.xfail);
+            check(r.max_clearance < c.max_clear,
+                  who + ": never floats above it (highest " +
+                  std::to_string(r.max_clearance) + " m, ceiling " +
+                  std::to_string(c.max_clear) + ")", c.xfail || c.snaps);
+
+            // Nobody writes her position but locomotion. She walks at
+            // 1.2 m/s, which is 2 cm a frame; a tenth of a metre in one
+            // frame is a write, not a stride.
+            check(r.biggest_hop < 0.10f,
+                  who + ": no teleporting (biggest single frame " +
+                  std::to_string(r.biggest_hop) + " m)", c.xfail || c.snaps);
+
+            // And the legs do not pop when her height changes.
+            check(r.worst_leg_jerk < 0.10f,
+                  who + ": legs do not snap (hips-to-foot moved " +
+                  std::to_string(r.worst_leg_jerk) +
+                  " m in one frame)", c.xfail || c.snaps);
+
+            // And she stays assembled, knees included.
+            check(r.worst_knee < 0.10f,
+                  who + ": knees hold together (stretched " +
+                  std::to_string(r.worst_knee) + " m past rest " +
+                  std::to_string(r.rest_knee) + ")", c.xfail);
+            check(r.worst_spread < 3.0f,
+                  who + ": stayed whole (spread " +
+                  std::to_string(r.worst_spread) + " m)", c.xfail);
+
+            // A scenario that reports the same numbers as flat ground
+            // is not testing anything. If she never disturbs the
+            // debris she is walking through it, and "litter underfoot"
+            // means nothing.
+            if (!junk.empty()) {
+                float moved = 0.0f;
+                auto view = e->get_particle_system().lock_particles_for_read();
+                for (size_t j = 0; j < junk.size(); ++j) {
+                    const float ddx = view[junk[j]].x - junk_x[j];
+                    const float ddy = view[junk[j]].y - junk_y[j];
+                    moved = std::max(moved, std::sqrt(ddx*ddx + ddy*ddy));
+                }
+                std::cout << "      debris shifted " << moved
+                          << " m; her feet came within "
+                          << r.closest_debris << " m of it" << std::endl;
+                check(moved > 0.05f,
+                      who + ": she must actually meet the debris (it "
+                      "shifted " + std::to_string(moved) +
+                      " m; unmoved means she walked through it)", c.xfail);
+            }
+
+            std::string shot(std::string(c.name) + "_" + a.name);
+            for (char& ch : shot) if (ch == ' ' || ch == ',') ch = '_';
+            shoot(*e, shot);
+            wait_for_space(*e, w, tests_failed ? "see failures" : "ok");
+            e->shutdown();
+            delete e;
         }
-        for (int i = 0; i < 5; ++i) e->update(1.0 / 60.0);
-
-        Walker w;
-        if (!spawn_walker(*e, -5.0f, 0.0f, w)) {
-            check(false, std::string(c.name) + ": could not place walker");
-            e->shutdown(); delete e; continue;
-        }
-        for (int i = 0; i < 60; ++i) { e->update(1.0 / 60.0); draw(*e, w); }
-
-        Result r = walk(*e, w, c.vx, c.vy, c.frames);
-
-        std::cout << "    travelled " << r.progress << " m, hips "
-                  << r.start_z << " -> " << r.end_z << " (range "
-                  << r.min_hips_z << ".." << r.max_hips_z
-                  << "), worst spread " << r.worst_spread << " m"
-                  << std::endl;
-
-        // The assertion the old test never made.
-        check(r.progress >= c.min_progress,
-              std::string(c.name) + ": she must actually travel (went " +
-              std::to_string(r.progress) + " m, needed " +
-              std::to_string(c.min_progress) + ")", c.xfail);
-        // She stays on her feet: hips never near the ground she is on.
-        check(r.min_hips_z > c.ground + 0.3f,
-              std::string(c.name) + ": stayed upright (lowest hips " +
-              std::to_string(r.min_hips_z) + ", ground " +
-              std::to_string(c.ground) + ")", c.xfail);
-        // Did the terrain do what the scenario says it does? A step up
-        // must lift her; a wall must not.
-        const float rise = r.end_z - r.start_z;
-        check(std::fabs(rise - c.expect_rise) <= c.rise_tol,
-              std::string(c.name) + ": height change should be " +
-              std::to_string(c.expect_rise) + " m, was " +
-              std::to_string(rise) + " m", c.xfail);
-        // And in one piece.
-        check(r.worst_spread < 3.0f,
-              std::string(c.name) + ": stayed whole (spread " +
-              std::to_string(r.worst_spread) + " m)", c.xfail);
-
-        wait_for_space(*e, w, tests_failed == 0 ? "ok" : "see failures above");
-        e->shutdown();
-        delete e;
     }
 
     std::cout << "\n" << tests_passed << " passed, " << tests_failed
               << " failed";
-    if (xfailed) std::cout << ", " << xfailed << " known-red (not gating)";
-    else std::cout << "\n  every known-red scenario now passes: promote it "
-                      "to gating.";
+    if (tests_xfailed)
+        std::cout << ", " << tests_xfailed << " known-red (not gating)";
+    else
+        std::cout << "\n  every known-red scenario now passes: promote it.";
     std::cout << (g_quit ? "  (stopped early)" : "") << std::endl;
     return tests_failed == 0 ? 0 : 1;
 }

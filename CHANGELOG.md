@@ -240,6 +240,14 @@ ships today.
   games live in `examples/`; `find_package(logosphere)` consumption
   is the first post-release packaging milestone.
 
+- A humanoid crossing a step snaps up or down it in a single frame
+  instead of climbing. `step_climb.boost` sets a 3.93 m/s climb
+  velocity that `shape.ground_correct` cancels on the same frame,
+  every frame, and the height change is finally applied as a one-frame
+  ground snap at the edge. Because the foot is planted while the hips
+  jump, the leg visibly pops at the knee: hips-to-foot distance changes
+  0.26 to 0.35 m in one frame. Documented as known-red smoothness
+  checks in `test_humanoid_terrain_scenarios` (issue #30).
 - A walking humanoid is not stopped by a wall taller than she can
   step onto. Animation writes the hips through the face, and once she
   is inside, the depenetration pushes from every wall tile she
