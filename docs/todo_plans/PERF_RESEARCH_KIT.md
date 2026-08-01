@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S16 | What does an LOD switch cost? | 3.94 ms more GPU work: refit 1.87 to build 5.81. accel_build is the LARGEST GPU stage and was never recorded until now. |
 | S15 | Is the 1.9x shadow triangle ratio waste, and are sphere shadows worth it? | No and no. The ratio is required input for the GPU's per-ray cull, and every Eden shadow caster is a box (196,596 = 16,383 x 12 exactly). |
 | S14 | Should async GPU prep be turned back on? | Yes, once the handoff stopped copying the frame's input TWICE (lambda captured by value). Pixel-identical, +1.88 ms retina, +3.43 ms windowed. |
 
@@ -813,6 +814,48 @@ it first.
 CPU collect, prep_triangles, prep_shadow_tris AND the largest GPU stage
 (pass1_gbuffer 5.52 ms) at once, which is what the decision rule demands while
 retina is balanced.
+
+### S16: the largest GPU stage was invisible, and it prices LOD (2026-08-01)
+
+`GpuStage::AccelBuild` and `AccelRefit` were declared in the enum and never
+recorded. The Metal acceleration-structure build was timed only by an `NSLog`
+on a 1-in-60 sample, and its command buffer was created with a plain
+`[commandQueue commandBuffer]` rather than `createTrackedCommandBuffer`, so it
+was missing from `gpu_window` too. Both fixed.
+
+    accel_build   5.81 ms median   <- LARGEST GPU stage in the engine
+    pass1_gbuffer 4.80 ms
+    accel_refit   1.87 ms
+
+**The AS build is bigger than the G-buffer pass, and nothing measured it.**
+Every "GPU stage sum" in this journal before today omitted it.
+
+**But it is hidden.** Tracking the buffer took buffers/frame from 12 to 13 while
+GPU busy moved only 18.09 to 18.22 ms, +0.13. The AS build runs almost entirely
+CONCURRENT with the render passes, because it is a separate submission with no
+data dependency on them.
+
+**That corrects S13.** Stage overlap measured 1.01x there, which was true of the
+render passes among themselves (the serialized experiment confirms it) but was
+computed with the largest stage missing. Including the AS, stage sum over busy
+is about 1.4x. Two different things were being called "overlap": the render
+passes are serial with each other, and the AS overlaps all of them.
+
+**What this prices, which is why it was instrumented.** Refit requires an
+unchanged triangle count (`triangle_count == accel_triangle_count_` in
+`gpu_rasterizer.mm`). Any LOD switch changes the count and forces the build
+path: **3.94 ms more GPU work per frame, refit 1.87 to build 5.81.**
+
+`SPHERE_LOD_DESIGN.md` trap 1 called hysteresis a PERFORMANCE requirement rather
+than a visual nicety, and it was right, but its numbers were stale: it cited
+`prep_bvh` at 4.65 ms with a 9.47 ms rebuild, and `prep_bvh` is now 0.00 because
+the CPU shadow trees went dormant under `HardwareRT`. The concern relocated
+intact from the CPU trees to the Metal AS, and now has a number again.
+
+**Open, and it matters for LOD:** whether that extra 3.94 ms stays hidden.
+It overlaps today at 91% GPU occupancy, which leaves roughly 9% of headroom, so
+a per-frame full build may or may not keep hiding. Measure before designing the
+hysteresis bands around it.
 
 ---
 

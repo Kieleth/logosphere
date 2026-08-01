@@ -6457,7 +6457,10 @@ bool GPURasterizer::build_acceleration_structure(const void* triangles, uint32_t
         id<MTLBuffer> scratchBuffer = (__bridge id<MTLBuffer>)accel_scratch_buffer_;
 
         // === STEP 7: Build or refit the acceleration structure ===
-        id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+        // TRACKED: this used to be a plain [commandQueue commandBuffer], so the
+        // AS build was invisible to gpu_window and GPU busy excluded it
+        // entirely. It is real GPU work on the same queue as everything else.
+        id<MTLCommandBuffer> commandBuffer = createTrackedCommandBuffer(commandQueue);
         id<MTLAccelerationStructureCommandEncoder> encoder =
             [commandBuffer accelerationStructureCommandEncoder];
 
@@ -6479,20 +6482,32 @@ bool GPURasterizer::build_acceleration_structure(const void* triangles, uint32_t
         }
         [encoder endEncoding];
 
-        // Item C measurement: attribute the per-frame AS build/refit cost
-        // (same sampling cadence as the pass timestamps).
-        if constexpr (Optimizations::ENABLE_GPU_TIMESTAMP_PROFILING) {
+        // Attribute the per-frame AS build/refit cost. This used to be an
+        // NSLog on a 1-in-60 sample and nothing else, so GpuStage::AccelBuild
+        // and AccelRefit were declared but never recorded and every "GPU stage
+        // sum" silently omitted the AS. Recorded EVERY frame now (the sink is
+        // two array writes); the NSLog keeps its sampled cadence.
+        //
+        // These two numbers are what prices LOD: refit requires an unchanged
+        // triangle count (see do_refit above), so any LOD switch forces the
+        // build path. Without them the hysteresis design rests on a guess.
+        {
+            const bool was_refit = do_refit;
+            const uint64_t tel_frame = ::logosphere::telemetry::frame_index();
             static int as_ts_pc = 0;
-            if (as_ts_pc++ % Optimizations::GPU_PROFILE_SAMPLE_RATE == 0) {
-                const bool was_refit = do_refit;
-                [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> cb) {
-                    if (cb.GPUStartTime > 0 && cb.GPUEndTime > 0) {
-                        NSLog(@"[GPU_TIMESTAMP] AS %s: %.2f ms",
-                              was_refit ? "refit" : "build",
-                              (cb.GPUEndTime - cb.GPUStartTime) * 1000.0);
-                    }
-                }];
-            }
+            const bool log_this = Optimizations::ENABLE_GPU_TIMESTAMP_PROFILING &&
+                                  (as_ts_pc++ % Optimizations::GPU_PROFILE_SAMPLE_RATE == 0);
+            [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> cb) {
+                if (cb.GPUStartTime <= 0 || cb.GPUEndTime <= 0) return;
+                const double ms = (cb.GPUEndTime - cb.GPUStartTime) * 1000.0;
+                ::logosphere::telemetry::record_gpu_stage(
+                    was_refit ? ::logosphere::telemetry::GpuStage::AccelRefit
+                              : ::logosphere::telemetry::GpuStage::AccelBuild,
+                    ms, tel_frame);
+                if (log_this) {
+                    NSLog(@"[GPU_TIMESTAMP] AS %s: %.2f ms", was_refit ? "refit" : "build", ms);
+                }
+            }];
         }
 
         [commandBuffer commit];

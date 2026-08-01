@@ -674,6 +674,24 @@ measurable frame time.
    architecture, count what a single element allocates and ask what part
    of the work is identical for every element.
 
+11. **Price it with the counters before building it.** Two candidate levers
+    were closed in minutes with no code (kit S15). The shadow-to-render
+    triangle ratio looked like 1.9x of free money; it is required input for a
+    per-ray cull that already runs on the GPU. Analytic sphere shadows looked
+    obviously worth doing; 196,596 shadow triangles is exactly 16,383 x 12, an
+    exact multiple of a box, so every Eden shadow caster is a box and the change
+    would buy zero there. A divisibility check settled a question that would
+    otherwise have cost a full implementation to answer. Ask what the recorded
+    counters already imply before writing anything.
+
+12. **Read the code's own comments before re-investigating.** The shadow
+    triangle ratio was already investigated, answered and documented at
+    `render_pipeline.cpp:380`, including why build-time back-face culling is the
+    wrong frame of reference and where the correct per-ray cull lives. A
+    previous session had also already deleted the dead cross products left from
+    the abandoned attempt. Grepping the area first would have skipped the whole
+    exercise. This codebase writes down its RCAs at the site; use them.
+
 10. **Look for locks before looking at arithmetic.** `prep_shadow_tris`
     is named after geometry and was 68% mutex: a `getEntityByRenderIndex()`
     call per particle, locking a `recursive_mutex` from 14 worker threads,
