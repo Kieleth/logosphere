@@ -1,6 +1,7 @@
 #include "logosphere/rendering/render_pipeline.h"
 #include "core/telemetry.h"
 #include <cstring>
+#include <cstdlib>
 #include <climits>
 #include "../optimization_flags.h"
 #include "../debug_control.h"
@@ -125,6 +126,19 @@ void set_flat_shadow_bvh_enabled(bool on)   { g_pass_flat_shadow_bvh.store(on, s
 void set_entity_shadow_bvh_enabled(bool on) { g_pass_entity_shadow_bvh.store(on, std::memory_order_relaxed); }
 bool get_flat_shadow_bvh_enabled()   { return g_pass_flat_shadow_bvh.load(std::memory_order_relaxed); }
 bool get_entity_shadow_bvh_enabled() { return g_pass_entity_shadow_bvh.load(std::memory_order_relaxed); }
+}  // namespace logosphere
+
+// Async GPU prep. Seeded from the compile-time flag so behaviour is unchanged
+// until something explicitly asks otherwise; see render_pipeline.h for why the
+// default is what it is.
+static std::atomic<bool> g_async_gpu_prep{[] {
+    if (const char* e = std::getenv("LOGOSPHERE_ASYNC_PREP")) return std::strcmp(e, "0") != 0;
+    return Optimizations::USE_ASYNC_GPU_PREP;
+}()};
+
+namespace logosphere {
+void set_async_gpu_prep(bool on) { g_async_gpu_prep.store(on, std::memory_order_relaxed); }
+bool get_async_gpu_prep()        { return g_async_gpu_prep.load(std::memory_order_relaxed); }
 }  // namespace logosphere
 
 static std::atomic<size_t> g_shadow_bvh_rebuild_frames{[] {
@@ -1965,7 +1979,7 @@ void RenderPipeline::rasterize_surfaces(
 
         int buffer_idx;
 
-        if constexpr (Optimizations::USE_ASYNC_GPU_PREP) {
+        if (::logosphere::get_async_gpu_prep()) {
             // First frame initialization (also triggers after reset_temporal_state)
             if (first_frame_) {
                 // First frame: prepare synchronously in buffer 0
@@ -2616,7 +2630,7 @@ void RenderPipeline::rasterize_surfaces(
         // =====================================================================
         // ASYNC GPU_PREP: Launch prep for next frame while GPU renders current
         // =====================================================================
-        if constexpr (Optimizations::USE_ASYNC_GPU_PREP) {
+        if (::logosphere::get_async_gpu_prep()) {
             // Don't start new prep if previous one is still running (non-blocking fallback case)
             if (skip_next_async_prep_) {
                 // Previous prep still running - let it finish, don't spawn another thread

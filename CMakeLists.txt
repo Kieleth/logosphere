@@ -1726,6 +1726,7 @@ set(TEST_SOURCES
     tests/test_shadow_flat_bvh_necessity.cpp   # Is the flat shadow BVH ever read?
     tests/test_shadow_accel_backend.cpp        # Shadow accel backend seam: dormancy + fallback
     tests/test_gpu_occupancy_sanity.cpp        # GPU occupancy: union not sum, cannot exceed 100%
+    tests/test_async_prep_equivalence.cpp      # Async GPU prep must not change a single pixel
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)
     # tests/test_gpu_multi_triangle.cpp          # GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
     tests/test_gpu_parallel_rays.cpp           # GPU parallel rays (Phase I-C)

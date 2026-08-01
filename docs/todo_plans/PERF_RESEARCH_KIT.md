@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S14 | Should async GPU prep be turned back on? | Not as it stands. Pixel-identical (proven), but net zero: the handoff deep-copies 103,914 surfaces per frame, costing exactly what the prep saves. |
 
 **Standing conclusions.** Cost tracks **surfaces**, not particles and not
 lights. A sphere at subdivision 2 emits 320 surfaces against a box's ~12.
@@ -549,6 +550,100 @@ stage sum over busy. Above 85% occupancy it prints the headroom and the warning
 that a one-sided win is capped at that gap. The old OVERLAP FACTOR compared
 stage sum against frame time, which conflated stage overlap with CPU/GPU
 balance and is gone.
+
+### S14: async prep is pixel-identical; the speed question is UNSETTLED (2026-08-01)
+
+`prepare_gpu_data` costs 4.58 ms of a 12.89 ms CPU render at retina and runs
+synchronously on the main thread. `Optimizations::USE_ASYNC_GPU_PREP` exists to
+overlap it with the GPU and was TRUE at the initial commit. Git blame: set false
+on 2026-04-04 with the note "(for testing)" during an Eva-shadow investigation,
+whose own commit records that the bug it chased reproduced in BOTH sync and
+async modes and that the shadows were correct. Never restored. Four months
+unexercised.
+
+Made runtime-switchable (`logosphere::set_async_gpu_prep`,
+`LOGOSPHERE_ASYNC_PREP=1`) so both modes live in one binary. Default unchanged.
+
+**PROVEN: moving prep off the main thread does not change the image.**
+`tests/test_async_prep_equivalence.cpp`, static camera:
+
+| comparison | delta>=1 | delta>=8 | max |
+|---|---|---|---|
+| sync' vs sync (noise floor) | 18,277 | 0 | 2 |
+| async vs sync | 15,527 | **0** | 2 |
+
+Shadow triangles identical at 9,236, which matters because the April symptom was
+a triangle count collapsing mid-run, and a settled pixel diff cannot see that.
+
+**AND IT IS NET ZERO BY CONSTRUCTION. The handoff costs what the prep saves.**
+A-B-A-B on Eden retina, medians:
+
+| phase | sync | async | delta |
+|---|---|---|---|
+| render_prep (leaves the main thread) | 4.92 | 5.34 | +0.43 |
+| **render_handoff (arrives on the main thread)** | **0.00** | **4.85** | **+4.85** |
+| render_collect | 3.89 | 4.58 | +0.69 |
+| render_submit | 2.15 | 1.78 | -0.37 |
+| frame | 21.51 | 21.82 | +0.31 |
+
+`render_handoff` is these two lines at the launch site:
+
+```cpp
+auto surfaces_copy = surfaces;      // 103,914 surfaces
+auto particles_copy = particles;    // 19,104 particles
+```
+
+Deep copies of the whole frame's input, on the main thread, every frame. They
+exist because the worker is DETACHED and outlives the caller's scope, so
+references would dangle; the code says so in a comment. So the design hands 4.9
+ms of prep to a worker and pays 4.85 ms of memcpy for the privilege. Frame time
+does not move because nothing left the critical path.
+
+**Turning the flag on as it stands buys nothing.** Making it pay requires
+removing the copy, not scheduling around it:
+- double-buffer the surface and particle INPUT arrays the way the outputs
+  already are (`PREP_BUFFER_SLOTS = 3`), so the worker reads a buffer the main
+  thread is not writing and nothing needs copying;
+- or stop detaching, and join at a defined point so references stay valid;
+- or move surface collection itself into the worker, leaving nothing to hand
+  over. `render_collect` is another 3.89 ms, and it rose 0.69 ms under async,
+  which is consistent with cache pressure from the copies.
+
+**RCA note, because this is the second time.** The first reading of this result
+blamed machine load (average 5.7-6.0, an unrelated engine build running) and
+called the experiment inconclusive. That was wrong and it is the same
+misattribution recorded in the 2026-07-31 baseline entry, where an 11.6 ms
+"regression" was blamed on contention and then on a bisect before counters
+settled it. Load was real and the spread was real, but the mechanism was sitting
+in the phase split the whole time. **Read the split before blaming the box.**
+
+**Two defects found by reading, both still unfixed and both pre-existing:**
+- A `std::thread` is created and DETACHED every frame for the prep worker. That
+  is a 29th thread per frame in a render path that already creates 28, while
+  `tile_thread_pool.cpp` sits unused.
+- The worker captures `camera_system` BY REFERENCE while surfaces and particles
+  are copied by value, with a comment explaining that references dangle because
+  the detached thread outlives the caller. The camera has the same exposure, and
+  `prepare_gpu_data` reads it. `CameraSystem` holds a `unique_ptr` so it is
+  move-only and cannot simply be snapshotted; fixing it means passing the values
+  prep needs. The equivalence test uses a STATIC camera and therefore does not
+  exercise this. Note also that with a moving camera async legitimately preps
+  against a one-frame-stale camera, so some divergence there is design, not bug,
+  and the two causes must be separated before reading any red result.
+
+**Two measurement lessons, both self-inflicted this session:**
+- The first A/B silently compared sync against sync. The shell glob `*sync)`
+  matches `a2_async`, because "async" ends in "sync". Both legs ran the same
+  configuration and the table looked entirely plausible. The counter that caught
+  it was `render_handoff`, non-zero only in real async mode. **Always carry a
+  counter that proves the lever engaged**; the sensitivity control is not
+  optional, and the same check caught the equivalence test running blind with
+  telemetry disabled.
+- `render_slot_wait` reads 0.00 as a MEDIAN but fires on 21 to 35 of 199 frames,
+  up to 6.7 ms. Earlier entries in this journal, including the 2026-07-31
+  baseline, read that median as "the CPU never waits". It does wait, on roughly
+  one frame in eight. Medians hide tails; for anything spiky, report the
+  non-zero count too.
 
 ---
 

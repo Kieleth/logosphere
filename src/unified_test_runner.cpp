@@ -77,6 +77,7 @@ extern bool test_shadow_bvh_lever();         // Shadow-BVH rebuild interval, vis
 extern bool test_shadow_flat_bvh_necessity();// Is the flat shadow BVH ever read? (STANDALONE)
 extern bool test_shadow_accel_backend();     // Shadow accel backend seam: dormancy + portable fallback (STANDALONE)
 extern bool test_gpu_occupancy_sanity();     // GPU occupancy must be a union, not a sum (STANDALONE)
+extern bool test_async_prep_equivalence();   // Async GPU prep must be pixel-identical to sync (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
 // extern bool test_gpu_multi_triangle(TestContext& ctx);  // GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
 extern bool test_gpu_parallel_rays(TestContext& ctx);  // GPU parallel rays (Phase I-C)
@@ -249,6 +250,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_shadow_flat_bvh_necessity"] = [](TestContext&) { return test_shadow_flat_bvh_necessity(); };  // STANDALONE: own engine
     registry["test_shadow_accel_backend"] = [](TestContext&) { return test_shadow_accel_backend(); };  // STANDALONE: own engine
     registry["test_gpu_occupancy_sanity"] = [](TestContext&) { return test_gpu_occupancy_sanity(); };  // STANDALONE: own engine
+    registry["test_async_prep_equivalence"] = [](TestContext&) { return test_async_prep_equivalence(); };  // STANDALONE: own engine
 
     // GPU compute tests (Phase I MVP, I-B, I-C, II-A)
     registry["test_gpu_shadow_ray"] = test_gpu_shadow_ray;
@@ -647,6 +649,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_shadow_flat_bvh_necessity",
         "test_shadow_accel_backend",
         "test_gpu_occupancy_sanity",
+        "test_async_prep_equivalence",
         "test_interaction_filtering",
         "test_interaction_volume_forces",
         "test_interaction_transformations",
@@ -731,6 +734,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_shadow_flat_bvh_necessity", test_shadow_flat_bvh_necessity},
         {"test_shadow_accel_backend", test_shadow_accel_backend},
         {"test_gpu_occupancy_sanity", test_gpu_occupancy_sanity},
+        {"test_async_prep_equivalence", test_async_prep_equivalence},
         {"test_interaction_filtering", test_interaction_filtering},
         {"test_interaction_volume_forces", test_interaction_volume_forces},
         {"test_interaction_transformations", test_interaction_transformations},

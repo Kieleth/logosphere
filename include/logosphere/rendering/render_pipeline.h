@@ -53,6 +53,24 @@ void set_flat_shadow_bvh_enabled(bool on);
 void set_entity_shadow_bvh_enabled(bool on);
 bool get_flat_shadow_bvh_enabled();
 bool get_entity_shadow_bvh_enabled();
+
+// Async GPU prep: run prepare_gpu_data on a worker for frame N+1 while the GPU
+// renders frame N, instead of synchronously on the main thread.
+//
+// DEFAULT OFF, and that is a leftover rather than a decision.
+// Optimizations::USE_ASYNC_GPU_PREP was set false on 2026-04-04 "(for
+// testing)" during an Eva-shadow investigation, which concluded the shadows
+// were correct and that the bug it chased reproduced in BOTH modes. It was
+// never restored. Runtime-switchable so sync and async can be A/B'd in one
+// binary, which is what the equivalence test needs.
+//
+// While it is off, telemetry's RenderPrepWait / RenderHandoff / RenderSlotWait
+// read 0.00 because their code never runs. That is not evidence of a pipeline
+// that never stalls.
+//
+// LOGOSPHERE_ASYNC_PREP=1 turns it on at startup.
+void set_async_gpu_prep(bool on);
+bool get_async_gpu_prep();
 }
 
 class RenderPipeline {

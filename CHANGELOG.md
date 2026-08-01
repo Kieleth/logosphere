@@ -8,6 +8,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- `logosphere::set_async_gpu_prep()` / `LOGOSPHERE_ASYNC_PREP=1` make the
+  async GPU-prep path runtime-switchable instead of compile-time. Default
+  is unchanged (off). Proven pixel-identical to the synchronous path by
+  `tests/test_async_prep_equivalence.cpp`. It is NOT faster as it stands:
+  the handoff deep-copies the frame's surfaces and particles on the main
+  thread, costing almost exactly what the prep it offloads saves. See the
+  study journal S14 for what would have to change first.
 - Serialized GPU diagnostic mode: `Logosphere::set_gpu_serialized_diagnostic()`
   or `LOGOSPHERE_GPU_SERIALIZED=1` makes every render pass block until it
   completes before the next is encoded, so each runs alone and its GPU

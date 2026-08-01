@@ -98,7 +98,13 @@ enum class Phase : uint16_t {
     RenderHandoff,      // surface + particle copies handed to that worker
     RenderSlotWait,     //   of which: blocked on the triple-buffer semaphore
     RenderSubmit,       // buffer upload and GPU dispatch
-    RenderPrep,         // prepare_gpu_data as a whole (ASYNC THREAD)
+    // prepare_gpu_data and its steps. ON THE MAIN THREAD TODAY, and therefore
+    // on the critical path: Optimizations::USE_ASYNC_GPU_PREP has been false
+    // since 2026-04-04, when it was set false "(for testing)" during an
+    // Eva-shadow investigation and never restored. While it stays false the
+    // three phases above are always 0.00 because their code path never
+    // executes, which is NOT evidence that the pipeline never stalls.
+    RenderPrep,         // prepare_gpu_data as a whole
     PrepTriangles,      //   step 1: surfaces -> GPU lit triangles
     PrepShadowTris,     //   step 2: shadow triangles from particles
     PrepBVH,            //   step 3: shadow BVH build/refit (+ entity BVH)
@@ -106,7 +112,12 @@ enum class Phase : uint16_t {
     PrepBvhEntity,      //     of which: entity grouping + EntityBVH build/refit
     PrepLights,         //   step 4: light packing
     PrepTransforms,     //   steps 5-6: emissive map + particle transforms
-    PrepBinning,        //   tile binning
+    // NOT a step of RenderPrep, despite the name and the old indentation.
+    // Binning runs later in render_particles, outside prepare_gpu_data
+    // (153-956), so it is a SIBLING of RenderPrep. Adding it to the prep steps
+    // overstates them by about 30% and makes the children exceed the parent,
+    // which reads as an instrumentation bug and is not one.
+    PrepBinning,        // tile binning: SIBLING of RenderPrep, not a step
     Present,
     COUNT
 };
