@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S15 | Is the 1.9x shadow triangle ratio waste, and are sphere shadows worth it? | No and no. The ratio is required input for the GPU's per-ray cull, and every Eden shadow caster is a box (196,596 = 16,383 x 12 exactly). |
 | S14 | Should async GPU prep be turned back on? | Yes, once the handoff stopped copying the frame's input TWICE (lambda captured by value). Pixel-identical, +1.88 ms retina, +3.43 ms windowed. |
 
 **Standing conclusions.** Cost tracks **surfaces**, not particles and not
@@ -771,6 +772,47 @@ in the phase split the whole time. **Read the split before blaming the box.**
   baseline, read that median as "the CPU never waits". It does wait, on roughly
   one frame in eight. Medians hide tails; for anything spiky, report the
   non-zero count too.
+
+### S15: NO ACTION x2, the shadow triangle ratio and sphere shadows (2026-08-01)
+
+Two candidate levers priced and both closed, one by reading and one by
+arithmetic. Total cost: no code.
+
+**The 1.9x shadow-to-render triangle ratio is not waste.** The shadow path
+carries 196,596 triangles against the render path's 103,754. Per particle that
+is 10.29 against 5.98, and a box is 12 triangles, so the render path is
+back-face culling (12 to 6) and the shadow path is not.
+
+That is correct and already documented at `render_pipeline.cpp:380`. Build-time
+back-face culling is the WRONG FRAME OF REFERENCE for shadows: rays run from
+shaded points toward lights in every direction, so a triangle facing away from
+the CAMERA still occludes. The per-ray cull that IS correct already happens on
+the GPU, in `shadow_rays_deferred.metal` stage 2, which skips directional groups
+whose average normal faces away from that particular ray. Every face is required
+input for it. A previous session already removed the dead per-triangle normals
+left over from the abandoned attempt (196,596 cross products a frame).
+
+**Analytic sphere shadows would buy exactly zero in Eden.** 196,596 is precisely
+16,383 x 12. An exact multiple of a box's 12, with no remainder for anything
+else. Spheres emit 80 triangles at subdivision 1 and 320 at subdivision 2, and
+neither leaves an integer count of boxes behind. Every shadow caster in Eden is
+a box; there are no spheres in the shadow set.
+
+The idea is still sound for scenes that HAVE spheres (the falling-bodies
+benchmark, where sphere subdivision measured 2.6x). It is simply not an Eden
+lever, and Eden is the reality check. Do not spend a block on it expecting the
+Eden frame to move.
+
+**Method note.** Both answers came from counters already being recorded, in
+about ten minutes and no experiment. The divisibility check in particular
+settled a question that would otherwise have cost a full implementation to
+answer. Before building an optimisation, check whether the counters can price
+it first.
+
+**What survives:** render-path LOD. It is the only identified lever that cuts
+CPU collect, prep_triangles, prep_shadow_tris AND the largest GPU stage
+(pass1_gbuffer 5.52 ms) at once, which is what the decision rule demands while
+retina is balanced.
 
 ---
 
