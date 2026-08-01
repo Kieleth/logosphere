@@ -40,6 +40,14 @@ namespace kg { class KGModule; }
  * with clear stages: transformation, culling, sorting, rasterization. This modular
  * approach allowed id Software to optimize each stage independently.
  */
+// Minimum frames between shadow-BVH full rebuilds. See
+// Optimizations::SHADOW_BVH_MIN_REBUILD_FRAMES for what it trades. Settable at
+// runtime so the quality/perf choice can be flipped on a live scene.
+namespace logosphere {
+void   set_shadow_bvh_rebuild_frames(size_t n);
+size_t get_shadow_bvh_rebuild_frames();
+}
+
 class RenderPipeline {
 public:
     // Constructor - takes reference to shared SurfaceRasterizer from RenderSystem

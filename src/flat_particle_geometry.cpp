@@ -10,6 +10,20 @@ namespace ParticleGeometryV2 {
 // Each face is split into 2 triangles using a consistent diagonal.
 // ============================================================================
 
+void FlatParticleGeometry::resize(float width, float height, float thickness) {
+    const float hw = width * 0.5f, hh = height * 0.5f, ht = thickness * 0.5f;
+    // Same binary XYZ corner numbering the constructor uses. Written in place:
+    // local_vertices already has 8 slots and keeps its capacity.
+    local_vertices[0] = Vec3(-hw, -hh, -ht);
+    local_vertices[1] = Vec3( hw, -hh, -ht);
+    local_vertices[2] = Vec3( hw,  hh, -ht);
+    local_vertices[3] = Vec3(-hw,  hh, -ht);
+    local_vertices[4] = Vec3(-hw, -hh,  ht);
+    local_vertices[5] = Vec3( hw, -hh,  ht);
+    local_vertices[6] = Vec3( hw,  hh,  ht);
+    local_vertices[7] = Vec3(-hw,  hh,  ht);
+}
+
 FlatParticleGeometry::FlatParticleGeometry(float width, float height, float thickness) {
     float half_width = width / 2.0f;
     float half_height = height / 2.0f;

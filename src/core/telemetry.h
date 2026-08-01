@@ -102,6 +102,8 @@ enum class Phase : uint16_t {
     PrepTriangles,      //   step 1: surfaces -> GPU lit triangles
     PrepShadowTris,     //   step 2: shadow triangles from particles
     PrepBVH,            //   step 3: shadow BVH build/refit (+ entity BVH)
+    PrepBvhTriangle,    //     of which: the shadow TriangleBVH build/refit
+    PrepBvhEntity,      //     of which: entity grouping + EntityBVH build/refit
     PrepLights,         //   step 4: light packing
     PrepTransforms,     //   steps 5-6: emissive map + particle transforms
     PrepBinning,        //   tile binning

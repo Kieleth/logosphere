@@ -128,6 +128,8 @@ const char* name_of(Phase p) {
         case Phase::PrepTriangles:   return "prep_triangles";
         case Phase::PrepShadowTris:  return "prep_shadow_tris";
         case Phase::PrepBVH:         return "prep_bvh";
+        case Phase::PrepBvhTriangle: return "prep_bvh_triangle";
+        case Phase::PrepBvhEntity:   return "prep_bvh_entity";
         case Phase::PrepLights:      return "prep_lights";
         case Phase::PrepTransforms:  return "prep_transforms";
         case Phase::PrepBinning:     return "prep_binning";

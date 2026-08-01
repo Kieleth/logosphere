@@ -1031,6 +1031,38 @@ namespace Optimizations {  // Continue namespace
     // Time-based rebuild parameters (Phase 1)
     constexpr size_t BVH_REBUILD_INTERVAL = 600;  // Frames (20 seconds @ 30 FPS)
 
+    // QUALITY LEVER: minimum frames between shadow-BVH full rebuilds.
+    //
+    // A refit cannot place NEW triangles (no leaves exist for them), so a scene
+    // that spawns geometry must rebuild. The trigger for that is a relative
+    // one (>1% of the current triangle count), which a steady spawn rate
+    // outruns while the scene is still small: measured on the falling-bodies
+    // ramp, 180 new shadow triangles a frame against a 1% threshold meant a
+    // FULL REBUILD EVERY FRAME between 839 and 2,039 bodies. 81 frames at up
+    // to 97 ms each, 13% of the whole run, then it self-corrected once 1% of
+    // the count exceeded the growth rate. That is the classic "runs fine, gets
+    // choppy, then recovers" report.
+    //
+    // Rebuild cost is linear and honest (~0.6 us/triangle); a refit of 629,552
+    // triangles is 1.66 ms against 97 ms to rebuild 160,000. The cost is not
+    // the builder, it is rebuilding every frame.
+    //
+    // This is the knob a player would move. Higher = smoother, at the price of
+    // newly spawned bodies casting no shadow for up to N-1 frames:
+    //   1  every change rebuilds        highest fidelity, the old behaviour
+    //   4  ~66 ms of shadowless spawn   balanced
+    //   8  ~133 ms                      smooth
+    //   16 ~266 ms                      performance
+    // A large jump (see SHADOW_BVH_FORCE_REBUILD_FRACTION) always rebuilds
+    // immediately regardless, so scene loads and teleports are never stale.
+    // Override at runtime with LOGOSPHERE_BVH_REBUILD_FRAMES=<n>.
+    constexpr size_t SHADOW_BVH_MIN_REBUILD_FRAMES = 1;  // default = old behaviour
+
+    // Change big enough to bypass the interval above and rebuild now, as a
+    // fraction of the live triangle count. Guards teleports and scene swaps,
+    // where a deferred rebuild would leave shadows attached to nothing.
+    constexpr float SHADOW_BVH_FORCE_REBUILD_FRACTION = 0.25f;
+
     // Quality-based rebuild parameters (Phase 2)
     constexpr float BVH_QUALITY_THRESHOLD = 1.5f;          // Rebuild if surface area > 1.5× initial
     constexpr size_t BVH_QUALITY_CHECK_INTERVAL = 60;     // Check quality every N frames (2 seconds @ 30 FPS)

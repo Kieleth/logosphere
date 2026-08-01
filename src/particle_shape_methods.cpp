@@ -61,7 +61,11 @@ void Particle::GetSurfacesInto(std::vector<Surface>& out) const {
             width * 0.5f, height * 0.5f, thickness * 0.5f, sphere_subdivisions());
         ellip_geom.to_surfaces_into(transform, out);
     } else if (shape == ParticleShape::BOX) {
-        ParticleGeometryV2::FlatParticleGeometry flat_geom(width, height, thickness);
+        // One box per thread, re-pointed rather than rebuilt. The constructor
+        // reallocates ~9 times filling 8 vertices and 12 faces; this ran once
+        // per visible particle per frame. See FlatParticleGeometry::resize.
+        thread_local ParticleGeometryV2::FlatParticleGeometry flat_geom(1.0f, 1.0f, 1.0f);
+        flat_geom.resize(width, height, thickness);
         flat_geom.to_surfaces_into(transform, out);
     } else {
         // Cube fallback still allocates internally; wrap for correctness and
@@ -116,7 +120,9 @@ void Particle::GetShadowTriangles(std::vector<float>& out_vertices) const {
             width * 0.5f, height * 0.5f, thickness * 0.5f, sphere_subdivisions());
         ellip_geom.to_shadow_vertices(transform, out_vertices);
     } else if (shape == ParticleShape::BOX) {
-        ParticleGeometryV2::FlatParticleGeometry flat_geom(width, height, thickness);
+        // Same reused instance as the render path; see GetSurfacesInto.
+        thread_local ParticleGeometryV2::FlatParticleGeometry flat_geom(1.0f, 1.0f, 1.0f);
+        flat_geom.resize(width, height, thickness);
         flat_geom.to_shadow_vertices(transform, out_vertices);
     } else {
         ParticleGeometryV2::TriangleCubeGeometry cube_geom(size);

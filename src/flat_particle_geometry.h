@@ -24,6 +24,18 @@ public:
     // thickness: Z dimension (vertical height)
     explicit FlatParticleGeometry(float width, float height, float thickness);
 
+    // Re-point an EXISTING box at new dimensions, overwriting the 8 corner
+    // vertices in place. The 12 faces are size-invariant (index triples, UVs,
+    // and axis-aligned normals), so they are never rebuilt.
+    //
+    // Why this exists: the constructor push_backs 8 vertices and 12 faces into
+    // two vectors with no reserve, so it reallocates ~9 times, and the render
+    // and shadow paths each constructed one PER PARTICLE PER FRAME (33,735
+    // constructions a frame in Eden). Holding one instance per thread and
+    // resizing it drops steady-state allocations to zero. Same defect and same
+    // remedy as the unit-icosphere cache (kit study S10).
+    void resize(float width, float height, float thickness);
+
     // Convert to Surface format for rendering
     // Each face generates 2 triangle surfaces (12 total)
     std::vector<Surface> to_surfaces(const Transform& transform) const;

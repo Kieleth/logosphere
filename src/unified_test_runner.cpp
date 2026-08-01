@@ -73,6 +73,7 @@ extern bool test_performance_single_light_20(TestContext& ctx);  // Performance 
 extern bool test_multi_light_performance(TestContext& ctx);  // Performance impact of multiple lights
 extern bool test_multi_light_progressive();  // Progressive multi-light scaling vehicle (STANDALONE; PARTICLES/LIGHTS/INTERACTIVE env)
 extern bool test_sphere_lod_quality();       // Icosphere LOD quality vs cost (STANDALONE; INTERACTIVE/LOD_LEVELS env)
+extern bool test_shadow_bvh_lever();         // Shadow-BVH rebuild interval, visible (STANDALONE; INTERACTIVE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
 // extern bool test_gpu_multi_triangle(TestContext& ctx);  // GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
 extern bool test_gpu_parallel_rays(TestContext& ctx);  // GPU parallel rays (Phase I-C)
@@ -241,6 +242,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_multi_light_performance"] = test_multi_light_performance;
     registry["test_multi_light_progressive"] = [](TestContext&) { return test_multi_light_progressive(); };  // STANDALONE: own engine
     registry["test_sphere_lod_quality"] = [](TestContext&) { return test_sphere_lod_quality(); };  // STANDALONE: own engine
+    registry["test_shadow_bvh_lever"] = [](TestContext&) { return test_shadow_bvh_lever(); };  // STANDALONE: own engine
 
     // GPU compute tests (Phase I MVP, I-B, I-C, II-A)
     registry["test_gpu_shadow_ray"] = test_gpu_shadow_ray;
@@ -635,6 +637,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_shadow_edge_quantization",
         "test_multi_light_progressive",
         "test_sphere_lod_quality",
+        "test_shadow_bvh_lever",
         "test_interaction_filtering",
         "test_interaction_volume_forces",
         "test_interaction_transformations",
@@ -715,6 +718,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_shadow_edge_quantization", test_shadow_edge_quantization},
         {"test_multi_light_progressive", test_multi_light_progressive},
         {"test_sphere_lod_quality", test_sphere_lod_quality},
+        {"test_shadow_bvh_lever", test_shadow_bvh_lever},
         {"test_interaction_filtering", test_interaction_filtering},
         {"test_interaction_volume_forces", test_interaction_volume_forces},
         {"test_interaction_transformations", test_interaction_transformations},

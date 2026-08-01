@@ -106,6 +106,33 @@ RenderPipeline::RenderPipeline()
 // PERFORMANCE: This ~14ms CPU work can overlap with ~31ms GPU execution
 // ============================================================================
 
+// Minimum frames between shadow-BVH rebuilds. Default from
+// Optimizations::SHADOW_BVH_MIN_REBUILD_FRAMES, overridable at runtime with
+// LOGOSPHERE_BVH_REBUILD_FRAMES so the quality/perf trade can be swept without
+// a rebuild. Read once.
+static std::atomic<size_t> g_shadow_bvh_rebuild_frames{[] {
+    if (const char* e = std::getenv("LOGOSPHERE_BVH_REBUILD_FRAMES")) {
+        long v = std::atol(e);
+        if (v >= 1 && v <= 240) return static_cast<size_t>(v);
+    }
+    return Optimizations::SHADOW_BVH_MIN_REBUILD_FRAMES;
+}()};
+
+namespace logosphere {
+void set_shadow_bvh_rebuild_frames(size_t n) {
+    if (n < 1) n = 1;
+    if (n > 240) n = 240;
+    g_shadow_bvh_rebuild_frames.store(n, std::memory_order_relaxed);
+}
+size_t get_shadow_bvh_rebuild_frames() {
+    return g_shadow_bvh_rebuild_frames.load(std::memory_order_relaxed);
+}
+}  // namespace logosphere
+
+static size_t shadow_bvh_min_rebuild_frames() {
+    return g_shadow_bvh_rebuild_frames.load(std::memory_order_relaxed);
+}
+
 void RenderPipeline::prepare_gpu_data(
     int buffer_index,
     const std::deque<SurfaceRasterizer::SurfaceData>& surfaces,
@@ -478,6 +505,7 @@ void RenderPipeline::prepare_gpu_data(
     // STEP 3: Build/refit shadow BVH
     // =========================================================================
     auto bvh_start = Clock::now();
+    ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::PrepBvhTriangle);
 
     bool& bvh_built = bvh_built_[buffer_index];
     size_t& last_triangle_count = last_triangle_count_[buffer_index];
@@ -503,6 +531,22 @@ void RenderPipeline::prepare_gpu_data(
             quality_degraded = (frames_since_rebuild >= Optimizations::BVH_REBUILD_INTERVAL);
         }
         // Quality-based strategy will be added in Phase 2
+    }
+
+    // QUALITY LEVER: hold off incremental rebuilds. A steady spawn rate outruns
+    // the relative threshold above while the scene is small, which rebuilt every
+    // frame at up to 97 ms. Defer to at most one rebuild per N frames; a refit
+    // covers the frames in between, so bodies spawned since the last rebuild are
+    // missing from the BVH (they cast no shadow) until it comes round. A change
+    // larger than SHADOW_BVH_FORCE_REBUILD_FRACTION bypasses the hold entirely,
+    // so teleports and scene swaps are never served a stale tree.
+    if (triangle_count_changed && !quality_degraded && bvh_built && !shadow_triangles.empty()) {
+        const size_t min_frames = shadow_bvh_min_rebuild_frames();
+        const bool huge_change =
+            count_delta >= static_cast<size_t>(count_now * Optimizations::SHADOW_BVH_FORCE_REBUILD_FRACTION);
+        if (min_frames > 1 && !huge_change && frames_since_rebuild < min_frames) {
+            triangle_count_changed = false;   // refit this frame, rebuild later
+        }
     }
 
     if (!bvh_built || shadow_triangles.empty() || triangle_count_changed || quality_degraded) {
@@ -553,6 +597,7 @@ void RenderPipeline::prepare_gpu_data(
     // (Previously only set during rebuild, causing perpetual rebuilds when count drifts.)
     last_triangle_count = shadow_triangles.size();
 
+    ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::PrepBvhTriangle);
     auto bvh_ms = Duration(Clock::now() - bvh_start).count();
     static int dirty_log_counter = 0;
     if (++dirty_log_counter % 60 == 0) {
@@ -573,6 +618,7 @@ void RenderPipeline::prepare_gpu_data(
     // This enables both entity AABB culling AND directional culling per entity
     auto& entity_bvh = entity_bvh_[buffer_index];
     auto& entity_data = entity_triangle_data_[buffer_index];
+    ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::PrepBvhEntity);
 
     if (!shadow_triangles.empty() && triangle_count_changed) {
         entity_data.clear();
@@ -698,6 +744,7 @@ void RenderPipeline::prepare_gpu_data(
     }
 
     // =========================================================================
+    ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::PrepBvhEntity);
     ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::PrepBVH);
     ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::PrepLights);
     // STEP 4: Pack light data (48 bytes per light, must match gpu_types.metal)

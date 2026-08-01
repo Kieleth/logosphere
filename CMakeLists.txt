@@ -1707,6 +1707,7 @@ set(TEST_SOURCES
     tests/test_multi_light_performance.cpp     # Multi-light performance impact test
     tests/test_multi_light_progressive.cpp     # Progressive multi-light test
     tests/test_sphere_lod_quality.cpp          # Icosphere LOD quality vs cost
+    tests/test_shadow_bvh_lever.cpp            # Shadow-BVH rebuild interval, visible
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)
     # tests/test_gpu_multi_triangle.cpp          # GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
     tests/test_gpu_parallel_rays.cpp           # GPU parallel rays (Phase I-C)
