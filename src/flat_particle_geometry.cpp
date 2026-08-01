@@ -159,17 +159,13 @@ Surface FlatParticleGeometry::create_triangle_surface(const Vec3& v0, const Vec3
     surf.vertices[1][0] = v1.x; surf.vertices[1][1] = v1.y; surf.vertices[1][2] = v1.z;
     surf.vertices[2][0] = v2.x; surf.vertices[2][1] = v2.y; surf.vertices[2][2] = v2.z;
 
-    // Calculate surface area using cross product
-    Vec3 edge1 = v1 - v0;
-    Vec3 edge2 = v2 - v0;
-    Vec3 cross = edge1.cross(edge2);
-    surf.area = cross.length() / 2.0f;  // Triangle area = |cross product| / 2
-
-    // Calculate approximate width and height from edge lengths
-    float len1 = edge1.length();
-    float len2 = edge2.length();
-    surf.width = std::max(len1, len2);
-    surf.height = std::min(len1, len2);
+    // area / width / height are NOT computed. They are write-only on Surface:
+    // the only reader is CameraSystem::should_render_surface, whose frustum and
+    // distance tests are commented-out TODOs that ignore both arguments. Filling
+    // them cost three sqrt per surface (one for area, one per edge length) plus
+    // a cross product, 207,756 surfaces a frame in Eden. Their defaults on
+    // Surface are deliberate; if a real frustum test ever lands here, compute
+    // them then and measure what it costs.
 
     surf.particle_id = particle_id;
     surf.surface_index = -1;

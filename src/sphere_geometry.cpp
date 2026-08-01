@@ -194,12 +194,10 @@ Surface make_triangle_surface(const Vec3& v0, const Vec3& v1, const Vec3& v2,
     s.y = (v0.y + v1.y + v2.y) / 3.0f;
     s.z = (v0.z + v1.z + v2.z) / 3.0f;
     s.nx = normal.x; s.ny = normal.y; s.nz = normal.z;
-    Vec3 e1(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
-    Vec3 e2(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
-    Vec3 cr(e1.y * e2.z - e1.z * e2.y,
-            e1.z * e2.x - e1.x * e2.z,
-            e1.x * e2.y - e1.y * e2.x);
-    s.area = 0.5f * std::sqrt(cr.x * cr.x + cr.y * cr.y + cr.z * cr.z);
+    // No area: the field is write-only on Surface (see
+    // FlatParticleGeometry::create_triangle_surface for the full note). This
+    // used to cost a cross product and a sqrt per surface, and an icosphere at
+    // subdivision 2 is 320 surfaces per sphere.
     return s;
 }
 

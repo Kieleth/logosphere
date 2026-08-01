@@ -20,7 +20,7 @@ struct Surface {
     // Dimensions of the surface (for bounding box, collision, etc.)
     float width = 1.0f;   // Size along first tangent axis
     float height = 1.0f;  // Size along second tangent axis
-    float area;           // Total surface area
+    float area = 0.0f;    // Total surface area (see create_triangle_surface: not filled on the hot path)
     
     // =========================================================================
     // VERTEX DATA - The actual corners of this surface in world space

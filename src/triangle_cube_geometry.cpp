@@ -333,11 +333,7 @@ Surface TriangleCubeGeometry::create_triangle_surface(const Vec3& v0, const Vec3
     surf.width = max_x - min_x;
     surf.height = std::max(max_y - min_y, max_z - min_z);
     
-    // Calculate area using cross product
-    Vec3 edge1 = v1 - v0;
-    Vec3 edge2 = v2 - v0;
-    Vec3 cross = edge1.cross(edge2);
-    surf.area = cross.length() * 0.5f;
+    // No area: write-only field, see FlatParticleGeometry::create_triangle_surface.
     
     // Set material properties (defaults)
     surf.roughness = 0.5f;
