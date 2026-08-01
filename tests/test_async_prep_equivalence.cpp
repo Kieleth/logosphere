@@ -35,6 +35,34 @@
 // move-only and cannot simply be snapshotted; fixing it properly means passing
 // the values prep needs. Do that if this test goes red on a moving camera.
 //
+// MOVING-CAMERA CASE (added 2026-08-01). With the camera orbiting there are TWO
+// reasons async could differ from sync, and only one is a bug:
+//   design lag  async preps frame N+1 during frame N, so it legitimately uses a
+//               one-frame-old camera. Different pixels, expected, DETERMINISTIC.
+//   the race    the worker reads camera_system while the main thread mutates
+//               it. NONDETERMINISTIC.
+// Comparing async to sync conflates them. Comparing ASYNC TO ASYNC separates
+// them: with an identical frame-count-driven camera trajectory the design lag
+// is the same in both runs and cancels, so only the race can make them differ.
+// That is what the orbit section below asserts, and it needs no reasoning
+// about lag.
+//
+// RESULT 2026-08-01: GREEN, against the prediction. The worker capturing
+// camera_system by reference IS a data race by the standard (the main thread
+// writes azimuth_, azimuth_cos_ and azimuth_sin_ while the worker reads them
+// via compute_depth), but it produces no observable divergence here: two async
+// runs at 7 degrees per frame agree to 0 pixels at delta>=8. Three widenings
+// failed to make it red (slow orbit, small scene, and a per-frame
+// wait_for_completion that closed the race window entirely).
+//
+// Read that precisely. It means UNDEMONSTRATED, not absent. Aligned 4-byte
+// float stores do not tear on arm64, so the worst case is a cos/sin pair from
+// adjacent frames, and the resulting depth error is too small to change
+// z-ordering in a scene with well-separated geometry. Another compiler, another
+// architecture, or a sanitizer build may disagree, and a denser scene where
+// ordering is contested might too. The race is worth fixing on principle; this
+// test says it is not a demonstrated blocker for enabling async prep.
+//
 //   ./build-release/logosphere-tests --test test_async_prep_equivalence --no-head
 // =============================================================================
 
@@ -97,7 +125,7 @@ bool test_async_prep_equivalence() {
     // pixels. A dense pile cannot show a missing shadow, everything is already
     // dark. Spheres included because they carry 320 shadow triangles each and
     // are what made the April shadow-triangle count move.
-    const int SIDE = 24;
+    const int SIDE = 34;   // bigger: prep must still be running when update() moves the camera
     for (int r = 0; r < SIDE; ++r)
         for (int c = 0; c < SIDE; ++c) {
             Particle p = {};
@@ -201,6 +229,88 @@ bool test_async_prep_equivalence() {
     } else {
         printf("  image OK: async is within the A-vs-A noise floor (%ld vs %ld pixels >=8).\n",
                got.over8, noise.over8);
+    }
+
+    // ---------------------------------------------------------------------
+    // MOVING CAMERA: async vs async. Same deterministic trajectory both runs,
+    // so one-frame camera lag cancels and only nondeterminism survives.
+    // ---------------------------------------------------------------------
+    double orbit_handoff_ms = 0.0;
+    auto run_orbit = [&](bool async) {
+        ::logosphere::set_async_gpu_prep(async);
+        orbit_handoff_ms = 0.0;
+        for (int f = 0; f < SETTLE; ++f) {
+            // Frame-COUNT driven, never real time: both runs must see the exact
+            // same camera at the exact same frame or the comparison is void.
+            // FAST orbit, ~7 degrees per frame. A slow pan cannot expose a torn
+            // read: set_view_azimuth writes azimuth_, azimuth_cos_ and
+            // azimuth_sin_ separately, so the visible symptom is a cos/sin pair
+            // from different frames, and at 0.5 deg/frame that inconsistency
+            // falls under the delta>=8 threshold. At this rate it does not.
+            engine.get_camera_system().set_view_azimuth((float)f * 0.12f);
+            engine.update(1.0 / 60.0);
+            engine.render();
+            // NO per-frame wait_for_completion here, deliberately. Waiting for
+            // the GPU each frame gives the detached prep worker ample time to
+            // finish BEFORE the next update() moves the camera, which closes
+            // the very race this section exists to detect. With the wait in,
+            // this check reported "determinism OK" while proving nothing.
+            // The single wait below is enough to make the capture itself sound.
+            orbit_handoff_ms += T::phase_ms(T::Phase::RenderHandoff);
+        }
+        engine.get_renderer().wait_for_completion();
+        Shot s;
+        int w = engine.get_render_buffer().width();
+        int h = engine.get_render_buffer().height();
+        s.px.assign((size_t)w * h, 0u);
+        engine.read_latest_framebuffer(s.px.data(), w, h);
+        return s;
+    };
+
+    const Shot orbit_sync_a  = run_orbit(false);
+    const Shot orbit_sync_b  = run_orbit(false);   // moving-camera noise floor
+    const Shot orbit_async_a = run_orbit(true);
+    const double orbit_async_handoff = orbit_handoff_ms;
+    const Shot orbit_async_b = run_orbit(true);
+    ::logosphere::set_async_gpu_prep(false);
+    engine.get_camera_system().set_view_azimuth(0.0f);
+
+    const Diff orbit_noise = compare(orbit_sync_a, orbit_sync_b);
+    const Diff orbit_race  = compare(orbit_async_a, orbit_async_b);
+
+    printf("\n  --- moving camera (orbiting) ---\n");
+    printf("  %-30s %10s %10s %8s\n", "comparison", "delta>=1", "delta>=8", "max");
+    printf("  %-30s %10ld %10ld %8d\n", "sync vs sync (NOISE FLOOR)",
+           orbit_noise.any, orbit_noise.over8, orbit_noise.max_delta);
+    printf("  %-30s %10ld %10ld %8d\n", "async vs async (DETERMINISM)",
+           orbit_race.any, orbit_race.over8, orbit_race.max_delta);
+
+    // Sensitivity for THIS section. Without it a green verdict here could mean
+    // "async is deterministic" or "async never ran", and those look identical.
+    if (orbit_async_handoff <= 0.0) {
+        printf("\n  FAIL: async prep never engaged during the orbit runs (handoff 0.00 ms),\n"
+               "        so the determinism verdict below is blind. Do not read it.\n");
+        ok = false;
+    } else {
+        printf("  orbit engaged OK: %.3f ms of handoff across %d async frames.\n",
+               orbit_async_handoff, SETTLE);
+    }
+
+    if (orbit_race.over8 > orbit_noise.over8) {
+        printf("\n  FAIL: async is NONDETERMINISTIC with a moving camera. Two runs of the\n"
+               "        same trajectory differ on %ld pixels by >=8 (floor %ld, max delta %d).\n"
+               "        One-frame camera lag CANNOT cause this: it is identical in both runs.\n"
+               "        The cause is the worker reading camera_system by reference while the\n"
+               "        main thread moves it. CameraSystem must be snapshotted per frame,\n"
+               "        which needs ProjectionSystem::clone().\n",
+               orbit_race.over8, orbit_noise.over8, orbit_race.max_delta);
+        ok = false;
+    } else {
+        printf("\n  determinism OK: async reproduces itself under a moving camera\n"
+               "                  (%ld vs floor %ld pixels >=8).\n"
+               "                  NOTE: this means the camera-by-reference race is\n"
+               "                  UNDEMONSTRATED, not absent. See the file header.\n",
+               orbit_race.over8, orbit_noise.over8);
     }
 
     printf("\n  %s\n", ok ? "PASS" : "FAIL");
