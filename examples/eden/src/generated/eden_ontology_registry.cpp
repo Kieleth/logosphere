@@ -14,7 +14,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("BodyPart", "WorldEntity", true);
     reg.addEntityType("Branch", "WorldEntity", false);
     reg.addEntityType("Butterfly", "Creature", false);
-    reg.addEntityType("CelestialBody", "WorldEntity", false);
     reg.addEntityType("Constraint", "Entity", false);
     reg.addEntityType("Creature", "LivingEntity", true);
     reg.addEntityType("Cube", "WorldEntity", false);
@@ -46,7 +45,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("PhysicsConstants", "Entity", false);
     reg.addEntityType("PhysicsRock", "Rock", false);
     reg.addEntityType("PhysicsTree", "Tree", false);
-    reg.addEntityType("Planet", "NaturalFormation", false);
     reg.addEntityType("Plant", "LivingEntity", true);
     reg.addEntityType("Rock", "NaturalFormation", false);
     reg.addEntityType("RoomBlock", "Structure", false);
@@ -56,7 +54,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("SerpentSegment", "WorldEntity", false);
     reg.addEntityType("Shin", "BodyPart", false);
     reg.addEntityType("Shoulder", "BodyPart", false);
-    reg.addEntityType("Sky", "WorldEntity", false);
     reg.addEntityType("Snake", "Creature", false);
     reg.addEntityType("Structure", "WorldEntity", true);
     reg.addEntityType("SystemEntity", "Entity", false);
@@ -80,7 +77,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("BodyPart", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Branch", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Butterfly", {"Agent", "Bondable", "Creature", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
-    reg.addAncestors("CelestialBody", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Constraint", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("Creature", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Cube", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -112,7 +108,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PhysicsRock", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "NaturalFormation", "Rock", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("PhysicsTree", {"Bondable", "Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Plant", "Spatial", "Statusable", "Temporal", "Tree", "WorldEntity"});
-    reg.addAncestors("Planet", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Plant", {"Bondable", "Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Rock", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("RoomBlock", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
@@ -122,7 +117,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("SerpentSegment", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Shin", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Shoulder", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
-    reg.addAncestors("Sky", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Snake", {"Agent", "Bondable", "Creature", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Structure", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("SystemEntity", {"Describable", "Entity", "Identifiable", "Temporal"});
@@ -168,13 +162,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Agent", "agent_type", "string", false);
     reg.addProperty("BodyPart", "body_part_name", "string", false);
     reg.addProperty("Bondable", "bond_strength", "float", false, true, 0.0, true, 1000000.0);
-    reg.addProperty("CelestialBody", "period_days", "float", false);
-    reg.addProperty("CelestialBody", "cast_shadows", "boolean", false);
-    reg.addProperty("CelestialBody", "moon_r", "float", false, true, 0.0, true, 1.0);
-    reg.addProperty("CelestialBody", "moon_g", "float", false, true, 0.0, true, 1.0);
-    reg.addProperty("CelestialBody", "moon_b", "float", false, true, 0.0, true, 1.0);
-    reg.addProperty("CelestialBody", "moon_brightness", "float", false, true, 0.2, true, 3.0);
-    reg.addProperty("CelestialBody", "moon_size", "float", false, true, 2.0, true, 12.0);
     reg.addProperty("CollisionEvent", "collision_force", "float", false);
     reg.addProperty("Constraint", "gluon_type", "enum", true);
     reg.addProperty("Constraint", "stiffness", "float", true);
@@ -229,11 +216,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ParticleInteractionProfile", "field_fy", "float", false);
     reg.addProperty("ParticleInteractionProfile", "field_fz", "float", false);
     reg.addProperty("PerceptionEvent", "memory_layer", "enum", false);
-    reg.addProperty("Planet", "planet_radius", "float", false, true, 1.0, true, 10.0);
     reg.addProperty("Plant", "organic_type", "enum", false);
     reg.addProperty("RelationEvent", "relation_type", "string", false);
     reg.addProperty("Rock", "rock_size", "enum", false);
-    reg.addProperty("Sky", "time_of_day", "float", false, true, 0.0, true, 24.0);
     reg.addProperty("Spatial", "position_x", "float", true);
     reg.addProperty("Spatial", "position_y", "float", true);
     reg.addProperty("Spatial", "position_z", "float", true);

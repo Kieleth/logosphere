@@ -1,0 +1,154 @@
+id: https://logosphere.dev/packs/space
+name: space
+title: Space — celestial setting pack
+description: >-
+  Sky and the bodies in it: suns, moons, stars, planets, and the
+  orbits that carry them.
+
+  This is a SETTING PACK, not part of the universe core. The core
+  describes what the engine itself understands - bodies, materials,
+  joints, events, solver authority - and knows nothing about
+  astronomy. A world only gains planets and stars when a game asks
+  for this pack, the same way it would ask for an earth-like pack to
+  gain trees and soil. A type from a pack nobody loaded is rejected
+  at creation, loudly, rather than quietly half-working.
+
+  Load it with kg.extendOntology(space::ontology::registry()).
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  space: https://logosphere.dev/packs/space/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  CelestialKind:
+    description: >-
+      What sort of body this is. Distinct from how it is rendered:
+      all of these are particles, lit or emitting, at a real distance.
+    permissible_values:
+      SUN:
+        description: The local star, whose light drives the day.
+      MOON:
+        description: A satellite, lit rather than emitting.
+      STAR:
+        description: A distant sun, a point of light and nothing more.
+      PLANET:
+        description: A neighbouring world, too far to visit.
+
+# -------------------------------------------------------------------
+# Classes
+# -------------------------------------------------------------------
+
+classes:
+  CelestialBody:
+    is_a: WorldEntity
+    description: >-
+      A body in the sky: sun, moon, star, or distant world. It is a
+      particle at a real distance, not a backdrop - which matters
+      under a parallel projection, where a body 300 m away is drawn
+      300 m away rather than at infinity, and can sit outside the
+      frame entirely.
+    mixins:
+      - EmitsLight
+    slots:
+      - celestial_kind
+      - period_days
+      - cast_shadows
+      - orbit_distance
+      - orbit_inclination_deg
+      - moon_r
+      - moon_g
+      - moon_b
+      - moon_brightness
+      - moon_size
+
+  Sky:
+    is_a: WorldEntity
+    description: >-
+      The day-clock made visible: exists once a sun exists. Its
+      time_of_day is the world's hour (0-24). Games may treat it as
+      writable intent (set an hour, the world journeys there) or as
+      read-only state.
+    slots:
+      - time_of_day
+
+  Planet:
+    is_a: NaturalFormation
+    description: >-
+      A small spherical world floating clear of the world floor: a
+      kinematic core carrying a crust of stones. Terrain rather than
+      a dynamic body - it holds its position and collides, but is not
+      cratered or moved by what strikes it.
+    slots:
+      - planet_radius
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  celestial_kind:
+    range: CelestialKind
+    description: Which sort of celestial body this is.
+  orbit_distance:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 100000.0
+    description: >-
+      Distance from the world centre, in meters. Under a parallel
+      projection this is a real distance and decides whether the body
+      is on screen at all, not merely how large it looks.
+  orbit_inclination_deg:
+    range: float
+    minimum_value: -90.0
+    maximum_value: 90.0
+    description: Tilt of the orbital plane, in degrees.
+  period_days:
+    range: float
+    description: Orbital period in game days.
+  cast_shadows:
+    range: boolean
+    description: Whether this body's light casts shadows.
+  time_of_day:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 24.0
+    description: The world's hour.
+  planet_radius:
+    range: float
+    minimum_value: 1.0
+    maximum_value: 10.0
+    description: Crust radius of a small world, in meters.
+  moon_r:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Moon colour, red channel.
+  moon_g:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Moon colour, green channel.
+  moon_b:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
+    description: Moon colour, blue channel.
+  moon_brightness:
+    range: float
+    minimum_value: 0.0
+    description: Moon emission strength.
+  moon_size:
+    range: float
+    minimum_value: 0.0
+    description: Moon visual radius, in meters.
