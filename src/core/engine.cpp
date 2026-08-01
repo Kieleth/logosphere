@@ -442,6 +442,8 @@ int Engine::initialize(const EngineConfig& config) {
     // (solver_authority, BONDED_TO) lands on that entity's bodies
     // straight away, rather than waiting for something to re-read it
     // at materialisation. The graph becomes a control surface.
+    ground_locator_.initialize(&particle_system_);
+
     entity_physical_state_.initialize(&particle_system_, &physics_system_,
                                       &kg_module_);
     entity_physical_state_.watch(event_bus_);

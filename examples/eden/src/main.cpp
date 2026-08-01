@@ -1724,7 +1724,19 @@ public:
                 float sy = eva_y + 6.0f * (i == 0 ? 1.0f : -1.0f);
                 SnakeSpec sspec = SnakeSpec::python();
                 sspec.total_length *= 0.8f + i * 0.3f;
-                kg::EntityID snake_id = snake_gen.generate_snake(sx, sy, 0.0f, sspec);
+                // Ask where the ground is. Eden's strata surface sits
+                // at 0.55 m, so spawning at zero buried both serpents
+                // half a metre down - which is why one was never seen.
+                float sz = 0.0f;
+                if (!engine_->get_ground_locator().surface_at(sx, sy, sz,
+                                                              1.0f)) {
+                    std::cout << "[EDEN] no ground under serpent " << i
+                              << " at (" << sx << "," << sy
+                              << ") - skipping rather than burying it"
+                              << std::endl;
+                    continue;
+                }
+                kg::EntityID snake_id = snake_gen.generate_snake(sx, sy, sz, sspec);
                 engine_->get_serpent_locomotion().register_serpent(snake_id);
             }
 
@@ -1734,8 +1746,13 @@ public:
                 float by = eva_y + 4.0f * std::sin(i * 1.57f);
                 ButterflySpec bspec = ButterflySpec::monarch();
                 bspec.wing_span *= 0.8f + (i % 3) * 0.2f;
+                // Height above the GROUND, not above zero. Flight then
+                // holds its own band from here.
+                float bz = 0.0f;
+                if (!engine_->get_ground_locator().surface_at(bx, by, bz, 1.0f))
+                    bz = 0.0f;
                 kg::EntityID butterfly_id = butterfly_gen.generate_butterfly(
-                    bx, by, 1.0f + i * 0.3f, bspec);
+                    bx, by, bz + 1.0f + i * 0.3f, bspec);
                 engine_->get_butterfly_flight().register_butterfly(butterfly_id);
             }
 

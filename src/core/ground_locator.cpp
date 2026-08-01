@@ -31,6 +31,22 @@ bool is_ignored(unsigned int index,
 }  // namespace
 
 bool GroundLocator::surface_at(float x, float y, float& out_surface_z,
+                               const std::vector<Particle>& particles,
+                               float footprint,
+                               const std::vector<unsigned int>* ignore) const {
+    PlacementRequest r;
+    r.x = x; r.y = y;
+    r.footprint = footprint;
+    r.height = 0.0f;
+    r.mode = SupportMode::STANDING;
+    r.ignore = ignore;
+    Placement p = locate(r, particles);
+    if (!p.found) return false;
+    out_surface_z = p.surface_z;
+    return true;
+}
+
+bool GroundLocator::surface_at(float x, float y, float& out_surface_z,
                                float footprint,
                                const std::vector<unsigned int>* ignore) const {
     PlacementRequest r;
@@ -46,6 +62,17 @@ bool GroundLocator::surface_at(float x, float y, float& out_surface_z,
 }
 
 Placement GroundLocator::locate(const PlacementRequest& req) const {
+    if (!particles_) {
+        Placement out;
+        out.reason = "no particle system";
+        return out;
+    }
+    auto view = particles_->lock_particles_for_read();
+    return locate(req, view.get());
+}
+
+Placement GroundLocator::locate(const PlacementRequest& req,
+                                const std::vector<Particle>& all) const {
     Placement out;
     if (!particles_) {
         out.reason = "no particle system";
@@ -56,9 +83,6 @@ Placement GroundLocator::locate(const PlacementRequest& req) const {
         out.reason = "no spatial index";
         return out;
     }
-
-    auto view = particles_->lock_particles_for_read();
-    const std::vector<Particle>& all = view.get();
 
     // Search the WHOLE column. No min_z, no max_z, no assumption that
     // the ground is near any particular height: it may be a planet's

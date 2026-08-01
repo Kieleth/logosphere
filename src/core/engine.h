@@ -48,7 +48,8 @@ typedef struct GLFWwindow GLFWwindow;
 #include "player_controller.h"  // Player input handling (mouse look, WASD, abilities)
 #include "logosphere/events/event_bus.h"  // Two-tier event system (signals + log)
 #include "logosphere/interaction/particle_interaction_system.h"
-#include "logosphere/kg/entity_physical_state.h"  // KG-declared contact policy
+#include "logosphere/kg/entity_physical_state.h"
+#include "logosphere/core/ground_locator.h"  // KG-declared contact policy
 #include "humanoid_integrity_monitor.h"  // Opt-in dismemberment/collapse monitor
 #include "deep_probe.h"                  // Custom live-state probes (watchpoints)
 #include "particle_tracer.h"             // Correlation-ID write tracing for particles
@@ -245,6 +246,12 @@ public:
     // the physics broad phase consults it (empty = today's behavior).
     logosphere::interaction::ParticleInteractionSystem& get_interaction_system() {
         return interaction_system_;
+    }
+    // Where a body can be. Ask this instead of assuming a height:
+    // there is no floor at zero, the ground is particles, and it
+    // moves. See logosphere/core/ground_locator.h.
+    logosphere::GroundLocator& get_ground_locator() {
+        return ground_locator_;
     }
     // Ontology levers -> bodies. Armed during initialize(), so a
     // property set on an entity (solver_authority, BONDED_TO) reaches
@@ -573,6 +580,7 @@ private:
     logosphere::EventBus event_bus_;
     logosphere::interaction::ParticleInteractionSystem interaction_system_;
     logosphere::EntityPhysicalState entity_physical_state_;
+    logosphere::GroundLocator ground_locator_;
     Logosphere::HumanoidIntegrityMonitor humanoid_integrity_monitor_;
     Logosphere::DeepProbeManager        deep_probe_manager_;
     ParticleTracer                      particle_tracer_;

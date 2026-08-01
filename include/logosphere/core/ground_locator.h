@@ -4,6 +4,7 @@
 #include <vector>
 
 class ParticleSystem;
+struct Particle;
 
 namespace logosphere {
 
@@ -76,6 +77,21 @@ struct Placement {
 class GroundLocator {
 public:
     void initialize(ParticleSystem* particles) { particles_ = particles; }
+
+    // Overloads taking an already-obtained particle span exist because
+    // the convenience versions below take the particle lock, and the
+    // lock is a non-recursive shared_mutex. An animation system that
+    // is mid-update legitimately holds the WRITE lock while moving a
+    // body, and asking for the ground from inside that would deadlock
+    // the thread against itself. Rather than leave that trap for the
+    // next caller, the locking is separated from the reasoning: hold
+    // the lock, pass what you already have.
+    bool surface_at(float x, float y, float& out_surface_z,
+                    const std::vector<Particle>& particles,
+                    float footprint = 0.5f,
+                    const std::vector<unsigned int>* ignore = nullptr) const;
+    Placement locate(const PlacementRequest& request,
+                     const std::vector<Particle>& particles) const;
 
     // The surface directly beneath (x, y), whatever height it is at.
     // False when nothing is there to stand on - a hole, the void, a
