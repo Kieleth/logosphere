@@ -345,6 +345,7 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_strata_earth_impact)  # earth preset + boulder crater contract
     add_engine_at(test_iso_azimuth_roundtrip)  # orbit picking round-trip (issue #9)
     add_engine_at(test_orbit_performance)  # orbit frame-cost study + post-orbit ratchet
+    add_engine_at(test_ontology_levers)  # KG levers reach the bodies (issue #8)
     add_engine_at(test_leg_spin_on_rotation) # Eden playtest repro: legs spin when human rotates
     add_engine_at(test_face_tracks_head)     # Eden playtest repro: eyes/ears/nose ride the head's yaw
     add_engine_at(test_leg_geometry_choreography) # Eden playtest repro: legs fold under walk/stop/turn transitions
@@ -993,6 +994,10 @@ set(LOGOSPHERE_SOURCES
     # Damage system
     src/damage/damage_system.cpp
     src/damage/damage_particle_bridge.cpp  # apply_to_particle → EntitySpatialQuery bridge
+    # Ontology levers → particles. Needs ParticleSystem + PhysicsSystem,
+    # so it is a full-engine bridge rather than headless core, for the
+    # same reason as damage_particle_bridge.cpp above.
+    src/kg/entity_physical_state.cpp
     # Test framework
     tests/test_framework.cpp
     # Test files (NOT test_main.cpp - that goes in test executable only)

@@ -323,6 +323,30 @@ enums:
       RELATION_REMOVED:
         description: A relation was removed between two entities.
 
+  SolverAuthority:
+    description: >-
+      Who owns a body's position, and the ONLY way to make something
+      immovable. Rest is not immobility: rest is a solver
+      optimisation that a heavy enough touch undoes, so a structure
+      held up by rest collapses the moment something walks on it.
+      Choose authority deliberately; do not rely on stillness.
+    permissible_values:
+      DYNAMIC:
+        description: >-
+          Physics owns it. Gravity pulls it, contacts push it,
+          impulses move it. The default, and right for anything
+          loose, alive, or meant to be knocked about.
+      KINEMATIC:
+        description: >-
+          The body owns its own position. Nothing moves it - not
+          gravity, not impact - and it still collides, so things
+          stand and land on it. This is what terrain IS: floors,
+          worlds, anything that must simply be there.
+      STATIC:
+        description: >-
+          Immovable and inert. Like KINEMATIC, but never expected to
+          be repositioned by anyone.
+
   WorldRelationType:
     description: Relation types between game world entities.
     permissible_values:
@@ -344,6 +368,13 @@ enums:
         description: Agent perceives target entity
       MANAGES:
         description: System entity manages another entity
+      BONDED_TO:
+        description: >-
+          Direct bond between two bodies - the engine's cement. The
+          bond is a physical constraint at bond_strength; strong
+          bonds make many particles behave as one rigid body, weak
+          ones give under load. Use it to fix things in place
+          relative to each other rather than to the world.
 
 # -------------------------------------------------------------------
 # Mixins (cross-cutting traits for game entities)
@@ -407,6 +438,24 @@ classes:
     slots:
       - odor_type
 
+  HasSolverAuthority:
+    mixin: true
+    description: >-
+      Carries who owns this body's position. Every body in the world
+      has it, because immobility is always a choice, never an
+      accident of being still.
+    slots:
+      - solver_authority
+
+  Bondable:
+    mixin: true
+    description: >-
+      Can be cemented to other bodies through a BONDED_TO relation.
+      bond_strength is how much load the join carries before it
+      gives.
+    slots:
+      - bond_strength
+
   Destructible:
     mixin: true
     description: Entity that can be damaged or destroyed.
@@ -433,6 +482,8 @@ classes:
     mixins:
       - Statusable
       - Spatial
+      - HasSolverAuthority
+      - Bondable
 
   LivingEntity:
     is_a: WorldEntity
@@ -978,6 +1029,21 @@ slots:
     description: Maximum light reach distance.
 
   # --- Destructible mixin ---
+  solver_authority:
+    range: SolverAuthority
+    description: >-
+      Who owns this body's position. Omit for DYNAMIC. Set KINEMATIC
+      to make something genuinely immovable - terrain, a floor, a
+      world. Never try to hold a structure up by leaving it still;
+      stillness is an optimisation the physics undoes on contact.
+  bond_strength:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 1000000.0
+    description: >-
+      Load a BONDED_TO join carries before it gives, in newtons per
+      metre. Around 90000 behaves as rigid cement; small values give
+      under their own weight.
   damage_threshold:
     range: float
     description: Damage required to trigger destruction.

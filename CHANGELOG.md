@@ -44,6 +44,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   `PlanetSeed` is the grandest wish: radius, altitude, crust
   palette, `with_rose` (a red-crowned flower at the pole) and
   `with_prince` (a real physics walker standing at the apex).
+- Ontology levers: the knowledge graph is now a control surface, not
+  only a record. `solver_authority` (DYNAMIC / KINEMATIC / STATIC) and
+  `BONDED_TO` + `bond_strength` are declared on every `WorldEntity`
+  through the new `HasSolverAuthority` and `Bondable` mixins, and
+  `EntityPhysicalState` resolves them onto the particles an entity
+  owns, following HAS_PART so one setting covers a whole body. Engine
+  arms it during `initialize()`, so setting a property reaches the
+  world immediately in any game, before or after activation.
+  `is_at_rest` deliberately has no lever: it is a solver optimisation,
+  and a structure held up by it collapses when touched.
+
+### Added
 - Logogenesis menagerie: `SerpentSeed` (garden snake / python /
   coral, length and scale colors), `FallenTreeSeed` (trunk / log /
   branch / twigs), and `TotemSeed` (stacked carved wood) join the
