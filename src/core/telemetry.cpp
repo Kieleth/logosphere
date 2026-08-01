@@ -122,6 +122,8 @@ const char* name_of(Phase p) {
         case Phase::RenderSort:      return "render_sort";
         case Phase::RenderPrepWait:  return "render_prep_wait";
         case Phase::RenderHandoff:   return "render_handoff";
+        case Phase::HandoffSurfaces: return "handoff_surfaces";
+        case Phase::HandoffParticles:return "handoff_particles";
         case Phase::RenderSlotWait:  return "render_slot_wait";
         case Phase::RenderSubmit:    return "render_submit";
         case Phase::RenderPrep:      return "render_prep";

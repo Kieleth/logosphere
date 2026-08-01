@@ -2646,12 +2646,27 @@ void RenderPipeline::rasterize_surfaces(
 
             // CRITICAL: Copy surfaces AND particles — the detached thread outlives
             // the caller's scope, so references become dangling after render returns.
+            // Split so the two copies can be priced separately: surfaces is a
+            // 103,914-element std::deque (block allocations, not one memcpy),
+            // particles a 19,104-element vector.
+            ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::HandoffSurfaces);
             auto surfaces_copy = surfaces;
+            ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::HandoffSurfaces);
+            ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::HandoffParticles);
             auto particles_copy = particles;
+            ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::HandoffParticles);
 
             // Launch async worker to prepare next frame's data
             // This runs in background while GPU renders current frame
-            std::thread prep_worker([this, next_prep_idx, surfaces_copy, particles_copy, &camera_system]() {
+            // MOVE into the closure. Capturing these by value copied the whole
+            // frame's input a SECOND time: 103,914 surfaces and 19,104
+            // particles were duplicated once into the locals above and again
+            // into the lambda. Measured 2.06 ms of the 4.57 ms handoff, for
+            // nothing. The locals are dead after this point, so a move is safe.
+            std::thread prep_worker([this, next_prep_idx,
+                                     surfaces_copy  = std::move(surfaces_copy),
+                                     particles_copy = std::move(particles_copy),
+                                     &camera_system]() {
                 // Prepare data for next frame
                 prepare_gpu_data(next_prep_idx, surfaces_copy, particles_copy, camera_system);
 

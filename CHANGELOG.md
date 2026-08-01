@@ -11,10 +11,9 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - `logosphere::set_async_gpu_prep()` / `LOGOSPHERE_ASYNC_PREP=1` make the
   async GPU-prep path runtime-switchable instead of compile-time. Default
   is unchanged (off). Proven pixel-identical to the synchronous path by
-  `tests/test_async_prep_equivalence.cpp`. It is NOT faster as it stands:
-  the handoff deep-copies the frame's surfaces and particles on the main
-  thread, costing almost exactly what the prep it offloads saves. See the
-  study journal S14 for what would have to change first.
+  `tests/test_async_prep_equivalence.cpp`, and now measurably faster:
+  +1.88 ms at retina (9.2%) and +3.43 ms windowed (27.4%). Still OFF by
+  default pending a call on the remaining risks; see study journal S14.
 - Serialized GPU diagnostic mode: `Logosphere::set_gpu_serialized_diagnostic()`
   or `LOGOSPHERE_GPU_SERIALIZED=1` makes every render pass block until it
   completes before the next is encoded, so each runs alone and its GPU
@@ -23,6 +22,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   so read the per-stage split from it and ignore its frame time.
 
 ### Fixed
+- The async GPU-prep handoff copied the frame's entire input TWICE per
+  frame: the worker lambda captured the already-copied surfaces and
+  particles BY VALUE, constructing 103,914 surfaces and 19,104 particles
+  a second time into the closure. Now a move-capture. `render_handoff`
+  drops 4.57 to 2.44 ms, which is what turns async prep from net zero
+  into a real win.
 - `telemetry::GpuWindow` now publishes `start_s` / `end_s`, the absolute
   bounds of a frame's GPU window. Without them, GPU occupancy could only
   be derived by summing per-frame `busy_ms`, which double counts:

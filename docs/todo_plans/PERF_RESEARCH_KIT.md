@@ -21,7 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
-| S14 | Should async GPU prep be turned back on? | Not as it stands. Pixel-identical (proven), but net zero: the handoff deep-copies 103,914 surfaces per frame, costing exactly what the prep saves. |
+| S14 | Should async GPU prep be turned back on? | Yes, once the handoff stopped copying the frame's input TWICE (lambda captured by value). Pixel-identical, +1.88 ms retina, +3.43 ms windowed. |
 
 **Standing conclusions.** Cost tracks **surfaces**, not particles and not
 lights. A sphere at subdivision 2 emits 320 surfaces against a box's ~12.
@@ -661,8 +661,39 @@ references would dangle; the code says so in a comment. So the design hands 4.9
 ms of prep to a worker and pays 4.85 ms of memcpy for the privilege. Frame time
 does not move because nothing left the critical path.
 
-**Turning the flag on as it stands buys nothing.** Making it pay requires
-removing the copy, not scheduling around it:
+**RESOLVED, same day. The frame's input was being copied TWICE.** Splitting
+the handoff showed the two named copies accounted for only 2.51 of its 4.57 ms.
+The missing 2.06 ms was a second copy nobody had written on purpose: the worker
+lambda captured `surfaces_copy` and `particles_copy` BY VALUE, so each was
+constructed once into the local and again into the closure. Changed to a
+move-capture, one line:
+
+```cpp
+std::thread prep_worker([this, next_prep_idx,
+                         surfaces_copy  = std::move(surfaces_copy),
+                         particles_copy = std::move(particles_copy),
+                         &camera_system]() {
+```
+
+`render_handoff` 4.57 -> 2.44 ms, and async prep now pays. A-B-A, async /
+sync / async:
+
+| | sync | async | win |
+|---|---|---|---|
+| retina 3200x2102 | 20.41 | 18.53 | **+1.88 ms (9.2%)** |
+| windowed 1600x1051 | 12.52 | 9.08 | **+3.43 ms (27.4%)** |
+
+GPU busy is unchanged (7.13 vs 7.11 windowed), so the win is entirely CPU-side,
+and both figures land where S12 said they would: retina is capped near its
+1.9 ms headroom, windowed had 6.59 ms to give and gave 3.43 of it. **This is
+the decision rule predicting a result before the experiment, which is the first
+time in this campaign that has happened.** Equivalence still holds: 0 pixels
+differing by >=8, shadow triangles identical.
+
+**Remaining, if someone wants the rest:** the surviving 2.44 ms retina /
+1.50 ms windowed handoff is one genuine copy of 103,914 surfaces
+(`handoff_surfaces` 2.05) and 19,104 particles (`handoff_particles` 0.37). To
+remove it rather than halve it:
 - double-buffer the surface and particle INPUT arrays the way the outputs
   already are (`PREP_BUFFER_SLOTS = 3`), so the worker reads a buffer the main
   thread is not writing and nothing needs copying;

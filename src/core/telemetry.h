@@ -96,6 +96,8 @@ enum class Phase : uint16_t {
     // split showed 2.6 of 4.5 ms of render_particles unaccounted for.
     RenderPrepWait,     // main thread blocked on the async prep worker
     RenderHandoff,      // surface + particle copies handed to that worker
+    HandoffSurfaces,    //   of which: the surface deque copy
+    HandoffParticles,   //   of which: the particle vector copy
     RenderSlotWait,     //   of which: blocked on the triple-buffer semaphore
     RenderSubmit,       // buffer upload and GPU dispatch
     // prepare_gpu_data and its steps. ON THE MAIN THREAD TODAY, and therefore
