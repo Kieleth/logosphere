@@ -1,0 +1,232 @@
+id: https://logosphere.dev/packs/earth
+name: earth
+title: Earth — earth-like setting pack
+description: >-
+  The vocabulary of an earth-like world: things that grow, things
+  that weather, and the small life that moves among them.
+
+  This is a SETTING PACK, not part of the universe core. The core
+  describes what the engine itself understands - bodies, materials,
+  joints, events, solver authority - and knows no botany. A world
+  gains trees and soil only when a game asks for them, the same way
+  it gains a sky by asking for the space pack.
+
+  The abstract bases these hang from stay in the core, because the
+  engine does reason about them: LivingEntity and Creature carry
+  health, tissue and capabilities; NaturalFormation and Structure
+  are how anything unliving is classified. What moved is the
+  particular - an oak rather than a living thing.
+
+  Note that engine worldgen ships generators for these types
+  (TreeGenerator, SnakeGenerator, TotemGenerator and the rest). The
+  generator is a tool the engine provides; this pack is the
+  vocabulary that makes its output nameable. Calling one without
+  loading this pack fails loudly at createEntity, which is intended.
+
+  Load it with kg.extendOntology(earth::ontology::registry()).
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  earth: https://logosphere.dev/packs/earth/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  TreeSpecies:
+    description: >-
+      Tree growth archetype (species only — age is expressed through
+      anatomy slots like canopy_start and lower_branches, not baked
+      into the enum). Replaced TreeVariant, which baked age into the
+      species name (SAPLING, YOUNG_OAK, ANCIENT_OAK alongside PINE
+      and WILLOW) and so could not describe a young pine at all.
+    permissible_values:
+      OAK:
+        description: Broad crown, sturdy trunk. The default tree.
+      PINE:
+        description: Tall, narrow, conical.
+      WILLOW:
+        description: Drooping, wide, melancholic.
+      PALM:
+        description: Bare trunk, crown burst at the top.
+      BAOBAB:
+        description: Massive squat trunk, sparse crown.
+      REDWOOD:
+        description: >-
+          Very tall, reddish bark, high crown. The "redwood" /
+          "sequoia" silhouette.
+
+  OrganicType:
+    description: Procedural organic entity classification.
+    permissible_values:
+      TREE:
+      BUSH:
+      GRASS:
+      VINE:
+      ROOT:
+      FLOWER:
+      FERN:
+
+  LogType:
+    description: Classification of fallen wood.
+    permissible_values:
+      TRUNK:
+        description: Full fallen tree trunk
+      LOG:
+        description: Cut or broken log section
+      BRANCH:
+        description: Broken branch, arm-thick
+      TWIG:
+        description: Small twig or stick
+
+  RockSize:
+    description: Natural rock size classification.
+    permissible_values:
+      PEBBLE:
+        description: Small egg-shaped (~0.2m)
+      SMALL_ROCK:
+        description: Fist-sized (~0.4m)
+      MEDIUM_ROCK:
+        description: Head-sized (~0.8m)
+      LARGE_BOULDER:
+        description: Large boulder (~1.5m)
+
+
+# -------------------------------------------------------------------
+# Classes
+# -------------------------------------------------------------------
+
+classes:
+  Plant:
+    is_a: LivingEntity
+    description: Living plant entity.
+    abstract: true
+    mixins:
+      - Growable
+    slots:
+      - organic_type
+
+  Tree:
+    is_a: Plant
+    description: Living tree grown via space colonization.
+    slots:
+      - tree_height
+      - crown_radius
+      - canopy_start
+      - canopy_density
+      - lower_branches
+
+  PhysicsTree:
+    is_a: Tree
+    description: Physics-enabled tree with collision and breakage.
+
+  GrassPatch:
+    is_a: Plant
+    description: >-
+      A patch of grass: container entity whose blades hang off
+      HAS_PART relations. Root type for deferred worldgen
+      materialization (vegetation activator walks the children).
+
+  Grass:
+    is_a: Plant
+    description: A grass blade or tuft grown by the organic generator.
+
+  Branch:
+    is_a: WorldEntity
+    description: Tree branch segment.
+    mixins:
+      - HasMaterial
+
+  Leaves:
+    is_a: WorldEntity
+    description: Foliage cluster on a branch.
+
+  FallenTree:
+    is_a: NaturalFormation
+    description: Fallen tree trunk or log.
+    mixins:
+      - HasMaterial
+    slots:
+      - log_type
+
+  Rock:
+    is_a: NaturalFormation
+    description: Rock or boulder.
+    slots:
+      - rock_size
+
+  PhysicsRock:
+    is_a: Rock
+    description: Physics-enabled rock with full collision.
+
+  Butterfly:
+    is_a: Creature
+    description: Flying insect creature.
+
+  Snake:
+    is_a: Creature
+    description: Limbless reptile creature.
+
+  Totem:
+    is_a: Structure
+    description: Vertical totem structure with stacked segments.
+
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  canopy_density:
+    range: float
+    minimum_value: 0.3
+    maximum_value: 1.5
+    description: >-
+      Crown fullness multiplier. 0.5 = airy and sparse, 1.0 =
+      natural, 1.5 = lush and dense.
+  canopy_start:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 0.8
+    description: >-
+      Fraction of the height where the crown begins. 0.25 = bushy,
+      leaves almost to the ground; 0.45 = classic oak; 0.7 = palm or
+      redwood silhouette (long bare trunk, high crown).
+  crown_radius:
+    range: float
+    minimum_value: 0.2
+    maximum_value: 15.0
+    description: Crown radius in meters (physically capped near 60%
+      of tree height).
+  log_type:
+    range: LogType
+    description: Classification of fallen wood (trunk, branch, twig).
+
+  lower_branches:
+    range: integer
+    minimum_value: 0
+    maximum_value: 6
+    description: >-
+      Limbs sprouting from the bare trunk below the crown. Old oaks
+      and willows carry 2-4; redwoods and palms stay clean at 0.
+      Age vocabulary: ancient = more limbs + lower canopy_start.
+  organic_type:
+    range: OrganicType
+  rock_size:
+    range: RockSize
+  tree_height:
+    range: float
+    minimum_value: 0.5
+    maximum_value: 30.0
+    description: >-
+      Tree height in meters. A garden sapling is ~1, a grand oak ~8,
+      a redwood 25-30. Bounded to what the growth algorithm reliably
+      delivers.

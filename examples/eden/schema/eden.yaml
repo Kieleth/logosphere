@@ -16,6 +16,9 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  # Earth-like vocabulary (trees, grass, rock, small fauna) is a
+  # SETTING PACK, not core. This game grows things, so it asks.
+  - earth
 
 # -------------------------------------------------------------------
 # Enums

@@ -110,6 +110,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # loading it: the registry function has to be called before its
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
+    src/generated/earth_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
     src/capability/dynamics_params.cpp
@@ -998,6 +999,7 @@ set(LOGOSPHERE_SOURCES
     # loading it: the registry function has to be called before its
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
+    src/generated/earth_ontology_registry.cpp
     # Spatial query module
     src/spatial/entity_spatial.cpp
     # Damage system

@@ -100,11 +100,36 @@ reads its slots, it is a setting.
 ## Current state
 
 - **Core** — bodies, anatomy, materials, joints, capabilities, damage,
-  events, constraints, interaction profiles, solver authority.
+  events, constraints, interaction profiles, solver authority, and the
+  abstract bases everything hangs from (`LivingEntity`, `Creature`,
+  `NaturalFormation`, `Structure`, `Floor`).
 - **`space`** — `CelestialBody`, `Sky`, `Planet`, orbital slots, and
   the `CelestialKind` vocabulary.
-- **Not yet packed** — the earth-like layer (trees, grass, rock,
-  snakes, butterflies, terrain kinds) still sits in the core. Moving
-  it is mechanical now that the mechanism is proven, and is tracked in
-  issue #8 along with folding the legacy `TreeVariant` enum into
-  `TreeSpecies` plus anatomy slots.
+- **`earth`** — `Plant`, `Tree`, `PhysicsTree`, `Grass`, `GrassPatch`,
+  `Branch`, `Leaves`, `FallenTree`, `Rock`, `PhysicsRock`, `Snake`,
+  `Butterfly`, `Totem`, with `TreeSpecies`, `OrganicType`, `LogType`
+  and `RockSize`.
+
+Which games ask for what is now a real signal rather than an
+assumption: Eden and Logogenesis import `earth` (Logogenesis also
+`space`); **Logotron imports neither**, because a game of light-cycles
+in an arena has no botany and no sky. That is the layering earning its
+keep — before this, every game carried the whole world.
+
+## Migrating a type out of the core
+
+Moving `Tree` out broke five tests, and that was the mechanism
+working. Each was creating earth vocabulary against a core-only
+registry, and one of them — the shared `TestContext` — had been
+getting `INVALID_ENTITY` back and passing anyway, because nothing
+checked. A silent failure that a layering change turns into a loud
+one is the argument for doing this at all.
+
+The fix in every case was one line: ask for the pack.
+
+```cpp
+kg.extendOntology(earth::ontology::registry());
+```
+
+Expect that. If a test breaks when you move a type, it is telling you
+which layer it actually belongs to.

@@ -141,70 +141,6 @@ enums:
       EARTH:
         description: Brown dirt
 
-  OrganicType:
-    description: Procedural organic entity classification.
-    permissible_values:
-      TREE:
-      BUSH:
-      GRASS:
-      VINE:
-      ROOT:
-      FLOWER:
-      FERN:
-
-  RockSize:
-    description: Natural rock size classification.
-    permissible_values:
-      PEBBLE:
-        description: Small egg-shaped (~0.2m)
-      SMALL_ROCK:
-        description: Fist-sized (~0.4m)
-      MEDIUM_ROCK:
-        description: Head-sized (~0.8m)
-      LARGE_BOULDER:
-        description: Large boulder (~1.5m)
-
-  TreeVariant:
-    description: Tree species/growth variant for procedural generation.
-    permissible_values:
-      SAPLING:
-        description: Young seedling tree (~3m)
-      YOUNG_OAK:
-        description: Growing oak (~6m)
-      OAK:
-        description: Mature oak (~12m)
-      ANCIENT_OAK:
-        description: Huge ancient oak (~25m)
-      PINE:
-        description: Coniferous pine
-      WILLOW:
-        description: Trailing willow
-      DEAD:
-        description: Dead standing tree, bark stripped
-
-  TreeSpecies:
-    description: >-
-      Tree growth archetype (species only — age is expressed through
-      anatomy slots like canopy_start and lower_branches, not baked
-      into the enum). Successor vocabulary to TreeVariant, which
-      mixes species with age and remains for legacy generator paths;
-      the two fold together post-0.2.0.
-    permissible_values:
-      OAK:
-        description: Broad crown, sturdy trunk. The default tree.
-      PINE:
-        description: Tall, narrow, conical.
-      WILLOW:
-        description: Drooping, wide, melancholic.
-      PALM:
-        description: Bare trunk, crown burst at the top.
-      BAOBAB:
-        description: Massive squat trunk, sparse crown.
-      REDWOOD:
-        description: >-
-          Very tall, reddish bark, high crown. The "redwood" /
-          "sequoia" silhouette.
-
   TerrainKind:
     description: How ground is constructed (orthogonal to FloorType,
       which is surface material).
@@ -217,18 +153,6 @@ enums:
       SLAB:
         description: One flat static box. Cheap, inert, for pure
           backdrops.
-
-  LogType:
-    description: Classification of fallen wood.
-    permissible_values:
-      TRUNK:
-        description: Full fallen tree trunk
-      LOG:
-        description: Cut or broken log section
-      BRANCH:
-        description: Broken branch, arm-thick
-      TWIG:
-        description: Small twig or stick
 
   PatternId:
     description: Procedural surface texture pattern.
@@ -507,55 +431,6 @@ classes:
     mixins:
       - Agent
 
-  Butterfly:
-    is_a: Creature
-    description: Flying insect creature.
-
-  Snake:
-    is_a: Creature
-    description: Limbless reptile creature.
-
-  Plant:
-    is_a: LivingEntity
-    description: Living plant entity.
-    abstract: true
-    mixins:
-      - Growable
-    slots:
-      - organic_type
-
-  Tree:
-    is_a: Plant
-    description: Living tree grown via space colonization.
-    slots:
-      - tree_variant
-      - tree_height
-      - crown_radius
-      - canopy_start
-      - canopy_density
-      - lower_branches
-
-  Branch:
-    is_a: WorldEntity
-    description: Tree branch segment.
-    mixins:
-      - HasMaterial
-
-  Leaves:
-    is_a: WorldEntity
-    description: Foliage cluster on a branch.
-
-  GrassPatch:
-    is_a: Plant
-    description: >-
-      A patch of grass: container entity whose blades hang off
-      HAS_PART relations. Root type for deferred worldgen
-      materialization (vegetation activator walks the children).
-
-  Grass:
-    is_a: Plant
-    description: A grass blade or tuft grown by the organic generator.
-
   Structure:
     is_a: WorldEntity
     description: Built or placed structure.
@@ -590,6 +465,12 @@ classes:
   # setting pack: schema/packs/space.yaml. The core describes what the
   # engine understands and knows no astronomy; a world gains a sky by
   # asking for the pack. See docs/ONTOLOGY_LAYERS.md.
+  # Earth-like life and terrain (Plant, Tree, Grass, Rock, Snake,
+  # Butterfly, Totem and their vocabulary) moved to the earth setting
+  # pack: schema/packs/earth.yaml. The core keeps the abstract bases
+  # they hang from - LivingEntity, Creature, NaturalFormation,
+  # Structure - because the engine reasons about those.
+  # See docs/ONTOLOGY_LAYERS.md.
   NaturalFormation:
     is_a: WorldEntity
     description: Natural geological formation.
@@ -597,28 +478,6 @@ classes:
     mixins:
       - HasMaterial
       - Destructible
-
-  Rock:
-    is_a: NaturalFormation
-    description: Rock or boulder.
-    slots:
-      - rock_size
-
-  PhysicsRock:
-    is_a: Rock
-    description: Physics-enabled rock with full collision.
-
-  FallenTree:
-    is_a: NaturalFormation
-    description: Fallen tree trunk or log.
-    mixins:
-      - HasMaterial
-    slots:
-      - log_type
-
-  PhysicsTree:
-    is_a: Tree
-    description: Physics-enabled tree with collision and breakage.
 
   LightSource:
     is_a: WorldEntity
@@ -717,10 +576,6 @@ classes:
   AutoParticle:
     is_a: WorldEntity
     description: Automatically created particle entity for unmanaged particles.
-
-  Totem:
-    is_a: Structure
-    description: Vertical totem structure with stacked segments.
 
   SystemEntity:
     is_a: Entity
@@ -867,43 +722,6 @@ classes:
 slots:
   # --- World knowledge (promoted from Logogenesis, 2026-08-03: these
   # describe what things ARE anywhere, not how one game asks for them) ---
-  tree_height:
-    range: float
-    minimum_value: 0.5
-    maximum_value: 30.0
-    description: >-
-      Tree height in meters. A garden sapling is ~1, a grand oak ~8,
-      a redwood 25-30. Bounded to what the growth algorithm reliably
-      delivers.
-  crown_radius:
-    range: float
-    minimum_value: 0.2
-    maximum_value: 15.0
-    description: Crown radius in meters (physically capped near 60%
-      of tree height).
-  canopy_start:
-    range: float
-    minimum_value: 0.2
-    maximum_value: 0.8
-    description: >-
-      Fraction of the height where the crown begins. 0.25 = bushy,
-      leaves almost to the ground; 0.45 = classic oak; 0.7 = palm or
-      redwood silhouette (long bare trunk, high crown).
-  canopy_density:
-    range: float
-    minimum_value: 0.3
-    maximum_value: 1.5
-    description: >-
-      Crown fullness multiplier. 0.5 = airy and sparse, 1.0 =
-      natural, 1.5 = lush and dense.
-  lower_branches:
-    range: integer
-    minimum_value: 0
-    maximum_value: 6
-    description: >-
-      Limbs sprouting from the bare trunk below the crown. Old oaks
-      and willows carry 2-4; redwoods and palms stay clean at 0.
-      Age vocabulary: ancient = more limbs + lower canopy_start.
   organic:
     range: float
     minimum_value: 0.0
@@ -995,19 +813,8 @@ slots:
     range: string
 
   # --- Entity-specific ---
-  organic_type:
-    range: OrganicType
   floor_type:
     range: FloorType
-  rock_size:
-    range: RockSize
-  tree_variant:
-    range: TreeVariant
-    description: Tree species/growth stage for generator dispatch.
-  log_type:
-    range: LogType
-    description: Classification of fallen wood (trunk, branch, twig).
-
   # --- Constraint ---
   gluon_type:
     range: GluonType

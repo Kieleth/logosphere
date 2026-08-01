@@ -17,6 +17,7 @@
 #include "logosphere/kg/ontology_registry.h"
 #include "generated/logosphere_ontology.h"
 #include "generated/logosphere_ontology_registry.h"
+#include "generated/earth_ontology_registry.h"
 #include <iostream>
 #include <string>
 #include <cmath>
@@ -43,6 +44,11 @@ static int tests_failed = 0;
 // Helper: create a KG with ontology, return in MINIMAL mode
 static std::unique_ptr<kg::KGModule> create_kg() {
     auto kg = std::make_unique<kg::KGModule>(logosphere::ontology::registry());
+    // Snakes, butterflies and branches are earth-like vocabulary, so
+    // this test asks for the pack that defines them. The core alone
+    // has no botany; see docs/ONTOLOGY_LAYERS.md.
+    kg->extendOntology(earth::ontology::registry());
+
     kg->setMode(kg::KGMode::MINIMAL);
     return kg;
 }

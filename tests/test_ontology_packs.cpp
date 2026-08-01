@@ -45,7 +45,7 @@ void test_core_carries_no_setting() {
 
     // Engine concepts stay in the core: these are what the physics,
     // damage and event systems are built on.
-    CHECK(kg.createEntity("Rock") != kg::INVALID_ENTITY,
+    CHECK(kg.createEntity("Wall") != kg::INVALID_ENTITY,
           "a body is a core concept");
     CHECK(kg.createEntity("Constraint") != kg::INVALID_ENTITY,
           "so is a constraint");
@@ -75,7 +75,7 @@ void test_pack_grants_its_vocabulary() {
 
     // A pack sits ON the core rather than replacing it: everything
     // the engine understands is still there.
-    CHECK(kg.createEntity("Rock") != kg::INVALID_ENTITY,
+    CHECK(kg.createEntity("Wall") != kg::INVALID_ENTITY,
           "and the core underneath it is intact");
 }
 
@@ -91,7 +91,7 @@ void test_a_pack_can_be_added_to_a_running_world() {
 
     CHECK(kg.createEntity("Planet") != kg::INVALID_ENTITY,
           "and a sky after it — a setting can arrive mid-world");
-    CHECK(kg.createEntity("Rock") != kg::INVALID_ENTITY,
+    CHECK(kg.createEntity("Wall") != kg::INVALID_ENTITY,
           "without disturbing what was already there");
 }
 
