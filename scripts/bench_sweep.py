@@ -158,6 +158,25 @@ def main():
     if prov["git_dirty"]:
         print("[SWEEP] WARNING: working tree is dirty — provenance records this")
 
+    # Discard a warmup run before anything measured. The first run of a cold
+    # sequence pays for shader compiles, first-touch allocations and a GPU
+    # still ramping its clocks, and it is not small: 35.3 ms against 26.7 for
+    # runs 2 and 3 of the same config (kit method note, 2026-07-31). Without
+    # this, whichever config goes first carries that cost.
+    #
+    # NOT YET VERIFIED to reduce spread. The run intended to confirm it landed
+    # on a contended machine (another engine build plus a browser at >100% CPU,
+    # load average 3.7) and came back noisier than the run without it, which
+    # measures the contention and not the warmup. Re-confirm on a quiet
+    # machine before trusting any spread figure quoted for this harness.
+    warm_path = run_dir / "warmup_discarded.jsonl"
+    print("  [warmup] discarded run ... ", end="", flush=True)
+    wres = run_one(cfgs[0], warm_path, args.frames)
+    print(f"{wres['wall_s']}s (not recorded)")
+    warm_path.unlink(missing_ok=True)
+    if args.mode == "study":
+        time.sleep(args.cooldown)
+
     index = []
     for rep in range(repeats):
         # Rotate config order every repeat so thermal drift does not land on
