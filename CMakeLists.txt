@@ -110,6 +110,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # loading it: the registry function has to be called before its
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
+    src/generated/earth_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
     src/capability/dynamics_params.cpp
@@ -129,6 +130,9 @@ set(LOGOSPHERE_CORE_SOURCES
     src/particle_shape_methods.cpp
     # Narrow-phase collision (AABB SAT + sphere-sphere + sphere-box)
     src/core/narrow_phase.cpp
+    # Ground locator: where a body can be, asked of the world rather
+    # than assumed. No z constant lives here or anywhere downstream.
+    src/core/ground_locator.cpp
     # Projection system — pure math, needed by the iso-camera test.
     src/projection_system.cpp
     # Telemetry: Session + Instrument — disk-backed append-only
@@ -302,6 +306,11 @@ add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
 add_headless_test(test_iso_azimuth)
 add_headless_test(test_ontology_packs)
+add_headless_test(test_entity_type_strings)
+# This one reads the source tree, so it needs to know where that is:
+# ctest runs from the build directory, not the repo root.
+target_compile_definitions(test_entity_type_strings
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
@@ -351,6 +360,8 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_iso_azimuth_roundtrip)  # orbit picking round-trip (issue #9)
     add_engine_at(test_orbit_performance)  # orbit frame-cost study + post-orbit ratchet
     add_engine_at(test_ontology_levers)  # KG levers reach the bodies (issue #8)
+    add_engine_at(test_ground_locator)  # placement asks the world, never assumes z
+    add_engine_at(test_butterfly_flight_liveliness)  # flight is alive and above real ground
     add_engine_at(test_leg_spin_on_rotation) # Eden playtest repro: legs spin when human rotates
     add_engine_at(test_face_tracks_head)     # Eden playtest repro: eyes/ears/nose ride the head's yaw
     add_engine_at(test_leg_geometry_choreography) # Eden playtest repro: legs fold under walk/stop/turn transitions
@@ -998,6 +1009,7 @@ set(LOGOSPHERE_SOURCES
     # loading it: the registry function has to be called before its
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
+    src/generated/earth_ontology_registry.cpp
     # Spatial query module
     src/spatial/entity_spatial.cpp
     # Damage system

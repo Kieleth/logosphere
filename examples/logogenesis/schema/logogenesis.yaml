@@ -23,6 +23,9 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  # Earth-like vocabulary (trees, grass, rock, small fauna) is a
+  # SETTING PACK, not core. This game grows things, so it asks.
+  - earth
   # Celestial vocabulary (Sky, CelestialBody, Planet) is a SETTING
   # PACK, not core. Logogenesis makes worlds and skies, so it asks
   # for it; a game with no sky simply does not, and those types stay

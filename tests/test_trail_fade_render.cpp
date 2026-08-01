@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include "generated/earth_ontology_registry.h"
 
 class HeadlessApp : public Logosphere::IApplication {
 public:
@@ -79,6 +80,9 @@ int main() {
 
     // Self-emissive orange box at the origin, KG-backed (so fade_out can arm).
     // No camera changes: the default view frames the origin and dispatches.
+    // A rock is earth-like vocabulary, and Engine starts with the
+    // core alone. Ask for the pack; see docs/ONTOLOGY_LAYERS.md.
+    kg.extendOntology(earth::ontology::registry());
     auto ent = kg.createEntity("Rock");
     Particle box{};
     box.shape = ParticleShape::BOX;

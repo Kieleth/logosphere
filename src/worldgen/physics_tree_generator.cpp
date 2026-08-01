@@ -104,7 +104,7 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
     result.floor_id = floor_particle_id;
 
     // Create KG entity for this tree (enables removal via entity_system.removeEntity())
-    result.entity_id = kg_->createEntityAtPosition("tree", world_x, world_y);
+    result.entity_id = kg_->createEntityAtPosition("PhysicsTree", world_x, world_y);
 
     // ========================================================================
     // TRUNK CREATION - GRANDIOUS STYLE
@@ -275,7 +275,7 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     PhysicsTreeResult result;
 
     // Create KG entity for this tree (enables removal via entity_system.removeEntity())
-    result.entity_id = kg_->createEntityAtPosition("tree", world_x, world_y);
+    result.entity_id = kg_->createEntityAtPosition("PhysicsTree", world_x, world_y);
 
     // ========================================================================
     // STEP 1: Generate root system (root plate + primary roots)

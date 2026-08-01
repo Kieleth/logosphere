@@ -57,7 +57,7 @@ struct Harness {
 // A small body of loose stones, the shape of anything an agent might
 // wish into being and then want to pin down.
 kg::EntityID spawn_body(Engine& e, kg::KGModule& kg, float x, int count) {
-    auto ent = kg.createEntity("Rock");
+    auto ent = kg.createEntity("Wall");   // a CORE body type
     kg.setProperty(ent, "x", std::to_string(x));
     kg.setProperty(ent, "y", "0");
     for (int i = 0; i < count; ++i) {
