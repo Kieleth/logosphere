@@ -150,10 +150,20 @@ int main() {
     auto c = run_phase(engine, 180, [](int) {});
     print_phase("C static'", c);
 
-    double slowdown = b.avg_ms / a.avg_ms;
-    double residue = c.avg_ms / a.avg_ms;
+    // Ratios are taken on MEDIANS, not averages. Frame times here are
+    // spiky by nature (periodic BVH rebuilds, issue #6: p90 runs
+    // 1.5-2x median), and an average over 180 frames inherits however
+    // many spikes that phase happened to catch. Measured over 5 idle
+    // runs: average-based residue spread 0.92-1.10, median-based
+    // 0.988-1.008. On a loaded machine the average form exceeded 1.30
+    // and failed this test spuriously; the median form is what
+    // actually answers "did the typical frame get slower".
+    double slowdown = b.median_ms / a.median_ms;
+    double residue = c.median_ms / a.median_ms;
     std::cout << "  [measure] orbit/static slowdown x" << slowdown
-              << ", post-orbit residue x" << residue << std::endl;
+              << ", post-orbit residue x" << residue
+              << " (medians; avg-based residue x" << (c.avg_ms / a.avg_ms)
+              << ")" << std::endl;
 
     // Scale check: a Logogenesis-sized world (4x the ground area, more
     // lights). If the interactive 6-10 FPS were an orbit interaction,
@@ -197,9 +207,11 @@ int main() {
     }
 
     // Ratchet: the orbit must not leave the renderer slower after it
-    // ends. 1.3x absorbs scheduler noise; a stuck cache/invalidation
-    // bug shows as multiples.
-    if (residue < 1.3) {
+    // ends. Median spread on idle is +/-1.2%, so 1.25 leaves wide
+    // headroom for a loaded machine while still catching a real
+    // systematic regression; a stuck cache/invalidation bug shows as
+    // multiples.
+    if (residue < 1.25) {
         tests_passed++;
     } else {
         tests_failed++;
