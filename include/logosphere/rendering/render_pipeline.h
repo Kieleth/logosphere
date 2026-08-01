@@ -71,6 +71,24 @@ bool get_entity_shadow_bvh_enabled();
 // LOGOSPHERE_ASYNC_PREP=1 turns it on at startup.
 void set_async_gpu_prep(bool on);
 bool get_async_gpu_prep();
+
+// EXPERIMENT: analytic smooth normals for SPHERE particles. The G-buffer kernel
+// derives the normal per pixel as normalize(world_pos - centre) instead of the
+// face normal, which is exact rather than interpolated.
+//
+// The question this exists to answer is NOT performance. The renderer is
+// flat-shaded, so a sphere needs 320 triangles only to push shading
+// discontinuities below a pixel; decoupling shading from triangle count would
+// let the count serve the SILHOUETTE alone, which needs far fewer. The risk is
+// the shadow terminator: shading and geometric normals disagree while shadow
+// rays still hit the real triangles, so a coarse sphere can band darkly exactly
+// where it rolls into shadow. Perfectly smooth shading over coarse geometry is
+// the WORST case for that, which is why analytic beats interpolated as a test.
+//
+// Default OFF. LOGOSPHERE_SMOOTH_SPHERES=1 enables at startup.
+// See docs/todo_plans/SPHERE_LOD_DESIGN.md.
+void set_smooth_sphere_normals(bool on);
+bool get_smooth_sphere_normals();
 }
 
 class RenderPipeline {

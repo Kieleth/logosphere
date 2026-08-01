@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. LOD 1 smooth (80 tris) looks BETTER than today's LOD 2 flat (320). |
 | S16 | What does an LOD switch cost? | 3.94 ms more GPU work: refit 1.87 to build 5.81. accel_build is the LARGEST GPU stage and was never recorded until now. |
 | S15 | Is the 1.9x shadow triangle ratio waste, and are sphere shadows worth it? | No and no. The ratio is required input for the GPU's per-ray cull, and every Eden shadow caster is a box (196,596 = 16,383 x 12 exactly). |
 | S14 | Should async GPU prep be turned back on? | Yes, once the handoff stopped copying the frame's input TWICE (lambda captured by value). Pixel-identical, +1.88 ms retina, +3.43 ms windowed. |
@@ -856,6 +857,52 @@ intact from the CPU trees to the Metal AS, and now has a number again.
 It overlaps today at 91% GPU occupancy, which leaves roughly 9% of headroom, so
 a per-frame full build may or may not keep hiding. Measure before designing the
 hysteresis bands around it.
+
+### S17: smooth normals work, and level 1 beats today's level 2 (2026-08-01)
+
+`SPHERE_LOD_DESIGN.md` step 1: judge smooth normals on the shadow terminator
+before anything else, because the answer decides which LOD levels are usable at
+all. Implemented as ANALYTIC normals for spheres rather than interpolated
+vertex normals: the G-buffer kernel derives `normalize(world_pos - centre)` per
+pixel. That is exact, costs no bandwidth (it reuses two `TriangleLit` padding
+fields, so the struct stays 176 bytes), and is the HARSHEST possible version of
+the test, since perfectly smooth shading over coarse geometry maximises the
+disagreement with the geometry that shadow rays actually hit.
+
+| | silhouette | terminator | verdict |
+|---|---|---|---|
+| LOD 0 smooth, 20 tris | hard polygon | **hard black wedges** | artifact confirmed |
+| **LOD 1 smooth, 80 tris** | **smooth** | **clean roll-off** | **viable** |
+| LOD 2 flat, 320 tris (today) | visibly faceted | facet steps | current default |
+
+**The terminator artifact is real and the test can see it.** At LOD 0 there are
+hard black wedges cutting into smoothly shaded areas exactly where the sphere
+rolls into shadow, which is the failure the design doc named as the sharpest
+objection to the whole idea. That matters: a green result at LOD 1 means
+something because the same test goes red at LOD 0.
+
+**At LOD 1 it is gone, and LOD 1 smooth looks better than LOD 2 flat.** Today's
+default renders visibly faceted spheres at 320 triangles. Smooth normals at 80
+render round ones. **A quarter of the triangles for better quality.**
+
+Correctness signal: the flat-vs-smooth pixel difference shrinks monotonically
+with subdivision (3,494 pixels at delta>=8 for LOD 0, then 2,807, 1,314, 317),
+which is what must happen as facets fall below a pixel.
+
+**What this does NOT yet show.** No performance number: the doc says judge the
+artifact first and that is all this did. Spheres only, because a sphere is the
+one shape whose analytic normal is exact from a single centre. And Eden has no
+spheres in its shadow set (S15), so the Eden frame will not move from this;
+the win is in sphere-heavy scenes and in what it unlocks for LOD generally.
+
+**What it unlocks.** Triangle count no longer has to serve SHADING, only the
+SILHOUETTE, which needs far fewer triangles. That changes the LOD design from
+"how much quality do we sacrifice" to "how coarse can the silhouette get", a
+much better trade. The screen-size LOD work (design doc step 2) can now target
+level 1 as its floor instead of level 2.
+
+Flag: `logosphere::set_smooth_sphere_normals()` / `LOGOSPHERE_SMOOTH_SPHERES=1`.
+Default OFF pending a call on shipping it.
 
 ---
 

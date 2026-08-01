@@ -141,6 +141,17 @@ void set_async_gpu_prep(bool on) { g_async_gpu_prep.store(on, std::memory_order_
 bool get_async_gpu_prep()        { return g_async_gpu_prep.load(std::memory_order_relaxed); }
 }  // namespace logosphere
 
+// Analytic smooth sphere normals; see render_pipeline.h for what it is for.
+static std::atomic<bool> g_smooth_spheres{[] {
+    if (const char* e = std::getenv("LOGOSPHERE_SMOOTH_SPHERES")) return std::strcmp(e, "0") != 0;
+    return false;
+}()};
+
+namespace logosphere {
+void set_smooth_sphere_normals(bool on) { g_smooth_spheres.store(on, std::memory_order_relaxed); }
+bool get_smooth_sphere_normals()        { return g_smooth_spheres.load(std::memory_order_relaxed); }
+}  // namespace logosphere
+
 static std::atomic<size_t> g_shadow_bvh_rebuild_frames{[] {
     if (const char* e = std::getenv("LOGOSPHERE_BVH_REBUILD_FRAMES")) {
         long v = std::atol(e);
@@ -196,6 +207,20 @@ void RenderPipeline::prepare_gpu_data(
         gpu_transparent_triangles.reserve(surfaces.size() / 4);  // Few transparent surfaces expected
     }
 
+    // Analytic smooth shading applies to SPHERES only: the normal is exact
+    // there (normalize(p - centre)) and nothing else has a single centre that
+    // works. Returns nullptr for everything else, which keeps flat shading.
+    const bool smooth_spheres = ::logosphere::get_smooth_sphere_normals();
+    float sphere_centre[3];
+    auto sphere_centre_for = [&](const auto& sd) -> const float* {
+        if (!smooth_spheres) return nullptr;
+        if (sd.particle_index < 0 || sd.particle_index >= (int)particles.size()) return nullptr;
+        const Particle& p = particles[sd.particle_index];
+        if (p.shape != ParticleShape::SPHERE) return nullptr;
+        sphere_centre[0] = p.x; sphere_centre[1] = p.y; sphere_centre[2] = p.z;
+        return sphere_centre;
+    };
+
     for (const auto& surface : surfaces) {
         // Get particle color from SurfaceData (already stored as 0-1 floats)
         uint8_t r = static_cast<uint8_t>(surface.particle_r * 255.0f);
@@ -225,7 +250,7 @@ void RenderPipeline::prepare_gpu_data(
             if (surface.particle_a < 1.0f) {
                 Logosphere::GPURasterizer::convert_surface_to_lit_triangles(
                     surface.surface, camera_system, r, g, b, a,
-                    gpu_transparent_triangles);
+                    gpu_transparent_triangles, sphere_centre_for(surface));
                 continue;  // Don't add to opaque batch
             }
         }
@@ -234,7 +259,8 @@ void RenderPipeline::prepare_gpu_data(
             surface.surface,
             camera_system,
             r, g, b, a,
-            gpu_triangles);
+            gpu_triangles,
+            sphere_centre_for(surface));
     }
     // Sort transparent triangles back-to-front (painter's algorithm) for correct blending
     if constexpr (Optimizations::USE_TRANSPARENCY) {

@@ -175,7 +175,8 @@ void GPURasterizer::convert_surface_to_gpu_triangles(
 void GPURasterizer::convert_surface_to_lit_triangles(
     const struct Surface&, class CameraSystem&,
     uint8_t, uint8_t, uint8_t, uint8_t,
-    std::vector<TriangleLit>&) {}
+    std::vector<TriangleLit>&,
+    const float* /*smooth_center*/) {}
 
 // =========================================================================
 // MetalComputeBridge

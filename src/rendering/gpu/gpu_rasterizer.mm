@@ -1752,7 +1752,8 @@ void GPURasterizer::convert_surface_to_lit_triangles(
     const Surface& surface,
     CameraSystem& camera_system,
     uint8_t particle_r, uint8_t particle_g, uint8_t particle_b, uint8_t particle_a,
-    std::vector<TriangleLit>& out_triangles) {
+    std::vector<TriangleLit>& out_triangles,
+    const float* smooth_center) {
 
     // Convert color to 0-1 range (GPU expects float colors)
     float r = particle_r / 255.0f;
@@ -1853,7 +1854,7 @@ void GPURasterizer::convert_surface_to_lit_triangles(
         gpu_tri.x0 = (float)projected.screen_corners[0][0];
         gpu_tri.y0 = (float)projected.screen_corners[0][1];
         gpu_tri.z0 = depth0;  // Camera-space depth (distance from camera)
-        gpu_tri._padding0 = 0.0f;
+        gpu_tri.smooth_enable = 0.0f;   // set below if smooth shading applies
 
         gpu_tri.x1 = (float)projected.screen_corners[1][0];
         gpu_tri.y1 = (float)projected.screen_corners[1][1];
@@ -1897,9 +1898,20 @@ void GPURasterizer::convert_surface_to_lit_triangles(
 
         // Material properties for SSGI
         gpu_tri.roughness = surface.roughness;
-        gpu_tri._padding_roughness[0] = 0.0f;
-        gpu_tri._padding_roughness[1] = 0.0f;
-        gpu_tri._padding_roughness[2] = 0.0f;
+
+        // Analytic smooth shading. The G-buffer kernel derives the normal per
+        // pixel from this centre instead of using the face normal above.
+        if (smooth_center) {
+            gpu_tri.smooth_enable    = 1.0f;
+            gpu_tri.smooth_center[0] = smooth_center[0];
+            gpu_tri.smooth_center[1] = smooth_center[1];
+            gpu_tri.smooth_center[2] = smooth_center[2];
+        } else {
+            gpu_tri.smooth_enable    = 0.0f;
+            gpu_tri.smooth_center[0] = 0.0f;
+            gpu_tri.smooth_center[1] = 0.0f;
+            gpu_tri.smooth_center[2] = 0.0f;
+        }
 
         out_triangles.push_back(gpu_tri);
     }

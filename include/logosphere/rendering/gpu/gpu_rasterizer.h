@@ -258,7 +258,10 @@ public:
     // =====================================================================
     // Extended triangle with lighting data - matches gpu_types.metal::TriangleLit
     struct TriangleLit {
-        float x0, y0, z0, _padding0;
+        // smooth_enable: 0 = flat shading (use `normal`), 1 = analytic smooth
+        // normal derived from smooth_center. Reuses padding, so TriangleLit
+        // stays 176 bytes and this costs no bandwidth on a memory-bound path.
+        float x0, y0, z0, smooth_enable;
         float x1, y1, z1, _padding1;
         float x2, y2, z2, _padding2;
         float r, g, b, a;                    // Base material color 0-1
@@ -269,7 +272,7 @@ public:
         int particle_id;                     // Particle ID (for debug)
         // Total so far: 160 bytes
         float roughness;                     // Material roughness (0=mirror, 1=matte) for SSGI
-        float _padding_roughness[3];         // Padding to 176 bytes (16-byte aligned)
+        float smooth_center[3];              // Sphere centre, world space (was padding)
     };
 
     // Rasterize triangles with GPU lighting
@@ -594,7 +597,12 @@ public:
         const struct Surface& surface,
         class CameraSystem& camera_system,
         uint8_t particle_r, uint8_t particle_g, uint8_t particle_b, uint8_t particle_a,
-        std::vector<TriangleLit>& out_triangles);
+        std::vector<TriangleLit>& out_triangles,
+        // Non-null enables ANALYTIC SMOOTH SHADING for this surface: the
+        // G-buffer kernel derives the normal per pixel as
+        // normalize(world_pos - centre) rather than using the face normal.
+        // Only meaningful for spheres. Exact, not interpolated.
+        const float* smooth_center = nullptr);
 
 private:
     // Metal resources (opaque pointers in C++, actual types in .mm file)

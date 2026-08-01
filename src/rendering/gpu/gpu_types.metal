@@ -169,7 +169,7 @@ struct TriangleGPU {
 struct TriangleLit {
     // Screen-space vertices (x, y, depth_z)
     float x0, y0, z0;          // 12 bytes
-    float _padding0;           // 4 bytes
+    float smooth_enable;       // 4 bytes - 0 = flat shading, 1 = analytic smooth
 
     float x1, y1, z1;          // 12 bytes
     float _padding1;           // 4 bytes
@@ -197,7 +197,7 @@ struct TriangleLit {
 
     // Material properties for SSGI
     float roughness;           // 4 bytes - 0=mirror, 1=matte
-    float _padding_roughness[3]; // 12 bytes - padding to 176 bytes (16-byte aligned)
+    packed_float3 smooth_center; // 12 bytes - sphere centre (was padding)
 };
 
 // =========================================================================

@@ -239,8 +239,17 @@ kernel void rasterize_gbuffer(
                                  u * float3(tri.world_pos1[0], tri.world_pos1[1], tri.world_pos1[2]) +
                                  v * float3(tri.world_pos2[0], tri.world_pos2[1], tri.world_pos2[2]);
 
-                // Surface normal (flat shading - shared across triangle)
-                pixel.normal = float3(tri.normal[0], tri.normal[1], tri.normal[2]);
+                // Normal. Flat by default: one normal for the whole triangle.
+                // With smooth_enable it is derived ANALYTICALLY from the sphere
+                // centre, which is exact rather than interpolated and is
+                // therefore the harshest possible test of the shadow
+                // terminator: shading and geometry disagree by the full facet
+                // angle, and shadow rays still hit the real triangles.
+                if (tri.smooth_enable > 0.5f) {
+                    pixel.normal = normalize(pixel.world_pos - float3(tri.smooth_center));
+                } else {
+                    pixel.normal = float3(tri.normal[0], tri.normal[1], tri.normal[2]);
+                }
 
                 // Base material color (before lighting)
                 pixel.base_color = uchar4(
