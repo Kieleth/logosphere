@@ -17,14 +17,18 @@ struct PlanetSpec {
     float stone_size = 0.45f;     // Crust stone edge (m), jittered
     float stone_jitter = 0.20f;   // Size variation fraction
 
-    // Fine surface skin laid over the structural crust: smaller,
-    // flatter stones with less scatter, filling the gaps between the
-    // big plates so the body reads as a planet rather than a pile of
-    // shingles. Size is a fraction of stone_size; 0 disables the
-    // layer entirely (and the particle cost with it).
-    float surface_ratio = 0.5f;     // fine stone size / stone_size
+    // Regolith: the dust the world is actually seen through. Laid
+    // over the structural plates as grains that are small, very flat,
+    // and nearly tangential, because that is what separates a lunar
+    // surface from a gravel heap - not colour. Thick chunks tilted
+    // off-radial read as rocks however finely you dice them.
+    // Size is a fraction of stone_size; 0 disables the layer and its
+    // particle cost.
+    float surface_ratio = 0.32f;    // grain size / stone_size
     float surface_density = 1.0f;   // coverage multiplier
-    float surface_tint = 1.12f;     // dust is lighter than the rock
+    float surface_tint = 1.10f;     // dust catches more light than rock
+    float surface_flatten = 0.18f;  // grain thickness / width: flat tiles
+    float surface_scatter = 0.06f;  // radians of lie; near-tangential
 
     // Rust-warm crust. The core is a SHADE of it rather than its own
     // colour: gaps between stones should read as the same rock in

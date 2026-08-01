@@ -85,7 +85,8 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     // `scatter` is the azimuthal jitter that reads as unsettled
     // rubble, `tint` brightens the palette for dust over rock.
     auto place_shell = [&](int count, float size, float flatten,
-                           float scatter, float tint, float jitter) {
+                           float scatter, float tint, float jitter,
+                           float variance) {
         for (int i = 0; i < count; ++i) {
             float t = (static_cast<float>(i) + 0.5f) / count;
             float polar = std::acos(1.0f - 2.0f * t);
@@ -107,14 +108,11 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
             stone.thickness = s * flatten * random_range(0.85f, 1.15f);
             stone.size = s;
             stone.r = clamp01(spec.crust_r * tint +
-                              random_range(-spec.color_variance,
-                                           spec.color_variance));
+                              random_range(-variance, variance));
             stone.g = clamp01(spec.crust_g * tint +
-                              random_range(-spec.color_variance,
-                                           spec.color_variance));
+                              random_range(-variance, variance));
             stone.b = clamp01(spec.crust_b * tint +
-                              random_range(-spec.color_variance,
-                                           spec.color_variance));
+                              random_range(-variance, variance));
             stone.a = 1.0f;
             // Tilt the stone's up-axis onto the radial direction, plus
             // scatter so the crust reads as settled, not tiled.
@@ -135,7 +133,7 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
     int base_count = std::max(24, static_cast<int>(
         area / (spec.stone_size * spec.stone_size * 1.7f)));
     place_shell(base_count, spec.stone_size, 0.625f, 0.35f, 1.0f,
-                spec.stone_jitter);
+                spec.stone_jitter, spec.color_variance);
 
     // Fine skin: smaller, flatter, tighter, dustier.
     int skin_count = 0;
@@ -143,11 +141,14 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
         float fine = spec.stone_size * spec.surface_ratio;
         skin_count = static_cast<int>(
             area / (fine * fine * 1.7f) * spec.surface_density);
-        // Half the size jitter of the plates: the skin is what draws
-        // the limb, and varied protrusion there is what reads as a
-        // spiky gravel edge instead of a planet's smooth curve.
-        place_shell(skin_count, fine, 0.42f, 0.15f, spec.surface_tint,
-                    spec.stone_jitter * 0.5f);
+        // Grains: a third of the plates' size jitter and half their
+        // colour spread. The skin draws the limb and the light, so
+        // varied protrusion there reads as a spiky gravel edge and
+        // varied colour reads as scattered pebbles; dust is uniform.
+        place_shell(skin_count, fine, spec.surface_flatten,
+                    spec.surface_scatter, spec.surface_tint,
+                    spec.stone_jitter * 0.33f,
+                    spec.color_variance * 0.5f);
     }
 
     on_entity_created(entity);
