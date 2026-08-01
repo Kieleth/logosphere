@@ -885,6 +885,70 @@ void test_orbit_seed_swings_the_camera() {
         "the OrbitSeed is destroyed after materializing");
 }
 
+// The menagerie: serpent + deadwood + totem seeds materialize through
+// their generators; entities exist in the KG with particles bound.
+void test_serpent_deadwood_totem() {
+    Harness h;
+    auto& kg = h.engine.get_kg();
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"A python, a fallen log, a totem to watch them.",
+                     "ops":[
+              {"op":"create_entity","type":"SerpentSeed","properties":{
+                 "x":"2","y":"3","serpent_kind":"PYTHON",
+                 "serpent_length":"4"}},
+              {"op":"create_entity","type":"FallenTreeSeed","properties":{
+                 "x":"-3","y":"1","deadwood_kind":"LOG",
+                 "deadwood_length":"2.5"}},
+              {"op":"create_entity","type":"TotemSeed","properties":{
+                 "x":"0","y":"-4","totem_size":"1.2",
+                 "totem_r":"0.5","totem_g":"0.3","totem_b":"0.2"}}]})");
+        });
+
+    h.app.submit_text_for_test("a python, a fallen log, and a totem");
+    for (int i = 0; i < 900 && h.app.creations() < 3; ++i) h.tick(dt);
+
+    AT_ASSERT_TRUE(h.app.creations() == 3,
+        "three menagerie creations (got " +
+        std::to_string(h.app.creations()) + ")");
+    AT_ASSERT_TRUE(kg.findByType("SerpentSeed").empty() &&
+                   kg.findByType("FallenTreeSeed").empty() &&
+                   kg.findByType("TotemSeed").empty(),
+        "all seeds consumed");
+    AT_ASSERT_TRUE(!kg.findByType("Snake").empty() ||
+                   !kg.findByType("Serpent").empty(),
+        "a serpent entity exists in the KG");
+}
+
+// Playful declines are thoughts-only: zero ops must create nothing
+// and the reply must reach the chat verbatim.
+void test_thoughts_only_reply_creates_nothing() {
+    Harness h;
+    const double dt = 1.0 / 60.0;
+    h.tick(dt);
+
+    h.app.set_responder_for_test(
+        [](const std::string&, const std::string&,
+           std::function<void(std::string)> done) {
+            done(R"({"thoughts":"My powers are considerable, but the dragon egg has not hatched. I can offer you a python in the grass, or a totem to guard the spot.","ops":[]})");
+        });
+
+    h.app.submit_text_for_test("a dragon please");
+    for (int i = 0; i < 240; ++i) h.tick(dt);
+
+    AT_ASSERT_TRUE(h.app.creations() == 0,
+        "a decline creates nothing (creations " +
+        std::to_string(h.app.creations()) + ")");
+    AT_ASSERT_TRUE(h.app.last_thoughts().find("dragon egg") !=
+                   std::string::npos,
+        "the flourish reaches the chat (got: " + h.app.last_thoughts() +
+        ")");
+}
+
 int main() {
     std::cout << "Logogenesis AT — creation" << std::endl;
     AT_TEST(test_offline_gardener_plants_a_tree);
@@ -899,6 +963,8 @@ int main() {
     AT_TEST(test_layered_earth_and_falling_boulder);
     AT_TEST(test_humanoid_wanders);
     AT_TEST(test_orbit_seed_swings_the_camera);
+    AT_TEST(test_serpent_deadwood_totem);
+    AT_TEST(test_thoughts_only_reply_creates_nothing);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;
