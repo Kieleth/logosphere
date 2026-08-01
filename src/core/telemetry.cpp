@@ -206,6 +206,7 @@ void publish_gpu_window(uint64_t current_frame) {
     if (s.frame != current_frame - 2 || s.buffers == 0) return;
     g_win_published = { s.busy_s * 1000.0,
                         (s.max_end - s.min_start) * 1000.0,
+                        s.min_start, s.max_end,
                         s.buffers };
 }
 
@@ -300,11 +301,16 @@ void write_sink_record() {
     }
 
     {
-        // GPU busy vs span. The stage durations above are NOT additive; these
-        // two are, and their difference is idle between passes.
+        // GPU busy vs span for THIS frame. The stage durations above are not
+        // additive; these two are, but only WITHIN a frame. Across frames they
+        // are not: consecutive windows overlap because the GPU runs about a
+        // frame behind, so summing them exceeds wall clock (measured 111% at
+        // retina). start_s/end_s are emitted so a consumer can union the
+        // intervals and get real occupancy instead.
         GpuWindow w = g_win_published;
-        fprintf(g_sink, ",\"gpu_window\":{\"busy_ms\":%.4f,\"span_ms\":%.4f,\"buffers\":%u}",
-                w.busy_ms, w.span_ms, w.buffers);
+        fprintf(g_sink, ",\"gpu_window\":{\"busy_ms\":%.4f,\"span_ms\":%.4f,"
+                        "\"start_s\":%.6f,\"end_s\":%.6f,\"buffers\":%u}",
+                w.busy_ms, w.span_ms, w.start_s, w.end_s, w.buffers);
     }
 
     fprintf(g_sink, "}\n");

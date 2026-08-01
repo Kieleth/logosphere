@@ -97,6 +97,12 @@ scaling SHAPE, invalid for absolute cost. Eden is the pipelined reality check.
 
 ## Current baseline (2026-07-31) — READ BEFORE COMPARING ANY OLDER NUMBER
 
+> **Counters and CPU phases below stand. The GPU interpretation is SUPERSEDED
+> by S12 (2026-08-01).** The `gpu_busy` row was a sum of overlapping per-frame
+> windows, which overstates. Corrected by union, retina is 95.8% occupied and
+> the frame is BALANCED, CPU 19.74 ms against GPU 18.92 ms. The conclusion
+> stated below, "Eden retina is no longer GPU-bound", does not survive that.
+
 **Every measurement in S1-S10 was taken against a 4,195-particle Eden that no
 longer exists.** Logogenesis filled the world (moon, trees, grass carpets,
 scene lights). Same scene name, 7x the geometry:
@@ -421,10 +427,78 @@ move too, the experiment is confounded.
 
 ---
 
+### S12: the GPU metric was double counting, and retina is BALANCED (2026-08-01)
+
+Opened by a contradiction, not a hunch. `slot_wait` read 0.00 at both
+resolutions, saying the CPU never waits on the GPU, while `gpu_window.busy_ms`
+summed to more than the frame period, saying the GPU was saturated. Both could
+not be true.
+
+**The metric was wrong, and provably so: it computed 122% of wall clock.** One
+GPU cannot be busy longer than the elapsed time. `gpu_window` publishes a
+per-frame window, and the GPU runs roughly a frame behind the CPU, so
+consecutive frames' windows OVERLAP. Summing them counts the shared region
+twice. Correct occupancy is the UNION of the intervals.
+
+| | retina 3200x2102 | windowed 1600x1051 |
+|---|---|---|
+| GPU occupancy, union | **95.8%** | **52.0%** |
+| GPU occupancy, naive sum | 122.0% | 51.8% |
+| windows merged into intervals | 42 of 199 | 199 of 199 |
+
+**The failure mode worth remembering: the broken metric agreed with the correct
+one exactly where the answer did not matter.** Windowed, the GPU idles between
+frames, nothing overlaps, and sum equals union. At retina, where the answer
+decides what to optimise next, it was off by 26 points. Anyone spot-checking
+the metric on a cheap scene would have concluded it was fine.
+
+**What the corrected numbers say, per frame:**
+
+| | CPU | GPU | headroom | |
+|---|---|---|---|---|
+| retina | 19.74 ms | 18.92 ms | **+0.81 ms** | balanced |
+| windowed | 13.74 ms | 7.15 ms | +6.59 ms | CPU-bound |
+
+**Retina is neither CPU-bound nor GPU-bound. It is balanced within 0.81 ms.**
+That retires two earlier conclusions: S1-S10's "retina is GPU-bound, CPU wins
+are invisible there", and the 2026-07-31 baseline note's "Eden retina is no
+longer GPU-bound". Both were half right about a system that is level.
+
+**It also explains the campaign's most persistent puzzle.** Two separate
+stage-level GPU wins moved their stage and left frame time unchanged (the `pow`
+to squarings experiment, and ledger G4). The reason stops being mysterious once
+both sides are measured: shave the GPU and the CPU becomes the wall 0.81 ms
+later. The reverse holds identically. **At retina a one-sided win of any size is
+capped at 0.81 ms.**
+
+The lever that is not capped is work landing on BOTH sides. Geometry is the
+clear case: fewer triangles cuts CPU collect and prep AND GPU rasterisation.
+That is the argument for LOD and for GPU-side geometry expansion, and it is a
+stronger argument than "CPU render is the biggest number".
+
+**Guard.** `tests/test_gpu_occupancy_sanity.cpp` computes occupancy by union,
+fails if it exceeds 100%, and reports the overlap a naive sum would hide. It is
+also the reference implementation: any consumer wanting occupancy should copy
+`merge_busy()`. `telemetry.h` now publishes `start_s`/`end_s` for exactly this
+reason, and states in the header that per-frame windows must not be summed
+across frames.
+
+**Second measurement defect, same session.** `physics` was being read as a
+per-frame median. It is a fixed-rate stepper running at 30.2 Hz in both configs
+(7.79 ms/step retina, 6.58 windowed). Its per-frame median tracks the frame
+rate, not physics: 7.07 ms retina against 0.00 windowed, which looks like a
+resolution effect and is not one. Any fixed-rate subsystem must be reported per
+step and per second. Per second, physics is 23.5% of wall at retina and 19.9%
+windowed.
+
+---
+
 ## Open threads
 
 - **Task #28.** Serialized diagnostic mode (true isolated stage cost) and the
-  baseline regression gate.
+  baseline regression gate. The occupancy correction (S12) is done; the
+  serialized mode is still wanted, because per-stage attribution inside a
+  saturated GPU remains unresolved.
 - **Task #29.** CPU render path. Remaining options: GPU-side geometry
   expansion (removes the work rather than shaving it), or accumulating CPU
   wins until the sum is measurable. Neither attempted.

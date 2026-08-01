@@ -7,6 +7,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- `telemetry::GpuWindow` now publishes `start_s` / `end_s`, the absolute
+  bounds of a frame's GPU window. Without them, GPU occupancy could only
+  be derived by summing per-frame `busy_ms`, which double counts:
+  consecutive frames' windows overlap, because the GPU runs about a frame
+  behind the CPU. That sum reported 122% of wall clock on Eden at retina.
+  Correct occupancy is the union of the intervals, which gives 95.8%.
+  The header now states that per-frame windows must not be summed across
+  frames, and `tests/test_gpu_occupancy_sanity.cpp` fails if any occupancy
+  figure exceeds 100%.
+
 ### Added
 - Ontology layering (universe core / setting pack / game extension):
   the generator now discovers setting packs in `schema/packs/`,

@@ -196,8 +196,19 @@ void record_gpu_stage(GpuStage stage, double ms, uint64_t frame_index);
 //   span - busy                    GPU idle BETWEEN this frame's passes
 // Recorded for whichever frame the buffer was created in; published two frames
 // later, once every handler for that frame has certainly fired.
+//
+// THESE ARE PER-FRAME AND MUST NOT BE SUMMED ACROSS FRAMES to get occupancy.
+// A frame's window routinely extends past that frame's own period: the GPU runs
+// roughly a frame behind the CPU, so consecutive windows OVERLAP, and adding
+// them counts the shared region twice. Doing it anyway produced 111% of wall
+// clock on Eden at retina (2026-08-01), which reads as "GPU-bound" and is not a
+// fact, only an artefact of the sum.
+//
+// For occupancy take the UNION of [start_s, end_s] across frames and divide by
+// wall time. That is why the absolute bounds are published and not only the
+// durations: without them the double counting is invisible to every consumer.
 void record_gpu_window(uint64_t frame_index, double gpu_start_s, double gpu_end_s);
-struct GpuWindow { double busy_ms, span_ms; uint32_t buffers; };
+struct GpuWindow { double busy_ms, span_ms, start_s, end_s; uint32_t buffers; };
 GpuWindow gpu_window();   // last frame with a complete set of handlers
 void publish_gpu_window(uint64_t current_frame);  // called from frame_end
 
