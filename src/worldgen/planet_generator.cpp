@@ -36,9 +36,11 @@ kg::EntityID PlanetGenerator::generate_planet(float cx, float cy, float cz,
         cz = spec.radius + 1.0f;
     }
 
-    kg::EntityID entity = kg_->createEntity("Planet");
-    kg_->setProperty(entity, "x", std::to_string(cx));
-    kg_->setProperty(entity, "y", std::to_string(cy));
+    // createEntityAtPosition (not createEntity): it stamps chunk_x /
+    // chunk_y, which activate_entity_now requires to place the body
+    // in a chunk. Without them the entity and its constraints exist
+    // in the KG but no particle ever reaches the world.
+    kg::EntityID entity = kg_->createEntityAtPosition("Planet", cx, cy);
     kg_->setProperty(entity, "z", std::to_string(cz));
     kg_->setProperty(entity, "planet_radius", std::to_string(spec.radius));
 

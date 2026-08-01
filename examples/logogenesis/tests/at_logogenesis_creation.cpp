@@ -989,14 +989,46 @@ void test_prince_planet() {
         "crust stones are bonded to the core (constraints " +
         std::to_string(constraints) + ")");
 
-    // Let it exist for a while: the planet must float, not fall.
+    // Let it exist for a while, then measure what is actually where.
+    // A floating world can fail in a way "nothing below the turtle"
+    // cannot see: the body falls to the floor and still passes.
     for (int i = 0; i < 300; ++i) h.tick(dt);
-    float min_z = 1e9f;
+    float min_z = 1e9f, max_z = -1e9f;
+    int below_planet = 0, total = 0;
+    const float planet_bottom = 5.5f - 3.0f;   // altitude - radius
     {
         auto view = h.engine.get_particle_system().lock_particles_for_read();
-        for (size_t i = 0; i < view.size(); ++i)
-            min_z = std::min(min_z, view[i].z - view[i].thickness * 0.5f);
+        total = static_cast<int>(view.size());
+        for (size_t i = 0; i < view.size(); ++i) {
+            float bottom = view[i].z - view[i].thickness * 0.5f;
+            min_z = std::min(min_z, bottom);
+            max_z = std::max(max_z, view[i].z);
+            if (view[i].z < planet_bottom - 0.5f) below_planet++;
+        }
     }
+    std::cout << "  [measure] particles=" << total
+              << " min_bottom_z=" << min_z << " max_z=" << max_z
+              << " below_planet=" << below_planet
+              << " (planet spans " << planet_bottom << ".." << (5.5f + 3.0f)
+              << ")" << std::endl;
+
+    // The body must actually MATERIALIZE. A KG entity with
+    // constraints but no particles passed every earlier assertion
+    // while the world stayed empty (the missing chunk coordinates
+    // bug); measured 362 particles once fixed, 33 before.
+    AT_ASSERT_TRUE(total >= 100,
+        "the planet materialized into real particles (count " +
+        std::to_string(total) + ")");
+    // Nothing falls off the floating world. min_bottom_z tracks the
+    // planet's own underside (measured 2.48 against a 2.5 bottom);
+    // a body that slid off would land near the turtle and show up
+    // here long before the turtle assertion below noticed.
+    AT_ASSERT_TRUE(below_planet == 0,
+        "nothing fell off the planet (" + std::to_string(below_planet) +
+        " particles below it)");
+    AT_ASSERT_TRUE(min_z > planet_bottom - 0.5f,
+        "the world floats intact (lowest " + std::to_string(min_z) +
+        ", planet bottom " + std::to_string(planet_bottom) + ")");
     AT_ASSERT_TRUE(min_z > -0.01f,
         "nothing driven below the turtle (lowest " +
         std::to_string(min_z) + ")");
