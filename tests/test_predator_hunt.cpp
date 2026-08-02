@@ -915,6 +915,27 @@ void test_a_filtered_touch_still_reports_itself() {
 
     for (int i = 0; i < 20; ++i) h.engine.update(1.0 / 60.0);
 
+    // The filter sits BEFORE collision_events_.push_back
+    // (physics_system_v4.cpp:698-704 continues out of the whole overlap
+    // block), so a filtered pair is invisible to get_collision_events().
+    // The touch is not lost, it MOVES CHANNEL. Saying collides_with
+    // "gates the impulse, not the report" is wrong: it gates the rigid
+    // report and re-reports on contact_filtered.
+    int rigid_events_for_pair = 0;
+    for (const auto& e : h.engine.get_physics_system().get_collision_events()) {
+        const bool pair = (static_cast<int>(e.particle_a) == a &&
+                           static_cast<int>(e.particle_b) == b) ||
+                          (static_cast<int>(e.particle_a) == b &&
+                           static_cast<int>(e.particle_b) == a);
+        if (pair) ++rigid_events_for_pair;
+    }
+    std::cout << "  [measure] the filtered pair produced "
+              << rigid_events_for_pair << " CollisionEvent(s) and "
+              << touches << " ContactFilteredEvent(s)" << std::endl;
+    CHECK(rigid_events_for_pair == 0,
+          "a filtered pair is INVISIBLE to get_collision_events(): the "
+          "filter returns before the event is pushed");
+
     float ax = 0, bx = 0;
     {
         auto view = h.engine.get_particle_system().lock_particles_for_read();
