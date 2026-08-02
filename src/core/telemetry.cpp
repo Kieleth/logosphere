@@ -135,6 +135,12 @@ const char* name_of(Phase p) {
         case Phase::PrepLights:      return "prep_lights";
         case Phase::PrepTransforms:  return "prep_transforms";
         case Phase::PrepBinning:     return "prep_binning";
+        case Phase::PhysicsForces:    return "phys_forces";
+        case Phase::PhysicsAngularVel:return "phys_angular_vel";
+        case Phase::PhysicsAngularLim:return "phys_angular_lim";
+        case Phase::PhysicsIntegrate: return "phys_integrate";
+        case Phase::PhysicsBoundary:  return "phys_boundary";
+        case Phase::PhysicsRestState: return "phys_rest_state";
         case Phase::Present:    return "present";
         default:                return "?";
     }

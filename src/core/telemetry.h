@@ -120,6 +120,22 @@ enum class Phase : uint16_t {
     // overstates them by about 30% and makes the children exceed the parent,
     // which reads as an instrumentation bug and is not one.
     PrepBinning,        // tile binning: SIBLING of RenderPrep, not a step
+    // Sub-phases inside PhysicsSystem::update. Added 2026-08-01 because the
+    // falling-bodies ramp showed a physics STEP going 1.3 ms to 66 ms across
+    // 16x the bodies (~O(n^1.4)) while render stayed flat at 2.7 us/body, and
+    // `physics` as one number cannot say which stage is superlinear. Same
+    // position `render` was in before it was split.
+    //
+    // These run inside the substep loop, so each accumulates N_SUBSTEPS times
+    // per frame. Compare their RATIO, and read the per-step figures alongside
+    // the step count: the per-frame physics number FALLS past the knee only
+    // because fewer steps fit in a frame, not because physics got cheaper.
+    PhysicsForces,      // apply_all_forces: gravity, broad phase, contact solve
+    PhysicsAngularVel,  // integrate_angular_velocities
+    PhysicsAngularLim,  // project_angular_limits (4 iterations)
+    PhysicsIntegrate,   // integrate_positions
+    PhysicsBoundary,    // enforce_turtle_boundary
+    PhysicsRestState,   // update_rest_state, once per frame not per substep
     Present,
     COUNT
 };

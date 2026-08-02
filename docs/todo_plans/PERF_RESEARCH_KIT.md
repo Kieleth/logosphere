@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S18 | Where does the engine stop holding 60 FPS, and why? | 3-4k bodies. Render is flat at 2.7 us/body; `apply_all_forces` is 98% of physics and scales O(n^1.38). |
 | S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. Shipped LOD 1 + smooth as default; LOD 2 kept as a quality setting because it still casts better SHADOWS (rays hit real triangles). |
 | S16 | What does an LOD switch cost? | 3.94 ms more GPU work: refit 1.87 to build 5.81. accel_build is the LARGEST GPU stage and was never recorded until now. |
 | S15 | Is the 1.9x shadow triangle ratio waste, and are sphere shadows worth it? | No and no. The ratio is required input for the GPU's per-ray cull, and every Eden shadow caster is a box (196,596 = 16,383 x 12 exactly). |
@@ -929,6 +930,61 @@ falling-bodies measurement: 2.6x, 58.02 to 22.30 ms.
 
 Defaults now: `SPHERE_SUBDIVISIONS = 1`, smooth normals ON. Both still
 overridable at runtime (`LOGOSPHERE_SPHERE_LOD`, `LOGOSPHERE_SMOOTH_SPHERES=0`).
+
+### S18: physics IS apply_all_forces, and it is O(n^1.38) (2026-08-01)
+
+The falling-bodies ramp, run to 16,000 bodies, put a number on where the engine
+stops holding 60 FPS and why.
+
+**Rendering is not the limit.** Render cost per body is FLAT at 2.6 to 2.9 us
+from 2,000 to 16,000 bodies. Perfectly linear and well behaved.
+
+**Physics is, and the per-frame number hides how badly.** Read per STEP:
+
+| bodies | ms / physics step | steps/sec achieved | frame ms |
+|---|---|---|---|
+| ~0 | 1.3 | 41.2 | 8.8 |
+| 2,000 | 12.3 | 27.9 | 16.0 |
+| 4,000 | 29.6 | 15.5 | 33.0 |
+| 6,000 | 51.0 | 9.9 | 52.1 |
+| 16,000 | 66.0 | 5.5 | 90.1 |
+
+**The knee is 3,000 to 4,000 bodies**, where a step crosses ~30 ms and the
+stepper starts falling behind. Past it two things compound: frames get slower
+AND the step rate collapses from ~41/s to 5.5/s, so the world runs in slow
+motion on top of the framerate loss. Per-FRAME physics appears to plateau near
+20-27 ms past 6,000 bodies, which reads as "physics stopped growing". It did
+not. Fewer, far more expensive steps are being taken. Same trap as
+`render_slot_wait`: the aggregate hid the tail.
+
+**Split, and the answer is one function.** Six sub-phases added around the
+substep loop. At every body count:
+
+| bodies | phys_forces | physics | share |
+|---|---|---|---|
+| 2,000 | 2.02 | 2.07 | 97.6% |
+| 6,000 | 17.76 | 17.96 | 98.9% |
+| 12,000 | 23.82 | 24.21 | 98.4% |
+
+Everything else is noise at the largest bin: angular velocity 0.08 ms, angular
+limits 0.00, integrate 0.16, boundary 0.04, rest state 0.02. **`apply_all_forces`
+is 98 to 99% of physics**, and it scales:
+
+    2.02 -> 23.82 ms across 2,000 -> 12,000 bodies
+    11.8x for 6.0x the bodies  =>  O(n^1.38)
+
+**Where it stops, and the next split.** `apply_all_forces` is 2,036 lines
+holding gravity, broad phase, contact detection and the constraint solver as one
+number. The superlinearity is inside it and this ramp cannot say which part.
+The plausible story is contacts (a settling pile has more contacts per body than
+scattered bodies, so contact count grows superlinearly even with a perfect broad
+phase), but that is a guess, and this session already produced three plausible
+mechanisms that turned out wrong. **Split apply_all_forces and add contact and
+broad-phase-pair counters before designing anything.**
+
+Note there are still NO physics counters at all: not a contact count, not a
+broad-phase pair count, not a solver iteration count. The render side's biggest
+wins (S10, S11) both came from counting work rather than timing it.
 
 ---
 

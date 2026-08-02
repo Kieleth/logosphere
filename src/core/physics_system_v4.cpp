@@ -262,16 +262,25 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     for (int substep = 0; substep < N_SUBSTEPS; ++substep) {
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
-        apply_all_forces(particles, sub_dt);
+        {
+            ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsForces);
+            apply_all_forces(particles, sub_dt);
+        }
 
         // PHASE 4.5: Integrate angular velocity → rotation
         // This MUST happen BEFORE position projection so rotation_z is current
-        integrate_angular_velocities(particles, sub_dt);
+        {
+            ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsAngularVel);
+            integrate_angular_velocities(particles, sub_dt);
+        }
 
         // PHASE 4.6: Project angular limits (hard bounds)
         // Multiple iterations to propagate through gluon chains
-        for (int iter = 0; iter < 4; ++iter) {
-            project_angular_limits(particles);
+        {
+            ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsAngularLim);
+            for (int iter = 0; iter < 4; ++iter) {
+                project_angular_limits(particles);
+            }
         }
 
         // PHASE 4.7: Project gluon positions (OLD METHOD - disabled by default)
@@ -286,15 +295,24 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         }
 
         // PHASE 5: Integrate linear velocity → position
-        integrate_positions(particles, sub_dt);
+        {
+            ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsIntegrate);
+            integrate_positions(particles, sub_dt);
+        }
 
         // PHASE 6: Enforce turtle boundary (absolute - nothing goes below z=0)
-        enforce_turtle_boundary(particles);
+        {
+            ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsBoundary);
+            enforce_turtle_boundary(particles);
+        }
     }
 
     // PHASE 7: Update at-rest state once per frame, after all substeps
     // have settled into the final velocities.
-    update_rest_state(particles);
+    {
+        ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsRestState);
+        update_rest_state(particles);
+    }
 
     // Cleanup broken gluons
     remove_marked_gluons();
