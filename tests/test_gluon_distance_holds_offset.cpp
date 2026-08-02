@@ -28,10 +28,28 @@
 // Assertion: the subject ends within 3 cm of the anchor after 180
 // frames (3 s at 60 Hz).
 //
-// Expected today: FAIL (subject sits at 0.3 m forever — constraint is
-// velocity-only, no position bias to close the gap).
-// Expected after Stage 2 (flip ENABLE_GLUON_JACOBIAN_POSITION_BIAS
-// and tune BETA): PASS.
+// STATUS 2026-08-01, and the description ABOVE IS STALE. Both halves of it
+// were true when written and neither is now:
+//
+//   ENABLE_GLUON_JACOBIAN_POSITION_BIAS is TRUE (V4.10 unified solver), not
+//   false. The position bias exists and works.
+//
+//   The subject does NOT sit at 0.3 m forever. It converges 0.30 -> 0.0813 m
+//   and stalls there, against a 0.03 m budget. So the constraint IS doing
+//   position work; it simply stops short.
+//
+// This is therefore still RED, but for the remaining half of the original
+// plan: "and tune BETA". Solver beta is 0.4 with 0.001 m slop, and 0.0813 m is
+// far above slop, so the stall is convergence rate rather than a floor.
+//
+// DELIBERATELY NOT FIXED HERE. Tuning beta changes what the solver computes for
+// EVERY body in the engine, and apply_all_forces is about to be refactored
+// under a characterization checksum whose entire value is that behaviour did
+// not change (tests/test_physics_characterization.cpp). Doing a behaviour
+// change and a refactor at once destroys the ability to attribute either.
+// Order: refactor with the net green, then tune beta and re-pin deliberately.
+//
+// Not gating: this test is in neither the physics guard suite nor CI.
 //
 // Run: ./build/logosphere-tests --test test_gluon_distance_holds_offset --no-head
 // =============================================================================

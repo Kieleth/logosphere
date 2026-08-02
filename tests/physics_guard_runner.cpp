@@ -56,7 +56,10 @@ const GuardTest kGuards[] = {
     {"test_strafe_sidestep_pattern",       test_strafe_sidestep_pattern,       false},
     {"test_leg_shoot_out_during_rotation", test_leg_shoot_out_during_rotation, false},
     {"test_idle_pose_stability",           test_idle_pose_stability,           false},
-    {"test_humanoid_strata_walk",          test_humanoid_strata_walk,          true},
+    // Promoted from XFAIL to gating 2026-08-01: it had been passing, and the
+    // runner had been printing XPASS asking for exactly this. A known-red that
+    // quietly starts passing is a guard nobody is holding.
+    {"test_humanoid_strata_walk",          test_humanoid_strata_walk,          false},
     {"test_spider_eva_shin_crush",         test_spider_eva_shin_crush,         false},
     {"test_joint_hierarchy_swap_integrity",test_joint_hierarchy_swap_integrity,false},
     {"test_reverse_leg_chain",             test_reverse_leg_chain,             false},
