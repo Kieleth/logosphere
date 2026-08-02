@@ -1,10 +1,12 @@
 // =============================================================================
 // PHYSICS CHARACTERIZATION: the net that makes refactoring apply_all_forces safe
 // =============================================================================
-// WHY. `apply_all_forces` is 2,036 lines holding gravity, broad phase, contact
-// detection and the constraint solver as one function, and it is 98% of physics
-// cost and scales O(n^1.38) (kit study S18). It has to be disentangled before
-// anything can be fixed, and disentangling it must not change what it computes.
+// WHY. `apply_all_forces` is 98% of physics cost and scales O(n^1.38) (kit
+// study S18). It is itself only 30 lines: an O(n) gravity loop and one call to
+// `solve_contacts_v3`, which is 1,981 lines holding broad phase, contact
+// detection and the constraint solver as a single function. That is what has to
+// be disentangled before anything can be fixed, and disentangling it must not
+// change what it computes.
 //
 // The existing physics guards (logosphere-physics-guards) test locomotion and
 // interactions: walk progress, stance foot, gluon lifecycle. None of them pin

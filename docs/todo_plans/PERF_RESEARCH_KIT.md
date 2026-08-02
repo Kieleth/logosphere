@@ -973,9 +973,14 @@ is 98 to 99% of physics**, and it scales:
     2.02 -> 23.82 ms across 2,000 -> 12,000 bodies
     11.8x for 6.0x the bodies  =>  O(n^1.38)
 
-**Where it stops, and the next split.** `apply_all_forces` is 2,036 lines
-holding gravity, broad phase, contact detection and the constraint solver as one
-number. The superlinearity is inside it and this ramp cannot say which part.
+**Where it stops, and the next split.** CORRECTED 2026-08-01: `apply_all_forces`
+is **30 lines**, not 2,036. The earlier figure subtracted the next function's
+line number without checking what lay between, which is a measurement mistake of
+exactly the kind this journal exists to catch. What it actually contains is an
+O(n) gravity loop and a single call to `solve_contacts_v3`, and THAT is
+**1,981 lines** (386-2367) holding broad phase, contact detection and the
+constraint solver as one number. The attribution to `apply_all_forces` stands
+(it is 98-99% of physics); only the location of the bulk was wrong. The superlinearity is inside it and this ramp cannot say which part.
 The plausible story is contacts (a settling pile has more contacts per body than
 scattered bodies, so contact count grows superlinearly even with a perfect broad
 phase), but that is a guess, and this session already produced three plausible
