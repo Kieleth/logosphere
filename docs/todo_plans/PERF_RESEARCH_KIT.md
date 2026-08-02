@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S25 | Does a scenario ladder expose flaws between one box and Eden? | Not at this scale. Eight scenarios, every physical check holds, every residual under the 1 mm slop band except one. The exception is the signal: a body thrown at 12 m/s peaks at 7.5 mm, 10x any gravity-driven scene. Sudden load is where the solver is furthest from legal. |
 | S24 | Is constraint order load-bearing? (S19's question) | NO, on one scene. Four permutations agree on the residual to every digit against a zero noise floor, while their positions diverge. Parallelism, islands, SoA and sorting reopen IF it widens. Also: the natural order is measurably worse than an arbitrary one. |
 | S23 | Can we measure whether the solve's ANSWER is good? | Yes, `SolveResidual`, and it took three wrong versions: velocity residual is blind to penetration by construction, a settled scene has zero solvable rows so the end-of-run sample reads nothing, and the published value outlived its engine. Peak penetration separates rungs the exit counters call identical: 0.68 mm to 2.12 mm. |
 | S22 | Can it be fixed without an edge case? | YES, one constant. The effective-mass divide-by-zero guard returned 1.0f for immovable pairs; the physically correct value is 0. Everything converges; no branch added. |
@@ -1538,6 +1539,56 @@ array), guards 19 pass / 0 fail.
 
 ---
 
+### S25: the physics battery, and it found nothing (2026-08-02)
+
+Eight scenarios, one mechanism each, every rung adding exactly one thing to the
+one before it. `tests/test_physics_battery.cpp`. Scenes are deliberately tiny
+(3x3 floors) because the residual is a global max and scenery contributes to it.
+
+| scenario | peak pen | rows | unsolv | physical check | got | want |
+|---|---|---|---|---|---|---|
+| 1 free fall | 0.00000 | 0 | 0 | drop after 1 s | 4.9379 | 4.9050 |
+| 2 single impact | **0.00000** | 125 | 116 | rest height | 0.6007 | 0.6000 |
+| 3 resting contact | 0.00068 | 36 | 116 | drift | 0.0000 | 0.0000 |
+| 4 stack of 4 | 0.00068 | 48 | 116 | bottom z | 0.6000 | 0.6000 |
+| 5 leaning pile | 0.00071 | 32 | 96 | top still up | 4.5999 | 4.6000 |
+| 6 projectile | **0.00748** | 52 | 104 | (reports only) | | |
+| 7 sphere on plane | 0.00000 | 90 | 81 | rest height | 0.6000 | 0.6000 |
+| 8 gluon nails | 0.00000 | 3 | 0 | bond drift | 0.0000 | 0.0000 |
+
+**The honest headline is that it found no flaw.** Every physical check holds and
+every residual outside scenario 6 sits under the 1 mm slop band the solver is
+entitled to ignore. That is a real result and it was not the expected one; the
+battery was built to expose weaknesses at scales between "one box" and "Eden".
+
+**The one signal: momentum from outside costs 10x.** Scenario 6 throws a body at
+12 m/s into a tower and peaks at 7.5 mm, an order of magnitude above every
+gravity-driven scene. Load arriving suddenly is where the solver is furthest
+from legal, which is the correct place to look next and is consistent with
+issue #5 (heavy impacts on layered ground rippling into oversized tile
+explosions).
+
+**A zero worth explaining rather than celebrating.** Scenario 2 drops a box 2.4 m
+and records EXACTLY zero penetration, less than the gently-placed box in
+scenario 3. That looks wrong and is not: speculative contacts create a row while
+the gap is still open and allow a controlled approach that closes it without
+overshoot, so a clean vertical drop is stopped at contact rather than after
+overlap. The 0.00068 m in scenarios 3 and 4 is a resting body settling inside
+the 1 mm slop band. Both numbers are the design working; neither would be
+obvious from the table alone.
+
+**Scenario 6 asserts nothing on purpose.** Where a struck tower ends up is
+chaotic, and asserting on it would produce a test that fails for reasons that
+are not bugs. It reports its residual and stops there.
+
+**What the battery does NOT yet cover:** rotation under torque (scenario 7
+settles a sphere but does not spin it), breaking gluons (scenario 8 pins
+material strength to 1e9 so the bond cannot break, since holding is what it
+tests), stacks deeper than 5, and anything above 12 bodies. Each is a rung
+someone can add without touching the harness.
+
+---
+
 ## Open threads
 
 **Physics, reopened by S22.** The solver converges as of `4e773ec`. Everything
@@ -1568,10 +1619,15 @@ below was closed or shaped by the belief that it never does.
 - **`apply_all_forces` is 98% of physics and scales O(n^1.38)** (S18), and 60
   FPS breaks at 3-4k bodies. `solve_contacts_v3` is a 1,981-line function. No
   profiling has gone inside either.
-- **The physics test battery was designed and never built.** Increasing
-  complexity, one mechanism per scenario: a rock falling, a stack settling, an
-  unbalanced pile, a thrown body, spheres rotating, gluons as nails. Scenes must
-  be MINIMAL (learning 4 above) and the harness residual-based.
+- ~~**The physics test battery was designed and never built.**~~ **BUILT, S25**,
+  eight rungs, `tests/test_physics_battery.cpp`. It found no flaw at this scale.
+  Gaps left for whoever extends it: rotation under torque, breaking gluons,
+  stacks deeper than 5, and anything above 12 bodies.
+- **Sudden load is the weak spot, and it is the only one the battery found.** A
+  body thrown at 12 m/s into a tower leaves 7.5 mm of penetration against under
+  1 mm for every gravity-driven scene. Likely the same mechanism as issue #5
+  (heavy impacts on layered ground producing oversized tile explosions), and the
+  next thing to point the residual at.
 
 **Render and infrastructure.**
 
