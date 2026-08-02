@@ -24,8 +24,14 @@ endif()
 # tag-describe, and configure timestamp. Needed by the telemetry /
 # session-recording layer so saved artifacts can be correlated with
 # the code that produced them. See cmake/build_info.cmake.
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/build_info.cmake)
+# CMAKE_CURRENT_SOURCE_DIR, not CMAKE_SOURCE_DIR: the latter is the
+# TOP-LEVEL project, which is the consuming game whenever this engine
+# is pulled in with FetchContent — the documented way to use it. That
+# made every consumer look for <game>/cmake/build_info.cmake and fail
+# to configure. The two are identical when the engine is built
+# standalone, so this changes nothing for the engine's own builds.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_info.cmake)
 
 # ----------------------------------------------------------------------
 # Build profiles
@@ -163,6 +169,11 @@ set(LOGOSPHERE_CORE_SOURCES
     # Particle interaction model (KG-declared contact filtering + media);
     # headless-core safe, consulted by the solver seam in Phase 2.
     src/interaction/particle_interaction_system.cpp
+    # NPC decision layer. Both are pure std with no physics, rendering
+    # or platform dependency, so they belong in the headless core and
+    # their guards run on the Linux CI profile.
+    src/npc-ai/goap_system.cpp
+    src/npc-ai/pathfinding_system.cpp
 )
 
 # ============================================================================
@@ -279,6 +290,8 @@ function(add_headless_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
+add_headless_test(test_goap_planner)  # the NPC planner, previously untested
+add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untested
 add_headless_test(test_event_log)
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
@@ -364,6 +377,8 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_ground_locator)  # placement asks the world, never assumes z
     add_engine_at(test_humanoid_terrain_scenarios)  # one walker, one feature at a time
     add_engine_at(test_activation_queue_stale_ids)  # queued ids can die before processing (#21)
+    add_engine_at(test_predator_senses)  # sense_system: what a creature can and cannot know
+    add_engine_at(test_predator_hunt)  # senses + pathfinding over time: it loses the prey
     add_engine_at(test_tree_collapse_threshold)  # small trees must not be bare poles (#21)
     add_engine_at(test_tree_collapse_demo)  # shows WHY small trees collapsed (#21)
     add_engine_at(test_butterfly_flight_liveliness)  # flight is alive and above real ground
