@@ -4,12 +4,27 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/core/kg_parse.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 
 namespace logosphere::interaction {
+
+namespace {
+// The ontology spells enum values upper (as every other enum in
+// schema/logosphere.yaml does); rules in the wild are authored lower.
+// One normalization rule, applied at the single parse point, so both
+// spellings resolve and neither becomes a second vocabulary.
+std::string to_upper(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+        return static_cast<char>(std::toupper(c));
+    });
+    return s;
+}
+}  // namespace
 
 const InteractionProfile& ParticleInteractionSystem::default_profile() {
     // Category bit 0, full mask, no medium: rigid-contact everything
@@ -196,27 +211,60 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         // trigger + effect are the rule's identity: malformed values
         // warn and skip the whole rule (a rule that can't say when or
         // what is not a rule).
+        //
+        // The vocabulary lives in the ontology (enum TransformationTrigger)
+        // and is parsed through the GENERATED from_string, so the schema
+        // and this loader cannot drift: adding a value to the YAML is the
+        // only way to add one here. Case is normalized first because the
+        // schema spells enums upper (matching every other enum in the
+        // file) while rules in the wild are authored lower.
+        //
+        // This parse is the ONLY enforcement point. KGCore::setProperty
+        // validates nothing (ontology_registry.h:46 claims otherwise and
+        // is wrong for property writes), so an unknown trigger is caught
+        // here or never.
         auto trig = kg.getProperty(id, "trigger");
-        if (trig == "on_contact_filtered") r.trigger = Trigger::ON_CONTACT_FILTERED;
-        else if (trig == "on_volume_enter") r.trigger = Trigger::ON_VOLUME_ENTER;
-        else if (trig == "on_timer") r.trigger = Trigger::ON_TIMER;
-        else {
+        onto::TransformationTrigger parsed_trigger{};
+        if (!onto::from_string(to_upper(trig).c_str(), parsed_trigger)) {
             std::fprintf(stderr,
                          "[INTERACTION] rule %u: unknown trigger '%s' — skipped\n",
                          id, trig.c_str());
             continue;
         }
+        switch (parsed_trigger) {
+        case onto::TransformationTrigger::ON_CONTACT:
+            r.trigger = Trigger::ON_CONTACT; break;
+        case onto::TransformationTrigger::ON_CONTACT_FILTERED:
+            r.trigger = Trigger::ON_CONTACT_FILTERED; break;
+        case onto::TransformationTrigger::ON_VOLUME_ENTER:
+            r.trigger = Trigger::ON_VOLUME_ENTER; break;
+        case onto::TransformationTrigger::ON_TIMER:
+            r.trigger = Trigger::ON_TIMER; break;
+        }
+        // Effects are case-normalized the same way, but the vocabulary
+        // is a FLOOR rather than a closed set: the schema types this slot
+        // string precisely because a game may register its own effect
+        // name. Today the engine only knows its built-ins, so an
+        // unrecognized name still warns and skips; the registry that
+        // makes an unknown name legal lands with the first game effect.
         auto eff = kg.getProperty(id, "effect");
-        if (eff == "swap_profile") r.effect = Effect::SWAP_PROFILE;
-        else if (eff == "fade_out") r.effect = Effect::FADE_OUT;
-        else if (eff == "delete") r.effect = Effect::DELETE_PARTICLE;
-        else if (eff == "emit_event") r.effect = Effect::EMIT_EVENT;
+        const std::string eff_norm = to_upper(eff);
+        if (eff_norm == "SWAP_PROFILE") r.effect = Effect::SWAP_PROFILE;
+        else if (eff_norm == "FADE_OUT") r.effect = Effect::FADE_OUT;
+        else if (eff_norm == "DELETE") r.effect = Effect::DELETE_PARTICLE;
+        else if (eff_norm == "EMIT_EVENT") r.effect = Effect::EMIT_EVENT;
         else {
             std::fprintf(stderr,
                          "[INTERACTION] rule %u: unknown effect '%s' — skipped\n",
                          id, eff.c_str());
             continue;
         }
+
+        // The predicate. Unlike trigger and effect this is NOT validated
+        // here: it is open by design, its evaluator is chosen when the
+        // event fires, and an unknown condition name is reported there
+        // where the context to describe it exists. Empty = unconditional.
+        r.condition = kg.getProperty(id, "condition");
 
         // Optional tuning slots: absent keeps defaults, malformed warns
         // through kg_parse (same discipline as profile loading).

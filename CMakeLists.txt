@@ -325,7 +325,9 @@ add_headless_test(test_entity_type_strings)
 # ctest runs from the build directory, not the repo root.
 target_compile_definitions(test_entity_type_strings
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_kg_reverse_relations)
 add_headless_test(test_interaction_ontology)
+add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
 add_headless_test(test_iso_camera_centering)

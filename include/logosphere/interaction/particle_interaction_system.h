@@ -70,18 +70,42 @@ struct InteractionProfile {
     }
 };
 
-// A declarative transformation: a trigger fires an effect on the
+// A declarative EVENT rule: an occurrence fires an effect on the
 // affected particle. Declared as TransformationRule KG entities and
 // loaded like profiles; the game-facing on_timer trigger is armed
 // explicitly via arm_transformation.
+//
+// Three separable questions, one field each (see the TransformationRule
+// class in schema/logosphere.yaml):
+//   trigger    WHICH engine event source. Closed: every value is a
+//              queue this system owns, and a game cannot add one
+//              without engine code.
+//   condition  WHETHER a given occurrence matters. Open: evaluated
+//              against the event after the trigger has selected it.
+//   effect     WHAT to do. Open.
+//
+// These rules are PUSHED: they consume a queue of things that happened,
+// fire once, and the queue is cleared. They are NOT capability response
+// rules, which are state predicates PULLED over the KG and safe to
+// re-evaluate (compute_from_kg does, twice per call). Reaching for the
+// wrong one of the two is the confusion issue #36 exists to end.
 struct TransformationRule {
-    enum class Trigger { ON_CONTACT_FILTERED, ON_VOLUME_ENTER, ON_TIMER };
+    enum class Trigger {
+        ON_CONTACT,           // rigid contact was exchanged
+        ON_CONTACT_FILTERED,  // the pair declined rigid contact
+        ON_VOLUME_ENTER,
+        ON_TIMER
+    };
     enum class Effect { SWAP_PROFILE, FADE_OUT, DELETE_PARTICLE, EMIT_EVENT };
 
     uint32_t id = 0;              // KG EntityID of the rule
     std::string name;             // KG "name" property, else id as string
     Trigger trigger = Trigger::ON_TIMER;
     Effect effect = Effect::EMIT_EVENT;
+    // Predicate over the occurrence: "<name>" or "<name>:<args>". Empty
+    // means unconditional. Generalizes trigger_profile, which is the
+    // same idea hardcoded to a single comparison.
+    std::string condition;
     uint32_t target_profile = 0;  // swap_profile: profile id to write
     float duration_s = 0.0f;      // fade_out ramp length / timer deadline
     uint32_t trigger_profile = 0; // volume/contact binding (0 = any)

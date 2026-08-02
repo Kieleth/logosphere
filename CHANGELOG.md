@@ -31,6 +31,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   with `LOGOSPHERE_SPHERE_LOD=<0..4>` and `LOGOSPHERE_SMOOTH_SPHERES=0`.
 
 ### Added
+- `KGModule::getRelatedReverse(id, relation)` walks a relation backwards:
+  `getRelated(creature, "HAS_PART")` lists the parts, and this takes a part
+  back to its creature. Needed wherever a system starts from something
+  physical (a particle, a contact) and has to reach the entity that owns it,
+  which was previously impossible at any price. Reads the incoming-relation
+  index the KG has maintained since relations existed and nothing ever
+  queried; same cost as the forward query, no new bookkeeping.
 - `CollisionEvent` now carries the contact itself, not just the fact of one:
   `normal_x/y/z`, `contact_x/y/z`, `penetration`, `approach_speed`, and
   `source_part_id` / `target_part_id`. A consequence needs the geometry and
