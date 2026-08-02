@@ -165,6 +165,21 @@ struct Hunt3D {
     // hiding it would hide a real property of the sensor.
     int  miss_streak = 0;
     int  raw_dropouts = 0;
+    // Movement heartbeat. The log used to record only DECISIONS, so a
+    // creature walking steadily across the map produced no lines at
+    // all and the log looked frozen while the animal plainly moved.
+    // Casting about must MOVE. Without this the creature stood on one
+    // spot spinning whenever it had no scent and no memory, which the
+    // movement log made obvious: "0.0 m walked" for ten seconds
+    // running. Wander is the first behaviour in the research for a
+    // reason.
+    float wander_x = 0, wander_y = 0;
+    bool  has_wander = false;
+    float wander_set_at = -100.0f;
+    unsigned wander_seed = 12345u;
+    float goal_shown_x = 0, goal_shown_y = 0;
+    float last_beat = -1.0f;
+    float beat_x = 0, beat_y = 0, beat_dist = 0;
     static constexpr int MISSES_BEFORE_LOST = 15;   // 0.25 s at 60 Hz
     float clock = 0.0f;
     float memory_taken_at = 0.0f;
@@ -462,6 +477,7 @@ struct Hunt3D {
                 goal_x = px + std::sin(sm.direction) * 6.0f;
                 goal_y = py + std::cos(sm.direction) * 6.0f;
                 have_goal = true;
+                has_wander = false;          // a scent beats wandering
                 static int sniff_notes = 0;
                 if (sniff_notes++ % 45 == 0) {
                     char n2[160];
@@ -488,6 +504,38 @@ struct Hunt3D {
 
         if (have_goal) {
             path = finder.find_path(grid, {px, py}, {goal_x, goal_y});
+
+            // A goal can land in a blocked cell: the prey walks close to
+            // a rock, or the smell bearing points into one. Freezing is
+            // the wrong answer, and it is what the creature did for ten
+            // seconds. Look for the nearest standable square instead.
+            if (!path.valid || path.empty()) {
+                bool rescued = false;
+                for (float ring = 1.0f; ring <= 4.0f && !rescued; ring += 1.0f) {
+                    for (int k = 0; k < 8 && !rescued; ++k) {
+                        const float a = k * (PI_F / 4.0f);
+                        const float cx = goal_x + std::sin(a) * ring;
+                        const float cy = goal_y + std::cos(a) * ring;
+                        if (!grid.is_walkable(cx, cy)) continue;
+                        path = finder.find_path(grid, {px, py}, {cx, cy});
+                        if (path.valid && !path.empty()) {
+                            rescued = true;
+                            goal_shown_x = cx; goal_shown_y = cy;
+                        }
+                    }
+                }
+                if (!rescued) {
+                    // Nothing reachable at all: walk straight at it and
+                    // let the world stop us, rather than stand still.
+                    const float dx0 = goal_x - px, dy0 = goal_y - py;
+                    const float l0 = std::hypot(dx0, dy0);
+                    if (l0 > 0.05f) {
+                        px += (dx0 / l0) * 2.5f * dt;
+                        py += (dy0 / l0) * 2.5f * dt;
+                        facing = std::atan2(dx0, dy0);
+                    }
+                }
+            }
             read.path_waypoints = static_cast<int>(path.size());
             if (last_path_len >= 0 &&
                 std::abs(static_cast<int>(path.size()) - last_path_len) > 6) {
@@ -499,9 +547,20 @@ struct Hunt3D {
             }
             last_path_len = static_cast<int>(path.size());
             if (path.valid && !path.empty()) {
+                // The path is recomputed from the CURRENT position every
+                // frame, so waypoint 0 is always the cell already being
+                // stood in. Aiming at it means walking backwards to the
+                // centre of your own cell.
+                //
+                // The old "advance only if within 0.6 m" test made that
+                // worse rather than better: at 0.608 m it declined to
+                // advance and walked back toward the cell centre, at
+                // 0.523 m it advanced and walked forward, so the
+                // creature ping-ponged across the threshold and stood
+                // still for thirteen seconds while its prey walked off.
+                // Measured, before: 0.0 m walked per second.
+                if (path.size() > 1) path.advance();
                 pathfinding::Point wp = path.current();
-                if (std::hypot(wp.x - px, wp.y - py) < 0.6f && path.size() > 1)
-                    { path.advance(); wp = path.current(); }
                 const float dx = wp.x - px, dy = wp.y - py;
                 const float len = std::hypot(dx, dy);
                 if (len > 0.01f) {
@@ -511,12 +570,52 @@ struct Hunt3D {
                     facing = std::atan2(dx, dy);   // 0 = +Y
                 }
             }
-        } else {
-            cast_timer += dt;                      // sweep, looking about
-            facing += dt * 1.1f;
         }
 
+        // Nothing seen, remembered or smelled: go somewhere else and
+        // look from there.
+        if (!have_goal) {
+            const bool arrived = has_wander &&
+                std::hypot(wander_x - px, wander_y - py) < 1.5f;
+            if (!has_wander || arrived || (clock - wander_set_at) > 6.0f) {
+                wander_seed = wander_seed * 1664525u + 1013904223u;
+                const float a = static_cast<float>(wander_seed % 6283) / 1000.0f;
+                wander_seed = wander_seed * 1664525u + 1013904223u;
+                const float r = 8.0f + static_cast<float>(wander_seed % 1200) / 100.0f;
+                wander_x = std::max(-34.0f, std::min(34.0f, px + std::sin(a) * r));
+                wander_y = std::max(-34.0f, std::min(34.0f, py + std::cos(a) * r));
+                has_wander = true;
+                wander_set_at = clock;
+                char n5[160];
+                std::snprintf(n5, sizeof(n5),
+                    "WANDER  nothing to go on; trying (%.1f, %.1f)",
+                    wander_x, wander_y);
+                log.add(clock, n5);
+            }
+            goal_x = wander_x; goal_y = wander_y;
+            have_goal = true;
+        }
+        goal_shown_x = goal_x; goal_shown_y = goal_y;
+
         move_particle(predator, px, py);
+
+        // Once a second, say where it went and whether that helped.
+        const float d_now = std::hypot(px - prey_x(), py - prey_y());
+        if (last_beat < 0.0f) {
+            last_beat = clock; beat_x = px; beat_y = py; beat_dist = d_now;
+        } else if (clock - last_beat >= 1.0f) {
+            const float travelled = std::hypot(px - beat_x, py - beat_y);
+            const float closed = beat_dist - d_now;
+            char mv[176];
+            std::snprintf(mv, sizeof(mv),
+                "MOVE    %s to (%.1f, %.1f), %.1f m walked, %s %.1f m  [%.1f m out, path %s %d wp, goal (%.1f, %.1f)]",
+                hunt_name(state), px, py, travelled,
+                closed >= 0.0f ? "closed" : "lost  ", std::fabs(closed), d_now,
+                path.valid ? "ok" : "INVALID", (int)path.size(),
+                goal_shown_x, goal_shown_y);
+            log.add(clock, mv);
+            last_beat = clock; beat_x = px; beat_y = py; beat_dist = d_now;
+        }
 
         const float d = std::hypot(px - prey_x(), py - prey_y());
         tr.closest = std::min(tr.closest, d);
