@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S22 | Can it be fixed without an edge case? | YES, one constant. The effective-mass divide-by-zero guard returned 1.0f for immovable pairs; the physically correct value is 0. Everything converges; no branch added. |
 | S21 | What actually blocks convergence? | A 2D tiled floor, and only in 2D: a 1x3 STRIP of immovable tiles converges, a 2x2 GRID never does. The phantom-impulse mechanism is necessary at most, not sufficient, and remains unisolated. |
 | S20 | Why does it plateau, and how simple a scene fails? | It does not necessarily plateau. The "converged" exit needs impulses under 0.01 while a resting body needs ~100 N s, so it is unreachable. S19's inference WITHDRAWN. Also: the floor solves ~26 constraints per tile against itself. |
 | S19 | Is constraint order load-bearing, or only a bit pattern? | ~~LOAD-BEARING~~ WITHDRAWN by S20, the counter measures the wrong quantity. Data stands, inference does not. Question is open. |
@@ -1245,6 +1246,68 @@ tracer exists for exactly this. Do not fix from the story; the story is 0 for 2.
 A counter said "the solve plateaued". The trace said WHY, with the improvement
 rate and the threshold side by side, and the answer was visible in one run
 without a theory laid over it.
+
+### S22: FIXED, and it was one wrong constant (2026-08-01)
+
+Trace level 5 on each arrangement alone, which is what S21 said to do next:
+
+| | rows with impulse > 0.01 |
+|---|---|
+| 1x3 line | **0** |
+| 2x2 square | **17,280**, 100% `BOTH_IMMOVABLE`, always pair a=1 b=2 |
+
+In a 2x2 laid at (0,0) (1,0) (0,1) (1,1), ids 1 and 2 are the **DIAGONAL** pair.
+A line has no diagonals. That is the entire difference between an engine that
+converges and one that never does.
+
+Every one of those rows was identical: **impulse 4, effective_mass 1, bias 4**,
+unchanged forever. Two corner-touching immovable tiles produce a contact whose
+Baumgarte bias is 4; `inv_mass_sum` is 0 so the effective-mass guard fell back
+to `1.0f`; that yields a non-zero impulse which is then applied to two bodies
+with zero inverse mass and moves nothing; the next iteration recomputes 4. Since
+the stopping test is a GLOBAL max over every row, one such row pinned the whole
+world above threshold permanently.
+
+**The fix is one value:**
+
+```cpp
+- float effective_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 1.0f;
++ float effective_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 0.0f;
+```
+
+`inv_mass_sum == 0` means infinite effective mass: no finite impulse changes
+anything, so the row's correct contribution is zero. The `1.0f` was an arbitrary
+divide-by-zero guard. **No new branch and no special case** — the conditional
+already existed, only its wrong constant changed. That matters here, because
+`docs/ENGINE_INVARIANTS.md` rule 1 forbids exactly the kind of edge-case
+if-statement this could easily have been.
+
+**Result:** every arrangement now converges 120/120, including 3x3 with a
+dynamic body. Physics guards unchanged at 19 pass / 0 fail. Characterization
+still deterministic, gluon chain still held, baseline deliberately re-pinned
+`7b597182f47cffed` to `16af12523829b082`.
+`tests/test_immovable_pair_phantom_impulse.cpp` goes from RED spec to
+regression guard.
+
+**What this reopens.** S19 concluded that constraint order is load-bearing and
+closed parallelism, islands, SoA and sorting, on the strength of the solver
+never converging. It converges now. That conclusion has been withdrawn twice and
+should now be re-examined properly with a residual metric rather than the door
+counters, which S20 showed cannot see equilibrium.
+
+**What it does NOT do, deliberately:**
+- The wasted rows are now HARMLESS, not absent. ~26 constraint rows per floor
+  tile are still built and solved. Skipping generation when both inverse masses
+  are zero is the performance half and touches contact generation.
+- A corner contact between two unit tiles reporting a penetration bias of 4 is
+  suspicious on its own and was not chased.
+
+**Method note.** Four withdrawn conclusions preceded this: "stages overlap",
+"residency not work", "the machine was loaded", "the solver never converges". The
+thing that finally worked was tracing the DECISION rather than the aggregate.
+A counter said the solve plateaued; the level-5 trace named the row, the pair,
+and the three numbers that produced it, and the mechanism was then obvious. Build
+the tracer earlier next time.
 
 ---
 

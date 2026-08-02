@@ -45,13 +45,29 @@
 // THE MEASUREMENT
 // ---------------------------------------------------------------------------
 //
+// FIXED 2026-08-01. This test was RED and is now a REGRESSION GUARD. The table
+// below is what it looked like BEFORE the fix; today every row reads 120/0.
+//
 //   arrangement            converged  plateaued    rows
 //   1 tile + falling box         120          0     480
 //   1x2 line                     120          0     480
 //   1x3 line                     120          0     960
-//   2x2 square                     0        120    2880   <- breaks here
+//   2x2 square                     0        120    2880   <- broke here
 //   3x3 square                     0        120    9600
-//   3x3 square + falling box       0        120   11520   <- and it spreads
+//   3x3 square + falling box       0        120   11520   <- and it spread
+//
+// THE CAUSE, found with trace level 5. In a 2x2 the two DIAGONAL tiles touch at
+// a corner and produce a contact row with bias 4. Both bodies are immovable, so
+// inv_mass_sum is 0, and the effective-mass guard fell back to 1.0f, an
+// arbitrary value picked to avoid dividing by zero. That yields impulse 4,
+// applied to two bodies with zero inverse mass, so it moves nothing and is
+// recomputed identically forever. The solver's stopping test is a GLOBAL max
+// over every row, so that single row pinned the entire world.
+//
+// THE FIX is that guard returning 0.0f instead of 1.0f: infinite effective mass
+// means no impulse can change anything, so the row contributes nothing. No new
+// branch, no special case, just the physically correct value in a conditional
+// that already existed.
 //
 // "rows" is how many separate push-calculations the solver was handed.
 // "converged"/"plateaued" count how many times each ending was reached over 60
@@ -409,12 +425,13 @@ bool test_immovable_pair_phantom_impulse() {
     // (correct) or the solve converges at once. Grinding to the plateau limit on
     // work that cannot matter is the bug.
     if (b.plateaued > 0) {
-        printf("\n  FAIL: a 3x3 grid of KINEMATIC tiles has NO dynamic bodies. Nothing in\n"
-               "        it can move. Yet the solver plateaued %ld times on %ld rows.\n"
-               "        A 1x3 LINE of the same tiles converges, so this is about the 2D\n"
-               "        arrangement and not merely about immovable pairs. Mechanism NOT\n"
-               "        yet isolated: trace level 5 and find which constraint owns\n"
-               "        max_impulse in a 2x2 but not in a 1x3. See kit study S21.\n",
+        printf("\n  FAIL (REGRESSION): a 3x3 grid of KINEMATIC tiles has NO dynamic\n"
+               "        bodies. Nothing in it can move. Yet the solver plateaued %ld times\n"
+               "        on %ld rows. This was fixed on 2026-08-01 by making the\n"
+               "        effective-mass guard return 0 for an immovable pair instead of 1;\n"
+               "        if it is red again, that guard has been reverted or a new row is\n"
+               "        producing an impulse that moves nothing. Trace level 5 and look\n"
+               "        for BOTH_IMMOVABLE rows. See kit study S22.\n",
                b.plateaued, b.rows);
         ok = false;
     } else {

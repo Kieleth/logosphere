@@ -33,6 +33,14 @@
 //
 //   ./build-release/logosphere-tests --test test_physics_characterization --no-head
 //   LOGOSPHERE_PHYS_BASELINE=<hex>   fail unless the checksum matches this
+//
+// BASELINE HISTORY. Re-pin only for a DELIBERATE behaviour change, never to
+// silence a surprise:
+//   31f8a744adc8870b  first pin, narrower scene (no gluons, position+velocity only)
+//   7b597182f47cffed  scene widened: gluon chain added, angular and rest state sampled
+//   16af12523829b082  effective-mass guard returns 0 for an immovable pair
+//                     instead of 1 (kit study S22): the solver now converges on
+//                     tiled floors, so its output legitimately moved
 // =============================================================================
 
 #include "../src/core/engine.h"

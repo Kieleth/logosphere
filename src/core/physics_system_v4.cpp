@@ -856,7 +856,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float inv_ma = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
                 float inv_mb = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
                 float inv_mass_sum = inv_ma + inv_mb;
-                float effective_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 1.0f;
+                // inv_mass_sum == 0 means BOTH bodies are immovable (KINEMATIC,
+                // at rest, or the turtle). Their effective mass is infinite, so
+                // no finite impulse changes anything and the row's correct
+                // contribution is ZERO.
+                //
+                // This used to fall back to 1.0f, an arbitrary value chosen only
+                // to avoid dividing by zero, and it was physically wrong. It
+                // produced a non-zero impulse that was then multiplied by zero
+                // inverse mass on application: it moved nothing, and recomputed
+                // identically on every iteration. Because the solver's stopping
+                // test is a GLOBAL max over all rows, one such row pinned the
+                // whole world above the convergence threshold permanently.
+                //
+                // Measured: a 2x2 floor of immovable tiles never converged, at
+                // any scale, because its two DIAGONAL tiles produced exactly
+                // this row (impulse 4, effective_mass 1, bias 4, unchanged
+                // forever). A 1x3 line, which has no diagonal pair, converged
+                // fine. See kit study S22 and
+                // tests/test_immovable_pair_phantom_impulse.cpp.
+                float effective_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 0.0f;
 
                 // V4.9: Material-based contact damping
                 float contact_damping = Materials::GetCombinedDamping(pi.material_type, pj.material_type);
