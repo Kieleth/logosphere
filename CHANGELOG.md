@@ -39,6 +39,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   so read the per-stage split from it and ignore its frame time.
 
 ### Fixed
+- Trees under about 4 m came out as bare poles. Space colonization
+  deletes every attractor within `kill_distance` of any node, and that
+  distance had a hard floor of 1.5 m while the crown is capped at 60%
+  of the tree's height. For a small tree the kill radius was wider than
+  the entire crown, so the root node deleted all 80 attractors on the
+  first iteration: one segment, every time, for every tree up to 3 m.
+  The collapse retry could not help, because it raises `crown_radius`
+  and the height cap discards it. Attraction range, kill distance and
+  segment length are now fractions of the crown, calibrated so a
+  full-size tree lands where it always did (20 m tree: 262 particles
+  before, 268 after) while a 1 m tree goes from 4 particles to 218.
+  Note that small trees are now as detailed as large ones, since
+  `attractor_count` still floors at 80; that is a tuning question, not
+  a defect. Regression test:
+  `tests/test_tree_collapse_threshold.cpp` (issue #21).
 - Entity activation no longer reports a destroyed entity as one that is
   missing chunk coordinates. The activation queue holds entity ids, and
   an id can legitimately die before it is processed: a generator that

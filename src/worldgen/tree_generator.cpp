@@ -666,10 +666,31 @@ kg::EntityID TreeGenerator::generate_tree_space_colonization(
     float reach_scale = (crown_reach / 5.0f) * (crown_reach / 5.0f);
     sc_params.attractor_count = static_cast<int>(
         std::min(500.0f, std::max(80.0f, 120.0f * reach_scale * density)));
-    sc_params.attraction_range = std::max(5.0f, crown_reach * 0.8f);
-    sc_params.kill_distance =
-        std::min(4.0f, std::max(1.5f, 2.5f * crown_reach / 5.0f));
-    sc_params.segment_length = 0.5f;  // Fixed small segments for smooth connection
+    // Space colonization has ONE length unit: the crown it is filling.
+    // Every distance below is a fraction of crown_reach, because a 1 m
+    // tree and a 20 m tree are then the same problem at different
+    // scales. The ratios are the ones this path already used at a 5 m
+    // crown; what is gone are the floors in metres that used to sit on
+    // top of them.
+    //
+    // Those floors are what made small trees bare poles. Growth ends
+    // when the attractors run out, and step 3 deletes every attractor
+    // within kill_distance of ANY node. A floor of 1.5 m against a
+    // crown that is only 0.6 m across (crown_reach is capped at 60% of
+    // height) meant the root node sat inside the cloud and deleted all
+    // 80 attractors on the first iteration: one segment, every time,
+    // for every tree up to 3 m. The retry could not help, because it
+    // raises crown_radius and the height cap throws that away.
+    // The fractions reproduce what the old constants gave a real
+    // full-size tree, which is the size they were tuned for. A 20 m
+    // tree carries a crown about 7 m across, and at crown_reach = 7
+    // these land on the previous 3.5 m kill distance, 0.5 m segments
+    // and 5.6 m attraction range. Big trees keep their detail; small
+    // ones now get the same treatment instead of floors wider than
+    // they are.
+    sc_params.attraction_range = crown_reach * 0.80f;
+    sc_params.kill_distance    = crown_reach * 0.50f;
+    sc_params.segment_length   = crown_reach * 0.07f;
     sc_params.initial_thickness = spec.trunk_diameter * random_variance(0.6f, 0.1f);
     sc_params.thickness_taper = spec.thickness_ratio;
     sc_params.max_iterations = static_cast<int>(
