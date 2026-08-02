@@ -2006,6 +2006,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             impulse = c.accumulated_impulse - old_impulse;
             max_impulse_this_iter = std::max(max_impulse_this_iter, std::abs(impulse));
 
+            // LEVEL 5: which constraint is holding the solver's stopping test
+            // hostage. The exit test is a global max over every row, so ONE row
+            // that never shrinks pins the whole world. This prints the rows big
+            // enough to be that one, with the terms that produced them.
+            if (::logosphere::phystrace::at(::logosphere::phystrace::Constraint) &&
+                std::abs(impulse) > 0.01f) {
+                const Particle& ta = particles[c.body_a];
+                const Particle& tb = particles[c.body_b];
+                const bool kin_a = ta.solver_mode == ParticleSolverMode::KINEMATIC || ta.is_at_rest;
+                const bool kin_b = c.is_turtle_contact ||
+                                   tb.solver_mode == ParticleSolverMode::KINEMATIC || tb.is_at_rest;
+                ::logosphere::phystrace::emit(
+                    ::logosphere::phystrace::Constraint, "row_impulse",
+                    (int)c.body_a, (int)c.body_b,
+                    (kin_a && kin_b) ? "BOTH_IMMOVABLE"
+                                     : (c.is_turtle_contact ? "turtle"
+                                                            : (c.is_contact ? "contact" : "gluon")),
+                    impulse, c.effective_mass, c.bias);
+            }
+
             // PARTICLE DIAGNOSTIC: Log constraints for specific particles
             // Enable with BOULDER_DEBUG=1 env var. Threshold targets problem particles.
             static bool boulder_debug = std::getenv("BOULDER_DEBUG") != nullptr;

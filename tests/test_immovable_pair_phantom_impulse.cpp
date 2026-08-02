@@ -335,6 +335,18 @@ bool probe_teleport_sticks(bool with_dynamics_owner) {
 bool test_immovable_pair_phantom_impulse() {
     if (std::getenv("INTERACTIVE")) return run_interactive();
 
+    // PHANTOM_SCENE headless: run ONE arrangement alone, so a trace file
+    // contains that arrangement and nothing else. Comparing a line against a
+    // square inside one trace is hopeless.
+    if (const char* only = std::getenv("PHANTOM_SCENE")) {
+        const bool sq = std::string(only) == "square";
+        Scene s{sq ? "2x2 square (alone)" : "1x3 line (alone)", sq ? 2 : 3, sq ? 2 : 1, false};
+        measure(s);
+        printf("\n  %-24s converged %ld  plateaued %ld  rows %ld\n",
+               s.name, s.converged, s.plateaued, s.rows);
+        return true;
+    }
+
     printf("\n=== IMMOVABLE PAIRS MUST NOT PRODUCE WORK ===\n");
     printf("A scene in which nothing can move must not defeat the solver.\n\n");
 
