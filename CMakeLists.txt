@@ -88,6 +88,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # probes). Pure C++, no rendering or physics dependency, so any caller
     # can instrument. Methodology: docs/PERFORMANCE_RESEARCH.md
     src/core/telemetry.cpp
+    src/core/physics_trace.cpp
     # Tiny shared utility — global BVH-rebuild tick. Lives in core so any
     # caller (ParticleSystem, lighting, headless tests) can resolve the
     # symbol without dragging the rest of LightingPrimitives.
@@ -941,6 +942,7 @@ set(LOGOSPHERE_SOURCES
     src/assembly/rigid_assembly.cpp  # Rigid multi-particle entity primitive
     # LLM sources now live in the logosphere_llm STATIC target (see below).
     src/core/telemetry.cpp
+    src/core/physics_trace.cpp
     # rendering/resolution_manager.cpp lives in logosphere_rendering.
     src/debug_overlay.cpp
     src/scene_manager.cpp

@@ -95,6 +95,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 #include "logosphere/physics/physics_system.h"
+#include "physics_trace.h"
 #include "logosphere/physics/physics_solver.h"
 #include "logosphere/physics/narrow_phase.h"
 #include "engine.h"
@@ -260,6 +261,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     filtered_overlaps_.clear();
 
     for (int substep = 0; substep < N_SUBSTEPS; ++substep) {
+        ::logosphere::phystrace::set_substep(substep);
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
         {
@@ -677,6 +679,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             bool z_overlap = (min_zi - CONTACT_MARGIN <= max_zj) && (max_zi + CONTACT_MARGIN >= min_zj);
 
             if (x_overlap && y_overlap && z_overlap) {
+                // Pair-level decisions, with the REASON. Level 4 is where
+                // wasted work becomes visible: S20 found ~26 constraint rows
+                // per KINEMATIC floor tile, generated against other KINEMATIC
+                // tiles that can neither move nor respond. A counter says the
+                // rows exist. Only the reason says they are pointless.
+                {
+                    const Particle& pj_t = particles[j];
+                    const bool kin_i = pi.solver_mode == ParticleSolverMode::KINEMATIC;
+                    const bool kin_j = pj_t.solver_mode == ParticleSolverMode::KINEMATIC;
+                    if (kin_i && kin_j) {
+                        PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_overlap",
+                                     (int)i, (int)j, "both_kinematic_neither_can_respond");
+                    } else {
+                        PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_overlap",
+                                     (int)i, (int)j, "accepted");
+                    }
+                }
+
                 // =============================================================
                 // SKIP CONTACTS BETWEEN GLUONED PARTICLES
                 // =============================================================
@@ -686,6 +706,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // FIX B: O(1) hash lookup instead of O(g) scan
                 // =============================================================
                 if (gluon_pairs.count({i, j})) {
+                    PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_rejected",
+                                 (int)i, (int)j, "gluon_owns_this_pair");
                     continue;  // Skip - gluon handles this pair
                 }
 
@@ -1849,6 +1871,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverRows, constraints.size());
 
     for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
+        ::logosphere::phystrace::set_iteration(iter);
         float max_impulse_this_iter = 0.0f;
         actual_iterations = iter + 1;
 
@@ -2139,6 +2162,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         if (max_impulse_this_iter < ABSOLUTE_THRESHOLD) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
+            PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
+                       actual_iterations, "impulse_under_absolute_threshold",
+                       max_impulse_this_iter, ABSOLUTE_THRESHOLD);
             break;
         }
 
@@ -2150,6 +2176,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (low_improvement_count >= PLATEAU_CONFIRM) {
                     LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolvePlateaued);
                     solve_exit_recorded = true;
+                    // Records the improvement RATE, not just the fact of the
+                    // exit. S20: low improvement at a steady state is what a
+                    // CONVERGED solve looks like, so the number is the whole
+                    // story and the label is misleading on its own.
+                    PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
+                               actual_iterations, "improvement_below_min_rate",
+                               improvement, MIN_IMPROVEMENT_RATE, max_impulse_this_iter);
                     break;  // Plateaued - more iterations won't help
                 }
             } else {
@@ -2162,6 +2195,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // Neither door taken: the full budget ran without converging or plateauing.
     if (!solve_exit_recorded) {
         LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveExhausted);
+        PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
+                   actual_iterations, "iteration_budget_exhausted",
+                   (double)SOLVER_ITERATIONS);
     }
     LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverIterations,
                  (uint64_t)actual_iterations);

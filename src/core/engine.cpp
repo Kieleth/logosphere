@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "physics_trace.h"
 #include "rendering/metal_renderer.h"         // Phase 4: concrete IRenderer
 #include "display/macos_display.h"            // Phase 4: concrete IDisplay
 #include "logosphere_ontology_registry.h"
@@ -1035,6 +1036,13 @@ void Engine::update(double delta_time) {
         logosphere::telemetry::frame_end();
     }
     logosphere::telemetry::frame_begin(logosphere::telemetry::frame_index() + 1);
+    // Physics trace shares the frame clock so a record can be lined up against
+    // a telemetry row. init_from_env is idempotent and cheap; doing it here
+    // means the trace works in any host (engine, test, example) without each
+    // one remembering to wire it up.
+    static bool phystrace_inited = false;
+    if (!phystrace_inited) { logosphere::phystrace::init_from_env(); phystrace_inited = true; }
+    logosphere::phystrace::frame_begin(logosphere::telemetry::frame_index());
     logosphere::telemetry::phase_begin(logosphere::telemetry::Phase::Frame);
     telemetry_frame_open_ = true;
     logosphere::telemetry::phase_begin(logosphere::telemetry::Phase::Update);

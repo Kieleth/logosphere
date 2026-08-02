@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S21 | What actually blocks convergence? | A phantom impulse. Two KINEMATIC bodies in contact fall back to effective_mass=1.0, produce a non-zero impulse that moves nothing, and pin the exit test forever. One slab converges 81%; nine tiles never. |
 | S20 | Why does it plateau, and how simple a scene fails? | It does not necessarily plateau. The "converged" exit needs impulses under 0.01 while a resting body needs ~100 N s, so it is unreachable. S19's inference WITHDRAWN. Also: the floor solves ~26 constraints per tile against itself. |
 | S19 | Is constraint order load-bearing, or only a bit pattern? | ~~LOAD-BEARING~~ WITHDRAWN by S20, the counter measures the wrong quantity. Data stands, inference does not. Question is open. |
 | S18 | Where does the engine stop holding 60 FPS, and why? | 3-4k bodies. Render is flat at 2.7 us/body; `apply_all_forces` is 98% of physics and scales O(n^1.38). |
@@ -1141,6 +1142,74 @@ wrong QUANTITY. A counter is not automatically better than a timer. **Before
 trusting a counter, ask what value it would take in the healthy case** and check
 that value is reachable. `ABSOLUTE_THRESHOLD = 0.01` fails that test on
 inspection, and would have failed it before the ramp was ever run.
+
+### S21: a phantom impulse from immovable pairs blocks convergence (2026-08-01)
+
+The layered physics tracer (`src/core/physics_trace.h`, levels 0-6, append-only,
+one relaxed atomic load when off) answered this on its first run.
+
+**The solver converges fine. Something else was pinning the exit test.**
+
+Exit reasons by floor size, ladder scene, single dynamic box:
+
+| floor | converged | plateaued | exhausted |
+|---|---|---|---|
+| **1 tile** | **1458** | 300 | 42 |
+| 9 tiles | **0** | 1799 | 1 |
+| 25 tiles | **0** | 1799 | 1 |
+
+One KINEMATIC slab: converges on 81% of solves. Nine tiles: never once. The
+floor tiles are what destroy convergence, and they are inert scenery.
+
+**THE MECHANISM, and it is a bug.** Two sites disagree about what immovable
+means:
+
+    build  (:856)  inv_ma = pi.is_at_rest ? 0 : 1/mass          // is_at_rest ONLY
+    apply  (:2035) inv_ma = (is_at_rest || KINEMATIC) ? 0 : ...  // both
+
+For two KINEMATIC floor tiles resting against each other, `inv_mass_sum` is 0,
+so the guard at :859 falls back to **`effective_mass = 1.0f`**. Then at :2000
+`impulse = -(v_rel - bias) * 1.0` is NON-ZERO, driven by the Baumgarte bias of
+their mutual penetration, and :2007 folds it into `max_impulse_this_iter`. The
+apply step then multiplies by `inv_ma = inv_mb = 0` and **nothing moves**.
+
+A phantom impulse. No physical effect, but it pins the global max above
+`ABSOLUTE_THRESHOLD = 0.01` on every iteration forever, so the converged exit
+can never fire while any such pair exists.
+
+**What this explains, all at once:**
+- S19's "the solver never converges": it converges; the exit test was being held
+  hostage by inert geometry. Withdrawn twice now, and this is the actual why.
+- S20's ~26 constraint rows per floor tile: those rows exist AND they are
+  actively harmful, not merely wasteful.
+- The plateau firing at exactly `MIN_ITERATIONS + PLATEAU_CONFIRM = 9` every
+  time: with the converged door nailed shut, the plateau door is the only exit,
+  and improvement hits zero immediately because the phantom impulse is constant.
+
+**The fix is one condition:** skip contact generation when both bodies have zero
+inverse mass. Neither can respond, so the constraint has no meaning. Expected to
+remove ~26 rows per floor tile AND restore the converged exit. That is a real
+change to what the solver computes, so it needs its own re-pinned baseline and
+must not ride along with a refactor.
+
+**And it reopens the biggest question.** If the solve genuinely converges, then
+constraint order is a bit-pattern detail rather than physics, and parallelism,
+islands, SoA and sorting come back on the table. S19 closed them; S20 reopened
+the question; this makes the answer likely to be "order does not matter" once
+the phantom pairs are gone. Worth settling with a residual metric before
+betting on it.
+
+**Caveat on the ladder that produced this.** The battery design (five lenses,
+independent) caught that `tests/test_solver_convergence_ladder.cpp` used a
+25-tile floor, and since the exit test is a global max over ALL rows, the
+original ladder measured the floor rather than the stack. Its "one box
+plateaus" reading was contaminated. The floor sweep above is the corrected
+experiment, and it turned the contamination into the finding.
+
+**Method note.** This is what decision-level tracing buys that counters cannot.
+A counter said "the solve plateaued". The trace said WHY, with the improvement
+rate and the threshold side by side, and the answer was visible in one run
+without a theory laid over it.
 
 ---
 
