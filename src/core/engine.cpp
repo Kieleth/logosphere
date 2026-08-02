@@ -702,7 +702,53 @@ void Engine::clear_vision_cone_occlusion() {
 bool Engine::read_latest_framebuffer(uint32_t* out_pixels,
                                      int& out_width, int& out_height) {
     if (!renderer_) return false;
-    return renderer_->read_framebuffer(out_pixels, out_width, out_height);
+    if (!renderer_->read_framebuffer(out_pixels, out_width, out_height)) return false;
+    if (!ui_system_ || !out_pixels) return true;
+
+    // COMPOSITE THE UI OVERLAY PLANE ONTO THE READ-BACK.
+    //
+    // What renderer_->read_framebuffer returns is the GPU's scene buffer
+    // (framebuffer_buffer_async_), and it is scene-only BY CONSTRUCTION:
+    // pixels flow GPU -> render_buffer_ through the completion-callback memcpy
+    // and never the other way. So the HUD that composite_ui_overlay() blends
+    // into render_buffer_ could never appear here, and every framebuffer-reading
+    // test saw a UI-free frame. That is why four visual tests shipped with
+    // readouts nobody could see, and why docs/VISUAL_TESTS.md recommended a
+    // widget route that could not work. Proven by
+    // tests/test_ui_label_actually_renders.cpp: a bright red Label moved ZERO
+    // pixels by >=32 before this.
+    //
+    // Compositing HERE, from ui_buffer_ directly, also steps around a second
+    // and independent bug rather than depending on it being fixed: headlessly
+    // the overlay is blended into render_buffer_ while that buffer still holds
+    // frame N-1, and frame N's completion callback then memcpys straight over
+    // it, so wait_for_completion() guarantees the HUD is erased. ui_buffer_
+    // itself is never touched by that callback, so reading it at the last
+    // moment is correct and race-free.
+    const int w = std::min(out_width,  ui_buffer_.width());
+    const int h = std::min(out_height, ui_buffer_.height());
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            const EnhancedPixel ui = ui_buffer_.get_pixel(x, y);
+            if (ui.a == 0) continue;                       // untouched
+            uint32_t& dst = out_pixels[(size_t)y * out_width + x];
+            if (ui.a == 255) {
+                dst = (uint32_t(255) << 24) | (uint32_t(ui.r) << 16) |
+                      (uint32_t(ui.g) << 8) | uint32_t(ui.b);
+            } else {
+                const uint8_t sr = uint8_t(dst >> 16);
+                const uint8_t sg = uint8_t(dst >> 8);
+                const uint8_t sb = uint8_t(dst);
+                const float a = ui.a / 255.0f;
+                const uint8_t r = uint8_t(ui.r * a + sr * (1.0f - a));
+                const uint8_t g = uint8_t(ui.g * a + sg * (1.0f - a));
+                const uint8_t b = uint8_t(ui.b * a + sb * (1.0f - a));
+                dst = (uint32_t(255) << 24) | (uint32_t(r) << 16) |
+                      (uint32_t(g) << 8) | uint32_t(b);
+            }
+        }
+    }
+    return true;
 }
 
 // Render-state mutators that touch multiple sub-systems live here

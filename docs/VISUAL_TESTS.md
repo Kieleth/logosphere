@@ -26,18 +26,24 @@ screen. `draw_ui_overlays()` is private, so a test cannot draw into that window.
 
 This affects existing tests. Any HUD written that way has never been visible.
 
-**WARNING, 2026-08-01: THE WIDGET ROUTE BELOW DOES NOT WORK EITHER.**
-`tests/test_ui_label_actually_renders.cpp` renders the identical frame with and
-without a bright red `ui::Label` over a lit floor and compares pixels. Against
-an A-vs-A noise floor, adding the Label moved **zero** pixels by >=32, max delta
-1. Nothing reached the framebuffer. The recommendation below was inferred from
-the compass being visible and was never verified; it is kept only so the next
-person does not re-derive it.
+**FIXED 2026-08-01, and it had been broken the whole time.** The widget route
+below is now correct, but it did not work until an engine fix landed, which is
+why four visual tests shipped with readouts nobody could see.
 
-Until that test passes, **on-screen readouts must go to stdout or the window
-title**. Four visual tests shipped with invisible HUDs before this was checked.
+`Engine::read_latest_framebuffer` returned the GPU's scene buffer, and that
+buffer is scene-only BY CONSTRUCTION: pixels flow GPU into `render_buffer_`
+through the completion-callback memcpy and never the other way, so the HUD that
+`composite_ui_overlay()` blends into `render_buffer_` could never appear in a
+read-back. A second, independent bug sat behind it: headlessly the overlay was
+composited into `render_buffer_` while it still held frame N-1, and frame N's
+callback then memcpy'd over it, so `wait_for_completion()` GUARANTEED the HUD
+was erased. The read-back now composites `ui_buffer_` directly, which fixes both.
 
-**Better: register a WIDGET.** `draw_ui_overlays()` clears the plane and then
+Guarded by `tests/test_ui_label_actually_renders.cpp`, which renders the same
+frame with and without a Label and fails if the difference is noise. Before the
+fix: 0 pixels moved by >=32. After: 367, max delta 245.
+
+**Register a WIDGET.** `draw_ui_overlays()` clears the plane and then
 re-renders the debug overlay AND every registered widget, which is exactly why
 the compass survives. So a widget is legible where immediate-mode text is not:
 
