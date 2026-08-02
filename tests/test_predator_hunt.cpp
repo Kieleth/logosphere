@@ -31,6 +31,7 @@
 #include "particle.h"
 #include "logosphere/interaction/particle_interaction_system.h"
 #include "logosphere/physics/physics_system.h"
+#include "logosphere/events/event_bus.h"
 
 #include <GLFW/glfw3.h>
 
@@ -864,6 +865,74 @@ void test_the_panel_reaches_the_presented_image(Hunt3D& h, const Trace& tr) {
           std::to_string(header_pixels) + " pixels of it)");
 }
 
+// Touch WITHOUT being pushed, but WITH consequence.
+//
+// The engine already separates these, and I had not used it. A pair
+// whose profiles decline rigid contact is not simply ignored: the
+// solver records a FilteredOverlap and process_filtered_overlaps emits
+// one ContactFilteredEvent per pair EPISODE on the event bus. There is
+// even a declarative TransformationRule whose trigger is
+// ON_CONTACT_FILTERED.
+//
+// So the distinction the engine offers is not "collides or not". It is:
+//
+//   rigid contact   impulse + CollisionEvent        (both kinematic:
+//                                                    event, no impulse)
+//   filtered        no impulse + ContactFilteredEvent
+//
+// That is exactly what "body parts must not shove each other, but a
+// predator touching prey must MEAN something" needs: the parts filter
+// and nobody listens, the creatures filter and the game listens.
+void test_a_filtered_touch_still_reports_itself() {
+    std::cout << "\n  Filtered contact" << std::endl;
+    Hunt3D h(false);
+
+    // Two bodies that decline to shove each other, as animation-driven
+    // creatures must.
+    auto& interaction = h.engine.get_interaction_system();
+    logosphere::interaction::InteractionProfile creature;
+    creature.id = 90201u;
+    creature.category = 1u << 9;
+    creature.collides_with = 0u;          // no rigid contact between them
+    interaction.register_profile(creature);
+
+    const int a = h.add(ParticleShape::SPHERE, 0.0f, 0.0f, 1.0f, 2.0f,
+                        0.9f, 0.7f, 0.2f);
+    const int b = h.add(ParticleShape::SPHERE, 1.0f, 0.0f, 1.0f, 2.0f,
+                        0.85f, 0.25f, 0.25f);
+    {
+        auto w = h.engine.get_particle_system().lock_particles_for_write();
+        auto& all = w.get_particles();
+        all[a].interaction_profile_id = creature.id;
+        all[b].interaction_profile_id = creature.id;
+    }
+
+    int touches = 0;
+    h.engine.get_event_bus().contact_filtered().subscribe(
+        [&touches](const logosphere::ontology::ContactFilteredEvent&) {
+            ++touches;
+        });
+
+    for (int i = 0; i < 20; ++i) h.engine.update(1.0 / 60.0);
+
+    float ax = 0, bx = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        ax = view[a].x; bx = view[b].x;
+    }
+    std::cout << "  [measure] two overlapping bodies that DECLINE rigid "
+                 "contact: " << touches << " ContactFilteredEvent(s), "
+              << "separation still " << std::fabs(bx - ax) << " m"
+              << std::endl;
+
+    CHECK(touches > 0,
+          "declining rigid contact still REPORTS the touch, so a game "
+          "can make it mean something (" + std::to_string(touches) +
+          " events)");
+    CHECK(std::fabs(std::fabs(bx - ax) - 1.0f) < 0.05f,
+          "and neither body was shoved, so animation keeps control");
+}
+
 void test_the_ai_thinking_is_on_the_screen() {
     std::cout << "\n  The AI panel" << std::endl;
 
@@ -1228,6 +1297,7 @@ int main() {
           "deepest " + std::to_string(tr.deepest_intrusion) + " m)");
 
     test_kinematic_bodies_still_collide();
+    test_a_filtered_touch_still_reports_itself();
     test_the_ai_thinking_is_on_the_screen();
 
     std::cout << "\n" << tests_passed << " passed, " << tests_failed
