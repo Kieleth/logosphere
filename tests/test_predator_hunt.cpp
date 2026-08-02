@@ -29,6 +29,8 @@
 #include "ui/text_window.h"
 #include "logosphere/rendering/pixel_buffer.h"
 #include "particle.h"
+#include "logosphere/interaction/particle_interaction_system.h"
+#include "logosphere/physics/physics_system.h"
 
 #include <GLFW/glfw3.h>
 
@@ -55,7 +57,18 @@ bool g_visual = false;
 bool g_quit = false;
 
 constexpr float PI_F = 3.14159265358979f;
-constexpr int   FAN_POOL = 900;      // reused every frame, never grown
+constexpr int   FAN_POOL = 220;      // reused every frame, never grown
+// Debug markers are present but NOT SOLID. Without this the 900 fan
+// beads are KINEMATIC bodies, and a KINEMATIC body is never skipped by
+// the at-rest check (terrain must collide even while still), so they
+// each generate contacts against everything they sit near. Measured
+// here: physics 1652 ms per frame at 1346 particles, which is 0.6 fps
+// and looks exactly like a frozen creature.
+//
+// This is the same defect as the Eden butterflies, 0.07 ms to 30 ms,
+// and it has the same answer: an interaction profile that declines
+// rigid contact.
+constexpr uint32_t kMarkerProfileId = 90101u;
 
 // The panel's highlight colour, defined ONCE. The guard looks for these
 // exact bytes in the image handed to the display, so if the panel and
@@ -105,7 +118,7 @@ struct EventLog {
         std::snprintf(buf, sizeof(buf), "%6.2fs  %s", t, what.c_str());
         lines.emplace_back(buf);
         std::cout << "    " << buf << std::endl;      // terminal too
-        if (lines.size() > 14) lines.erase(lines.begin());
+        if (lines.size() > 11) lines.erase(lines.begin());
     }
 };
 
@@ -118,6 +131,8 @@ struct Trace {
     bool  ever_saw = false;
     bool  ever_lost_after_seeing = false;
     bool  saw_through_boulder = false;   // must stay false
+    int   frames_inside_rock = 0;        // predator standing in geometry
+    float deepest_intrusion = 0.0f;      // metres past the boulder face
     float furthest_seen = 0.0f;
 };
 
@@ -240,12 +255,14 @@ struct Hunt3D {
 
     void ground() {
         if (!g_visual) return;
-        for (float x = -40.0f; x <= 40.0f; x += 4.0f)
-            for (float y = -40.0f; y <= 40.0f; y += 4.0f) {
+        // 8 m tiles, not 4: the ground is scenery and 441 boxes of it
+        // cost more than the creature did.
+        for (float x = -40.0f; x <= 40.0f; x += 8.0f)
+            for (float y = -40.0f; y <= 40.0f; y += 8.0f) {
                 Particle p{};
                 p.shape = ParticleShape::BOX;
                 p.x = x; p.y = y; p.z = -0.25f;
-                p.width = p.height = 4.0f; p.thickness = 0.5f; p.size = 4.0f;
+                p.width = p.height = 8.0f; p.thickness = 0.5f; p.size = 8.0f;
                 p.r = 0.38f; p.g = 0.36f; p.b = 0.33f; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::STONE);
                 p.solver_mode = ParticleSolverMode::KINEMATIC;
@@ -261,9 +278,14 @@ struct Hunt3D {
         panel = std::make_unique<TextWindow>("NPC / AI", "npc_ai_log");
         // Lower right: the hunt happens in the middle of the frame, and
         // a panel in the top-left sat on top of it.
-        panel->set_position(566, 322);
-        panel->set_size(522, 386);
-        panel->set_max_lines(26);
+        panel->set_position(560, 268);
+        panel->set_size(528, 440);
+        // MUST exceed what refresh_panel pushes. TextWindow trims from
+        // the FRONT when newest_at_top is false, so a budget that is
+        // too small silently evicts the live readout at the top and
+        // leaves only the tail of the event log. The panel pushed ~30
+        // lines against a budget of 26 and the readout vanished.
+        panel->set_max_lines(34);
         panel->set_newest_at_top(false);     // read top to bottom
         panel->set_background_alpha(210);    // legible over the scene
         panel->set_draggable(true);
@@ -283,11 +305,30 @@ struct Hunt3D {
         }
     }
 
+    void make_markers_ghostly() {
+        auto& interaction = engine.get_interaction_system();
+        logosphere::interaction::InteractionProfile ghost;
+        ghost.id = kMarkerProfileId;
+        ghost.category = 1u << 7;
+        ghost.collides_with = 0u;          // touches nothing
+        interaction.register_profile(ghost);
+
+        auto w = engine.get_particle_system().lock_particles_for_write();
+        auto& all = w.get_particles();
+        for (int idx : fan_pool) {
+            if (idx < 0 || idx >= static_cast<int>(all.size())) continue;
+            all[idx].interaction_profile_id = kMarkerProfileId;
+            all[idx].is_at_rest = true;
+            all[idx].vx = all[idx].vy = all[idx].vz = 0.0f;
+        }
+    }
+
     void make_fan_pool() {
         if (!g_visual) return;
         for (int i = 0; i < FAN_POOL; ++i)
             fan_pool.push_back(add(ParticleShape::SPHERE, 0, 0, -200.0f,
                                    0.42f, 0.25f, 0.85f, 0.35f));
+        make_markers_ghostly();
     }
 
     void settle() { for (int i = 0; i < 4; ++i) engine.update(1.0 / 60.0); }
@@ -315,6 +356,21 @@ struct Hunt3D {
         c.sensitivity = 1.0f;
         c.state_factor = 1.0f;
         return c;
+    }
+
+    // A creature whose position is WRITTEN is not pushed out of
+    // anything by the solver, so it must refuse to enter geometry
+    // itself. Measured before this existed: 112 frames of 900 spent
+    // standing inside the boulder, up to 0.33 m in.
+    //
+    // Slide rather than stop dead: a hunter that halts the instant a
+    // corner clips it looks broken, and sliding along the free axis is
+    // what collide-and-slide does everywhere else in this engine.
+    void step_to(float nx, float ny) {
+        if (grid.is_walkable(nx, ny)) { px = nx; py = ny; return; }
+        if (grid.is_walkable(nx, py)) { px = nx; return; }   // slide in x
+        if (grid.is_walkable(px, ny)) { py = ny; return; }   // slide in y
+        // Wedged: stay put and let the planner pick another way.
     }
 
     void move_particle(int id, float x, float y) {
@@ -363,12 +419,12 @@ struct Hunt3D {
             const BVH* bvh = engine.get_particle_system().get_shadow_bvh();
             if (!bvh) return;
             const float half = 50.0f * PI_F / 180.0f;
-            const int rays = 20;
+            const int rays = 14;
             for (int i = 0; i < rays && pts.size() < fan_pool.size(); ++i) {
                 const float t = static_cast<float>(i) / (rays - 1);
                 const float a = facing - half + t * 2.0f * half;
                 const float dx = std::sin(a), dy = std::cos(a);
-                for (float d = 1.5f; d <= 22.0f; d += 1.8f) {
+                for (float d = 2.0f; d <= 22.0f; d += 2.2f) {
                     if (pts.size() >= fan_pool.size()) break;
                     const float qx = px + dx * d, qy = py + dy * d;
                     if (!senses.can_see_point(px, py, 1.0f, qx, qy, 1.0f,
@@ -530,8 +586,8 @@ struct Hunt3D {
                     const float dx0 = goal_x - px, dy0 = goal_y - py;
                     const float l0 = std::hypot(dx0, dy0);
                     if (l0 > 0.05f) {
-                        px += (dx0 / l0) * 2.5f * dt;
-                        py += (dy0 / l0) * 2.5f * dt;
+                        step_to(px + (dx0 / l0) * 2.5f * dt,
+                                py + (dy0 / l0) * 2.5f * dt);
                         facing = std::atan2(dx0, dy0);
                     }
                 }
@@ -565,8 +621,8 @@ struct Hunt3D {
                 const float len = std::hypot(dx, dy);
                 if (len > 0.01f) {
                     const float speed = 5.0f;
-                    px += (dx / len) * speed * dt;
-                    py += (dy / len) * speed * dt;
+                    step_to(px + (dx / len) * speed * dt,
+                            py + (dy / len) * speed * dt);
                     facing = std::atan2(dx, dy);   // 0 = +Y
                 }
             }
@@ -615,6 +671,20 @@ struct Hunt3D {
                 goal_shown_x, goal_shown_y);
             log.add(clock, mv);
             last_beat = clock; beat_x = px; beat_y = py; beat_dist = d_now;
+        }
+
+        // Does the creature actually respect the rock, or walk through
+        // it? Its position is WRITTEN, not solved, so nothing pushes it
+        // out. The nav grid steers around the boulder, but the
+        // straight-line fallback does not consult it at all.
+        if (!grid.is_walkable(px, py)) {
+            tr.frames_inside_rock++;
+            // Boulder spans x 2.5..9.5, y 9..11 in this scene.
+            const float dx_in = std::min(px - 2.5f, 9.5f - px);
+            const float dy_in = std::min(py - 9.0f, 11.0f - py);
+            const float depth = std::min(dx_in, dy_in);
+            if (depth > 0.0f)
+                tr.deepest_intrusion = std::max(tr.deepest_intrusion, depth);
         }
 
         const float d = std::hypot(px - prey_x(), py - prey_y());
@@ -874,6 +944,69 @@ void test_the_ai_thinking_is_on_the_screen() {
 
 }
 
+
+// A KINEMATIC body still collides. It is only exempt from being MOVED.
+//
+// This was worth pinning because I claimed the opposite. The solver is
+// explicit about it: "Exception: KINEMATIC particles always query BVH"
+// (physics_system_v4.cpp:612), and the at-rest skip refuses to apply
+// to them (:619). Collision EVENTS are emitted carrying which side was
+// kinematic (:929-937), which is how combat reacts to a kinematic
+// weapon striking a kinematic body.
+//
+// What kinematic does not get is positional resolution: inv_mass is 0
+// on both sides (:1083-1084), so a kinematic pair generates a contact
+// and moves neither body. That is exactly why a creature whose
+// position is written walks through rock unless its own controller
+// declines to go there.
+void test_kinematic_bodies_still_collide() {
+    std::cout << "\n  Kinematic collision" << std::endl;
+    Hunt3D h(false);
+
+    // Two kinematic bodies, overlapping on purpose.
+    const int rock = h.add(ParticleShape::BOX, 0.0f, 0.0f, 1.0f, 3.0f,
+                           0.5f, 0.5f, 0.5f);
+    const int walker = h.add(ParticleShape::SPHERE, 1.0f, 0.0f, 1.0f, 2.0f,
+                             0.9f, 0.3f, 0.2f);
+    h.settle();
+
+    const auto& events = h.engine.get_physics_system().get_collision_events();
+    bool found = false;
+    float penetration = 0.0f;
+    for (const auto& e : events) {
+        const bool pair = (static_cast<int>(e.particle_a) == rock &&
+                           static_cast<int>(e.particle_b) == walker) ||
+                          (static_cast<int>(e.particle_a) == walker &&
+                           static_cast<int>(e.particle_b) == rock);
+        if (pair) { found = true; penetration = e.penetration; }
+    }
+    std::cout << "  [measure] two overlapping KINEMATIC bodies produced "
+              << events.size() << " collision event(s); the pair was "
+              << (found ? "reported" : "NOT reported")
+              << ", penetration " << penetration << " m" << std::endl;
+    CHECK(found,
+          "two overlapping KINEMATIC bodies DO generate a collision event, "
+          "which is what combat reacts to");
+
+    // And neither is moved by it: that is the part that is exempt.
+    float wx = 0, wy = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        wx = view[walker].x; wy = view[walker].y;
+    }
+    for (int i = 0; i < 30; ++i) h.engine.update(1.0 / 60.0);
+    float wx2 = 0, wy2 = 0;
+    {
+        auto view = h.engine.get_particle_system().lock_particles_for_read();
+        wx2 = view[walker].x; wy2 = view[walker].y;
+    }
+    std::cout << "  [measure] after 30 frames overlapping, it moved "
+              << std::hypot(wx2 - wx, wy2 - wy) << " m" << std::endl;
+    CHECK(std::hypot(wx2 - wx, wy2 - wy) < 0.01f,
+          "but the solver does not push a kinematic body out, which is "
+          "why its own controller must decline to enter geometry");
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------- the hunt
@@ -1085,6 +1218,16 @@ int main() {
     CHECK(!tr.saw_through_boulder,
           "it never sees the prey through the boulder");
 
+    std::cout << "  [measure] frames standing in blocked ground: "
+              << tr.frames_inside_rock << " of " << tr.frames
+              << ", deepest intrusion " << tr.deepest_intrusion << " m"
+              << std::endl;
+    CHECK(tr.frames_inside_rock == 0,
+          "and it never walks INTO the rock (" +
+          std::to_string(tr.frames_inside_rock) + " frames inside, "
+          "deepest " + std::to_string(tr.deepest_intrusion) + " m)");
+
+    test_kinematic_bodies_still_collide();
     test_the_ai_thinking_is_on_the_screen();
 
     std::cout << "\n" << tests_passed << " passed, " << tests_failed
