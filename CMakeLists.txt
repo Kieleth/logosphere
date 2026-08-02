@@ -163,6 +163,11 @@ set(LOGOSPHERE_CORE_SOURCES
     # Particle interaction model (KG-declared contact filtering + media);
     # headless-core safe, consulted by the solver seam in Phase 2.
     src/interaction/particle_interaction_system.cpp
+    # NPC decision layer. Both are pure std with no physics, rendering
+    # or platform dependency, so they belong in the headless core and
+    # their guards run on the Linux CI profile.
+    src/npc-ai/goap_system.cpp
+    src/npc-ai/pathfinding_system.cpp
 )
 
 # ============================================================================
@@ -279,6 +284,7 @@ function(add_headless_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
+add_headless_test(test_goap_planner)  # the NPC planner, previously untested
 add_headless_test(test_event_log)
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
