@@ -214,10 +214,36 @@ void light_and_frame(Engine& e, float x, float y, float ground) {
     e.set_camera_follow_enabled(true);
 }
 
+// The window is created unfocused and lands BEHIND the launching
+// terminal, so the scenario runs where nobody can see it and every
+// SPACE press goes to the shell. The engine logs it plainly:
+// "Final window state: visible=1 focused=0". Raise it and take the
+// keyboard, or "watchable" is a lie.
+void bring_to_front(Engine& e);
+
 GLFWwindow* window_of(Engine& e) {
     if (!g_visual || !e.get_platform()) return nullptr;
     return static_cast<GLFWwindow*>(
         e.get_platform()->get_native_window_handle());
+}
+
+void bring_to_front(Engine& e) {
+    if (!g_visual) return;
+    GLFWwindow* win = window_of(e);
+    if (!win) return;
+    glfwShowWindow(win);
+    glfwRestoreWindow(win);
+    // macOS focuses the process, not just the window, and a
+    // CLI-launched app is not frontmost. Asking across a few pumped
+    // frames is what makes it stick.
+    for (int i = 0; i < 8; ++i) {
+        glfwPollEvents();
+        glfwFocusWindow(win);
+    }
+    std::cout << "    window focused: "
+              << (glfwGetWindowAttrib(win, GLFW_FOCUSED) ? "yes"
+                                                         : "NO - click it")
+              << std::endl;
 }
 
 void draw(Engine& e, const Walker& w) {
@@ -570,6 +596,7 @@ int main() {
                              ": could not place walker");
                 e->shutdown(); delete e; continue;
             }
+            bring_to_front(*e);
             for (int i = 0; i < 60; ++i) { e->update(1.0/60.0); draw(*e, w); }
 
             std::vector<float> junk_x, junk_y;
