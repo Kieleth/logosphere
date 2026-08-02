@@ -253,18 +253,39 @@ void test_a_boulder_hides_prey() {
     CHECK(r.find_by_id(p) == nullptr,
           "prey behind cover is NOT seen, which is what makes cover cover");
 
-    // And the same question asked the other way round must agree.
+    // The same question asked the other way round must agree. The prey
+    // has to be EXCLUDED to ask it at all: can_see_point is a shadow
+    // ray, so the prey's own surface sits between the viewer and the
+    // prey's centre and blocks it whether or not a boulder exists.
+    // Without the exclusion this check reads "blocked" in an empty
+    // field and proves nothing.
     bool direct = false;
     {
         auto view = w.engine.get_particle_system().lock_particles_for_read();
         const BVH* bvh = w.engine.get_particle_system().get_shadow_bvh();
         if (bvh) direct = w.senses.can_see_point(0.0f, 0.0f, 1.0f,
                                                  0.0f, 12.0f, 1.0f,
-                                                 view.get(), *bvh, {});
+                                                 view.get(), *bvh, {p});
     }
-    std::cout << "  [measure] can_see_point through the boulder: "
-              << direct << std::endl;
+    // The control: the identical query with no boulder in the world.
+    bool clear_field = false;
+    {
+        World open;
+        const int q = open.prey(0.0f, 12.0f);
+        open.settle();
+        auto view = open.engine.get_particle_system().lock_particles_for_read();
+        const BVH* bvh = open.engine.get_particle_system().get_shadow_bvh();
+        if (bvh) clear_field = open.senses.can_see_point(0.0f, 0.0f, 1.0f,
+                                                        0.0f, 12.0f, 1.0f,
+                                                        view.get(), *bvh, {q});
+    }
+    std::cout << "  [measure] can_see_point to the prey's spot: with a "
+                 "boulder " << direct << ", in an empty field "
+              << clear_field << std::endl;
     CHECK(!direct, "can_see_point agrees with the cone");
+    CHECK(clear_field,
+          "and the same query is TRUE with no boulder, so the check is "
+          "measuring the boulder rather than always saying no");
 }
 
 void test_stepping_aside_reveals_the_prey() {
