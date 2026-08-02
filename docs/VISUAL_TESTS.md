@@ -26,6 +26,17 @@ screen. `draw_ui_overlays()` is private, so a test cannot draw into that window.
 
 This affects existing tests. Any HUD written that way has never been visible.
 
+**WARNING, 2026-08-01: THE WIDGET ROUTE BELOW DOES NOT WORK EITHER.**
+`tests/test_ui_label_actually_renders.cpp` renders the identical frame with and
+without a bright red `ui::Label` over a lit floor and compares pixels. Against
+an A-vs-A noise floor, adding the Label moved **zero** pixels by >=32, max delta
+1. Nothing reached the framebuffer. The recommendation below was inferred from
+the compass being visible and was never verified; it is kept only so the next
+person does not re-derive it.
+
+Until that test passes, **on-screen readouts must go to stdout or the window
+title**. Four visual tests shipped with invisible HUDs before this was checked.
+
 **Better: register a WIDGET.** `draw_ui_overlays()` clears the plane and then
 re-renders the debug overlay AND every registered widget, which is exactly why
 the compass survives. So a widget is legible where immediate-mode text is not:
