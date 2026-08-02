@@ -1,46 +1,119 @@
 // =============================================================================
-// IMMOVABLE TILES: a 2D floor defeats the solver, a 1D strip does not
+// WHY A FLOOR MADE OF TILES BREAKS THE PHYSICS SOLVER
 // =============================================================================
-// TDD, and the test has already refused to confirm two stories. Read the
-// history before trusting a third.
 //
-// WHAT IS MEASURED, and this part is solid:
+// ---------------------------------------------------------------------------
+// PLAIN LANGUAGE FIRST. If you have never touched this engine, read this bit.
+// ---------------------------------------------------------------------------
 //
-//   arrangement            converged  plateaued   rows
-//   1 tile + dyn box            120          0     480
-//   1x2 line                    120          0     480
-//   1x3 line                    120          0     960
-//   2x2 grid                      0        120    2880   <- cliff
-//   3x3 grid                      0        120    9600
+// WHAT A SOLVER DOES. Every frame, physics has to stop objects passing through
+// each other. It looks at each pair that is touching, works out a push that
+// would separate them, applies it, and then LOOKS AGAIN, because that push may
+// have shoved something into something else. It repeats up to 32 times. Each
+// repeat is an "iteration".
 //
-// All tiles are KINEMATIC and is_at_rest. Nothing in the grid scenes can move.
-// A STRIP of touching immovable tiles converges. A GRID of them never does, and
-// once it cannot converge, neither can any dynamic body sharing the solve.
+// WHEN DOES IT STOP? Two ways out:
 //
-// WHAT IS NOT CONFIRMED. The first version of this test asserted that any two
-// touching zero-inverse-mass bodies pin the convergence test, on the theory
-// that inv_mass_sum == 0 falls back to effective_mass = 1.0f
-// (physics_system_v4.cpp:859) and yields an impulse that moves nothing but
-// still counts toward max_impulse_this_iter (:2007). That story predicts 1x2
-// breaks. IT DOES NOT. So the fallback may be necessary but is plainly not
-// sufficient, and the extra ingredient in a 2x2 (each tile gains a DIAGONAL
-// neighbour, and rows per tile jump from 320 to 720) has not been isolated.
+//   "CONVERGED"  the pushes have become tiny. Everything is resting properly,
+//                there is nothing left to fix. This is the happy ending.
 //
-// Do not "fix" this from the story. Use the tracer to find which constraint
-// owns max_impulse in a 2x2 and does not in a 1x3:
-//   LOGOSPHERE_PHYS_TRACE=5 LOGOSPHERE_PHYS_TRACE_FILE=/tmp/t.log
+//   "PLATEAUED"  the pushes are NOT tiny, but they stopped getting smaller.
+//                The solver decides more repeats will not help and gives up.
+//                This is the unhappy ending.
 //
-// WHY IT MATTERS ANYWAY. Real floors are 2D. Every tiled floor in the engine is
-// past this cliff, which is why Eden never converges and why the ladder in
-// tests/test_solver_convergence_ladder.cpp measured its floor rather than its
-// stack.
+// The engine counts which ending it reaches. That is the whole experiment.
 //
-// SENSITIVITY CONTROL FIRST. Scene A (a lone slab plus one dynamic box) must
-// converge, or this test cannot tell a broken solver from a broken scene and
-// nothing below is evidence.
+// WHAT WE FOUND. Take some floor tiles. Make them immovable (the engine calls
+// this KINEMATIC: they are solid, but nothing can push them, like a wall).
+// Nothing can move. There is no physics to do.
+//
+//   Lay them in a LINE:   the solver says CONVERGED. Correct, nothing to fix.
+//   Lay them in a SQUARE: the solver says PLATEAUED, forever, every frame.
+//
+// Same tiles. Same immovability. Only the arrangement differs.
+//
+// WHY YOU SHOULD CARE. Real floors are squares of tiles, not lines. So every
+// floor in this engine is in the broken case. And it is contagious: put a real
+// falling box on a square floor and the box's physics stops converging too,
+// because the solver's stopping test looks at ALL objects at once. Four inert
+// tiles poison the answer for everything else in the world.
+//
+// The waste is real: about 26 constraints per floor tile, recomputed every
+// frame, for tiles that cannot move. And it burns 8 solver iterations doing it.
+//
+// ---------------------------------------------------------------------------
+// THE MEASUREMENT
+// ---------------------------------------------------------------------------
+//
+//   arrangement            converged  plateaued    rows
+//   1 tile + falling box         120          0     480
+//   1x2 line                     120          0     480
+//   1x3 line                     120          0     960
+//   2x2 square                     0        120    2880   <- breaks here
+//   3x3 square                     0        120    9600
+//   3x3 square + falling box       0        120   11520   <- and it spreads
+//
+// "rows" is how many separate push-calculations the solver was handed.
+// "converged"/"plateaued" count how many times each ending was reached over 60
+// frames. There are 4 solver runs per frame, so 120 = every single one.
+//
+// ---------------------------------------------------------------------------
+// HOW TO RUN IT
+// ---------------------------------------------------------------------------
 //
 //   ./build-release/logosphere-tests --test test_immovable_pair_phantom_impulse --no-head
-//   INTERACTIVE=1 ...   strip on the left converges, grid on the right does not
+//       Prints the table above. This is the real result.
+//
+//   PHANTOM_SCENE=line INTERACTIVE=1 ./build-release/logosphere-tests \
+//       --test test_immovable_pair_phantom_impulse --no-head
+//   PHANTOM_SCENE=square INTERACTIVE=1 ...
+//       ONE arrangement per window, numbers printed to the TERMINAL twice a
+//       second. Run it once with `line` and once with `square` and compare the
+//       two terminals. `line` shows converged climbing; `square` shows it stuck
+//       at 0.
+//
+// WHY NOT SHOW BOTH AT ONCE, OR A KEY TO TOGGLE? Both were tried and both are
+// impossible here, which is worth knowing before you try again:
+//
+//   - Both in one window CANNOT work. The solver's stopping test is a single
+//     verdict for the whole world, so the square poisons the reading for the
+//     line sitting next to it. There is no per-object convergence number to
+//     display.
+//   - A key to delete the square at runtime CANNOT work. Writing a new position
+//     onto these tiles does not stick: measured 0 of 4 tiles actually moved,
+//     with and without the DYNAMICS owner flag. The probe that proves this runs
+//     at the top of the headless output, so the claim stays honest.
+//
+// THERE IS NOTHING TO SEE IN THE PICTURE. The tiles sit there either way; the
+// boxes rest correctly either way. This bug is invisible. The window is only
+// there so you can confirm the scene is what the text says it is. The numbers
+// in the terminal are the experiment.
+//
+// ---------------------------------------------------------------------------
+// FOR ENGINE PEOPLE: what is suspected, and what is NOT established
+// ---------------------------------------------------------------------------
+//
+// Trace level 2 shows every solve exiting identically, forever:
+// improvement=0 and max_push=4 EXACTLY, never moving by a single bit. Something
+// is handing the solver a constant it can never reduce.
+//
+// The suspicion is a "phantom push". Two sites disagree about what immovable
+// means: the build step (physics_system_v4.cpp:856) checks only is_at_rest,
+// while the apply step (:2035) checks is_at_rest OR KINEMATIC. For two
+// immovable tiles the mass maths degenerates and :859 falls back to
+// effective_mass = 1.0f, producing a push that is non-zero but multiplied by
+// zero mass on application. It changes nothing and still counts toward the
+// stopping test.
+//
+// THAT STORY IS NOT PROVEN. It predicts a 1x2 line breaks. It does not. So the
+// fallback is at most part of it, and whatever the square adds (every tile
+// gains a DIAGONAL neighbour; rows per tile go 320 -> 720) has not been
+// isolated. Next step: trace level 5 on a 2x2 and a 1x3 and find which single
+// constraint owns max_push in one and not the other.
+//
+//   LOGOSPHERE_PHYS_TRACE=5 LOGOSPHERE_PHYS_TRACE_FILE=/tmp/t.log ...
+//
+// Do not "fix" this from the story above. It is 0 for 2 so far.
 // =============================================================================
 
 #include "../src/core/engine.h"
@@ -119,9 +192,28 @@ void measure(Scene& s) {
 
 bool run_interactive() {
     namespace T = ::logosphere::telemetry;
+
+    // ONE ARRANGEMENT PER LAUNCH. See the header: a line and a square cannot
+    // share a window, because the solver produces ONE verdict for the whole
+    // world and the square would poison the line's reading.
+    const char* want = std::getenv("PHANTOM_SCENE");
+    const bool square = (want && std::string(want) == "square");
+    printf("\n  ============================================================\n");
+    printf("   SCENE: %s\n", square ? "2x2 SQUARE of immovable tiles"
+                                     : "1x3 LINE of immovable tiles");
+    printf("\n   Nothing here can move. The tiles are KINEMATIC (solid, but\n");
+    printf("   nothing can push them). There is no physics to do.\n");
+    printf("\n   WATCH THIS TERMINAL. The window only confirms the scene is\n");
+    printf("   what this text says; the bug is invisible on screen.\n");
+    printf("\n   EXPECTED:  line   -> converged climbs\n");
+    printf("              square -> converged STAYS 0 forever\n");
+    printf("\n   Run it once with PHANTOM_SCENE=line and once with=square,\n");
+    printf("   then compare the two terminals. ESC exits.\n");
+    printf("  ============================================================\n\n");
+
     EngineConfig cfg;
     cfg.create_display = true;
-    cfg.window_title = "SPACE toggles the grid";
+    cfg.window_title = square ? "2x2 SQUARE (expect converged 0)" : "1x3 LINE (expect converged > 0)";
     cfg.enable_chat_window = false;
     cfg.show_debug_overlay = false;
     Engine engine;
@@ -134,126 +226,111 @@ bool run_interactive() {
         p.shape = ParticleShape::BOX;
         p.x = x; p.y = y; p.z = 0.05f;
         p.width = p.height = 1.0f; p.thickness = 0.1f; p.size = 1.0f;
-        p.r = 0.45f; p.g = 0.45f; p.b = 0.5f; p.a = 1.0f;
+        p.r = 0.5f; p.g = 0.5f; p.b = 0.55f; p.a = 1.0f;
         p.SetMaterial(Materials::Type::STONE);
         int id = engine.add_particle(p);
         auto v = ps.lock_particles_for_write();
         v[id].solver_mode = ParticleSolverMode::KINEMATIC;
         v[id].owner = ParticleOwner::DYNAMICS; v[id].is_at_rest = true;
-        return id;
     };
-    auto box = [&](float x, float y, float z) {
-        Particle p = {};
-        p.shape = ParticleShape::BOX;
-        p.x = x; p.y = y; p.z = z;
-        p.width = p.height = p.thickness = 0.8f; p.size = 0.8f;
-        p.r = 0.9f; p.g = 0.45f; p.b = 0.3f; p.a = 1.0f;
-        p.SetMaterial(Materials::Type::STONE);
-        engine.add_particle(p);
-    };
-
-    // FIXED SCENE. Nothing spawns after this: three boxes fall once, settle in
-    // about a second, and then the picture is still so the numbers can be read.
-    // The earlier version rained boxes forever and was unreadable.
-    for (int i = 0; i < 5; ++i) tile(-7.0f + i, 0.0f);        // 1D strip, healthy
-    box(-6.0f, 0.0f, 3.0f); box(-5.0f, 0.0f, 4.2f); box(-4.0f, 0.0f, 5.4f);
-
-    std::vector<int> grid_ids;                                 // 2x2 grid, the breaker
-    for (int gy = 0; gy < 2; ++gy)
-        for (int gx = 0; gx < 2; ++gx) grid_ids.push_back(tile(4.0f + gx, (float)gy));
+    if (square) { for (int gy = 0; gy < 2; ++gy) for (int gx = 0; gx < 2; ++gx) tile((float)gx, (float)gy); }
+    else        { for (int gx = 0; gx < 3; ++gx) tile((float)gx, 0.0f); }
     ps.flush_pending_particles();
-    ps.queue_light(0.0f, -9.0f, 11.0f, 300000.0f, 55.0f, 1.0f, 0.96f, 0.9f);
+    ps.queue_light(0.0f, -7.0f, 9.0f, 260000.0f, 45.0f, 1.0f, 0.96f, 0.9f);
     ps.flush_pending_particles();
 
-    // Readout via WIDGETS. present() clears the overlay plane and then
-    // re-renders registered widgets, so draw_text from here is erased but a
-    // Label survives. See docs/VISUAL_TESTS.md.
+    // On-screen readout via a registered widget. Immediate-mode draw_text
+    // between render() and present() is erased by the overlay clear; widgets
+    // survive it. This only started working once the read-back composite was
+    // fixed (see docs/VISUAL_TESTS.md).
     std::vector<ui::Label*> lines;
-    auto* uis = engine.get_ui_system();
-    for (int i = 0; i < 7; ++i) {
-        auto* L = new ui::Label("", "phys_line_" + std::to_string(i));
-        L->set_position(16, 14 + i * 18);
-        L->set_size(820, 16);
-        L->set_color(i == 0 ? 255 : 210, i == 0 ? 235 : 210, i == 0 ? 130 : 210);
-        if (uis) uis->add_widget(L);
-        lines.push_back(L);
+    if (auto* uis = engine.get_ui_system()) {
+        for (int i = 0; i < 5; ++i) {
+            auto* L = new ui::Label("", "phys_line_" + std::to_string(i));
+            L->set_position(16, 16 + i * 20);
+            L->set_size(820, 18);
+            L->set_color(255, 255, 255);
+            uis->add_widget(L);
+            lines.push_back(L);
+        }
     }
 
-    // Rolling window, so the numbers describe NOW and not the whole session.
-    // A cumulative counter on a scene you are toggling is unreadable.
-    const int W = 60;
-    std::vector<long> hc(W, 0), hp(W, 0);
-    int  slot = 0, frame = 0;
-    bool grid_on = true, space_was = false;
-
-    printf("\n  ============================================================\n");
-    printf("   WATCH THIS TERMINAL, not the window. The window just shows the\n");
-    printf("   scene; the numbers below are the experiment.\n");
-    printf("\n");
-    printf("   Press SPACE in the window to remove the 2x2 grid, and again to\n");
-    printf("   put it back. Nothing else about the scene changes.\n");
-    printf("\n");
-    printf("   EXPECTED: converged is 0 with the grid PRESENT, and non-zero\n");
-    printf("   with it REMOVED. If that does not happen, the claim is wrong.\n");
-    printf("  ============================================================\n\n");
-
+    long conv = 0, plat = 0;
+    int frame = 0;
     while (engine.is_running()) {
         engine.update(1.0 / 60.0);
         engine.render();
+        conv += (long)T::counter_value(T::Counter::PhysSolveConverged);
+        plat += (long)T::counter_value(T::Counter::PhysSolvePlateaued);
 
-        hc[slot] = (long)T::counter_value(T::Counter::PhysSolveConverged);
-        hp[slot] = (long)T::counter_value(T::Counter::PhysSolvePlateaued);
-        slot = (slot + 1) % W;
-        long wc = 0, wp = 0;
-        for (int i = 0; i < W; ++i) { wc += hc[i]; wp += hp[i]; }
+        char b[5][200];
+        snprintf(b[0], 200, "SCENE: %s of immovable tiles", square ? "2x2 SQUARE" : "1x3 LINE");
+        snprintf(b[1], 200, "nothing here can move, so there is no physics to do");
+        snprintf(b[2], 200, "CONVERGED (good) %ld", conv);
+        snprintf(b[3], 200, "PLATEAUED (gave up) %ld", plat);
+        snprintf(b[4], 200, "%s", square ? "converged should be 0: this is the bug"
+                                         : "converged should climb: this is healthy");
+        for (size_t i = 0; i < lines.size(); ++i) lines[i]->set_text(b[i]);
+        if (!lines.empty() && square) lines[2]->set_color(255, 70, 70);
 
-        char b[7][220];
-        snprintf(b[0], 220, "IMMOVABLE TILES AND THE CONVERGENCE TEST");
-        snprintf(b[1], 220, "LEFT   1D strip of 5 tiles + 3 boxes        RIGHT  2x2 grid of tiles");
-        snprintf(b[2], 220, "all tiles are KINEMATIC and at rest: none of them can ever move");
-        snprintf(b[3], 220, "GRID: %s          [SPACE] toggle    [ESC] quit",
-                 grid_on ? "PRESENT" : "removed");
-        snprintf(b[4], 220, "last %d frames:   converged %ld     plateaued %ld", W, wc, wp);
-        snprintf(b[5], 220, "constraint rows/frame %llu",
-                 (unsigned long long)T::counter_value(T::Counter::PhysSolverRows));
-        snprintf(b[6], 220, "%s", grid_on
-                 ? "converged is pinned at 0. One bad constraint anywhere does this: the"
-                 : "converged recovers the moment the grid leaves. Same boxes, same strip.");
-        for (int i = 0; i < 7; ++i) lines[i]->set_text(b[i]);
-
-        // TERMINAL READOUT. The widget HUD above is best-effort: on-screen text
-        // has failed to appear three times in this scene and the cause is not
-        // understood, so the authoritative readout goes to stdout where it
-        // cannot be swallowed by the overlay system. Twice a second is fast
-        // enough to watch and slow enough to read.
         if (frame % 30 == 0) {
-            printf("  GRID %-8s | converged %4ld | plateaued %4ld | rows %6llu\n",
-                   grid_on ? "PRESENT" : "REMOVED", wc, wp,
+            printf("  %-10s | CONVERGED %5ld | plateaued %5ld | rows %5llu\n",
+                   square ? "SQUARE" : "LINE", conv, plat,
                    (unsigned long long)T::counter_value(T::Counter::PhysSolverRows));
             fflush(stdout);
         }
 
         engine.present();
         engine.get_platform()->poll_events();
-
-        const auto& in = engine.get_input_system();
-        const bool sp = in.get_input_state().keys[GLFW_KEY_SPACE];
-        if (sp && !space_was) {
-            grid_on = !grid_on;
-            auto v = ps.lock_particles_for_write();
-            for (int id : grid_ids) v[id].z = grid_on ? 0.05f : -500.0f;
-            printf("  grid %s\n", grid_on ? "restored" : "removed"); fflush(stdout);
-        }
-        space_was = sp;
         ++frame;
-        if (in.get_input_state().keys[GLFW_KEY_ESCAPE]) break;
+        if (engine.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE]) break;
     }
-    printf("\n  closed after %d frames\n", frame);
+    printf("\n  %s: converged %ld, plateaued %ld over %d frames\n",
+           square ? "SQUARE" : "LINE", conv, plat, frame);
     engine.shutdown();
     return true;
 }
 
 }  // namespace
+
+// Does a KINEMATIC tile actually move when we write its position? The
+// interactive toggle depends on it and has been silently failing: the tiles
+// carried ParticleOwner::DYNAMICS, so an external writer restored them every
+// frame. This checks whether dropping that owner makes the write stick, BEFORE
+// the toggle claims anything to a user again.
+bool probe_teleport_sticks(bool with_dynamics_owner) {
+    EngineConfig cfg;
+    cfg.create_display = false; cfg.enable_chat_window = false; cfg.show_debug_overlay = false;
+    Engine engine;
+    if (engine.initialize(cfg) != 0) return false;
+    auto& ps = engine.get_particle_system();
+    std::vector<int> ids;
+    for (int gy = 0; gy < 2; ++gy)
+        for (int gx = 0; gx < 2; ++gx) {
+            Particle p = {};
+            p.shape = ParticleShape::BOX;
+            p.x = (float)gx; p.y = (float)gy; p.z = 0.05f;
+            p.width = p.height = 1.0f; p.thickness = 0.1f; p.size = 1.0f;
+            p.r = p.g = p.b = 0.5f; p.a = 1.0f;
+            p.SetMaterial(Materials::Type::STONE);
+            int id = engine.add_particle(p);
+            auto v = ps.lock_particles_for_write();
+            v[id].solver_mode = ParticleSolverMode::KINEMATIC;
+            if (with_dynamics_owner) v[id].owner = ParticleOwner::DYNAMICS;
+            v[id].is_at_rest = true;
+            ids.push_back(id);
+        }
+    ps.flush_pending_particles();
+    for (int f = 0; f < 40; ++f) engine.update(1.0 / 60.0);
+    { auto v = ps.lock_particles_for_write(); for (int id : ids) v[id].z = -500.0f; }
+    for (int f = 0; f < 30; ++f) engine.update(1.0 / 60.0);
+    int moved = 0;
+    { auto v = ps.lock_particles_for_write(); for (int id : ids) if (v[id].z < -100.0f) ++moved; }
+    engine.shutdown();
+    printf("    owner=%-9s -> %d of %zu tiles actually moved\n",
+           with_dynamics_owner ? "DYNAMICS" : "(none)", moved, ids.size());
+    return moved == (int)ids.size();
+}
 
 bool test_immovable_pair_phantom_impulse() {
     if (std::getenv("INTERACTIVE")) return run_interactive();
@@ -267,6 +344,12 @@ bool test_immovable_pair_phantom_impulse() {
     // more than "a pair with zero inverse mass on both sides", and the honest
     // move is to find WHICH arrangement crosses the line rather than to fix on
     // a story the test just refused to confirm.
+    printf("  can a KINEMATIC tile be teleported at all?\n");
+    const bool with_owner = probe_teleport_sticks(true);
+    const bool no_owner   = probe_teleport_sticks(false);
+    printf("  -> teleport %s with ParticleOwner::DYNAMICS, %s without it\n\n",
+           with_owner ? "STICKS" : "REVERTS", no_owner ? "STICKS" : "REVERTS");
+
     Scene a{"A: 1 tile + dynamic box   (CONTROL)", 1, 1, true};
     std::vector<Scene> grid = {
         {"1x2 line, nothing dynamic",        2, 1, false},
