@@ -26,7 +26,7 @@ extern bool test_rotation_during_walk();
 extern bool test_strafe_sidestep_pattern();
 extern bool test_leg_shoot_out_during_rotation();
 extern bool test_idle_pose_stability();
-extern bool test_humanoid_strata_walk();
+extern bool test_humanoid_strata_integrity();
 extern bool test_spider_eva_shin_crush();
 extern bool test_joint_hierarchy_swap_integrity();
 extern bool test_reverse_leg_chain();
@@ -59,7 +59,7 @@ const GuardTest kGuards[] = {
     // Promoted from XFAIL to gating 2026-08-01: it had been passing, and the
     // runner had been printing XPASS asking for exactly this. A known-red that
     // quietly starts passing is a guard nobody is holding.
-    {"test_humanoid_strata_walk",          test_humanoid_strata_walk,          false},
+    {"test_humanoid_strata_integrity",     test_humanoid_strata_integrity,     false},
     {"test_spider_eva_shin_crush",         test_spider_eva_shin_crush,         false},
     {"test_joint_hierarchy_swap_integrity",test_joint_hierarchy_swap_integrity,false},
     {"test_reverse_leg_chain",             test_reverse_leg_chain,             false},
