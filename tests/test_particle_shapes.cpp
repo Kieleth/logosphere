@@ -8,10 +8,19 @@
 
 #include "particle.h"
 #include "logosphere/physics/narrow_phase.h"
+#include "particle_geometry_v2.h"   // get_sphere_lod: the LOD is a knob, not a constant
 #include <cmath>
 #include <iostream>
 #include <string>
 #include <stdexcept>
+
+// 20 * 4^subdivisions. Reads the live setting so the test tracks the SHAPE
+// contract (an icosphere of the configured level) rather than one number.
+static int expected_sphere_triangles() {
+    int n = 20;
+    for (int i = 0; i < logosphere::get_sphere_lod(); ++i) n *= 4;
+    return n;
+}
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -80,10 +89,15 @@ void test_sphere_get_surfaces_returns_expected_triangles() {
     p.shape = ParticleShape::SPHERE;
     p.size = 1.0f;
     auto surfaces = p.GetSurfaces();
-    // Default icosphere subdivision level 2 → 20 * 4^2 = 320 triangles.
+    // Icosphere triangle count is 20 * 4^subdivisions, and the subdivision
+    // level is a QUALITY KNOB (Optimizations::SPHERE_SUBDIVISIONS, overridable
+    // at runtime via LOGOSPHERE_SPHERE_LOD). Deriving the expectation instead
+    // of hardcoding it: this test asserted a literal 320 and went red the day
+    // the default moved to level 1, which is a test tracking a setting rather
+    // than a behaviour.
     // Catches accidental changes to the default in
     // particle_shape_methods.cpp::kSphereSubdivisions.
-    ASSERT_EQ(static_cast<int>(surfaces.size()), 320, "SPHERE surface count");
+    ASSERT_EQ(static_cast<int>(surfaces.size()), expected_sphere_triangles(), "SPHERE surface count");
 }
 
 void test_ellipsoid_get_surfaces_returns_expected_triangles() {
@@ -91,7 +105,7 @@ void test_ellipsoid_get_surfaces_returns_expected_triangles() {
     p.shape = ParticleShape::ELLIPSOID;
     p.width = 1.0f; p.height = 2.0f; p.thickness = 3.0f;
     auto surfaces = p.GetSurfaces();
-    ASSERT_EQ(static_cast<int>(surfaces.size()), 320, "ELLIPSOID surface count");
+    ASSERT_EQ(static_cast<int>(surfaces.size()), expected_sphere_triangles(), "ELLIPSOID surface count");
 }
 
 void test_sphere_surfaces_lie_on_sphere() {
@@ -120,8 +134,8 @@ void test_shadow_triangles_emit_9_floats_per_triangle() {
     p.size = 1.0f;
     std::vector<float> verts;
     p.GetShadowTriangles(verts);
-    // 320 triangles × 9 floats/triangle at default subdivision.
-    ASSERT_EQ(static_cast<int>(verts.size()), 320 * 9,
+    // triangles x 9 floats/triangle at whatever subdivision is configured.
+    ASSERT_EQ(static_cast<int>(verts.size()), expected_sphere_triangles() * 9,
               "SPHERE shadow output = triangles * 9");
 }
 
