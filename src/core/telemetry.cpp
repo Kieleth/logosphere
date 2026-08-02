@@ -268,6 +268,16 @@ SolveResidual solve_residual() {
     return g_residual;
 }
 
+namespace { std::atomic<uint32_t> g_shuffle_seed{0}; }
+
+void set_constraint_shuffle_seed(uint32_t seed) {
+    g_shuffle_seed.store(seed, std::memory_order_relaxed);
+}
+
+uint32_t constraint_shuffle_seed() {
+    return g_shuffle_seed.load(std::memory_order_relaxed);
+}
+
 void record_gpu_stage(GpuStage stage, double ms, uint64_t frame_idx) {
     // Completion handlers fire on Metal's threads, after the frame's CPU
     // record. Correlate by frame index, never by arrival order.
@@ -426,6 +436,9 @@ void init_from_env() {
     // one-off run, not from a metrics capture.
     if (const char* r = std::getenv("LOGOSPHERE_PHYS_RESIDUAL")) {
         if (*r && *r != '0') set_residual_enabled(true);
+    }
+    if (const char* s = std::getenv("LOGOSPHERE_PHYS_SHUFFLE")) {
+        set_constraint_shuffle_seed((uint32_t)strtoul(s, nullptr, 10));
     }
 
     const char* path = std::getenv("LOGOSPHERE_METRICS");

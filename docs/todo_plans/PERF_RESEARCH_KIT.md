@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S24 | Is constraint order load-bearing? (S19's question) | NO, on one scene. Four permutations agree on the residual to every digit against a zero noise floor, while their positions diverge. Parallelism, islands, SoA and sorting reopen IF it widens. Also: the natural order is measurably worse than an arbitrary one. |
 | S23 | Can we measure whether the solve's ANSWER is good? | Yes, `SolveResidual`, and it took three wrong versions: velocity residual is blind to penetration by construction, a settled scene has zero solvable rows so the end-of-run sample reads nothing, and the published value outlived its engine. Peak penetration separates rungs the exit counters call identical: 0.68 mm to 2.12 mm. |
 | S22 | Can it be fixed without an edge case? | YES, one constant. The effective-mass divide-by-zero guard returned 1.0f for immovable pairs; the physically correct value is 0. Everything converges; no branch added. |
 | S21 | What actually blocks convergence? | A 2D tiled floor, and only in 2D: a 1x3 STRIP of immovable tiles converges, a 2x2 GRID never does. The phantom-impulse mechanism is necessary at most, not sufficient, and remains unisolated. |
@@ -1481,6 +1482,62 @@ residual. That is S19's actual question and the instrument for it now exists.
 
 ---
 
+### S24: order does NOT change the answer, on one scene (2026-08-02)
+
+S19's question, finally asked properly. `LOGOSPHERE_PHYS_SHUFFLE=<seed>` permutes
+constraint order deterministically before each solve;
+`tests/test_constraint_order_matters.cpp` runs a leaning six-box pile (offset so
+every contact couples to every other, giving order the best chance it will get).
+
+| run | peak pen | bottom z | sum z |
+|---|---|---|---|
+| A, no shuffle | 0.000821 | 0.599857 | 18.597842 |
+| A again, control | 0.000821 | 0.599857 | 18.597842 |
+| **NOISE FLOOR** | **0.000000** | 0.000000 | 0.000000 |
+| shuffled seed=1 | 0.000681 | 0.600000 | 18.599441 |
+| shuffled seed=7 | 0.000681 | 0.600000 | 18.599937 |
+| shuffled seed=12345 | 0.000681 | 0.600000 | 18.599884 |
+| shuffled seed=99991 | 0.000681 | 0.600000 | 18.599346 |
+| **SPREAD among shuffles** | **0.000000** | | 0.000591 |
+
+**Four different permutations agree on the residual to every printed digit**,
+against a same-input noise floor of exactly zero. Their POSITIONS differ
+(`sum z` spread 0.000591 m), which is both the chaos S19 warned about and the
+proof the lever engaged: if the shuffle had silently no-opped, positions would
+match too. This is why the verdict is taken on the residual and not on where the
+boxes landed, and it is the case S19 assumed was impossible.
+
+**SCOPE, stated because it is the whole risk here.** One scene, six boxes, one
+solver configuration. Not Eden at 19,000 particles. If it holds when widened,
+parallelism, islands, SoA and contact sorting all reopen, and physics is the
+engine's scaling limit. One scene is a lead, not a finding.
+
+**Separate observation, not part of the verdict:** the natural order is not
+neutral. Every shuffle landed on 0.000681 m and the unshuffled run on 0.000821 m,
+with the bottom box at 0.599857 against an exact 0.600000. **Whatever ordering
+contact generation emits is slightly WORSE here than an arbitrary one.** Unchased.
+
+**Two ways this nearly produced a wrong answer:**
+
+1. **The statistic did not match the sentence.** The first verdict compared every
+   shuffle against the UNSHUFFLED run and announced order was load-bearing, on
+   data showing four orders agreeing exactly. "Is order load-bearing" means "do
+   different orders disagree with each other", so the statistic is the spread
+   AMONG shuffles. Comparing to the natural order answers a different question.
+   It also divided by a zero noise floor and printed "a factor of 0.0".
+2. **The lever corrupted an index-keyed cache.** `warm_started_impulses` is keyed
+   by constraint INDEX, filled before the solve and read back after to update the
+   impulse cache. Shuffling between those points files one pair's equilibrium
+   impulse under another pair's key. The first placement sat just above the
+   iteration loop and did exactly that, so the experiment measured "shuffle plus
+   a broken warm start". Moving the shuffle above warm starting fixed it; the
+   headline survived, the position numbers moved.
+
+Characterization unchanged at `16af12523829b082` (seed 0 does not touch the
+array), guards 19 pass / 0 fail.
+
+---
+
 ## Open threads
 
 **Physics, reopened by S22.** The solver converges as of `4e773ec`. Everything
@@ -1490,12 +1547,17 @@ below was closed or shaped by the belief that it never does.
   SoA and constraint sorting on the premise that order is load-bearing because
   the solve never settles. The premise is gone. ~~Needed first is a metric that
   reports how far from satisfied the constraint set is~~ **THE METRIC NOW EXISTS**
-  (S23, `telemetry::SolveResidual`, `LOGOSPHERE_PHYS_RESIDUAL=1`). What remains
-  is the experiment itself: shuffle constraint order, hold everything else, and
-  see whether peak penetration moves. Note the confound S19 already identified,
-  which has not gone away: a settling pile is chaotic, so positions diverge under
-  any perturbation and prove nothing. The residual is a scalar summary and may
-  survive that where positions cannot.
+  (S23) ~~What remains is the experiment itself~~ **DONE, S24: order does not
+  change the residual on a leaning six-box pile.** What remains is WIDTH. One
+  scene is not a finding, and the scenes that matter are the ones with deep
+  contact chains and many islands, where sequential impulse has the most room to
+  stop somewhere order-dependent. Widen to the battery (below) and to Eden before
+  acting. If it holds, parallelism, islands, SoA and sorting are all back on the
+  table for the engine's actual scaling limit.
+- **The natural constraint order is measurably worse than a random one** (S24:
+  0.000821 m against 0.000681 m, and the bottom box lands at 0.599857 instead of
+  an exact 0.600000). Whatever ordering contact generation happens to emit is not
+  neutral. Small, real, and unexplained.
 - **The wasted rows are harmless, not absent.** ~26 constraint rows per floor
   tile are still built and solved between pairs that can never move. Skipping
   GENERATION for zero-inverse-mass pairs is the performance half of S22 and

@@ -1581,9 +1581,48 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     constexpr int MIN_ITERATIONS = 6;              // At least 6 iterations before considering early stop
     constexpr int PLATEAU_CONFIRM = 3;             // Need 3 consecutive low-improvement iters
 
+    // NOTE ON PLACEMENT: this runs BEFORE warm starting, and it must.
+    // `warm_started_impulses` below is keyed by constraint INDEX and read back
+    // after the solve to update the impulse cache. Permuting between those two
+    // points files one pair's equilibrium impulse under another pair's key,
+    // which corrupts warm starting across frames. The first version of this
+    // lever sat just above the iteration loop and did exactly that, so the
+    // experiment was measuring "shuffle plus a broken cache" and its numbers
+    // were confounded. Shuffle first, then let every index-keyed structure be
+    // built on the order that will actually be solved.
+    // ====================================================================
+    // EXPERIMENT LEVER: permute constraint order (LOGOSPHERE_PHYS_SHUFFLE)
+    // ====================================================================
+    // Sequential impulse is Gauss-Seidel: every row is applied against
+    // velocities the rows before it already changed, so ORDER is part of the
+    // computation. Whether it is part of the ANSWER is the open question S19
+    // tried and failed to settle, having closed parallelism, islands, SoA and
+    // sorting on the strength of it.
+    //
+    // The only honest way to ask is to change nothing but the order and see
+    // whether the residual moves. Deterministic on the seed, so a run repeats
+    // exactly and an A-vs-A control is possible; seed 0 (the default) does not
+    // shuffle and does not touch the array.
+    //
+    // NOT AN OPTIMISATION AND NOT A FIX. This exists to be measured with and
+    // then turned off. Reordering as a shipped change would need the answer
+    // this lever is for.
+    if (const uint32_t seed = ::logosphere::telemetry::constraint_shuffle_seed()) {
+        // xorshift32, inline and self-contained: the experiment must not depend
+        // on a library RNG whose sequence could change under us.
+        uint32_t s = seed;
+        auto next = [&s]() { s ^= s << 13; s ^= s >> 17; s ^= s << 5; return s; };
+        for (size_t i = constraints.size(); i > 1; --i) {
+            std::swap(constraints[i - 1], constraints[next() % i]);
+        }
+        PHYS_TRACE(::logosphere::phystrace::Solve, "shuffle", (int)seed,
+                   (int)constraints.size(), "constraint_order_permuted",
+                   (double)seed, (double)constraints.size());
+    }
+
     // ========================================================================
     // V4.3: WARM STARTING - Apply cached impulses from previous frame
-    // ========================================================================
+    //
     // Resting contacts have stable equilibrium impulse. Start there instead
     // of rediscovering from scratch (which causes overshoot → oscillation).
     // ========================================================================

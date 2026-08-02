@@ -352,6 +352,19 @@ bool          residual_enabled();
 void          record_solve_residual(const SolveResidual& r);
 SolveResidual solve_residual();   // most recent solve
 
+// EXPERIMENT LEVER, not a setting. Non-zero permutes constraint order before
+// each solve, deterministically on the seed, so the same seed reproduces
+// exactly and an A-vs-A control is possible. 0 (default) does not shuffle and
+// does not touch the array.
+//
+// It exists to answer one question: sequential impulse applies each row against
+// velocities the earlier rows already changed, so order is part of the
+// COMPUTATION, but is it part of the ANSWER? S19 assumed yes and closed
+// parallelism, islands, SoA and sorting on it. Pair this with the residual and
+// measure instead of assuming. LOGOSPHERE_PHYS_SHUFFLE=<seed>.
+void     set_constraint_shuffle_seed(uint32_t seed);
+uint32_t constraint_shuffle_seed();
+
 // -----------------------------------------------------------------------------
 // Frame lifecycle + published snapshot
 // -----------------------------------------------------------------------------
