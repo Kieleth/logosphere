@@ -1102,7 +1102,7 @@ private:
             read_rgb(kg, seed, "cloth", spec.clothing_r, spec.clothing_g,
                      spec.clothing_b);
             kg.destroyEntity(seed);
-            // The proven rig recipe (test_humanoid_strata_walk): physics
+            // The proven rig recipe (test_humanoid_strata_integrity): physics
             // body, KG entity with body-part structure, locomotion
             // registration. floor_particle_id is dead API — pass -1.
             auto body = wg.get_humanoid_generator().generate_humanoid_physics(

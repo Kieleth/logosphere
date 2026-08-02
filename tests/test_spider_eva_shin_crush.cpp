@@ -13,7 +13,7 @@
 // This test is the WEDGE. It's intentionally minimal — no obstacles, no NPCs,
 // no trench, no look-at spin — so a failure points straight at the mechanism
 // that produces the crush, not at surrounding interactions. The broader
-// `test_humanoid_strata_walk` did not reproduce; the likely differentiator
+// `test_humanoid_strata_integrity` did not reproduce; the likely differentiator
 // is speed (3.3 m/s, above the 2 m/s walk target) + stride extension under
 // foot-planting IK.
 //

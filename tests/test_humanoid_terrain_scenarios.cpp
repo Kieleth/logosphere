@@ -1,7 +1,7 @@
 // One humanoid, one situation at a time, measured against the ground
 // the whole way.
 //
-// This replaces the way test_humanoid_strata_walk was being read. That
+// This replaces the way test_humanoid_strata_integrity was being read. That
 // test drives Eva AND several NPCs with identical velocity commands,
 // so they bunch and jam into each other; its cases claim to climb a
 // staircase and sprint 100 m, but she never leaves a 7 m box. It

@@ -1370,7 +1370,7 @@ add_executable(logosphere-physics-guards
     tests/test_strafe_sidestep_pattern.cpp
     tests/test_leg_shoot_out_during_rotation.cpp
     tests/test_idle_pose_stability.cpp
-    tests/test_humanoid_strata_walk.cpp
+    tests/test_humanoid_strata_integrity.cpp
     tests/test_spider_eva_shin_crush.cpp
     tests/test_joint_hierarchy_swap_integrity.cpp
     tests/test_reverse_leg_chain.cpp
@@ -1782,7 +1782,7 @@ set(TEST_SOURCES
     tests/test_layered_floor_v3.cpp              # PHYSICS: Sequential strata with settling
     tests/test_strata_generator.cpp              # WORLDGEN: Strata generator unit test
     tests/test_awake_onto_at_rest.cpp            # PHYSICS: minimal 2-particle stack trace
-    tests/test_humanoid_strata_walk.cpp          # PHYSICS: humanoid walks streaming strata w/ obstacles
+    tests/test_humanoid_strata_integrity.cpp     # PHYSICS: body stays assembled while strata stream (NOT locomotion)
     tests/test_spider_eva_shin_crush.cpp         # PHYSICS: wedge — l_shin<>l_thigh crush during SW walk
     tests/test_stance_foot_invariance.cpp        # PHYSICS: kinematic-root TDD wedge — stance foot stays on ground
     tests/test_walk_forward_progress.cpp         # PHYSICS: kinematic-root post-shift wedge — Eva walks forward as intended

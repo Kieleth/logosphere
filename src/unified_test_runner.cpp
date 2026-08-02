@@ -123,7 +123,7 @@ extern bool test_layered_floor_v2();  // PHYSICS: Frontier-based floor generatio
 extern bool test_layered_floor_v3();  // PHYSICS: Sequential strata with settling (STANDALONE)
 extern bool test_strata_generator();  // WORLDGEN: Strata generator unit test (STANDALONE)
 extern bool test_awake_onto_at_rest();  // PHYSICS: minimal 2-particle stack trace (STANDALONE)
-extern bool test_humanoid_strata_walk();  // PHYSICS: humanoid walks streaming strata (STANDALONE)
+extern bool test_humanoid_strata_integrity();  // PHYSICS: humanoid walks streaming strata (STANDALONE)
 extern bool test_spider_eva_shin_crush();  // PHYSICS: wedge — l_shin<>l_thigh crush during SW walk (STANDALONE)
 extern bool test_stance_foot_invariance();  // PHYSICS: kinematic-root TDD wedge — stance foot stays on ground (STANDALONE)
 extern bool test_walk_forward_progress();  // PHYSICS: kinematic-root post-shift wedge — Eva walks forward as intended (STANDALONE)
@@ -298,7 +298,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_layered_floor_v3"] = [](TestContext&) { return test_layered_floor_v3(); };  // PHYSICS: Sequential strata (STANDALONE)
     registry["test_strata_generator"] = [](TestContext&) { return test_strata_generator(); };  // WORLDGEN: Strata generator (STANDALONE)
     registry["test_awake_onto_at_rest"] = [](TestContext&) { return test_awake_onto_at_rest(); };  // PHYSICS: minimal 2-particle stack trace (STANDALONE)
-    registry["test_humanoid_strata_walk"] = [](TestContext&) { return test_humanoid_strata_walk(); };  // PHYSICS: humanoid walks streaming strata (STANDALONE)
+    registry["test_humanoid_strata_integrity"] = [](TestContext&) { return test_humanoid_strata_integrity(); };  // PHYSICS: humanoid walks streaming strata (STANDALONE)
     registry["test_spider_eva_shin_crush"] = [](TestContext&) { return test_spider_eva_shin_crush(); };  // PHYSICS: wedge — l_shin<>l_thigh crush during SW walk (STANDALONE)
     registry["test_stance_foot_invariance"] = [](TestContext&) { return test_stance_foot_invariance(); };  // PHYSICS: kinematic-root TDD wedge (STANDALONE)
     registry["test_walk_forward_progress"] = [](TestContext&) { return test_walk_forward_progress(); };  // PHYSICS: walk-forward wedge (STANDALONE)
@@ -616,7 +616,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_layered_floor_v3",
         "test_strata_generator",
         "test_awake_onto_at_rest",
-        "test_humanoid_strata_walk",
+        "test_humanoid_strata_integrity",
         "test_spider_eva_shin_crush",
         "test_stance_foot_invariance",
         "test_walk_forward_progress",
@@ -703,7 +703,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_layered_floor_v3", test_layered_floor_v3},
         {"test_strata_generator", test_strata_generator},
         {"test_awake_onto_at_rest", test_awake_onto_at_rest},
-        {"test_humanoid_strata_walk", test_humanoid_strata_walk},
+        {"test_humanoid_strata_integrity", test_humanoid_strata_integrity},
         {"test_spider_eva_shin_crush", test_spider_eva_shin_crush},
         {"test_stance_foot_invariance", test_stance_foot_invariance},
         {"test_walk_forward_progress", test_walk_forward_progress},
