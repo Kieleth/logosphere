@@ -69,6 +69,29 @@ enum class Counter : uint16_t {
     TrianglesBuilt,       // GPU lit triangles produced
     ShadowTrianglesBuilt,
     SurfaceCacheHit,      // particle geometry reused (did not move)
+    // Physics work counters. Added 2026-08-01: physics is O(n^1.38) and the
+    // sole scaling limit (S18), and there was not one physics counter in the
+    // engine. The render side's two biggest wins both came from COUNTING work
+    // rather than timing it.
+    PhysActiveBodies,     // bodies that reached contact detection: the denominator
+    PhysBvhCandidates,    // broad-phase candidates returned, summed over bodies.
+                          //   / PhysActiveBodies = mean neighbours. This is what
+                          //   separates "more bodies" from "denser pile".
+    PhysSolverRows,       // constraints entering the solve
+    PhysSolverIterations, // iterations actually run (early stop can cut it short)
+    // HOW THE SOLVE ENDED, and this is the decisive one. A sequential-impulse
+    // (Gauss-Seidel) solver applies each constraint against velocities already
+    // changed by the ones before it, so ORDER shapes the answer whenever the
+    // solve stops short. If it exits converged, remaining impulses are
+    // negligible and order is mostly a bit-pattern detail, which leaves
+    // reordering, islands, SoA and parallelism on the table. If it exits
+    // plateaued, the order is baked into the PHYSICS and every one of those is
+    // closed. Counting the exits answers that without a reordering experiment,
+    // which a settling pile would confound anyway: chaos amplifies any
+    // perturbation, so positions diverge in both worlds and prove nothing.
+    PhysSolveConverged,   // exited under ABSOLUTE_THRESHOLD: impulses negligible
+    PhysSolvePlateaued,   // exited on "more iterations won't help"
+    PhysSolveExhausted,   // ran the full iteration budget without either
     COUNT
 };
 

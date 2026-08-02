@@ -619,6 +619,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         if (pi.is_at_rest && pi.solver_mode != ParticleSolverMode::KINEMATIC) continue;
 
         debug_active_particles++;  // Count particles actually processed
+        LOGO_COUNT(::logosphere::telemetry::Counter::PhysActiveBodies);
 
         // Particle i AABB (using predicted Z)
         // Particle dimensions: width=X, height=Y, thickness=Z
@@ -643,6 +644,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
         debug_bvh_queries++;
         debug_total_candidates += candidates.size();
+        LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysBvhCandidates, candidates.size());
 
         for (int candidate : candidates) {
             size_t j = static_cast<size_t>(candidate);
@@ -1840,6 +1842,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
     }
 
+    bool solve_exit_recorded = false;   // which door the iteration loop took
+
+    // Rows entering the solve, counted ONCE. iterations x rows is the true
+    // solver work unit; counting rows per iteration would conflate the two.
+    LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverRows, constraints.size());
+
     for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
         float max_impulse_this_iter = 0.0f;
         actual_iterations = iter + 1;
@@ -2129,6 +2137,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // 1. Absolute threshold: impulses are negligible
         constexpr float ABSOLUTE_THRESHOLD = 0.01f;
         if (max_impulse_this_iter < ABSOLUTE_THRESHOLD) {
+            LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
+            solve_exit_recorded = true;
             break;
         }
 
@@ -2138,6 +2148,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             if (improvement < MIN_IMPROVEMENT_RATE) {
                 low_improvement_count++;
                 if (low_improvement_count >= PLATEAU_CONFIRM) {
+                    LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolvePlateaued);
+                    solve_exit_recorded = true;
                     break;  // Plateaued - more iterations won't help
                 }
             } else {
@@ -2146,6 +2158,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
         prev_max_impulse = max_impulse_this_iter;
     }
+
+    // Neither door taken: the full budget ran without converging or plateauing.
+    if (!solve_exit_recorded) {
+        LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveExhausted);
+    }
+    LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverIterations,
+                 (uint64_t)actual_iterations);
 
     // CANARY_DEBUG: Summary after solver
     if (canary_active) {

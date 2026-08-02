@@ -21,6 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S19 | Is constraint order load-bearing, or only a bit pattern? | LOAD-BEARING. The solver plateaus on every substep of every frame and has never once converged, so parallelism, islands, SoA and sorting are all closed. |
 | S18 | Where does the engine stop holding 60 FPS, and why? | 3-4k bodies. Render is flat at 2.7 us/body; `apply_all_forces` is 98% of physics and scales O(n^1.38). |
 | S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. Shipped LOD 1 + smooth as default; LOD 2 kept as a quality setting because it still casts better SHADOWS (rays hit real triangles). |
 | S16 | What does an LOD switch cost? | 3.94 ms more GPU work: refit 1.87 to build 5.81. accel_build is the LARGEST GPU stage and was never recorded until now. |
@@ -990,6 +991,70 @@ broad-phase-pair counters before designing anything.**
 Note there are still NO physics counters at all: not a contact count, not a
 broad-phase pair count, not a solver iteration count. The render side's biggest
 wins (S10, S11) both came from counting work rather than timing it.
+
+### S19: the solver NEVER converges, so constraint order is load-bearing (2026-08-01)
+
+Seven physics counters added, the first in the engine. The decisive one records
+which door the solver's iteration loop takes: converged (impulses under
+`ABSOLUTE_THRESHOLD`) or plateaued ("more iterations won't help") or exhausted
+(full budget). Counters are integer increments and the characterization checksum
+is unchanged (`7b597182f47cffed`), so they are provably behaviour-neutral.
+
+| bodies | converged | **plateaued** | exhausted |
+|---|---|---|---|
+| 2,000 | 0 | **4** | 0 |
+| 6,000 | 0 | **4** | 0 |
+| 10,000 | 0 | **4** | 0 |
+| 14,000 | 0 | **4** | 0 |
+
+`SOLVER_SUBSTEPS = 4`. So the plateau exit fires on EVERY substep of EVERY
+frame, and the converged exit has never once fired at any body count. **The
+solve always stops short of equilibrium.**
+
+**What that decides.** This is a sequential-impulse (Gauss-Seidel) solver: each
+constraint is applied against velocities already modified by the constraints
+before it. When the solve reaches equilibrium the order is a bit-pattern detail.
+When it stops short, the order is baked into the PHYSICAL answer. It always
+stops short. Therefore **constraint order is load-bearing, and sorting, batching,
+islanding, SoA and any parallel solve are closed** as optimisation routes. They
+would not merely move the checksum, they would change the simulation.
+
+**Why this was measured instead of experimented on.** The obvious test (reorder
+constraints, compare positions under tolerance) is confounded: a settling pile
+is chaotic, so a single last-bit difference diverges visibly over 150 frames
+whether or not the solver converges equivalently. That experiment returns
+"different" in both worlds and proves nothing. Two counters answer it directly
+and cost nothing.
+
+**And the n^1.38 decomposes.** Across 2,000 to 14,000 bodies:
+
+| | 2,000 | 14,000 | factor | reading |
+|---|---|---|---|---|
+| constraints per body | 1.70 | 3.48 | 2.05x | the pile densifies; not just more bodies |
+| iterations per solve | 23.5 | 13.1 | **0.56x** | it gives up SOONER as it grows |
+| solver work, rows x iters | 409,558 | 916,604 | 2.24x | |
+| `phys_forces` | 14.12 ms | 50.05 ms | 3.54x | |
+| ns per row-iteration | 34.5 | 54.6 | **1.58x** | memory, not algorithm |
+| broad-phase candidates per body | 1.0 | 3.4 | 3.4x | |
+
+So the superlinearity is roughly 2.05x from a denser pile times 1.58x from each
+row getting more expensive, and the falling iteration count is masking part of
+it. **The engine is not doing more work per unit of quality as it scales; it is
+doing more work AND accepting worse answers.** Iterations per solve falling from
+23.5 to 13.1 means the plateau detector is firing earlier in bigger piles, which
+is a quality regression hiding inside a performance measurement.
+
+**Where the remaining levers are, now that parallelism is closed:**
+1. **Fewer constraints.** Constraints per body doubling is the single largest
+   term. Broad-phase candidates per body also more than tripled, so some of it
+   is pair generation rather than genuine contacts.
+2. **Cheaper rows.** 1.58x per row-iteration at constant algorithm is cache
+   behaviour on a growing working set, which is a data-layout problem the
+   refactor can address without touching order.
+3. **Convergence quality.** The plateau threshold is being hit at 13 iterations
+   out of a 32 budget. Whether that is the right trade at scale has never been
+   examined, and it interacts with the gluon distance constraint stalling at
+   0.0813 m against a 0.03 m budget (its own known red).
 
 ---
 

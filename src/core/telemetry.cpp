@@ -98,6 +98,13 @@ const char* name_of(Counter c) {
         case Counter::TrianglesBuilt:        return "triangles_built";
         case Counter::ShadowTrianglesBuilt:  return "shadow_triangles_built";
         case Counter::SurfaceCacheHit:       return "surface_cache_hit";
+        case Counter::PhysActiveBodies:      return "phys_active_bodies";
+        case Counter::PhysBvhCandidates:     return "phys_bvh_candidates";
+        case Counter::PhysSolverRows:        return "phys_solver_rows";
+        case Counter::PhysSolverIterations:  return "phys_solver_iterations";
+        case Counter::PhysSolveConverged:    return "phys_solve_converged";
+        case Counter::PhysSolvePlateaued:    return "phys_solve_plateaued";
+        case Counter::PhysSolveExhausted:    return "phys_solve_exhausted";
         default:                        return "?";
     }
 }
