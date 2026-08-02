@@ -177,6 +177,19 @@ set(LOGOSPHERE_CORE_SOURCES
     # their guards run on the Linux CI profile.
     src/npc-ai/goap_system.cpp
     src/npc-ai/pathfinding_system.cpp
+    # The execution layer: a plan of action NAMES becomes movement.
+    # Pure std like the planner above (cmath/iostream/random/sstream), so
+    # it belongs here rather than only in the full engine build, where the
+    # Linux CI lane never saw it.
+    src/npc-ai/executor_registry.cpp
+    src/npc-ai/goap_plan_executor.cpp
+    src/npc-ai/executors/pursue_executor.cpp
+    src/npc-ai/executors/eat_executor.cpp
+    src/npc-ai/executors/scan_executor.cpp
+    src/npc-ai/executors/investigate_smell_executor.cpp
+    src/npc-ai/executors/escape_block_executor.cpp
+    src/npc-ai/executors/give_up_executor.cpp
+    src/npc-ai/executors/grab_prey_executor.cpp
 )
 
 # ============================================================================
@@ -333,6 +346,7 @@ add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_contact_producer)
 add_headless_test(test_contact_bounce)
+add_headless_test(test_goap_executors)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
 add_headless_test(test_iso_camera_centering)
