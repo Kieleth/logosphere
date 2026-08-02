@@ -369,9 +369,28 @@ public:
     //   nail->target_distance = 0.0f;
     //   size_t hanging_id = physics->add_particle_with_gluon_to(beam_id, hanging_particle, std::move(nail));
     //
+    // `use_config_position`: keep particle_b_config's OWN x/y/z instead of
+    // deriving a position from the gluon offsets.
+    //
+    // The default (false) places B so the two anchor points coincide:
+    // B = A + offset_a - offset_b. That is right when the caller has no opinion
+    // about where B goes and wants the bond to decide it.
+    //
+    // It is WRONG, silently and destructively, when the caller has already
+    // worked out a position, because this overwrites it. Issue #38: the tree
+    // generator ran a 30-attempt non-overlapping placement search for every
+    // leaf, and this function then discarded the result and put every leaf on a
+    // branch at the SAME point (offset_a = branch tip, offset_b = 0). Branches
+    // too: their offset_a runs along world +Z, so an angled parent's child
+    // landed nowhere near the tip the generator had computed. 381 of a single
+    // tree's body pairs were created at the same position, and the solver then
+    // ejected them at over 3 m/s.
+    //
+    // If you have placed the particle yourself, pass true.
     size_t add_particle_with_gluon_to(size_t particle_a_id,
                                        const Particle& particle_b_config,
-                                       std::unique_ptr<GluonConstraintBase> gluon);
+                                       std::unique_ptr<GluonConstraintBase> gluon,
+                                       bool use_config_position = false);
 
     // Add gluon between two EXISTING particles
     // Use when both particles already exist (e.g., connecting right leg to hips)

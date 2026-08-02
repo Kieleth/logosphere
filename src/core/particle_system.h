@@ -189,6 +189,21 @@ public:
     // gap: minimum separation between particle surfaces (default 2cm for physics stability)
     bool can_place_at(float x, float y, float z, float w, float h, float t, float gap = 0.02f) const;
 
+    // Same question, but ignoring one body: the thing this one is about to be
+    // BONDED to. A child branch is meant to touch its parent end to end, so
+    // counting the parent as a collision would reject every legal structure.
+    // `ignore_id` is that parent; pass -1 for none.
+    //
+    // Exists because branches were never collision-checked at all (issue #38).
+    // Leaves had try_place_with_retry; branches were placed structurally and
+    // whatever they grew into was simply left overlapping for the solver to
+    // find, which it does, by throwing them apart.
+    // `facing_angle` widens the proposed box to its rotated bound, so a turned
+    // particle is not measured as if it were axis-aligned. Existing bodies are
+    // widened by their own facing_angle automatically.
+    bool can_place_at_ignoring(float x, float y, float z, float w, float h, float t,
+                               float gap, int ignore_id, float facing_angle = 0.0f) const;
+
     // Try to place a particle with retry. Jitters position if overlap detected.
     // Returns true if placement succeeded, false if all attempts failed.
     // On success, particle position is updated to valid location.

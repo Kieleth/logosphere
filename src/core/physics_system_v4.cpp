@@ -3219,7 +3219,8 @@ Force* PhysicsSystem::get_force(size_t index) {
 size_t PhysicsSystem::add_particle_with_gluon_to(
     size_t particle_a_id,
     const Particle& particle_b_config,
-    std::unique_ptr<GluonConstraintBase> gluon)
+    std::unique_ptr<GluonConstraintBase> gluon,
+    bool use_config_position)
 {
     if (!is_initialized_ || !gluon) {
         return static_cast<size_t>(-1);
@@ -3228,11 +3229,16 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     // Get particle A's position (thread-safe copy)
     Particle pa = particle_system_->get_particle_copy(particle_a_id);
 
-    // Position B relative to A using offsets
+    // Position B relative to A using offsets, UNLESS the caller has already
+    // placed it. See the header for why that distinction matters: overwriting a
+    // deliberate placement is issue #38, where a non-overlapping search ran for
+    // every leaf and its answer was discarded one call later.
     Particle pb = particle_b_config;
-    pb.x = pa.x + gluon->offset_a.x - gluon->offset_b.x;
-    pb.y = pa.y + gluon->offset_a.y - gluon->offset_b.y;
-    pb.z = pa.z + gluon->offset_a.z - gluon->offset_b.z;
+    if (!use_config_position) {
+        pb.x = pa.x + gluon->offset_a.x - gluon->offset_b.x;
+        pb.y = pa.y + gluon->offset_a.y - gluon->offset_b.y;
+        pb.z = pa.z + gluon->offset_a.z - gluon->offset_b.z;
+    }
 
     // Add particle B
     size_t particle_b_id = particle_system_->add_particle(pb);

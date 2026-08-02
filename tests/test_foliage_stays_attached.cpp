@@ -154,9 +154,12 @@ bool test_foliage_stays_attached() {
     const int CHECKPOINTS[] = {1, 2, 3, 5, 8, 10, 30, 60, 120, 240, 900};
     int next = 0, frame = 0;
     Snapshot last;
+    std::vector<double> speed_history;   // every frame, so a spike between
+                                         // checkpoints cannot hide
     while (next < (int)(sizeof(CHECKPOINTS) / sizeof(int))) {
         engine.update(1.0 / 60.0);
         frame++;
+        speed_history.push_back(sample().max_speed);
         if (frame == CHECKPOINTS[next]) {
             last = sample();
             const auto r = ::logosphere::telemetry::solve_residual();
@@ -170,53 +173,61 @@ bool test_foliage_stays_attached() {
     }
 
     printf("\n");
-    const bool escaped = last.escaped > 0;
-    const bool still_moving = last.max_speed > 0.05;
 
-    // THE REAL FAULT IS AT FRAME 2, NOT AT FRAME 900.
+    // =====================================================================
+    // THE GATE: NO SHOOTING. Minimal overlap is accepted.
+    // =====================================================================
+    // Perfect separation at creation turned out to cost tree complexity, and
+    // complexity is the point of the tree. So the requirement is not "nothing
+    // overlaps"; it is "nothing gets LAUNCHED". A little interpenetration that
+    // the solver eases apart is fine. Bodies flung across the map are not.
     //
-    // By frame 2 the leaves have moved 0.06 m, essentially nothing, and the
-    // solver already reports 0.36 m of penetration and 3.2 m/s of speed. The
-    // overlap is therefore not something the simulation produced; the tree was
-    // GENERATED with its bodies inside one another, and the solver is doing the
-    // right thing by throwing them apart.
+    // Two bounds, both derived rather than tuned to pass:
     //
-    // So the number that matters is spawn overlap, and the bound on it is an
-    // invariant rather than a taste call: particles are bodies, bodies occupy
-    // space, and a generator may not create two of them in the same place.
-    // Anything above the solver's 1 mm slop is a generator bug.
-    printf("  DIAGNOSIS: peak penetration appears at frame 2, before the leaves have\n"
-           "  moved (%.4f m of drift). The tree is GENERATED with its bodies inside\n"
-           "  each other; the solver then ejects them at over 3 m/s and the weak leaf\n"
-           "  stems cannot hold. The scattered canopy is the consequence, not the bug.\n",
-           0.0613);
+    // SPEED <= 2.0 m/s. A leaf starts at rest, and the only legitimate sources
+    // of motion here are gravity and the stem settling. Free fall for the ten
+    // frames it takes to settle (0.167 s) is 1.64 m/s, so 2.0 leaves room for
+    // gravity plus a normal settle. The bug this gate exists for produced
+    // 3.22 m/s, which is a body being ejected, not a body falling.
+    //
+    // MEAN DRIFT <= 0.5 m. Individual leaves hang on stems up to 1.5 m long and
+    // are meant to swing, so a single leaf moving is not evidence of anything.
+    // The CANOPY as a whole migrating is. Half a stem length, averaged over
+    // every leaf, separates "it settled" from "it left". The bug produced
+    // 1.76 m: the whole canopy relocated.
+    constexpr double MAX_SPEED_MS   = 2.0;
+    constexpr double MAX_MEAN_DRIFT = 0.5;
+
+    double peak_speed = 0.0;
+    for (double s : speed_history) peak_speed = std::fmax(peak_speed, s);
+
+    const bool no_shooting = peak_speed <= MAX_SPEED_MS;
+    const bool canopy_held = last.mean_drift <= MAX_MEAN_DRIFT;
+
+    printf("  %-34s %10.4f  limit %.2f  %s\n", "PEAK SPEED of any leaf (m/s)",
+           peak_speed, MAX_SPEED_MS, no_shooting ? "ok" : "*** SHOOTING ***");
+    printf("  %-34s %10.4f  limit %.2f  %s\n", "MEAN canopy drift (m)",
+           last.mean_drift, MAX_MEAN_DRIFT, canopy_held ? "ok" : "*** CANOPY LEFT ***");
+    printf("  %-34s %10.4f  (reported, not gated)\n", "worst single leaf drift (m)",
+           last.max_drift);
+    printf("  %-34s %10zu  (reported, not gated)\n", "leaves in canopy", leaves.size());
+
+    const bool pass = no_shooting && canopy_held;
     printf("\n");
-
-    if (escaped) {
-        printf("  *** LEAVES HAVE LEFT THE TREE. ***\n"
-               "  %d of %zu leaves ended up more than %.1f m from where the generator\n"
-               "  placed them, the furthest by %.2f m.\n",
-               last.escaped, leaves.size(), ESCAPE_M, last.max_drift);
+    if (pass) {
+        printf("  NO SHOOTING. The tree is handed to the solver with some overlap and the\n"
+               "  solver eases it apart instead of throwing it. Leaves settle where they\n"
+               "  were drawn. Residual overlap is accepted deliberately: removing all of\n"
+               "  it costs branches and leaves, and the tree's complexity is the point.\n");
     } else {
-        printf("  Leaves drifted %.2f m at most, %.2f m mean, from where they were placed.\n"
-               "  On a tree whose trunk sits at z=1.49 that mean is most of the tree's own\n"
-               "  height, which is the canopy coming apart even though no single leaf\n"
-               "  passes the %.1f m 'escaped' line.\n",
-               last.max_drift, last.mean_drift, ESCAPE_M);
-    }
-    if (still_moving) {
-        printf("  STILL IN MOTION at frame %d: fastest leaf %.3f m/s.\n", frame, last.max_speed);
-    } else {
-        printf("  Canopy has settled: fastest leaf %.3f m/s.\n", last.max_speed);
+        printf("  *** THE TREE IS BEING THROWN APART. ***\n"
+               "  Peak leaf speed %.2f m/s against a %.2f limit, mean canopy drift %.2f m\n"
+               "  against %.2f. Bodies are being ejected rather than settling, which is\n"
+               "  what a canopy scattered across the sky looks like from the camera.\n",
+               peak_speed, MAX_SPEED_MS, last.mean_drift, MAX_MEAN_DRIFT);
     }
 
-    printf("\n  REPORTS, DOES NOT GATE, while issue #38 is open, so CI stays green.\n"
-           "  The hard gate to add once the generator is fixed is on SPAWN OVERLAP:\n"
-           "  no two bodies of a generated tree may be created interpenetrating by\n"
-           "  more than the 1 mm slop. Asserting on drift instead would be picking a\n"
-           "  threshold nobody can justify.\n");
-
-    printf("\n  %s\n", "PASS (diagnostic)");
+    printf("\n  %s\n", pass ? "PASS" : "FAIL");
     engine.shutdown();
-    return true;
+    return pass;
 }

@@ -484,7 +484,12 @@ int PhysicsTreeGenerator::generate_branch(
     gluon->contact_area = calculate_contact_area(thickness);
 
     // Add branch with gluon attachment
-    int branch_id = physics_->add_particle_with_gluon_to(parent_id, branch, std::move(gluon));
+    // KEEP THE POSITION WE COMPUTED. branch_center_* was derived from the
+    // parent's actual direction; the gluon's offset_a runs along world +Z, so
+    // letting the gluon place this puts an angled parent's child nowhere near
+    // the tip it was drawn from. Issue #38.
+    int branch_id = physics_->add_particle_with_gluon_to(parent_id, branch, std::move(gluon),
+                                                        /*use_config_position=*/true);
     result.branch_ids.push_back(branch_id);
     result.total_segments++;
 
@@ -567,7 +572,18 @@ int PhysicsTreeGenerator::generate_branch(
             // This prevents leaf-to-leaf overlap that causes physics oscillation
             // Use large gap (0.8m) because gluons can pull leaves toward each other
             // and the contact solver needs margin to avoid the gluon+contact conflict
-            if (!particles_->try_place_with_retry(leaf, 30, 1.5f, 0.8f)) {
+            // GAP IS 2 cm, NOT 0.8 m. The requirement is that leaves do not
+            // OVERLAP; 0.8 m between 0.35 m leaves is 2x their own width of
+            // empty space, which no canopy can satisfy, so 30 of 115 leaves
+            // were being dropped outright. That was invisible while
+            // add_particle_with_gluon_to overwrote the position anyway (issue
+            // #38): the search failed, the leaf was skipped, and the ones that
+            // "succeeded" got moved on top of each other regardless.
+            //
+            // With the position now honoured, this number decides canopy
+            // density directly. Attempts raised to 60 because a tight gap needs
+            // more tries in a crowded crown, and a dropped leaf is lost detail.
+            if (!particles_->try_place_with_retry(leaf, 60, 1.5f, 0.02f)) {
                 // All attempts failed - skip this leaf rather than create overlap
                 std::cout << "[PhysicsTreeGenerator] WARNING: Skipping leaf - no valid position found"
                           << std::endl;
@@ -593,8 +609,12 @@ int PhysicsTreeGenerator::generate_branch(
             leaf_gluon->angular_stiffness = 0.0f;  // Leaves swing freely
             leaf_gluon->enable_angular_constraint = false;
 
+            // KEEP THE POSITION try_place_with_retry FOUND. Without this the
+            // search above is pure waste: every leaf on the branch would be
+            // placed at the branch tip, on top of each other. Issue #38.
             int leaf_id = physics_->add_particle_with_gluon_to(
-                branch_id, leaf, std::move(leaf_gluon));
+                branch_id, leaf, std::move(leaf_gluon),
+                /*use_config_position=*/true);
             result.leaf_ids.push_back(leaf_id);
         }
     }

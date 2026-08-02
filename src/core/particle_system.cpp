@@ -1031,24 +1031,48 @@ ParticleSystem::ParticleSnapshot ParticleSystem::get_particle_snapshot(int parti
 bool ParticleSystem::can_place_at(float x, float y, float z,
                                    float w, float h, float t,
                                    float gap) const {
+    return can_place_at_ignoring(x, y, z, w, h, t, gap, -1, 0.0f);
+}
+
+bool ParticleSystem::can_place_at_ignoring(float x, float y, float z,
+                                   float w, float h, float t,
+                                   float gap, int ignore_id, float facing_angle) const {
     // Lock for thread-safe read access
     auto particles_view = lock_particles_for_read();
 
-    // Proposed box half-extents
-    float half_w = w * 0.5f;
-    float half_h = h * 0.5f;
+    // Proposed box half-extents, WIDENED FOR ROTATION.
+    //
+    // This used to take width/height as-is, which silently under-measures any
+    // particle that is turned. A leaf is a thin plate 0.35 x 0.245 m with a
+    // random facing_angle: rotate it a quarter turn and its true reach along Y
+    // is 0.35, not the 0.245 this was comparing. Overlaps were therefore missed
+    // at creation and found later by the solver, which resolves them the only
+    // way it can, by pushing (issue #38, leaf pairs 73-80 and 74-81 at 6 cm).
+    //
+    // The standard conservative bound for a box turned by theta about Z:
+    //   ex = hx|cos| + hy|sin|,  ey = hx|sin| + hy|cos|
+    // It never under-estimates, so a pass here is a real pass. It can
+    // over-estimate for a rotated box, which costs a retry, never a miss.
+    const float ca = std::fabs(std::cos(facing_angle));
+    const float sa = std::fabs(std::sin(facing_angle));
+    float half_w = (w * 0.5f) * ca + (h * 0.5f) * sa;
+    float half_h = (w * 0.5f) * sa + (h * 0.5f) * ca;
     float half_t = t * 0.5f;
 
     // Check against all existing particles (skip lights - they don't collide)
     for (size_t i = 0; i < particles_view.size(); ++i) {
         const Particle& p = particles_view[i];
         if (p.is_light_source) continue;
+        if (ignore_id >= 0 && i == (size_t)ignore_id) continue;   // the body we bond to
 
         // Get existing particle's half-extents
         float p_half_w, p_half_h, p_half_t;
         if (p.shape == ParticleShape::BOX) {
-            p_half_w = p.width * 0.5f;
-            p_half_h = p.height * 0.5f;
+            // Same rotation widening for the body already in the world.
+            const float pca = std::fabs(std::cos(p.facing_angle));
+            const float psa = std::fabs(std::sin(p.facing_angle));
+            p_half_w = (p.width * 0.5f) * pca + (p.height * 0.5f) * psa;
+            p_half_h = (p.width * 0.5f) * psa + (p.height * 0.5f) * pca;
             p_half_t = p.thickness * 0.5f;
         } else {
             // Cube/sphere: use size for all dimensions
@@ -1091,7 +1115,8 @@ bool ParticleSystem::try_place_with_retry(Particle& particle, int max_attempts, 
     float orig_z = particle.z;
 
     // Try original position first
-    if (can_place_at(particle.x, particle.y, particle.z, w, h, t, gap)) {
+    if (can_place_at_ignoring(particle.x, particle.y, particle.z, w, h, t, gap, -1,
+                              particle.facing_angle)) {
         return true;
     }
 
@@ -1123,7 +1148,8 @@ bool ParticleSystem::try_place_with_retry(Particle& particle, int max_attempts, 
             particle.z = t * 0.5f;
         }
 
-        if (can_place_at(particle.x, particle.y, particle.z, w, h, t, gap)) {
+        if (can_place_at_ignoring(particle.x, particle.y, particle.z, w, h, t, gap, -1,
+                                  particle.facing_angle)) {
             return true;
         }
     }
