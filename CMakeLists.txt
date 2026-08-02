@@ -291,6 +291,7 @@ function(add_headless_test name)
 endfunction()
 
 add_headless_test(test_goap_planner)  # the NPC planner, previously untested
+add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untested
 add_headless_test(test_event_log)
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
