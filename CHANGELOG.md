@@ -269,6 +269,23 @@ ships today.
   games live in `examples/`; `find_package(logosphere)` consumption
   is the first post-release packaging milestone.
 
+- A humanoid crossing a step snaps up or down it in a single frame
+  instead of climbing. `step_climb.boost` sets a 3.93 m/s climb
+  velocity that `shape.ground_correct` cancels on the same frame,
+  every frame, and the height change is finally applied as a one-frame
+  ground snap at the edge. Because the foot is planted while the hips
+  jump, the leg visibly pops at the knee: hips-to-foot distance changes
+  0.26 to 0.35 m in one frame. Documented as known-red smoothness
+  checks in `test_humanoid_terrain_scenarios` (issue #30).
+- A walking humanoid is not stopped by a wall taller than she can
+  step onto. Animation writes the hips through the face, and once she
+  is inside, the depenetration pushes from every wall tile she
+  overlaps sum and drive her deeper, reaching more tiles: measured
+  0.73, 1.16, 3.07, 3.73 m in consecutive frames, ending past the far
+  side of a 12 m wall and below z = 0. Documented as a known-red
+  scenario in `test_humanoid_terrain_scenarios`, which reports it on
+  every run without gating; it flips to gating when the fix lands
+  (issue #29).
 - A heavy boulder impact on layered ground can ripple outward into
   an oversized explosion of tiles. Physics work in progress; the
   crater contract (local splash, far field still, bedrock intact)

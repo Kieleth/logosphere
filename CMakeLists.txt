@@ -361,6 +361,7 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_orbit_performance)  # orbit frame-cost study + post-orbit ratchet
     add_engine_at(test_ontology_levers)  # KG levers reach the bodies (issue #8)
     add_engine_at(test_ground_locator)  # placement asks the world, never assumes z
+    add_engine_at(test_humanoid_terrain_scenarios)  # one walker, one feature at a time
     add_engine_at(test_butterfly_flight_liveliness)  # flight is alive and above real ground
     add_engine_at(test_leg_spin_on_rotation) # Eden playtest repro: legs spin when human rotates
     add_engine_at(test_face_tracks_head)     # Eden playtest repro: eyes/ears/nose ride the head's yaw

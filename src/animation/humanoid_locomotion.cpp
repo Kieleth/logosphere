@@ -4939,8 +4939,13 @@ void HumanoidLocomotion::apply_entity_gravity(
 
     // Query BVH for particles below the footprint
     // Look from below ground up to a reasonable height to find ANY supporting surface
-    const float GROUND_LEVEL = -1.0f;          // Search from below ground
-    const float MAX_SUPPORT_HEIGHT = 0.5f;     // Floor tiles are at z~0.2, always check up to here
+    // The search window follows the FOOT, not the world origin. It
+    // used to run from z = -1 up to at least z = 0.5 "because floor
+    // tiles are at z~0.2", which is true of a flat world and false of
+    // every other one: Eden's strata top out at 0.55, a plateau at
+    // 1.10, a small world's crust at 8. A walker on any of those was
+    // searching a window that did not contain the ground it stood on.
+    const float SEARCH_BELOW_FOOT = 2.0f;      // deep enough for a step down
     const float SUPPORT_THRESHOLD = 0.2f;      // Support if top within 20cm of foot
 
     // DEBUG: Footprint detection logging (disabled)
@@ -4954,9 +4959,9 @@ void HumanoidLocomotion::apply_entity_gravity(
         query_box.max_x = max_x;
         query_box.min_y = min_y;
         query_box.max_y = max_y;
-        // Search from below ground up to at least floor level
-        query_box.min_z = GROUND_LEVEL;
-        query_box.max_z = std::max(foot_bottom_z + SUPPORT_THRESHOLD, MAX_SUPPORT_HEIGHT);
+        // Relative to the foot, so it works at any height.
+        query_box.min_z = foot_bottom_z - SEARCH_BELOW_FOOT;
+        query_box.max_z = foot_bottom_z + SUPPORT_THRESHOLD;
 
         std::vector<int> candidates;
         bvh->query_aabb(query_box, particles.get_particles(), candidates);
@@ -5395,7 +5400,10 @@ void HumanoidLocomotion::maintain_entity_shape(
     query_box.max_x = max_x;
     query_box.min_y = min_y;
     query_box.max_y = max_y;
-    query_box.min_z = -1.0f;
+    // Relative to the foot. A fixed -1 floor made this blind to any
+    // ground below it, which on a raised or curved world is the only
+    // ground there is.
+    query_box.min_z = foot_bottom_z - 2.0f;
     query_box.max_z = foot_bottom_z + 0.5f;
 
     std::vector<int> candidates;
