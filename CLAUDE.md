@@ -13,6 +13,11 @@ they disagree, the docs win.
   test patterns, submission process (DCO sign-off on every commit).
 - [docs/GAME_LAYER.md](docs/GAME_LAYER.md): the API surface games
   consume.
+- [docs/testing_guidelines.md](docs/testing_guidelines.md): how a test
+  earns the right to claim what its name says. Read it BEFORE writing
+  or changing a test. Every rule in it has a real failure behind it,
+  most of them tests that passed while the thing they were named after
+  was broken.
 
 ## The invariants, in one breath
 
@@ -68,6 +73,26 @@ combined harness is `./build/logosphere-tests --no-head`; standalone
 tests are individual executables under `build/`. CI runs the
 headless profiles plus a DCO check on every PR, and all required
 checks must be green before merge.
+
+Tests are held to [docs/testing_guidelines.md](docs/testing_guidelines.md).
+The short version, and none of it is optional:
+
+- Assert the thing the test is NAMED after. A `..._walk` test asserts
+  distance travelled.
+- A test that cannot fail is not a test. Ask what would make it red
+  before believing it green.
+- Prove a check is not vacuous by running the CONTROL, the case where
+  the answer must come out the other way.
+- Measure first, assert second. Print `[measure]` values in every run.
+- Verify through the path production uses, not through a
+  reconstruction of it.
+- Test the negative, the boundary, and one step past it.
+- Instrument before concluding. Do not reason about what must be
+  happening.
+- Never loosen an assertion to make it pass; say which was wrong, the
+  code or the expectation.
+- Headless is the source of truth. On-screen output is testable
+  headless, so a HUD gets a pixel assertion rather than a promise.
 
 ## Project flow
 
