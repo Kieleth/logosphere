@@ -23,7 +23,14 @@ struct ContactPoint {
 
 struct ContactManifold {
     size_t body_a, body_b;
-    float normal_x, normal_y, normal_z;  // Unit normal, from A toward B
+    // Unit normal. CAUTION: despite what this comment said until 2026-08-02,
+    // the generator produces it pointing from B toward A. The constraint
+    // jacobians are written for that sign, so it is correct AS USED and
+    // must not be flipped here. PhysicsSystem orients its reported
+    // CollisionEvent copy to the documented A->B before it leaves physics
+    // (see "ORIENT THE REPORTED NORMAL" in physics_system_v4.cpp).
+    // Measured by tests/test_knockback_scene.
+    float normal_x, normal_y, normal_z;
     int num_points;                       // 0 = no contact, 1-4 = valid
     ContactPoint points[4];              // Fixed-size, no heap allocation
     bool is_face_contact;                // true = face-face, false = edge

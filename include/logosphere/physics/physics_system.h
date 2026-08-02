@@ -67,10 +67,16 @@ struct CollisionEvent {
     size_t particle_b;     // Second particle index
     float penetration;     // Overlap depth
     // Collision geometry (added for step climbing, combat knockback, etc.)
-    float normal_x, normal_y, normal_z;    // Unit normal from A toward B
+    // Unit normal from A toward B. Oriented at the emission site: the
+    // solver's manifold normal points the other way, and consumers were
+    // written against this contract. Guarded by test_knockback_scene.
+    float normal_x, normal_y, normal_z;
     float contact_x, contact_y, contact_z; // World-space contact point
     // Dynamics system info
-    float relative_velocity;  // Approach speed along normal (m/s, negative = approaching)
+    // Approach speed along the reported normal (m/s). NEGATIVE while
+    // approaching, positive while separating. Computed with the oriented
+    // normal, so this sign is the documented one.
+    float relative_velocity;
     bool a_is_dynamics;       // Is particle_a dynamics-controlled?
     bool b_is_dynamics;       // Is particle_b dynamics-controlled?
     bool is_corner_contact;   // V4.12 corner detection (center-to-center normal, not axis-aligned)

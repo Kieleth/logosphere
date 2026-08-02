@@ -90,6 +90,25 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   so read the per-stage split from it and ignore its frame time.
 
 ### Fixed
+- **`CollisionEvent`'s contact normal pointed the wrong way.** The field is
+  documented "unit normal from A toward B" and shipped pointing from B
+  toward A, so every consumer written against the documented contract got
+  the negated vector. Measured with a mirrored approach (`A` left of `B`
+  reported `-x`, `A` right of `B` reported `+x`), so it flipped with the
+  geometry and was a genuine inverted convention rather than a constant.
+
+  Consequences, both fixed by the same correction: the humanoid obstacle
+  push (`humanoid_locomotion.cpp`) applies `is_a ? -normal : normal` to
+  move away from an obstacle and was therefore driving humanoids **into**
+  them; and `relative_velocity`, documented "negative = approaching", was
+  positive while closing, so anything thresholding on approach speed could
+  never fire on a real contact.
+
+  Corrected at the emission site only. The solver's manifold normal is left
+  untouched because the constraint jacobians are written for its actual
+  sign; `contact_manifold.h` now states that plainly instead of claiming the
+  opposite. The composed-corner path already emitted A toward B, so the two
+  writers now agree. Locked by `tests/test_knockback_scene`.
 - Trees under about 4 m came out as bare poles. Space colonization
   deletes every attractor within `kill_distance` of any node, and that
   distance had a hard floor of 1.5 m while the crown is capped at 60%
