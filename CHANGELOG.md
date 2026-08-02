@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Breaking (generated ontology):** `TransformationRule.trigger` is now
+  typed `TransformationTrigger` instead of `std::string`. Event rules
+  answer three separable questions and now have one slot each: `trigger`
+  is WHICH engine event source to listen to (a closed enum, because every
+  value is a queue the interaction system owns and a game cannot add one
+  without engine code), `condition` is WHETHER a given occurrence matters
+  (open string, new), and `effect` is WHAT to do (open string, unchanged).
+  `condition` generalizes `trigger_profile`, which is the same idea
+  hardcoded to a single comparison; new rules should prefer it. KG storage
+  is unaffected: rules are still authored as string properties and the
+  loader normalizes case.
 - Spheres now render at subdivision **1** (80 triangles) instead of 2 (320),
   with **analytic smooth normals** on by default. The G-buffer derives the
   normal per pixel as `normalize(world_pos - centre)`, which decouples shading
@@ -20,6 +31,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   with `LOGOSPHERE_SPHERE_LOD=<0..4>` and `LOGOSPHERE_SMOOTH_SPHERES=0`.
 
 ### Added
+- `CollisionEvent` now carries the contact itself, not just the fact of one:
+  `normal_x/y/z`, `contact_x/y/z`, `penetration`, `approach_speed`, and
+  `source_part_id` / `target_part_id`. A consequence needs the geometry and
+  the energy (knockback needs the normal, absorption needs the speed, injury
+  is per-part), and previously none of it survived the layer boundary. The
+  normal comes from the contact manifold, so it is meaningful on walls,
+  ceilings and in zero-g; `approach_speed` keeps the solver's sign
+  convention, negative when approaching. Groundwork for issue #36.
+- `TransformationTrigger.ON_CONTACT` and `TransformationEffect.KNOCKBACK`.
+  `ON_CONTACT` is the rigid-contact counterpart of the existing
+  `ON_CONTACT_FILTERED`. `KNOCKBACK` deposits an impulse along the contact
+  normal into the target's pending-impulse inbox and deliberately does not
+  move anything: a KINEMATIC body's position belongs to an external writer,
+  so the impulse is delivered to that owner to apply or ignore.
 - `tests/test_shadow_lod_wall`: judges LOD by the SHADOW an object casts rather
   than by the object. Four identical spheres at increasing distance from one
   light throw shadows magnified 10x, 3.3x, 1.7x and 1.1x onto a wall, which is
