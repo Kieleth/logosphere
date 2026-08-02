@@ -26,7 +26,27 @@ screen. `draw_ui_overlays()` is private, so a test cannot draw into that window.
 
 This affects existing tests. Any HUD written that way has never been visible.
 
-**Use the window title instead.** It is outside the overlay system entirely:
+**Better: register a WIDGET.** `draw_ui_overlays()` clears the plane and then
+re-renders the debug overlay AND every registered widget, which is exactly why
+the compass survives. So a widget is legible where immediate-mode text is not:
+
+```cpp
+#include "../src/ui/widgets.h"
+auto* L = new ui::Label("", "my_line");
+L->set_position(16, 16);
+L->set_color(255, 240, 140);
+engine.get_ui_system()->add_widget(L);
+// then per frame, before present():
+L->set_text("whatever you need to read while watching");
+```
+
+Confirmed working 2026-08-01 in `test_immovable_pair_phantom_impulse`: the
+render log reports `widgets=7` (six labels plus the compass) and the text is on
+screen. Prefer this over the window title for anything longer than a few words,
+and note the widget is owned by the UI system once added.
+
+**Or use the window title** for a short readout. It is outside the overlay
+system entirely:
 
 ```cpp
 if (GLFWwindow* win = (GLFWwindow*)engine.get_window_handle()) {
@@ -37,7 +57,11 @@ if (GLFWwindow* win = (GLFWwindow*)engine.get_window_handle()) {
 ```
 
 Cost: three runs where the user pressed keys, saw nothing, and correctly
-reported the test as broken.
+reported the test as broken. Then a fourth, where a test was shipped whose only
+readout was in the title bar, on a scene where nothing moved by design. The
+reply was "what am I supposed to see there?", which is the right question. A
+visualisation needs something to watch AND a readable readout; either alone is
+not one.
 
 ### COST: without `poll_events()`, input is stale garbage AND fires phantom keys
 

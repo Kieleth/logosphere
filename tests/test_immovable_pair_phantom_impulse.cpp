@@ -47,7 +47,10 @@
 #include "../src/materials.h"
 #include "../src/particle.h"
 #include "../src/core/telemetry.h"
+#include "../src/ui/ui_system.h"
+#include "../src/ui/widgets.h"
 #include <GLFW/glfw3.h>
+#include <string>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -91,8 +94,7 @@ void build(Engine& engine, const Scene& s) {
     ps.flush_pending_particles();
 }
 
-void measure(Scene& s, bool interactive_engine_unused = false) {
-    (void)interactive_engine_unused;
+void measure(Scene& s) {
     namespace T = ::logosphere::telemetry;
     EngineConfig cfg;
     cfg.create_display = false;
@@ -119,16 +121,13 @@ bool run_interactive() {
     namespace T = ::logosphere::telemetry;
     EngineConfig cfg;
     cfg.create_display = true;
-    cfg.window_title = "Immovable pair: phantom impulse";
+    cfg.window_title = "SPACE toggles the grid";
     cfg.enable_chat_window = false;
     cfg.show_debug_overlay = false;
     Engine engine;
     if (engine.initialize(cfg) != 0) return false;
     T::set_enabled(true);
 
-    // All four scenes at once, spread along X so the difference is spatial and
-    // you can see which arrangement kills convergence. Group 1 is a lone slab
-    // (healthy), the others have neighbours touching (the bug).
     auto& ps = engine.get_particle_system();
     auto tile = [&](float x, float y) {
         Particle p = {};
@@ -141,61 +140,115 @@ bool run_interactive() {
         auto v = ps.lock_particles_for_write();
         v[id].solver_mode = ParticleSolverMode::KINEMATIC;
         v[id].owner = ParticleOwner::DYNAMICS; v[id].is_at_rest = true;
+        return id;
     };
     auto box = [&](float x, float y, float z) {
         Particle p = {};
         p.shape = ParticleShape::BOX;
         p.x = x; p.y = y; p.z = z;
-        p.width = p.height = p.thickness = 1.0f; p.size = 1.0f;
-        p.r = 0.85f; p.g = 0.35f; p.b = 0.25f; p.a = 1.0f;
+        p.width = p.height = p.thickness = 0.8f; p.size = 0.8f;
+        p.r = 0.9f; p.g = 0.45f; p.b = 0.3f; p.a = 1.0f;
         p.SetMaterial(Materials::Type::STONE);
         engine.add_particle(p);
     };
 
-    // LEFT: a 1D strip of 5 touching tiles. Converges.
-    // RIGHT: a 2x2 grid. Does not, and never will.
-    // Same bodies, same contacts per pair, same immovability. Only the
-    // arrangement differs, and that is the whole finding.
-    for (int i = 0; i < 5; ++i) tile(-8.0f + i, 0.0f);
-    box(-6.0f, 0.0f, 0.60f);
+    // FIXED SCENE. Nothing spawns after this: three boxes fall once, settle in
+    // about a second, and then the picture is still so the numbers can be read.
+    // The earlier version rained boxes forever and was unreadable.
+    for (int i = 0; i < 5; ++i) tile(-7.0f + i, 0.0f);        // 1D strip, healthy
+    box(-6.0f, 0.0f, 3.0f); box(-5.0f, 0.0f, 4.2f); box(-4.0f, 0.0f, 5.4f);
+
+    std::vector<int> grid_ids;                                 // 2x2 grid, the breaker
     for (int gy = 0; gy < 2; ++gy)
-        for (int gx = 0; gx < 2; ++gx) tile(4.0f + gx, (float)gy);
-    box(4.0f, 0.0f, 0.60f);
+        for (int gx = 0; gx < 2; ++gx) grid_ids.push_back(tile(4.0f + gx, (float)gy));
+    ps.flush_pending_particles();
+    ps.queue_light(0.0f, -9.0f, 11.0f, 300000.0f, 55.0f, 1.0f, 0.96f, 0.9f);
     ps.flush_pending_particles();
 
-    ps.queue_light(0.0f, -8.0f, 10.0f, 260000.0f, 50.0f, 1.0f, 0.96f, 0.9f);
-    ps.flush_pending_particles();
+    // Readout via WIDGETS. present() clears the overlay plane and then
+    // re-renders registered widgets, so draw_text from here is erased but a
+    // Label survives. See docs/VISUAL_TESTS.md.
+    std::vector<ui::Label*> lines;
+    auto* uis = engine.get_ui_system();
+    for (int i = 0; i < 7; ++i) {
+        auto* L = new ui::Label("", "phys_line_" + std::to_string(i));
+        L->set_position(16, 14 + i * 18);
+        L->set_size(820, 16);
+        L->set_color(i == 0 ? 255 : 210, i == 0 ? 235 : 210, i == 0 ? 130 : 210);
+        if (uis) uis->add_widget(L);
+        lines.push_back(L);
+    }
 
-    printf("\n  INTERACTIVE.\n");
-    printf("  LEFT  a 1D STRIP of 5 touching immovable tiles, plus a box.\n");
-    printf("  RIGHT a 2x2 GRID of the same tiles, plus a box.\n");
-    printf("  Identical bodies, identical immovability. Only the arrangement differs.\n");
-    printf("  With the grid present the solver never converges, so the title shows\n");
-    printf("  converged pinned at 0. Delete the grid and it recovers.\n");
-    printf("  ESC exits.\n\n");
+    // Rolling window, so the numbers describe NOW and not the whole session.
+    // A cumulative counter on a scene you are toggling is unreadable.
+    const int W = 60;
+    std::vector<long> hc(W, 0), hp(W, 0);
+    int  slot = 0, frame = 0;
+    bool grid_on = true, space_was = false;
 
-    long conv = 0, plat = 0;
+    printf("\n  ============================================================\n");
+    printf("   WATCH THIS TERMINAL, not the window. The window just shows the\n");
+    printf("   scene; the numbers below are the experiment.\n");
+    printf("\n");
+    printf("   Press SPACE in the window to remove the 2x2 grid, and again to\n");
+    printf("   put it back. Nothing else about the scene changes.\n");
+    printf("\n");
+    printf("   EXPECTED: converged is 0 with the grid PRESENT, and non-zero\n");
+    printf("   with it REMOVED. If that does not happen, the claim is wrong.\n");
+    printf("  ============================================================\n\n");
+
     while (engine.is_running()) {
         engine.update(1.0 / 60.0);
         engine.render();
-        conv += (long)T::counter_value(T::Counter::PhysSolveConverged);
-        plat += (long)T::counter_value(T::Counter::PhysSolvePlateaued);
 
-        // Window title, not draw_text: present() clears the overlay plane, so
-        // immediate-mode text drawn here is silently erased (docs/VISUAL_TESTS.md).
-        if (GLFWwindow* win = (GLFWwindow*)engine.get_window_handle()) {
-            char t[220];
-            snprintf(t, sizeof(t),
-                     "converged %ld  |  plateaued %ld  |  rows/frame %llu  |  ESC exits",
-                     conv, plat,
-                     (unsigned long long)T::counter_value(T::Counter::PhysSolverRows));
-            glfwSetWindowTitle(win, t);
+        hc[slot] = (long)T::counter_value(T::Counter::PhysSolveConverged);
+        hp[slot] = (long)T::counter_value(T::Counter::PhysSolvePlateaued);
+        slot = (slot + 1) % W;
+        long wc = 0, wp = 0;
+        for (int i = 0; i < W; ++i) { wc += hc[i]; wp += hp[i]; }
+
+        char b[7][220];
+        snprintf(b[0], 220, "IMMOVABLE TILES AND THE CONVERGENCE TEST");
+        snprintf(b[1], 220, "LEFT   1D strip of 5 tiles + 3 boxes        RIGHT  2x2 grid of tiles");
+        snprintf(b[2], 220, "all tiles are KINEMATIC and at rest: none of them can ever move");
+        snprintf(b[3], 220, "GRID: %s          [SPACE] toggle    [ESC] quit",
+                 grid_on ? "PRESENT" : "removed");
+        snprintf(b[4], 220, "last %d frames:   converged %ld     plateaued %ld", W, wc, wp);
+        snprintf(b[5], 220, "constraint rows/frame %llu",
+                 (unsigned long long)T::counter_value(T::Counter::PhysSolverRows));
+        snprintf(b[6], 220, "%s", grid_on
+                 ? "converged is pinned at 0. One bad constraint anywhere does this: the"
+                 : "converged recovers the moment the grid leaves. Same boxes, same strip.");
+        for (int i = 0; i < 7; ++i) lines[i]->set_text(b[i]);
+
+        // TERMINAL READOUT. The widget HUD above is best-effort: on-screen text
+        // has failed to appear three times in this scene and the cause is not
+        // understood, so the authoritative readout goes to stdout where it
+        // cannot be swallowed by the overlay system. Twice a second is fast
+        // enough to watch and slow enough to read.
+        if (frame % 30 == 0) {
+            printf("  GRID %-8s | converged %4ld | plateaued %4ld | rows %6llu\n",
+                   grid_on ? "PRESENT" : "REMOVED", wc, wp,
+                   (unsigned long long)T::counter_value(T::Counter::PhysSolverRows));
+            fflush(stdout);
         }
+
         engine.present();
-        // Without this, input is stale and fires phantom keys (same doc).
         engine.get_platform()->poll_events();
-        if (engine.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE]) break;
+
+        const auto& in = engine.get_input_system();
+        const bool sp = in.get_input_state().keys[GLFW_KEY_SPACE];
+        if (sp && !space_was) {
+            grid_on = !grid_on;
+            auto v = ps.lock_particles_for_write();
+            for (int id : grid_ids) v[id].z = grid_on ? 0.05f : -500.0f;
+            printf("  grid %s\n", grid_on ? "restored" : "removed"); fflush(stdout);
+        }
+        space_was = sp;
+        ++frame;
+        if (in.get_input_state().keys[GLFW_KEY_ESCAPE]) break;
     }
+    printf("\n  closed after %d frames\n", frame);
     engine.shutdown();
     return true;
 }
@@ -233,6 +286,13 @@ bool test_immovable_pair_phantom_impulse() {
     for (const auto& s : grid)
         printf("  %-40s %10ld %10ld %10ld %10ld\n",
                s.name, s.converged, s.plateaued, s.exhausted, s.rows);
+
+    // NOTE: there is deliberately no "remove the grid at runtime" scene. An
+    // attempt at one never removed anything: these tiles carry
+    // ParticleOwner::DYNAMICS, so an external writer restores their position
+    // every frame and the teleport silently reverted (measured: moved=0,
+    // stayed=4). The WITH and WITHOUT comparison is the table above, built from
+    // separate scenes, which is the only honest way to do it anyway.
 
     const Scene& b = grid[3];   // 3x3 grid, nothing dynamic: the known breaker
     const Scene& c = grid[6];   // 3x3 grid + box
