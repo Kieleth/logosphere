@@ -24,8 +24,14 @@ endif()
 # tag-describe, and configure timestamp. Needed by the telemetry /
 # session-recording layer so saved artifacts can be correlated with
 # the code that produced them. See cmake/build_info.cmake.
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/build_info.cmake)
+# CMAKE_CURRENT_SOURCE_DIR, not CMAKE_SOURCE_DIR: the latter is the
+# TOP-LEVEL project, which is the consuming game whenever this engine
+# is pulled in with FetchContent — the documented way to use it. That
+# made every consumer look for <game>/cmake/build_info.cmake and fail
+# to configure. The two are identical when the engine is built
+# standalone, so this changes nothing for the engine's own builds.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_info.cmake)
 
 # ----------------------------------------------------------------------
 # Build profiles
