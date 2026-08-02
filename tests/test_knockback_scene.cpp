@@ -46,6 +46,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/events/event_bus.h"
+#include "logosphere/rendering/pixel_buffer.h"
 
 #include <GLFW/glfw3.h>
 
@@ -372,13 +373,60 @@ void make_panel(Scene& s) {
 
 void light_and_camera(Scene& s) {
     if (!g_visual) return;
+    // STRENGTH IS IN THE MILLIONS, and radius in the hundreds. Getting
+    // this wrong does not produce a dim scene, it produces a black
+    // rectangle: the first pass of this test used 3.2 / 200 and showed
+    // nothing at all. Matches test_predator_hunt, which is the working
+    // reference for a lit outdoor scene.
     s.engine.get_particle_system().queue_light(-10.0f, -25.0f, 45.0f,
-                                               3.2f, 200.0f, 1.0f, 0.96f, 0.9f);
+                                               26000000.0f, 700.0f,
+                                               1.0f, 0.96f, 0.9f);
     s.engine.get_particle_system().queue_light(20.0f, 20.0f, 40.0f,
-                                               1.6f, 160.0f, 0.8f, 0.85f, 1.0f);
+                                               16000000.0f, 700.0f,
+                                               0.85f, 0.9f, 1.0f);
     auto& cam = s.engine.get_camera_system();
-    cam.set_pixels_per_unit(26.0f);
+    cam.set_pixels_per_unit(24.0f);
+    cam.set_position(-12.0f, -14.0f, 13.0f);
+    cam.look_at(0.0f, 0.0f, 1.0f);
+    // Lights are QUEUED. Without a few updates to flush them the first
+    // frames render unlit, which is what a viewer sees first.
+    for (int i = 0; i < 6; ++i) s.engine.update(1.0 / 60.0);
     bring_to_front(s.engine);
+}
+
+// "It is lit" is a claim about pixels, not a promise. Render one frame
+// and measure it, so a future change that darkens the scene fails here
+// instead of wasting somebody's time at the window.
+void assert_the_scene_is_lit(Scene& s) {
+    if (!g_visual) return;
+    s.engine.render();
+    s.engine.present();
+    int w = 0, h = 0;
+    std::vector<uint32_t> px(
+        static_cast<size_t>(s.engine.get_render_buffer().width()) *
+        s.engine.get_render_buffer().height(), 0u);
+    if (!s.engine.read_latest_framebuffer(px.data(), w, h)) {
+        std::cout << "  [measure] framebuffer unavailable, brightness not checked"
+                  << std::endl;
+        return;
+    }
+    size_t lit = 0;
+    double sum = 0.0;
+    for (uint32_t p : px) {
+        const int r = (p >> 16) & 0xFF, g = (p >> 8) & 0xFF, b = p & 0xFF;
+        const int v = (r > g ? (r > b ? r : b) : (g > b ? g : b));
+        if (v > 24) ++lit;
+        sum += v;
+    }
+    const double mean = sum / static_cast<double>(px.size());
+    const double lit_pct = 100.0 * static_cast<double>(lit) /
+                           static_cast<double>(px.size());
+    std::cout << "  [measure] frame brightness: mean " << mean
+              << "/255, " << lit_pct << "% of pixels above black"
+              << std::endl;
+    CHECK(lit_pct > 20.0,
+          "the scene is actually lit (" + std::to_string(lit_pct) +
+          "% of pixels above black; a black frame reads ~0)");
 }
 
 Scene* build(bool watch) {
@@ -594,6 +642,7 @@ int main() {
         std::cout << "\n-- visual: ESC to quit --" << std::endl;
         std::unique_ptr<Scene> s(build(true));
         s->arm_rule("with_type:Predator", "knockback:6.0");
+        assert_the_scene_is_lit(*s);
         approach(*s, 900, true);
     }
 
