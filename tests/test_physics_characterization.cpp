@@ -36,9 +36,11 @@
 // =============================================================================
 
 #include "../src/core/engine.h"
+#include "logosphere/physics/physics_system.h"
 #include "../src/materials.h"
 #include "../src/particle.h"
 #include <cmath>
+#include <memory>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -48,9 +50,23 @@
 
 namespace {
 
+// Chain particle ids, so the run can prove the gluon path actually executed
+// rather than merely having been configured.
+static std::vector<int> g_chain_ids;
+
 struct State {
-    std::vector<float> v;      // x,y,z,vx,vy,vz per particle, in index order
+    // x,y,z, vx,vy,vz, rotation_z, omega_x,omega_y,omega_z, is_at_rest
+    // per particle, in index order.
+    //
+    // ANGULAR AND REST STATE ARE SAMPLED DELIBERATELY. The first version of
+    // this net took position and velocity only, which left rotation, angular
+    // velocity and the at-rest flag free to change under a refactor without
+    // the checksum noticing. A large part of solve_contacts_v3 writes exactly
+    // those: the angular constraint rows, the gluon angular coupling, and
+    // wake_particle_with_propagation.
+    std::vector<float> v;
     uint64_t checksum = 0;
+    float chain_min_gap = 0.0f, chain_max_gap = 0.0f;   // gluon sensitivity
 };
 
 // FNV-1a over the raw bits. Bit-exact by design: see the header note.
@@ -71,6 +87,8 @@ uint64_t hash_bits(const std::vector<float>& v) {
 // integer lattice perturbed by a fixed closed-form offset.
 void build_pile(Engine& engine) {
     auto& ps = engine.get_particle_system();
+    std::vector<int>& chain_ids = g_chain_ids;
+    chain_ids.clear();
 
     const int FLOOR = 22;
     for (int r = 0; r < FLOOR; ++r)
@@ -105,7 +123,50 @@ void build_pile(Engine& engine) {
                 p.SetMaterial(Materials::Type::STONE);
                 engine.add_particle(p);
             }
+
+    // A GLUON-BONDED CHAIN, WITH ANGULAR COUPLING ON.
+    //
+    // Without this the net was blind to a fifth of solve_contacts_v3: the gluon
+    // constraint build (lines 1062-1471) never executes when no gluon exists,
+    // so every extraction there would have been verified by a checksum that
+    // could not see it. The chain is deliberately long enough to exercise the
+    // multi-hop distance propagation, and angular coupling is ON so the angular
+    // constraint rows and the rotation/omega state they write are covered too.
+    //
+    // It also lands the chain ONTO the pile rather than in free space, so gluon
+    // constraints and contact constraints are solved in the same substep and
+    // fight each other, which is the interaction a naive extraction is most
+    // likely to reorder.
+    for (int i = 0; i < 8; ++i) {
+        Particle p = {};
+        p.shape = ParticleShape::BOX;
+        p.x = -6.0f + i * 0.55f; p.y = 5.5f; p.z = 6.0f + i * 0.30f;
+        p.width = p.height = p.thickness = 0.5f; p.size = 0.5f;
+        p.r = 0.3f; p.g = 0.7f; p.b = 0.9f; p.a = 1.0f;
+        p.SetMaterial(Materials::Type::STONE);
+        chain_ids.push_back(engine.add_particle(p));
+    }
     ps.flush_pending_particles();
+
+    auto& physics = engine.get_physics_system();
+    for (size_t i = 1; i < chain_ids.size(); ++i) {
+        auto g = std::make_unique<NailGluon>();
+        g->offset_a = Vec3{0.0f, 0.0f, 0.0f};
+        g->offset_b = Vec3{0.0f, 0.0f, 0.0f};
+        g->target_distance = 0.55f;
+        g->stiffness = 20000.0f;
+        g->damping = 200.0f;
+        g->breaking_force = 1e9f;          // never breaks: breaking is a
+                                            // separate behaviour needing its
+                                            // own test, not this net
+        g->enable_angular_constraint = true;
+        g->angular_stiffness = 800.0f;
+        g->angular_damping = 40.0f;
+        g->rotate_offsets = true;
+        physics.add_gluon_between(static_cast<size_t>(chain_ids[i]),
+                                  static_cast<size_t>(chain_ids[i - 1]),
+                                  std::move(g));
+    }
 }
 
 State run_once(int frames) {
@@ -127,9 +188,31 @@ State run_once(int frames) {
         for (size_t i = 0; i < v.size(); ++i) {
             s.v.push_back(v[i].x);  s.v.push_back(v[i].y);  s.v.push_back(v[i].z);
             s.v.push_back(v[i].vx); s.v.push_back(v[i].vy); s.v.push_back(v[i].vz);
+            s.v.push_back(v[i].rotation_z);
+            s.v.push_back(v[i].omega_x); s.v.push_back(v[i].omega_y); s.v.push_back(v[i].omega_z);
+            s.v.push_back(v[i].is_at_rest ? 1.0f : 0.0f);
         }
     }
     s.checksum = hash_bits(s.v);
+
+    // SENSITIVITY: did the gluon path actually run? The chain is bonded at
+    // target_distance 0.55. If the gluon constraints were never built, the
+    // bodies would fall independently and the gaps would scatter. A bigger
+    // scene is not by itself proof of bigger coverage.
+    {
+        auto v = ps.lock_particles_for_write();
+        float lo = 1e9f, hi = 0.0f;
+        for (size_t i = 1; i < g_chain_ids.size(); ++i) {
+            const auto& a = v[g_chain_ids[i - 1]];
+            const auto& b = v[g_chain_ids[i]];
+            const float dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+            const float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+            if (d < lo) lo = d;
+            if (d > hi) hi = d;
+        }
+        s.chain_min_gap = lo; s.chain_max_gap = hi;
+    }
+
     engine.shutdown();
     return s;
 }
@@ -146,7 +229,7 @@ bool test_physics_characterization() {
 
     if (a.v.empty() || b.v.empty()) { printf("  ERROR: engine init failed\n"); return false; }
 
-    printf("  bodies sampled       %zu  (%zu floats)\n", a.v.size() / 6, a.v.size());
+    printf("  bodies sampled       %zu  (%zu floats)\n", a.v.size() / 11, a.v.size());
     printf("  run A checksum       %016llx\n", (unsigned long long)a.checksum);
     printf("  run B checksum       %016llx\n", (unsigned long long)b.checksum);
 
@@ -156,7 +239,7 @@ bool test_physics_characterization() {
     if (a.v.size() != b.v.size()) {
         printf("\n  FAIL: the two runs produced different particle counts (%zu vs %zu).\n"
                "        Physics is not reproducible, so no checksum can guard a refactor.\n",
-               a.v.size() / 6, b.v.size() / 6);
+               a.v.size() / 11, b.v.size() / 11);
         return false;
     }
     if (a.checksum != b.checksum) {
@@ -175,6 +258,22 @@ bool test_physics_characterization() {
         return false;
     }
     printf("\n  determinism OK: two independent runs agree bit for bit.\n");
+
+    // The gluon half of solve_contacts_v3 (lines 1062-1471, ~21% of it) only
+    // executes when a gluon exists. Without this check a green checksum would
+    // say nothing about that region, which is exactly the hole the first
+    // version of this net had.
+    printf("  gluon chain gaps     %.4f to %.4f m  (bonded at 0.550)\n",
+           a.chain_min_gap, a.chain_max_gap);
+    if (a.chain_min_gap < 0.30f || a.chain_max_gap > 0.90f) {
+        printf("  FAIL: the bonded chain did not hold together, so the gluon\n"
+               "        constraint path is NOT being exercised and every gluon-region\n"
+               "        extraction would be verified by a checksum that cannot see it.\n");
+        ok = false;
+    } else {
+        printf("  gluon coverage OK: the chain is held at its target distance, so the\n"
+               "                     gluon constraint build is live in this net.\n");
+    }
 
     // (2) Optional pin. Supply the checksum from before a refactor and this
     // fails if the refactor changed what the solver computes.
