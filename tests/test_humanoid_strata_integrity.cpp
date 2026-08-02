@@ -1,6 +1,24 @@
 // =============================================================================
-// HUMANOID STRATA WALK — dismemberment + drift hunt while streaming chunks
+// HUMANOID STRATA INTEGRITY — dismemberment + drift hunt while streaming chunks
 // =============================================================================
+// NOT a locomotion guard. It asserts that the body stays assembled while
+// chunks stream underneath it, and nothing else. In particular it never
+// checks that she goes anywhere: measured, she stays inside a 6.6 x 7.4 m
+// box for the whole 190 s run, never getting further than 4.7 m from where
+// she started, while the phases below are named for a staircase climb and a
+// 100 m sprint. It passes anyway, because displacement is not one of the
+// failure conditions.
+//
+// That is fine for what this is, and it is worth gating: coming apart during
+// chunk streaming is a real defect and this catches it. It was renamed from
+// test_humanoid_strata_walk because the old name, sitting in a list of
+// locomotion guards, read as "walking on strata is verified" and was cited
+// as exactly that. It is not.
+//
+// For locomotion on terrain — distance actually travelled, height change
+// across a step, ground clearance sampled every frame, joints holding —
+// see tests/test_humanoid_terrain_scenarios.cpp.
+//
 // Reproduces Eden's observed behaviour in a headless test. A humanoid walks
 // a long serpentine path across a streaming strata floor with a cairn, a
 // plateau, and a trench. Full instrumentation per frame:
@@ -16,7 +34,7 @@
 //   - Hips Z falls below 0.3 m (hips on the ground = collapsed).
 //   - Bounding-box spread > 3.0 m (limbs flung apart).
 //
-// Run: ./logosphere-tests --test test_humanoid_strata_walk
+// Run: ./logosphere-tests --test test_humanoid_strata_integrity
 // =============================================================================
 
 #include "../src/core/engine.h"
@@ -38,7 +56,7 @@
 #include <vector>
 #include <algorithm>
 
-bool test_humanoid_strata_walk() {
+bool test_humanoid_strata_integrity() {
     printf("\n=== Humanoid Strata Walk ===\n");
 
     Engine engine;
