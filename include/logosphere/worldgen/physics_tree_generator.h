@@ -70,6 +70,15 @@ public:
     // Initialize with engine reference
     void initialize(Engine* engine);
 
+    // A/B LEVER, for showing the issue #38 bug next to its fix. When true the
+    // generator reverts to letting add_particle_with_gluon_to derive positions
+    // from the gluon offsets, which puts every leaf on a branch at the same
+    // point and makes the canopy explode. Off by default and not an option any
+    // game should set: it exists so a broken tree and a fixed one can stand
+    // side by side in one scene and be compared by eye.
+    static void set_legacy_placement(bool on);
+    static bool legacy_placement();
+
     // Generate a physics-enabled tree at world position
     // Returns structure with all particle IDs for testing/tracking
     PhysicsTreeResult generate_tree(float world_x, float world_y, float world_z,

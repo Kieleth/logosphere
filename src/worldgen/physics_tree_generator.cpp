@@ -12,6 +12,10 @@
 // CONSTRUCTOR / DESTRUCTOR
 // ============================================================================
 
+namespace { bool g_legacy_placement = false; }
+void PhysicsTreeGenerator::set_legacy_placement(bool on) { g_legacy_placement = on; }
+bool PhysicsTreeGenerator::legacy_placement() { return g_legacy_placement; }
+
 PhysicsTreeGenerator::PhysicsTreeGenerator()
     : engine_(nullptr)
     , physics_(nullptr)
@@ -489,7 +493,7 @@ int PhysicsTreeGenerator::generate_branch(
     // letting the gluon place this puts an angled parent's child nowhere near
     // the tip it was drawn from. Issue #38.
     int branch_id = physics_->add_particle_with_gluon_to(parent_id, branch, std::move(gluon),
-                                                        /*use_config_position=*/true);
+                                                        /*use_config_position=*/!g_legacy_placement);
     result.branch_ids.push_back(branch_id);
     result.total_segments++;
 
@@ -614,7 +618,7 @@ int PhysicsTreeGenerator::generate_branch(
             // placed at the branch tip, on top of each other. Issue #38.
             int leaf_id = physics_->add_particle_with_gluon_to(
                 branch_id, leaf, std::move(leaf_gluon),
-                /*use_config_position=*/true);
+                /*use_config_position=*/!g_legacy_placement);
             result.leaf_ids.push_back(leaf_id);
         }
     }
@@ -950,8 +954,13 @@ int PhysicsTreeGenerator::generate_root_system(
         root_gluon->stiffness = 50000.0f;  // Rigid connection
         root_gluon->damping = 500.0f;
 
+        // KEEP THE COMPUTED POSITION. root_center_x/y/z are worked out above
+        // from the plate face and the root's direction, assigned to root.x/y/z,
+        // and were then thrown away by the offset-derived placement. Same bug
+        // as the leaves and branches (issue #38), same fix.
         int root_id = physics_->add_particle_with_gluon_to(
-            plate_id, root, std::move(root_gluon));
+            plate_id, root, std::move(root_gluon),
+            /*use_config_position=*/!g_legacy_placement);
 
         if (root_id >= 0) {
             result.root_ids.push_back(root_id);
