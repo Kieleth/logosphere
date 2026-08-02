@@ -377,6 +377,7 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_ground_locator)  # placement asks the world, never assumes z
     add_engine_at(test_humanoid_terrain_scenarios)  # one walker, one feature at a time
     add_engine_at(test_activation_queue_stale_ids)  # queued ids can die before processing (#21)
+    add_engine_at(test_predator_senses)  # sense_system: what a creature can and cannot know
     add_engine_at(test_tree_collapse_threshold)  # small trees must not be bare poles (#21)
     add_engine_at(test_tree_collapse_demo)  # shows WHY small trees collapsed (#21)
     add_engine_at(test_butterfly_flight_liveliness)  # flight is alive and above real ground
