@@ -52,6 +52,29 @@ struct FilteredOverlap {
     uint32_t profile_b = 0;
 };
 
+// One rigid contact the solver resolved this frame: the pass-through
+// counterpart of FilteredOverlap, and the input the ontological
+// CollisionEvent is built from.
+//
+// Mirrors the fields of the physics CollisionEvent without including
+// physics, same discipline as FilteredOverlap above: this header is
+// headless-core safe and the engine does the one translation.
+//
+// Particle indices are RAW render indices, valid only within the frame
+// they were recorded.
+struct RigidContact {
+    uint32_t particle_a = 0;
+    uint32_t particle_b = 0;
+    float normal_x = 0.0f;   // unit, from A toward B, from the manifold
+    float normal_y = 0.0f;
+    float normal_z = 0.0f;
+    float contact_x = 0.0f;  // world space
+    float contact_y = 0.0f;
+    float contact_z = 0.0f;
+    float penetration = 0.0f;     // overlap depth, metres
+    float approach_speed = 0.0f;  // along the normal; NEGATIVE = approaching
+};
+
 struct InteractionProfile {
     uint32_t id = 0;                       // KG EntityID of the profile
     uint32_t category = 1u << 0;           // one-hot category bit
@@ -142,6 +165,45 @@ public:
     void process_filtered_overlaps(const std::vector<FilteredOverlap>& overlaps,
                                    logosphere::EventBus* bus);
 
+    // The contact producer. Turns this frame's rigid contacts into
+    // ontological CollisionEvents, resolving each side through the KG:
+    //
+    //   render index -> KGParticleID -> body part entity
+    //                -> reverse HAS_PART -> the owning entity
+    //
+    // Emits ONE event per contact EPISODE, the frame a pair first
+    // touches, not every frame it stays touching. Without that a resting
+    // humanoid would emit for every foot-floor pair forever.
+    //
+    // Returns the number of events emitted, for measurement.
+    //
+    // COST. The resolution above runs per contact, and contacts are not
+    // rare: a tiled floor has every tile touching its neighbours. So the
+    // whole pass is skipped unless something is listening, which is
+    // either a loaded rule with a contact trigger or a subscriber on the
+    // collisions channel. wants_contacts() is that test and it is the
+    // first thing this checks.
+    //
+    // KNOWN GAP: a journal-only consumer (create_reader with no
+    // subscribe) is not detectable, because EventChannel counts
+    // subscribers and not readers. Such a consumer sees nothing unless a
+    // contact rule is loaded. Documented rather than papered over; fix
+    // is a reader count on the channel.
+    //
+    // A contact where neither side is KG-backed is skipped entirely: a
+    // particle outside the KG is outside the ontology and has no entity
+    // to name in the event.
+    size_t process_contacts(const std::vector<RigidContact>& contacts,
+                            const kg::KGModule& kg, logosphere::EventBus* bus);
+
+    // Is anything listening for contacts? False means process_contacts
+    // is a single branch. Cheap: a cached flag plus one channel query.
+    bool wants_contacts(const logosphere::EventBus* bus) const;
+
+    // Does any loaded rule declare a contact trigger? Recomputed when
+    // rules load, so the hot path never scans them.
+    bool has_contact_rules() const { return has_contact_rules_; }
+
     // Volume forces (Phase 3): for each filtered overlap whose profile
     // declares a medium, apply the medium's forces to the OTHER
     // particle as a velocity increment for the next frame — the
@@ -202,6 +264,8 @@ public:
         rules_.clear();
         armed_.clear();
         episode_opens_.clear();
+        open_contacts_.clear();
+        has_contact_rules_ = false;
     }
 
 private:
@@ -237,6 +301,14 @@ private:
     std::unordered_map<uint32_t, TransformationRule> rules_;
     std::vector<ArmedTransformation> armed_;
     std::vector<EpisodeOpen> episode_opens_;
+
+    // Open rigid-contact episodes, canonical particle-index pair keys.
+    // Same throttling model as open_episodes_: presence means "already
+    // reported", absence means this frame is the first touch.
+    std::unordered_set<uint64_t> open_contacts_;
+    // Cached answer to "does any rule listen for contacts", refreshed
+    // when rules load, so the per-frame gate never walks the rule map.
+    bool has_contact_rules_ = false;
 };
 
 } // namespace logosphere::interaction

@@ -307,11 +307,34 @@ render index → getKGParticleByRenderIndex → KGParticleID
 ```
 
 Two consequences the producer must respect. First, resolution is skipped
-entirely when no rule declares a contact trigger, the same fail-fast
+entirely when nothing is listening, the same fail-fast
 `tick_transformations` already applies with `if (!rules_.empty())`.
 Second, contacts are not rare: a humanoid standing on a tiled floor
-generates them continuously, so the chain needs a per-frame cache and a
-measured cost before it ships.
+generates them continuously, so the chain needed a measured cost before
+it shipped.
+
+**Measured** (`test_contact_producer`, 200 owners each with one KG-backed
+part, every contact fully resolvable, which is the worst case since a
+real scene is mostly floor tiles that bail early):
+
+```
+199 fully-resolvable contacts per frame
+  gate open   29.88 us/frame   (150 ns per contact)
+  gate shut    0.002 us/frame
+```
+
+150 ns per contact puts 1000 contacts at 0.15 ms, roughly 0.9% of a
+16.7 ms frame. **The paragraph above overstated the risk.** The gate is
+worth keeping because it is free when unused and a scene can carry far
+more contacts than this, but it is cheap insurance rather than a
+load-bearing optimization, and nobody should contort the design to
+preserve it.
+
+One gap, documented rather than hidden: the gate cannot see a
+journal-only consumer. `EventChannel` counts subscribers and not readers,
+so a consumer that only calls `create_reader()` sees nothing unless a
+contact rule is also loaded. Fixing it means a reader count on the
+channel.
 
 **D3. The bounce goes through a pending-impulse inbox.** The effect
 writes an impulse; whoever owns the position drains it. The only option

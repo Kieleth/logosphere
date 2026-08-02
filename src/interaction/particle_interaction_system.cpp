@@ -200,6 +200,99 @@ void ParticleInteractionSystem::process_filtered_overlaps(
     open_episodes_ = std::move(current);
 }
 
+// Who a contacting particle actually is, in ontology terms.
+//
+// A particle belongs to a body part; a body part belongs to a creature.
+// Both matter to a consequence: armour and injury are per-part, while
+// "the predator touched the prey" is per-entity. An unowned part (no
+// incoming HAS_PART) is its own entity, which is the common case for
+// scenery.
+namespace {
+struct ContactParty {
+    kg::EntityID part = kg::INVALID_ENTITY;
+    kg::EntityID entity = kg::INVALID_ENTITY;
+    bool resolved() const { return part != kg::INVALID_ENTITY; }
+};
+
+ContactParty resolve_party(const kg::KGModule& kg, uint32_t render_idx) {
+    ContactParty p;
+    kg::KGParticleID kgid = kg.getKGParticleByRenderIndex(render_idx);
+    if (kgid == kg::INVALID_KG_PARTICLE_ID) return p;   // not in the ontology
+    p.part = kg.getEntityByKGParticle(kgid);
+    if (p.part == kg::INVALID_ENTITY) return p;
+
+    // One hop up. A part claimed by several owners is legal but
+    // ambiguous for attribution, so take the first and stay
+    // deterministic rather than guessing.
+    auto owners = kg.getRelatedReverse(p.part, "HAS_PART");
+    p.entity = owners.empty() ? p.part : owners.front();
+    return p;
+}
+}  // namespace
+
+bool ParticleInteractionSystem::wants_contacts(
+    const logosphere::EventBus* bus) const {
+    if (has_contact_rules_) return true;
+    return bus && bus->collisions().subscriber_count() > 0;
+}
+
+size_t ParticleInteractionSystem::process_contacts(
+    const std::vector<RigidContact>& contacts, const kg::KGModule& kg,
+    logosphere::EventBus* bus) {
+    // The gate. Contacts are cheap to ignore and expensive to resolve,
+    // and a tiled floor produces them by the thousand, so nothing below
+    // runs when nobody is listening. open_contacts_ is cleared so a
+    // later listener starts from a clean slate rather than inheriting
+    // episodes opened while unobserved.
+    if (!wants_contacts(bus)) {
+        open_contacts_.clear();
+        return 0;
+    }
+
+    std::unordered_set<uint64_t> current;
+    current.reserve(contacts.size());
+    size_t emitted = 0;
+
+    for (const auto& c : contacts) {
+        const uint64_t k = pair_key(c.particle_a, c.particle_b);
+        if (!current.insert(k).second) continue;   // substep duplicate
+        if (open_contacts_.count(k)) continue;     // episode already open
+
+        // A pair with no KG identity on either side cannot be named in
+        // an event. Skipping here also keeps the common floor-tile case
+        // off the resolution path entirely.
+        ContactParty a = resolve_party(kg, c.particle_a);
+        ContactParty b = resolve_party(kg, c.particle_b);
+        if (!a.resolved() && !b.resolved()) continue;
+
+        if (bus) {
+            onto::CollisionEvent e;
+            e.event_type = "COLLISION";
+            if (a.resolved()) {
+                e.source_entity_id = std::to_string(a.entity);
+                e.source_part_id   = std::to_string(a.part);
+            }
+            if (b.resolved()) {
+                e.target_entity_id = std::to_string(b.entity);
+                e.target_part_id   = std::to_string(b.part);
+            }
+            e.normal_x = c.normal_x;
+            e.normal_y = c.normal_y;
+            e.normal_z = c.normal_z;
+            e.contact_x = c.contact_x;
+            e.contact_y = c.contact_y;
+            e.contact_z = c.contact_z;
+            e.penetration = c.penetration;
+            e.approach_speed = c.approach_speed;
+            bus->collisions().emit(e);
+            ++emitted;
+        }
+    }
+
+    open_contacts_ = std::move(current);
+    return emitted;
+}
+
 size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
     using Trigger = TransformationRule::Trigger;
     using Effect = TransformationRule::Effect;
@@ -287,6 +380,14 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         rules_[r.id] = r;
         ++loaded;
     }
+
+    // Refresh the hot-path gate once, here, rather than scanning rules
+    // every frame in process_contacts.
+    has_contact_rules_ = false;
+    for (const auto& [id, r] : rules_) {
+        if (r.trigger == Trigger::ON_CONTACT) { has_contact_rules_ = true; break; }
+    }
+
     return loaded;
 }
 
