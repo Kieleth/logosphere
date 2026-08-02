@@ -265,6 +265,94 @@ GpuWindow gpu_window();   // last frame with a complete set of handlers
 void publish_gpu_window(uint64_t current_frame);  // called from frame_end
 
 // -----------------------------------------------------------------------------
+// Solver residual: how far the constraint set is from SATISFIED.
+// -----------------------------------------------------------------------------
+// WHY THIS EXISTS, and why the existing counters could not answer it.
+//
+// `PhysSolveConverged` / `Plateaued` / `Exhausted` say how the iteration LOOP
+// ended. The test behind them is a per-iteration DELTA impulse
+// (physics_system_v4.cpp:2025): how much the last sweep still changed the
+// answer. That is a measure of iteration PROGRESS, and it is the right measure
+// for deciding when to stop iterating.
+//
+// It is the wrong measure for "is the answer any good", and the two come apart.
+// The convergence ladder reports 120/120 converged on iteration 1 while a stack
+// of 8 boxes rests 1.3 mm lower than a stack of 1: a real, steady, unreported
+// constraint violation. A solve can stop changing while still being wrong.
+//
+// So this measures the CONSTRAINT itself, after the loop, in a read-only pass:
+// for every row, how badly is it still violated?
+//
+//   contacts (unilateral, min_impulse == 0): violation = max(0, bias - v_rel)
+//     the row can only push, so a separating pair is satisfied, not violated
+//   gluons   (bilateral):                    violation = |v_rel - bias|
+//     an equality constraint is violated in both directions
+//
+// Units are m/s: `v_rel` is a relative velocity and the Baumgarte `bias` is a
+// penetration re-expressed as one. `max_bias` is carried alongside as the
+// position-error proxy, since penetration is not stored on the row.
+//
+// WORST_A / WORST_B ARE THE POINT. `max_violation` is a max over rows, and this
+// campaign has now twice been misled by a max whose owning element was never
+// identified: one immovable corner pair pinned 14,000 bodies above the stopping
+// threshold, and no aggregate could show it. When an aggregate is a max, the
+// question is always "which element", so the element ships with the number.
+//
+// OFF BY DEFAULT. The extra pass costs about one solver iteration, which is not
+// free now that a settled scene converges in one. Enable with
+// LOGOSPHERE_PHYS_RESIDUAL=1 or set_residual_enabled(true) from a test.
+// UNSOLVABLE ROWS ARE COUNTED, NOT SKIPPED. A row whose effective_mass is 0 has
+// two immovable bodies: infinite effective mass, no finite impulse changes
+// anything, so it can never be satisfied and its violation is not a solver
+// failure. Folding those into a global max is what hid the S22 bug for a week,
+// so they get their own count. Not hidden, not mixed. `rows_unsolvable` staying
+// high is itself the finding: those rows are built and solved every substep for
+// nothing (~26 per floor tile).
+//
+// Angular rows are excluded from `max_violation`: their v_rel is in rad/s and
+// averaging it with m/s would produce a number in no units at all.
+// TWO RESIDUALS, BECAUSE THERE ARE TWO CONSTRAINTS AND THEY DISAGREE.
+//
+// Velocity: how far v_rel is from the target the row asked for. This is what
+// the solver iterates on and it is usually ZERO, including for bodies visibly
+// buried in each other. That is not a bug in the measurement. Baumgarte turns a
+// position error into a velocity target, so hitting the target exactly is what
+// success looks like at the velocity level regardless of how much overlap
+// remains. Measured: two boxes spawned 40% overlapped, velocity residual 0.
+//
+// Penetration: how far the bodies actually overlap, in metres. This is the one
+// a person can see, and the only one that answers "did the solve leave the
+// world in a legal state". Sourced from the row's stored `penetration`, never
+// inverted from bias, which is clamped and slop-zeroed.
+//
+// Report both. The velocity residual answers "did the solver do its job"; the
+// penetration residual answers "was its job the right job".
+struct SolveResidual {
+    double   max_violation;   // worst unsatisfied SOLVABLE row, m/s
+    double   rms_violation;   // root mean square across solvable rows
+    double   max_penetration; // deepest overlap left standing, metres
+    double   rms_penetration; // root mean square across overlapping rows
+    double   max_bias;        // largest Baumgarte bias, m/s
+    uint32_t rows;            // solvable linear rows measured
+    uint32_t rows_violating;  // of those, how many over kViolationEps
+    uint32_t rows_penetrating;// of those, how many over kPenetrationEps
+    uint32_t rows_unsolvable; // effective_mass == 0: both bodies immovable
+    uint32_t worst_a;         // the pair that produced max_penetration
+    uint32_t worst_b;
+};
+
+// 1 mm/s. Below this a row is doing nothing a body could be seen to do.
+constexpr double kViolationEps = 1e-3;
+// 1 mm of overlap. SLOP is 1 mm, so anything at or under this is inside the
+// band the solver deliberately ignores and is not a violation.
+constexpr double kPenetrationEps = 1e-3;
+
+void          set_residual_enabled(bool on);
+bool          residual_enabled();
+void          record_solve_residual(const SolveResidual& r);
+SolveResidual solve_residual();   // most recent solve
+
+// -----------------------------------------------------------------------------
 // Frame lifecycle + published snapshot
 // -----------------------------------------------------------------------------
 

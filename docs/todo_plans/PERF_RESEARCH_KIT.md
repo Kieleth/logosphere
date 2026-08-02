@@ -21,9 +21,10 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
+| S23 | Can we measure whether the solve's ANSWER is good? | Yes, `SolveResidual`, and it took three wrong versions: velocity residual is blind to penetration by construction, a settled scene has zero solvable rows so the end-of-run sample reads nothing, and the published value outlived its engine. Peak penetration separates rungs the exit counters call identical: 0.68 mm to 2.12 mm. |
 | S22 | Can it be fixed without an edge case? | YES, one constant. The effective-mass divide-by-zero guard returned 1.0f for immovable pairs; the physically correct value is 0. Everything converges; no branch added. |
 | S21 | What actually blocks convergence? | A 2D tiled floor, and only in 2D: a 1x3 STRIP of immovable tiles converges, a 2x2 GRID never does. The phantom-impulse mechanism is necessary at most, not sufficient, and remains unisolated. |
-| S20 | Why does it plateau, and how simple a scene fails? | It does not necessarily plateau. The "converged" exit needs impulses under 0.01 while a resting body needs ~100 N s, so it is unreachable. S19's inference WITHDRAWN. Also: the floor solves ~26 constraints per tile against itself. |
+| S20 | Why does it plateau, and how simple a scene fails? | S19's inference WITHDRAWN, but the reason given was itself wrong and is corrected in the entry: the exit compares a per-iteration DELTA, not the ~100 N s total, and post-S22 it converges on iteration 1. Standing findings: the plateau detector has no dynamic range, and the floor solves ~26 constraints per tile against itself. |
 | S19 | Is constraint order load-bearing, or only a bit pattern? | ~~LOAD-BEARING~~ WITHDRAWN by S20, the counter measures the wrong quantity. Data stands, inference does not. Question is open. |
 | S18 | Where does the engine stop holding 60 FPS, and why? | 3-4k bodies. Render is flat at 2.7 us/body; `apply_all_forces` is 98% of physics and scales O(n^1.38). |
 | S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. Shipped LOD 1 + smooth as default; LOD 2 kept as a quality setting because it still casts better SHADOWS (rays hit real triangles). |
@@ -121,13 +122,15 @@ physics.
    earlier: `src/core/physics_trace.h`, off by default, one relaxed atomic load
    when nobody is listening, `-p` through `-pppppp`.
 
-2. **Check that an exit condition is REACHABLE before believing what it
-   reports.** The solver's `converged` test required every impulse under
-   0.01 N s. A stone box at rest needs roughly 100 N s to hold it up. The
-   condition was unsatisfiable by construction, so "never converges" was a
-   property of the test, not the solver, and S19 built a whole conclusion about
-   constraint ordering on top of it. Compute the value the condition is
-   comparing against before trusting either outcome.
+2. **Read the line that ASSIGNS the variable, not the line that tests it.**
+   S20 argued the solver's `converged` exit was unreachable because it compares
+   against 0.01 while a resting stone box needs ~100 N s of support. That
+   confused two different quantities: the test reads a per-iteration DELTA
+   (`physics_system_v4.cpp:2025`), not the accumulated total, and post-S22 it
+   converges on the FIRST iteration. A whole conclusion about constraint
+   ordering was built on a variable whose assignment was never read. Checking an
+   exit condition is reachable is still right; do it by reading the assignment
+   and printing the value, not by reasoning from the variable's name.
 
 3. **A global max over rows means ONE bad row pins the whole world.** The
    stopping test is a max across every constraint. A single corner pair of
@@ -1142,20 +1145,20 @@ scene that fails. `tests/test_solver_convergence_ladder.cpp`.
 
 **Two things in that table are more informative than the verdict.**
 
-**FINDING 1: the "converged" exit is unreachable by construction, so S19's
-inference is withdrawn.**
+**FINDING 1: S19's inference is withdrawn.** (The REASON given below for that
+withdrawal was itself wrong. See the correction at the end of this entry.)
 
 `iters/solve` is 9.0 at every rung. `MIN_ITERATIONS = 6` and
 `PLATEAU_CONFIRM = 3`, and 6 + 3 = 9. The plateau detector fires at the earliest
 moment it is legally allowed to, always, at every complexity. That is not a
 solver struggling; that is a detector with no dynamic range.
 
-And the other door cannot open at all. It tests
+~~And the other door cannot open at all. It tests
 `max_impulse_this_iter < ABSOLUTE_THRESHOLD` with the threshold at 0.01. At
 equilibrium the support impulse a resting body needs is exactly the impulse that
 cancels gravity, m*g*dt_substep, which for a 1 m stone box is on the order of
-100 N s. **Thousands of times above the threshold.** The converged exit is dead
-code for any scene containing a body with mass at rest.
+100 N s. Thousands of times above the threshold. The converged exit is dead code
+for any scene containing a body with mass at rest.~~ **WRONG, see below.**
 
 So "plateaued" does not mean "failed to converge". Improvement falling below 5%
 per iteration at a steady state is precisely what a CONVERGED solver looks like:
@@ -1167,6 +1170,37 @@ order is load-bearing is REOPENED. Parallelism, islands, SoA and sorting are not
 closed. Answering it properly needs a CONSTRAINT RESIDUAL (how much violation
 remains when the solve stops), which is a different measurement from impulse
 magnitude and does not yet exist.
+
+**CORRECTION 2026-08-01 (same day): the "unreachable by construction" argument
+above is WRONG.** It is the fifth withdrawn conclusion of this campaign and the
+second in this entry's own subject.
+
+`max_impulse_this_iter` is not the support impulse. `physics_system_v4.cpp:2025`
+reads `impulse = c.accumulated_impulse - old_impulse` and line 2026 takes the max
+of THAT: a per-iteration DELTA, the standard residual for a sequential-impulse
+solver. Warm starting (`:1729`) seeds the accumulator from the previous frame, so
+at a steady state the delta is near zero from the first iteration. Comparing it
+to 0.01 is entirely sensible. The ~100 N s figure is the accumulated total, which
+this test never looks at.
+
+Re-running the same ladder after the S22 fix, with nothing else changed:
+
+| stack | converged | plateaued | iters/solve | rest z |
+|---|---|---|---|---|
+| 1 | **120** | 0 | **1.0** | 0.6000 |
+| 4 | **120** | 0 | **1.0** | 0.6000 |
+| 8 | **120** | 0 | **1.0** | 0.5987 |
+
+Converged at every rung, on the FIRST iteration. The door was never dead code;
+the phantom row was holding it shut, exactly as S22 concluded. The lesson stands
+but the example was fabricated by reasoning about a variable without reading the
+line that assigns it, which is the same failure this journal keeps recording.
+
+**The residual metric is still needed, and this table is the better argument for
+it.** `rest z` drifts 0.6000 to 0.5987 as the stack deepens: 1.3 mm of
+penetration at 8 boxes that the solver reports as CONVERGED. A delta-of-impulse
+test says the iteration stopped moving. It cannot say the constraints are
+satisfied, and those are different questions.
 
 **FINDING 2: the floor generates constraints against itself, and it dominates.**
 
@@ -1371,6 +1405,82 @@ the tracer earlier next time.
 
 ---
 
+### S23: the residual instrument, and what it took to make it honest (2026-08-02)
+
+S19's question (is constraint order load-bearing?) cannot be reopened without a
+metric that answers "is the answer good", separately from "did the loop stop".
+Built as `telemetry::SolveResidual`, off by default
+(`LOGOSPHERE_PHYS_RESIDUAL=1`), one read-only pass after the solve.
+`tests/test_solver_residual.cpp`.
+
+**It was wrong three times before it was right, and each failure was caught by a
+control rather than by inspection.** Worth recording, because the instrument
+looked correct every time.
+
+**1. It measured the wrong quantity.** The first version computed a VELOCITY
+residual: how far `v_rel` sits from the target the row asked for. It read
+**exactly 0.00000 on two boxes spawned 40% inside each other**. Not a bug in the
+measurement. Baumgarte converts a position error into a velocity TARGET, so
+hitting that target perfectly is what success looks like at the velocity level
+no matter how much overlap remains. The velocity residual is blind to
+penetration by construction. Penetration is now stored on the row
+(`Constraint::penetration`) because it cannot be recovered from `bias`, which is
+clamped to `MAX_BIAS_VELOCITY` on deep overlaps and zeroed inside the slop band.
+
+**2. It sampled at the wrong time.** Reading once at the end of a settled run
+gave zeros for every rung. Reason: once a scene settles, every body is flagged
+at-rest, at-rest bodies have zero inverse mass, and a row between two of those
+is unsolvable. **The final frame has nothing solvable in it at all** (`fin rows`
+= 0 on every rung below). The error is not absent; it was made during settling
+and then frozen when the bodies went to sleep. The test now takes the peak
+across the window.
+
+**3. A stale global outlived the engine that produced it.** The settled scene
+reported its worst pair as `9-10` in a world containing ten particles, ids 0
+through 9. Particle 10 was from the PREVIOUS run: the published value is
+process-wide, and a second engine reads the first one's last solve until its own
+overwrites it. `set_residual_enabled()` now clears on every transition. This was
+only visible because the worst PAIR is printed next to the number, which is the
+S22 lesson holding: a max with no named owner cannot be sanity-checked.
+
+**The study, once the instrument was trustworthy:**
+
+| scene | peak pen | worst pair | peak rows | final rows | unsolvable | rest z |
+|---|---|---|---|---|---|---|
+| 40% overlap (control) | 0.26667 | 9-10 @f1 | 40 | 40 | 80 | 0.6000 |
+| stack of 1 | 0.00068 | 4-9 @f1 | 36 | **0** | 116 | 0.6000 |
+| stack of 2 | 0.00068 | 4-9 @f1 | 40 | **0** | 116 | 0.6000 |
+| stack of 4 | 0.00068 | 4-9 @f1 | 48 | **0** | 116 | 0.6000 |
+| stack of 8 | **0.00212** | 4-9 **@f11** | 64 | **0** | 116 | 0.5987 |
+
+- **The metric has the dynamic range the counters lacked.** The exit counters
+  report 120/120 CONVERGED on every rung, identically. The residual separates
+  them: 0.68 mm through stack 4, 2.12 mm at stack 8, and the peak moves from
+  frame 1 to frame 11, so deeper stacks take longer to reach a worse answer.
+  2.12 mm of peak penetration against 1.3 mm of final sink (0.5987 vs 0.6000) is
+  the same effect measured two independent ways.
+- **Pair 4-9 is the centre floor tile and the bottom box**, every time. The
+  worst error in the world is the base of the stack pressing into the floor,
+  which is what a person would predict, and is the first time this campaign's
+  physics instrumentation has agreed with intuition unprompted.
+- **At steady state the solver has nothing to solve.** `final rows` is 0 on
+  every settled rung while `unsolvable` holds at 116. Every row in a settled
+  world is between two bodies that both refuse to move. This generalises S20's
+  "~26 rows per floor tile": it is not a floor-tile quirk, it is what every
+  settled contact becomes.
+
+**Also fixed here:** the speculative-contact path carried the same
+`inv_mass_sum == 0 ? 1.0f` guard that S22 corrected in the box-box path. Latent
+rather than active (its bias is 0, so the phantom impulse was 0 too), but one
+wrong copy left behind is how a bug returns. Characterization checksum is
+UNCHANGED at `16af12523829b082` across both edits, which is the evidence that
+they are behaviour-neutral. Guards 19 pass / 0 fail.
+
+**Still open, and now measurable:** whether constraint ORDER changes that
+residual. That is S19's actual question and the instrument for it now exists.
+
+---
+
 ## Open threads
 
 **Physics, reopened by S22.** The solver converges as of `4e773ec`. Everything
@@ -1378,10 +1488,14 @@ below was closed or shaped by the belief that it never does.
 
 - **S19 must be re-run with a RESIDUAL metric.** It closed parallelism, islands,
   SoA and constraint sorting on the premise that order is load-bearing because
-  the solve never settles. The premise is gone. The door counters cannot be used
-  for the re-run: S20 showed they cannot see equilibrium. Needed first is a
-  metric that reports how far from satisfied the constraint set is, not how many
-  iterations were spent.
+  the solve never settles. The premise is gone. ~~Needed first is a metric that
+  reports how far from satisfied the constraint set is~~ **THE METRIC NOW EXISTS**
+  (S23, `telemetry::SolveResidual`, `LOGOSPHERE_PHYS_RESIDUAL=1`). What remains
+  is the experiment itself: shuffle constraint order, hold everything else, and
+  see whether peak penetration moves. Note the confound S19 already identified,
+  which has not gone away: a settling pile is chaotic, so positions diverge under
+  any perturbation and prove nothing. The residual is a scalar summary and may
+  survive that where positions cannot.
 - **The wasted rows are harmless, not absent.** ~26 constraint rows per floor
   tile are still built and solved between pairs that can never move. Skipping
   GENERATION for zero-inverse-mass pairs is the performance half of S22 and

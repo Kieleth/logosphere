@@ -230,6 +230,44 @@ GpuWindow gpu_window() {
     return g_win_published;
 }
 
+// -----------------------------------------------------------------------------
+// Solver residual
+// -----------------------------------------------------------------------------
+namespace {
+std::atomic<bool> g_residual_on{false};
+std::mutex        g_residual_mutex;
+SolveResidual     g_residual{0.0, 0.0, 0.0, 0, 0, 0, 0, 0};
+}  // namespace
+
+void set_residual_enabled(bool on) {
+    // Clear on every transition. The published value is a process-wide global
+    // and outlives the engine that produced it, so a second engine in the same
+    // process reads the FIRST one's last solve until its own overwrites it.
+    // That cost a real debugging detour: a scene containing 10 particles
+    // reported its worst pair as 9-10, a particle that did not exist, because
+    // the previous run's reading was still sitting here. Starting the
+    // instrument must mean starting from nothing.
+    {
+        std::lock_guard<std::mutex> lock(g_residual_mutex);
+        g_residual = SolveResidual{0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0, 0};
+    }
+    g_residual_on.store(on, std::memory_order_relaxed);
+}
+
+bool residual_enabled() {
+    return g_residual_on.load(std::memory_order_relaxed);
+}
+
+void record_solve_residual(const SolveResidual& r) {
+    std::lock_guard<std::mutex> lock(g_residual_mutex);
+    g_residual = r;
+}
+
+SolveResidual solve_residual() {
+    std::lock_guard<std::mutex> lock(g_residual_mutex);
+    return g_residual;
+}
+
 void record_gpu_stage(GpuStage stage, double ms, uint64_t frame_idx) {
     // Completion handlers fire on Metal's threads, after the frame's CPU
     // record. Correlate by frame index, never by arrival order.
@@ -384,6 +422,12 @@ bool sink_is_open() {
 }
 
 void init_from_env() {
+    // Independent of the sink: the residual is usually wanted from a test or a
+    // one-off run, not from a metrics capture.
+    if (const char* r = std::getenv("LOGOSPHERE_PHYS_RESIDUAL")) {
+        if (*r && *r != '0') set_residual_enabled(true);
+    }
+
     const char* path = std::getenv("LOGOSPHERE_METRICS");
     if (!path || !*path) return;   // no sink requested: no cost, no behavior change
 

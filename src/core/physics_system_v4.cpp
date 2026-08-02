@@ -566,6 +566,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             } else {
                 c.bias = 0.0f;
             }
+            c.penetration = penetration;   // measurement, see the field's comment
 
             // Contact can only push up (non-negative impulse)
             c.min_impulse = 0.0f;
@@ -922,6 +923,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     } else {
                         c.bias = 0.0f;
                     }
+                    c.penetration = cp_pen;   // measurement, see the field's comment
 
                     // Material damping: reduce bounce for heavy/damped materials
                     if (contact_damping > 0.0f) {
@@ -1016,8 +1018,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             float inv_ma_spec = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
                             float inv_mb_spec = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
                             float inv_mass_sum = inv_ma_spec + inv_mb_spec;
-                            c.effective_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 1.0f;
+                            // 0, not 1: both bodies immovable means infinite
+                            // effective mass, so this row's correct
+                            // contribution is nothing. Same wrong constant as
+                            // the box-box path carried, found 2026-08-02 while
+                            // instrumenting. Latent there rather than active
+                            // (bias is 0 here, so the phantom impulse was 0
+                            // too), but one wrong copy left behind is how the
+                            // bug comes back.
+                            c.effective_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 0.0f;
                             c.bias = 0.0f;  // Speculative: no position correction
+                            // gap_z is min(maxes) - max(mins): positive is already
+                            // overlap, negative is separation, same sign as
+                            // penetration everywhere else. Z-axis only on this
+                            // path, which is all it computes.
+                            c.penetration = gap_z;
                             c.min_impulse = 0.0f;
                             c.max_impulse = std::numeric_limits<float>::infinity();
                             c.accumulated_impulse = 0.0f;
@@ -2240,6 +2255,91 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     }
     LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverIterations,
                  (uint64_t)actual_iterations);
+
+    // ====================================================================
+    // CONSTRAINT RESIDUAL: is the answer good, not did the loop stop?
+    // ====================================================================
+    // The exit doors above measure per-iteration DELTA impulse, which says how
+    // much the last sweep still changed things. A solve can stop changing while
+    // still being wrong: the convergence ladder reports converged on iteration
+    // 1 at every rung while a stack of 8 rests 1.3 mm lower than a stack of 1.
+    // This pass asks the other question, by re-deriving each row's violation
+    // from the velocities the solve actually left behind.
+    //
+    // Read-only. Costs about one iteration, so it is off unless asked for.
+    if (::logosphere::telemetry::residual_enabled()) {
+        ::logosphere::telemetry::SolveResidual r{0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0, 0};
+        double sum_sq = 0.0, sum_pen_sq = 0.0;
+
+        for (const Constraint& c : constraints) {
+            // Angular rows are rad/s; mixing them into a m/s max would produce
+            // a number in no units at all.
+            if (c.is_angular) continue;
+
+            // effective_mass == 0 means both bodies are immovable (S22). No
+            // finite impulse changes anything, so this row cannot be satisfied
+            // and its violation is not the solver's failure. Counted, never
+            // folded into the max: doing that is what hid S22.
+            if (c.effective_mass <= 0.0f) { r.rows_unsolvable++; continue; }
+
+            const Particle& pa = particles[c.body_a];
+
+            // Identical to the solve's own v_rel, deliberately. A residual
+            // derived from a different formula measures a different constraint.
+            float v_rel;
+            if (c.is_turtle_contact) {
+                v_rel = c.jx * pa.vx + c.jy * pa.vy + c.jz * pa.vz;
+            } else {
+                const Particle& pb = particles[c.body_b];
+                v_rel = c.jx * (pa.vx - pb.vx)
+                      + c.jy * (pa.vy - pb.vy)
+                      + c.jz * (pa.vz - pb.vz);
+            }
+            float effective_bias = c.bias;
+            if (ENABLE_SPLIT_IMPULSE && c.is_turtle_contact) effective_bias = 0.0f;
+
+            // A contact can only push (min_impulse == 0), so a pair moving
+            // apart faster than the bias asks is SATISFIED, not violated. A
+            // gluon is an equality and is violated in both directions.
+            const bool unilateral = (c.min_impulse == 0.0f);
+            const double violation =
+                unilateral ? std::max(0.0f, effective_bias - v_rel)
+                           : std::fabs(v_rel - effective_bias);
+
+            r.rows++;
+            sum_sq += violation * violation;
+            if (violation > ::logosphere::telemetry::kViolationEps) r.rows_violating++;
+            if (violation > r.max_violation) r.max_violation = violation;
+            if (std::fabs(effective_bias) > r.max_bias) r.max_bias = std::fabs(effective_bias);
+
+            // The position-level violation: what a person would actually see.
+            // Only overlap counts; a gap is not a violated contact.
+            const double pen = (double)c.penetration;
+            if (pen > 0.0) {
+                sum_pen_sq += pen * pen;
+                if (pen > ::logosphere::telemetry::kPenetrationEps) r.rows_penetrating++;
+                // The worst PAIR tracks penetration, not velocity, because that
+                // is the number this instrument exists to explain. Naming the
+                // element is the whole S22 lesson: a max with no owner is what
+                // hid one immovable corner pair pinning 14,000 bodies.
+                if (pen > r.max_penetration) {
+                    r.max_penetration = pen;
+                    r.worst_a = (uint32_t)c.body_a;
+                    r.worst_b = c.is_turtle_contact ? UINT32_MAX : (uint32_t)c.body_b;
+                }
+            }
+        }
+
+        if (r.rows > 0) {
+            r.rms_violation   = std::sqrt(sum_sq / (double)r.rows);
+            r.rms_penetration = std::sqrt(sum_pen_sq / (double)r.rows);
+        }
+        ::logosphere::telemetry::record_solve_residual(r);
+
+        PHYS_TRACE(::logosphere::phystrace::Solve, "residual",
+                   (int)r.worst_a, (int)r.worst_b, "post_solve_penetration",
+                   r.max_penetration, r.max_violation, (double)r.rows_penetrating);
+    }
 
     // CANARY_DEBUG: Summary after solver
     if (canary_active) {

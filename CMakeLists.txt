@@ -1748,6 +1748,7 @@ set(TEST_SOURCES
     tests/test_shadow_lod_wall.cpp             # LOD judged on the SHADOW, not the object
     tests/test_physics_characterization.cpp    # refactor net: pins solver output on a pile
     tests/test_solver_convergence_ladder.cpp   # where does the solve first give up?
+    tests/test_solver_residual.cpp             # how wrong is the answer the solve stopped at?
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)

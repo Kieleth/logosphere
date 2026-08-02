@@ -187,6 +187,21 @@ struct Constraint {
     float min_impulse;          // Clamp min (0 for contacts)
     float max_impulse;          // Clamp max (breaking force for gluons)
 
+    // How far the bodies overlap when this row was built, in metres. Positive
+    // is interpenetration, negative is a gap.
+    //
+    // MEASUREMENT ONLY, and it is stored because it cannot be recovered from
+    // `bias`. Baumgarte turns a position error into a velocity TARGET, and the
+    // solve drives v_rel to that target, so a row can be perfectly satisfied at
+    // the velocity level while the bodies are still deeply inside each other.
+    // Measured 2026-08-02: two boxes spawned 40% overlapped report a velocity
+    // residual of exactly zero. Inverting bias to recover penetration does not
+    // work either, because it is clamped to MAX_BIAS_VELOCITY on deep overlaps
+    // and zeroed inside the slop band, and both destroy the value.
+    //
+    // Defaulted, because rows are built field by field and gluons never set it.
+    float penetration = 0.0f;
+
     // =========================================================================
     // TURTLE CONTACT (V4.3) - World boundary collision
     // =========================================================================
