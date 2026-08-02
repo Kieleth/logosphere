@@ -21,7 +21,7 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
-| S21 | What actually blocks convergence? | A phantom impulse. Two KINEMATIC bodies in contact fall back to effective_mass=1.0, produce a non-zero impulse that moves nothing, and pin the exit test forever. One slab converges 81%; nine tiles never. |
+| S21 | What actually blocks convergence? | A 2D tiled floor, and only in 2D: a 1x3 STRIP of immovable tiles converges, a 2x2 GRID never does. The phantom-impulse mechanism is necessary at most, not sufficient, and remains unisolated. |
 | S20 | Why does it plateau, and how simple a scene fails? | It does not necessarily plateau. The "converged" exit needs impulses under 0.01 while a resting body needs ~100 N s, so it is unreachable. S19's inference WITHDRAWN. Also: the floor solves ~26 constraints per tile against itself. |
 | S19 | Is constraint order load-bearing, or only a bit pattern? | ~~LOAD-BEARING~~ WITHDRAWN by S20, the counter measures the wrong quantity. Data stands, inference does not. Question is open. |
 | S18 | Where does the engine stop holding 60 FPS, and why? | 3-4k bodies. Render is flat at 2.7 us/body; `apply_all_forces` is 98% of physics and scales O(n^1.38). |
@@ -1161,6 +1161,12 @@ Exit reasons by floor size, ladder scene, single dynamic box:
 One KINEMATIC slab: converges on 81% of solves. Nine tiles: never once. The
 floor tiles are what destroy convergence, and they are inert scenery.
 
+> **THE MECHANISM BELOW IS NOT CONFIRMED. See the correction at the end of this
+> entry.** A TDD test written to reproduce it came back GREEN twice: a line of
+> two, and a line of three, touching immovable tiles all converge. The story
+> predicts they break. It is kept because the code asymmetry is real and may be
+> necessary; it is demonstrably not sufficient.
+
 **THE MECHANISM, and it is a bug.** Two sites disagree about what immovable
 means:
 
@@ -1205,6 +1211,35 @@ independent) caught that `tests/test_solver_convergence_ladder.cpp` used a
 original ladder measured the floor rather than the stack. Its "one box
 plateaus" reading was contaminated. The floor sweep above is the corrected
 experiment, and it turned the contamination into the finding.
+
+**CORRECTION (same day, from the TDD test).**
+`tests/test_immovable_pair_phantom_impulse.cpp` was written to reproduce the
+mechanism above and refused to, twice. The measured cliff is not where the story
+put it:
+
+| arrangement, all KINEMATIC and at_rest | converged | plateaued | rows |
+|---|---|---|---|
+| 1 tile + dynamic box | 120 | 0 | 480 |
+| 1x2 line | 120 | 0 | 480 |
+| **1x3 line** | **120** | **0** | 960 |
+| **2x2 grid** | **0** | **120** | 2,880 |
+| 3x3 grid | 0 | 120 | 9,600 |
+
+**A STRIP of touching immovable tiles converges. A GRID never does.** Both are
+full of zero-inverse-mass pairs, so `inv_mass_sum == 0` falling back to
+`effective_mass = 1.0f` cannot be the whole story: it is present in the 1x2 case
+that works. Something about the 2D arrangement crosses the line, and the visible
+difference is that every tile in a grid gains a DIAGONAL neighbour, taking rows
+per tile from 320 to 720. That has not been isolated.
+
+**What survives, and it is still the important part:** any 2D tiled floor is
+past the cliff. Every real floor in this engine is 2D, which is why Eden never
+converges, and why the ladder in `test_solver_convergence_ladder.cpp` was
+measuring its own floor rather than its stack.
+
+**What to do next, and NOT before:** trace level 5 on a 2x2 and on a 1x3 and
+find which constraint owns `max_impulse` in the one and not the other. The
+tracer exists for exactly this. Do not fix from the story; the story is 0 for 2.
 
 **Method note.** This is what decision-level tracing buys that counters cannot.
 A counter said "the solve plateaued". The trace said WHY, with the improvement
