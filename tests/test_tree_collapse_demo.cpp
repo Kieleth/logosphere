@@ -227,6 +227,37 @@ Engine* make_engine() {
     return e;
 }
 
+// The window is created unfocused and lands BEHIND the terminal that
+// launched it, so the demo runs where nobody can see it and every
+// SPACE press goes to the shell. The engine says so plainly if you
+// read the log:
+//
+//   [PLATFORM] Final window state: visible=1 focused=0
+//   [InputSystem] SPACE press, has_focus=0
+//
+// Raise it and take the keyboard, or the whole thing is invisible and
+// unusable no matter how good the picture is.
+void bring_to_front(Engine& e) {
+    if (!g_visual || !e.get_platform()) return;
+    auto* win = static_cast<GLFWwindow*>(
+        e.get_platform()->get_native_window_handle());
+    if (!win) return;
+    glfwShowWindow(win);
+    glfwRestoreWindow(win);
+    glfwFocusWindow(win);
+    // macOS gives focus to the process, not just the window, and a
+    // CLI-launched app is not frontmost. Asking twice across a couple
+    // of pumped frames is what makes it stick.
+    for (int i = 0; i < 8; ++i) {
+        glfwPollEvents();
+        glfwFocusWindow(win);
+    }
+    std::cout << "    window focused: "
+              << (glfwGetWindowAttrib(win, GLFW_FOCUSED) ? "yes"
+                                                         : "NO - click it")
+              << std::endl;
+}
+
 // ONE window for the whole demo. Building an Engine per view opened and
 // destroyed a window per view, which is a flicker and nothing else.
 // Everything is laid out once, far enough apart that framing one
@@ -662,6 +693,7 @@ int main() {
                                                  0.85f, 0.9f, 1.0f);
             for (int i = 0; i < 10; ++i) e->update(1.0 / 60.0);
 
+            bring_to_front(*e);
             for (int i = 0; i < n && !g_quit; ++i) {
                 if (i == 0) look_at_station(*e, stations[i]);
                 else        fly(*e, stations[i - 1], stations[i]);
