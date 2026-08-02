@@ -24,6 +24,8 @@
 #include "core/engine.h"
 #include "core/particle_system.h"
 #include "core/camera_system.h"
+#include "ui/ui_system.h"
+#include "logosphere/rendering/pixel_buffer.h"
 #include "logosphere/worldgen/worldgen_system.h"
 #include "logosphere/worldgen/tree_generator.h"
 #include "logosphere/worldgen/space_colonization.h"
@@ -36,6 +38,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -231,24 +234,94 @@ Engine* make_engine() {
 // them.
 struct Station {
     const char* title;
-    const char* caption;
+    std::vector<std::string> lines;   // the explanation, on screen
     Vec3  look;
     float zoom;      // pixels per world metre
 };
 
-void look_at_station(Engine& e, const Station& st) {
+// Captions go ON THE WINDOW, not only in the terminal. A demo that
+// needs its explanation read from another program is not explaining
+// itself. UISystem::draw_text after render() and before present() is
+// the same path the engine's own clock display uses.
+void draw_caption(Engine& e, const Station& st, int index, int total) {
+    auto* ui = e.get_ui_system();
+    if (!ui) return;
+    int y = 18;
+    const int line_h = 15;
+    char head[160];
+    std::snprintf(head, sizeof(head), "[%d/%d]  %s",
+                  index + 1, total, st.title);
+    ui->draw_text(20, y, head, 255, 235, 140);
+    y += line_h + 6;
+    for (const std::string& l : st.lines) {
+        // A leading '>' marks the line that names what to look at.
+        const bool key = !l.empty() && l[0] == '>';
+        ui->draw_text(20, y, key ? l.substr(1) : l,
+                      key ? 150 : 225, key ? 255 : 225,
+                      key ? 170 : 225);
+        y += line_h;
+    }
+    y += 6;
+    ui->draw_text(20, y, "SPACE = next view      ESC = stop",
+                  170, 190, 255);
+}
+
+void aim(Engine& e, Vec3 look, float zoom) {
     auto& cam = e.get_camera_system();
-    cam.set_pixels_per_unit(st.zoom);
-    cam.set_position(st.look.x - 8.0f, st.look.y - 8.0f, st.look.z + 8.0f);
-    cam.look_at(st.look.x, st.look.y, st.look.z);
+    cam.set_pixels_per_unit(zoom);
+    cam.set_position(look.x - 8.0f, look.y - 8.0f, look.z + 8.0f);
+    cam.look_at(look.x, look.y, look.z);
+}
+
+void look_at_station(Engine& e, const Station& st) {
+    aim(e, st.look, st.zoom);
+}
+
+// Fly, do not cut. Teleporting the camera between stations makes each
+// view pop into existence with nothing connecting it to the last one,
+// so the viewer has to work out where they have been moved to before
+// they can look at anything. Travelling there shows the relationship.
+//
+// Zoom is interpolated geometrically: these views run from 150 px/m
+// down to 26, and a linear ramp between them spends most of its time
+// at the wide end and then lurches.
+void fly(Engine& e, const Station& from, const Station& to) {
+    if (!g_visual || g_quit) return;
+    const int FRAMES = 96;                    // ~1.6 s at 60 Hz
+    auto* win = static_cast<GLFWwindow*>(
+        e.get_platform()->get_native_window_handle());
+    for (int f = 0; f <= FRAMES && !g_quit; ++f) {
+        float t = static_cast<float>(f) / FRAMES;
+        t = t * t * (3.0f - 2.0f * t);        // smoothstep, ease both ends
+        const Vec3 look(from.look.x + (to.look.x - from.look.x) * t,
+                        from.look.y + (to.look.y - from.look.y) * t,
+                        from.look.z + (to.look.z - from.look.z) * t);
+        const float zoom = from.zoom *
+                           std::pow(to.zoom / from.zoom, t);
+        aim(e, look, zoom);
+        e.update(1.0 / 60.0);
+        e.render();
+        if (auto* ui = e.get_ui_system())
+            ui->draw_text(20, 18, "moving to the next view...",
+                          255, 235, 140);
+        e.present();
+        e.get_platform()->poll_events();
+        if (win && glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            g_quit = true;
+            return;
+        }
+    }
 }
 
 // Hold here until SPACE. The window keeps rendering the whole time, so
 // the picture is steady and can actually be looked at.
 void hold(Engine& e, const Station& st, int index, int total) {
-    std::cout << "\n  [" << (index + 1) << "/" << total << "] " << st.title
-              << "\n      " << st.caption
-              << "\n      SPACE for the next view, ESC to stop." << std::endl;
+    std::cout << "\n  [" << (index + 1) << "/" << total << "] "
+              << st.title << std::endl;
+    for (const std::string& l : st.lines)
+        std::cout << "      " << (l.empty() || l[0] != '>' ? l : l.substr(1))
+                  << std::endl;
+    std::cout << "      SPACE for the next view, ESC to stop." << std::endl;
     const char* shot_dir = std::getenv("LOGOSPHERE_SHOT");
     auto* win = static_cast<GLFWwindow*>(
         e.get_platform()->get_native_window_handle());
@@ -258,38 +331,56 @@ void hold(Engine& e, const Station& st, int index, int total) {
     while (!g_quit) {
         e.update(1.0 / 60.0);
         e.render();
-        e.present();
-        e.get_platform()->poll_events();
+        draw_caption(e, st, index, total);   // on top of the scene
         ++frames;
-
-        if (shot_dir) {                       // scripted: grab and go
-            if (frames >= 4) {
-                e.get_renderer().wait_for_completion();
-                int w = 0, h = 0;
-                std::vector<uint32_t> px(
-                    static_cast<size_t>(e.get_render_buffer().width()) *
-                    e.get_render_buffer().height());
-                if (e.read_latest_framebuffer(px.data(), w, h)) {
-                    std::string path = std::string(shot_dir) + "/" +
-                                       std::to_string(index) + ".ppm";
-                    if (FILE* f = std::fopen(path.c_str(), "wb")) {
-                        std::fprintf(f, "P6\n%d %d\n255\n", w, h);
-                        for (int i = 0; i < w * h; ++i) {
-                            const uint32_t q = px[i];
-                            unsigned char rgb[3] = {
-                                static_cast<unsigned char>((q >> 16) & 0xFF),
-                                static_cast<unsigned char>((q >> 8) & 0xFF),
-                                static_cast<unsigned char>(q & 0xFF)};
-                            std::fwrite(rgb, 1, 3, f);
-                        }
-                        std::fclose(f);
-                        std::cout << "      shot -> " << path << std::endl;
+        // Capture BEFORE present: present() composites the overlay
+        // plane into a staging buffer and clears it, so reading after
+        // it reports an empty UI and the captions vanish from the
+        // screenshot while being perfectly visible on screen.
+        if (shot_dir && frames >= 4) {
+            e.get_renderer().wait_for_completion();
+            int w = 0, h = 0;
+            std::vector<uint32_t> px(
+                static_cast<size_t>(e.get_render_buffer().width()) *
+                e.get_render_buffer().height());
+            if (e.read_latest_framebuffer(px.data(), w, h)) {
+                const PixelBuffer& ui_plane = e.get_ui_overlay_buffer();
+                int lit = 0;
+                for (int y = 0; y < h && y < ui_plane.height(); ++y) {
+                    for (int x = 0; x < w && x < ui_plane.width(); ++x) {
+                        const EnhancedPixel q = ui_plane.get_pixel(x, y);
+                        if (q.a == 0) continue;          // untouched
+                        px[y * w + x] = (0xFFu << 24) |
+                                        (static_cast<uint32_t>(q.r) << 16) |
+                                        (static_cast<uint32_t>(q.g) << 8) |
+                                         static_cast<uint32_t>(q.b);
+                        ++lit;
                     }
                 }
-                return;
+                std::string path = std::string(shot_dir) + "/" +
+                                   std::to_string(index) + ".ppm";
+                if (FILE* f = std::fopen(path.c_str(), "wb")) {
+                    std::fprintf(f, "P6\n%d %d\n255\n", w, h);
+                    for (int i = 0; i < w * h; ++i) {
+                        const uint32_t q = px[i];
+                        unsigned char rgb[3] = {
+                            static_cast<unsigned char>((q >> 16) & 0xFF),
+                            static_cast<unsigned char>((q >> 8) & 0xFF),
+                            static_cast<unsigned char>(q & 0xFF)};
+                        std::fwrite(rgb, 1, 3, f);
+                    }
+                    std::fclose(f);
+                    std::cout << "      shot -> " << path
+                              << "  (" << lit << " caption pixels)"
+                              << std::endl;
+                }
             }
-            continue;
+            e.present();
+            return;
         }
+
+        e.present();
+        e.get_platform()->poll_events();
 
         if (!win) return;                     // no window: nothing to hold
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) { g_quit = true; return; }
@@ -330,7 +421,9 @@ void build_cause(Engine& e, Vec3 at) {
 // Stations B and C: the same five heights, grown each way.
 void build_row(Engine& e, Vec3 at, bool is_before) {
     const float heights[] = {1.0f, 2.0f, 3.0f, 4.0f, 6.0f};
-    float x = at.x - 10.0f;
+    // 8 m apart, not 5: a 6 m tree carries a crown ~3.6 m across, so
+    // at 5 m the neighbours touch and the row reads as one thicket.
+    float x = at.x - 16.0f;
     for (float h : heights) {
         const float CR = crown_reach_of(h, h * 0.35f);
         TreeSkeleton sk = grow_crown(h, h * 0.35f,
@@ -340,7 +433,7 @@ void build_row(Engine& e, Vec3 at, bool is_before) {
         draw_trunk(e, Vec3(x, at.y, at.z), h, bead);
         draw_skeleton(e, sk, Vec3(x, at.y, at.z),
                       0.30f, 0.62f, 0.24f, bead);
-        x += 5.0f;
+        x += 8.0f;
     }
 }
 
@@ -349,14 +442,14 @@ void build_row(Engine& e, Vec3 at, bool is_before) {
 void build_real(Engine& e, Vec3 at) {
     auto& tg = e.get_worldgen_system().get_tree_generator();
     const float heights[] = {1.0f, 2.0f, 3.0f, 4.0f, 6.0f};
-    float x = at.x - 10.0f;
+    float x = at.x - 16.0f;
     for (float h : heights) {
         TreeSpec spec;
         spec.height = h;
         spec.crown_radius = h * 0.35f;
         spec.random_seed = 4242;
         tg.generate_tree_space_colonization(x, at.y, at.z, spec);
-        x += 5.0f;
+        x += 8.0f;
     }
 }
 
@@ -466,29 +559,75 @@ int main() {
             for (int i = 0; i < 10; ++i) e->update(1.0 / 60.0);
 
             const Station stations[] = {
-                {"THE CAUSE, on a 1 m tree",
-                 "LEFT: the old 1.5 m kill radius as a red ring. It "
-                 "swallows the whole 0.6 m crown, so every attractor dies "
-                 "on iteration one and one segment survives. RIGHT: the "
-                 "new radius fits inside the crown, and a tree grows.",
+                {"THE CAUSE  -  why a 1 m tree came out as a stick",
+                 {"Space colonization grows toward a cloud of attractors,",
+                  "then DELETES every attractor within the KILL RADIUS of",
+                  "any node. The whole bug is one comparison: kill radius",
+                  "against the crown it is working in.",
+                  "",
+                  ">LEFT   red ring = the OLD kill radius, 1.5 m.",
+                  "        The crown is only 0.6 m across, so the ring",
+                  "        swallows it whole. Every one of the 80 yellow",
+                  "        attractors dies on iteration 1.  Result: 1 segment.",
+                  "",
+                  ">RIGHT  green ring = the NEW kill radius, 0.30 m.",
+                  "        It fits INSIDE the crown, so attractors survive to",
+                  "        be grown toward.  Result: 74 segments.",
+                  "",
+                  "Yellow dots are the attractors. Same cloud both sides.",
+                  "The only difference is the size of the ring."},
                  Vec3(A.x, A.y, 0.8f), 150.0f},
-                {"BEFORE: 1, 2, 3, 4, 6 m",
-                 "Grown with the old lengths. The small ones are bare "
-                 "poles: trunk, and nothing on top.",
-                 Vec3(B.x, B.y, 2.0f), 26.0f},
-                {"AFTER: the same five heights",
-                 "Same camera, same sizes, new lengths. Every one has a "
-                 "crown.",
-                 Vec3(C.x, C.y, 2.0f), 26.0f},
-                {"REAL TREES from the shipping generator",
-                 "Not the demo's own maths: actual Tree entities and "
-                 "particles, 1 m to 6 m.",
-                 Vec3(D.x, D.y, 2.0f), 26.0f},
+
+                {"BEFORE  -  trees at 1, 2, 3, 4 and 6 m",
+                 {"The same five heights grown with the OLD lengths.",
+                  "",
+                  ">The two nearest are bare poles: a trunk, and nothing",
+                  ">on top of it. Their crowns died on the first iteration.",
+                  "",
+                  "The larger ones survive because a taller tree gets a",
+                  "wider crown (crown_reach is capped at 60% of height), and",
+                  "once the crown is wider than 1.5 m the floor stops",
+                  "mattering. That is why the bug only bit small trees.",
+                  "",
+                  "Segments grown:  1 m -> 1    2 m -> 1    3 m -> 9",
+                  "                 4 m -> 15   6 m -> 15"},
+                 Vec3(B.x, B.y, 2.0f), 20.0f},
+
+                {"AFTER  -  the same five heights, same camera",
+                 {"Identical scene, identical sizes. Only the three length",
+                  "constants changed, and they are now fractions of the",
+                  "crown instead of fixed metres:",
+                  "",
+                  "    attraction_range = crown_reach * 0.80",
+                  "    kill_distance    = crown_reach * 0.50",
+                  "    segment_length   = crown_reach * 0.07",
+                  "",
+                  ">Every one of the five now has a crown, including the",
+                  ">two that were bare sticks a moment ago.",
+                  "",
+                  "Segments grown:  1 m -> 74   2 m -> 74   3 m -> 74",
+                  "                 4 m -> 76   6 m -> 81"},
+                 Vec3(C.x, C.y, 2.0f), 20.0f},
+
+                {"REAL TREES  -  straight from the shipping generator",
+                 {"Not this demo's own arithmetic: actual Tree entities with",
+                  "real particles and foliage, made by the same code path",
+                  "Logogenesis calls, at 1, 2, 3, 4 and 6 m.",
+                  "",
+                  ">A 1 m tree is now 200 particles. It used to be 4:",
+                  ">three trunk segments and one dead crown segment.",
+                  "",
+                  "Logogenesis called anything under 12 particles collapsed",
+                  "and retried once. The retry forced crown_radius to 5 m,",
+                  "which the height cap threw straight back away, so it got",
+                  "the identical pole and shipped it."},
+                 Vec3(D.x, D.y, 2.0f), 20.0f},
             };
             const int n = static_cast<int>(sizeof(stations) /
                                            sizeof(stations[0]));
             for (int i = 0; i < n && !g_quit; ++i) {
-                look_at_station(*e, stations[i]);
+                if (i == 0) look_at_station(*e, stations[i]);
+                else        fly(*e, stations[i - 1], stations[i]);
                 hold(*e, stations[i], i, n);
             }
         }
