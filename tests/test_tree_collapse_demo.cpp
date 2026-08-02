@@ -266,6 +266,38 @@ void draw_caption(Engine& e, const Station& st, int index, int total) {
                   170, 190, 255);
 }
 
+// The captions ARE the explanation, so they need the same guard as
+// everything else here. CI never sets LOGOSPHERE_VISUAL, so nothing
+// would notice a station that lost its text or a draw_text call that
+// stopped landing: the demo would still exit 0 while explaining
+// nothing. UI text rasterises with create_display=false (the overlay
+// plane is a plain buffer, see test_ui_overlay_plane), so this runs
+// headless in CI.
+void check_captions_render(Engine& e, const Station* st, int n) {
+    std::cout << "\n  Captions" << std::endl;
+    for (int i = 0; i < n; ++i) {
+        CHECK(!st[i].lines.empty(),
+              std::string(st[i].title) + ": has an explanation at all");
+
+        e.render();                       // clears the overlay plane
+        draw_caption(e, st[i], i, n);
+
+        const PixelBuffer& ui = e.get_ui_overlay_buffer();
+        int lit = 0;
+        for (int y = 0; y < ui.height(); ++y)
+            for (int x = 0; x < ui.width(); ++x)
+                if (ui.get_pixel(x, y).a != 0) ++lit;
+
+        std::cout << "    [" << (i + 1) << "/" << n << "] "
+                  << lit << " pixels of text" << std::endl;
+        // A few hundred lit pixels is one short line. Every station
+        // here carries a paragraph.
+        CHECK(lit > 1500,
+              std::string(st[i].title) + ": its caption actually reaches "
+              "the screen (" + std::to_string(lit) + " pixels lit)");
+    }
+}
+
 void aim(Engine& e, Vec3 look, float zoom) {
     auto& cam = e.get_camera_system();
     cam.set_pixels_per_unit(zoom);
@@ -543,11 +575,83 @@ int main() {
             if (t != kg::INVALID_ENTITY)
                 smallest = e->get_kg().getEntityKGParticles(t).size();
         }
+        const Station stations[] = {
+            {"THE CAUSE  -  why a 1 m tree came out as a stick",
+             {"Space colonization grows toward a cloud of attractors,",
+              "then DELETES every attractor within the KILL RADIUS of",
+              "any node. The whole bug is one comparison: kill radius",
+              "against the crown it is working in.",
+              "",
+              ">LEFT   red ring = the OLD kill radius, 1.5 m.",
+              "        The crown is only 0.6 m across, so the ring",
+              "        swallows it whole. Every one of the 80 yellow",
+              "        attractors dies on iteration 1.  Result: 1 segment.",
+              "",
+              ">RIGHT  green ring = the NEW kill radius, 0.30 m.",
+              "        It fits INSIDE the crown, so attractors survive to",
+              "        be grown toward.  Result: 74 segments.",
+              "",
+              "Yellow dots are the attractors. Same cloud both sides.",
+              "The only difference is the size of the ring."},
+             Vec3(A.x, A.y, 0.8f), 150.0f},
+
+            {"BEFORE  -  trees at 1, 2, 3, 4 and 6 m",
+             {"The same five heights grown with the OLD lengths.",
+              "",
+              ">The two nearest are bare poles: a trunk, and nothing",
+              ">on top of it. Their crowns died on the first iteration.",
+              "",
+              "The larger ones survive because a taller tree gets a",
+              "wider crown (crown_reach is capped at 60% of height), and",
+              "once the crown is wider than 1.5 m the floor stops",
+              "mattering. That is why the bug only bit small trees.",
+              "",
+              "Segments grown:  1 m -> 1    2 m -> 1    3 m -> 9",
+              "                 4 m -> 15   6 m -> 15"},
+             Vec3(B.x, B.y, 2.0f), 20.0f},
+
+            {"AFTER  -  the same five heights, same camera",
+             {"Identical scene, identical sizes. Only the three length",
+              "constants changed, and they are now fractions of the",
+              "crown instead of fixed metres:",
+              "",
+              "    attraction_range = crown_reach * 0.80",
+              "    kill_distance    = crown_reach * 0.50",
+              "    segment_length   = crown_reach * 0.07",
+              "",
+              ">Every one of the five now has a crown, including the",
+              ">two that were bare sticks a moment ago.",
+              "",
+              "Segments grown:  1 m -> 74   2 m -> 74   3 m -> 74",
+              "                 4 m -> 76   6 m -> 81"},
+             Vec3(C.x, C.y, 2.0f), 20.0f},
+
+            {"REAL TREES  -  straight from the shipping generator",
+             {"Not this demo's own arithmetic: actual Tree entities with",
+              "real particles and foliage, made by the same code path",
+              "Logogenesis calls, at 1, 2, 3, 4 and 6 m.",
+              "",
+              ">A 1 m tree is now 200 particles. It used to be 4:",
+              ">three trunk segments and one dead crown segment.",
+              "",
+              "Logogenesis called anything under 12 particles collapsed",
+              "and retried once. The retry forced crown_radius to 5 m,",
+              "which the height cap threw straight back away, so it got",
+              "the identical pole and shipped it."},
+             Vec3(D.x, D.y, 2.0f), 20.0f},
+        };
+
         std::cout << "\n  Shipping generator, 1 m tree: " << smallest
                   << " particles (was 4, a bare pole)" << std::endl;
         CHECK(smallest > 50,
               "a 1 m tree from the real generator is a tree (got " +
               std::to_string(smallest) + ")");
+
+        const int n = static_cast<int>(sizeof(stations) /
+                                       sizeof(stations[0]));
+
+        // Guarded in every mode, including CI.
+        check_captions_render(*e, stations, n);
 
         if (g_visual) {
             e->get_particle_system().queue_light(-20.0f, -30.0f, 30.0f,
@@ -558,73 +662,6 @@ int main() {
                                                  0.85f, 0.9f, 1.0f);
             for (int i = 0; i < 10; ++i) e->update(1.0 / 60.0);
 
-            const Station stations[] = {
-                {"THE CAUSE  -  why a 1 m tree came out as a stick",
-                 {"Space colonization grows toward a cloud of attractors,",
-                  "then DELETES every attractor within the KILL RADIUS of",
-                  "any node. The whole bug is one comparison: kill radius",
-                  "against the crown it is working in.",
-                  "",
-                  ">LEFT   red ring = the OLD kill radius, 1.5 m.",
-                  "        The crown is only 0.6 m across, so the ring",
-                  "        swallows it whole. Every one of the 80 yellow",
-                  "        attractors dies on iteration 1.  Result: 1 segment.",
-                  "",
-                  ">RIGHT  green ring = the NEW kill radius, 0.30 m.",
-                  "        It fits INSIDE the crown, so attractors survive to",
-                  "        be grown toward.  Result: 74 segments.",
-                  "",
-                  "Yellow dots are the attractors. Same cloud both sides.",
-                  "The only difference is the size of the ring."},
-                 Vec3(A.x, A.y, 0.8f), 150.0f},
-
-                {"BEFORE  -  trees at 1, 2, 3, 4 and 6 m",
-                 {"The same five heights grown with the OLD lengths.",
-                  "",
-                  ">The two nearest are bare poles: a trunk, and nothing",
-                  ">on top of it. Their crowns died on the first iteration.",
-                  "",
-                  "The larger ones survive because a taller tree gets a",
-                  "wider crown (crown_reach is capped at 60% of height), and",
-                  "once the crown is wider than 1.5 m the floor stops",
-                  "mattering. That is why the bug only bit small trees.",
-                  "",
-                  "Segments grown:  1 m -> 1    2 m -> 1    3 m -> 9",
-                  "                 4 m -> 15   6 m -> 15"},
-                 Vec3(B.x, B.y, 2.0f), 20.0f},
-
-                {"AFTER  -  the same five heights, same camera",
-                 {"Identical scene, identical sizes. Only the three length",
-                  "constants changed, and they are now fractions of the",
-                  "crown instead of fixed metres:",
-                  "",
-                  "    attraction_range = crown_reach * 0.80",
-                  "    kill_distance    = crown_reach * 0.50",
-                  "    segment_length   = crown_reach * 0.07",
-                  "",
-                  ">Every one of the five now has a crown, including the",
-                  ">two that were bare sticks a moment ago.",
-                  "",
-                  "Segments grown:  1 m -> 74   2 m -> 74   3 m -> 74",
-                  "                 4 m -> 76   6 m -> 81"},
-                 Vec3(C.x, C.y, 2.0f), 20.0f},
-
-                {"REAL TREES  -  straight from the shipping generator",
-                 {"Not this demo's own arithmetic: actual Tree entities with",
-                  "real particles and foliage, made by the same code path",
-                  "Logogenesis calls, at 1, 2, 3, 4 and 6 m.",
-                  "",
-                  ">A 1 m tree is now 200 particles. It used to be 4:",
-                  ">three trunk segments and one dead crown segment.",
-                  "",
-                  "Logogenesis called anything under 12 particles collapsed",
-                  "and retried once. The retry forced crown_radius to 5 m,",
-                  "which the height cap threw straight back away, so it got",
-                  "the identical pole and shipped it."},
-                 Vec3(D.x, D.y, 2.0f), 20.0f},
-            };
-            const int n = static_cast<int>(sizeof(stations) /
-                                           sizeof(stations[0]));
             for (int i = 0; i < n && !g_quit; ++i) {
                 if (i == 0) look_at_station(*e, stations[i]);
                 else        fly(*e, stations[i - 1], stations[i]);
