@@ -140,16 +140,33 @@ void dot(Engine& e, Vec3 at, float size, float r, float g, float b) {
 
 // A skeleton, drawn as beads along every branch.
 void draw_skeleton(Engine& e, const TreeSkeleton& s, Vec3 origin,
-                   float r, float g, float b) {
+                   float r, float g, float b, float bead = 0.06f) {
     for (int i = 0; i < s.segment_count(); ++i) {
         const BranchSegment& seg = s.get_segment(i);
-        for (int k = 0; k <= 2; ++k) {
-            const float t = static_cast<float>(k) / 2.0f;
+        const float len = seg.length();
+        // Beads spaced by their own size, so a branch reads as a
+        // branch. Three dots per segment read as three dots.
+        const int n = std::max(2, static_cast<int>(len / (bead * 0.6f)));
+        for (int k = 0; k <= n; ++k) {
+            const float t = static_cast<float>(k) / n;
             Vec3 at(origin.x + seg.start.x + (seg.end.x - seg.start.x) * t,
                     origin.y + seg.start.y + (seg.end.y - seg.start.y) * t,
                     origin.z + seg.start.z + (seg.end.z - seg.start.z) * t);
-            dot(e, at, std::max(0.03f, seg.thickness), r, g, b);
+            dot(e, at, bead, r, g, b);
         }
+    }
+}
+
+// The trunk the crown sits on. Both rows get one, because "bare pole"
+// is a statement about a tree, and a crown floating with no trunk
+// under it is not a picture of anything.
+void draw_trunk(Engine& e, Vec3 origin, float height, float bead) {
+    const float top = height * 0.45f;
+    const int n = std::max(3, static_cast<int>(top / (bead * 0.6f)));
+    for (int k = 0; k <= n; ++k) {
+        const float t = static_cast<float>(k) / n;
+        dot(e, Vec3(origin.x, origin.y, origin.z + top * t),
+            bead * 1.35f, 0.34f, 0.24f, 0.15f);
     }
 }
 
@@ -199,7 +216,7 @@ Engine* make_engine() {
     cfg.create_display = g_visual;
     cfg.window_width = 1100;
     cfg.window_height = 720;
-    cfg.window_title = "why small trees were poles";
+    cfg.window_title = "why small trees were poles (issue #21)";
     cfg.show_debug_overlay = false;
     cfg.enable_chat_window = false;
     if (e->initialize(cfg) < 0) { delete e; return nullptr; }
@@ -207,103 +224,166 @@ Engine* make_engine() {
     return e;
 }
 
-void light_and_frame(Engine& e, Vec3 look, float zoom) {
-    e.get_particle_system().queue_light(look.x - 10.0f, look.y - 12.0f,
-                                        look.z + 14.0f, 4000000.0f, 200.0f,
-                                        1.0f, 0.95f, 0.9f);
-    e.get_particle_system().queue_light(look.x + 12.0f, look.y + 6.0f,
-                                        look.z + 10.0f, 1500000.0f, 200.0f,
-                                        0.85f, 0.9f, 1.0f);
-    if (!g_visual) return;
+// ONE window for the whole demo. Building an Engine per view opened and
+// destroyed a window per view, which is a flicker and nothing else.
+// Everything is laid out once, far enough apart that framing one
+// station shows only that station, and SPACE walks the camera between
+// them.
+struct Station {
+    const char* title;
+    const char* caption;
+    Vec3  look;
+    float zoom;      // pixels per world metre
+};
+
+void look_at_station(Engine& e, const Station& st) {
     auto& cam = e.get_camera_system();
-    cam.set_position(look.x - 8.0f, look.y - 8.0f, look.z + 8.0f);
-    cam.look_at(look.x, look.y, look.z);
-    cam.adjust_zoom(zoom);
+    cam.set_pixels_per_unit(st.zoom);
+    cam.set_position(st.look.x - 8.0f, st.look.y - 8.0f, st.look.z + 8.0f);
+    cam.look_at(st.look.x, st.look.y, st.look.z);
 }
 
-// LOGOSPHERE_SHOT=<dir> writes the view instead of waiting on it. A
-// picture that explains something is a claim about pixels, and this is
-// how that claim gets checked.
-void shoot(Engine& e, const std::string& name) {
-    const char* dir = std::getenv("LOGOSPHERE_SHOT");
-    if (!dir || !g_visual) return;
-    for (int i = 0; i < 3; ++i) { e.update(1.0 / 60.0); e.render(); e.present(); }
-    e.get_renderer().wait_for_completion();
-    int w = 0, h = 0;
-    std::vector<uint32_t> px(
-        static_cast<size_t>(e.get_render_buffer().width()) *
-        e.get_render_buffer().height());
-    if (!e.read_latest_framebuffer(px.data(), w, h)) return;
-    FILE* f = std::fopen((std::string(dir) + "/" + name + ".ppm").c_str(), "wb");
-    if (!f) return;
-    std::fprintf(f, "P6\n%d %d\n255\n", w, h);
-    for (int i = 0; i < w * h; ++i) {
-        const uint32_t q = px[i];
-        unsigned char rgb[3] = {
-            static_cast<unsigned char>((q >> 16) & 0xFF),
-            static_cast<unsigned char>((q >> 8) & 0xFF),
-            static_cast<unsigned char>(q & 0xFF)};
-        std::fwrite(rgb, 1, 3, f);
-    }
-    std::fclose(f);
-    std::cout << "    shot -> " << name << ".ppm" << std::endl;
-}
-
-void show(Engine& e, const char* caption) {
-    if (!g_visual || g_quit) {
-        return;
-    }
-    if (std::getenv("LOGOSPHERE_SHOT")) { shoot(e, caption); return; }
-    std::cout << "    [" << caption
-              << "]  SPACE for the next view, ESC to stop." << std::endl;
+// Hold here until SPACE. The window keeps rendering the whole time, so
+// the picture is steady and can actually be looked at.
+void hold(Engine& e, const Station& st, int index, int total) {
+    std::cout << "\n  [" << (index + 1) << "/" << total << "] " << st.title
+              << "\n      " << st.caption
+              << "\n      SPACE for the next view, ESC to stop." << std::endl;
+    const char* shot_dir = std::getenv("LOGOSPHERE_SHOT");
     auto* win = static_cast<GLFWwindow*>(
         e.get_platform()->get_native_window_handle());
+
     bool released = false;
+    int frames = 0;
     while (!g_quit) {
         e.update(1.0 / 60.0);
         e.render();
         e.present();
         e.get_platform()->poll_events();
-        if (!win) break;
-        if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) { g_quit = true; break; }
+        ++frames;
+
+        if (shot_dir) {                       // scripted: grab and go
+            if (frames >= 4) {
+                e.get_renderer().wait_for_completion();
+                int w = 0, h = 0;
+                std::vector<uint32_t> px(
+                    static_cast<size_t>(e.get_render_buffer().width()) *
+                    e.get_render_buffer().height());
+                if (e.read_latest_framebuffer(px.data(), w, h)) {
+                    std::string path = std::string(shot_dir) + "/" +
+                                       std::to_string(index) + ".ppm";
+                    if (FILE* f = std::fopen(path.c_str(), "wb")) {
+                        std::fprintf(f, "P6\n%d %d\n255\n", w, h);
+                        for (int i = 0; i < w * h; ++i) {
+                            const uint32_t q = px[i];
+                            unsigned char rgb[3] = {
+                                static_cast<unsigned char>((q >> 16) & 0xFF),
+                                static_cast<unsigned char>((q >> 8) & 0xFF),
+                                static_cast<unsigned char>(q & 0xFF)};
+                            std::fwrite(rgb, 1, 3, f);
+                        }
+                        std::fclose(f);
+                        std::cout << "      shot -> " << path << std::endl;
+                    }
+                }
+                return;
+            }
+            continue;
+        }
+
+        if (!win) return;                     // no window: nothing to hold
+        if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) { g_quit = true; return; }
         const bool space = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-        if (!space) released = true;
-        if (space && released) break;
-        if (e.get_platform()->should_close()) { g_quit = true; break; }
+        if (!space) released = true;          // ignore a held-over press
+        if (space && released) return;
+        if (e.get_platform()->should_close()) { g_quit = true; return; }
     }
 }
 
-// --------------------------------------------------------------- the views
+// --------------------------------------------------------------- the scene
 
-// VIEW 1. The cause, at the size where it bites. One crown, one set of
-// attractors, two kill radii. The red ring is the old one.
-void view_the_cause() {
-    const float H = 1.0f;                 // a 1 m tree
+// Station A: the cause, at the size where it bites.
+void build_cause(Engine& e, Vec3 at) {
+    const float H = 1.0f;
     const float CR = crown_reach_of(H, 0.35f);
-    const Lengths old_L = before_fix(CR);
-    const Lengths new_L = after_fix(CR);
+    std::vector<Vec3> attractors;
+    TreeSkeleton broken = grow_crown(H, 0.35f, before_fix(CR), &attractors);
+    TreeSkeleton fixed  = grow_crown(H, 0.35f, after_fix(CR));
+
+    const Vec3 left(at.x - 1.8f, at.y, at.z);
+    const Vec3 right(at.x + 1.8f, at.y, at.z);
+    const float root_z = H * 0.45f;
+
+    draw_attractors(e, attractors, left);
+    draw_ring(e, Vec3(left.x, left.y, left.z + root_z),
+              before_fix(CR).kill, 1.0f, 0.15f, 0.1f);
+    draw_trunk(e, left, H, 0.05f);
+    draw_skeleton(e, broken, left, 0.30f, 0.62f, 0.24f, 0.05f);
+
+    draw_attractors(e, attractors, right);
+    draw_ring(e, Vec3(right.x, right.y, right.z + root_z),
+              after_fix(CR).kill, 0.2f, 1.0f, 0.35f);
+    draw_trunk(e, right, H, 0.05f);
+    draw_skeleton(e, fixed, right, 0.30f, 0.62f, 0.24f, 0.05f);
+}
+
+// Stations B and C: the same five heights, grown each way.
+void build_row(Engine& e, Vec3 at, bool is_before) {
+    const float heights[] = {1.0f, 2.0f, 3.0f, 4.0f, 6.0f};
+    float x = at.x - 10.0f;
+    for (float h : heights) {
+        const float CR = crown_reach_of(h, h * 0.35f);
+        TreeSkeleton sk = grow_crown(h, h * 0.35f,
+                                     is_before ? before_fix(CR)
+                                               : after_fix(CR));
+        const float bead = std::max(0.045f, h * 0.030f);
+        draw_trunk(e, Vec3(x, at.y, at.z), h, bead);
+        draw_skeleton(e, sk, Vec3(x, at.y, at.z),
+                      0.30f, 0.62f, 0.24f, bead);
+        x += 5.0f;
+    }
+}
+
+// Station D: real trees straight from the shipping generator, so the
+// demo is not just arguing with itself.
+void build_real(Engine& e, Vec3 at) {
+    auto& tg = e.get_worldgen_system().get_tree_generator();
+    const float heights[] = {1.0f, 2.0f, 3.0f, 4.0f, 6.0f};
+    float x = at.x - 10.0f;
+    for (float h : heights) {
+        TreeSpec spec;
+        spec.height = h;
+        spec.crown_radius = h * 0.35f;
+        spec.random_seed = 4242;
+        tg.generate_tree_space_colonization(x, at.y, at.z, spec);
+        x += 5.0f;
+    }
+}
+
+// --------------------------------------------------------------- numbers
+
+void measure() {
+    const float H = 1.0f;
+    const float CR = crown_reach_of(H, 0.35f);
+    const Lengths oldL = before_fix(CR), newL = after_fix(CR);
 
     std::cout << "\n  Why a 1 m tree collapsed" << std::endl;
     std::cout << "    crown is " << CR << " m across" << std::endl;
-    std::cout << "    kill radius BEFORE " << old_L.kill << " m  ("
-              << (old_L.kill / CR) << "x the crown - it swallows it)"
+    std::cout << "    kill radius BEFORE " << oldL.kill << " m ("
+              << (oldL.kill / CR) << "x the crown, it swallows it)"
               << std::endl;
-    std::cout << "    kill radius AFTER  " << new_L.kill << " m  ("
-              << (new_L.kill / CR) << "x the crown)" << std::endl;
+    std::cout << "    kill radius AFTER  " << newL.kill << " m ("
+              << (newL.kill / CR) << "x the crown)" << std::endl;
 
-    std::vector<Vec3> attractors;
-    TreeSkeleton broken = grow_crown(H, 0.35f, old_L, &attractors);
-    TreeSkeleton fixed  = grow_crown(H, 0.35f, new_L);
-
+    TreeSkeleton broken = grow_crown(H, 0.35f, oldL);
+    TreeSkeleton fixed  = grow_crown(H, 0.35f, newL);
     std::cout << "    segments grown BEFORE " << broken.segment_count()
               << ", AFTER " << fixed.segment_count() << std::endl;
 
-    CHECK(old_L.kill > CR,
+    CHECK(oldL.kill > CR,
           "the old kill radius really is wider than the whole crown (" +
-          std::to_string(old_L.kill) + " vs " + std::to_string(CR) + ")");
-    CHECK(new_L.kill < CR,
-          "the new one fits inside it (" + std::to_string(new_L.kill) +
-          " vs " + std::to_string(CR) + ")");
+          std::to_string(oldL.kill) + " vs " + std::to_string(CR) + ")");
+    CHECK(newL.kill < CR, "the new one fits inside it");
     CHECK(broken.segment_count() <= 2,
           "the old lengths collapse the crown to nothing (" +
           std::to_string(broken.segment_count()) + " segments)");
@@ -311,152 +391,111 @@ void view_the_cause() {
           "the new ones grow a real crown (" +
           std::to_string(fixed.segment_count()) + " segments)");
 
-    if (!g_visual) return;
-    Engine* e = make_engine();
-    if (!e) return;
-    ground(*e, 0.0f, 12.0f);
-
-    // Close together and zoomed hard: the whole subject is 0.6 m
-    // across, so at any normal framing it is a speck.
-    const Vec3 left(-1.8f, 0.0f, 0.0f);
-    const Vec3 right(1.8f, 0.0f, 0.0f);
-    const Vec3 root_off(0.0f, 0.0f, H * 0.45f);
-
-    // Left: the old lengths. Attractors, the kill ring that engulfs
-    // them, and the single segment that survives.
-    draw_attractors(*e, attractors, left);
-    draw_ring(*e, Vec3(left.x, left.y, left.z + root_off.z), old_L.kill,
-              1.0f, 0.15f, 0.1f);
-    draw_skeleton(*e, broken, left, 0.9f, 0.3f, 0.2f);
-
-    // Right: the new lengths. Same attractors, a ring that fits inside
-    // the crown, and a tree.
-    draw_attractors(*e, attractors, right);
-    draw_ring(*e, Vec3(right.x, right.y, right.z + root_off.z), new_L.kill,
-              0.2f, 1.0f, 0.35f);
-    draw_skeleton(*e, fixed, right, 0.35f, 0.85f, 0.4f);
-
-    light_and_frame(*e, Vec3(0.0f, 0.0f, 0.8f), 140.0f);
-    for (int i = 0; i < 3; ++i) e->update(1.0 / 60.0);
-    std::cout << "    LEFT red ring = old kill radius, swallowing every "
-                 "attractor. RIGHT green = fixed." << std::endl;
-    show(*e, "the cause");
-    e->shutdown();
-    delete e;
-}
-
-// VIEW 2. The consequence, across sizes. Same heights, both parameter
-// sets, in a row. Before is a line of poles.
-void view_before_and_after() {
-    // 1 to 6 m rather than up to 12: one frame cannot show a 1 m tree
-    // and a 12 m tree usefully at the same time, and the small end is
-    // where the bug lived.
-    const std::vector<float> heights = {1.0f, 2.0f, 3.0f, 4.0f, 6.0f};
-    std::cout << "\n  What it looked like at each size" << std::endl;
+    std::cout << "\n  At each size" << std::endl;
     std::cout << "    height   segments BEFORE   segments AFTER" << std::endl;
-
-    Engine* e = g_visual ? make_engine() : nullptr;
-    if (g_visual && !e) return;
-    if (e) ground(*e, 0.0f, 30.0f);
-
-    float x = -10.0f;
     int collapsed_before = 0, collapsed_after = 0;
     bool always_richer = true;
-    for (float h : heights) {
-        const float CR = crown_reach_of(h, h * 0.35f);
-        TreeSkeleton b = grow_crown(h, h * 0.35f, before_fix(CR));
-        TreeSkeleton a = grow_crown(h, h * 0.35f, after_fix(CR));
+    for (float h : {1.0f, 2.0f, 3.0f, 4.0f, 6.0f}) {
+        const float cr = crown_reach_of(h, h * 0.35f);
+        TreeSkeleton b = grow_crown(h, h * 0.35f, before_fix(cr));
+        TreeSkeleton a = grow_crown(h, h * 0.35f, after_fix(cr));
         std::cout << "    " << std::setw(5) << h
                   << std::setw(16) << b.segment_count()
                   << std::setw(17) << a.segment_count() << std::endl;
         if (b.segment_count() <= 2) collapsed_before++;
         if (a.segment_count() <= 2) collapsed_after++;
         if (a.segment_count() <= b.segment_count()) always_richer = false;
-
-        if (e) {
-            draw_skeleton(*e, b, Vec3(x, -3.0f, 0.0f), 0.9f, 0.3f, 0.2f);
-            draw_skeleton(*e, a, Vec3(x, 3.0f, 0.0f), 0.35f, 0.85f, 0.4f);
-        }
-        x += 5.0f;
     }
-
-    // The smallest sizes collapsed to a single segment; the rest were
-    // stunted rather than dead. Both are the same cause at different
-    // severities, so assert both rather than pretending it is one
-    // clean cliff.
     CHECK(collapsed_before >= 2,
           "the old lengths collapsed the smallest sizes to one segment (" +
-          std::to_string(collapsed_before) + " of 5 did)");
-    CHECK(collapsed_after == 0,
-          "and the new ones collapse none (" +
-          std::to_string(collapsed_after) + " of 5)");
-    CHECK(always_richer,
-          "every size grows more crown than it did before");
-
-    if (!e) return;
-    light_and_frame(*e, Vec3(0.0f, 0.0f, 2.0f), 26.0f);
-    for (int i = 0; i < 3; ++i) e->update(1.0 / 60.0);
-    std::cout << "    FRONT row (red) = before, a line of poles. "
-                 "BACK row (green) = after." << std::endl;
-    show(*e, "before and after");
-    e->shutdown();
-    delete e;
-}
-
-// VIEW 3. The same thing through the shipping generator, so the demo
-// is not just arguing with itself: real Tree entities, real particles.
-void view_real_trees() {
-    std::cout << "\n  Through the real generator (particles per tree)"
-              << std::endl;
-    Engine* e = make_engine();
-    if (!e) { CHECK(false, "engine init"); return; }
-    if (g_visual) ground(*e, 0.0f, 30.0f);
-
-    auto& tg = e->get_worldgen_system().get_tree_generator();
-    const std::vector<float> heights = {1.0f, 2.0f, 3.0f, 6.0f, 12.0f};
-    float x = -14.0f;
-    size_t smallest = 0;
-    for (float h : heights) {
-        TreeSpec spec;
-        spec.height = h;
-        spec.crown_radius = h * 0.35f;
-        spec.random_seed = 4242;
-        kg::EntityID t = tg.generate_tree_space_colonization(x, 0.0f, 0.0f,
-                                                             spec);
-        const size_t n = (t == kg::INVALID_ENTITY)
-                       ? 0 : e->get_kg().getEntityKGParticles(t).size();
-        std::cout << "    " << std::setw(5) << h << " m -> " << n
-                  << " particles" << std::endl;
-        if (h == 1.0f) smallest = n;
-        x += 7.0f;
-    }
-    // 4 particles was the collapsed tree: 3 trunk segments and one
-    // crown segment.
-    CHECK(smallest > 50,
-          "a 1 m tree from the shipping generator is a tree, not the "
-          "4-particle pole it used to be (got " +
-          std::to_string(smallest) + ")");
-
-    if (g_visual) {
-        light_and_frame(*e, Vec3(0.0f, 0.0f, 3.0f), 6.0f);
-        for (int i = 0; i < 30; ++i) e->update(1.0 / 60.0);
-        std::cout << "    Real trees from the engine, 1 m to 12 m."
-                  << std::endl;
-        show(*e, "real trees");
-    }
-    e->shutdown();
-    delete e;
+          std::to_string(collapsed_before) + " of 5)");
+    CHECK(collapsed_after == 0, "and the new ones collapse none");
+    CHECK(always_richer, "every size grows more crown than it did before");
 }
 
 }  // namespace
 
 int main() {
     g_visual = std::getenv("LOGOSPHERE_VISUAL") != nullptr;
-    std::cout << "Why small trees were bare poles (issue #21)"
-              << (g_visual ? "  [SPACE next, ESC stop]" : "") << std::endl;
-    view_the_cause();
-    if (!g_quit) view_before_and_after();
-    if (!g_quit) view_real_trees();
+    std::cout << "Why small trees were bare poles (issue #21)" << std::endl;
+
+    measure();
+
+    Engine* e = make_engine();
+    if (!e) { CHECK(false, "engine init"); }
+    else {
+        // Stations are far apart so that framing one shows only it.
+        const Vec3 A(-60.0f, 0.0f, 0.0f);
+        const Vec3 B(0.0f, -40.0f, 0.0f);
+        const Vec3 C(0.0f, 40.0f, 0.0f);
+        const Vec3 D(60.0f, 0.0f, 0.0f);
+
+        if (g_visual) {
+            ground(*e, 0.0f, 90.0f);
+            build_cause(*e, A);
+            build_row(*e, B, /*is_before=*/true);
+            build_row(*e, C, /*is_before=*/false);
+        }
+        build_real(*e, D);            // asserted below, drawn only if visual
+
+        size_t smallest = 0;
+        {   // the shipping generator's own answer for a 1 m tree
+            auto& tg = e->get_worldgen_system().get_tree_generator();
+            TreeSpec spec;
+            spec.height = 1.0f;
+            spec.crown_radius = 0.35f;
+            spec.random_seed = 4242;
+            kg::EntityID t = tg.generate_tree_space_colonization(
+                D.x, D.y + 8.0f, D.z, spec);
+            if (t != kg::INVALID_ENTITY)
+                smallest = e->get_kg().getEntityKGParticles(t).size();
+        }
+        std::cout << "\n  Shipping generator, 1 m tree: " << smallest
+                  << " particles (was 4, a bare pole)" << std::endl;
+        CHECK(smallest > 50,
+              "a 1 m tree from the real generator is a tree (got " +
+              std::to_string(smallest) + ")");
+
+        if (g_visual) {
+            e->get_particle_system().queue_light(-20.0f, -30.0f, 30.0f,
+                                                 9000000.0f, 400.0f,
+                                                 1.0f, 0.95f, 0.9f);
+            e->get_particle_system().queue_light(30.0f, 20.0f, 26.0f,
+                                                 5000000.0f, 400.0f,
+                                                 0.85f, 0.9f, 1.0f);
+            for (int i = 0; i < 10; ++i) e->update(1.0 / 60.0);
+
+            const Station stations[] = {
+                {"THE CAUSE, on a 1 m tree",
+                 "LEFT: the old 1.5 m kill radius as a red ring. It "
+                 "swallows the whole 0.6 m crown, so every attractor dies "
+                 "on iteration one and one segment survives. RIGHT: the "
+                 "new radius fits inside the crown, and a tree grows.",
+                 Vec3(A.x, A.y, 0.8f), 150.0f},
+                {"BEFORE: 1, 2, 3, 4, 6 m",
+                 "Grown with the old lengths. The small ones are bare "
+                 "poles: trunk, and nothing on top.",
+                 Vec3(B.x, B.y, 2.0f), 26.0f},
+                {"AFTER: the same five heights",
+                 "Same camera, same sizes, new lengths. Every one has a "
+                 "crown.",
+                 Vec3(C.x, C.y, 2.0f), 26.0f},
+                {"REAL TREES from the shipping generator",
+                 "Not the demo's own maths: actual Tree entities and "
+                 "particles, 1 m to 6 m.",
+                 Vec3(D.x, D.y, 2.0f), 26.0f},
+            };
+            const int n = static_cast<int>(sizeof(stations) /
+                                           sizeof(stations[0]));
+            for (int i = 0; i < n && !g_quit; ++i) {
+                look_at_station(*e, stations[i]);
+                hold(*e, stations[i], i, n);
+            }
+        }
+        e->shutdown();
+        delete e;
+    }
+
     std::cout << "\n" << tests_passed << " passed, " << tests_failed
               << " failed" << (g_quit ? "  (stopped early)" : "")
               << std::endl;
