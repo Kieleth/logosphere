@@ -1745,6 +1745,7 @@ set(TEST_SOURCES
     tests/test_async_prep_equivalence.cpp      # Async GPU prep must not change a single pixel
     tests/test_shadow_lod_wall.cpp             # LOD judged on the SHADOW, not the object
     tests/test_physics_characterization.cpp    # refactor net: pins solver output on a pile
+    tests/test_solver_convergence_ladder.cpp   # where does the solve first give up?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)
     # tests/test_gpu_multi_triangle.cpp          # GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
     tests/test_gpu_parallel_rays.cpp           # GPU parallel rays (Phase I-C)

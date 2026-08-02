@@ -21,7 +21,8 @@ Optimization items that shipped: `GPU_OPT_LEDGER.md`.
 | S11 | Where does prep_shadow_tris go? | Two thirds was a contended mutex, not geometry. Frame -18%. |
 | S12 | Who owns retina frame time? | Nobody. CPU 19.74 vs GPU 18.92 ms, BALANCED. The old GPU metric read 122% of wall clock and was double counting. |
 | S13 | Do the render passes overlap each other? | No. Serialized and pipelined stage costs match within 1%, so per-stage timestamps were true isolated costs all along. |
-| S19 | Is constraint order load-bearing, or only a bit pattern? | LOAD-BEARING. The solver plateaus on every substep of every frame and has never once converged, so parallelism, islands, SoA and sorting are all closed. |
+| S20 | Why does it plateau, and how simple a scene fails? | It does not necessarily plateau. The "converged" exit needs impulses under 0.01 while a resting body needs ~100 N s, so it is unreachable. S19's inference WITHDRAWN. Also: the floor solves ~26 constraints per tile against itself. |
+| S19 | Is constraint order load-bearing, or only a bit pattern? | ~~LOAD-BEARING~~ WITHDRAWN by S20, the counter measures the wrong quantity. Data stands, inference does not. Question is open. |
 | S18 | Where does the engine stop holding 60 FPS, and why? | 3-4k bodies. Render is flat at 2.7 us/body; `apply_all_forces` is 98% of physics and scales O(n^1.38). |
 | S17 | Do smooth normals survive the shadow terminator? | Yes at LOD 1, no at LOD 0. Shipped LOD 1 + smooth as default; LOD 2 kept as a quality setting because it still casts better SHADOWS (rays hit real triangles). |
 | S16 | What does an LOD switch cost? | 3.94 ms more GPU work: refit 1.87 to build 5.81. accel_build is the LARGEST GPU stage and was never recorded until now. |
@@ -1011,6 +1012,13 @@ is unchanged (`7b597182f47cffed`), so they are provably behaviour-neutral.
 frame, and the converged exit has never once fired at any body count. **The
 solve always stops short of equilibrium.**
 
+> **THE INFERENCE BELOW IS WITHDRAWN. See S20.** The DATA stands (plateau exit
+> always, converged exit never), but the counter measures the wrong quantity, so
+> "never converges" does not follow from it and neither does anything built on
+> that. Constraint order being load-bearing is now an OPEN question, not a
+> finding, and parallelism is not closed. The original text is kept below
+> because the reasoning was the mistake, not the measurement.
+
 **What that decides.** This is a sequential-impulse (Gauss-Seidel) solver: each
 constraint is applied against velocities already modified by the constraints
 before it. When the solve reaches equilibrium the order is a bit-pattern detail.
@@ -1055,6 +1063,84 @@ is a quality regression hiding inside a performance measurement.
    out of a 32 budget. Whether that is the right trade at scale has never been
    examined, and it interacts with the gluon distance constraint stalling at
    0.0813 m against a 0.03 m budget (its own known red).
+
+### S20: the convergence counter measures the wrong thing, and the floor solves itself (2026-08-01)
+
+S19 read the solver's exit door and concluded it never converges. Before acting
+on that, a ladder isolating ONE variable (contact-chain depth: 1, 2, 3, 4, 6, 8
+boxes stacked on a floor, otherwise identical) was run to find the simplest
+scene that fails. `tests/test_solver_convergence_ladder.cpp`.
+
+| stack | converged | plateaued | iters/solve | rows/frame |
+|---|---|---|---|---|
+| 1 | 0 | 120 | 9.0 | 648 |
+| 2 | 0 | 120 | 9.0 | 648 |
+| 4 | 0 | 120 | 9.0 | 648 |
+| 8 | 0 | 120 | 9.0 | 648 |
+
+**Two things in that table are more informative than the verdict.**
+
+**FINDING 1: the "converged" exit is unreachable by construction, so S19's
+inference is withdrawn.**
+
+`iters/solve` is 9.0 at every rung. `MIN_ITERATIONS = 6` and
+`PLATEAU_CONFIRM = 3`, and 6 + 3 = 9. The plateau detector fires at the earliest
+moment it is legally allowed to, always, at every complexity. That is not a
+solver struggling; that is a detector with no dynamic range.
+
+And the other door cannot open at all. It tests
+`max_impulse_this_iter < ABSOLUTE_THRESHOLD` with the threshold at 0.01. At
+equilibrium the support impulse a resting body needs is exactly the impulse that
+cancels gravity, m*g*dt_substep, which for a 1 m stone box is on the order of
+100 N s. **Thousands of times above the threshold.** The converged exit is dead
+code for any scene containing a body with mass at rest.
+
+So "plateaued" does not mean "failed to converge". Improvement falling below 5%
+per iteration at a steady state is precisely what a CONVERGED solver looks like:
+the solution has stopped moving. **The counter conflates "converged" with
+"stuck", and reports both as stuck.**
+
+Consequences: S19's data stands, S19's conclusion does not. Whether constraint
+order is load-bearing is REOPENED. Parallelism, islands, SoA and sorting are not
+closed. Answering it properly needs a CONSTRAINT RESIDUAL (how much violation
+remains when the solve stops), which is a different measurement from impulse
+magnitude and does not yet exist.
+
+**FINDING 2: the floor generates constraints against itself, and it dominates.**
+
+`rows/frame` is identical at 648 whether the stack is 1 box or 8. The stack
+contributes essentially nothing. Sweeping the floor extent instead:
+
+| floor tiles | rows/frame |
+|---|---|
+| 1 | 8 |
+| 9 | 232 |
+| 25 | 648 |
+| 49 | 1320 |
+
+**About 26 constraint rows per floor tile**, against 8 rows for the single
+dynamic box. Floor tiles are KINEMATIC and `is_at_rest`, and they touch their
+neighbours, so the engine builds and solves contact constraints between pairs of
+bodies that cannot move and cannot respond. Every substep, forever.
+
+The skip at the top of contact detection is
+`if (pi.is_at_rest && pi.solver_mode != KINEMATIC) continue;`, which deliberately
+keeps KINEMATIC bodies in the loop (the comment explains that kinematic actors
+can be teleported and still need contacts generated). That is right for
+KINEMATIC-vs-DYNAMIC. It is waste for KINEMATIC-vs-KINEMATIC, where neither side
+can take an impulse.
+
+This is the largest concrete inefficiency found in physics so far and it is
+independent of the convergence question.
+
+**Method note, and it is the fourth time this session.** Instruments honest,
+model wrong. "Stages overlap", "residency not work", "the machine was loaded",
+and now "the solver never converges" all explained a real measurement with a
+wrong mechanism. The new wrinkle: this time the instrument itself measured the
+wrong QUANTITY. A counter is not automatically better than a timer. **Before
+trusting a counter, ask what value it would take in the healthy case** and check
+that value is reachable. `ABSOLUTE_THRESHOLD = 0.01` fails that test on
+inspection, and would have failed it before the ramp was ever run.
 
 ---
 

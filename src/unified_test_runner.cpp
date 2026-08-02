@@ -80,6 +80,7 @@ extern bool test_gpu_occupancy_sanity();     // GPU occupancy must be a union, n
 extern bool test_async_prep_equivalence();   // Async GPU prep must be pixel-identical to sync (STANDALONE)
 extern bool test_shadow_lod_wall();          // LOD judged on the shadow it casts, not the object (STANDALONE)
 extern bool test_physics_characterization(); // Refactor net: pins apply_all_forces output (STANDALONE)
+extern bool test_solver_convergence_ladder();// Diagnostic: simplest scene the solver fails to converge (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
 // extern bool test_gpu_multi_triangle(TestContext& ctx);  // GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
 extern bool test_gpu_parallel_rays(TestContext& ctx);  // GPU parallel rays (Phase I-C)
@@ -255,6 +256,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_async_prep_equivalence"] = [](TestContext&) { return test_async_prep_equivalence(); };  // STANDALONE: own engine
     registry["test_shadow_lod_wall"] = [](TestContext&) { return test_shadow_lod_wall(); };  // STANDALONE: own engine
     registry["test_physics_characterization"] = [](TestContext&) { return test_physics_characterization(); };  // STANDALONE: own engine
+    registry["test_solver_convergence_ladder"] = [](TestContext&) { return test_solver_convergence_ladder(); };  // STANDALONE: own engine
 
     // GPU compute tests (Phase I MVP, I-B, I-C, II-A)
     registry["test_gpu_shadow_ray"] = test_gpu_shadow_ray;
@@ -656,6 +658,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_async_prep_equivalence",
         "test_shadow_lod_wall",
         "test_physics_characterization",
+        "test_solver_convergence_ladder",
         "test_interaction_filtering",
         "test_interaction_volume_forces",
         "test_interaction_transformations",
@@ -743,6 +746,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_async_prep_equivalence", test_async_prep_equivalence},
         {"test_shadow_lod_wall", test_shadow_lod_wall},
         {"test_physics_characterization", test_physics_characterization},
+        {"test_solver_convergence_ladder", test_solver_convergence_ladder},
         {"test_interaction_filtering", test_interaction_filtering},
         {"test_interaction_volume_forces", test_interaction_volume_forces},
         {"test_interaction_transformations", test_interaction_transformations},
