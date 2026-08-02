@@ -275,6 +275,17 @@ Run approach(Scene& s, int frames, bool watch) {
 
     s.engine.get_event_bus().collisions().subscribe(
         [&](const logosphere::ontology::CollisionEvent& e) {
+            // ONLY the pair this test is about. Visual mode spawns 49
+            // floor tiles, and an unfiltered counter reported its first
+            // "contact" while the two animals were still 11.95 m apart:
+            // that was a creature touching the ground. The number read
+            // correctly headless and lied windowed, which is worse than
+            // no number at all.
+            const std::string a = e.source_entity_id.value_or("");
+            const std::string b = e.target_entity_id.value_or("");
+            const std::string pred = std::to_string(s.predator.entity);
+            const std::string prey = std::to_string(s.prey.entity);
+            if (!((a == pred && b == prey) || (a == prey && b == pred))) return;
             ++s.collision_events;
             if (s.sep_at_first_event < 0.0f) {
                 s.sep_at_first_event = s.separation();
