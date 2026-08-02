@@ -1631,16 +1631,36 @@ below was closed or shaped by the belief that it never does.
 
 **Render and infrastructure.**
 
-- **Task #28.** Serialized diagnostic mode (true isolated stage cost) and the
-  baseline regression gate. The occupancy correction (S12) is done and the
-  serialized mode shipped (S13); what remains is `benchmarks/baseline.json`
-  generated on a quiet machine, so a regression fails a test instead of being
-  noticed later.
-- **Issue #31: async GPU prep is measured, correct-looking, and OFF.** The
-  performance question is closed (+1.88 ms retina, +3.43 ms windowed,
-  pixel-identical). Enabling it renders foliage black: the KG mapping is read
-  live against a stale particle snapshot. This is the only open thread where the
-  work is already done and a correctness bug is the sole blocker.
+- **Task #28: the gate WORKS; what is missing is a trustworthy baseline.**
+  Occupancy correction done (S12), serialized mode shipped (S13), and the
+  comparison machinery is verified end to end (2026-08-02): `--save-baseline`
+  writes, `--baseline` compares, self-comparison reads +0.0%, and the script
+  exits 1 past `--tolerance`. The procedure is two commands:
+
+  ```
+  scripts/bench_sweep.py --mode study --repeats 3 --scene eden ...   # capture
+  scripts/bench_report.py benchmarks/runs/<stamp> --save-baseline benchmarks/baseline.json
+  scripts/bench_report.py benchmarks/runs/<new> --baseline benchmarks/baseline.json
+  ```
+
+  **BLOCKED ON A QUIET MACHINE, deliberately.** The capture has to happen with
+  nothing else running. This session measured the same build at 16.4 and 26.0 ms
+  under thermal drift, and run 1 of a cold sequence at 35.3 against 26.7. A
+  baseline pinned from a loaded laptop is worse than none, because everything
+  downstream trusts it and every later comparison inherits the error. Same rule
+  the characterization checksum already follows: re-pin for a deliberate change,
+  never to make a surprise go away. Capture it when the machine is genuinely
+  idle, and note in `provenance` what else was running.
+- **Issue #31: cause fixed and guarded; the flag stays OFF pending a LOOK.**
+  The render-index-to-entity mapping is now captured on the frame thread beside
+  the particle snapshot, and slotted per prep buffer so two preps cannot share
+  it. `tests/test_async_prep_churn.cpp` forces 170 deletions across 60 async
+  frames and asserts the mapping is never read off the frame thread. Proven
+  sensitive: reverting the one argument makes it report 60 off-thread reads and
+  FAIL, so the guard would have caught the original bug.
+  **Not flipped on.** The symptom was visual (black foliage in Eden) and only
+  eyes on Eden can confirm it is gone. The campaign protocol says a flag default
+  flips in the approval commit after that check, not before.
 - **Task #29.** CPU render path. Remaining options: GPU-side geometry
   expansion (removes the work rather than shaving it), or accumulating CPU
   wins until the sum is measurable. Neither attempted.

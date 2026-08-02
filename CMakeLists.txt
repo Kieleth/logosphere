@@ -1751,6 +1751,7 @@ set(TEST_SOURCES
     tests/test_solver_residual.cpp             # how wrong is the answer the solve stopped at?
     tests/test_constraint_order_matters.cpp    # S19 re-run: does constraint order change it?
     tests/test_physics_battery.cpp             # scenario ladder: one mechanism per rung
+    tests/test_async_prep_churn.cpp            # issue #31: KG lookup must stay on the frame thread
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)

@@ -175,11 +175,47 @@ static size_t shadow_bvh_min_rebuild_frames() {
     return g_shadow_bvh_rebuild_frames.load(std::memory_order_relaxed);
 }
 
+// The thread that drives frames, latched on first use. A prep WORKER is not it.
+static std::thread::id      g_snapshot_home_thread{};
+static std::atomic<uint64_t> g_kg_snapshot_offthread{0};
+
+namespace logosphere {
+uint64_t render_kg_snapshots_off_main_thread() {
+    return g_kg_snapshot_offthread.load(std::memory_order_relaxed);
+}
+void reset_render_kg_snapshot_guard() {
+    g_kg_snapshot_offthread.store(0, std::memory_order_relaxed);
+    g_snapshot_home_thread = std::thread::id{};
+}
+}  // namespace logosphere
+
+void RenderPipeline::snapshot_entity_ids(int slot, size_t particle_count) {
+    // MECHANICAL GUARD for issue #31, rather than a comment asking future code
+    // to behave. The bug was a live KG read on a prep worker resolved against a
+    // particle array captured a frame earlier. Reading the KG here from any
+    // thread but the one that drives frames means that skew is back, whatever
+    // the call path looks like. A test asserts this counter stays zero through
+    // an async run with heavy particle churn, which is exactly the condition
+    // the original equivalence test could not reach.
+    if (g_snapshot_home_thread == std::thread::id{}) {
+        g_snapshot_home_thread = std::this_thread::get_id();
+    } else if (std::this_thread::get_id() != g_snapshot_home_thread) {
+        g_kg_snapshot_offthread.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    if (kg_module_) {
+        kg_module_->snapshotRenderIndexToEntity(shadow_entity_ids_[slot], particle_count);
+    } else {
+        shadow_entity_ids_[slot].assign(particle_count, 0);
+    }
+}
+
 void RenderPipeline::prepare_gpu_data(
     int buffer_index,
     const std::deque<SurfaceRasterizer::SurfaceData>& surfaces,
     const std::vector<Particle>& particles,
-    CameraSystem& camera_system
+    CameraSystem& camera_system,
+    bool kg_snapshot_taken
 ) {
     auto prep_start = Clock::now();
     ::logosphere::telemetry::ScopedPhase _prep_all(::logosphere::telemetry::Phase::RenderPrep);
@@ -324,11 +360,15 @@ void RenderPipeline::prepare_gpu_data(
     // call against roughly 25 uncontended. Unmapped slots stay INVALID_ENTITY
     // (== 0), which is exactly what the per-index accessor returned on a miss,
     // so the entity grouping is unchanged.
-    if (kg_module_) {
-        kg_module_->snapshotRenderIndexToEntity(shadow_entity_ids_, particles.size());
-    } else {
-        shadow_entity_ids_.assign(particles.size(), 0);
+    // ISSUE #31: only refresh when the caller has NOT already done it. Async
+    // prep fills this on the main thread beside the particle snapshot, because
+    // reading the live KG from here against frame N-1's particles resolves
+    // every index through a mapping that swap-and-pop deletion has since
+    // rewritten.
+    if (!kg_snapshot_taken) {
+        snapshot_entity_ids(buffer_index, particles.size());
     }
+    const std::vector<kg::EntityID>& entity_ids = shadow_entity_ids_[buffer_index];
 
     // PARALLEL SHADOW TRIANGLE GENERATION
     if constexpr (Optimizations::USE_PARALLEL_SURFACE_COLLECTION) {
@@ -375,7 +415,7 @@ void RenderPipeline::prepare_gpu_data(
 
                 // Entity id for BVH grouping — read from the frame snapshot,
                 // lock-free. See snapshotRenderIndexToEntity above.
-                kg::EntityID entity_id = shadow_entity_ids_[i];
+                kg::EntityID entity_id = entity_ids[i];
 
                 // FAST PATH: Get shadow triangles directly (no Surface overhead)
                 temp_vertices.clear();
@@ -475,7 +515,7 @@ void RenderPipeline::prepare_gpu_data(
             }
 
             // Entity id for BVH grouping — from the frame snapshot, lock-free.
-            kg::EntityID entity_id = shadow_entity_ids_[particle_idx];
+            kg::EntityID entity_id = entity_ids[particle_idx];
 
             temp_vertices.clear();
             particle.GetShadowTriangles(temp_vertices);
@@ -2682,6 +2722,15 @@ void RenderPipeline::rasterize_surfaces(
             ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::HandoffSurfaces);
             ::logosphere::telemetry::phase_begin(::logosphere::telemetry::Phase::HandoffParticles);
             auto particles_copy = particles;
+            // ISSUE #31: the render-index to entity mapping MUST be captured
+            // here, next to the particle snapshot. Taken later, from inside the
+            // worker, it reads the KG as of frame N while the worker holds
+            // frame N-1's particles; chunk streaming deletes in bulk by
+            // swap-and-pop, so every survivor has a new render index in between
+            // and the mapping resolves each particle to the wrong entity. That
+            // is the foliage-renders-black bug. It writes into the worker's own
+            // slot, so no copy is added and nothing is shared.
+            snapshot_entity_ids(next_prep_idx, particles_copy.size());
             ::logosphere::telemetry::phase_end(::logosphere::telemetry::Phase::HandoffParticles);
 
             // Launch async worker to prepare next frame's data
@@ -2697,7 +2746,8 @@ void RenderPipeline::rasterize_surfaces(
                 // Surfaces come from the pool slot this worker owns; only the
                 // particle snapshot still needs carrying into the closure.
                 prepare_gpu_data(next_prep_idx, surface_pool_[next_prep_idx],
-                                 particles_copy, camera_system);
+                                 particles_copy, camera_system,
+                                 /*kg_snapshot_taken=*/true);
 
                 // Signal completion
                 {

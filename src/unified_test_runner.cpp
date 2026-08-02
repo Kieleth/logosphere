@@ -84,6 +84,7 @@ extern bool test_solver_convergence_ladder();// Diagnostic: simplest scene the s
 extern bool test_solver_residual();          // Is the answer good, not did the loop stop (STANDALONE)
 extern bool test_constraint_order_matters();  // S19 re-run: does order change the residual? (STANDALONE)
 extern bool test_physics_battery();           // Ladder of scenarios, one mechanism each (STANDALONE)
+extern bool test_async_prep_churn();          // issue #31: KG lookup must never leave the frame thread (STANDALONE)
 extern bool test_immovable_pair_phantom_impulse(); // TDD RED: phantom impulse from zero-inv-mass pairs (STANDALONE)
 extern bool test_ui_label_actually_renders();// Does a registered widget actually render? (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
@@ -265,6 +266,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_solver_residual"] = [](TestContext&) { return test_solver_residual(); };  // STANDALONE: own engine
     registry["test_constraint_order_matters"] = [](TestContext&) { return test_constraint_order_matters(); };  // STANDALONE: own engine
     registry["test_physics_battery"] = [](TestContext&) { return test_physics_battery(); };  // STANDALONE: own engine
+    registry["test_async_prep_churn"] = [](TestContext&) { return test_async_prep_churn(); };  // STANDALONE: own engine
     registry["test_immovable_pair_phantom_impulse"] = [](TestContext&) { return test_immovable_pair_phantom_impulse(); };  // STANDALONE: own engine
     registry["test_ui_label_actually_renders"] = [](TestContext&) { return test_ui_label_actually_renders(); };  // STANDALONE: own engine
 
@@ -672,6 +674,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_solver_residual",
         "test_constraint_order_matters",
         "test_physics_battery",
+        "test_async_prep_churn",
         "test_immovable_pair_phantom_impulse",
         "test_ui_label_actually_renders",
         "test_interaction_filtering",
@@ -765,6 +768,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_solver_residual", test_solver_residual},
         {"test_constraint_order_matters", test_constraint_order_matters},
         {"test_physics_battery", test_physics_battery},
+        {"test_async_prep_churn", test_async_prep_churn},
         {"test_immovable_pair_phantom_impulse", test_immovable_pair_phantom_impulse},
         {"test_ui_label_actually_renders", test_ui_label_actually_renders},
         {"test_interaction_filtering", test_interaction_filtering},

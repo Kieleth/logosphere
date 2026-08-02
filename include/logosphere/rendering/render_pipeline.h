@@ -72,6 +72,16 @@ bool get_entity_shadow_bvh_enabled();
 void set_async_gpu_prep(bool on);
 bool get_async_gpu_prep();
 
+// GUARD FOR ISSUE #31. Counts render-index-to-entity snapshots taken from any
+// thread other than the one that drives frames. Must stay ZERO: a KG read off
+// the frame thread is resolved against a particle array captured at a different
+// instant, and swap-and-pop deletion rewrites every surviving render index in
+// between, so geometry gets shaded with another entity's material. That is the
+// foliage-renders-black bug, and it needs particle churn to appear, which is
+// why a static equivalence test cannot see it.
+uint64_t render_kg_snapshots_off_main_thread();
+void     reset_render_kg_snapshot_guard();
+
 // EXPERIMENT: analytic smooth normals for SPHERE particles. The G-buffer kernel
 // derives the normal per pixel as normalize(world_pos - centre) instead of the
 // face normal, which is exact rather than interpolated.
@@ -308,12 +318,23 @@ private:
     // =========================================================================
     // Prepare GPU data for deferred rendering (can run async)
     // Writes to indexed buffers to enable triple-buffering
+    // `kg_snapshot_taken` says the caller already filled
+    // shadow_entity_ids_[buffer_index] and this must NOT refresh it. Async prep
+    // has to set it: the worker holds frame N-1's particles, so a KG read from
+    // in here happens at frame N and the two disagree the moment chunk
+    // streaming deletes anything (issue #31). Sync prep leaves it false, since
+    // there the snapshot and the particle array are the same instant anyway.
     void prepare_gpu_data(
         int buffer_index,
         const std::deque<SurfaceRasterizer::SurfaceData>& surfaces,
         const std::vector<Particle>& particles,
-        CameraSystem& camera_system
+        CameraSystem& camera_system,
+        bool kg_snapshot_taken = false
     );
+
+    // Fills shadow_entity_ids_[slot] from the KG. Main thread only, and it must
+    // be called at the same instant the particle snapshot is taken.
+    void snapshot_entity_ids(int slot, size_t particle_count);
     
     // Configuration
     bool debug_mode_;
@@ -330,9 +351,8 @@ private:
     // Using deque for pointer stability when growing (prevents crashes with large tiles)
     std::deque<SurfaceRasterizer::SurfaceData> surface_cache_;
 
-    // Render index -> owning entity, refreshed once per frame under a single
-    // KG lock so the shadow-triangle workers never touch the KG mutex.
-    std::vector<kg::EntityID> shadow_entity_ids_;
+    // shadow_entity_ids_ lives with the other per-slot buffers below, because
+    // it is one: see the comment there.
 
     // Per-particle generated geometry, reused while the particle has not
     // moved (USE_RENDER_SURFACE_CACHE). Indexed by particle index; the stored
@@ -415,6 +435,21 @@ private:
     // Built during shadow tri generation, used to map particle→dirty triangles.
     std::vector<int> particle_tri_start_[PREP_BUFFER_SLOTS];
     std::vector<int> particle_tri_count_[PREP_BUFFER_SLOTS];
+
+    // Render index -> owning entity, snapshotted once per frame under a single
+    // KG lock so the shadow-triangle workers never touch the KG mutex.
+    //
+    // PER SLOT, and that is the fix for issue #31. It used to be one shared
+    // vector filled inside prepare_gpu_data. Under async prep the worker holds
+    // frame N-1's particle array but the KG read happened at frame N, and
+    // deletion is swap-and-pop, so every surviving particle had been handed a
+    // new render index in between. shadow_entity_ids_[i] then resolved particle
+    // i to a DIFFERENT entity than the triangles were built from, and that
+    // geometry got shaded with the wrong material. Foliage showed it first
+    // because grass is the highest-count, most-churned thing in the streaming
+    // world. Slotting the vector and filling it beside the particle snapshot
+    // makes the two the same instant again.
+    std::vector<kg::EntityID> shadow_entity_ids_[PREP_BUFFER_SLOTS];
 
     // Buffer indices for async prep
     std::atomic<int> prep_buffer_index_{0};    // Which buffer async worker writes to
