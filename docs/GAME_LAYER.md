@@ -544,16 +544,116 @@ for (const auto* e : reader.drain()) {
 
 ### Declarative transformations
 
-`TransformationRule` KG entities fire effects on particles when a
-trigger condition holds:
+`TransformationRule` KG entities fire effects on particles when
+something happens. A rule answers three separable questions and has one
+slot for each:
 
-| Slot | Values |
-|---|---|
-| `trigger` | `on_volume_enter`, `on_contact_filtered`, `on_timer` |
-| `effect` | `swap_profile`, `fade_out`, `delete`, `emit_event` |
-| `target_profile` | profile id written by `swap_profile` |
-| `duration_s` | fade length / timer deadline (0 = next tick) |
-| `trigger_profile` | volume/contact binding (0 = any profile) |
+| Slot | Question | Open? | Values |
+|---|---|---|---|
+| `trigger` | WHICH event source | closed | `on_contact`, `on_contact_filtered`, `on_volume_enter`, `on_timer` |
+| `condition` | WHETHER this one matters | **open** | `with_type:<T>`, `with_part_type:<T>`, `impact_above:<m/s>`, or anything you register. Empty = unconditional |
+| `effect` | WHAT to do | **open** | `swap_profile`, `fade_out`, `delete`, `emit_event`, `knockback:<speed>`, or anything you register |
+| `target_profile` | | | profile id written by `swap_profile` |
+| `duration_s` | | | fade length / timer deadline (0 = next tick) |
+| `trigger_profile` | | | volume/contact binding (0 = any profile). Superseded by `condition`; prefer that in new rules |
+
+The trigger is closed because each value names a queue the interaction
+system owns, and a game cannot add one without engine code. Conditions
+and effects are open, which is why those two slots are typed `string` in
+the schema rather than to the `TransformationEffect` enum: a
+game-registered name is as legal as a built-in, and a closed range would
+say something false about the slot.
+
+### Which rule system? (they are not the same mechanism)
+
+Two things in this engine are called rules, and reaching for the wrong
+one is the easiest mistake to make here.
+
+| | **Capability response rules** (§4) | **Event rules** (`TransformationRule`) |
+|---|---|---|
+| shape | a predicate over KG state | a reaction to something that happened |
+| evaluated | **pulled**, on recompute | **pushed**, off a queue |
+| how often | continuously; safe to re-run | once per occurrence |
+| declared as | `rule.N.trigger` properties on a part | a KG entity |
+| produces | a capability modifier (`speed_cap`, …) | a world mutation |
+| example | `health_below:50` | `on_contact` + `with_type:Predator` |
+
+`health_below:50` is not an occurrence, it is a condition that holds.
+`on_contact` is an occurrence and is gone once handled. If what you want
+is "while X is true, Y is limited", that is a capability rule. If it is
+"when X happens, do Y", it is an event rule.
+
+### Contact response
+
+`on_contact` fires when two particles exchange rigid contact. The engine
+resolves each side through the KG before any rule runs:
+
+```
+render index -> KGParticleID -> body part entity -> HAS_PART owner
+```
+
+so a rule can name the creature (`with_type:Prey`) while an effect still
+knows which part was struck, because armour and injury are per-part.
+
+**Conditions ask about the OTHER party; effects act on SELF.** A rule
+therefore says "how I react to being touched by X", never "what I do to
+X":
+
+```cpp
+kg.setProperty(rule, "trigger",   "on_contact");
+kg.setProperty(rule, "condition", "with_type:Predator");
+kg.setProperty(rule, "effect",    "knockback:6.0");
+// -> the PREY is thrown back. with_type:Prey would bounce the PREDATOR.
+```
+
+The consequence to design around: an entity with no rule of its own is
+unaffected by everything. That is deliberate, nothing happens to you
+that your own ontology did not allow, and it is the thing most likely to
+surprise you.
+
+Register your own condition or effect at startup:
+
+```cpp
+using namespace logosphere::interaction;
+
+ContactEffectRegistry::instance().register_effect(
+    "bleed", [](ContactEffectContext& ctx, const std::string& args) {
+        // ctx.contact carries the normal (always pointing AWAY from the
+        // other party), contact point, penetration, approach_speed
+        // (NEGATIVE while closing), both entities and both parts.
+    });
+```
+
+An unregistered **condition** fails closed, firing on nothing, so a typo
+is a silent no-op rather than a rule that reacts to every contact in the
+world. An unregistered **effect** is refused at rule load, where the
+name is still visible.
+
+Contacts are only resolved when something is listening: a loaded
+`on_contact` rule, or a subscriber on `bus.collisions()`. A tiled floor
+produces contacts by the thousand and none of that work happens
+otherwise.
+
+**`knockback` moves nothing**, and that is the design. Creatures are
+KINEMATIC, so `inv_mass` is 0 and the solver will never push them: their
+position belongs to an external writer. The effect deposits an impulse;
+that writer drains it and decides what a shove means.
+
+```cpp
+float ix, iy, iz;
+if (isys.take_impulse(kg_particle_id, ix, iy, iz)) {
+    // your call: apply it, damp it, ignore it while braced
+}
+```
+
+The inbox is sparse and keyed by stable `KGParticleID`, so it costs
+nothing per particle and survives swap-and-pop. Impulses accumulate
+within a frame, so two hits from opposite sides cancel rather than race.
+An impulse nobody drains just waits.
+
+Nothing sheds that velocity for you yet: a knocked-back creature keeps
+its new speed until the game slows it down (issue #41, and the larger
+solver-authority question in #43).
 
 `load_rules_from_kg(kg)` mirrors profile loading. Volume and contact
 triggers arm themselves off episode opens; `on_timer` rules are armed
