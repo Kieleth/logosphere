@@ -26,6 +26,7 @@
 #include "sense_system.h"
 #include "npc-ai/pathfinding_system.h"
 #include "ui/ui_system.h"
+#include "ui/text_window.h"
 #include "logosphere/rendering/pixel_buffer.h"
 #include "particle.h"
 
@@ -56,6 +57,12 @@ bool g_quit = false;
 constexpr float PI_F = 3.14159265358979f;
 constexpr int   FAN_POOL = 900;      // reused every frame, never grown
 
+// The panel's highlight colour, defined ONCE. The guard looks for these
+// exact bytes in the image handed to the display, so if the panel and
+// the guard disagree the guard reports zero and blames the engine.
+constexpr uint8_t HL_R = 255, HL_G = 232, HL_B = 140;
+constexpr uint8_t TX_R = 205, TX_G = 205, TX_B = 205;
+
 // What the predator is doing. Named for what it knows, not for a
 // fantasy: these are the three states any hunter has.
 enum class Hunt {
@@ -73,6 +80,35 @@ const char* hunt_name(Hunt h) {
     return "?";
 }
 
+// Everything the creature currently knows, refreshed every frame, so
+// the window can show WHY it is doing what it is doing rather than
+// only what it is doing.
+struct Readout {
+    bool  prey_in_cone = false;
+    float prey_distance = 0.0f;
+    float prey_bearing = 0.0f;      // radians off the nose
+    int   things_in_cone = 0;
+    bool  smelled = false;
+    float smell_distance = 0.0f;
+    float smell_bearing = 0.0f;
+    float smell_probability = 0.0f;
+    int   path_waypoints = 0;
+    float memory_age_s = 0.0f;
+};
+
+// The AI's own account of itself. Kept short and written only when
+// something HAPPENS, so the log reads as a story rather than a dump.
+struct EventLog {
+    std::vector<std::string> lines;
+    void add(float t, const std::string& what) {
+        char buf[192];
+        std::snprintf(buf, sizeof(buf), "%6.2fs  %s", t, what.c_str());
+        lines.emplace_back(buf);
+        std::cout << "    " << buf << std::endl;      // terminal too
+        if (lines.size() > 14) lines.erase(lines.begin());
+    }
+};
+
 struct Trace {
     int frames = 0;
     int frames_seen = 0;
@@ -84,6 +120,12 @@ struct Trace {
     bool  saw_through_boulder = false;   // must stay false
     float furthest_seen = 0.0f;
 };
+
+struct Hunt3D;
+struct Trace;
+std::vector<std::string> build_panel(const Hunt3D& h, const Trace& tr,
+                                     float t_seconds, int laps,
+                                     bool include_log);
 
 struct Hunt3D {
     Engine engine;
@@ -102,6 +144,31 @@ struct Hunt3D {
     float last_known_x = 0, last_known_y = 0;
     bool  has_memory = false;
     float cast_timer = 0.0f;
+    Readout read;
+    EventLog log;
+    // The NPC's thinking, as a real UI widget rather than immediate-mode
+    // text. UISystem::render() redraws registered widgets INSIDE
+    // Engine::render(), which is the slot that survives: drawing after
+    // render() meant the UI dirty bounds were wiped by the next frame
+    // whenever present() skipped, and the display was handed an empty
+    // overlay. That is why the window was blank.
+    std::unique_ptr<TextWindow> panel;
+    // Ray-sampled vision FLICKERS on a moving observer: the cone is 32
+    // rays, so as the creature walks and turns the prey slips between
+    // them for a frame or two at a time. Raw, that produced a
+    // STALKING/SEARCHING oscillation twenty times a second.
+    //
+    // npc_ai_research.md, Key Takeaway 5: "Hysteresis prevents jitter -
+    // different thresholds for enter/exit". So: believe sight the
+    // instant it arrives, but require a run of misses before believing
+    // it is gone. The raw signal is still counted and shown, because
+    // hiding it would hide a real property of the sensor.
+    int  miss_streak = 0;
+    int  raw_dropouts = 0;
+    static constexpr int MISSES_BEFORE_LOST = 15;   // 0.25 s at 60 Hz
+    float clock = 0.0f;
+    float memory_taken_at = 0.0f;
+    int   last_path_len = -1;
 
     explicit Hunt3D(bool with_display) : engine(nullptr) {
         EngineConfig cfg;
@@ -172,6 +239,35 @@ struct Hunt3D {
             }
     }
 
+    void make_panel() {
+        if (!g_visual) return;
+        auto* ui = engine.get_ui_system();
+        if (!ui) return;
+        panel = std::make_unique<TextWindow>("NPC / AI", "npc_ai_log");
+        // Lower right: the hunt happens in the middle of the frame, and
+        // a panel in the top-left sat on top of it.
+        panel->set_position(566, 322);
+        panel->set_size(522, 386);
+        panel->set_max_lines(26);
+        panel->set_newest_at_top(false);     // read top to bottom
+        panel->set_background_alpha(210);    // legible over the scene
+        panel->set_draggable(true);
+        ui->add_widget(panel.get());
+    }
+
+    // Rebuilt each frame: the live readout, then the decision log.
+    void refresh_panel(const Trace& tr, float t_seconds, int laps) {
+        if (!panel) return;
+        panel->clear();
+        for (const std::string& l : build_panel(*this, tr, t_seconds, laps, true))
+        {
+            const bool hl = !l.empty() && l[0] == '>';
+            panel->add_line(l.empty() ? " " : (hl ? l.substr(1) : l),
+                            hl ? HL_R : TX_R, hl ? HL_G : TX_G,
+                            hl ? HL_B : TX_B);
+        }
+    }
+
     void make_fan_pool() {
         if (!g_visual) return;
         for (int i = 0; i < FAN_POOL; ++i)
@@ -218,32 +314,46 @@ struct Hunt3D {
         auto view = engine.get_particle_system().lock_particles_for_read();
         const BVH* bvh = engine.get_particle_system().get_shadow_bvh();
         if (!bvh) return false;
-        SenseResult r = senses.cast_vision_cone(eyes(), px, py, 1.0f, facing,
-                                                view.get(), *bvh,
-                                                {prey}, blind_to());
-        if (const SenseTarget* t = r.find_by_id(prey)) {
+        // Unfiltered first, so the readout can say how much is in the
+        // cone at all, then the prey specifically.
+        SenseResult all = senses.cast_vision_cone(eyes(), px, py, 1.0f,
+                                                  facing, view.get(), *bvh,
+                                                  {}, blind_to());
+        read.things_in_cone = static_cast<int>(all.visible_targets.size());
+        if (const SenseTarget* t = all.find_by_id(prey)) {
             out_x = t->x; out_y = t->y;
+            read.prey_in_cone = true;
+            read.prey_distance = t->distance;
+            read.prey_bearing = t->angle_offset;
             return true;
         }
+        read.prey_in_cone = false;
         return false;
     }
 
     // Redraw the visibility fan by MOVING a fixed pool of markers, so
     // the picture animates without the particle count growing.
+    int fan_tick = 0;
     void refresh_fan() {
         if (!g_visual || fan_pool.empty()) return;
+        // Every 3rd frame. The cone barely moves in 50 ms, and 600 shadow
+        // rays a frame cost more than the render did, dragging the whole
+        // demo to a few frames a second.
+        if ((fan_tick++ % 3) != 0) return;
+        // Recomputed every 3rd frame. The cone barely changes in 50 ms
+        // and 600 shadow rays a frame was costing more than the render.
         std::vector<std::pair<float,float>> pts;
         {
             auto view = engine.get_particle_system().lock_particles_for_read();
             const BVH* bvh = engine.get_particle_system().get_shadow_bvh();
             if (!bvh) return;
             const float half = 50.0f * PI_F / 180.0f;
-            const int rays = 30;
+            const int rays = 20;
             for (int i = 0; i < rays && pts.size() < fan_pool.size(); ++i) {
                 const float t = static_cast<float>(i) / (rays - 1);
                 const float a = facing - half + t * 2.0f * half;
                 const float dx = std::sin(a), dy = std::cos(a);
-                for (float d = 1.2f; d <= 22.0f; d += 1.1f) {
+                for (float d = 1.5f; d <= 22.0f; d += 1.8f) {
                     if (pts.size() >= fan_pool.size()) break;
                     const float qx = px + dx * d, qy = py + dy * d;
                     if (!senses.can_see_point(px, py, 1.0f, qx, qy, 1.0f,
@@ -275,18 +385,55 @@ struct Hunt3D {
         const bool seen = can_see_prey(seen_x, seen_y);
 
         tr.frames++;
+        clock += dt;
+        const Hunt was = state;
+        char note[160];
+
+        if (seen) { miss_streak = 0; }
+        else if (tr.ever_saw) { if (miss_streak == 0) ++raw_dropouts; ++miss_streak; }
+        // Sight is BELIEVED lost only after a run of misses.
+        const bool believes_seen = seen || (tr.ever_saw && has_memory &&
+                                            miss_streak < MISSES_BEFORE_LOST);
+
         if (seen) {
             tr.frames_seen++;
+            if (!tr.ever_saw) {
+                std::snprintf(note, sizeof(note),
+                    "SIGHT   prey acquired at %.1f m, %+.0f deg off the nose",
+                    read.prey_distance, read.prey_bearing * 180.0f / PI_F);
+                log.add(clock, note);
+            }
             tr.ever_saw = true;
             last_known_x = seen_x; last_known_y = seen_y;
+            memory_taken_at = clock;
             has_memory = true;
             state = Hunt::STALKING;
+        } else if (believes_seen) {
+            // Within the grace window: hold the belief, keep walking to
+            // the last seen spot rather than announcing a loss.
+            state = Hunt::STALKING;
         } else if (has_memory) {
-            if (state == Hunt::STALKING) tr.ever_lost_after_seeing = true;
+            if (state == Hunt::STALKING) {
+                tr.ever_lost_after_seeing = true;
+                std::snprintf(note, sizeof(note),
+                    "LOST    sight gone %d frames at %.1f m; remembering (%.1f, %.1f)",
+                    miss_streak, std::hypot(px - prey_x(), py - prey_y()),
+                    last_known_x, last_known_y);
+                log.add(clock, note);
+            }
             state = Hunt::SEARCHING;
         } else {
             state = Hunt::CASTING;
         }
+        if (was != state && !(was == Hunt::STALKING && state == Hunt::SEARCHING)
+            && !(was == Hunt::CASTING && state == Hunt::CASTING)) {
+            if (!(was == Hunt::CASTING && state == Hunt::STALKING && !tr.ever_saw)) {
+                std::snprintf(note, sizeof(note), "STATE   %s -> %s",
+                              hunt_name(was), hunt_name(state));
+                log.add(clock, note);
+            }
+        }
+        read.memory_age_s = has_memory ? (clock - memory_taken_at) : 0.0f;
         if (state == Hunt::SEARCHING) tr.frames_searching++;
 
         // Where to go: what it can see, else what it remembers, else a
@@ -300,10 +447,30 @@ struct Hunt3D {
             auto view = engine.get_particle_system().lock_particles_for_read();
             SmellResult sm = senses.check_smell(nose(), px, py, 1.0f, 1.0f,
                                                 view.get(), blind_to());
+            read.smelled = sm.detected;
+            read.smell_distance = sm.distance;
+            read.smell_bearing = sm.direction;
+            // The model's own probability, for the readout: it explains
+            // why a sniff at this range succeeds or fails.
+            {
+                const float d = std::hypot(px - prey_x(), py - prey_y());
+                const float r = 25.0f;
+                read.smell_probability = (d >= r) ? 0.0f
+                    : std::max(0.0f, 1.0f - (d / r) * (d / r));
+            }
             if (sm.detected) {
                 goal_x = px + std::sin(sm.direction) * 6.0f;
                 goal_y = py + std::cos(sm.direction) * 6.0f;
                 have_goal = true;
+                static int sniff_notes = 0;
+                if (sniff_notes++ % 45 == 0) {
+                    char n2[160];
+                    std::snprintf(n2, sizeof(n2),
+                        "SMELL   caught a scent %.1f m off, bearing %+.0f deg (p=%.2f)",
+                        sm.distance, sm.direction * 180.0f / PI_F,
+                        read.smell_probability);
+                    log.add(clock, n2);
+                }
             }
         }
 
@@ -313,10 +480,24 @@ struct Hunt3D {
             has_memory = false;
             state = Hunt::CASTING;
             have_goal = false;
+            char n3[160];
+            std::snprintf(n3, sizeof(n3),
+                "COLD    reached the remembered spot, nothing here; casting about");
+            log.add(clock, n3);
         }
 
         if (have_goal) {
             path = finder.find_path(grid, {px, py}, {goal_x, goal_y});
+            read.path_waypoints = static_cast<int>(path.size());
+            if (last_path_len >= 0 &&
+                std::abs(static_cast<int>(path.size()) - last_path_len) > 6) {
+                char n4[160];
+                std::snprintf(n4, sizeof(n4),
+                    "PATH    replanned, %d waypoints, %.1f m to walk",
+                    static_cast<int>(path.size()), path.total_length());
+                log.add(clock, n4);
+            }
+            last_path_len = static_cast<int>(path.size());
             if (path.valid && !path.empty()) {
                 pathfinding::Point wp = path.current();
                 if (std::hypot(wp.x - px, wp.y - py) < 0.6f && path.size() > 1)
@@ -354,6 +535,60 @@ struct Hunt3D {
 
 // ---------------------------------------------------------------- viewing
 
+// The NPC's thinking, as text. Built in ONE place so the guard below
+// and the window are provably showing the same thing.
+//
+// include_log exists for the guard: it renders the panel with and
+// without the event log and compares the lit-pixel counts, which is
+// how "the decisions are on screen" is proved rather than asserted.
+std::vector<std::string> build_panel(const Hunt3D& h, const Trace& tr,
+                                     float t_seconds, int laps,
+                                     bool include_log) {
+    const float dist = std::hypot(h.px - h.prey_x(), h.py - h.prey_y());
+    char b[9][160];
+    std::snprintf(b[0], 160, "A PREDATOR HUNTING     t = %6.1f s     lap %d",
+                  t_seconds, laps + 1);
+    std::snprintf(b[1], 160, "state  %-9s   %s", hunt_name(h.state),
+                  h.state == Hunt::STALKING  ? "(it can see the prey)"
+                : h.state == Hunt::SEARCHING ? "(walking to a memory)"
+                                             : "(no idea where it is)");
+    std::snprintf(b[2], 160,
+                  "SIGHT  cone holds %d thing(s).  prey in cone: %-3s  (raw dropouts %d)",
+                  h.read.things_in_cone, h.read.prey_in_cone ? "YES" : "no",
+                  h.raw_dropouts);
+    if (h.read.prey_in_cone)
+        std::snprintf(b[3], 160, "       prey at %.1f m, %+.0f deg off the nose",
+                      h.read.prey_distance, h.read.prey_bearing * 180.0f / PI_F);
+    else
+        std::snprintf(b[3], 160,
+                      "       (true distance %.1f m - the predator does not know)",
+                      dist);
+    std::snprintf(b[4], 160, "SMELL  %s   p=%.2f at %.1f m",
+                  h.read.smelled ? "caught a scent" : "nothing       ",
+                  h.read.smell_probability, dist);
+    std::snprintf(b[5], 160, "MEMORY %s   last seen (%.1f, %.1f), %.1f s ago",
+                  h.has_memory ? "yes" : "no ", h.last_known_x, h.last_known_y,
+                  h.read.memory_age_s);
+    std::snprintf(b[6], 160, "PATH   %d waypoints ahead", h.read.path_waypoints);
+    std::snprintf(b[7], 160, "TALLY  seen on %d of %d frames, closest %.1f m",
+                  tr.frames_seen, tr.frames, tr.closest);
+
+    std::vector<std::string> lines = {
+        std::string(">") + b[0], "",
+        b[1], "",
+        b[2], b[3], b[4], b[5], b[6], "",
+        b[7], "",
+        ">GREEN cone = casting   ORANGE = sees it   YELLOW = searching"};
+    if (include_log) {
+        lines.push_back("");
+        lines.push_back(">EVENT LOG   (what the AI decided, and when)");
+        for (const std::string& l : h.log.lines) lines.push_back(l);
+    }
+    lines.push_back("");
+    lines.push_back("ESC to stop");
+    return lines;
+}
+
 void draw_caption(Engine& e, const std::vector<std::string>& lines) {
     auto* ui = e.get_ui_system();
     if (!ui) return;
@@ -389,6 +624,157 @@ bool pump(Engine& e) {
     return true;
 }
 
+
+// ======================================================================
+// THE GUARD: the NPC's thinking must actually be ON THE SCREEN.
+// ======================================================================
+//
+// Not "a panel exists in the source", not "it looked right once": the
+// UI rasterises into an overlay buffer that can be read with
+// create_display=false, so this runs headless in CI and fails if the
+// decisions stop reaching the window.
+//
+// Counting lit pixels alone would be too weak, because the header
+// alone would light some. So the panel is rendered TWICE, once with
+// the event log and once without, and the difference is the log. If
+// the AI's decisions are not being drawn, that difference collapses
+// and this fails.
+
+int lit_pixels(Engine& e) {
+    const PixelBuffer& ui = e.get_ui_overlay_buffer();
+    int lit = 0;
+    for (int y = 0; y < ui.height(); ++y)
+        for (int x = 0; x < ui.width(); ++x)
+            if (ui.get_pixel(x, y).a != 0) ++lit;
+    return lit;
+}
+
+// The check that actually answers "will he see it".
+//
+// Reading the UI overlay buffer proves the text RASTERISED. It does
+// NOT prove the window shows it: present() composites the overlay onto
+// the presented image separately, and my earlier screenshots merged
+// the two buffers myself in a script, which is why they looked right
+// while the real window was blank.
+//
+// Engine::get_overlay_staging() is exactly what was handed to the
+// display. If the caption colour is not in there, nothing was shown.
+void test_the_panel_reaches_the_presented_image(Hunt3D& h, const Trace& tr) {
+    if (!g_visual) {
+        std::cout << "  (window compositing check needs a display; run with "
+                     "LOGOSPHERE_VISUAL=1)" << std::endl;
+        return;
+    }
+    // present() legitimately SKIPS a frame when no new GPU frame is
+    // ready and the UI refresh interval has not elapsed, so a single
+    // render/present proves nothing. Give it a few frames, which is
+    // what the real loop does anyway. Reporting FAIL off one skipped
+    // present is how this check called a working panel broken.
+    for (int i = 0; i < 12; ++i) {
+        h.refresh_panel(tr, 1.0f, 0);   // the widget, as the loop uses it
+        h.engine.render();              // UISystem draws widgets in here
+        h.engine.present();
+        if (!h.engine.get_overlay_staging().empty()) break;
+    }
+
+    const std::vector<uint32_t>& staged = h.engine.get_overlay_staging();
+    const uint32_t header = (0xFFu << 24) |
+                            (static_cast<uint32_t>(HL_R) << 16) |
+                            (static_cast<uint32_t>(HL_G) << 8) |
+                             static_cast<uint32_t>(HL_B);
+    int header_pixels = 0;
+    for (uint32_t px : staged) if (px == header) ++header_pixels;
+
+    std::cout << "  [measure] overlay staged for the display: "
+              << staged.size() << " pixels, of which " << header_pixels
+              << " are caption text" << std::endl;
+    CHECK(!staged.empty(),
+          "present() built an overlay for the display at all");
+    CHECK(header_pixels > 50,
+          "and the caption text is IN the image handed to the window (" +
+          std::to_string(header_pixels) + " pixels of it)");
+}
+
+void test_the_ai_thinking_is_on_the_screen() {
+    std::cout << "\n  The AI panel" << std::endl;
+
+    Hunt3D h(/*with_display=*/false);
+    h.boulder(6.0f, 10.0f, 7.0f, 2.0f, 5.0f);
+    h.predator = h.add(ParticleShape::SPHERE, -14.0f, -6.0f, 1.0f, 1.6f,
+                       0.95f, 0.75f, 0.2f);
+    h.prey = h.add(ParticleShape::SPHERE, 0.0f, 0.0f, 1.0f, 2.0f,
+                   0.85f, 0.25f, 0.25f, OdorType::LIVING_FLESH);
+    h.settle();
+    h.px = -14.0f; h.py = -6.0f; h.facing = std::atan2(14.0f, 6.0f);
+    h.move_prey(0.0f, 0.0f);
+
+    // Run far enough that the creature has actually decided things.
+    Trace tr;
+    tr.start_distance = 15.2f;
+    const float dt = 1.0f / 60.0f;
+    for (int f = 0; f < 400; ++f) {
+        const float t = static_cast<float>(f) / 900.0f;
+        float ax, ay;
+        if (t < 0.35f)      { ax = t / 0.35f * 6.0f;  ay = t / 0.35f * 6.0f; }
+        else if (t < 0.62f) { float u = (t - 0.35f) / 0.27f; ax = 6.0f + u * 3.0f; ay = 6.0f + u * 7.0f; }
+        else                { float u = (t - 0.62f) / 0.38f; ax = 9.0f + u * 10.0f; ay = 13.0f - u * 2.0f; }
+        h.move_prey(ax, ay);
+        h.tick(dt, tr);
+        h.engine.update(dt);
+    }
+
+    CHECK(h.log.lines.size() >= 2,
+          "the AI wrote decisions to its log (" +
+          std::to_string(h.log.lines.size()) + " entries)");
+
+    // Render the panel WITHOUT the log.
+    h.engine.render();
+    draw_caption(h.engine, build_panel(h, tr, 6.6f, 0, /*include_log=*/false));
+    const int without_log = lit_pixels(h.engine);
+
+    // And WITH it.
+    h.engine.render();
+    draw_caption(h.engine, build_panel(h, tr, 6.6f, 0, /*include_log=*/true));
+    const int with_log = lit_pixels(h.engine);
+
+    std::cout << "  [measure] panel without the event log: " << without_log
+              << " lit pixels; with it: " << with_log
+              << "  (log contributes " << (with_log - without_log) << ")"
+              << std::endl;
+
+    CHECK(without_log > 1200,
+          "the live sense readout reaches the screen (" +
+          std::to_string(without_log) + " pixels)");
+    CHECK(with_log > without_log + 400,
+          "and the AI's decisions reach it too: the event log is worth " +
+          std::to_string(with_log - without_log) +
+          " pixels, so it is genuinely being drawn rather than merely "
+          "assembled");
+
+    // The readout must be LIVE, not a fixed banner: change what the
+    // creature knows and the pixels must change with it.
+    const Hunt saved = h.state;
+    h.state = Hunt::STALKING;
+    h.read.prey_in_cone = true;
+    h.read.prey_distance = 7.25f;
+    h.engine.render();
+    draw_caption(h.engine, build_panel(h, tr, 6.6f, 0, true));
+    const int stalking = lit_pixels(h.engine);
+    h.state = Hunt::CASTING;
+    h.read.prey_in_cone = false;
+    h.engine.render();
+    draw_caption(h.engine, build_panel(h, tr, 6.6f, 0, true));
+    const int casting = lit_pixels(h.engine);
+    h.state = saved;
+
+    std::cout << "  [measure] same panel while STALKING: " << stalking
+              << " pixels, while CASTING: " << casting << std::endl;
+    CHECK(stalking != casting,
+          "the panel changes with what the creature knows, so it is a "
+          "readout rather than a fixed caption");
+
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------- the hunt
@@ -412,6 +798,7 @@ int main() {
     h.prey = h.add(ParticleShape::SPHERE, 0.0f, 0.0f, 1.0f, 2.0f,
                    0.85f, 0.25f, 0.25f, OdorType::LIVING_FLESH);
     h.make_fan_pool();
+    h.make_panel();
     h.settle();
 
     h.px = -14.0f; h.py = -6.0f; h.facing = std::atan2(14.0f, 6.0f);
@@ -425,11 +812,19 @@ int main() {
                                                    16000000.0f, 700.0f,
                                                    0.85f, 0.9f, 1.0f);
         auto& cam = h.engine.get_camera_system();
-        cam.set_pixels_per_unit(19.0f);
-        cam.set_position(-14.0f, -20.0f, 16.0f);
-        cam.look_at(2.0f, 2.0f, 1.0f);
+        cam.set_pixels_per_unit(17.0f);
+        cam.set_position(h.px - 14.0f, h.py - 16.0f, 15.0f);
+        cam.look_at(h.px, h.py, 1.0f);
         for (int i = 0; i < 6; ++i) h.engine.update(1.0 / 60.0);
         bring_to_front(h.engine);
+    }
+
+    // Before a single frame of the hunt: does the panel actually reach
+    // the image handed to the window? If not, nothing below is worth
+    // watching, and it says so instead of running for ten minutes.
+    {
+        Trace probe;
+        test_the_panel_reaches_the_presented_image(h, probe);
     }
 
     Trace tr;
@@ -443,9 +838,18 @@ int main() {
     const float dt = 1.0f / 60.0f;
     int lost_at_frame = -1;
 
-    for (int f = 0; f < TOTAL && !g_quit; ++f) {
+    int laps = 0;
+    for (int f = 0; !g_quit; ++f) {
+        if (f >= TOTAL) {
+            if (!g_visual) break;         // headless: one lap, then assert
+            if (f % TOTAL == 0) {
+                ++laps;
+                h.log.add(h.clock, "LAP     the prey starts its round again");
+            }
+        }
         // Prey route: east, then north behind the pillar, then east again.
-        float t = static_cast<float>(f) / TOTAL;
+        const int fm = f % TOTAL;
+        float t = static_cast<float>(fm) / TOTAL;
         float ax, ay;
         if (t < 0.35f)      { ax = 0.0f + t / 0.35f * 6.0f;  ay = 0.0f + t / 0.35f * 6.0f; }
         else if (t < 0.62f) { float u = (t - 0.35f) / 0.27f; ax = 6.0f + u * 3.0f; ay = 6.0f + u * 7.0f; }
@@ -457,6 +861,8 @@ int main() {
         if (before == Hunt::STALKING && h.state == Hunt::SEARCHING &&
             lost_at_frame < 0)
             lost_at_frame = f;
+        // Only the first lap is measured; later laps are for watching.
+        const bool measuring = (f < TOTAL);
 
         // Occlusion honesty, checked every frame it claims sight.
         //
@@ -496,23 +902,51 @@ int main() {
             h.refresh_fan();
             h.engine.update(dt);
             h.engine.render();
-            char l1[128], l2[128], l3[128];
-            std::snprintf(l1, sizeof(l1), ">A PREDATOR HUNTING    t = %.1fs", f * dt);
-            std::snprintf(l2, sizeof(l2), "state %-10s   distance to prey %.1f m",
-                          hunt_name(h.state), std::hypot(h.px - h.prey_x(), h.py - h.prey_y()));
-            std::snprintf(l3, sizeof(l3), "seen on %d of %d frames        closest so far %.1f m",
-                          tr.frames_seen, tr.frames, tr.closest);
-            draw_caption(h.engine, {
-                l1, "",
-                l2, l3, "",
-                ">GREEN cone = casting about, no idea where the prey is",
-                ">ORANGE     = it can see the prey right now",
-                ">YELLOW     = lost sight, walking to where it last saw it",
-                "",
-                "The cone is drawn with can_see_point, so the shadow",
-                "behind the rock is the real occlusion result.",
-                "",
-                "ESC to stop"});
+
+            h.refresh_panel(tr, f * dt, laps);
+            // Keep both animals in frame: aim between them.
+            {
+                auto& cam = h.engine.get_camera_system();
+                const float mx = (h.px + h.prey_x()) * 0.5f;
+                const float my = (h.py + h.prey_y()) * 0.5f;
+                cam.set_position(mx - 14.0f, my - 16.0f, 15.0f);
+                cam.look_at(mx, my, 1.0f);
+            }
+            if (const char* sd = std::getenv("LOGOSPHERE_SHOT")) {
+                if (f == 90 && !g_quit) {
+                    h.engine.get_renderer().wait_for_completion();
+                    int ww = 0, hh = 0;
+                    std::vector<uint32_t> px(
+                        static_cast<size_t>(h.engine.get_render_buffer().width()) *
+                        h.engine.get_render_buffer().height());
+                    if (h.engine.read_latest_framebuffer(px.data(), ww, hh)) {
+                        const PixelBuffer& ui = h.engine.get_ui_overlay_buffer();
+                        for (int yy = 0; yy < hh && yy < ui.height(); ++yy)
+                            for (int xx = 0; xx < ww && xx < ui.width(); ++xx) {
+                                const EnhancedPixel q = ui.get_pixel(xx, yy);
+                                if (q.a == 0) continue;
+                                px[yy * ww + xx] = (0xFFu << 24) |
+                                    (static_cast<uint32_t>(q.r) << 16) |
+                                    (static_cast<uint32_t>(q.g) << 8) |
+                                     static_cast<uint32_t>(q.b);
+                            }
+                        std::string path2 = std::string(sd) + "/hunt.ppm";
+                        if (FILE* fp = std::fopen(path2.c_str(), "wb")) {
+                            std::fprintf(fp, "P6\n%d %d\n255\n", ww, hh);
+                            for (int k = 0; k < ww * hh; ++k) {
+                                const uint32_t q = px[k];
+                                unsigned char rgb[3] = {
+                                    static_cast<unsigned char>((q >> 16) & 0xFF),
+                                    static_cast<unsigned char>((q >> 8) & 0xFF),
+                                    static_cast<unsigned char>(q & 0xFF)};
+                                std::fwrite(rgb, 1, 3, fp);
+                            }
+                            std::fclose(fp);
+                            std::cout << "      shot -> " << path2 << std::endl;
+                        }
+                    }
+                }
+            }
             h.engine.present();
             if (!pump(h.engine)) break;
         } else {
@@ -551,6 +985,8 @@ int main() {
     // The hard invariant: it never claims to see through rock.
     CHECK(!tr.saw_through_boulder,
           "it never sees the prey through the boulder");
+
+    test_the_ai_thinking_is_on_the_screen();
 
     std::cout << "\n" << tests_passed << " passed, " << tests_failed
               << " failed" << std::endl;
