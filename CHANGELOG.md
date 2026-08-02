@@ -31,6 +31,25 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   with `LOGOSPHERE_SPHERE_LOD=<0..4>` and `LOGOSPHERE_SMOOTH_SPHERES=0`.
 
 ### Added
+- **Contact response**: an `ON_CONTACT` rule can now select on who touched
+  you and do something about it. `ContactConditionRegistry` and
+  `ContactEffectRegistry` are open the way the capability registries are, so
+  bleeding and armour absorption are game effects registered by name and the
+  engine ships neither. Built-in conditions `with_type:<EntityType>`,
+  `with_part_type:<EntityType>` and `impact_above:<m/s>`; built-in effects
+  `knockback:<speed>` and `emit_event:<name>`.
+
+  Conditions ask about the OTHER party and effects act on SELF, so a rule
+  says "how I react to being touched by X", never "what I do to X". An
+  entity with no rule of its own is unaffected: nothing happens to you that
+  your own ontology did not allow.
+- `ParticleInteractionSystem::deposit_impulse` / `take_impulse`: a
+  pending-impulse inbox, sparse and keyed by stable `KGParticleID`, so it
+  costs nothing per particle and survives swap-and-pop. `knockback` deposits
+  here and moves nothing, because a KINEMATIC body's position belongs to an
+  external writer and the solver will never push it. Whoever owns the
+  position drains the inbox and decides what a shove means; ignoring one is
+  a legitimate choice.
 - `KGModule::getRelatedReverse(id, relation)` walks a relation backwards:
   `getRelated(creature, "HAS_PART")` lists the parts, and this takes a part
   back to its creature. Needed wherever a system starts from something

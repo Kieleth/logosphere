@@ -169,6 +169,9 @@ set(LOGOSPHERE_CORE_SOURCES
     # Particle interaction model (KG-declared contact filtering + media);
     # headless-core safe, consulted by the solver seam in Phase 2.
     src/interaction/particle_interaction_system.cpp
+    # Contact response: the condition/effect registries an ON_CONTACT
+    # rule dispatches through (issue #36). Pure KG + std.
+    src/interaction/contact_response.cpp
     # NPC decision layer. Both are pure std with no physics, rendering
     # or platform dependency, so they belong in the headless core and
     # their guards run on the Linux CI profile.
@@ -329,6 +332,7 @@ add_headless_test(test_kg_reverse_relations)
 add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_contact_producer)
+add_headless_test(test_contact_bounce)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
 add_headless_test(test_iso_camera_centering)

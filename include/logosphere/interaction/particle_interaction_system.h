@@ -26,6 +26,7 @@
 // =============================================================================
 
 #include "core/particle_system.h"  // WriteView for the force pass
+#include "logosphere/interaction/contact_response.h"  // contact rule seam
 #include "logosphere/kg/kg_types.h"  // KGParticleID (stable effect identity)
 
 #include <cstddef>
@@ -129,6 +130,10 @@ struct TransformationRule {
     // means unconditional. Generalizes trigger_profile, which is the
     // same idea hardcoded to a single comparison.
     std::string condition;
+    // Raw effect expression as authored. Contact rules resolve this
+    // through ContactEffectRegistry, where a game name is as legal as a
+    // built-in; other triggers use the `effect` enum above.
+    std::string effect_expr;
     uint32_t target_profile = 0;  // swap_profile: profile id to write
     float duration_s = 0.0f;      // fade_out ramp length / timer deadline
     uint32_t trigger_profile = 0; // volume/contact binding (0 = any)
@@ -200,6 +205,34 @@ public:
     // is a single branch. Cheap: a cached flag plus one channel query.
     bool wants_contacts(const logosphere::EventBus* bus) const;
 
+    // --- The pending-impulse inbox ---
+    //
+    // A KNOCKBACK effect deposits here and moves nothing. A KINEMATIC
+    // body has inv_mass 0, so the solver will never push it: its
+    // position belongs to an external writer. Delivering the push to
+    // that writer is the only option that keeps solver authority intact
+    // (design note D3), and it puts the decision where it belongs —
+    // what a shove does to a creature mid-stride is the game's call.
+    //
+    // Sparse and keyed by STABLE id, so it costs nothing per particle
+    // and survives the swap-and-pop that render indices do not. Only
+    // particles actually hit appear here.
+    //
+    // Impulses ACCUMULATE within a frame: two things hitting you from
+    // opposite sides should cancel, not race.
+    void deposit_impulse(kg::KGParticleID id, float x, float y, float z);
+
+    // Drain the impulse waiting for a particle, clearing it. False when
+    // there is none, leaving the outputs untouched. Whoever owns the
+    // particle's position calls this and decides what to do; ignoring an
+    // impulse is a legitimate choice (a braced creature, a heavier one).
+    bool take_impulse(kg::KGParticleID id, float& x, float& y, float& z);
+
+    // How many impulses are waiting. Diagnostics and tests: a number
+    // that only grows means nobody is draining, which is a wiring bug in
+    // the game rather than in the engine.
+    size_t pending_impulse_count() const { return impulses_.size(); }
+
     // Does any loaded rule declare a contact trigger? Recomputed when
     // rules load, so the hot path never scans them.
     bool has_contact_rules() const { return has_contact_rules_; }
@@ -266,6 +299,7 @@ public:
         episode_opens_.clear();
         open_contacts_.clear();
         has_contact_rules_ = false;
+        impulses_.clear();
     }
 
 private:
@@ -309,6 +343,12 @@ private:
     // Cached answer to "does any rule listen for contacts", refreshed
     // when rules load, so the per-frame gate never walks the rule map.
     bool has_contact_rules_ = false;
+
+    // Pending impulses, keyed by stable particle id. Sparse by design:
+    // only particles that were actually struck appear, so an unused
+    // feature costs zero bytes per particle.
+    struct Impulse { float x = 0.0f, y = 0.0f, z = 0.0f; };
+    std::unordered_map<kg::KGParticleID, Impulse> impulses_;
 };
 
 } // namespace logosphere::interaction
