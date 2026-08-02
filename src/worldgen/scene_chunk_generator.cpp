@@ -353,13 +353,37 @@ void SceneChunkGenerator::destroy_scene_chunk(const ChunkData& data) {
 }
 
 void SceneChunkGenerator::activate_entity_now(kg::EntityID entity_id) {
+    // The queue holds ids, and an id can die before it is processed.
+    // A generator that self-queues and is then thrown away by its
+    // caller is normal: Logogenesis grows a tree, sees it came out
+    // collapsed, destroys it and grows another in the same breath.
+    // Nothing is wrong, there is simply nothing left to activate.
+    //
+    // This must be asked BEFORE reading properties, because a
+    // destroyed entity returns empty for every one of them. Reading
+    // first reported a dead entity as "has no chunk coordinates",
+    // which sent the search after generators that set their
+    // coordinates correctly all along.
+    if (!kg_->exists(entity_id)) {
+        SCENE_LOG << "[SceneChunkGenerator] Entity " << entity_id
+                  << " was destroyed before activation - skipping"
+                  << std::endl;
+        return;
+    }
+
     // Find which chunk this entity belongs to
     std::string chunk_x_str = kg_->getProperty(entity_id, "chunk_x");
     std::string chunk_y_str = kg_->getProperty(entity_id, "chunk_y");
 
+    // A LIVE entity with no coordinates is a real caller error: it was
+    // made with createEntity instead of createEntityAtPosition, so it
+    // is a record with no place in the world and no particles will
+    // ever appear for it.
     if (chunk_x_str.empty() || chunk_y_str.empty()) {
         std::cerr << "[SceneChunkGenerator] ERROR: Entity " << entity_id
-                  << " has no chunk coordinates!" << std::endl;
+                  << " (" << kg_->getType(entity_id) << ") exists but has"
+                  << " no chunk coordinates - create it with"
+                  << " createEntityAtPosition()" << std::endl;
         return;
     }
 
