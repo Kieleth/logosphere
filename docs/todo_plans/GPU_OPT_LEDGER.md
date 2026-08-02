@@ -674,7 +674,7 @@ measurable frame time.
    architecture, count what a single element allocates and ask what part
    of the work is identical for every element.
 
-11. **Price it with the counters before building it.** Two candidate levers
+10. **Price it with the counters before building it.** Two candidate levers
     were closed in minutes with no code (kit S15). The shadow-to-render
     triangle ratio looked like 1.9x of free money; it is required input for a
     per-ray cull that already runs on the GPU. Analytic sphere shadows looked
@@ -684,7 +684,7 @@ measurable frame time.
     otherwise have cost a full implementation to answer. Ask what the recorded
     counters already imply before writing anything.
 
-12. **Read the code's own comments before re-investigating.** The shadow
+11. **Read the code's own comments before re-investigating.** The shadow
     triangle ratio was already investigated, answered and documented at
     `render_pipeline.cpp:380`, including why build-time back-face culling is the
     wrong frame of reference and where the correct per-ray cull lives. A
@@ -692,20 +692,39 @@ measurable frame time.
     the abandoned attempt. Grepping the area first would have skipped the whole
     exercise. This codebase writes down its RCAs at the site; use them.
 
-10. **Look for locks before looking at arithmetic.** `prep_shadow_tris`
+12. **Look for locks before looking at arithmetic.** `prep_shadow_tris`
     is named after geometry and was 68% mutex: a `getEntityByRenderIndex()`
     call per particle, locking a `recursive_mutex` from 14 worker threads,
     at 275 ns a call against ~25 uncontended (kit study S11, frame -18%).
     Any per-element lock inside a parallel region is a serialization
     point, and a phase name tells you where code lives, not what it costs.
 
-11. **Size the prize by deletion before designing the fix.** Replacing
+13. **Size the prize by deletion before designing the fix.** Replacing
     the suspect call with a constant took one build and one bench and
     said the ceiling was 4.5 ms. Only then was the real fix worth
     writing. Cheap, decisive, and it protects against spending a day on
     something worth 0.04 ms (which the same audit also found: the second
     back-face cull in `convert_surface_to_lit_triangles`).
 
-12. **A clean A/B moves ONE phase.** If phases unrelated to the change
+14. **A clean A/B moves ONE phase.** If phases unrelated to the change
     also move, the experiment is confounded and the number is not yours
     to claim.
+
+15. **A pre-check weaker than CI is worse than none, because it is
+    trusted.** The Linux pre-check BUILT the headless profile and never
+    RAN its suite. `test_particle_shapes` asserted a literal 320
+    triangles per sphere, the LOD default moved to 80, and the
+    pre-check reported green while CI stayed red for three commits. A
+    gate must mirror the job it stands in for, test list included, and
+    say so in a comment that names the job. `scripts/precheck_linux.sh`
+    now runs all 21 headless tests and prints `HEADLESS_SUITE_OK`.
+
+16. **A pipe throws away the exit status.** `git push | tail -2` printed
+    the script's own `PUSHED_GREEN` marker over a REJECTED push, because
+    `$?` belongs to `tail`. This is learning 3 again, one layer down, and
+    it recurred the same morning the earlier instance was fixed. Use
+    `${PIPESTATUS[0]}`, or do not pipe the command whose success you are
+    about to report. Related trap from the same class: in a shell `case`,
+    the pattern `*sync)` matches `a2_async` (it ends in "sync"), which
+    silently made one A/B compare sync against sync. Only a counter that
+    was non-zero solely in the async build caught it.

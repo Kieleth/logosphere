@@ -82,9 +82,13 @@ waits". It waits on roughly one frame in eight.
   were previously "nice to have". They are now the only identified uncapped
   lever, because they cut both sides at once.
 - **Async GPU prep has a costed path instead of a hunch.** It is pixel-identical
-  (proven) and net zero (measured), because the handoff deep-copies 103,914
-  surfaces per frame, costing what the prep saves. The fix is named: remove the
-  copy. See S14.
+  (proven) and was net zero (measured) because the handoff deep-copied 103,914
+  surfaces per frame, twice, costing what the prep saved. The copy is gone and
+  the win is real: +1.88 ms retina, +3.43 ms windowed. It is nonetheless OFF
+  (`USE_ASYNC_GPU_PREP = false`), blocked on a correctness bug found when it was
+  enabled: foliage renders black because the KG mapping is read live against a
+  stale particle snapshot (issue #31). The performance question is closed; the
+  correctness one is not. See S14.
 - **The instruments can now settle arguments they previously could not.**
   Occupancy is computable (union), isolated stage cost is checkable on demand
   (serialized mode), and both are guarded by tests that fail rather than
@@ -100,6 +104,62 @@ impossible GPU sum and was false. "The machine was loaded" explained the async
 result and was false. Each time the correct answer was already in the data,
 one level below the summary being read. Before adding an instrument, check
 whether the existing one is being read correctly.
+
+## What the physics half taught (S18-S22)
+
+The render studies were about cost. The physics studies (S18-S22) were about
+correctness, reached three wrong conclusions on the way, and produced a
+different set of rules. Recorded separately because they generalise past
+physics.
+
+1. **Trace the DECISION, not the aggregate.** Every withdrawn conclusion in
+   this campaign came from reading a summary number and laying a story over it.
+   A counter said the solve "plateaued"; the level-5 trace named the row, the
+   pair and the three numbers that produced it, and the mechanism was then
+   obvious in seconds. Counters say a contact was created. They cannot say a
+   pair was skipped because both bodies were KINEMATIC. Build the tracer
+   earlier: `src/core/physics_trace.h`, off by default, one relaxed atomic load
+   when nobody is listening, `-p` through `-pppppp`.
+
+2. **Check that an exit condition is REACHABLE before believing what it
+   reports.** The solver's `converged` test required every impulse under
+   0.01 N s. A stone box at rest needs roughly 100 N s to hold it up. The
+   condition was unsatisfiable by construction, so "never converges" was a
+   property of the test, not the solver, and S19 built a whole conclusion about
+   constraint ordering on top of it. Compute the value the condition is
+   comparing against before trusting either outcome.
+
+3. **A global max over rows means ONE bad row pins the whole world.** The
+   stopping test is a max across every constraint. A single corner pair of
+   immovable tiles, producing an impulse of exactly 4 forever, held 14,000
+   bodies above threshold. When an aggregate is a max, the interesting question
+   is always "which element", never "what is the trend".
+
+4. **Minimal scenes, or the test lies.** The convergence ladder was
+   contaminated by a 25-tile floor: the exit test is global, so the floor's own
+   pathological rows drowned the two-body case the ladder was built to isolate.
+   A test scene should contain the thing under test and nothing else,
+   especially when the metric is a max.
+
+5. **A divide-by-zero guard is a physics statement.** `inv_mass_sum == 0` means
+   both bodies are immovable, so effective mass is infinite and the row's
+   correct contribution is ZERO. The guard returned `1.0f`, an arbitrary value
+   chosen to avoid a NaN, and that one constant was the bug. Guards written for
+   numerical safety still have to be right physically; ask what the degenerate
+   case MEANS, not merely what keeps the float finite.
+
+6. **New failure mode: the instrument itself can measure the wrong quantity.**
+   The render half's meta-lesson was "instruments honest, model wrong". S20 is
+   worse than that: the convergence counter was faithfully reporting a
+   quantity nobody wanted. An instrument earns trust by being checked against a
+   case whose answer is known independently, not by being consistent.
+
+7. **A readout nobody can see is not a readout.** Four visual tests shipped
+   with on-screen HUDs that never put a pixel on screen, and the recommended
+   fix in `VISUAL_TESTS.md` had itself never been verified. It took a
+   with-and-without pixel diff to establish it. Any test that reports through a
+   UI surface needs a test that the UI surface renders:
+   `tests/test_ui_label_actually_renders.cpp`.
 
 ## Why this exists
 
@@ -1313,10 +1373,42 @@ the tracer earlier next time.
 
 ## Open threads
 
+**Physics, reopened by S22.** The solver converges as of `4e773ec`. Everything
+below was closed or shaped by the belief that it never does.
+
+- **S19 must be re-run with a RESIDUAL metric.** It closed parallelism, islands,
+  SoA and constraint sorting on the premise that order is load-bearing because
+  the solve never settles. The premise is gone. The door counters cannot be used
+  for the re-run: S20 showed they cannot see equilibrium. Needed first is a
+  metric that reports how far from satisfied the constraint set is, not how many
+  iterations were spent.
+- **The wasted rows are harmless, not absent.** ~26 constraint rows per floor
+  tile are still built and solved between pairs that can never move. Skipping
+  GENERATION for zero-inverse-mass pairs is the performance half of S22 and
+  touches contact generation, not the solver.
+- **A corner contact between two unit tiles reports a Baumgarte bias of 4.**
+  Suspicious on its own, never chased. Two tiles meeting at a corner should not
+  register that much penetration.
+- **`apply_all_forces` is 98% of physics and scales O(n^1.38)** (S18), and 60
+  FPS breaks at 3-4k bodies. `solve_contacts_v3` is a 1,981-line function. No
+  profiling has gone inside either.
+- **The physics test battery was designed and never built.** Increasing
+  complexity, one mechanism per scenario: a rock falling, a stack settling, an
+  unbalanced pile, a thrown body, spheres rotating, gluons as nails. Scenes must
+  be MINIMAL (learning 4 above) and the harness residual-based.
+
+**Render and infrastructure.**
+
 - **Task #28.** Serialized diagnostic mode (true isolated stage cost) and the
-  baseline regression gate. The occupancy correction (S12) is done; the
-  serialized mode is still wanted, because per-stage attribution inside a
-  saturated GPU remains unresolved.
+  baseline regression gate. The occupancy correction (S12) is done and the
+  serialized mode shipped (S13); what remains is `benchmarks/baseline.json`
+  generated on a quiet machine, so a regression fails a test instead of being
+  noticed later.
+- **Issue #31: async GPU prep is measured, correct-looking, and OFF.** The
+  performance question is closed (+1.88 ms retina, +3.43 ms windowed,
+  pixel-identical). Enabling it renders foliage black: the KG mapping is read
+  live against a stale particle snapshot. This is the only open thread where the
+  work is already done and a correctness bug is the sole blocker.
 - **Task #29.** CPU render path. Remaining options: GPU-side geometry
   expansion (removes the work rather than shaving it), or accumulating CPU
   wins until the sum is measurable. Neither attempted.
@@ -1329,20 +1421,27 @@ the tracer earlier next time.
   an interactive mode. Design discussion, including why FPS-feedback LOD is
   rejected and why smooth normals collide with ray-traced shadows:
   `SPHERE_LOD_DESIGN.md`.
-- **Hot-path scan (2026-07-30), found but NOT fixed.** Same defect class as S10:
-  - `entity_bvh.cpp:74` deep-copies every `EntityTriangleData`, each carrying a
-    `std::vector<ShadowTriangle>`. ~30 MB of memcpy per frame plus two
-    allocations per entity, solely so `classify_triangles` can fill
-    `triangle_directions`; `triangles` is never mutated. Fix needs directions
-    in a parallel array and `entities` const through `build_recursive` and
-    `create_directional_groups`.
-  - **28 `std::thread` created and joined per frame**: 14 in `collect_surfaces`
-    (`render_pipeline.cpp:1687`) and 14 in the shadow-triangle pass (`:338`),
-    plus more in `shadow_ray_batch.cpp:92`. `tile_thread_pool.cpp` already
-    exists and none of these use it.
-  - `get_world_faces` (`particle_geometry_v2.cpp:353`) still carries the copy
-    and is still called by `triangle_cube_geometry.cpp` (:279, :408).
-  - No LOD anywhere in the render path: a two-pixel body still emits 320
-    triangles.
-  - Spheres cast shadows as 320 triangles where one analytic ray-sphere
-    intersection is exact and faster.
+- **Hot-path scan (2026-07-30), re-verified against the code 2026-08-01.** Same
+  defect class as S10. Two of the five are now done:
+  - ~~`entity_bvh.cpp:74` deep-copies every `EntityTriangleData`~~ **FIXED** in
+    `6a66ade`. Facing buckets live in a parallel array and `entities` is read
+    only; the ~30 MB of per-frame memcpy is gone. The RCA is written at the
+    site.
+  - ~~`get_world_faces` still carries the copy and is called by
+    `triangle_cube_geometry.cpp`~~ **NO LONGER A HOT PATH.** Those callers are
+    gone (see the note at `sphere_geometry.cpp:210`); the only remaining caller
+    is internal, at `particle_geometry_v2.cpp:463`. The copy still exists but is
+    off the per-frame path.
+  - **STILL OPEN: 28 `std::thread` created and joined per frame.** 14 in
+    `collect_surfaces` (`render_pipeline.cpp:1826`) and 14 in the
+    shadow-triangle pass (`:434`), plus more in `shadow_ray_batch.cpp:88`.
+    `tile_thread_pool.cpp` exists and `surface_rasterizer.cpp` uses it; these
+    three sites do not. Cost unmeasured: price it before building it (ledger
+    learning 10).
+  - **STILL OPEN: no LOD anywhere in the render path.** A two-pixel body still
+    emits 320 triangles. This is the identified UNCAPPED lever, because it cuts
+    CPU collect/prep and GPU rasterisation together (S12).
+  - **STILL OPEN, but priced at zero for Eden: analytic sphere shadows.**
+    Spheres cast as 320 triangles where one ray-sphere intersection is exact.
+    S15 found every Eden shadow caster is a box (196,596 = 16,383 x 12 exactly),
+    so the win there is nil; it pays only in sphere-heavy scenes.
