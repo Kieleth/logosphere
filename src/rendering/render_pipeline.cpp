@@ -2696,6 +2696,29 @@ void RenderPipeline::rasterize_surfaces(
         // =====================================================================
         // ASYNC GPU_PREP: Launch prep for next frame while GPU renders current
         // =====================================================================
+        // Say which path is running, once, the first time it actually runs.
+        // Deliberately NOT a startup configuration dump: this fires from the
+        // render path itself, so it reports what EXECUTED rather than what was
+        // requested. Added 2026-08-02 after an Eden run launched with
+        // LOGOSPHERE_ASYNC_PREP=1 produced 673,000 log lines containing nothing
+        // that distinguished the two paths, so "async prep was on" could only be
+        // argued from reading the env-var parse, never shown. Every measurement
+        // this campaign got wrong started with a lever nobody confirmed engaged.
+        // Announce on CHANGE, not once per process: set_async_gpu_prep() is
+        // runtime-switchable and tests flip it mid-run, so a single first-time
+        // announcement goes stale and would then be actively misleading, which
+        // is worse than the silence it replaced.
+        {
+            static int announced_path = -1;   // -1 nothing yet, 0 sync, 1 async
+            const int path = ::logosphere::get_async_gpu_prep() ? 1 : 0;
+            if (path != announced_path) {
+                announced_path = path;
+                std::cout << "[GPU_PREP] path=" << (path ? "ASYNC" : "SYNC")
+                          << "  (compile-time default USE_ASYNC_GPU_PREP="
+                          << (Optimizations::USE_ASYNC_GPU_PREP ? "true" : "false")
+                          << ", LOGOSPHERE_ASYNC_PREP overrides it)" << std::endl;
+            }
+        }
         if (::logosphere::get_async_gpu_prep()) {
             // Don't start new prep if previous one is still running (non-blocking fallback case)
             if (skip_next_async_prep_) {
