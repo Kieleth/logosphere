@@ -2,7 +2,9 @@
 #include "entities/entity_activators.h"
 #include "logosphere/physics/physics_system.h"
 #include "logosphere/events/event_bus.h"
+#include "../src/math/quat.h"
 #include <iostream>
+#include <limits>
 #include <string>
 
 EntityManager::EntityManager(kg::KGModule* kg, ParticleSystem& particle_system,
@@ -126,6 +128,31 @@ void EntityManager::create_gluon_from_kg(kg::KGGluonID kg_gluon_id, int render_a
             gluon->enable_angular_constraint = data.enable_angular_constraint;
             gluon->max_relative_rotation = data.max_relative_rotation;
             gluon->contact_area = data.contact_area;
+            if (data.max_strain > 0.0f) gluon->max_strain = data.max_strain;
+            if (data.quat_drive) {
+                // The bond holds the GROWN pose: target = current relative
+                // orientation at activation, from the placed Euler triples.
+                auto v = particle_system_.lock_particles_for_write();
+                Particle& pa = v[render_a];
+                Particle& pb = v[render_b];
+                logosphere::Quat qa = logosphere::Quat::from_euler(
+                    pa.rotation_x, pa.rotation_y, pa.rotation_z);
+                logosphere::Quat qb = logosphere::Quat::from_euler(
+                    pb.rotation_x, pb.rotation_y, pb.rotation_z);
+                gluon->use_quat_target = true;
+                gluon->angular_drive_enabled = true;
+                gluon->target_relative_q = qb * qa.conjugate();
+                gluon->plastic_yield_angle = (data.plastic_yield_angle > 0.0f)
+                    ? data.plastic_yield_angle
+                    : std::numeric_limits<float>::infinity();
+                for (Particle* p : {&pa, &pb}) {
+                    if (!p->is_quat_driven) {
+                        p->is_quat_driven = true;
+                        p->rotation_q = logosphere::Quat::from_euler(
+                            p->rotation_x, p->rotation_y, p->rotation_z);
+                    }
+                }
+            }
             physics_->add_gluon_between(render_a, render_b, std::move(gluon));
             break;
         }

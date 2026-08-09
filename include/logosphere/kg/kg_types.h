@@ -67,7 +67,15 @@ struct KGGluonData {
     // Type-specific parameters
     float breaking_force = 50000.0f;  // For Nail, Elastic
     float contact_area = 0.01f;       // For Organic (m²)
-    float max_strain = 0.0f;          // For Elastic
+    float max_strain = 0.0f;          // Elastic; Organic: tear ratio (0 = default 2.0)
+
+    // Pose drive (the four-nature palette). When quat_drive is true the
+    // activated bond holds the GROWN relative orientation via the 3-axis
+    // quaternion drive, and the endpoints become quaternion-driven bodies.
+    // plastic_yield_angle: finite = bent past it, the rest pose creeps
+    // (damage remembered). 0 = elastic (mapped to infinity at activation).
+    bool quat_drive = false;
+    float plastic_yield_angle = 0.0f;
 };
 
 // Basic value type for properties (start simple, extend later)

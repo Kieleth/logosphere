@@ -174,11 +174,14 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
         // canopy and shrapnel.
         const float dx = pb.x - pa.x, dy = pb.y - pa.y, dz = pb.z - pa.z;
         d.target_distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-        d.stiffness = 5000.0f;    // flexible stem, the physics-tree leaf value
-        d.damping = 100.0f;
-        d.angular_stiffness = 50.0f;   // loose: blades bend
-        d.angular_damping = 5.0f;
+        d.stiffness = spec.gluon_stiffness;
+        d.damping = spec.gluon_damping;
+        d.angular_stiffness = spec.gluon_angular_stiffness;
+        d.angular_damping = spec.gluon_angular_damping;
         d.enable_angular_constraint = true;
+        d.quat_drive = spec.gluon_quat_drive;
+        d.plastic_yield_angle = spec.gluon_plastic_yield;
+        d.max_strain = spec.gluon_max_strain;
         // Breaking scales with the child's REAL tear cross-section: the two
         // smallest extents (a blade tears across its width * thickness, not
         // its face). The old 1e-4 floor plus the 100 MPa particle default

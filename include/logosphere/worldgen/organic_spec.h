@@ -43,6 +43,19 @@ struct OrganicSpec {
     // newtons, not tens of kilonewtons.
     float material_strength = 100e6f;
 
+    // === Bond nature (the four-nature palette, per species) ===
+    // Written into every stored bond; activation builds pose-drive joints
+    // from them. quat_drive on = blades hold their grown pose and bend by
+    // rotating; yield 0 = elastic, finite = damage sticks past that angle;
+    // max_strain 0 = default tear ratio (2x rest).
+    bool  gluon_quat_drive = false;
+    float gluon_stiffness = 5000.0f;
+    float gluon_damping = 100.0f;
+    float gluon_angular_stiffness = 50.0f;
+    float gluon_angular_damping = 5.0f;
+    float gluon_plastic_yield = 0.0f;
+    float gluon_max_strain = 0.0f;
+
     // === Space Colonization Parameters ===
     AttractorShape attractor_shape = AttractorShape::SPHERE;
     int attractor_count = 120;         // Number of target points

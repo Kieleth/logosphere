@@ -1831,6 +1831,7 @@ set(TEST_SOURCES
     tests/test_constraint_order_matters.cpp    # S19 re-run: does constraint order change it?
     tests/test_physics_battery.cpp             # scenario ladder: one mechanism per rung
     tests/test_rotation_ladder.cpp             # rotation TDD: red first, one rung at a time
+    tests/test_grass_natures.cpp               # the palette on real grass + human over a blade
     tests/test_async_prep_churn.cpp            # issue #31: KG lookup must stay on the frame thread
     tests/test_foliage_stays_attached.cpp      # issue #38: do leaves stay bonded to their branch?
     tests/test_no_overlap_at_creation.cpp      # issue #38 RED: nothing created inside something else
