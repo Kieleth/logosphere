@@ -23,9 +23,6 @@
 #include "pathfinding_system.h"
 #include "perception_query.h"
 
-// Forward declaration for food consumption
-namespace npc_ai { struct FoodState; }
-
 // ============================================
 // MOVEMENT INTENT
 // Output from brain to locomotion system
@@ -131,10 +128,15 @@ struct ExecutionContext {
     float scan_angle = 0;       // Current offset from body facing
     int scan_direction = 1;     // 1 = right, -1 = left
 
-    // ---- Eating parameters (physics-based consumption) ----
-    // See logomancers/docs/npc_consumables.md
-    float mouth_volume_cm3 = 0.0f;          // Creature mouth capacity (0 = error)
-    npc_ai::FoodState* food_state = nullptr; // Current food being eaten
+    // ---- Game data passthrough ----
+    // Opaque pointer the engine copies from CreatureParams and never
+    // reads. Game-registered executors cast it back to whatever context
+    // their game defines. This is the boundary working as intended: the
+    // slot used to hold mouth_volume_cm3 and a FoodState*, which are
+    // creature-diet policy, and the engine had no business knowing a
+    // mouth exists (#37 item 3; the diet executors now live in
+    // examples/predator/ai/ and carry their own context through here).
+    void* game_data = nullptr;
 };
 
 // ============================================

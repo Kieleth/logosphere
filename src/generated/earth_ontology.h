@@ -416,20 +416,16 @@ inline bool from_string(const char* str, PatternId& out) {
     return false;
 }
 
-/// AI action types for goal-oriented planning.
+/// The engine's generic GOAP action vocabulary: navigation, attention and frustration, meaningful in a farming game and a combat game equally. Diet actions (EAT, GRAB_PREY) were removed with #37 item 3; they are creature policy, and a game declares its own action names in its own schema (see examples/predator). GOAP actions are strings at the planning layer, so this enum constrains nothing at runtime; it is the vocabulary a schema reader (or an LLM) learns the engine by, which is exactly why it must not teach them that the engine has a mouth.
 enum class GOAPAction {
-    /// Chase target
+    /// Navigate to a target location
     PURSUE,
-    /// Consume food
-    EAT,
     /// Look around for targets
     SCAN,
     /// Navigate around obstacle
     ESCAPE_BLOCK,
     /// Follow odor trail
     INVESTIGATE_SMELL,
-    /// Catch target
-    GRAB_PREY,
     /// Abandon current action
     GIVE_UP
 };
@@ -438,11 +434,9 @@ enum class GOAPAction {
 inline const char* to_string(GOAPAction value) {
     switch (value) {
         case GOAPAction::PURSUE: return "PURSUE";
-        case GOAPAction::EAT: return "EAT";
         case GOAPAction::SCAN: return "SCAN";
         case GOAPAction::ESCAPE_BLOCK: return "ESCAPE_BLOCK";
         case GOAPAction::INVESTIGATE_SMELL: return "INVESTIGATE_SMELL";
-        case GOAPAction::GRAB_PREY: return "GRAB_PREY";
         case GOAPAction::GIVE_UP: return "GIVE_UP";
     }
     return "unknown";
@@ -451,11 +445,9 @@ inline const char* to_string(GOAPAction value) {
 /// Parse a string into GOAPAction. Returns false if the string is not a valid value.
 inline bool from_string(const char* str, GOAPAction& out) {
     if (std::strcmp(str, "PURSUE") == 0) { out = GOAPAction::PURSUE; return true; }
-    if (std::strcmp(str, "EAT") == 0) { out = GOAPAction::EAT; return true; }
     if (std::strcmp(str, "SCAN") == 0) { out = GOAPAction::SCAN; return true; }
     if (std::strcmp(str, "ESCAPE_BLOCK") == 0) { out = GOAPAction::ESCAPE_BLOCK; return true; }
     if (std::strcmp(str, "INVESTIGATE_SMELL") == 0) { out = GOAPAction::INVESTIGATE_SMELL; return true; }
-    if (std::strcmp(str, "GRAB_PREY") == 0) { out = GOAPAction::GRAB_PREY; return true; }
     if (std::strcmp(str, "GIVE_UP") == 0) { out = GOAPAction::GIVE_UP; return true; }
     return false;
 }

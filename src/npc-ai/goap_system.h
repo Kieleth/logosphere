@@ -161,6 +161,16 @@ struct Action {
     WorldState effects;        // State changes after execution
     float cost = 1.0f;         // Planning cost (lower = preferred)
 
+    // Which named target this action consumes at execution time, or
+    // empty for none. The brain publishes targets by name in
+    // CreatureParams.targets ("food", "smell", "threat", ...) and the
+    // plan executor routes by THIS declaration, not by matching the
+    // action's name against a hardcoded list. Data, not a name ladder:
+    // the engine has no opinion about what kinds of target exist, and
+    // absence is the key being absent rather than a zero coordinate
+    // pretending to be a sentinel (#44).
+    std::string target_key;
+
     // Optional: dynamic cost function (called during planning)
     // If set, overrides static cost
     std::function<float(const WorldState&)> cost_fn = nullptr;
