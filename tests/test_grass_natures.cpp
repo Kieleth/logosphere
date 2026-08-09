@@ -372,12 +372,51 @@ bool test_grass_natures() {
     loco.set_volitional(eva.hips_id, true);
     loco.set_target_velocity(eva.hips_id, 0.0f, 1.2f);
 
+    // HUMAN ROTATION CENSUS (owner: 'all its particles are rotating').
+    std::vector<size_t> eva_ids;
+    {
+        auto add = [&](const std::vector<int>& v2) { for (int i : v2) eva_ids.push_back((size_t)i); };
+        eva_ids.push_back((size_t)eva.hips_id);
+        add(eva.left_leg_ids); add(eva.right_leg_ids);
+        add(eva.left_arm_ids); add(eva.right_arm_ids); add(eva.torso_ids);
+    }
+    std::vector<std::array<float,3>> eva_axis0(eva_ids.size());
+    {
+        auto v = ps.lock_particles_for_write();
+        for (size_t i = 0; i < eva_ids.size(); ++i) {
+            float ax, ay, az;
+            axis_of(v[eva_ids[i]], ax, ay, az);
+            eva_axis0[i] = {ax, ay, az};
+        }
+    }
+    float eva_worst_rot = 0, eva_worst_omega = 0;
+    int eva_worst_id = -1;
+
     Blade& hb = blades[3];
     float hb_peak = 0, hb_fin = 0, eva_y = -2.0f;
     for (int f = 0; f < 420 && engine.is_running(); ++f) {
         gstep(engine);
         auto v = ps.lock_particles_for_write();
         eva_y = v[eva.hips_id].y;
+        size_t spinning = 0, drifted = 0;
+        for (size_t i = 0; i < eva_ids.size(); ++i) {
+            const Particle& p = v[eva_ids[i]];
+            float ax, ay, az;
+            axis_of(p, ax, ay, az);
+            const float dr = ang3(ax, ay, az, eva_axis0[i][0], eva_axis0[i][1],
+                                  eva_axis0[i][2]);
+            const float om = std::sqrt(p.omega_x*p.omega_x + p.omega_y*p.omega_y +
+                                       p.omega_z*p.omega_z);
+            if (dr > eva_worst_rot) { eva_worst_rot = dr; eva_worst_id = (int)eva_ids[i]; }
+            eva_worst_omega = std::fmax(eva_worst_omega, om);
+            if (om > 1.0f) spinning++;
+            if (dr > 0.5f) drifted++;
+        }
+        if ((f % 60) == 0)
+            printf("      [eva f%3d] y %+.2f  spinning(>1rad/s) %zu/%zu  "
+                   "drifted(>29deg) %zu/%zu  worst rot %.0f deg (P%d)  worst omega %.1f\n",
+                   f, eva_y, spinning, eva_ids.size(), drifted, eva_ids.size(),
+                   eva_worst_rot * 57.3f, eva_worst_id, eva_worst_omega);
         const Particle& tip = v[hb.seg[SEGS - 1]];
         const float td = d3(tip.x, tip.y, tip.z, hb.tip0[0], hb.tip0[1], hb.tip0[2]);
         hb_peak = std::fmax(hb_peak, td);
@@ -407,6 +446,9 @@ bool test_grass_natures() {
     printf("  %-42s %zu of %zu\n", "blade bonds after the pass", hb_bonds, hb.bonds0);
     printf("  %-42s %llu (worst %.1f m/s)\n", "detector events part 2",
            (unsigned long long)det_p2, X::stats().worst_speed);
+    printf("  %-42s %.0f deg (P%d), worst omega %.1f rad/s\n",
+           "HUMAN worst limb rotation drift", eva_worst_rot * 57.3f, eva_worst_id,
+           eva_worst_omega);
 
     // ---- the gate --------------------------------------------------------
     const bool bent_ok     = blades[0].peak_tip > 0.10f && blades[0].fin_tip > 0.06f &&

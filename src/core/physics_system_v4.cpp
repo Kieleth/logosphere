@@ -386,7 +386,12 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
         // real bodies and MUST weigh: the blanket exemption made a freed
         // segment float forever on its last velocity — no bond, no
         // contact, no gravity (the rung-4 ghost on 1656 mm of air).
-        if (p.is_quat_driven && p.owner == ParticleOwner::ANIMATION) continue;
+        // Only PHYSICS-owned quat bodies weigh (organic blades, debris).
+        // ANIMATION- and DYNAMICS-owned bones are the animation layer's:
+        // per-bone gravity makes the drive fight it on every joint (the
+        // original exemption's rationale) — and giving DYNAMICS bones
+        // weight put visible churn into the human's limbs.
+        if (p.is_quat_driven && p.owner != ParticleOwner::PHYSICS) continue;
         // Apply gravity: v += g × dt
         p.vz += -GRAVITY * dt;
     }
@@ -1556,7 +1561,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             {
                 float k = inv_ma + inv_mb;
                 const float jx = c.jx, jy = c.jy, jz = c.jz;
-                if (pa.is_quat_driven && pa.solver_mode != ParticleSolverMode::KINEMATIC) {
+                if (pa.is_quat_driven && pa.owner == ParticleOwner::PHYSICS &&
+                    pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                     const float I = pa.GetMomentOfInertia();
                     if (I > 0.0f) {
                         const float cx = lever_a[1]*jz - lever_a[2]*jy;
@@ -1565,7 +1571,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         k += (cx*cx + cy*cy + cz*cz) / I;
                     }
                 }
-                if (pb.is_quat_driven && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                if (pb.is_quat_driven && pb.owner == ParticleOwner::PHYSICS &&
+                    pb.solver_mode != ParticleSolverMode::KINEMATIC) {
                     const float I = pb.GetMomentOfInertia();
                     if (I > 0.0f) {
                         const float cx = lever_b[1]*jz - lever_b[2]*jy;
@@ -2377,12 +2384,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // spins the anchor ever faster — the 15 m fling of rung 3's
                 // first torque attempt.
                 if (c.apply_anchor_torque) {
-                    if (pa.is_quat_driven) {
+                    if (pa.is_quat_driven && pa.owner == ParticleOwner::PHYSICS) {
                         v_rel += c.jx * (pa.omega_y * c.anchor_raz - pa.omega_z * c.anchor_ray)
                                + c.jy * (pa.omega_z * c.anchor_rax - pa.omega_x * c.anchor_raz)
                                + c.jz * (pa.omega_x * c.anchor_ray - pa.omega_y * c.anchor_rax);
                     }
-                    if (pb.is_quat_driven) {
+                    if (pb.is_quat_driven && pb.owner == ParticleOwner::PHYSICS) {
                         v_rel -= c.jx * (pb.omega_y * c.anchor_rbz - pb.omega_z * c.anchor_rby)
                                + c.jy * (pb.omega_z * c.anchor_rbx - pb.omega_x * c.anchor_rbz)
                                + c.jz * (pb.omega_x * c.anchor_rby - pb.omega_y * c.anchor_rbx);
@@ -2475,7 +2482,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // changes behavior.
             if (c.apply_anchor_torque && std::fabs(impulse) > 1e-12f) {
                 const float fx = c.jx * impulse, fy = c.jy * impulse, fz = c.jz * impulse;
-                if (pa.is_quat_driven && inv_ma > 0.0f) {
+                // Rotation-from-physics is for PHYSICS-owNED bodies only:
+                // animation's quat-driven bones belong to FK, and torquing
+                // them spun 20 of the human's 30 particles at 10 rad/s
+                // (owner: 'VERY WEIRD STUFF'). Same discriminator as the
+                // gravity exemption.
+                if (pa.is_quat_driven && pa.owner == ParticleOwner::PHYSICS &&
+                    inv_ma > 0.0f) {
                     const float I = pa.GetMomentOfInertia();
                     if (I > 0.0f) {
                         const float inv = 1.0f / I;
@@ -2484,7 +2497,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         pa.omega_z += (c.anchor_rax * fy - c.anchor_ray * fx) * inv;
                     }
                 }
-                if (!c.is_turtle_contact && pb.is_quat_driven && inv_mb > 0.0f) {
+                if (!c.is_turtle_contact && pb.is_quat_driven &&
+                    pb.owner == ParticleOwner::PHYSICS && inv_mb > 0.0f) {
                     const float I = pb.GetMomentOfInertia();
                     if (I > 0.0f) {
                         const float inv = 1.0f / I;
