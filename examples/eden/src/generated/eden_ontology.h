@@ -715,7 +715,9 @@ enum class WorldRelationType {
     /// System entity manages another entity
     MANAGES,
     /// Direct bond between two bodies - the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world.
-    BONDED_TO
+    BONDED_TO,
+    /// A narrower thing refines a broader one: the specialization points at what it specializes (Slug Rifle SPECIALIZES Gun Combat in a skill cascade). Generic taxonomy vocabulary, first used by the rulebook module's skill cascades.
+    SPECIALIZES
 };
 
 /// Convert WorldRelationType to its string representation.
@@ -731,6 +733,7 @@ inline const char* to_string(WorldRelationType value) {
         case WorldRelationType::PERCEIVES: return "PERCEIVES";
         case WorldRelationType::MANAGES: return "MANAGES";
         case WorldRelationType::BONDED_TO: return "BONDED_TO";
+        case WorldRelationType::SPECIALIZES: return "SPECIALIZES";
     }
     return "unknown";
 }
@@ -747,6 +750,7 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     if (std::strcmp(str, "PERCEIVES") == 0) { out = WorldRelationType::PERCEIVES; return true; }
     if (std::strcmp(str, "MANAGES") == 0) { out = WorldRelationType::MANAGES; return true; }
     if (std::strcmp(str, "BONDED_TO") == 0) { out = WorldRelationType::BONDED_TO; return true; }
+    if (std::strcmp(str, "SPECIALIZES") == 0) { out = WorldRelationType::SPECIALIZES; return true; }
     return false;
 }
 
@@ -1486,7 +1490,7 @@ struct DiceRollEvent : public WorldEvent {
     std::optional<std::string> dice_expression = std::nullopt;
     /// Individual die results, comma-separated, in roll order.
     std::optional<std::string> roll_values = std::nullopt;
-    /// Sum of the dice plus the modifier.
+    /// (Sum of the dice plus the modifier) times the multiplier.
     std::optional<int32_t> roll_total = std::nullopt;
     /// Named RNG stream the roll came from (e.g. "chargen"). Streams are independently seeded so a session replays deterministically.
     std::optional<std::string> roll_stream = std::nullopt;

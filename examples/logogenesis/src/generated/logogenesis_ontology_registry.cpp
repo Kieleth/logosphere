@@ -194,6 +194,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("ILLUMINATES", {"Entity"}, {"Entity"});
     reg.addRelationType("MANAGES", {"Entity"}, {"Entity"});
     reg.addRelationType("PERCEIVES", {"Entity"}, {"Entity"});
+    reg.addRelationType("SPECIALIZES", {"Entity"}, {"Entity"});
     reg.addRelationType("SUPPORTS", {"Entity"}, {"Entity"});
 
     // Properties per entity type

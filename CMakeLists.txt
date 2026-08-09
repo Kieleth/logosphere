@@ -119,6 +119,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
     src/generated/earth_ontology_registry.cpp
+    src/generated/rulebook_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
     src/capability/capability_store.cpp
@@ -360,6 +361,10 @@ add_headless_test(test_entity_type_strings)
 # This one reads the source tree, so it needs to know where that is:
 # ctest runs from the build directory, not the repo root.
 target_compile_definitions(test_entity_type_strings
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_rulebook_pack)
+# Verbatim-checks its citations against the vendored SRD in the tree.
+target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 # Logoveyer: absorbed rules proven against the book's own numbers.
 # Game sources compiled into the test, engine as a library.
@@ -1135,6 +1140,7 @@ set(LOGOSPHERE_SOURCES
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
     src/generated/earth_ontology_registry.cpp
+    src/generated/rulebook_ontology_registry.cpp
     # Spatial query module
     src/spatial/entity_spatial.cpp
     # Damage system
