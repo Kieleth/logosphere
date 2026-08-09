@@ -49,6 +49,24 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   legitimately consume the state that admitted them).
 
 ### Added
+- `CapabilityStore` (engine): capability response rules evaluated for ANY
+  tracked entity, not just humanoids — the missing piece between
+  DamageSystem and the NPC layer (#36 finding, #37 roadmap). Opt-in per
+  entity; eager (recomputes on STATE_CHANGE, so emit_event effects fire
+  when the state changes); part writes resolve to their creature through
+  reverse HAS_PART. The profile is WRITTEN BACK into the KG as
+  `capability.*` properties, so a director or an LLM reads what an entity
+  can DO from the medium itself. The write-back emits the very event that
+  triggers recomputes; the two-layer loop guard is proven by count in
+  `test_capability_store` (five wounds = exactly six recomputes).
+- The search scene now carries the store's first consumer: a thorn patch
+  on the hunt's measured route. Crossing it fires an `on_contact` rule
+  (`with_type:Thorns -> wound_leg`), DamageSystem drives the leg below
+  the capability rule's threshold, the store recomputes off the bus, and
+  the predator finishes the pursuit at half pace — contact rules, damage,
+  capability rules, the store and GOAP in one unscripted chain, asserted
+  headless (a wounded pursuit never reaches 60% of the healthy sprint)
+  and watchable (panel shows leg hp and pace live).
 - `at_predator_search`: the full NPC loop in one watchable scene — walls,
   meander, smell, getting lost, dinner. Sensors own the perception facts
   and overwrite them every frame; the planner replans as information

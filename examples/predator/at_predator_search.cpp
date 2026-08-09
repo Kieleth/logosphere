@@ -39,6 +39,10 @@
 #undef NDEBUG
 
 #include "core/engine.h"
+#include "logosphere/capability/capability_store.h"
+#include "logosphere/damage/damage_system.h"
+#include "logosphere/interaction/contact_response.h"
+#include "logosphere/kg/ontology_registry.h"
 #include "core/particle_system.h"
 #include "core/camera_system.h"
 #include "sense_system.h"
@@ -207,7 +211,34 @@ int main() {
             }
     }
 
-    // Predator, SW, far outside the odor radius.
+    // Game vocabulary: what a Predator and a Thorns ARE is this game's
+    // business, declared at runtime the way any game declares types.
+    {
+        kg::OntologyRegistry ext;
+        ext.addEntityType("Predator", "LivingEntity", false);
+        ext.addEntityType("Thorns", "WorldEntity", false);
+        ext.addAncestors("Predator", {"LivingEntity", "WorldEntity", "Entity"});
+        ext.addAncestors("Thorns", {"WorldEntity", "Entity"});
+        engine.get_kg().extendOntology(ext);
+    }
+    auto& kg = engine.get_kg();
+
+    // Predator, SW, far outside the odor radius. KG-BACKED — an entity
+    // with a leg part whose particle is bound — because the contact
+    // producer resolves particles through the KG, and a creature
+    // outside the ontology is invisible to every contact rule.
+    const kg::EntityID pred_entity = kg.createEntity("Predator");
+    const kg::EntityID pred_leg = kg.createEntity("Leg");
+    kg.createRelation(pred_entity, "HAS_PART", pred_leg);
+    kg.setProperty(pred_leg, "body_part_name", "leg");
+    kg.setProperty(pred_leg, "health", "100");
+    kg.setProperty(pred_leg, "max_health", "100");
+    kg.setProperty(pred_leg, "cap_list", "locomotion");
+    // The capability rule: a mangled leg halves the pace. THIS is the
+    // store's first consumer earning its keep.
+    kg.setProperty(pred_leg, "rule.0.trigger", "health_below:60");
+    kg.setProperty(pred_leg, "rule.0.effect", "speed_cap:0.5");
+
     Particle pred{};
     pred.shape = ParticleShape::SPHERE;
     pred.x = -14.0f; pred.y = -12.0f; pred.z = 0.8f;
@@ -217,7 +248,33 @@ int main() {
     pred.SetMaterial(Materials::Type::FLESH);
     pred.solver_mode = ParticleSolverMode::KINEMATIC;
     pred.is_at_rest = true;
-    const int pred_idx = engine.add_particle(pred);
+    const int pred_idx = ps.add_particle_to_entity(pred, &kg, pred_leg);
+
+    // The thorn patch: a band across the southern approach to the
+    // carcass. WALKABLE — thorns do not stop a predator, they bill it —
+    // so they are absent from the nav grid and present as bodies.
+    // Placed on the measured route: the seeded hunt crosses the thorn
+    // latitude at x ~4.4 (west corridor, probed), so the band spans it
+    // with margin for run-to-run drift.
+    // Plants DO NOT touch each other (0.3 m gaps): the first layout had
+    // them edge-to-edge, and a thorn-thorn contact satisfies
+    // with_type:Thorns from BOTH sides — six of eight "wounds" were
+    // thorns stinging thorns, billed to a leg neither of them has.
+    for (int i = 0; i < 4; ++i) {
+        const float tx = 2.0f + i * 2.1f;
+        const float ty = 10.6f;
+        const kg::EntityID te = kg.createEntity("Thorns");
+        Particle th{};
+        th.shape = ParticleShape::BOX;
+        th.x = tx; th.y = ty; th.z = 0.35f;
+        th.width = 1.8f; th.height = 1.6f; th.thickness = 0.7f;
+        th.size = 1.8f;
+        th.r = 0.20f; th.g = 0.45f; th.b = 0.12f; th.a = 1.0f;
+        th.SetMaterial(Materials::Type::FLESH);
+        th.solver_mode = ParticleSolverMode::KINEMATIC;
+        th.is_at_rest = true;
+        ps.add_particle_to_entity(th, &kg, te);
+    }
 
     // Carcass, NE, behind the walls, smellable within 14 m.
     const float kCarcassFull = 1.0f;
@@ -284,6 +341,39 @@ int main() {
     registry.register_executor("PURSUE", std::make_unique<npc_ai::PursueExecutor>());
     registry.register_executor("EAT", std::make_unique<npc_ai::EatExecutor>());
 
+    // ---- the wound chain: contact -> damage -> health -> store ----
+    DamageSystem damage(nullptr, &engine.get_event_bus());
+    damage.set_kg(&kg);
+    int wounds = 0;
+    logosphere::interaction::ContactEffectRegistry::instance().register_effect(
+        "wound_leg",
+        [&](logosphere::interaction::ContactEffectContext& ctx,
+            const std::string& args) {
+            float amount = 15.0f;
+            try { amount = std::stof(args); } catch (...) {}
+            // Only a landed wound counts: a contact whose self has no
+            // leg (thorn-thorn, scenery) returns negative and is not a
+            // wound, whatever the rule thought.
+            if (damage.apply_to_body_part(ctx.contact.self_entity, "leg",
+                                          amount, DamageType::Pierce) >= 0.0f)
+                ++wounds;
+        });
+    {
+        // The predator's OWN rule: how I react to touching thorns.
+        // Conditions ask about the other party, effects act on self.
+        const kg::EntityID rule = kg.createEntity("TransformationRule");
+        kg.setProperty(rule, "trigger", "on_contact");
+        kg.setProperty(rule, "condition", "with_type:Thorns");
+        kg.setProperty(rule, "effect", "wound_leg:45");
+        const size_t n = engine.get_interaction_system().load_rules_from_kg(kg);
+        std::cout << "    contact rules loaded: " << n << std::endl;
+    }
+
+    // The store: the predator opts in; from here the leg rule is live
+    // for a creature no humanoid system has ever heard of.
+    engine.get_capability_store().track(
+        pred_entity, capability::CapabilityStore::Physical(90.0f, 0.9f, 1.6f));
+
     pathfinding::Pathfinder finder;
     pathfinding::Path path;
     npc_ai::GOAPPlanExecutor exec;
@@ -341,6 +431,7 @@ int main() {
     float scent_x = 0, scent_y = 0, seen_x = 0, seen_y = 0;
     int bites_seen = 0;
     float last_mass = initial_mass;
+    float max_step_whole = 0.0f, max_step_wounded = 0.0f;
     bool goal_achieved = false;
     static constexpr int MISSES_BEFORE_LOST = 20;   // smell flickers at
                                                     // range; believe it
@@ -384,6 +475,9 @@ int main() {
         smells = sees = false;
         goal_achieved = false;
         log = EventLog{};
+        kg.setProperty(pred_leg, "health", "100");   // runs start whole
+        wounds = 0;
+        max_step_whole = max_step_wounded = 0.0f;
         world.clear();
         world["hungry"] = 1;
         world["smells_food"] = 0;
@@ -510,6 +604,16 @@ int main() {
         if (smells) params.targets["scent"] = {scent_x, scent_y};
         if (sees || world["at_food"])
             params.targets["food"] = {seen_x, seen_y};
+        // The pace is whatever the leg can carry: the store's cap,
+        // read fresh each frame. This line is the store's whole point.
+        {
+
+            const CapabilityProfile* cap =
+                engine.get_capability_store().get(pred_entity);
+            const float k = cap ? cap->speed_cap : 1.0f;
+            params.walk_speed = 2.2f * k;
+            params.run_speed = 4.5f * k;
+        }
         auto r = exec.update(plan, world, px, py, facing, dt, params);
         if (r.needs_replan) {
             // A stale plan while smelling-but-blind means the straight
@@ -527,6 +631,16 @@ int main() {
 
         if (r.movement.is_moving) {
             const float step = r.movement.forward_velocity * dt;
+            // The limp, measured: fastest commanded step before any
+            // wound vs after the cap dropped.
+            {
+                const auto* cap = engine.get_capability_store().get(pred_entity);
+                if (cap && cap->speed_cap < 1.0f) {
+                    if (step > max_step_wounded) max_step_wounded = step;
+                } else if (wounds == 0) {
+                    if (step > max_step_whole) max_step_whole = step;
+                }
+            }
             const float mx = std::sin(r.movement.body_facing) * step;
             const float my = std::cos(r.movement.body_facing) * step;
             // Collide-and-slide against the walls: a KINEMATIC creature
@@ -581,6 +695,14 @@ int main() {
             if (frac <= 0.001f) view[carc_idx].a = 0.0f;
         }
 
+        // [probe] the route through the thorn latitude, to place the
+        // band where the hunt actually walks.
+        static float last_probe_y = -99.0f;
+        if ((py > 9.5f && py < 12.5f) && std::abs(py - last_probe_y) > 0.8f) {
+            last_probe_y = py;
+            std::cout << "  [probe] crossing y=" << py << " at x=" << px
+                      << std::endl;
+        }
         clock += dt;
         ++frames;
         return !goal_achieved && frames < 14400;   // 4 minutes, generous
@@ -631,6 +753,14 @@ int main() {
         std::snprintf(line, sizeof line, "carcass %.0f g   bites %d",
                       std::max(0.0f, food.remaining_g), bites_seen);
         panel->add_line(line);
+        {
+            const auto* cap = engine.get_capability_store().get(pred_entity);
+            std::snprintf(line, sizeof line,
+                          "leg %s hp   pace x%.1f   wounds %d",
+                          kg.getProperty(pred_leg, "health").c_str(),
+                          cap ? cap->speed_cap : 1.0f, wounds);
+            panel->add_line(line);
+        }
         panel->add_line("");
         for (const auto& l : log.lines) panel->add_line(l);
         if (phase == Phase::DONE) {
@@ -730,6 +860,15 @@ int main() {
     std::cout << "  [measure] carcass " << initial_mass << " g -> "
               << food.remaining_g << " g in " << bites_seen << " bites"
               << std::endl;
+    {
+        const auto* cap = engine.get_capability_store().get(pred_entity);
+        std::cout << "  [measure] wounds " << wounds << ", leg "
+                  << kg.getProperty(pred_leg, "health") << " hp, pace x"
+                  << (cap ? cap->speed_cap : -1.0f)
+                  << ", kg capability.speed_cap='"
+                  << kg.getProperty(pred_entity, "capability.speed_cap")
+                  << "'" << std::endl;
+    }
     std::cout << "  [measure] panel overlay: " << panel_px.lit << " lit, "
               << panel_px.text << " text" << std::endl;
 
@@ -750,6 +889,43 @@ int main() {
               std::to_string(log.replans) + " replans)");
         check(food.remaining_g < initial_mass * 0.05f,
               "and the carcass is gone");
+
+        // ---- the wound chain, end to end (#37 capability store) ----
+        {
+            const auto* cap = engine.get_capability_store().get(pred_entity);
+            const std::string leg_hp = kg.getProperty(pred_leg, "health");
+            const std::string kg_cap =
+                kg.getProperty(pred_entity, "capability.speed_cap");
+            std::cout << "  [measure] limp: fastest step whole "
+                      << max_step_whole << " m, wounded " << max_step_wounded
+                      << " m" << std::endl;
+            check(wounds >= 1,
+                  "the thorns billed the crossing through ON_CONTACT (" +
+                  std::to_string(wounds) + " wounds; one deep sting is "
+                  "the deterministic minimum on this route)");
+            check(!leg_hp.empty() && std::stof(leg_hp) < 60.0f,
+                  "DamageSystem drove the leg below the rule threshold (" +
+                  leg_hp + " hp)");
+            check(cap && cap->speed_cap == 0.5f,
+                  "the store recomputed off the bus: pace x" +
+                  std::to_string(cap ? cap->speed_cap : -1.0f));
+            check(kg_cap.rfind("0.5", 0) == 0,
+                  "and the KG itself says so: capability.speed_cap='" +
+                  kg_cap + "'");
+            // The limp, honestly framed. Before the sting this route
+            // only ever WALKS (meander, 2.2 m/s); the sprint happens
+            // after, so wounded-vs-whole steps compare different gaits
+            // and the first version of this assert failed on a 2%
+            // artifact. The real claim: a wounded PURSUIT never reaches
+            // even 60% of the healthy sprint it would otherwise use
+            // (4.5 m/s -> 0.075 m/frame uncapped).
+            const float healthy_sprint_step = 4.5f * (1.0f / 60.0f);
+            check(max_step_wounded > 0.0f &&
+                      max_step_wounded < healthy_sprint_step * 0.6f,
+                  "the limp is REAL: it pursued, and slowly (" +
+                  std::to_string(max_step_wounded) + " m/frame vs healthy "
+                  "sprint " + std::to_string(healthy_sprint_step) + ")");
+        }
 
         // THE CONTROL: same walls, same eyes, a carcass with NO odor.
         // Every fact upgrade above came through the nose first, so
