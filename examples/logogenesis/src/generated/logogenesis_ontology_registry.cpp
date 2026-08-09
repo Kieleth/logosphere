@@ -175,6 +175,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
     reg.addEntityType("DamageEvent", "WorldEvent", false);
     reg.addEntityType("DeathEvent", "WorldEvent", false);
+    reg.addEntityType("DiceRollEvent", "WorldEvent", false);
     reg.addEntityType("Event", "", false);
     reg.addEntityType("PerceptionEvent", "WorldEvent", false);
     reg.addEntityType("RelationEvent", "WorldEvent", false);
@@ -239,6 +240,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Describable", "tags", "string", false);
     reg.addProperty("Destructible", "damage_threshold", "float", false);
     reg.addProperty("Destructible", "modification_state", "enum", false);
+    reg.addProperty("DiceRollEvent", "roll_id", "integer", false);
+    reg.addProperty("DiceRollEvent", "dice_expression", "string", false);
+    reg.addProperty("DiceRollEvent", "roll_values", "string", false);
+    reg.addProperty("DiceRollEvent", "roll_total", "integer", false);
+    reg.addProperty("DiceRollEvent", "roll_stream", "string", false);
+    reg.addProperty("DiceRollEvent", "roll_purpose", "string", false);
     reg.addProperty("DistantWorldSeed", "x", "float", false);
     reg.addProperty("DistantWorldSeed", "y", "float", false);
     reg.addProperty("DistantWorldSeed", "world_height", "float", false, true, -40.0, true, 90.0);

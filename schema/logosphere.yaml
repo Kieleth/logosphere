@@ -801,6 +801,21 @@ classes:
     slots:
       - rule_name
 
+  DiceRollEvent:
+    is_a: WorldEvent
+    description: >-
+      A die roll the ENGINE performed: seeded, journaled, citable by
+      id. Games and referees receive rolls as facts through this event;
+      nothing outside the dice service may assert a result (see
+      docs/RPG_MODULE.md, "the referee cannot roll").
+    slots:
+      - roll_id
+      - dice_expression
+      - roll_values
+      - roll_total
+      - roll_stream
+      - roll_purpose
+
 # -------------------------------------------------------------------
 # Relation types (domain/range constrained)
 # -------------------------------------------------------------------
@@ -1100,6 +1115,26 @@ slots:
   medium_profile:
     range: integer
     description: Profile id of the medium volume involved.
+  roll_id:
+    range: integer
+    description: Monotonic id of the roll, unique per session, citable.
+  dice_expression:
+    range: string
+    description: The expression rolled, canonical form ("2D6+1").
+  roll_values:
+    range: string
+    description: Individual die results, comma-separated, in roll order.
+  roll_total:
+    range: integer
+    description: Sum of the dice plus the modifier.
+  roll_stream:
+    range: string
+    description: >-
+      Named RNG stream the roll came from (e.g. "chargen"). Streams are
+      independently seeded so a session replays deterministically.
+  roll_purpose:
+    range: string
+    description: What the roll was for, in the roller's words.
   rule_name:
     range: string
     description: Name of the transformation rule that fired.

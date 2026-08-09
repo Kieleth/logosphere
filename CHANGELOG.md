@@ -7,6 +7,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- `DiceService` (engine core): the only place randomness becomes fact.
+  Named, independently seeded streams replay deterministically (the
+  chargen stream replays the same life regardless of interleaving);
+  every roll is journaled and citable by monotonic id; a strict
+  expression grammar refuses anything malformed; `DiceRollEvent` on a
+  new `dice_rolls()` bus channel carries each roll as a fact. Built for
+  the RPG module's honesty rule, "the referee cannot roll"
+  (docs/RPG_MODULE.md), and generic to any game that wants provenance
+  on its randomness.
+
 ### Changed
 - **Breaking (NPC layer): the engine/game AI boundary is now real.** The
   engine keeps GOAP *mechanism* — planner, A* pathfinding,

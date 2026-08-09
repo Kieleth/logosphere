@@ -32,6 +32,7 @@ class EventBus {
     EventChannel<onto::ContactFilteredEvent> contact_filtered_;  // pair excluded from narrow phase
     EventChannel<onto::VolumeEvent> volume_;                     // medium entry/exit episodes
     EventChannel<onto::TransformationEvent> transformations_;    // TransformationRule fired
+    EventChannel<onto::DiceRollEvent> dice_rolls_;               // engine-side rolls, citable facts
 
     uint64_t frame_ = 0;  // journal stamp clock, advanced once per engine frame
 
@@ -47,6 +48,7 @@ public:
     EventChannel<onto::ContactFilteredEvent>& contact_filtered() { return contact_filtered_; }
     EventChannel<onto::VolumeEvent>& volume() { return volume_; }
     EventChannel<onto::TransformationEvent>& transformations() { return transformations_; }
+    EventChannel<onto::DiceRollEvent>& dice_rolls() { return dice_rolls_; }
 
     const EventChannel<onto::CollisionEvent>& collisions() const { return collisions_; }
     const EventChannel<onto::DamageEvent>& damage() const { return damage_; }
@@ -58,6 +60,7 @@ public:
     const EventChannel<onto::ContactFilteredEvent>& contact_filtered() const { return contact_filtered_; }
     const EventChannel<onto::VolumeEvent>& volume() const { return volume_; }
     const EventChannel<onto::TransformationEvent>& transformations() const { return transformations_; }
+    const EventChannel<onto::DiceRollEvent>& dice_rolls() const { return dice_rolls_; }
 
     // Advance the journal stamp clock on every channel. Call once per
     // frame with the scaled game clock; retention does not depend on
@@ -74,6 +77,7 @@ public:
         contact_filtered_.advance_frame(frame_, game_time);
         volume_.advance_frame(frame_, game_time);
         transformations_.advance_frame(frame_, game_time);
+        dice_rolls_.advance_frame(frame_, game_time);
     }
 
     uint64_t frame() const { return frame_; }
@@ -90,13 +94,15 @@ public:
             spawns_.event_count() + deaths_.event_count() +
             perception_.event_count() + state_changes_.event_count() +
             relations_.event_count() + contact_filtered_.event_count() +
-            volume_.event_count() + transformations_.event_count(),
+            volume_.event_count() + transformations_.event_count() +
+            dice_rolls_.event_count(),
 
             collisions_.subscriber_count() + damage_.subscriber_count() +
             spawns_.subscriber_count() + deaths_.subscriber_count() +
             perception_.subscriber_count() + state_changes_.subscriber_count() +
             relations_.subscriber_count() + contact_filtered_.subscriber_count() +
-            volume_.subscriber_count() + transformations_.subscriber_count()
+            volume_.subscriber_count() + transformations_.subscriber_count() +
+            dice_rolls_.subscriber_count()
         };
     }
 };
