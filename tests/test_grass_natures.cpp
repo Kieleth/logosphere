@@ -345,9 +345,35 @@ bool test_grass_natures() {
         v[bar_id].x = 40.0f; v[bar_id].y = -40.0f; v[bar_id].vy = 0.0f;
     }
     if (g_title) g_title->set_text("GRASS pt 1: bar gone — recoveries by nature");
+    printf("      [ids] STRAIGHT peg=%d segs=%d,%d,%d\n",
+           blades[1].peg, blades[1].seg[0], blades[1].seg[1], blades[1].seg[2]);
     for (int f = 0; f < 400 && engine.is_running(); ++f) {
         gstep(engine);
         measure(180 + f, "RECOV", true);
+        // DEEP PROBE (owner: 'blades are still separating'): the bar is
+        // GONE, the path is clear — per-bond endpoint state of STRAIGHT,
+        // every 40 frames: who holds the gap open?
+        if ((f % 40) == 0) {
+            auto v = ps.lock_particles_for_write();
+            for (int j = 0; j + 1 < SEGS; ++j) {
+                const Particle& pa = v[blades[1].seg[j]];
+                const Particle& pb = v[blades[1].seg[j + 1]];
+                float aax, aay, aaz, bax, bay, baz;
+                axis_of(pa, aax, aay, aaz);
+                axis_of(pb, bax, bay, baz);
+                const float gap = d3(
+                    pa.x + aax * SEG_T * 0.5f, pa.y + aay * SEG_T * 0.5f,
+                    pa.z + aaz * SEG_T * 0.5f,
+                    pb.x - bax * SEG_T * 0.5f, pb.y - bay * SEG_T * 0.5f,
+                    pb.z - baz * SEG_T * 0.5f);
+                const float cdist = d3(pa.x, pa.y, pa.z, pb.x, pb.y, pb.z);
+                printf("      [probe f%3d j%d] anchor_gap %4.0f mm  centers %.2f  "
+                       "pa z%.2f v(%.2f,%.2f,%.2f) rest%d  pb z%.2f v(%.2f,%.2f,%.2f) rest%d\n",
+                       f, j, gap * 1000.0f, cdist,
+                       pa.z, pa.vx, pa.vy, pa.vz, (int)pa.is_at_rest,
+                       pb.z, pb.vx, pb.vy, pb.vz, (int)pb.is_at_rest);
+            }
+        }
     }
     const uint64_t det_p1 = X::stats().speed_events;
 
