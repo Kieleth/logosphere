@@ -1839,6 +1839,7 @@ set(TEST_SOURCES
     tests/test_grass_holds_together.cpp        # issue #47 fix 1: bonded grass, no detonation, bounded drift
     tests/test_blockers_visual.cpp             # issue #47: both merge blockers on screen, INTERACTIVE=1
     tests/test_walk_through_grass.cpp          # issue #47: a human walks through grasses, all asserted good
+    tests/test_divergence_microscope.cpp       # issue #47: freeze on the crime scene, single-step ticks
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)

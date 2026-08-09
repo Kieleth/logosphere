@@ -93,6 +93,7 @@ extern bool test_butterfly_detonation();      // issue #47: gram-scale bodies vs
 extern bool test_grass_holds_together();      // issue #47 fix 1: grass is bonded and does not detonate (STANDALONE)
 extern bool test_blockers_visual();           // issue #47: the two merge blockers, visible, INTERACTIVE=1 (STANDALONE)
 extern bool test_walk_through_grass();        // issue #47: Eva crosses 3 grass patches, all must stay good (STANDALONE)
+extern bool test_divergence_microscope();     // issue #47: freeze on the detonation frame, SPACE steps ticks (STANDALONE)
 extern bool test_immovable_pair_phantom_impulse(); // TDD RED: phantom impulse from zero-inv-mass pairs (STANDALONE)
 extern bool test_ui_label_actually_renders();// Does a registered widget actually render? (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
@@ -283,6 +284,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_grass_holds_together"] = [](TestContext&) { return test_grass_holds_together(); };  // STANDALONE: own engine
     registry["test_blockers_visual"] = [](TestContext&) { return test_blockers_visual(); };  // STANDALONE: own engine
     registry["test_walk_through_grass"] = [](TestContext&) { return test_walk_through_grass(); };  // STANDALONE: own engine
+    registry["test_divergence_microscope"] = [](TestContext&) { return test_divergence_microscope(); };  // STANDALONE: own engine
     registry["test_immovable_pair_phantom_impulse"] = [](TestContext&) { return test_immovable_pair_phantom_impulse(); };  // STANDALONE: own engine
     registry["test_ui_label_actually_renders"] = [](TestContext&) { return test_ui_label_actually_renders(); };  // STANDALONE: own engine
 
@@ -699,6 +701,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_grass_holds_together",
         "test_blockers_visual",
         "test_walk_through_grass",
+        "test_divergence_microscope",
         "test_immovable_pair_phantom_impulse",
         "test_ui_label_actually_renders",
         "test_interaction_filtering",
@@ -801,6 +804,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_grass_holds_together", test_grass_holds_together},
         {"test_blockers_visual", test_blockers_visual},
         {"test_walk_through_grass", test_walk_through_grass},
+        {"test_divergence_microscope", test_divergence_microscope},
         {"test_immovable_pair_phantom_impulse", test_immovable_pair_phantom_impulse},
         {"test_ui_label_actually_renders", test_ui_label_actually_renders},
         {"test_interaction_filtering", test_interaction_filtering},
