@@ -1,0 +1,165 @@
+id: https://logosphere.dev/logoveyer/schema
+name: logoveyer
+title: Logoveyer — Traveller absorbed, an LLM referees
+description: >-
+  Game ontology transcribed from the Cepheus Engine SRD (OGL 1.0a,
+  vendored at srd/cepheus with license and source commit). Every class
+  and slot cites its section. Nothing here is invented; divergences
+  from the Mongoose Traveller SRD get recorded per section in
+  docs/ABSORPTION_INVENTORY.md when that cross-reference pass runs.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  logoveyer: https://logosphere.dev/logoveyer/schema/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+classes:
+  Voyager:
+    is_a: LivingEntity
+    description: >-
+      A player character or NPC in the Cepheus rules sense: seven
+      characteristic scores in fixed order, summarized as a UPP string.
+      [srd/cepheus book1/character-creation.md "Characteristics", "The
+      Universal Persona Profile (UPP)"]. Named Voyager because
+      "Character" is engine-ambiguous and "Traveller" is a trademark
+      this repo does not touch.
+    slots:
+      - strength
+      - dexterity
+      - endurance
+      - intelligence
+      - education
+      - social_standing
+      - psionic_strength
+      - upp
+      - age_years
+      - terms_served
+      - credits
+
+  Career:
+    is_a: Entity
+    description: >-
+      One career the book offers, with its chargen targets
+      [book1/character-creation.md "Careers", "Qualifying and the
+      Draft", "Survival", "Commission and Advancement"]. The per-career
+      skill tables are table DATA (rules/), not schema.
+    slots:
+      - qualification_target
+      - qualification_dm_characteristic
+      - survival_target
+      - survival_dm_characteristic
+      - commission_target
+      - advancement_target
+
+  ServiceTerm:
+    is_a: Event
+    description: >-
+      One four-year term of service actually lived by a Voyager during
+      character generation [book1/character-creation.md "Terms of
+      Service"]. The KG accumulates these; the referee narrates them.
+    slots:
+      - term_number
+      - term_career
+      - survived
+      - commissioned
+
+slots:
+  # Characteristic scores. 2D6 at creation, PC max "typically" 15;
+  # the modifier table runs to 33+ for non-PC cases, so the slot range
+  # is the table's, not the PC cap
+  # [book1/character-creation.md "Generating Characteristic Scores",
+  #  "Characteristic Modifiers"].
+  strength:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Str, position 1 of the UPP.
+  dexterity:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Dex, position 2 of the UPP.
+  endurance:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: End, position 3 of the UPP.
+  intelligence:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Int, position 4 of the UPP.
+  education:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Edu, position 5 of the UPP.
+  social_standing:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: >-
+      Soc, position 6 of the UPP. Values 10+ map to noble titles
+      [book1/character-creation.md "Social Standing and Noble Titles"].
+  psionic_strength:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: >-
+      Psi, the seventh characteristic; only exists once psionics are
+      learned, never rolled at creation without the Referee
+      [book1/character-creation.md "Psionic Strength, the Seventh
+      Characteristic"]. Absent means untested.
+  upp:
+    range: string
+    description: >-
+      Pseudo-hex summary, "687B9C" or "687B9C-4" with Psi
+      [book1/character-creation.md "The Universal Persona Profile"].
+      DERIVED from the seven scores by rules/ehex; stored for the
+      referee and the journal to read.
+  age_years:
+    range: integer
+    description: Chargen starts at 18 [book1/character-creation.md].
+  terms_served:
+    range: integer
+    description: Completed terms of service.
+  credits:
+    range: integer
+    description: Money, in credits, from mustering out onward.
+  qualification_target:
+    range: integer
+    description: 2D6 target to enter the career.
+  qualification_dm_characteristic:
+    range: string
+    description: Which characteristic DMs the qualification roll.
+  survival_target:
+    range: integer
+    description: 2D6 target to survive a term.
+  survival_dm_characteristic:
+    range: string
+    description: Which characteristic DMs survival.
+  commission_target:
+    range: integer
+    description: 2D6 target for a commission (0 = career has none).
+  advancement_target:
+    range: integer
+    description: 2D6 target for advancement (0 = career has none).
+  term_number:
+    range: integer
+    description: 1-based index of the term in the Voyager's life.
+  term_career:
+    range: string
+    description: Career name this term was served in.
+  survived:
+    range: boolean
+    description: The survival roll's outcome, engine-rolled.
+  commissioned:
+    range: boolean
+    description: Whether a commission was earned this term.
