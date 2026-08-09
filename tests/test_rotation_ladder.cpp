@@ -144,6 +144,22 @@ float dist3(float ax, float ay, float az, float bx, float by, float bz) {
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+// Rotate a local offset by a particle's published Euler orientation, the
+// same X-then-Y-then-Z composition the engine and generator use.
+void rotate_by(const Particle& p, float ox, float oy, float oz,
+               float& wx, float& wy, float& wz) {
+    const float cx = std::cos(p.rotation_x), sx = std::sin(p.rotation_x);
+    const float cy = std::cos(p.rotation_y), sy = std::sin(p.rotation_y);
+    const float cz = std::cos(p.rotation_z), sz = std::sin(p.rotation_z);
+    const float y1 = oy * cx - oz * sx;
+    const float z1 = oy * sx + oz * cx;
+    const float x2 = ox * cy + z1 * sy;
+    const float z2 = -ox * sy + z1 * cy;
+    wx = x2 * cz - y1 * sz;
+    wy = x2 * sz + y1 * cz;
+    wz = z2;
+}
+
 // AABB pair penetration: the minimal push-out depth if the boxes' volumes
 // overlap, 0 otherwise. This is what the collision system sees (the narrow
 // phase is AABB and rotation-blind), and it is what the owner saw on screen:
@@ -217,7 +233,18 @@ Rung rung1(Engine& engine) {
     g->contact_area = 1.0f;
     g->stiffness = 50000.0f;
     g->damping = 1000.0f;
+    // RUNG 2: the child's ORIENTATION rides the bond too. This is the
+    // engine's existing 3-axis quaternion drive (rotational-DOF Stage 2),
+    // never before reachable from a bond: relative-orientation target
+    // identity means 'match the parent as it turns'.
+    g->enable_angular_constraint = true;
+    g->angular_drive_enabled = true;
+    g->use_quat_target = true;    // target_relative_q stays identity
     engine.get_physics_system().add_gluon_between(parent, child, std::move(g));
+    {
+        auto v = ps.lock_particles_for_write();
+        v[child].is_quat_driven = true;   // quat is orientation truth; Euler published from it
+    }
 
     if (g_interactive)
         // The single-blade viewer's proven light: far above, out of frame.
@@ -268,8 +295,10 @@ Rung rung1(Engine& engine) {
         const float ax = v[parent].x;
         const float ay = v[parent].y - 0.5f * std::sin(rx);
         const float az = v[parent].z + 0.5f * std::cos(rx);
+        float bx, by, bz;
+        rotate_by(v[child], 0.0f, 0.0f, -0.5f, bx, by, bz);
         const float gap = dist3(ax, ay, az,
-                                v[child].x, v[child].y, v[child].z - 0.5f);
+                                v[child].x + bx, v[child].y + by, v[child].z + bz);
         const float pen = pair_penetration(v[parent], v[child]);
         char buf[288];
         snprintf(buf, sizeof buf,
@@ -300,8 +329,12 @@ Rung rung1(Engine& engine) {
         track_pen();
         live_readout(f, rx);
     }
-    // Let it settle at the final pose, readout still live.
-    for (int f = 0; f < 120 && engine.is_running(); ++f) {
+    // Let it settle at the final pose, readout still live. The bond closes
+    // its error exponentially at GLUON_POSITION_BETA (time constant 1 s);
+    // 300 frames = 5 tau, enough to reach millimetres from the post-sweep
+    // ~0.4 m. The first version settled 120 frames and mistook the 2-tau
+    // snapshot (55 mm) for a pinned equilibrium.
+    for (int f = 0; f < 300 && engine.is_running(); ++f) {
         step(engine);
         track_pen();
         if ((f % 5) == 0) live_readout(TURN_FRAMES + f, (float)(M_PI / 2.0));
@@ -314,8 +347,13 @@ Rung rung1(Engine& engine) {
     {
         auto v = ps.lock_particles_for_write();
         const float ax = v[parent].x, ay = v[parent].y - 0.5f, az = v[parent].z;
+        // The child's bottom anchor moves with the child's own orientation
+        // (rung 2 rotates it; measuring with the unrotated offset would
+        // punish exactly the rotation rung 2 demands).
+        float bx, by, bz;
+        rotate_by(v[child], 0.0f, 0.0f, -0.5f, bx, by, bz);
         gap_after = dist3(ax, ay, az,
-                          v[child].x, v[child].y, v[child].z - 0.5f);
+                          v[child].x + bx, v[child].y + by, v[child].z + bz);
         child_y = v[child].y; child_z = v[child].z;
         py = v[parent].y; pz = v[parent].z;
     }
