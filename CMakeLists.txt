@@ -453,6 +453,7 @@ if(LOGOSPHERE_FULL)
         examples/predator/ai/eat_executor.cpp
         examples/predator/ai/grab_prey_executor.cpp
         examples/predator/ai/meander_executor.cpp
+        examples/predator/src/generated/predator_ontology_registry.cpp
     )
     target_link_libraries(at_predator_search
         PRIVATE

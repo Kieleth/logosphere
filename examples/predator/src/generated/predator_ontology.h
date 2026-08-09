@@ -1332,4 +1332,14 @@ struct WorldRelation : public Relation {
 };
 
 
+/// A generic creature with an appetite. Not fantasy, not a shambler: the reference creature for the engine's NPC layer demos.
+struct Predator : public LivingEntity {
+};
+
+
+/// Vegetation that bills whoever walks through it. The contact-rule damage source in the wounded-predator scene: walkable, present as a body, and expensive.
+struct Thorns : public WorldEntity {
+};
+
+
 } // namespace predator::ontology

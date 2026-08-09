@@ -43,6 +43,7 @@
 #include "logosphere/damage/damage_system.h"
 #include "logosphere/interaction/contact_response.h"
 #include "logosphere/kg/ontology_registry.h"
+#include "src/generated/predator_ontology_registry.h"
 #include "core/particle_system.h"
 #include "core/camera_system.h"
 #include "sense_system.h"
@@ -211,16 +212,13 @@ int main() {
             }
     }
 
-    // Game vocabulary: what a Predator and a Thorns ARE is this game's
-    // business, declared at runtime the way any game declares types.
-    {
-        kg::OntologyRegistry ext;
-        ext.addEntityType("Predator", "LivingEntity", false);
-        ext.addEntityType("Thorns", "WorldEntity", false);
-        ext.addAncestors("Predator", {"LivingEntity", "WorldEntity", "Entity"});
-        ext.addAncestors("Thorns", {"WorldEntity", "Entity"});
-        engine.get_kg().extendOntology(ext);
-    }
+    // Game vocabulary from the game's own SCHEMA: Predator and Thorns
+    // are declared in examples/predator/schema/predator.yaml and arrive
+    // through the generated registry — the documented pattern, and the
+    // one the entity-type scanner can see (a hand-rolled runtime extend
+    // failed the headless-windows lane precisely because no ontology
+    // layer declared the names).
+    engine.get_kg().extendOntology(predator::ontology::registry());
     auto& kg = engine.get_kg();
 
     // Predator, SW, far outside the odor radius. KG-BACKED — an entity

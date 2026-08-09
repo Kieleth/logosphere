@@ -34,3 +34,17 @@ enums:
         description: Consume food at the current location, bite by bite
       GRAB_PREY:
         description: Latch onto living prey and hold on
+
+classes:
+  Predator:
+    is_a: LivingEntity
+    description: >-
+      A generic creature with an appetite. Not fantasy, not a shambler:
+      the reference creature for the engine's NPC layer demos.
+
+  Thorns:
+    is_a: WorldEntity
+    description: >-
+      Vegetation that bills whoever walks through it. The contact-rule
+      damage source in the wounded-predator scene: walkable, present as
+      a body, and expensive.
