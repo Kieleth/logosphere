@@ -189,7 +189,29 @@ Load-bearing properties:
 | 2026-08-09 | Rule text per turn: curated fragments, LEARNABLE. Referee may request find_rule(query); the engine searches the vendored SRD (plain text first); results are BAKED BACK as curation-link entities in the KG, so curation grows by play |
 | 2026-08-09 | Orchestration: the DECISION LADDER (see section below). Time passing masks LLM latency; the referee works AHEAD of play; free-form output bakes back as validated ops + NPC intents that become GOAP goals |
 | 2026-08-09 | Models: Sonnet-class referee, Haiku-class fast tier and extraction, KISS; Opus-class noted for heavy world creation later. Model is config, never a constant |
+| 2026-08-09 | Skills modeling: `Skill` is a CLASS, the ~50 skills are KG-seeded INSTANCES (ops file), cascades are relations. Decisive evidence is the book's own line: "Referees may add other skills as needed" — the open vocabulary is the book's design, so voyager extends by ops, never by editing the cepheus pack |
+| 2026-08-09 | First divergence-from-source recorded: the SRD's Available Skills List prints "Slug Pistol" twice; the Gun Combat cascade and the description sections prove the second entry is "Slug Rifle". We transcribe from the descriptions with a divergence note; reported upstream as orffen/cepheus-srd#36 |
 | 2026-08-09 | Rule instances load as KG-OPS FILES applied at game start (ingestion emits ops; one write grammar for book, referee, game). World persistence direction: LAYERED MANIFEST, never a monolith: named+versioned seed layers (engine, cepheus@commit, voyager@version, worldgen@seed) plus a session delta (ops or snapshot+journal). Snapshot is a cache, not a format. KG save/load is future ENGINE work |
+
+## Build state (updated at each compaction point)
+
+_Last updated 2026-08-09, pre-compaction._
+
+| Step | What | State |
+|---|---|---|
+| 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 25/0, on feat/dice-service awaiting CI merge |
+| 2 | rulebook.yaml engine meta-pack (+ Cited mixin, SPECIALIZES relation for skill cascades) | next: PR2, starts after step 1 merges |
+| 3 | cepheus skills pack (Skill class; 50 instances come later via ops) | after PR2, uses Cited |
+| 4 | The three-check verifier (verbatim / schema / invariant) | pending |
+| 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | pending, needs 3+4 |
+| 6 | Ops loader: seed files -> KG at game start | pending |
+| 7 | Executor + procedure runner (outcome-label routing) + ~12 thin primitives | pending |
+| 8 | Chargen session: referee loop (stub for CI, Sonnet behind env key), chat window first consumer, a-b-c choices then the voyager L slot, rule-12 visual (a life as a timeline) | the slice-1 goal |
+
+Working agreements in force: decisions surfaced BEFORE building; gated
+merges only (conclusion checked in the same command); background tasks
+in the repo may wait and read, never mutate; external communication is
+drafted in-chat and sent only after approval.
 
 ## OPEN (not yet decided, do not build past them)
 
