@@ -1,5 +1,8 @@
 # The Absorption Inventory
 
+_The system design this inventory feeds lives in the engine docs:
+[docs/RPG_MODULE.md](../../../docs/RPG_MODULE.md). Read that first._
+
 The contract for the whole track (logosphere#48): every section of the
 source texts, mapped to what it becomes here. A rule is absorbed when
 its row is DONE — meaning its ontology exists, its procedure is
