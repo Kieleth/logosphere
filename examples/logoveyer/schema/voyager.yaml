@@ -1,0 +1,33 @@
+id: https://logosphere.dev/logoveyer/voyager
+name: voyager
+title: Voyager — the game layer
+description: >-
+  The game, 100% separate from the book. This layer cherry-picks from
+  the cepheus packs whatever the game wants, whenever it needs it, and
+  is the ONLY place corrections, tweaks and expansions may live. If a
+  definition is the book's, it belongs in schema/cepheus; if it is
+  ours, it belongs here. The diff between layers is the design document
+  of the game.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  voyager: https://logosphere.dev/logoveyer/voyager/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+  # Cherry-picked cepheus packs. Each import is a deliberate choice,
+  # added when the game first needs that chapter.
+  - cepheus/cepheus_book1_character_creation
+
+classes:
+  Voyager:
+    is_a: Character
+    description: >-
+      The game's character: the book's Character, extended. Exists so
+      that every deviation from the book has a place to live that is
+      not the book's class. Empty of tweaks so far, deliberately.
