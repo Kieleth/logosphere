@@ -131,12 +131,33 @@ void hold_until_close(Engine& engine) {
 struct Rung {
     const char* name = "";
     bool passed = false;
-    char detail[160] = {0};
+    char detail[200] = {0};
 };
+
+// Measured by the rung-1 scene, judged by rung 2 (same scene, next demand).
+float g_final_child_rot_x = 0.0f;
+float g_final_pen = 0.0f;
+float g_peak_pen = 0.0f;
 
 float dist3(float ax, float ay, float az, float bx, float by, float bz) {
     const float dx = ax - bx, dy = ay - by, dz = az - bz;
     return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+// AABB pair penetration: the minimal push-out depth if the boxes' volumes
+// overlap, 0 otherwise. This is what the collision system sees (the narrow
+// phase is AABB and rotation-blind), and it is what the owner saw on screen:
+// a child that rides a rotated anchor WITHOUT rotating must bury its corner
+// region in the parent. The overlap is the missing rotation, made geometry.
+float pair_penetration(const Particle& a, const Particle& b) {
+    const float ox = std::fmin(a.x + a.width  * 0.5f, b.x + b.width  * 0.5f) -
+                     std::fmax(a.x - a.width  * 0.5f, b.x - b.width  * 0.5f);
+    const float oy = std::fmin(a.y + a.height * 0.5f, b.y + b.height * 0.5f) -
+                     std::fmax(a.y - a.height * 0.5f, b.y - b.height * 0.5f);
+    const float oz = std::fmin(a.z + a.thickness * 0.5f, b.z + b.thickness * 0.5f) -
+                     std::fmax(a.z - a.thickness * 0.5f, b.z - b.thickness * 0.5f);
+    if (ox <= 0.0f || oy <= 0.0f || oz <= 0.0f) return 0.0f;
+    return std::fmin(ox, std::fmin(oy, oz));
 }
 
 // ---------------------------------------------------------------------------
@@ -249,19 +270,26 @@ Rung rung1(Engine& engine) {
         const float az = v[parent].z + 0.5f * std::cos(rx);
         const float gap = dist3(ax, ay, az,
                                 v[child].x, v[child].y, v[child].z - 0.5f);
-        char buf[256];
+        const float pen = pair_penetration(v[parent], v[child]);
+        char buf[288];
         snprintf(buf, sizeof buf,
                  "f%3d  post rot_x %5.1f deg   child y=%+.2f z=%+.2f   "
-                 "child rot (%.1f, %.1f, %.1f) [stays 0 until rung 2]   anchor gap %4.0f mm",
+                 "child rot_x %5.1f deg [rung 2: must match post]   "
+                 "anchor gap %4.0f mm   PENETRATION %4.0f mm",
                  f, rx * 180.0f / (float)M_PI, v[child].y, v[child].z,
                  v[child].rotation_x * 180.0f / (float)M_PI,
-                 v[child].rotation_y * 180.0f / (float)M_PI,
-                 v[child].rotation_z * 180.0f / (float)M_PI,
-                 gap * 1000.0f);
+                 gap * 1000.0f, pen * 1000.0f);
         g_live->set_text(buf);
     };
     if (g_label) g_label->set_text(
         "RUNG 1  the post is sweeping: the child must ride the anchor around");
+    auto track_pen = [&] {
+        auto v = ps.lock_particles_for_write();
+        const float pen = pair_penetration(v[parent], v[child]);
+        g_peak_pen = std::fmax(g_peak_pen, pen);
+        g_final_pen = pen;
+        g_final_child_rot_x = v[child].rotation_x;
+    };
     for (int f = 0; f < TURN_FRAMES && engine.is_running(); ++f) {
         const float rx = (float)(M_PI / 2.0) * (float)(f + 1) / (float)TURN_FRAMES;
         {
@@ -269,11 +297,13 @@ Rung rung1(Engine& engine) {
             v[parent].rotation_x = rx;
         }
         step(engine);
+        track_pen();
         live_readout(f, rx);
     }
     // Let it settle at the final pose, readout still live.
     for (int f = 0; f < 120 && engine.is_running(); ++f) {
         step(engine);
+        track_pen();
         if ((f % 5) == 0) live_readout(TURN_FRAMES + f, (float)(M_PI / 2.0));
     }
 
@@ -315,6 +345,29 @@ Rung rung1(Engine& engine) {
     return r;
 }
 
+// ---------------------------------------------------------------------------
+// RUNG 2 (RED): the child ROTATES with the anchor, and the overlap disappears.
+// The owner's two observations on the rung-1 viewer, verbatim requirements:
+// "the above translates, but should also rotate" and "there's penetration
+// which is not allowed". They are one mechanism: without torque from the
+// anchor force (r x J), the child rides the anchor in its frozen pose and its
+// unrotated corner region must bury itself in the post. Green means: child
+// rotation_x within 15 degrees of the post's 90, and pair penetration under
+// 20 mm at rest.
+// ---------------------------------------------------------------------------
+Rung rung2_verdict() {
+    Rung r; r.name = "2 child rotates, boxes kiss";
+    const float rot_deg = g_final_child_rot_x * 180.0f / (float)M_PI;
+    const bool rotated = std::fabs(rot_deg - 90.0f) < 15.0f;
+    const bool kissing = g_final_pen < 0.02f;
+    r.passed = rotated && kissing;
+    snprintf(r.detail, sizeof r.detail,
+             "child rot_x %.1f deg (need ~90); pair penetration final %.0f mm, "
+             "peak %.0f mm (need < 20)",
+             rot_deg, g_final_pen * 1000.0f, g_peak_pen * 1000.0f);
+    return r;
+}
+
 } // namespace
 
 bool test_rotation_ladder() {
@@ -351,7 +404,7 @@ bool test_rotation_ladder() {
         }
     }
 
-    Rung rungs[] = { rung1(engine) };
+    Rung rungs[] = { rung1(engine), rung2_verdict() };
 
     bool all = true;
     for (const Rung& r : rungs) {
