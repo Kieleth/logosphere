@@ -76,12 +76,11 @@ Plan Planner::plan(const WorldState& current_state, const Goal& goal, int max_de
         Node current = open.top();
         open.pop();
 
-        // Check depth limit
-        if ((int)current.actions_taken.size() >= max_depth) {
-            continue;
-        }
-
-        // Goal reached?
+        // Goal reached? Checked BEFORE the depth limit: a node holding a
+        // complete plan of exactly max_depth actions is an ANSWER, and
+        // the old order discarded it unexamined — a 2-action plan was
+        // refused at max_depth=2 (#34). The depth limit exists to stop
+        // EXPANSION, not to reject finished solutions.
         if (goal.is_satisfied(current.state)) {
             result.valid = true;
             result.actions = current.actions_taken;
@@ -95,6 +94,12 @@ Plan Planner::plan(const WorldState& current_state, const Goal& goal, int max_de
                 std::cout << "  Total cost: " << result.total_cost << std::endl;
             }
             return result;
+        }
+
+        // Depth limit gates EXPANSION only: nothing deeper is generated,
+        // but a solution found AT the limit (above) was already accepted.
+        if ((int)current.actions_taken.size() >= max_depth) {
+            continue;
         }
 
         // Already visited with lower cost?
