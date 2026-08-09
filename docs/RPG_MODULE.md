@@ -137,11 +137,11 @@ pure narration is its own.
 | 2026-08-09 | Rulebook meta-ontology + ingestion + executor are ENGINE domain (this module); rule of two; logic stays in code |
 | 2026-08-09 | No magic strings: ontology refs + KG expressions everywhere; skills are ontology elements; outcomes are KG-ops |
 | 2026-08-09 | Ingestion is LLM-extraction with the three-check verifier, not per-format parsers |
+| 2026-08-09 | OPEN-1 decided: override = COPY-ON-WRITE FORK (option C). Voyager copies a book rule entity, edits the copy; runtime loads ONLY voyager's set. Guardrails: forked_from + content hash on every fork; CI drift check reports (not gates) when the cepheus original changes after a fork |
 
 ## OPEN (not yet decided, do not build past them)
 
-1. Override semantics when voyager shadows a cepheus rule entity.
-2. The primitive list for chargen's Procedure steps.
+1. The primitive list for chargen's Procedure steps.
 3. Rule-text selection per referee turn (curated fragments vs retrieval).
 4. Turn cadence and interruption model for the referee loop.
 5. Referee dev transport (scripted responder stub first, per Logogenesis
