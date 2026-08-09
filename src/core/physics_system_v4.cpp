@@ -1593,9 +1593,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         // IMPULSE MEMORY apply: last frame's carried load, up front, so the
         // rows correct residuals instead of rebuilding the force from the
-        // error (see the field's comment). Infinite-mass endpoints absorb
-        // nothing, same as the solve.
-        {
+        // error (see the field's comment). ORGANIC bonds only: warm-loading
+        // humanoid drive gluons fought the commanded pose drive (shoulder
+        // held a 0.64 rad standing error, never converging) and fed the
+        // spawn-time arm spikes (walk gate 21 -> 2 events with this gate).
+        if (gluon->force_bounded()) {
             Particle& wa = particles[body_a];
             Particle& wb = particles[body_b];
             const float winv_a = (wa.is_at_rest ||
@@ -2951,10 +2953,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         float impulse_y = constraints[idx.y_idx].accumulated_impulse;
         float impulse_z = constraints[idx.z_idx].accumulated_impulse;
 
-        // IMPULSE MEMORY store-back: carried load = pre-applied + solver
-        // delta, minus the position-bias part (never cache position
-        // correction), decayed to bound drift, capped at bond strength.
-        {
+        // IMPULSE MEMORY store-back (organic only, matching the apply).
+        if (gluon->force_bounded()) {
             const float DECAY = 0.98f;
             // Anti-windup (owner QA: the chain rang 5-8 swings): when the
             // solver's fresh impulse OPPOSES the carried load, the spring

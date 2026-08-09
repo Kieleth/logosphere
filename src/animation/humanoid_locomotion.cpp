@@ -2423,6 +2423,17 @@ bool HumanoidLocomotion::set_joint_physics_drive(
             sign = -1.0f;
         }
         gluon->target_relative_rotation = sign * target_z_rotation;
+        // Phase E rigs carry a quaternion target on this gluon, and the
+        // solver's quat branch SHADOWS the scalar: the head sat pinned at
+        // the last published quat (~0 yaw) while the scalar target was
+        // never read (test_physics_drive_two_joints neck, dead for as long
+        // as Phase E existed). Express the commanded angle as the quat
+        // target too, so whichever branch the solver takes obeys it.
+        if (gluon->use_quat_target) {
+            gluon->target_relative_q =
+                logosphere::Quat::from_axis_angle(0.0f, 0.0f, 1.0f,
+                                                  -sign * target_z_rotation);
+        }
         gluon->angular_drive_enabled = true;
         gluon->enable_angular_constraint = true;
         gluon->angular_stiffness = stiffness;
