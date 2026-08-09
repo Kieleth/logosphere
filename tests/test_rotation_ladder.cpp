@@ -862,6 +862,8 @@ Rung rung4(Engine& engine) {
     // 400 extra frames; a bondless body must end RESTING on something (its
     // bottom within 15 mm of a real top surface) or still be falling. A body
     // holding altitude over a gap is supported by nothing and fails the rung.
+    printf("      [ids] brittle s0=%d s1=%d s2=%d root=%d\n",
+           seg[3][0], seg[3][1], seg[3][2], roots[3]);
     bool ghost = false;
     char ghost_txt[160] = {0};
     for (int f = 0; f < 400 && engine.is_running(); ++f) {

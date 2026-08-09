@@ -378,15 +378,15 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
         if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
         // Skip at-rest particles - they're in equilibrium
         if (p.is_at_rest) continue;
-        // Quaternion-driven particles are owned by the animation layer's
-        // gluon PD. Gravity on them would pull each bone down; the
-        // chained distance constraints recover it 99 % per frame, but
-        // that 1 % residual accumulates across a long chain (hand is
-        // 7 hops from the hips) into a visible droop. The drive is
-        // explicitly the animation system's "this joint holds its
-        // commanded pose" statement — let it hold without fighting
-        // gravity on every bone along the way.
-        if (p.is_quat_driven) continue;
+        // ANIMATION-owned quaternion-driven particles are the animation
+        // layer's gluon PD bones: gravity on them would droop a 7-hop
+        // chain visibly, and the drive is the animation system's "this
+        // joint holds its commanded pose" statement — let it hold.
+        // PHYSICS-owned quat-driven bodies (organic chains, debris) are
+        // real bodies and MUST weigh: the blanket exemption made a freed
+        // segment float forever on its last velocity — no bond, no
+        // contact, no gravity (the rung-4 ghost on 1656 mm of air).
+        if (p.is_quat_driven && p.owner == ParticleOwner::ANIMATION) continue;
         // Apply gravity: v += g × dt
         p.vz += -GRAVITY * dt;
     }
@@ -835,9 +835,32 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     return (ma / (ma + ms)) * active_speed >= WAKE_TRANSFER_SPEED;
                 };
 
+                // SUPPORT-LOSS WAKE: a sleeper whose supporter is leaving
+                // must wake, or it stands on air asleep forever (at_rest
+                // skips gravity). Support = the awake body's top at the
+                // sleeper's bottom; leaving = receding at walking pace.
+                auto support_leaving = [](const Particle& sleeper,
+                                          const Particle& mover) {
+                    const float mover_top = mover.z + mover.thickness * 0.5f;
+                    const float sleeper_bottom = sleeper.z - sleeper.thickness * 0.5f;
+                    if (std::fabs(mover_top - sleeper_bottom) > 0.05f) return false;
+                    const float dx = sleeper.x - mover.x;
+                    const float dy = sleeper.y - mover.y;
+                    const float dz = sleeper.z - mover.z;
+                    const float d = std::sqrt(dx*dx + dy*dy + dz*dz);
+                    if (d < 1e-6f) return false;
+                    const float receding = -((mover.vx - sleeper.vx) * dx +
+                                             (mover.vy - sleeper.vy) * dy +
+                                             (mover.vz - sleeper.vz) * dz) / d;
+                    return receding >= 0.3f;
+                };
+
                 if (pi.is_at_rest && !pj.is_at_rest) {
                     float pj_vel = std::sqrt(pj.vx*pj.vx + pj.vy*pj.vy + pj.vz*pj.vz);
-                    if (should_wake(pj, pi, pj_vel)) {
+                    if (support_leaving(pi, pj)) {
+                        wake_particle_with_propagation(i, particles, pj_vel);
+                        contact_wake_events++;
+                    } else if (should_wake(pj, pi, pj_vel)) {
                         wake_particle_with_propagation(i, particles, pj_vel);
                         contact_wake_events++;
                     } else {
@@ -845,7 +868,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     }
                 } else if (pj.is_at_rest && !pi.is_at_rest) {
                     float pi_vel = std::sqrt(pi.vx*pi.vx + pi.vy*pi.vy + pi.vz*pi.vz);
-                    if (should_wake(pi, pj, pi_vel)) {
+                    if (support_leaving(pj, pi)) {
+                        wake_particle_with_propagation(j, particles, pi_vel);
+                        contact_wake_events++;
+                    } else if (should_wake(pi, pj, pi_vel)) {
                         wake_particle_with_propagation(j, particles, pi_vel);
                         contact_wake_events++;
                     } else {
