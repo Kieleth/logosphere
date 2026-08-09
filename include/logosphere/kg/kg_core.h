@@ -52,7 +52,16 @@ public:
     // Find a relation by (from, type, to). Returns INVALID_RELATION if not found.
     RelationID findRelation(EntityID from, const std::string& type, EntityID to) const;
     std::vector<EntityID> getRelated(EntityID id, const std::string& relation) const;
-    
+    // The same query walked backwards: who points AT me with this
+    // relation. Answers "which creature owns this body part" from the
+    // part, which the forward query cannot do at any price.
+    //
+    // Reads the incoming_relations index, maintained since relations
+    // existed (createRelation appends, destroyRelation and destroyEntity
+    // prune) and read by nothing until issue #36. Same cost as the
+    // forward query, no new bookkeeping.
+    std::vector<EntityID> getRelatedReverse(EntityID id, const std::string& relation) const;
+
     // === Property Management ===
     
     void setProperty(EntityID id, const std::string& key, const PropertyValue& value);

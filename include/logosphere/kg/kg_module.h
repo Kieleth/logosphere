@@ -87,7 +87,13 @@ public:
 
     // Query relationships
     std::vector<EntityID> getRelated(EntityID id, const std::string& relation) const;
-    
+    // Walk a relation backwards: who points AT id with this type.
+    // getRelated(creature, "HAS_PART") lists the parts; this takes a part
+    // back to its creature. Needed wherever a system starts from
+    // something physical (a particle, a contact) and must reach the
+    // entity that owns it. Returns empty for an unrelated or unknown id.
+    std::vector<EntityID> getRelatedReverse(EntityID id, const std::string& relation) const;
+
     // === Property Operations (MINIMAL and up) ===
     
     // Set a property on an entity

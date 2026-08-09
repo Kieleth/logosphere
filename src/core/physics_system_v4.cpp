@@ -968,12 +968,45 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                 : pi.y - manifold.normal_y * (pi.height / 2.0f);
                 float contact_z = (manifold.num_points > 0) ? manifold.points[0].pz
                                 : z_predicted[i] - manifold.normal_z * (pi.thickness / 2.0f);
-                float v_rel_normal = manifold.normal_x * (pj.vx - pi.vx) +
-                                     manifold.normal_y * (pj.vy - pi.vy) +
-                                     manifold.normal_z * (pj.vz - pi.vz);
+                // ORIENT THE REPORTED NORMAL: from A toward B, which is
+                // what CollisionEvent has always documented and what every
+                // consumer was written against.
+                //
+                // The solver's manifold normal points the OTHER way, back
+                // toward A, despite contact_manifold.h:26 claiming
+                // otherwise. The constraint jacobians are built for that
+                // sign, so the manifold is left exactly as it is; only the
+                // copy leaving physics is oriented.
+                //
+                // Measured, not assumed (tests/test_knockback_scene, the
+                // "which way does the normal point" case): with A left of B
+                // the raw manifold gives -x, with A right of B it gives +x.
+                // It flips with the approach, so it is a convention, and it
+                // is consistently back toward A.
+                //
+                // Two things were wrong because of this, and both are fixed
+                // by the same negation:
+                //   - humanoid_locomotion.cpp:5594 pushes a humanoid away
+                //     from an obstacle using `is_a ? -normal : normal`,
+                //     which with the inverted input drove it INTO the
+                //     obstacle instead.
+                //   - relative_velocity is documented "negative =
+                //     approaching" and was POSITIVE while closing, so any
+                //     consumer thresholding on approach speed could never
+                //     fire on a real contact.
+                //
+                // The composed-corner path below (search: "Normal should
+                // point from particle_a to particle_b") already emitted
+                // A toward B, so this also makes the two writers agree.
+                const float evt_nx = -manifold.normal_x;
+                const float evt_ny = -manifold.normal_y;
+                const float evt_nz = -manifold.normal_z;
+                float v_rel_normal = evt_nx * (pj.vx - pi.vx) +
+                                     evt_ny * (pj.vy - pi.vy) +
+                                     evt_nz * (pj.vz - pi.vz);
                 collision_events_.push_back({
                     i, j, penetration,
-                    manifold.normal_x, manifold.normal_y, manifold.normal_z,
+                    evt_nx, evt_ny, evt_nz,
                     contact_x, contact_y, contact_z,
                     v_rel_normal,
                     pi.solver_mode == ParticleSolverMode::KINEMATIC,

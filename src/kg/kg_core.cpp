@@ -232,7 +232,27 @@ std::vector<EntityID> KGCore::getRelated(EntityID id, const std::string& relatio
             result.push_back(rel_it->second.to);
         }
     }
-    
+
+    return result;
+}
+
+// Mirror of getRelated over the incoming index. Deliberately identical in
+// shape, so the two stay comparable when either is touched.
+std::vector<EntityID> KGCore::getRelatedReverse(EntityID id, const std::string& relation) const {
+    std::vector<EntityID> result;
+
+    auto it = incoming_relations.find(id);
+    if (it == incoming_relations.end()) {
+        return result;
+    }
+
+    for (RelationID rel_id : it->second) {
+        auto rel_it = relations.find(rel_id);
+        if (rel_it != relations.end() && rel_it->second.type == relation) {
+            result.push_back(rel_it->second.from);
+        }
+    }
+
     return result;
 }
 

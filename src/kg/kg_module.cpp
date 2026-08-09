@@ -144,6 +144,13 @@ std::vector<EntityID> KGModule::getRelated(EntityID id, const std::string& relat
     return core->getRelated(id, relation);
 }
 
+std::vector<EntityID> KGModule::getRelatedReverse(EntityID id, const std::string& relation) const {
+    if (!checkEnabled("getRelatedReverse")) {
+        return {};
+    }
+    return core->getRelatedReverse(id, relation);
+}
+
 // === Property Operations ===
 
 void KGModule::setProperty(EntityID id, const std::string& key, const PropertyValue& value) {

@@ -231,6 +231,72 @@ enums:
       TWIST:
         description: Internal/external rotation
 
+  TransformationTrigger:
+    description: >-
+      When an event rule fires. Event rules are PUSHED: every value here
+      names a class of occurrence that the interaction system consumes
+      once per episode and then discards. Contrast the capability
+      response rules, which are state predicates pulled over KG state
+      and safe to re-evaluate. A condition that merely holds over time
+      does not belong in this enum.
+
+      The KG stores the value as a string on a TransformationRule. The
+      loader normalizes case, so "ON_CONTACT" and "on_contact" both
+      resolve; an unrecognized value warns and skips the whole rule,
+      because a rule that cannot say when is not a rule.
+    permissible_values:
+      ON_CONTACT:
+        description: >-
+          Two particles exchanged rigid contact. Fires once per contact
+          episode, carrying the contact geometry and both participants
+          resolved to their KG entities.
+      ON_CONTACT_FILTERED:
+        description: >-
+          A broad-phase overlap was excluded from the narrow phase
+          because the pair's interaction profiles decline rigid contact.
+          The pass-through counterpart of ON_CONTACT.
+      ON_VOLUME_ENTER:
+        description: >-
+          A particle entered the volume of a particle whose profile
+          declares a medium.
+      ON_TIMER:
+        description: An armed duration elapsed.
+
+  TransformationEffect:
+    description: >-
+      The engine's built-in event-rule effects. This enum is a FLOOR,
+      not a closed range, which is why the `effect` slot is typed string
+      and not typed to this enum: games register their own effects by
+      name through the interaction effect registry, and such a name is
+      an equally legal value. Declaring the range closed here would say
+      something false about the slot.
+
+      Effect syntax is "<name>" or "<name>:<args>", matching the
+      capability effect registry. An effect the registry does not know
+      warns and skips.
+
+      Engine effects stay mechanism, never policy. KNOCKBACK delivers an
+      impulse; what a push does to a walking creature is the game's to
+      decide. Bleeding, armour absorption and their kin are game
+      effects and deliberately absent here.
+    permissible_values:
+      SWAP_PROFILE:
+        description: Write a different interaction profile onto the particle.
+      FADE_OUT:
+        description: Ramp alpha to zero over duration_s, then delete.
+      DELETE:
+        description: Queue the particle for deferred deletion.
+      EMIT_EVENT:
+        description: Emit a TransformationEvent naming the rule that fired.
+      KNOCKBACK:
+        description: >-
+          Deposit an impulse along the contact normal into the
+          particle's pending-impulse inbox. Does NOT move the particle:
+          a KINEMATIC body's position is owned by an external writer, so
+          the impulse is delivered to that owner to apply or ignore.
+          Requires a contact trigger, which is where the normal comes
+          from.
+
   WorldEventType:
     description: Classification of game world events.
     permissible_values:
@@ -619,12 +685,18 @@ classes:
   TransformationRule:
     is_a: Entity
     description: >-
-      Declarative particle transformation executed by the interaction
-      system: a trigger condition (on_contact_filtered, on_volume_enter,
-      on_timer) and an effect (swap_profile, fade_out, delete,
-      emit_event) with parameters.
+      A declarative EVENT rule, executed by the interaction system.
+      Three separable questions, one slot each: `trigger` is which
+      engine event source to listen to (closed), `condition` is whether
+      this occurrence matters (open), `effect` is what to do (open).
+
+      Event rules are pushed and fire once per episode. They are not the
+      same mechanism as capability response rules, which are state
+      predicates pulled over the KG and safe to re-evaluate; see
+      docs/GAME_LAYER.md for when to reach for which.
     slots:
       - trigger
+      - condition
       - effect
       - target_profile
       - duration_s
@@ -648,9 +720,29 @@ classes:
 
   CollisionEvent:
     is_a: WorldEvent
-    description: Two entities physically collide.
+    description: >-
+      Two entities physically collide. Carries the contact itself, not
+      just the fact of it: an event rule can only be as specific as the
+      occurrence it reads, and a consequence (knockback, absorption,
+      where to spawn blood) needs the geometry and the energy.
+
+      source/target_entity_id name the two creatures; source/target_part_id
+      name the body parts that actually touched, because armour and
+      injury are per-part. The normal comes from contact geometry, never
+      from a world-up assumption, so it is meaningful on walls, ceilings
+      and in zero-g.
     slots:
       - collision_force
+      - normal_x
+      - normal_y
+      - normal_z
+      - contact_x
+      - contact_y
+      - contact_z
+      - penetration
+      - approach_speed
+      - source_part_id
+      - target_part_id
 
   DamageEvent:
     is_a: WorldEvent
@@ -911,11 +1003,33 @@ slots:
     range: float
     description: Directional field force Z applied to intruders, Newtons.
   trigger:
+    range: TransformationTrigger
+    description: >-
+      WHICH engine event source this rule listens to. Genuinely closed:
+      each value is a queue the interaction system owns, and a game
+      cannot add one without engine code. See TransformationTrigger for
+      the vocabulary and the case-normalization rule.
+  condition:
     range: string
-    description: Transformation trigger (on_contact_filtered, on_volume_enter, on_timer).
+    description: >-
+      WHETHER this rule cares about a given occurrence, evaluated
+      against the event context once the trigger has selected it. Open
+      by design: engine built-ins plus anything a game registers.
+      Syntax "<name>" or "<name>:<args>". Empty means unconditional.
+
+      Engine built-ins for ON_CONTACT:
+        with_type:<EntityType>   the other party resolves to this type
+        impact_above:<m/s>       approach speed exceeds a threshold
+
+      This slot generalizes trigger_profile, which is the same idea
+      hardcoded to one comparison. New rules should prefer condition.
   effect:
     range: string
-    description: Transformation effect (swap_profile, fade_out, delete, emit_event).
+    description: >-
+      WHAT this rule does when it fires. Open by design: the
+      TransformationEffect enum lists the engine built-ins, and a
+      game-registered effect name is an equally legal value here, which
+      is why this slot is a string rather than typed to that enum.
   target_profile:
     range: integer
     description: Profile id the effect targets (for swap_profile).
@@ -933,6 +1047,48 @@ slots:
   profile_b:
     range: integer
     description: Interaction profile of the second particle in the filtered pair.
+
+  # --- Contact geometry (CollisionEvent) ---
+  # The normal is unit length and points from source toward target. It
+  # comes from the contact manifold, so it is correct on a wall, a
+  # ceiling, and in zero-g; nothing here may be derived from world up.
+  normal_x:
+    range: float
+    description: Contact normal X, unit, pointing from source toward target.
+  normal_y:
+    range: float
+    description: Contact normal Y, unit, pointing from source toward target.
+  normal_z:
+    range: float
+    description: Contact normal Z, unit, pointing from source toward target.
+  contact_x:
+    range: float
+    description: World-space contact point X.
+  contact_y:
+    range: float
+    description: World-space contact point Y.
+  contact_z:
+    range: float
+    description: World-space contact point Z.
+  penetration:
+    range: float
+    description: Overlap depth at the contact, metres.
+  approach_speed:
+    range: float
+    description: >-
+      Relative velocity along the contact normal, m/s. NEGATIVE means
+      the pair is approaching; positive means separating. This is the
+      energy term a consequence scales with, and the sign convention is
+      the solver's, not a reinterpretation.
+  source_part_id:
+    range: string
+    description: >-
+      KG EntityID of the body part on the source side, decimal string.
+      Matches the source_entity_id/target_entity_id convention on
+      WorldEvent rather than introducing a second id encoding.
+  target_part_id:
+    range: string
+    description: KG EntityID of the body part on the target side, decimal string.
   entered:
     range: boolean
     description: True on volume entry, false on exit.

@@ -26,6 +26,7 @@
 // =============================================================================
 
 #include "core/particle_system.h"  // WriteView for the force pass
+#include "logosphere/interaction/contact_response.h"  // contact rule seam
 #include "logosphere/kg/kg_types.h"  // KGParticleID (stable effect identity)
 
 #include <cstddef>
@@ -52,6 +53,29 @@ struct FilteredOverlap {
     uint32_t profile_b = 0;
 };
 
+// One rigid contact the solver resolved this frame: the pass-through
+// counterpart of FilteredOverlap, and the input the ontological
+// CollisionEvent is built from.
+//
+// Mirrors the fields of the physics CollisionEvent without including
+// physics, same discipline as FilteredOverlap above: this header is
+// headless-core safe and the engine does the one translation.
+//
+// Particle indices are RAW render indices, valid only within the frame
+// they were recorded.
+struct RigidContact {
+    uint32_t particle_a = 0;
+    uint32_t particle_b = 0;
+    float normal_x = 0.0f;   // unit, from A toward B, from the manifold
+    float normal_y = 0.0f;
+    float normal_z = 0.0f;
+    float contact_x = 0.0f;  // world space
+    float contact_y = 0.0f;
+    float contact_z = 0.0f;
+    float penetration = 0.0f;     // overlap depth, metres
+    float approach_speed = 0.0f;  // along the normal; NEGATIVE = approaching
+};
+
 struct InteractionProfile {
     uint32_t id = 0;                       // KG EntityID of the profile
     uint32_t category = 1u << 0;           // one-hot category bit
@@ -70,18 +94,46 @@ struct InteractionProfile {
     }
 };
 
-// A declarative transformation: a trigger fires an effect on the
+// A declarative EVENT rule: an occurrence fires an effect on the
 // affected particle. Declared as TransformationRule KG entities and
 // loaded like profiles; the game-facing on_timer trigger is armed
 // explicitly via arm_transformation.
+//
+// Three separable questions, one field each (see the TransformationRule
+// class in schema/logosphere.yaml):
+//   trigger    WHICH engine event source. Closed: every value is a
+//              queue this system owns, and a game cannot add one
+//              without engine code.
+//   condition  WHETHER a given occurrence matters. Open: evaluated
+//              against the event after the trigger has selected it.
+//   effect     WHAT to do. Open.
+//
+// These rules are PUSHED: they consume a queue of things that happened,
+// fire once, and the queue is cleared. They are NOT capability response
+// rules, which are state predicates PULLED over the KG and safe to
+// re-evaluate (compute_from_kg does, twice per call). Reaching for the
+// wrong one of the two is the confusion issue #36 exists to end.
 struct TransformationRule {
-    enum class Trigger { ON_CONTACT_FILTERED, ON_VOLUME_ENTER, ON_TIMER };
+    enum class Trigger {
+        ON_CONTACT,           // rigid contact was exchanged
+        ON_CONTACT_FILTERED,  // the pair declined rigid contact
+        ON_VOLUME_ENTER,
+        ON_TIMER
+    };
     enum class Effect { SWAP_PROFILE, FADE_OUT, DELETE_PARTICLE, EMIT_EVENT };
 
     uint32_t id = 0;              // KG EntityID of the rule
     std::string name;             // KG "name" property, else id as string
     Trigger trigger = Trigger::ON_TIMER;
     Effect effect = Effect::EMIT_EVENT;
+    // Predicate over the occurrence: "<name>" or "<name>:<args>". Empty
+    // means unconditional. Generalizes trigger_profile, which is the
+    // same idea hardcoded to a single comparison.
+    std::string condition;
+    // Raw effect expression as authored. Contact rules resolve this
+    // through ContactEffectRegistry, where a game name is as legal as a
+    // built-in; other triggers use the `effect` enum above.
+    std::string effect_expr;
     uint32_t target_profile = 0;  // swap_profile: profile id to write
     float duration_s = 0.0f;      // fade_out ramp length / timer deadline
     uint32_t trigger_profile = 0; // volume/contact binding (0 = any)
@@ -117,6 +169,73 @@ public:
     // bus may be null (no events, bookkeeping still runs).
     void process_filtered_overlaps(const std::vector<FilteredOverlap>& overlaps,
                                    logosphere::EventBus* bus);
+
+    // The contact producer. Turns this frame's rigid contacts into
+    // ontological CollisionEvents, resolving each side through the KG:
+    //
+    //   render index -> KGParticleID -> body part entity
+    //                -> reverse HAS_PART -> the owning entity
+    //
+    // Emits ONE event per contact EPISODE, the frame a pair first
+    // touches, not every frame it stays touching. Without that a resting
+    // humanoid would emit for every foot-floor pair forever.
+    //
+    // Returns the number of events emitted, for measurement.
+    //
+    // COST. The resolution above runs per contact, and contacts are not
+    // rare: a tiled floor has every tile touching its neighbours. So the
+    // whole pass is skipped unless something is listening, which is
+    // either a loaded rule with a contact trigger or a subscriber on the
+    // collisions channel. wants_contacts() is that test and it is the
+    // first thing this checks.
+    //
+    // KNOWN GAP: a journal-only consumer (create_reader with no
+    // subscribe) is not detectable, because EventChannel counts
+    // subscribers and not readers. Such a consumer sees nothing unless a
+    // contact rule is loaded. Documented rather than papered over; fix
+    // is a reader count on the channel.
+    //
+    // A contact where neither side is KG-backed is skipped entirely: a
+    // particle outside the KG is outside the ontology and has no entity
+    // to name in the event.
+    size_t process_contacts(const std::vector<RigidContact>& contacts,
+                            const kg::KGModule& kg, logosphere::EventBus* bus);
+
+    // Is anything listening for contacts? False means process_contacts
+    // is a single branch. Cheap: a cached flag plus one channel query.
+    bool wants_contacts(const logosphere::EventBus* bus) const;
+
+    // --- The pending-impulse inbox ---
+    //
+    // A KNOCKBACK effect deposits here and moves nothing. A KINEMATIC
+    // body has inv_mass 0, so the solver will never push it: its
+    // position belongs to an external writer. Delivering the push to
+    // that writer is the only option that keeps solver authority intact
+    // (design note D3), and it puts the decision where it belongs —
+    // what a shove does to a creature mid-stride is the game's call.
+    //
+    // Sparse and keyed by STABLE id, so it costs nothing per particle
+    // and survives the swap-and-pop that render indices do not. Only
+    // particles actually hit appear here.
+    //
+    // Impulses ACCUMULATE within a frame: two things hitting you from
+    // opposite sides should cancel, not race.
+    void deposit_impulse(kg::KGParticleID id, float x, float y, float z);
+
+    // Drain the impulse waiting for a particle, clearing it. False when
+    // there is none, leaving the outputs untouched. Whoever owns the
+    // particle's position calls this and decides what to do; ignoring an
+    // impulse is a legitimate choice (a braced creature, a heavier one).
+    bool take_impulse(kg::KGParticleID id, float& x, float& y, float& z);
+
+    // How many impulses are waiting. Diagnostics and tests: a number
+    // that only grows means nobody is draining, which is a wiring bug in
+    // the game rather than in the engine.
+    size_t pending_impulse_count() const { return impulses_.size(); }
+
+    // Does any loaded rule declare a contact trigger? Recomputed when
+    // rules load, so the hot path never scans them.
+    bool has_contact_rules() const { return has_contact_rules_; }
 
     // Volume forces (Phase 3): for each filtered overlap whose profile
     // declares a medium, apply the medium's forces to the OTHER
@@ -178,6 +297,9 @@ public:
         rules_.clear();
         armed_.clear();
         episode_opens_.clear();
+        open_contacts_.clear();
+        has_contact_rules_ = false;
+        impulses_.clear();
     }
 
 private:
@@ -213,6 +335,20 @@ private:
     std::unordered_map<uint32_t, TransformationRule> rules_;
     std::vector<ArmedTransformation> armed_;
     std::vector<EpisodeOpen> episode_opens_;
+
+    // Open rigid-contact episodes, canonical particle-index pair keys.
+    // Same throttling model as open_episodes_: presence means "already
+    // reported", absence means this frame is the first touch.
+    std::unordered_set<uint64_t> open_contacts_;
+    // Cached answer to "does any rule listen for contacts", refreshed
+    // when rules load, so the per-frame gate never walks the rule map.
+    bool has_contact_rules_ = false;
+
+    // Pending impulses, keyed by stable particle id. Sparse by design:
+    // only particles that were actually struck appear, so an unused
+    // feature costs zero bytes per particle.
+    struct Impulse { float x = 0.0f, y = 0.0f, z = 0.0f; };
+    std::unordered_map<kg::KGParticleID, Impulse> impulses_;
 };
 
 } // namespace logosphere::interaction
