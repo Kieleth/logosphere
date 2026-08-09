@@ -1610,6 +1610,23 @@ struct TransformationEvent : public WorldEvent {
 };
 
 
+/// A die roll the ENGINE performed: seeded, journaled, citable by id. Games and referees receive rolls as facts through this event; nothing outside the dice service may assert a result (see docs/RPG_MODULE.md, "the referee cannot roll").
+struct DiceRollEvent : public WorldEvent {
+    /// Monotonic id of the roll, unique per session, citable.
+    std::optional<int32_t> roll_id = std::nullopt;
+    /// The expression rolled, canonical form ("2D6+1").
+    std::optional<std::string> dice_expression = std::nullopt;
+    /// Individual die results, comma-separated, in roll order.
+    std::optional<std::string> roll_values = std::nullopt;
+    /// Sum of the dice plus the modifier.
+    std::optional<int32_t> roll_total = std::nullopt;
+    /// Named RNG stream the roll came from (e.g. "chargen"). Streams are independently seeded so a session replays deterministically.
+    std::optional<std::string> roll_stream = std::nullopt;
+    /// What the roll was for, in the roller's words.
+    std::optional<std::string> roll_purpose = std::nullopt;
+};
+
+
 /// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
 struct Signal : public Identifiable, public Temporal {
     /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.

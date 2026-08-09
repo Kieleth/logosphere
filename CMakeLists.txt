@@ -122,6 +122,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
     src/capability/capability_store.cpp
+    src/core/dice_service.cpp
     src/capability/dynamics_params.cpp
     src/capability/trigger_registry.cpp
     src/capability/effect_registry.cpp
@@ -370,6 +371,7 @@ target_compile_features(test_logoveyer_rules_book1 PRIVATE cxx_std_17)
 target_include_directories(test_logoveyer_rules_book1 PRIVATE examples/logoveyer)
 add_test(NAME test_logoveyer_rules_book1 COMMAND test_logoveyer_rules_book1)
 
+add_headless_test(test_dice_service)
 add_headless_test(test_capability_store)
 add_headless_test(test_kg_reverse_relations)
 add_headless_test(test_interaction_ontology)

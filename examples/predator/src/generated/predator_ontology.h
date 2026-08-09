@@ -1327,6 +1327,23 @@ struct TransformationEvent : public WorldEvent {
 };
 
 
+/// A die roll the ENGINE performed: seeded, journaled, citable by id. Games and referees receive rolls as facts through this event; nothing outside the dice service may assert a result (see docs/RPG_MODULE.md, "the referee cannot roll").
+struct DiceRollEvent : public WorldEvent {
+    /// Monotonic id of the roll, unique per session, citable.
+    std::optional<int32_t> roll_id = std::nullopt;
+    /// The expression rolled, canonical form ("2D6+1").
+    std::optional<std::string> dice_expression = std::nullopt;
+    /// Individual die results, comma-separated, in roll order.
+    std::optional<std::string> roll_values = std::nullopt;
+    /// Sum of the dice plus the modifier.
+    std::optional<int32_t> roll_total = std::nullopt;
+    /// Named RNG stream the roll came from (e.g. "chargen"). Streams are independently seeded so a session replays deterministically.
+    std::optional<std::string> roll_stream = std::nullopt;
+    /// What the roll was for, in the roller's words.
+    std::optional<std::string> roll_purpose = std::nullopt;
+};
+
+
 /// A typed relationship between world entities.
 struct WorldRelation : public Relation {
 };
