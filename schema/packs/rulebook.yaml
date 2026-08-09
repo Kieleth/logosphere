@@ -232,6 +232,22 @@ classes:
     slots:
       - constant_value
 
+  SkillRating:
+    is_a: Entity
+    description: >-
+      A held skill at a level: Slug Rifle at 2. Game STATE, not book
+      content, which is why it is the one class here without Cited (a
+      rating has no quote; the chargen journal is its provenance).
+      Attached to its holder with HAS_PART; the skill is an entity
+      reference into the game's skill vocabulary. The GrantSkill
+      handler creates and increments these through the validated
+      write path.
+    annotations:
+      facets: rulebook
+    slots:
+      - skill
+      - skill_level
+
   Procedure:
     is_a: Entity
     mixins:

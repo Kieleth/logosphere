@@ -21,6 +21,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   existence by the rule of two; first instances come from the Cepheus
   SRD chapter 1 and are verbatim-checked against the vendored source in
   `test_rulebook_pack`. Design record: docs/RPG_MODULE.md.
+- `SkillRating` in the rulebook pack: a held skill at a level (typed
+  `skill` ref + `skill_level`), game state rather than book content,
+  attached to its holder with `HAS_PART` and written by the generic
+  GrantSkill handler through the validated path.
 - `SPECIALIZES` relation in the core vocabulary: a narrower thing
   refines a broader one (skill cascades, taxonomies).
 - **Typed entity references on the validated write path.** A

@@ -8,35 +8,7 @@
 #include <vector>
 
 
-namespace rulebook::ontology {
-
-/// Lifecycle state of any identifiable entity.
-enum class EntityStatus {
-    /// Entity exists and is operational.
-    ACTIVE,
-    /// Entity exists but is suspended.
-    INACTIVE,
-    /// Entity has been permanently removed.
-    DESTROYED
-};
-
-/// Convert EntityStatus to its string representation.
-inline const char* to_string(EntityStatus value) {
-    switch (value) {
-        case EntityStatus::ACTIVE: return "ACTIVE";
-        case EntityStatus::INACTIVE: return "INACTIVE";
-        case EntityStatus::DESTROYED: return "DESTROYED";
-    }
-    return "unknown";
-}
-
-/// Parse a string into EntityStatus. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, EntityStatus& out) {
-    if (std::strcmp(str, "ACTIVE") == 0) { out = EntityStatus::ACTIVE; return true; }
-    if (std::strcmp(str, "INACTIVE") == 0) { out = EntityStatus::INACTIVE; return true; }
-    if (std::strcmp(str, "DESTROYED") == 0) { out = EntityStatus::DESTROYED; return true; }
-    return false;
-}
+namespace cepheus_book1_skills::ontology {
 
 /// Physical material classification.
 enum class MaterialType {
@@ -782,96 +754,33 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
-/// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
-struct Identifiable {
-    /// Globally unique identifier.
-    std::string id;
-    /// Human-readable name.
-    std::optional<std::string> name = std::nullopt;
+/// Lifecycle state of any identifiable entity.
+enum class EntityStatus {
+    /// Entity exists and is operational.
+    ACTIVE,
+    /// Entity exists but is suspended.
+    INACTIVE,
+    /// Entity has been permanently removed.
+    DESTROYED
 };
 
+/// Convert EntityStatus to its string representation.
+inline const char* to_string(EntityStatus value) {
+    switch (value) {
+        case EntityStatus::ACTIVE: return "ACTIVE";
+        case EntityStatus::INACTIVE: return "INACTIVE";
+        case EntityStatus::DESTROYED: return "DESTROYED";
+    }
+    return "unknown";
+}
 
-/// Timestamps for creation and last modification. Follows PROV-O temporal patterns.
-struct Temporal {
-    /// When this was created.
-    std::optional<std::string> created_at = std::nullopt;
-    /// When this was last modified.
-    std::optional<std::string> updated_at = std::nullopt;
-};
-
-
-/// Human-readable description and metadata.
-struct Describable {
-    /// Free-text description.
-    std::optional<std::string> description = std::nullopt;
-    /// Arbitrary classification tags.
-    std::vector<std::string> tags = {};
-};
-
-
-/// Entity with a lifecycle status.
-struct Statusable {
-    /// Lifecycle status.
-    std::optional<EntityStatus> status = std::nullopt;
-};
-
-
-/// Capability of acting, deciding, or bearing responsibility. Aligned with PROV:Agent and BDI model. Agency is a trait, not a taxonomic position: an entity CAN act, it is not defined by acting. Apply this mixin to any entity class that needs volitional behavior.
-struct Agent {
-    /// Classification of the agent. Domain projects should constrain this to an enum.
-    std::optional<std::string> agent_type = std::nullopt;
-};
-
-
-/// Root class for all identifiable, enduring things. Aligned with BFO:Independent Continuant. Every domain object that persists through time and needs identity extends this.
-struct Entity : public Identifiable, public Temporal, public Describable {
-};
-
-
-/// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
-struct Event : public Identifiable, public Temporal {
-    /// Classification of the event. Domain projects should constrain this to an enum.
-    std::string event_type;
-    /// When the event happened (instantaneous events).
-    std::optional<std::string> occurred_at = std::nullopt;
-    /// When a duration event began.
-    std::optional<std::string> started_at = std::nullopt;
-    /// When a duration event ended.
-    std::optional<std::string> ended_at = std::nullopt;
-    /// ID of the event or agent that caused this event. Follows PROV-O wasInformedBy / wasAssociatedWith pattern.
-    std::optional<std::string> caused_by = std::nullopt;
-};
-
-
-/// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
-struct Signal : public Identifiable, public Temporal {
-    /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
-    std::string signal_type;
-    /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
-    std::optional<float> value = std::nullopt;
-    /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
-    std::optional<std::string> algorithm = std::nullopt;
-    /// ID of the entity from whose perspective this signal is computed. Null for global/objective signals (e.g., graph density). Set for subjective signals (e.g., trust computed from one agent's viewpoint).
-    std::optional<std::string> perspective = std::nullopt;
-    /// When this signal value was last computed.
-    std::optional<std::string> computed_at = std::nullopt;
-    /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
-    std::string bearer_id;
-};
-
-
-/// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
-struct Relation : public Identifiable, public Temporal {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
-    /// ID of the source entity.
-    std::string source_id;
-    /// ID of the target entity.
-    std::string target_id;
-    /// Weight or confidence of the relation (0.0 to 1.0).
-    std::optional<float> strength = std::nullopt;
-};
-
+/// Parse a string into EntityStatus. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, EntityStatus& out) {
+    if (std::strcmp(str, "ACTIVE") == 0) { out = EntityStatus::ACTIVE; return true; }
+    if (std::strcmp(str, "INACTIVE") == 0) { out = EntityStatus::INACTIVE; return true; }
+    if (std::strcmp(str, "DESTROYED") == 0) { out = EntityStatus::DESTROYED; return true; }
+    return false;
+}
 
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
@@ -972,6 +881,52 @@ struct Growable {
     std::optional<int32_t> growth_iteration = std::nullopt;
     std::optional<bool> is_mature = std::nullopt;
     std::optional<std::string> species = std::nullopt;
+};
+
+
+/// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
+struct Identifiable {
+    /// Globally unique identifier.
+    std::string id;
+    /// Human-readable name.
+    std::optional<std::string> name = std::nullopt;
+};
+
+
+/// Timestamps for creation and last modification. Follows PROV-O temporal patterns.
+struct Temporal {
+    /// When this was created.
+    std::optional<std::string> created_at = std::nullopt;
+    /// When this was last modified.
+    std::optional<std::string> updated_at = std::nullopt;
+};
+
+
+/// Human-readable description and metadata.
+struct Describable {
+    /// Free-text description.
+    std::optional<std::string> description = std::nullopt;
+    /// Arbitrary classification tags.
+    std::vector<std::string> tags = {};
+};
+
+
+/// Entity with a lifecycle status.
+struct Statusable {
+    /// Lifecycle status.
+    std::optional<EntityStatus> status = std::nullopt;
+};
+
+
+/// Capability of acting, deciding, or bearing responsibility. Aligned with PROV:Agent and BDI model. Agency is a trait, not a taxonomic position: an entity CAN act, it is not defined by acting. Apply this mixin to any entity class that needs volitional behavior.
+struct Agent {
+    /// Classification of the agent. Domain projects should constrain this to an enum.
+    std::optional<std::string> agent_type = std::nullopt;
+};
+
+
+/// Root class for all identifiable, enduring things. Aligned with BFO:Independent Continuant. Every domain object that persists through time and needs identity extends this.
+struct Entity : public Identifiable, public Temporal, public Describable {
 };
 
 
@@ -1209,6 +1164,21 @@ struct TransformationRule : public Entity {
 };
 
 
+/// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
+struct Event : public Identifiable, public Temporal {
+    /// Classification of the event. Domain projects should constrain this to an enum.
+    std::string event_type;
+    /// When the event happened (instantaneous events).
+    std::optional<std::string> occurred_at = std::nullopt;
+    /// When a duration event began.
+    std::optional<std::string> started_at = std::nullopt;
+    /// When a duration event ended.
+    std::optional<std::string> ended_at = std::nullopt;
+    /// ID of the event or agent that caused this event. Follows PROV-O wasInformedBy / wasAssociatedWith pattern.
+    std::optional<std::string> caused_by = std::nullopt;
+};
+
+
 /// Something that happens in the game world.
 struct WorldEvent : public Event {
     /// ID of the entity that caused the event.
@@ -1277,8 +1247,8 @@ struct PerceptionEvent : public WorldEvent {
 
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type;
 };
 
 
@@ -1321,6 +1291,36 @@ struct DiceRollEvent : public WorldEvent {
     std::optional<std::string> roll_stream = std::nullopt;
     /// What the roll was for, in the roller's words.
     std::optional<std::string> roll_purpose = std::nullopt;
+};
+
+
+/// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
+struct Signal : public Identifiable, public Temporal {
+    /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
+    std::string signal_type;
+    /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
+    std::optional<float> value = std::nullopt;
+    /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
+    std::optional<std::string> algorithm = std::nullopt;
+    /// ID of the entity from whose perspective this signal is computed. Null for global/objective signals (e.g., graph density). Set for subjective signals (e.g., trust computed from one agent's viewpoint).
+    std::optional<std::string> perspective = std::nullopt;
+    /// When this signal value was last computed.
+    std::optional<std::string> computed_at = std::nullopt;
+    /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
+    std::string bearer_id;
+};
+
+
+/// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
+struct Relation : public Identifiable, public Temporal {
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type;
+    /// ID of the source entity.
+    std::string source_id;
+    /// ID of the target entity.
+    std::string target_id;
+    /// Weight or confidence of the relation (0.0 to 1.0).
+    std::optional<float> strength = std::nullopt;
 };
 
 
@@ -1489,4 +1489,11 @@ struct JudgmentPoint : public Entity, public Cited {
 };
 
 
-} // namespace rulebook::ontology
+/// One entry of the book's skill vocabulary [book1/skills.md "Available Skills List", "Skill Descriptions"]. Deliberately near-empty: a skill is a name, a citation, and its place in the cascade tree via SPECIALIZES relations. A held level lives on the engine's SkillRating, never here.
+struct Skill : public Entity, public Cited {
+    /// True when the book marks the skill "(Cascade Skill)": a group requiring an immediate specialization choice, held only through its specializations [book1/skills.md cascade headings; book1/character-creation.md "Cascade Skills"]. Explicit rather than derived from relations, because a group is a group even while its specializations are still loading.
+    std::optional<bool> is_cascade = std::nullopt;
+};
+
+
+} // namespace cepheus_book1_skills::ontology
