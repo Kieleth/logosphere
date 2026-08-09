@@ -682,14 +682,13 @@ Rung rung4(Engine& engine) {
 
     // Owner's palette, their order: kept bent | almost vertical | a bit of
     // bounce | breaks because it is too stiff to yield.
+    // Owner's order: 1 fully bent, 2 leaning, 3 straight, 4 broken.
+    // 50/6 is the stable 'a bit of bounce'; wilder (20/2) whips into the
+    // neighbour chain and the interaction detonates (#47 family).
     const ChainSpec specs[4] = {
         {"BENT",      4000.0f, 150.0f,  40.0f},   // + plastic yield 0.25 rad
-        {"SPRINGY",   4000.0f, 150.0f,  40.0f},
-        // 50/6 is the stable 'a bit of bounce' (2 visible swings). Wilder
-        // (20/2) whips wide enough to strike the neighbour chain and the
-        // chain-chain interaction detonates (#47 family): the panel's
-        // spacing bounds how ringy a declaration may be.
-        {"BOUNCY",      50.0f, 150.0f,   6.0f},
+        {"LEANING",     50.0f, 150.0f,   6.0f},   // + mild yield: bounce once, settle leaning
+        {"STRAIGHT",  4000.0f, 150.0f,  40.0f},
         {"BRITTLE",   4000.0f, 4000.0f, 40.0f},   // stiff joints, honest strength
     };
     const float xs[4] = {6.0f, 8.0f, 10.0f, 12.0f};
@@ -727,7 +726,7 @@ Rung rung4(Engine& engine) {
             p.width = 0.25f; p.height = 0.25f; p.thickness = 0.6f;
             p.size = 0.25f;
             // tint per nature so the owner can tell them apart at a glance
-            p.r = (k == 2) ? 0.75f : ((k == 0) ? 0.65f : 0.4f);
+            p.r = (k == 1) ? 0.75f : ((k == 0) ? 0.65f : 0.4f);
             p.g = (k == 0) ? 0.6f : 0.75f;
             p.b = (k == 3) ? 0.8f : 0.35f;
             p.a = 1.0f;
@@ -780,8 +779,8 @@ Rung rung4(Engine& engine) {
                 g->plastic_yield_angle = 0.25f;   // BENT: damage sticks
                 g->max_strain = 5.0f;             // plastic yields, it does not tear
             }
-            if (k == 2) {
-                // BOUNCY keeps a trace of the event: only the deepest part
+            if (k == 1) {
+                // LEANING keeps a trace of the event: only the deepest part
                 // of the fold plasticizes, so it settles slightly leaning.
                 g->plastic_yield_angle = 1.15f;
                 g->max_strain = 4.0f;
@@ -800,7 +799,7 @@ Rung rung4(Engine& engine) {
         camera.set_pixels_per_unit(52.0f);
     }
     if (g_label) g_label->set_text(
-        "RUNG 4  four natures: BENT(yellow-ish) | SPRINGY | BOUNCY(red) | BRITTLE(blue). "
+        "RUNG 4  four natures: BENT | LEANING(red-ish) | STRAIGHT(green) | BRITTLE(blue). "
         "SPACE: one wide finger sweeps them all");
     for (int f = 0; f < 90 && engine.is_running(); ++f) step(engine);
 
@@ -855,8 +854,8 @@ Rung rung4(Engine& engine) {
                              xs[k], tip_y0[k], tip_z0[k]);
             };
             snprintf(buf, sizeof buf,
-                     "RECOV f%3d  tips m: BENT %.2f (sw %d) | SPRINGY %.2f (sw %d) | "
-                     "BOUNCY %.2f (sw %d) | BRITTLE %.2f (sw %d)",
+                     "RECOV f%3d  tips m: BENT %.2f (sw %d) | LEANING %.2f (sw %d) | "
+                     "STRAIGHT %.2f (sw %d) | BRITTLE %.2f (sw %d)",
                      f, td(0), swings[0], td(1), swings[1],
                      td(2), swings[2], td(3), swings[3]);
             g_live->set_text(buf);
@@ -940,23 +939,23 @@ Rung rung4(Engine& engine) {
         brittle_bonds += engine.get_physics_system()
                              .get_gluons_for_particle(seg[3][j]).size();
     const bool bent_ok    = peak_tip[0] > 0.5f && fin[0] > 0.4f;      // kept bent
-    const bool springy_ok = peak_tip[1] > 0.5f && swings[1] <= 2 && fin[1] < 0.15f;
+    const bool springy_ok = peak_tip[2] > 0.5f && swings[2] <= 2 && fin[2] < 0.15f;
     // Owner: the bounced totem should end 'a bit leaning', not parade
     // vertical — a trace of the event. Leaning = tip settled off grown
     // pose, but far from flat.
-    const bool bouncy_ok  = peak_tip[2] > 0.5f && swings[2] >= 1 &&
-                            fin[2] > 0.10f && fin[2] < 0.60f;
+    const bool bouncy_ok  = peak_tip[1] > 0.5f && swings[1] >= 1 &&
+                            fin[1] > 0.10f && fin[1] < 0.60f;
     const bool breaks_ok  = brittle_bonds < 3;                         // it SNAPPED
     // Only BRITTLE may break: the other three natures keep every bond.
     const bool unbroken_ok = alive[0] == 3 && alive[1] == 3 && alive[2] == 3;
     r.passed = bent_ok && springy_ok && bouncy_ok && breaks_ok && !ghost && unbroken_ok;
     snprintf(r.detail, sizeof r.detail,
-             "BENT %s (peak %.2f, fin %.2f, need fin > 0.4); SPRINGY %s (sw %d, "
-             "fin %.2f); BOUNCY %s (sw %d, fin %.2f); BRITTLE %s (%zu bond edges "
+             "BENT %s (peak %.2f, fin %.2f, need fin > 0.4); LEANING %s (sw %d, "
+             "fin %.2f); STRAIGHT %s (sw %d, fin %.2f); BRITTLE %s (%zu bond edges "
              "left of 3+)",
              bent_ok ? "ok" : "*** FORGOT THE DAMAGE ***", peak_tip[0], fin[0],
-             springy_ok ? "ok" : "OFF", swings[1], fin[1],
-             bouncy_ok ? "ok" : "OFF (does not ring)", swings[2], fin[2],
+             bouncy_ok ? "ok" : "OFF (no lean/bounce)", swings[1], fin[1],
+             springy_ok ? "ok" : "OFF", swings[2], fin[2],
              breaks_ok ? "SNAPPED ok" : "*** DID NOT BREAK ***", brittle_bonds);
     if (ghost)
         printf("      *** GHOST SUPPORT: %s — a body may not stand on air ***\n",
