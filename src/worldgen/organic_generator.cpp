@@ -70,10 +70,23 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
     Vec3 trunk_top;
     auto trunk_particles = generate_trunk(world_x, world_y, world_z, spec, trunk_top);
 
-    // Store trunk particles in KG
+    // ROOT THE PLANT. The base segment is KINEMATIC: rooted in the ground is
+    // immobility through solver mode, which the engine invariants explicitly
+    // sanction (turtle, gluon anchors, or KINEMATIC are the three mechanisms).
+    // Without this a fully bonded plant is a free chain standing on its end,
+    // and it topples. With it, the chain hangs off a rooted base the way a
+    // real stalk hangs off its roots.
+    if (!trunk_particles.empty()) {
+        trunk_particles.front().solver_mode = ParticleSolverMode::KINEMATIC;
+        trunk_particles.front().is_at_rest = true;
+    }
+
+    // Store trunk particles in KG, keeping ids so the chain can be bonded.
+    std::vector<kg::KGParticleID> trunk_kg;
     for (const Particle& p : trunk_particles) {
         kg::KGParticleID kg_id = kg_->createKGParticle(entity, kg::INVALID_RENDER_INDEX);
         kg_->setKGParticleData(kg_id, p);
+        trunk_kg.push_back(kg_id);
     }
 
     // Calculate crown/foliage region
@@ -120,17 +133,72 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
     std::cout << "[OrganicGenerator] Generated skeleton with " << skeleton.segment_count()
               << " segments" << std::endl;
 
-    // Convert skeleton to particles (branches + foliage)
-    auto crown_particles = skeleton_to_particles(skeleton, spec);
+    // Convert skeleton to particles (branches + foliage), with bonding edges
+    std::vector<int> crown_parents;
+    auto crown_particles = skeleton_to_particles(skeleton, spec, crown_parents);
 
     std::cout << "[OrganicGenerator] Created " << crown_particles.size()
               << " particles from skeleton" << std::endl;
 
-    // Store crown particles in KG
+    // Store crown particles in KG, keeping ids for bonding.
+    std::vector<kg::KGParticleID> crown_kg;
     for (const Particle& p : crown_particles) {
         kg::KGParticleID kg_id = kg_->createKGParticle(entity, kg::INVALID_RENDER_INDEX);
         kg_->setKGParticleData(kg_id, p);
+        crown_kg.push_back(kg_id);
     }
+
+    // ========================================================================
+    // BOND THE PLANT (issue #47). Before this, organic entities were stored as
+    // BARE particle records: chunk activation materialised every blade as a
+    // tower of free ultra-thin plates, the solver had to hold every interface
+    // with contact rows forever, and on that stack the sequential-impulse
+    // iteration diverges (measured 16k -> 4.5e8 in one frame; grass shrapnel
+    // at ~100 m/s). The design was always "blades are joined by gluons"; this
+    // is where the design becomes true. Activation needs no changes: it has
+    // recreated KG gluons all along, for entities that stored any.
+    // ========================================================================
+    auto bond = [&](kg::KGParticleID a, kg::KGParticleID b,
+                    const Particle& pa, const Particle& pb) {
+        kg::KGGluonID g = kg_->createKGGluon(entity, a, b);
+        kg::KGGluonData d;
+        d.type = kg::KGGluonType::ORGANIC;
+        // Zero offsets + the placed centre distance: hold what generation
+        // built. Same shape as the physics-tree leaf fix (8c0e86e), where the
+        // gluon preserving the ACTUAL placement was the difference between a
+        // canopy and shrapnel.
+        const float dx = pb.x - pa.x, dy = pb.y - pa.y, dz = pb.z - pa.z;
+        d.target_distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        d.stiffness = 5000.0f;    // flexible stem, the physics-tree leaf value
+        d.damping = 100.0f;
+        d.angular_stiffness = 50.0f;   // loose: blades bend
+        d.angular_damping = 5.0f;
+        d.enable_angular_constraint = true;
+        // Breaking scales with the child's cross-section: thin things tear.
+        d.contact_area = std::max(1e-4f, pb.width * pb.height);
+        kg_->setKGGluonData(g, d);
+    };
+
+    int gluons_stored = 0;
+    for (size_t j = 0; j + 1 < trunk_particles.size(); ++j) {
+        bond(trunk_kg[j], trunk_kg[j + 1], trunk_particles[j], trunk_particles[j + 1]);
+        gluons_stored++;
+    }
+    for (size_t cidx = 0; cidx < crown_particles.size(); ++cidx) {
+        const int pp = crown_parents[cidx];
+        if (pp >= 0) {
+            bond(crown_kg[pp], crown_kg[cidx], crown_particles[pp], crown_particles[cidx]);
+            gluons_stored++;
+        } else if (!trunk_kg.empty()) {
+            // Skeleton roots hang off the trunk top.
+            bond(trunk_kg.back(), crown_kg[cidx],
+                 trunk_particles.back(), crown_particles[cidx]);
+            gluons_stored++;
+        }
+        // No trunk and no parent: the plant's own base, nothing to bond to.
+    }
+    std::cout << "[OrganicGenerator] Bonded: " << gluons_stored
+              << " gluons stored in KG" << std::endl;
 
     // Track entity
     on_entity_created(entity);
@@ -230,9 +298,29 @@ std::vector<Particle> OrganicGenerator::generate_trunk(float world_x, float worl
 }
 
 std::vector<Particle> OrganicGenerator::skeleton_to_particles(const TreeSkeleton& skeleton,
-                                                              const OrganicSpec& spec) {
+                                                              const OrganicSpec& spec,
+                                                              std::vector<int>& parents_out) {
     std::vector<Particle> particles;
     particles.reserve(skeleton.segment_count() * 3);  // Room for branches + foliage
+    parents_out.clear();
+    parents_out.reserve(skeleton.segment_count() * 3);
+
+    // Geometric parent lookup: my parent is the segment whose END is my START.
+    // Root segments (their start touches nothing) get -1, meaning "bond to the
+    // trunk top". O(n^2) over ~10-100 segments at generation time only.
+    auto find_parent_segment = [&](int i) -> int {
+        const Vec3 s0 = skeleton.get_segment(i).start;
+        for (int j = 0; j < skeleton.segment_count(); ++j) {
+            if (j == i) continue;
+            const Vec3 e = skeleton.get_segment(j).end;
+            const float dx = e.x - s0.x, dy = e.y - s0.y, dz = e.z - s0.z;
+            if (dx * dx + dy * dy + dz * dz < 1e-6f) return j;
+        }
+        return -1;
+    };
+    std::vector<int> seg_particle(skeleton.segment_count(), -1);
+    std::vector<int> parent_seg_of_particle;
+    parent_seg_of_particle.reserve(skeleton.segment_count() * 3);
 
     // Helper: Convert direction vector to Euler angles
     auto direction_to_euler = [](const Vec3& dir, float& out_rot_x, float& out_rot_y, float& out_rot_z) {
@@ -285,13 +373,30 @@ std::vector<Particle> OrganicGenerator::skeleton_to_particles(const TreeSkeleton
         direction_to_euler(dir, p.rotation_x, p.rotation_y, p.rotation_z);
         p.reflectivity = 0.3f;
         p.pattern_id = 1;  // PATTERN_WOOD for branches
+        seg_particle[i] = (int)particles.size();
+        // Parent SEGMENT id for now; translated to a particle index after the
+        // loop, because a geometric parent can sit later in the segment list
+        // and its particle index does not exist yet at this point.
+        parent_seg_of_particle.push_back(find_parent_segment(i));
         particles.push_back(p);
 
-        // Add foliage to thin branches
+        // Add foliage to thin branches. Every leaf bonds to its segment.
         if (seg.thickness < foliage_thickness_threshold) {
             auto foliage = create_foliage(seg.end, seg, spec, max_iteration);
+            for (size_t f = 0; f < foliage.size(); ++f)
+                parent_seg_of_particle.push_back(i);
             particles.insert(particles.end(), foliage.begin(), foliage.end());
         }
+    }
+
+    // Translate segment ids to particle indices now that every segment has one.
+    for (size_t k = 0; k < parent_seg_of_particle.size(); ++k) {
+        const int pseg = parent_seg_of_particle[k];
+        int parent_particle = (pseg >= 0) ? seg_particle[pseg] : -1;
+        // A segment cannot be bonded to itself (its own foliage points at it,
+        // which is correct; the segment itself must not).
+        if (parent_particle == (int)k) parent_particle = -1;
+        parents_out.push_back(parent_particle);
     }
 
     return particles;

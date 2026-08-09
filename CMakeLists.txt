@@ -1836,6 +1836,7 @@ set(TEST_SOURCES
     tests/test_tree_repair_visual.cpp          # issue #38: broken vs fixed tree side by side, INTERACTIVE=1
     tests/test_explosion_detector.cpp          # issue #42: silent when quiet, fires on detonation, names the body
     tests/test_butterfly_detonation.cpp        # issue #47: solver divergence on gram-scale bodies, ladder
+    tests/test_grass_holds_together.cpp        # issue #47 fix 1: bonded grass, no detonation, bounded drift
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)

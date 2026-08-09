@@ -71,9 +71,19 @@ private:
                                          const OrganicSpec& spec,
                                          Vec3& out_trunk_top);
 
-    // Convert skeleton to particles (branches + foliage)
+    // Convert skeleton to particles (branches + foliage).
+    //
+    // `parents_out` gets one entry per returned particle: the index (into the
+    // SAME returned vector) of the particle it should be BONDED to, or -1 for
+    // segments rooted at the trunk top. Determined GEOMETRICALLY (the segment
+    // whose end meets this segment's start), not from
+    // BranchSegment::parent_index: that field stores node indices against a
+    // comment claiming segment indices, and nothing had ever read it, so its
+    // semantics are unverified. Issue #47: these edges become the gluons that
+    // stop blades being loose towers of plates.
     std::vector<Particle> skeleton_to_particles(const TreeSkeleton& skeleton,
-                                                const OrganicSpec& spec);
+                                                const OrganicSpec& spec,
+                                                std::vector<int>& parents_out);
 
     // Create foliage elements at branch endpoint
     std::vector<Particle> create_foliage(const Vec3& position,
