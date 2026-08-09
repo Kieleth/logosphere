@@ -49,6 +49,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   legitimately consume the state that admitted them).
 
 ### Added
+- `at_predator_search`: the full NPC loop in one watchable scene — walls,
+  meander, smell, getting lost, dinner. Sensors own the perception facts
+  and overwrite them every frame; the planner replans as information
+  arrives and the precondition gate breaks plans honestly when it leaves.
+  Nothing in the arc is scripted: quartering meander (game-side
+  `MeanderExecutor`) until the nose crosses the odor radius, scent
+  followed with casting when a wall blocks the line, losses at the radius
+  edge (the smell model's own dropout, with hysteresis), a myopic 9 m eye
+  so smell-first is geometry rather than script, and a proprioceptive
+  stuck-detector because an in-flight action is exempt from the
+  precondition gate and can push a wall forever. Headless asserts the
+  structure (meandered first, smelled before it saw, fed at the end) and
+  runs the control: an odorless carcass produces zero scent events and a
+  predator that stays lost. Interactive: SPACE releases / reruns, ESC
+  quits, event log with timestamps on the panel.
 - `at_predator_hunger_visual`: the hunger loop ON SCREEN — the predator
   walks in, the carcass shrinks bite by bite (FoodState mass driving
   particle scale), and the AI panel shows goal / action / distance /
