@@ -1283,19 +1283,34 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             float attach_b_x, attach_b_y, attach_b_z;
 
             if (gluon->rotate_offsets) {
-                // Rotate offsets by particle's rotation_z
-                float cos_a = cosf(pa.rotation_z);
-                float sin_a = sinf(pa.rotation_z);
-                float cos_b = cosf(pb.rotation_z);
-                float sin_b = sinf(pb.rotation_z);
-
-                attach_a_x = pa.x + gluon->offset_a.x * cos_a - gluon->offset_a.y * sin_a;
-                attach_a_y = pa.y + gluon->offset_a.x * sin_a + gluon->offset_a.y * cos_a;
-                attach_a_z = pa.z + gluon->offset_a.z;
-
-                attach_b_x = pb.x + gluon->offset_b.x * cos_b - gluon->offset_b.y * sin_b;
-                attach_b_y = pb.y + gluon->offset_b.x * sin_b + gluon->offset_b.y * cos_b;
-                attach_b_z = pb.z + gluon->offset_b.z;
+                // Rotate offsets by the particle's FULL orientation, Euler
+                // applied X then Y then Z (the same composition generation
+                // uses to point a segment's local +Z along its grown
+                // direction). Reduces exactly to the old rotation_z-only
+                // math when rotation_x = rotation_y = 0, which is every
+                // pre-existing offset user (humanoid pins, nails). Rung 1
+                // of the rotation ladder: a parent turning about X must
+                // carry its anchor with it.
+                auto rotate_full = [](const Particle& p, float ox, float oy,
+                                      float oz, float& wx, float& wy, float& wz) {
+                    const float cx = cosf(p.rotation_x), sx = sinf(p.rotation_x);
+                    const float cy = cosf(p.rotation_y), sy = sinf(p.rotation_y);
+                    const float cz = cosf(p.rotation_z), sz = sinf(p.rotation_z);
+                    // X: (ox, oy*cx - oz*sx, oy*sx + oz*cx)
+                    const float y1 = oy * cx - oz * sx;
+                    const float z1 = oy * sx + oz * cx;
+                    // Y: (ox*cy + z1*sy, y1, -ox*sy + z1*cy)
+                    const float x2 = ox * cy + z1 * sy;
+                    const float z2 = -ox * sy + z1 * cy;
+                    // Z: same form the site always used
+                    wx = p.x + x2 * cz - y1 * sz;
+                    wy = p.y + x2 * sz + y1 * cz;
+                    wz = p.z + z2;
+                };
+                rotate_full(pa, gluon->offset_a.x, gluon->offset_a.y,
+                            gluon->offset_a.z, attach_a_x, attach_a_y, attach_a_z);
+                rotate_full(pb, gluon->offset_b.x, gluon->offset_b.y,
+                            gluon->offset_b.z, attach_b_x, attach_b_y, attach_b_z);
             } else {
                 // World-space offsets (no rotation)
                 attach_a_x = pa.x + gluon->offset_a.x;
@@ -1331,6 +1346,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             if (current_dist > 0.0001f) {  // Avoid division by zero
                 float error = current_dist - target_dist;
+                // Wake-on-strain (see GLUON_WAKE_STRAIN): a bond under
+                // geometric strain wakes its bodies, whatever moved the
+                // anchor (kinematic rotation, teleport, mass change).
+                if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN) {
+                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC)
+                        particles[body_a].is_at_rest = false;
+                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC)
+                        particles[body_b].is_at_rest = false;
+                }
                 // Project error along separation direction to get per-axis correction
                 float scale = error / current_dist;
                 separation[0] = sep_x * scale;

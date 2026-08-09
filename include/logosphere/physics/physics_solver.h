@@ -90,6 +90,14 @@ constexpr float  GLUON_MAX_BIAS_VELOCITY = 4.0f;   // m/s
 // measured exactly 151.2 m/s. A joint may correct toward its target at a
 // bounded rate; larger errors resolve over frames (V4.14, third verse).
 constexpr float  MAX_ANGULAR_BIAS_VELOCITY = 4.0f; // rad/s
+// Wake-on-strain. is_at_rest is a solver optimization and must never make a
+// strained bond invisible: rotate a KINEMATIC parent and its sleeping child
+// used to ignore the moved anchor entirely (rotation ladder, rung 1). Any
+// gluon whose positional error exceeds this wakes both DYNAMIC endpoints at
+// row build. Threshold sits above settled-structure residuals (~6 mm on the
+// grass-holds gate) so resting forests stay asleep, and far below any real
+// strain.
+constexpr float  GLUON_WAKE_STRAIN = 0.02f;        // m
 constexpr float  GRAVITY           = 9.8f;    // m/s²
 constexpr float  FRICTION_COEFFICIENT = 0.5f; // Coulomb friction coefficient (0.5 = moderate grip)
 constexpr float  CONTACT_MARGIN    = 0.08f;   // 80mm Z margin for speculative contacts
