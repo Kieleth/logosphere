@@ -1438,10 +1438,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // geometric strain wakes its bodies, whatever moved the
                 // anchor (kinematic rotation, teleport, mass change).
                 if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN) {
-                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC)
+                    // Clearing is_at_rest alone is the hysteresis trap: the
+                    // rest counter stays high, the damper crushes the first
+                    // small correction, and sleep re-latches within the
+                    // frame (the lying-blade probe saw rest=1 every sample
+                    // while this wake fired every frame). Freedom resets
+                    // the counter, same as wake-on-break.
+                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_a].is_at_rest = false;
-                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC)
+                        particles[body_a].low_velocity_frames = 0;
+                    }
+                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_b].is_at_rest = false;
+                        particles[body_b].low_velocity_frames = 0;
+                    }
                 }
                 // Project error along separation direction to get per-axis correction
                 float scale = error / current_dist;
@@ -1718,10 +1728,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // chain 'STAYED BENT' at 0.70 m because nothing wakes on
                 // angle error — the linear anchors were satisfied).
                 if (e_mag > 0.1f) {
-                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC)
+                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_a].is_at_rest = false;
-                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC)
+                        particles[body_a].low_velocity_frames = 0;
+                    }
+                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_b].is_at_rest = false;
+                        particles[body_b].low_velocity_frames = 0;
+                    }
                 }
                 // PLASTIC YIELD: absorb deformation beyond the yield angle
                 // into the rest pose. rel = q_b * q_a^-1; the new target
