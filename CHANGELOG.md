@@ -27,6 +27,23 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   name ladder in `build_context` is gone, and with it the engine's last
   knowledge of game action vocabulary.
 
+### Added
+- **Bonds are honest spring-dampers, and they can rotate what they hold.**
+  Force-bounded gluons (`force_bounded()`, organics) exert at most
+  `(stiffness x error + damping x v_rel) x dt` per row — `stiffness` was
+  previously decorative and every bond was an infinitely strong
+  rate-limited constraint. Angular drive rows get the same treatment
+  (`angular_stiffness` as a real torque budget). Gluon axis rows carry
+  their anchor lever arms: impulses torque quaternion-driven bodies
+  (`omega += r x J*P / I`), with the matching `omega x r` term in relative
+  velocity and `(r x J)^2 / I` in the row's effective mass. A pushed chain
+  can now bend by rotating instead of shearing. Opt-in per body via
+  `is_quat_driven`; nothing else changes behavior.
+- **Sleepers wake when the world demands it**: a kinematic body wakes a
+  sleeping one on approach (closing speed, not raw speed, so gliding
+  foot-plant anchors stay silent); a bond strained past 2 cm wakes its
+  endpoints; a joint bent past its angular target wakes for recovery.
+
 ### Fixed
 - **Solver: constraints can no longer create energy** (#47). Three
   unbounded impulse/bias paths turned ordinary footsteps into

@@ -783,13 +783,31 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // KINEMATIC actors keep their own (effectively disabled)
                 // gate: locomotion must not wake the floor underfoot.
                 constexpr float WAKE_TRANSFER_SPEED       = 1.0f;   // m/s inherited
-                constexpr float WAKE_THRESHOLD_KINEMATIC  = 100.0f; // m/s (kinematic source — effectively disabled)
+                // A KINEMATIC body wakes a sleeper on APPROACH, not on raw
+                // speed. The old 100 m/s raw-speed gate protected gliding
+                // foot-plant pin anchors (fast but parallel to the floor,
+                // zero closing speed) — but it also made every sleeper
+                // immovable to a kinematic pusher: rung 3's 1 m/s finger
+                // passed through a sleeping chain untouched, 32 contacts,
+                // zero displacement. Closing speed keeps both cases honest:
+                // anchors glide (closing ~0, silent), pushers close in.
+                constexpr float WAKE_KINEMATIC_APPROACH   = 0.5f;   // m/s closing
 
                 auto should_wake = [](const Particle& active,
                                       const Particle& sleeper,
                                       float active_speed) {
-                    if (active.solver_mode == ParticleSolverMode::KINEMATIC)
-                        return active_speed >= WAKE_THRESHOLD_KINEMATIC;
+                    if (active.solver_mode == ParticleSolverMode::KINEMATIC) {
+                        const float dx = sleeper.x - active.x;
+                        const float dy = sleeper.y - active.y;
+                        const float dz = sleeper.z - active.z;
+                        const float d = std::sqrt(dx*dx + dy*dy + dz*dz);
+                        if (d < 1e-6f) return true;   // coincident: definitely engaging
+                        const float closing =
+                            ((active.vx - sleeper.vx) * dx +
+                             (active.vy - sleeper.vy) * dy +
+                             (active.vz - sleeper.vz) * dz) / d;
+                        return closing >= WAKE_KINEMATIC_APPROACH;
+                    }
                     float ma = active.GetMass();
                     float ms = sleeper.GetMass();
                     if (ma <= 0.0f) return false;
@@ -1271,6 +1289,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // fall apart even though they should be held together.
         // =====================================================================
         float separation[3] = {0.0f, 0.0f, 0.0f};
+        float bond_err_mag = 0.0f;   // |anchor distance - rest|, for force-bounded budgets
+        float lever_a[3] = {0,0,0}, lever_b[3] = {0,0,0};   // anchor - centre, world
         bool skip_position_bias = false;  // V4.10: Never skip - always compute
         if constexpr (PhysicsV4::ENABLE_GLUON_JACOBIAN_POSITION_BIAS) {
             // V4.10: Removed skip conditions - gluons always need position bias
@@ -1322,6 +1342,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 attach_b_z = pb.z + gluon->offset_b.z;
             }
 
+            lever_a[0] = attach_a_x - pa.x; lever_a[1] = attach_a_y - pa.y;
+            lever_a[2] = attach_a_z - pa.z;
+            lever_b[0] = attach_b_x - pb.x; lever_b[1] = attach_b_y - pb.y;
+            lever_b[2] = attach_b_z - pb.z;
+
             // Separation vector (a - b)
             float sep_x = attach_a_x - attach_b_x;
             float sep_y = attach_a_y - attach_b_y;
@@ -1346,6 +1371,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             if (current_dist > 0.0001f) {  // Avoid division by zero
                 float error = current_dist - target_dist;
+                bond_err_mag = std::fabs(error);
                 // Wake-on-strain (see GLUON_WAKE_STRAIN): a bond under
                 // geometric strain wakes its bodies, whatever moved the
                 // anchor (kinematic rotation, teleport, mass change).
@@ -1443,9 +1469,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 c.bias = 0.0f;  // Old: Gluons match velocities only
             }
 
-            // Gluons can push or pull (bidirectional)
-            c.min_impulse = -breaking_per_axis;
-            c.max_impulse = breaking_per_axis;
+            // Gluons can push or pull (bidirectional). Force-bounded bonds
+            // (organics) can exert at most their spring-damper force at the
+            // current stretch; rigid welds keep the full breaking budget.
+            float budget = breaking_per_axis;
+            if (gluon->force_bounded()) {
+                const float vrel_ax = std::fabs(v_rel[axis]);
+                budget = std::min(budget,
+                                  (gluon->stiffness * bond_err_mag +
+                                   gluon->damping * vrel_ax) * dt);
+            }
+            c.min_impulse = -budget;
+            c.max_impulse = budget;
             c.accumulated_impulse = 0.0f;
 
             // FIX A: Store constraint index for this axis
@@ -1453,6 +1488,37 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             if (axis == 0) indices.x_idx = constraint_idx;
             else if (axis == 1) indices.y_idx = constraint_idx;
             else indices.z_idx = constraint_idx;
+
+            // Anchor lever arms for the force-to-rotation transducer.
+            c.apply_anchor_torque = true;
+            c.anchor_rax = lever_a[0]; c.anchor_ray = lever_a[1]; c.anchor_raz = lever_a[2];
+            c.anchor_rbx = lever_b[0]; c.anchor_rby = lever_b[1]; c.anchor_rbz = lever_b[2];
+            // The row's effective mass must include the angular response,
+            // K = 1/m_a + 1/m_b + (r_a x J)^2/I_a + (r_b x J)^2/I_b, or every
+            // impulse over-corrects the anchor it now spins.
+            {
+                float k = inv_ma + inv_mb;
+                const float jx = c.jx, jy = c.jy, jz = c.jz;
+                if (pa.is_quat_driven && pa.solver_mode != ParticleSolverMode::KINEMATIC) {
+                    const float I = pa.GetMomentOfInertia();
+                    if (I > 0.0f) {
+                        const float cx = lever_a[1]*jz - lever_a[2]*jy;
+                        const float cy = lever_a[2]*jx - lever_a[0]*jz;
+                        const float cz = lever_a[0]*jy - lever_a[1]*jx;
+                        k += (cx*cx + cy*cy + cz*cz) / I;
+                    }
+                }
+                if (pb.is_quat_driven && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                    const float I = pb.GetMomentOfInertia();
+                    if (I > 0.0f) {
+                        const float cx = lever_b[1]*jz - lever_b[2]*jy;
+                        const float cy = lever_b[2]*jx - lever_b[0]*jz;
+                        const float cz = lever_b[0]*jy - lever_b[1]*jx;
+                        k += (cx*cx + cy*cy + cz*cz) / I;
+                    }
+                }
+                if (k > 0.0f) c.effective_mass = 1.0f / k;
+            }
 
             PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                          (int)c.body_a, (int)c.body_b, "gluon_axis",
@@ -1560,6 +1626,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (q_err.w < 0.0f) { ex = -ex; ey = -ey; ez = -ez; }
                 float e_mag = std::sqrt(ex*ex + ey*ey + ez*ez);
 
+                // Wake-on-angular-strain: a joint bent away from its target
+                // is mid-recovery; sleep would freeze it bent (rung 3: the
+                // chain 'STAYED BENT' at 0.70 m because nothing wakes on
+                // angle error — the linear anchors were satisfied).
+                if (e_mag > 0.1f) {
+                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC)
+                        particles[body_a].is_at_rest = false;
+                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC)
+                        particles[body_b].is_at_rest = false;
+                }
                 if (e_mag > 1e-6f) {
                     float inv_mag = 1.0f / e_mag;
                     Constraint c_axis = c_ang;
@@ -1577,8 +1653,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c_axis.angular_bias = std::min(
                         ANGULAR_BETA * e_mag / dt,
                         PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY);
-                    c_axis.min_angular_impulse = -std::numeric_limits<float>::infinity();
-                    c_axis.max_angular_impulse = std::numeric_limits<float>::infinity();
+                    // Force-bounded bonds bend at their own angular
+                    // stiffness: torque budget = (k_ang * angle error +
+                    // c_ang * |relative spin|) * dt. Rigid joints keep
+                    // infinite authority (their semantic). Without this the
+                    // drive held segments upright with unbounded torque and
+                    // a pushed chain could only shear (rung 3: rot 0.0 deg,
+                    // joints gaping 717 mm).
+                    if (gluon->force_bounded()) {
+                        const float wrel = std::fabs(
+                            (pa.omega_x - pb.omega_x) * c_axis.angular_axis_x +
+                            (pa.omega_y - pb.omega_y) * c_axis.angular_axis_y +
+                            (pa.omega_z - pb.omega_z) * c_axis.angular_axis_z);
+                        const float tb = (gluon->angular_stiffness * e_mag +
+                                          gluon->angular_damping * wrel) * dt;
+                        c_axis.min_angular_impulse = -tb;
+                        c_axis.max_angular_impulse = tb;
+                    } else {
+                        c_axis.min_angular_impulse = -std::numeric_limits<float>::infinity();
+                        c_axis.max_angular_impulse = std::numeric_limits<float>::infinity();
+                    }
                     c_axis.accumulated_angular_impulse = 0.0f;
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                                  (int)c_axis.body_a, (int)c_axis.body_b, "gluon_angular",
@@ -2183,6 +2277,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 v_rel = c.jx * (pa.vx - pb.vx)
                       + c.jy * (pa.vy - pb.vy)
                       + c.jz * (pa.vz - pb.vz);
+                // Anchor rows measure velocity AT THE ANCHOR: add omega x r.
+                // Without this the row corrects centre velocity while torque
+                // spins the anchor ever faster — the 15 m fling of rung 3's
+                // first torque attempt.
+                if (c.apply_anchor_torque) {
+                    if (pa.is_quat_driven) {
+                        v_rel += c.jx * (pa.omega_y * c.anchor_raz - pa.omega_z * c.anchor_ray)
+                               + c.jy * (pa.omega_z * c.anchor_rax - pa.omega_x * c.anchor_raz)
+                               + c.jz * (pa.omega_x * c.anchor_ray - pa.omega_y * c.anchor_rax);
+                    }
+                    if (pb.is_quat_driven) {
+                        v_rel -= c.jx * (pb.omega_y * c.anchor_rbz - pb.omega_z * c.anchor_rby)
+                               + c.jy * (pb.omega_z * c.anchor_rbx - pb.omega_x * c.anchor_rbz)
+                               + c.jz * (pb.omega_x * c.anchor_rby - pb.omega_y * c.anchor_rbx);
+                    }
+                }
             }
 
             // Compute impulse to satisfy constraint
@@ -2262,6 +2372,32 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pb.vx -= c.jx * impulse * inv_mb;
                 pb.vy -= c.jy * impulse * inv_mb;
                 pb.vz -= c.jz * impulse * inv_mb;
+            }
+
+            // ANCHOR TORQUE: the same impulse, applied at the anchor, spins
+            // the body: omega += (r x J*impulse) / I. Opt-in per body via
+            // is_quat_driven so nothing outside the rotational-DOF path
+            // changes behavior.
+            if (c.apply_anchor_torque && std::fabs(impulse) > 1e-12f) {
+                const float fx = c.jx * impulse, fy = c.jy * impulse, fz = c.jz * impulse;
+                if (pa.is_quat_driven && inv_ma > 0.0f) {
+                    const float I = pa.GetMomentOfInertia();
+                    if (I > 0.0f) {
+                        const float inv = 1.0f / I;
+                        pa.omega_x += (c.anchor_ray * fz - c.anchor_raz * fy) * inv;
+                        pa.omega_y += (c.anchor_raz * fx - c.anchor_rax * fz) * inv;
+                        pa.omega_z += (c.anchor_rax * fy - c.anchor_ray * fx) * inv;
+                    }
+                }
+                if (!c.is_turtle_contact && pb.is_quat_driven && inv_mb > 0.0f) {
+                    const float I = pb.GetMomentOfInertia();
+                    if (I > 0.0f) {
+                        const float inv = 1.0f / I;
+                        pb.omega_x -= (c.anchor_rby * fz - c.anchor_rbz * fy) * inv;
+                        pb.omega_y -= (c.anchor_rbz * fx - c.anchor_rbx * fz) * inv;
+                        pb.omega_z -= (c.anchor_rbx * fy - c.anchor_rby * fx) * inv;
+                    }
+                }
             }
 
             // CANARY_DEBUG: Log solver impulse applied to canary

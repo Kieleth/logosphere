@@ -185,6 +185,16 @@ public:
     // Each gluon type calculates its own breaking force (polymorphic)
     virtual float calculate_breaking_force(const Particle& p_a, const Particle& p_b) const = 0;
 
+    // FORCE-BOUNDED bonds (rung 3). A row's impulse budget per substep is
+    // the force the bond's spring could actually exert at its current
+    // stretch, (stiffness * |error| + damping * |v_rel|) * dt, capped by
+    // breaking. Without this, 'stiffness' was decorative: every bond was an
+    // infinitely strong constraint with a 4 m/s rate limit, so a walking
+    // push could never bend a blade (the bond restored as fast as the
+    // capped bias allowed, whatever force that took). Nails and rigid
+    // welds stay unbounded: that is their semantic.
+    virtual bool force_bounded() const { return false; }
+
     // Tear-at-elongation limit, as a ratio of rest length. Infinity = never
     // tears by strain (rigid joints, nails). Needed because force-based
     // breaking cannot fire on light bodies: a 2-gram blade segment's rows
@@ -257,6 +267,8 @@ public:
         float strength = (p_a.material_strength + p_b.material_strength) * 0.5f;
         return contact_area * strength;
     }
+
+    bool force_bounded() const override { return true; }
 
     // Plant fiber tears at roughly double its rest length. Generous vs the
     // few-percent elongation of real fiber, deliberately: bends and normal

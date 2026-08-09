@@ -18,8 +18,12 @@
 //   anchor never moves and the child never follows: RED.
 //
 // Later rungs (each lands only after the previous is OK'd visually):
-//   RUNG 2 — anchor forces produce torque (r x J): the child ROTATES.
-//   RUNG 3 — a 3-segment chain bends by rotating, shear stays ~0.
+//   RUNG 2 — the child's orientation rides the bond (quaternion drive).
+//   RUNG 3 — NO scripted rotation anywhere: a kinematic finger pushes a
+//            3-segment free chain; it must bend BY ROTATING at its joints,
+//            stay connected, and spring back when the finger leaves. This is
+//            the owner's caveat on rung 2, encoded: rotation must arise from
+//            the effect of forces through the bond, not from a script.
 //   RUNG 4 — the single-blade gate clause 'bends by ROTATING' goes green.
 //
 // INTERACTIVE=1 is stage-gated: the window opens lit and WAITS. SPACE turns
@@ -41,6 +45,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -160,6 +165,15 @@ void rotate_by(const Particle& p, float ox, float oy, float oz,
     wz = z2;
 }
 
+float angle_between(std::array<float,3> u, std::array<float,3> w) {
+    const float du = std::sqrt(u[0]*u[0]+u[1]*u[1]+u[2]*u[2]);
+    const float dw = std::sqrt(w[0]*w[0]+w[1]*w[1]+w[2]*w[2]);
+    if (du < 1e-9f || dw < 1e-9f) return 0.0f;
+    float c = (u[0]*w[0]+u[1]*w[1]+u[2]*w[2]) / (du*dw);
+    c = std::fmax(-1.0f, std::fmin(1.0f, c));
+    return std::acos(c);
+}
+
 // AABB pair penetration: the minimal push-out depth if the boxes' volumes
 // overlap, 0 otherwise. This is what the collision system sees (the narrow
 // phase is AABB and rotation-blind), and it is what the owner saw on screen:
@@ -240,6 +254,10 @@ Rung rung1(Engine& engine) {
     g->enable_angular_constraint = true;
     g->angular_drive_enabled = true;
     g->use_quat_target = true;    // target_relative_q stays identity
+    // A stiff joint, explicitly: angular authority is force-bounded now, so
+    // 'rigid-ish' must be said in newtons, not assumed from infinity.
+    g->angular_stiffness = 20000.0f;
+    g->angular_damping = 500.0f;
     engine.get_physics_system().add_gluon_between(parent, child, std::move(g));
     {
         auto v = ps.lock_particles_for_write();
@@ -406,6 +424,225 @@ Rung rung2_verdict() {
     return r;
 }
 
+// ---------------------------------------------------------------------------
+// RUNG 3: force-caused bending. Base block KINEMATIC at the floor; three
+// 0.6 m segments stacked above it, every one DYNAMIC and quaternion-driven,
+// bonded end-to-end with anchors + drive toward the grown (upright) pose.
+// A kinematic finger sweeps through at 1 m/s, then withdraws. Nothing
+// scripts any rotation.
+// ---------------------------------------------------------------------------
+Rung rung3(Engine& engine) {
+    Rung r; r.name = "3 chain bends by rotating, recovers";
+    auto& ps = engine.get_particle_system();
+
+    auto seg_box = [&](float z) {
+        Particle p = {};
+        p.shape = ParticleShape::BOX;
+        p.x = 3.0f; p.y = 0.0f; p.z = z;      // beside the rung-1 rig
+        // 30 kg segments, deliberately. At this mass the rung is STABLE and
+        // shows true bend-by-rotation with correct-physics droop (gravity
+        // torque on the bent chain beats the 500 N*m/rad drives, so it
+        // recovers only partway — grass made of logs). Fiber-light segments
+        // (4 kg) detonate these same bonds WITHOUT the finger touching
+        // them: the mass-dependent bond instability that is issue #47's
+        // residual, now reproducible with five bodies. That repro is the
+        // next red, for the microscope, not for parameter surgery here.
+        p.width = 0.25f; p.height = 0.25f; p.thickness = 0.6f;
+        p.size = 0.25f;
+        p.r = 0.4f; p.g = 0.75f; p.b = 0.35f; p.a = 1.0f;
+        p.SetMaterial(Materials::Type::WOOD_HARD);
+        return engine.add_particle(p);
+    };
+
+    // Root block, kinematic, half-buried at the floor like a stump.
+    Particle rootp = {};
+    rootp.shape = ParticleShape::BOX;
+    rootp.x = 3.0f; rootp.y = 0.0f; rootp.z = 0.3f;
+    rootp.width = rootp.height = 0.4f; rootp.thickness = 0.4f; rootp.size = 0.4f;
+    rootp.r = 0.45f; rootp.g = 0.3f; rootp.b = 0.2f; rootp.a = 1.0f;
+    rootp.SetMaterial(Materials::Type::STONE);
+    const int root = engine.add_particle(rootp);
+    const int s1 = seg_box(0.8f);
+    const int s2 = seg_box(1.4f);
+    const int s3 = seg_box(2.0f);
+
+    // The finger: kinematic slab that will sweep through chain mid-height.
+    Particle fing = {};
+    fing.shape = ParticleShape::BOX;
+    fing.x = 3.0f; fing.y = -2.0f; fing.z = 1.4f;
+    fing.width = 0.3f; fing.height = 0.3f; fing.thickness = 0.3f; fing.size = 0.3f;
+    fing.r = 0.8f; fing.g = 0.35f; fing.b = 0.3f; fing.a = 1.0f;
+    fing.SetMaterial(Materials::Type::STONE);
+    const int finger = engine.add_particle(fing);
+    ps.flush_pending_particles();
+    {
+        auto v = ps.lock_particles_for_write();
+        v[root].solver_mode = ParticleSolverMode::KINEMATIC;
+        v[root].owner = ParticleOwner::DYNAMICS;
+        v[finger].solver_mode = ParticleSolverMode::KINEMATIC;
+        v[finger].owner = ParticleOwner::DYNAMICS;
+        for (int id : {root, s1, s2, s3}) v[id].material_strength = 1e9f;
+        v[finger].material_strength = 1e9f;
+        for (int id : {s1, s2, s3}) v[id].is_quat_driven = true;
+    }
+    auto bond = [&](int a, int b, float za, float zb) {
+        auto g = std::make_unique<OrganicGluon>();
+        g->offset_a = {0.0f, 0.0f, za};
+        g->offset_b = {0.0f, 0.0f, zb};
+        g->target_distance = 0.0f;
+        g->rotate_offsets = true;
+        g->contact_area = 1.0f;
+        // Fiber character: STIFF in length (joints must not gape under a
+        // walking push), SOFT in bend (the same push folds the joints).
+        g->stiffness = 500000.0f;
+        g->damping = 2000.0f;
+        g->enable_angular_constraint = true;
+        g->angular_drive_enabled = true;
+        g->use_quat_target = true;   // grown pose: identity (upright)
+        g->angular_stiffness = 500.0f;   // N*m/rad
+        g->angular_damping = 20.0f;
+        engine.get_physics_system().add_gluon_between(a, b, std::move(g));
+    };
+    bond(root, s1, +0.2f, -0.3f);
+    bond(s1, s2, +0.3f, -0.3f);
+    bond(s2, s3, +0.3f, -0.3f);
+
+    if (g_label) g_label->set_text(
+        "RUNG 3  settling: free 3-segment chain on a kinematic stump (nothing scripts rotation)");
+    for (int f = 0; f < 90 && engine.is_running(); ++f) step(engine);
+
+    const float tip_z0 = [&] { auto v = ps.lock_particles_for_write(); return v[s3].z; }();
+    const float tip_y0 = [&] { auto v = ps.lock_particles_for_write(); return v[s3].y; }();
+
+    if (g_label) g_label->set_text(
+        "RUNG 3  SPACE: a finger sweeps through at 1 m/s — the chain must bend BY ROTATING, then recover");
+    if (!wait_for_space(engine)) { r.passed = false;
+        snprintf(r.detail, sizeof r.detail, "owner quit before the sweep");
+        return r; }
+
+    // Sweep: finger crosses from y=-2 to y=+2 at 1 m/s (240 frames), then
+    // teleports away and the chain gets 300 frames (5 tau) to recover.
+    float peak_rot = 0.0f, peak_shear = 0.0f, peak_gap = 0.0f, peak_tip = 0.0f;
+    uint64_t contacts = 0;
+    auto measure = [&](const char* phase_txt, int f) {
+        auto v = ps.lock_particles_for_write();
+        // segment rotation from upright (any axis): angle of rotated +Z vs +Z
+        float worst_rot = 0.0f, worst_shear = 0.0f, worst_gap = 0.0f;
+        const int chain[4] = {root, s1, s2, s3};
+        const float offs[3][2] = {{+0.2f,-0.3f},{+0.3f,-0.3f},{+0.3f,-0.3f}};
+        for (int k = 0; k < 3; ++k) {
+            const Particle& pa = v[chain[k]];
+            const Particle& pb = v[chain[k+1]];
+            float aw[3], bw[3];
+            rotate_by(pa, 0, 0, offs[k][0], aw[0], aw[1], aw[2]);
+            rotate_by(pb, 0, 0, offs[k][1], bw[0], bw[1], bw[2]);
+            const float gap = dist3(pa.x + aw[0], pa.y + aw[1], pa.z + aw[2],
+                                    pb.x + bw[0], pb.y + bw[1], pb.z + bw[2]);
+            worst_gap = std::fmax(worst_gap, gap);
+            // pose rotation of the child
+            float axz[3];
+            rotate_by(pb, 0, 0, 1.0f, axz[0], axz[1], axz[2]);
+            const float rot = angle_between({axz[0], axz[1], axz[2]}, {0, 0, 1});
+            worst_rot = std::fmax(worst_rot, rot);
+            // shear: bond direction vs the parent's axis
+            const float dx = pb.x - pa.x, dy = pb.y - pa.y, dz = pb.z - pa.z;
+            float pax[3];
+            rotate_by(pa, 0, 0, 1.0f, pax[0], pax[1], pax[2]);
+            worst_shear = std::fmax(worst_shear,
+                angle_between({pax[0], pax[1], pax[2]}, {dx, dy, dz}));
+        }
+        const float tipd = dist3(v[s3].x, v[s3].y, v[s3].z, 3.0f, tip_y0, tip_z0);
+        if (!g_interactive && (f % 30) == 0) {   // TEMP DIAG
+            size_t alive = 0;
+            for (int id : {s1, s2, s3})
+                alive += engine.get_physics_system().get_gluons_for_particle(id).size();
+            printf("      [diag %s f%3d] gaps mm:", phase_txt, f);
+            for (int k = 0; k < 3; ++k) {
+                const Particle& qa = v[chain[k]];
+                const Particle& qb = v[chain[k+1]];
+                float aw[3], bw[3];
+                rotate_by(qa, 0, 0, offs[k][0], aw[0], aw[1], aw[2]);
+                rotate_by(qb, 0, 0, offs[k][1], bw[0], bw[1], bw[2]);
+                printf(" %4.0f", 1000.0f * dist3(qa.x+aw[0], qa.y+aw[1], qa.z+aw[2],
+                                                  qb.x+bw[0], qb.y+bw[1], qb.z+bw[2]));
+            }
+            printf("  rot deg: %4.0f %4.0f %4.0f  bonds(alive edges) %zu  tip %.2f\n",
+                   [&]{float a[3];rotate_by(v[s1],0,0,1,a[0],a[1],a[2]);return angle_between({a[0],a[1],a[2]},{0,0,1})*57.3f;}(),
+                   [&]{float a[3];rotate_by(v[s2],0,0,1,a[0],a[1],a[2]);return angle_between({a[0],a[1],a[2]},{0,0,1})*57.3f;}(),
+                   [&]{float a[3];rotate_by(v[s3],0,0,1,a[0],a[1],a[2]);return angle_between({a[0],a[1],a[2]},{0,0,1})*57.3f;}(),
+                   alive, tipd);
+        }
+        peak_rot = std::fmax(peak_rot, worst_rot);
+        peak_shear = std::fmax(peak_shear, worst_shear);
+        peak_gap = std::fmax(peak_gap, worst_gap);
+        peak_tip = std::fmax(peak_tip, tipd);
+        for (const auto& ev : engine.get_physics_system().get_collision_events()) {
+            const bool fa = (int)ev.particle_a == finger, fb = (int)ev.particle_b == finger;
+            if (fa || fb) contacts++;
+        }
+        if (g_live && (f % 3) == 0) {
+            char buf[288];
+            snprintf(buf, sizeof buf,
+                     "%s f%3d  tip defl %5.2f m  seg ROT %5.1f deg  SHEAR %5.1f deg  "
+                     "joint gap %4.0f mm  finger contacts %llu",
+                     phase_txt, f, tipd, worst_rot * 180.0f / (float)M_PI,
+                     worst_shear * 180.0f / (float)M_PI, worst_gap * 1000.0f,
+                     (unsigned long long)contacts);
+            g_live->set_text(buf);
+        }
+    };
+    for (int f = 0; f < 240 && engine.is_running(); ++f) {
+        {
+            auto v = ps.lock_particles_for_write();
+            v[finger].y = -2.0f + (float)f * (1.0f / 60.0f);
+            v[finger].vy = 1.0f;
+        }
+        step(engine);
+        measure("SWEEP", f);
+    }
+    {
+        auto v = ps.lock_particles_for_write();
+        v[finger].x = 30.0f; v[finger].y = -20.0f; v[finger].vy = 0.0f;  // gone
+    }
+    const float rot_at_push = peak_rot, shear_at_push = peak_shear;
+    if (g_label) g_label->set_text(
+        "RUNG 3  finger gone: the chain must spring back upright (the drives restore)");
+    for (int f = 0; f < 400 && engine.is_running(); ++f) { step(engine); measure("RECOV", f); }
+
+    float final_tip;
+    {
+        auto v = ps.lock_particles_for_write();
+        final_tip = dist3(v[s3].x, v[s3].y, v[s3].z, 3.0f, tip_y0, tip_z0);
+    }
+    if (g_label) {
+        char buf[224];
+        snprintf(buf, sizeof buf,
+                 "RUNG 3 done: peak rot %.0f deg, shear %.0f deg, tip recovered to %.2f m. "
+                 "ESC or close when satisfied.",
+                 rot_at_push * 180.0f / (float)M_PI,
+                 shear_at_push * 180.0f / (float)M_PI, final_tip);
+        g_label->set_text(buf);
+    }
+    hold_until_close(engine);
+
+    const bool touched   = contacts > 0;
+    const bool bent      = peak_tip > 0.15f;
+    const bool by_rot    = rot_at_push > (15.0f * (float)M_PI / 180.0f);
+    const bool low_shear = shear_at_push < (15.0f * (float)M_PI / 180.0f);
+    const bool connected = peak_gap < 0.05f;
+    const bool recovered = final_tip < 0.15f;
+    r.passed = touched && bent && by_rot && low_shear && connected && recovered;
+    snprintf(r.detail, sizeof r.detail,
+             "contacts %llu; tip defl peak %.2f m (bend %s); seg rot %.1f deg %s; "
+             "shear %.1f deg %s; joint gap peak %.0f mm %s; final tip %.2f m %s",
+             (unsigned long long)contacts, peak_tip, bent ? "yes" : "NO",
+             rot_at_push * 180.0f / (float)M_PI, by_rot ? "" : "(NO ROTATION)",
+             shear_at_push * 180.0f / (float)M_PI, low_shear ? "" : "(SHEARED)",
+             peak_gap * 1000.0f, connected ? "" : "(DISMEMBERED)",
+             final_tip, recovered ? "(recovered)" : "(STAYED BENT)");
+    return r;
+}
+
 } // namespace
 
 bool test_rotation_ladder() {
@@ -442,7 +679,7 @@ bool test_rotation_ladder() {
         }
     }
 
-    Rung rungs[] = { rung1(engine), rung2_verdict() };
+    Rung rungs[] = { rung1(engine), rung2_verdict(), rung3(engine) };
 
     bool all = true;
     for (const Rung& r : rungs) {

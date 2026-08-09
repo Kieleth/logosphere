@@ -275,6 +275,15 @@ struct Constraint {
     // path so a combined pose converges as one Rodrigues rotation
     // rather than three independent per-axis rows.
     uint8_t angular_axis_idx = 2;
+    // ANCHOR TORQUE (rung 3): world-space lever arms from each body's centre
+    // to the bond anchor. When set, the linear impulse also torques any
+    // quaternion-driven body (omega += (r x J*impulse) / I) — the transducer
+    // from linear force to rotation. Without it a pushed chain can only
+    // shear: nothing in the solver converted force into spin.
+    bool  apply_anchor_torque = false;
+    float anchor_rax = 0.0f, anchor_ray = 0.0f, anchor_raz = 0.0f;
+    float anchor_rbx = 0.0f, anchor_rby = 0.0f, anchor_rbz = 0.0f;
+
     float angular_axis_x = 0.0f;
     float angular_axis_y = 0.0f;
     float angular_axis_z = 0.0f;
