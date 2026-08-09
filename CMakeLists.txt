@@ -112,6 +112,11 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/kg_ops_parse.cpp
     src/kg/kg_ops_apply.cpp
     src/kg/ontology_validator.cpp
+    # Seed files: envelope + aliased KG-ops loaded through the
+    # validated write path, and the three-check ingestion verifier
+    # (verbatim / schema / value + invariants). docs/RPG_MODULE.md.
+    src/kg/seed_loader.cpp
+    src/kg/seed_verifier.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -226,7 +231,8 @@ target_include_directories(logosphere_core PUBLIC
     $<INSTALL_INTERFACE:include>
     $<INSTALL_INTERFACE:include/logosphere/internal>
 )
-# nlohmann/json is header-only; only kg_ops_parse.cpp uses it.
+# nlohmann/json is header-only; only kg_ops_parse.cpp and
+# seed_loader.cpp use it.
 target_include_directories(logosphere_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
@@ -366,6 +372,19 @@ add_headless_test(test_rulebook_pack)
 # Verbatim-checks its citations against the vendored SRD in the tree.
 target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_seed_verifier)
+# Reads its seed fixtures + the vendored SRD from the source tree.
+target_compile_definitions(test_seed_verifier
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# The ingestion verifier CLI: logosphere-verify <seed.json> <source-root>.
+# Links the ENGINE registries only (core + rulebook + earth + space,
+# merged); game seed files with game types verify through game-side
+# targets calling kg::verify_seed with their own registry.
+add_executable(logosphere-verify tools/logosphere_verify.cpp)
+target_link_libraries(logosphere-verify PRIVATE logosphere_core)
+target_compile_features(logosphere-verify PRIVATE cxx_std_17)
+
 # Logoveyer: absorbed rules proven against the book's own numbers.
 # Game sources compiled into the test, engine as a library.
 add_executable(test_logovger_rules_book1

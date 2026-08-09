@@ -1,0 +1,126 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "0839018902355215fb8148f0b4ce1b1f8e011080"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "DiceExpression": 2,
+      "TaskCheck": 1,
+      "RuleConstant": 2,
+      "RollableTable": 1,
+      "TableEntry": 2
+    },
+    "unique_name_per_type": ["DiceExpression", "RuleConstant", "TableEntry"],
+    "band_coverage": { "@mishap_table": [2, 3] }
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d2d6",
+      "properties": {
+        "name": "2d6",
+        "dice_count": 2,
+        "dice_sides": 6,
+        "source_section": "Generating Characteristic Scores",
+        "source_quote": "Roll your six characteristics using 2D6, and record them in the standard order"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d1d6",
+      "properties": {
+        "name": "1d6",
+        "dice_count": 1,
+        "dice_sides": 6,
+        "source_section": "Survival",
+        "source_quote": "| 1D6 | Mishaps |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@int_throw",
+      "properties": {
+        "name": "int_8_plus",
+        "attribute_ref": "intelligence",
+        "target_number": 8,
+        "dice": "@d2d6",
+        "source_section": "Careers",
+        "source_quote": "A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@age_of_majority",
+      "properties": {
+        "name": "age_of_majority",
+        "constant_value": 18,
+        "source_section": "Chapter 1: Character Creation",
+        "source_quote": "All characters begin at the age of majority, typically 18."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@prior_career_dm",
+      "properties": {
+        "name": "prior_career_dm",
+        "constant_value": -2,
+        "source_section": "Qualifying and the Draft",
+        "source_quote": "You suffer a DM–2 to qualification rolls for each previous career you have entered."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@mishap_table",
+      "properties": {
+        "name": "survival_mishaps",
+        "dice": "@d1d6",
+        "source_section": "Survival",
+        "source_quote": "| 1D6 | Mishaps |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_2",
+      "properties": {
+        "name": "mishap_row_2",
+        "roll_min": 2,
+        "roll_max": 2,
+        "source_section": "Survival",
+        "source_quote": "| 2 | Honorably discharged from the service. |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_3",
+      "properties": {
+        "name": "mishap_row_3",
+        "roll_min": 3,
+        "roll_max": 3,
+        "source_section": "Survival",
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_2"
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_3"
+    }
+  ]
+}

@@ -186,6 +186,42 @@ void play_cinematic_missing_name_warns() {
     ASSERT_TRUE(!r.warnings.empty(), "warning surfaced");
 }
 
+void create_entity_as_binder_accepted_and_stripped() {
+    auto r = kg::parse_kg_ops(R"({"ops":[
+        {"op":"create_entity","type":"RuleConstant","as":"@gun_combat"}
+    ]})");
+    ASSERT_TRUE(r.parse_error.empty() && r.warnings.empty(), "clean parse");
+    auto* ce = std::get_if<kg::KGOpCreateEntity>(&r.ops[0]);
+    ASSERT_TRUE(ce != nullptr, "must be CreateEntity variant");
+    ASSERT_TRUE(ce->as == "gun_combat", "@ stripped from binder");
+}
+
+void create_entity_without_as_binds_nothing() {
+    auto r = kg::parse_kg_ops(R"({"ops":[
+        {"op":"create_entity","type":"RuleConstant"}
+    ]})");
+    ASSERT_TRUE(r.parse_error.empty(), "no parse error");
+    auto* ce = std::get_if<kg::KGOpCreateEntity>(&r.ops[0]);
+    ASSERT_TRUE(ce != nullptr && ce->as.empty(), "absent 'as' → empty");
+}
+
+void malformed_as_binder_is_refused() {
+    // Strict refusal, not normalization: empty, bare "@", missing
+    // "@", and non-string all drop the op with a warning.
+    const char* bad[] = {
+        R"({"ops":[{"op":"create_entity","type":"X","as":""}]})",
+        R"({"ops":[{"op":"create_entity","type":"X","as":"@"}]})",
+        R"({"ops":[{"op":"create_entity","type":"X","as":"gun_combat"}]})",
+        R"({"ops":[{"op":"create_entity","type":"X","as":7}]})",
+    };
+    for (const char* json : bad) {
+        auto r = kg::parse_kg_ops(json);
+        ASSERT_TRUE(r.parse_error.empty(), "not fatal");
+        ASSERT_TRUE(r.ops.empty(), "malformed 'as' drops the op");
+        ASSERT_TRUE(!r.warnings.empty(), "and warns about it");
+    }
+}
+
 int main() {
     if (std::getenv("CI")) {
         std::cout << "SKIP all (CI)" << std::endl;
@@ -206,6 +242,9 @@ int main() {
     TEST(parses_play_cinematic_with_target_and_params);
     TEST(parses_play_cinematic_no_target_no_params);
     TEST(play_cinematic_missing_name_warns);
+    TEST(create_entity_as_binder_accepted_and_stripped);
+    TEST(create_entity_without_as_binds_nothing);
+    TEST(malformed_as_binder_is_refused);
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;
     return tests_failed > 0 ? 1 : 0;
