@@ -89,6 +89,7 @@ extern bool test_foliage_stays_attached();    // issue #38: do leaves stay bonde
 extern bool test_no_overlap_at_creation();    // issue #38 RED: nothing may be created inside something else (STANDALONE)
 extern bool test_tree_repair_visual();        // issue #38: broken vs fixed tree, side by side (STANDALONE)
 extern bool test_explosion_detector();        // issue #42: the engine reports its own explosions (STANDALONE)
+extern bool test_butterfly_detonation();      // issue #47: gram-scale bodies vs the solver, ladder (STANDALONE)
 extern bool test_immovable_pair_phantom_impulse(); // TDD RED: phantom impulse from zero-inv-mass pairs (STANDALONE)
 extern bool test_ui_label_actually_renders();// Does a registered widget actually render? (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
@@ -275,6 +276,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_no_overlap_at_creation"] = [](TestContext&) { return test_no_overlap_at_creation(); };  // STANDALONE: own engine
     registry["test_tree_repair_visual"] = [](TestContext&) { return test_tree_repair_visual(); };  // STANDALONE: own engine
     registry["test_explosion_detector"] = [](TestContext&) { return test_explosion_detector(); };  // STANDALONE: own engine
+    registry["test_butterfly_detonation"] = [](TestContext&) { return test_butterfly_detonation(); };  // STANDALONE: own engine
     registry["test_immovable_pair_phantom_impulse"] = [](TestContext&) { return test_immovable_pair_phantom_impulse(); };  // STANDALONE: own engine
     registry["test_ui_label_actually_renders"] = [](TestContext&) { return test_ui_label_actually_renders(); };  // STANDALONE: own engine
 
@@ -687,6 +689,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_no_overlap_at_creation",
         "test_tree_repair_visual",
         "test_explosion_detector",
+        "test_butterfly_detonation",
         "test_immovable_pair_phantom_impulse",
         "test_ui_label_actually_renders",
         "test_interaction_filtering",
@@ -785,6 +788,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_no_overlap_at_creation", test_no_overlap_at_creation},
         {"test_tree_repair_visual", test_tree_repair_visual},
         {"test_explosion_detector", test_explosion_detector},
+        {"test_butterfly_detonation", test_butterfly_detonation},
         {"test_immovable_pair_phantom_impulse", test_immovable_pair_phantom_impulse},
         {"test_ui_label_actually_renders", test_ui_label_actually_renders},
         {"test_interaction_filtering", test_interaction_filtering},
