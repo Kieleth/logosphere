@@ -189,17 +189,48 @@ Load-bearing properties:
 | 2026-08-09 | Rule text per turn: curated fragments, LEARNABLE. Referee may request find_rule(query); the engine searches the vendored SRD (plain text first); results are BAKED BACK as curation-link entities in the KG, so curation grows by play |
 | 2026-08-09 | Orchestration: the DECISION LADDER (see section below). Time passing masks LLM latency; the referee works AHEAD of play; free-form output bakes back as validated ops + NPC intents that become GOAP goals |
 | 2026-08-09 | Models: Sonnet-class referee, Haiku-class fast tier and extraction, KISS; Opus-class noted for heavy world creation later. Model is config, never a constant |
+| 2026-08-09 | Skills modeling: `Skill` is a CLASS, the ~50 skills are KG-seeded INSTANCES (ops file), cascades are relations. Decisive evidence is the book's own line: "Referees may add other skills as needed" — the open vocabulary is the book's design, so voyager extends by ops, never by editing the cepheus pack |
+| 2026-08-09 | First divergence-from-source recorded: the SRD's Available Skills List prints "Slug Pistol" twice; the Gun Combat cascade and the description sections prove the second entry is "Slug Rifle". We transcribe from the descriptions with a divergence note; reported upstream as orffen/cepheus-srd#36 |
 | 2026-08-09 | Rule instances load as KG-OPS FILES applied at game start (ingestion emits ops; one write grammar for book, referee, game). World persistence direction: LAYERED MANIFEST, never a monolith: named+versioned seed layers (engine, cepheus@commit, voyager@version, worldgen@seed) plus a session delta (ops or snapshot+journal). Snapshot is a cache, not a format. KG save/load is future ENGINE work |
+
+## Build state (updated at each compaction point)
+
+_Last updated 2026-08-09, post dice-service merge._
+
+| Step | What | State |
+|---|---|---|
+| 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 25/0, merged to main (584c3f5) |
+| 2 | rulebook.yaml engine meta-pack (+ Cited mixin, SPECIALIZES relation for skill cascades) | next: PR2 |
+| 3 | cepheus skills pack (Skill class; 50 instances come later via ops) | after PR2, uses Cited |
+| 4 | The three-check verifier (verbatim / schema / invariant) | pending |
+| 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | pending, needs 3+4 |
+| 6 | Ops loader: seed files -> KG at game start | pending |
+| 7 | Executor + procedure runner (outcome-label routing) + ~12 thin primitives | pending |
+| 8 | Chargen session: referee loop (stub for CI, Sonnet behind env key), chat window first consumer, a-b-c choices then the voyager L slot, rule-12 visual (a life as a timeline) | the slice-1 goal |
+
+Working agreements in force: decisions surfaced BEFORE building; gated
+merges only (conclusion checked in the same command); background tasks
+in the repo may wait and read, never mutate; external communication is
+drafted in-chat and sent only after approval.
 
 ## OPEN (not yet decided, do not build past them)
 
-1. The primitive list for chargen's Procedure steps.
-3. Rule-text selection per referee turn (curated fragments vs retrieval).
-4. Turn cadence and interruption model for the referee loop.
-5. Referee dev transport (scripted responder stub first, per Logogenesis
-   AT pattern) and model choice.
-6. Where rule INSTANCES load from: data files into KG at start, or
-   generated into the game registry. Leaning data-into-KG; undecided.
+_Reconciled 2026-08-09 against the decisions log; former items 3, 5, 6
+(rule-text selection, dev transport, instance loading) are decided
+above and removed here._
+
+1. The concrete primitive LIST for chargen's Procedure steps. The
+   shape is decided (thin, sub-step grain, gotos as routing data);
+   the ~12 names surface for approval at step 7.
+2. Turn cadence and interruption model for the referee loop.
+3. Escalation policy living ON the content (NPC carries tree + persona
+   brief + escalation marks): leaning yes, confirm at build.
+4. PersonaBrief shape: what the tier-2 fast LLM gets per NPC.
+5. Layered-manifest persistence: direction decided (named+versioned
+   seed layers + session delta, never a monolith), the concrete
+   manifest format is engine work to design before the worlds slice.
+6. find_rule retrieval: plain-text search over the vendored SRD first;
+   upgrade only on evidence it falls short.
 
 ## Pointers
 
