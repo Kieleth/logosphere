@@ -14,7 +14,7 @@ static void log_goap(bool verbose, const char* tag, const std::string& msg) {
 }
 
 ExecutionContext GOAPPlanExecutor::build_context(
-    const std::string& action_name,
+    const goap::Action& action,
     goap::WorldState& world_state,
     float x, float y, float rotation, float dt,
     const CreatureParams& params)
@@ -36,25 +36,26 @@ ExecutionContext GOAPPlanExecutor::build_context(
     ctx.nav_grid = nav_grid_;
     ctx.current_path = current_path_;
 
-    // Target position - read from params based on action type
-    // (Targets are set by brain's perception layer, not external set_target() calls)
-    // NOTE: Use action_name parameter, NOT state_.current_action_name, because
-    // state may not be updated yet on the first frame of a new action
-    if (action_name == "PURSUE" || action_name == "EAT") {
-        ctx.target_x = params.food_x;
-        ctx.target_y = params.food_y;
-        ctx.has_target = true;
-    } else if (action_name == "INVESTIGATE_SMELL") {
-        ctx.target_x = params.smell_target_x;
-        ctx.target_y = params.smell_target_y;
-        ctx.has_target = true;
-    } else if (action_name == "ESCAPE_BLOCK") {
-        // ESCAPE_BLOCK uses the last known target (where we were trying to go)
-        ctx.target_x = params.food_x != 0 ? params.food_x : params.smell_target_x;
-        ctx.target_y = params.food_y != 0 ? params.food_y : params.smell_target_y;
-        ctx.has_target = true;
+    // Target routing is the ACTION's declaration, not a name ladder.
+    // The old code matched action names against a hardcoded list
+    // (PURSUE, EAT, INVESTIGATE_SMELL, ESCAPE_BLOCK), which put game
+    // vocabulary in the engine, and used `food_x != 0` as "no target",
+    // which mistook the world origin for absence and could weld x from
+    // one location to y from another (#44). Now: the action names which
+    // target it consumes; the brain publishes targets by name; absence
+    // is the key being absent.
+    if (!action.target_key.empty()) {
+        auto it = params.targets.find(action.target_key);
+        if (it != params.targets.end()) {
+            ctx.target_x = it->second.first;
+            ctx.target_y = it->second.second;
+            ctx.has_target = true;
+        } else {
+            ctx.has_target = false;   // declared but not published: honest absence
+        }
     } else {
-        // Fallback to legacy set_target mechanism (for backwards compatibility)
+        // Action declares no target: legacy direct-drive set_target()
+        // still works for brains that steer by hand.
         ctx.target_x = target_x_;
         ctx.target_y = target_y_;
         ctx.has_target = has_target_;
@@ -65,14 +66,13 @@ ExecutionContext GOAPPlanExecutor::build_context(
     ctx.run_speed = params.run_speed;
     ctx.turn_speed = params.turn_speed;
     ctx.arrival_distance = params.arrival_distance;
-    ctx.action_duration = params.eat_duration;
+    ctx.action_duration = params.action_duration;
 
     // Timer for timed actions
     ctx.action_timer = &state_.action_timer;
 
-    // Eating parameters (physics-based consumption)
-    ctx.mouth_volume_cm3 = params.mouth_volume_cm3;
-    ctx.food_state = params.food_state;
+    // Opaque game context: copied, never read.
+    ctx.game_data = params.game_data;
 
     return ctx;
 }
@@ -85,10 +85,16 @@ PlanExecutionResult GOAPPlanExecutor::update(
 {
     PlanExecutionResult result;
 
-    // No registry = can't execute
+    // No registry = can't execute. Reported as a FAILURE, not as a
+    // completed plan: plan_completed here used to be the same signal a
+    // finished plan gives, so a brain doing `if (plan_completed)
+    // pick_new_goal()` concluded the creature achieved something while
+    // it silently did nothing every frame (#45). The plan is left
+    // intact, action_failed and needs_replan say why nothing ran.
     if (!registry_) {
         log_goap(verbose_, "ERROR", "No registry connected");
-        result.plan_completed = true;
+        result.action_failed = true;
+        result.needs_replan = true;
         return result;
     }
 
@@ -107,13 +113,34 @@ PlanExecutionResult GOAPPlanExecutor::update(
 
     // Build execution context
     // Pass action->name explicitly so context has correct targets on first frame
-    ExecutionContext ctx = build_context(action->name, world_state, x, y, rotation, dt, params);
+    ExecutionContext ctx = build_context(*action, world_state, x, y, rotation, dt, params);
 
     // Check if action changed (new action starting)
     if (action->name != state_.current_action_name) {
         // End previous action if any
         if (state_.action_started && !state_.current_action_name.empty()) {
             registry_->end_action(state_.current_action_name, ctx, false);
+            state_.current_action_name.clear();
+            state_.action_started = false;
+        }
+
+        // An action only STARTS if the world satisfies its declared
+        // preconditions. The planner chained these actions because each
+        // one's effects enable the next; when an action fails, its
+        // effects are (correctly) not applied, and without this gate the
+        // next action ran anyway — the predator AT caught EAT running in
+        // a place PURSUE never reached, eating food that was not there.
+        // Unmet preconditions mean the plan is STALE, not that anything
+        // failed: report needs_replan and leave the plan for the brain.
+        // Checked at action START only; an in-flight action may
+        // legitimately consume the very state that admitted it.
+        if (!action->can_execute(world_state)) {
+            std::ostringstream oss;
+            oss << "Preconditions for " << action->name
+                << " no longer hold - needs replan";
+            log_goap(verbose_, "PLAN", oss.str());
+            result.needs_replan = true;
+            return result;
         }
 
         // Start new action

@@ -1,0 +1,36 @@
+id: https://logosphere.dev/predator/schema
+name: predator
+title: Predator — a generic creature with an appetite
+description: >-
+  Game ontology for the predator example: the reference for the
+  engine/game AI boundary (#37 item 3). The engine ships GOAP
+  mechanism and generic navigation actions; what a creature WANTS is
+  the game's vocabulary, and this file is where the predator declares
+  its diet. EAT and GRAB_PREY used to live in the engine's GOAPAction
+  enum until the boundary rule ("would it make sense in a farming
+  game and a combat game equally") evicted them.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  predator: https://logosphere.dev/predator/schema/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+enums:
+  PredatorAction:
+    description: >-
+      Diet actions this game adds on top of the engine's generic
+      GOAPAction vocabulary. GOAP actions are strings at the planning
+      layer; this enum is the declared vocabulary a schema reader
+      learns the game by.
+    permissible_values:
+      EAT:
+        description: Consume food at the current location, bite by bite
+      GRAB_PREY:
+        description: Latch onto living prey and hold on

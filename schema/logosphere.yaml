@@ -171,20 +171,25 @@ enums:
       HAIR:
 
   GOAPAction:
-    description: AI action types for goal-oriented planning.
+    description: >-
+      The engine's generic GOAP action vocabulary: navigation, attention
+      and frustration, meaningful in a farming game and a combat game
+      equally. Diet actions (EAT, GRAB_PREY) were removed with #37 item
+      3; they are creature policy, and a game declares its own action
+      names in its own schema (see examples/predator). GOAP actions are
+      strings at the planning layer, so this enum constrains nothing at
+      runtime; it is the vocabulary a schema reader (or an LLM) learns
+      the engine by, which is exactly why it must not teach them that
+      the engine has a mouth.
     permissible_values:
       PURSUE:
-        description: Chase target
-      EAT:
-        description: Consume food
+        description: Navigate to a target location
       SCAN:
         description: Look around for targets
       ESCAPE_BLOCK:
         description: Navigate around obstacle
       INVESTIGATE_SMELL:
         description: Follow odor trail
-      GRAB_PREY:
-        description: Catch target
       GIVE_UP:
         description: Abandon current action
 

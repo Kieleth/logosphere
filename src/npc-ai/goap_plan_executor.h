@@ -62,7 +62,8 @@
 #include "executor_registry.h"
 #include "goap_system.h"
 #include "pathfinding_system.h"
-#include "food_state.h"
+#include <unordered_map>
+#include <utility>
 
 namespace npc_ai {
 
@@ -98,18 +99,21 @@ struct CreatureParams {
     float run_speed = 1.5f;
     float turn_speed = 1.5f;
     float arrival_distance = 1.0f;
-    float eat_duration = 2.0f;  // Legacy: used if no food_state provided
+    float action_duration = 2.0f;  // Timer for timed actions (feeds ctx.action_duration)
 
-    // Target locations (read from brain state, not set externally)
-    float food_x = 0.0f;
-    float food_y = 0.0f;
-    float smell_target_x = 0.0f;
-    float smell_target_y = 0.0f;
+    // Named target locations, published by the brain each frame and
+    // consumed by whichever action declares that name in its
+    // Action::target_key ("food", "smell", "threat", ... — the engine
+    // has no opinion about what the names mean). Presence IS the key
+    // being present: no sentinel, so a target sitting exactly on the
+    // world origin is a target like any other (#44).
+    std::unordered_map<std::string, std::pair<float, float>> targets;
 
-    // Eating parameters (physics-based consumption)
-    // See logomancers/docs/npc_consumables.md
-    float mouth_volume_cm3 = 0.0f;   // MUST be calculated from head particle (0 = error)
-    FoodState* food_state = nullptr; // Current food being eaten (nullptr = use legacy timer)
+    // Opaque game context, copied into ExecutionContext.game_data and
+    // never read by the engine. Game-registered executors cast it back
+    // to whatever their game defines (the predator example's FoodState
+    // rides through here; the engine no longer knows a mouth exists).
+    void* game_data = nullptr;
 };
 
 // ============================================
@@ -169,11 +173,12 @@ private:
     bool has_target_ = false;
     bool verbose_ = true;
 
-    // Build context for executor
-    // action_name is passed explicitly because state_.current_action_name
-    // may not be updated yet on the first frame of a new action
+    // Build context for executor. Takes the ACTION rather than its name:
+    // target routing follows the action's target_key declaration, and
+    // state_.current_action_name may not be updated yet on the first
+    // frame of a new action.
     ExecutionContext build_context(
-        const std::string& action_name,
+        const goap::Action& action,
         goap::WorldState& world_state,
         float x, float y, float rotation, float dt,
         const CreatureParams& params);

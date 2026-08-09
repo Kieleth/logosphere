@@ -7,7 +7,7 @@
 #ifndef EAT_EXECUTOR_H
 #define EAT_EXECUTOR_H
 
-#include "../action_executor.h"
+#include "npc-ai/action_executor.h"
 
 namespace npc_ai {
 
