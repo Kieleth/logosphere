@@ -52,6 +52,7 @@ namespace {
 bool g_interactive = false;
 bool g_autopilot = false;
 ui::Label* g_label = nullptr;
+ui::Label* g_live = nullptr;   // the numbers, moving (owner: "add instrumentation")
 
 // Count pixels that are lit but not blown out. An all-black frame (no light)
 // and an all-white frame (light in the lens) both score ~0.
@@ -90,11 +91,13 @@ long structured_pixels(Engine& engine) {
     return n;
 }
 
-// One paced step. Interactive must ALSO call render(): update() alone never
-// dispatches a frame (the blank-window bug — the owner saw white, twice).
+// One paced step. Interactive needs the FULL trio update+render+present:
+// update() alone dispatches nothing, and render() without present() fills a
+// buffer no window ever shows (the white-window bug, three launches deep).
+// Every working viewer calls all three.
 void step(Engine& engine) {
     engine.update(1.0 / 60.0);
-    if (g_interactive) engine.render();
+    if (g_interactive) { engine.render(); engine.present(); }
 }
 
 // Freeze the world (dt = 0 still pumps the window) until SPACE. Returns
@@ -110,6 +113,7 @@ bool wait_for_space(Engine& engine) {
         if (in.keys[GLFW_KEY_ESCAPE]) return false;
         engine.update(0.0);
         engine.render();
+        engine.present();
     }
     return false;
 }
@@ -227,17 +231,51 @@ Rung rung1(Engine& engine) {
     // swings from parent + (0,0,+0.5) to parent + R_x(90)*(0,0,+0.5)
     //   = parent + (0,-0.5, 0).
     if (g_label) g_label->set_text(
-        "RUNG 1  settled. SPACE: turn the post 90deg — the child must swing with the anchor");
+        "RUNG 1  settled. SPACE: the post sweeps 90deg about X over 1.5s; "
+        "the child must ride the rotating anchor (child itself rotates in RUNG 2, not yet)");
     if (!wait_for_space(engine)) { r.passed = false;
         snprintf(r.detail, sizeof r.detail, "owner quit before the turn");
         return r; }
-    {
+
+    // The kinematic writer SWEEPS the post to 90 degrees over 90 frames, so
+    // the rotation is watchable and the anchor is followed continuously, not
+    // teleported once.
+    const int TURN_FRAMES = 90;
+    auto live_readout = [&](int f, float rx) {
+        if (!g_live) return;
         auto v = ps.lock_particles_for_write();
-        v[parent].rotation_x = (float)(M_PI / 2.0);
-    }
+        const float ax = v[parent].x;
+        const float ay = v[parent].y - 0.5f * std::sin(rx);
+        const float az = v[parent].z + 0.5f * std::cos(rx);
+        const float gap = dist3(ax, ay, az,
+                                v[child].x, v[child].y, v[child].z - 0.5f);
+        char buf[256];
+        snprintf(buf, sizeof buf,
+                 "f%3d  post rot_x %5.1f deg   child y=%+.2f z=%+.2f   "
+                 "child rot (%.1f, %.1f, %.1f) [stays 0 until rung 2]   anchor gap %4.0f mm",
+                 f, rx * 180.0f / (float)M_PI, v[child].y, v[child].z,
+                 v[child].rotation_x * 180.0f / (float)M_PI,
+                 v[child].rotation_y * 180.0f / (float)M_PI,
+                 v[child].rotation_z * 180.0f / (float)M_PI,
+                 gap * 1000.0f);
+        g_live->set_text(buf);
+    };
     if (g_label) g_label->set_text(
-        "RUNG 1  the post turned: watch the child swing around to the rotated anchor");
-    for (int f = 0; f < 120 && engine.is_running(); ++f) step(engine);
+        "RUNG 1  the post is sweeping: the child must ride the anchor around");
+    for (int f = 0; f < TURN_FRAMES && engine.is_running(); ++f) {
+        const float rx = (float)(M_PI / 2.0) * (float)(f + 1) / (float)TURN_FRAMES;
+        {
+            auto v = ps.lock_particles_for_write();
+            v[parent].rotation_x = rx;
+        }
+        step(engine);
+        live_readout(f, rx);
+    }
+    // Let it settle at the final pose, readout still live.
+    for (int f = 0; f < 120 && engine.is_running(); ++f) {
+        step(engine);
+        if ((f % 5) == 0) live_readout(TURN_FRAMES + f, (float)(M_PI / 2.0));
+    }
 
     // Where must the child's bottom anchor be? At the ROTATED parent anchor.
     // (The child has no torque path yet, so its own offset stays unrotated;
@@ -305,6 +343,11 @@ bool test_rotation_ladder() {
             g_label->set_size(1500, 22);
             g_label->set_color(255, 255, 255);
             uis->add_widget(g_label);
+            g_live = new ui::Label("", "");
+            g_live->set_position(24, 54);
+            g_live->set_size(1500, 22);
+            g_live->set_color(120, 220, 255);
+            uis->add_widget(g_live);
         }
     }
 
