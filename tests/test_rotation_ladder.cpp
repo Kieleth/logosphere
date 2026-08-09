@@ -50,6 +50,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <set>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -774,7 +776,10 @@ Rung rung4(Engine& engine) {
             g->use_quat_target = true;
             g->angular_stiffness = specs[k].ang_stiffness;
             g->angular_damping = specs[k].ang_damping;
-            if (k == 0) g->plastic_yield_angle = 0.25f;   // BENT: damage sticks
+            if (k == 0) {
+                g->plastic_yield_angle = 0.25f;   // BENT: damage sticks
+                g->max_strain = 5.0f;             // plastic yields, it does not tear
+            }
             engine.get_physics_system().add_gluon_between(a, b, std::move(g));
         };
         bond(roots[k], seg[k][0], +0.2f, -0.3f);
@@ -906,10 +911,23 @@ Rung rung4(Engine& engine) {
             }
         }
     }
-    printf("      nature      peak_tip  mid_tip  final_tip  swings\n");
+    // Per-chain bond survival (owner: two totems broke that should not).
+    size_t alive[4];
+    for (int k = 0; k < 4; ++k) {
+        std::set<std::pair<size_t,size_t>> edges;
+        auto add_edges = [&](int id) {
+            for (const auto* g : engine.get_physics_system().get_gluons_for_particle(id))
+                edges.insert(std::minmax(g->particle_a, g->particle_b));
+        };
+        add_edges(roots[k]);
+        for (int j = 0; j < 3; ++j) add_edges(seg[k][j]);
+        alive[k] = edges.size();
+    }
+    printf("      nature      peak_tip  mid_tip  final_tip  swings  bonds(of 3)\n");
     for (int k = 0; k < 4; ++k)
-        printf("      %-10s %8.2f %8.2f %10.2f %7d\n",
-               specs[k].tag, peak_tip[k], mid_tip[k], fin[k], swings[k]);
+        printf("      %-10s %8.2f %8.2f %10.2f %7d %8zu%s\n",
+               specs[k].tag, peak_tip[k], mid_tip[k], fin[k], swings[k], alive[k],
+               (k != 3 && alive[k] < 3) ? "  *** BROKE, SHOULD NOT ***" : "");
 
     size_t brittle_bonds = 0;
     for (int j = 0; j < 3; ++j)
@@ -919,7 +937,9 @@ Rung rung4(Engine& engine) {
     const bool springy_ok = peak_tip[1] > 0.5f && swings[1] <= 2 && fin[1] < 0.15f;
     const bool bouncy_ok  = peak_tip[2] > 0.5f && swings[2] >= 2 && fin[2] < 0.35f;
     const bool breaks_ok  = brittle_bonds < 3;                         // it SNAPPED
-    r.passed = bent_ok && springy_ok && bouncy_ok && breaks_ok && !ghost;
+    // Only BRITTLE may break: the other three natures keep every bond.
+    const bool unbroken_ok = alive[0] == 3 && alive[1] == 3 && alive[2] == 3;
+    r.passed = bent_ok && springy_ok && bouncy_ok && breaks_ok && !ghost && unbroken_ok;
     snprintf(r.detail, sizeof r.detail,
              "BENT %s (peak %.2f, fin %.2f, need fin > 0.4); SPRINGY %s (sw %d, "
              "fin %.2f); BOUNCY %s (sw %d, fin %.2f); BRITTLE %s (%zu bond edges "

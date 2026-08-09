@@ -286,10 +286,13 @@ public:
 
     bool force_bounded() const override { return true; }
 
-    // Plant fiber tears at roughly double its rest length. Generous vs the
-    // few-percent elongation of real fiber, deliberately: bends and normal
-    // brushing survive, dragging a blade through a walker's body does not.
-    float max_strain_ratio() const override { return 2.0f; }
+    // Tear-at-elongation, per bond. Default: plant fiber tears at roughly
+    // double its rest length — generous vs real fiber's few percent,
+    // deliberately, so bends and brushing survive. PLASTIC bonds declare
+    // higher: yielding absorbs what tearing would otherwise take (rung 4:
+    // the BENT totem tore during the finger fold at the hardcoded 2x).
+    float max_strain = 2.0f;
+    float max_strain_ratio() const override { return max_strain; }
 };
 
 // Elastic: Actual spring behavior (future - knees, tendons)
