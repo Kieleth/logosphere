@@ -32,6 +32,8 @@
 #include "../src/particle.h"
 #include "../src/materials.h"
 #include "logosphere/worldgen/butterfly_generator.h"
+#include "logosphere/worldgen/organic_generator.h"
+#include "logosphere/worldgen/grass_patch_spec.h"
 #include <cstdio>
 
 namespace X = ::logosphere::expdet;
@@ -42,6 +44,8 @@ struct Rung {
     const char* name;
     int count;
     bool floor = false;
+    bool grass = false;
+    size_t bodies = 0;
     uint64_t speed_events = 0;
     float    worst = 0.0f;
     int      worst_id = -1;
@@ -79,6 +83,17 @@ void run_rung(Rung& r) {
             }
     }
 
+    // Rung 4: TALL GRASS, no butterflies. The Eden forensics (issue #47) ended
+    // at a vertical tuft of ultra-thin blades: sheets 1 mm thick and slivers
+    // 0.27 mm / 0.3 g stacked at one (x,y) from z 0.1 to 2.65. The diverging
+    // rows are a sandwich, jz=+1 from below and jz=-1 from above, on those
+    // bodies. Butterflies were a position coincidence and are calm; this rung
+    // asks whether the tuft alone detonates.
+    if (r.grass) {
+        auto& ogen = engine.get_worldgen_system().get_organic_generator();
+        ogen.generate_grass_patch(30.0f, -20.0f, 0.0f, GrassPatchSpec::tall_grass());
+    }
+
     ButterflyGenerator gen;
     gen.initialize(&engine, &engine.get_kg());
 
@@ -94,6 +109,10 @@ void run_rung(Rung& r) {
                                ButterflySpec::monarch());
     engine.get_particle_system().flush_pending_particles();
 
+    {   // A rung that generated nothing proves nothing: say what exists.
+        auto v = engine.get_particle_system().lock_particles_for_write();
+        r.bodies = v.size();
+    }
     X::set_enabled(true);
     X::reset();
     for (int f = 0; f < 60; ++f) engine.update(1.0 / 60.0);
@@ -115,9 +134,11 @@ bool test_butterfly_detonation() {
     Rung one   {"ONE butterfly, alone", 1};
     Rung four  {"FOUR, Eden's cluster", 4};
     Rung terra {"FOUR + floor beneath", 4, true};
+    Rung tuft  {"TALL GRASS tuft, no butterflies", 0, false, true};
     run_rung(one);
     run_rung(four);
     run_rung(terra);
+    run_rung(tuft);
 
     printf("  %-24s %14s %12s %10s\n", "rung", "ceiling events", "worst m/s", "worst id");
     printf("  %-24s %14llu %12.1f %10d\n", one.name,
@@ -126,6 +147,17 @@ bool test_butterfly_detonation() {
            (unsigned long long)four.speed_events, four.worst, four.worst_id);
     printf("  %-24s %14llu %12.1f %10d\n", terra.name,
            (unsigned long long)terra.speed_events, terra.worst, terra.worst_id);
+    if (tuft.bodies == 0) {
+        printf("  %-31s %7s\n", tuft.name, "INCONCLUSIVE: generated 0 bodies");
+        printf("\n  THE EMPTY RUNG IS ITSELF THE FINDING. generate_grass_patch() through a\n"
+               "  bare engine creates nothing: Eden's grass is stored in the KG and its\n"
+               "  PARTICLES are created by CHUNK ACTIVATION. The tuft that detonates is\n"
+               "  born in the chunk path, so reproducing it in isolation means driving\n"
+               "  that path, not calling a generator. See issue #47.\n");
+    } else {
+        printf("  %-31s %7llu %12.1f %10d\n", tuft.name,
+               (unsigned long long)tuft.speed_events, tuft.worst, tuft.worst_id);
+    }
 
     const bool one_detonates  = one.speed_events > 0;
     const bool four_detonate  = four.speed_events > 0;

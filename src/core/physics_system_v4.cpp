@@ -596,6 +596,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             c.friction_impulse_t1 = 0.0f;
             c.friction_impulse_t2 = 0.0f;
 
+            PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                         (int)c.body_a, (int)c.body_b, "turtle",
+                         c.bias, c.effective_mass, c.jz);
             constraints.push_back(c);
 
             // Turtle contacts provide equilibrium for BFS distance calculation
@@ -960,6 +963,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.friction_impulse_t1 = 0.0f;
                     c.friction_impulse_t2 = 0.0f;
 
+                    PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                                 (int)c.body_a, (int)c.body_b, "sat_manifold",
+                                 c.bias, c.effective_mass, c.jz);
                     constraints.push_back(c);
                 }
 
@@ -1092,6 +1098,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             c.friction_impulse_t1 = 0.0f;
                             c.friction_impulse_t2 = 0.0f;
 
+                            PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                                         (int)c.body_a, (int)c.body_b, "speculative",
+                                         c.bias, c.effective_mass, c.jz);
                             constraints.push_back(c);
                             processed_contact_pairs.insert(pair_key);
                         }
@@ -1396,6 +1405,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             else if (axis == 1) indices.y_idx = constraint_idx;
             else indices.z_idx = constraint_idx;
 
+            PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                         (int)c.body_a, (int)c.body_b, "gluon_axis",
+                         c.bias, c.effective_mass, c.jz);
             constraints.push_back(c);
         }
         gluon_constraint_indices.push_back(indices);
@@ -1517,6 +1529,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c_axis.min_angular_impulse = -std::numeric_limits<float>::infinity();
                     c_axis.max_angular_impulse = std::numeric_limits<float>::infinity();
                     c_axis.accumulated_angular_impulse = 0.0f;
+                    PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                                 (int)c_axis.body_a, (int)c_axis.body_b, "gluon_angular",
+                                 c_axis.bias, c_axis.effective_mass, c_axis.jz);
                     constraints.push_back(c_axis);
                 }
                 continue;  // quaternion path handled; skip the scalar branch below
@@ -1575,6 +1590,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Note: min/max_angular_impulse already set above for one-way limit
             c_ang.accumulated_angular_impulse = 0.0f;
 
+            PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                         (int)c_ang.body_a, (int)c_ang.body_b, "angular",
+                         c_ang.bias, c_ang.effective_mass, c_ang.jz);
             constraints.push_back(c_ang);
         }
     }
