@@ -6,7 +6,7 @@
 // stands on: ehex digits, the UPP, the characteristic DM.
 //
 // Usage:
-//   ./build/test_logoveyer_rules_book1
+//   ./build/test_logovger_rules_book1
 
 #undef NDEBUG
 
@@ -25,7 +25,7 @@ static void check(bool ok, const std::string& msg) {
 }
 
 int main() {
-    using namespace logoveyer;
+    using namespace logovger;
     std::cout << "Book 1 rules vs the book's own numbers" << std::endl;
 
     // The book's worked UPP example [character-creation.md "The

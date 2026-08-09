@@ -1,4 +1,4 @@
-id: https://logosphere.dev/logoveyer/cepheus/book1-character-creation
+id: https://logosphere.dev/logovger/cepheus/book1-character-creation
 name: cepheus_book1_character_creation
 title: Cepheus layer — Book 1, Character Creation
 description: >-
@@ -13,7 +13,7 @@ default_range: string
 
 prefixes:
   linkml: https://w3id.org/linkml/
-  cepheus: https://logosphere.dev/logoveyer/cepheus/
+  cepheus: https://logosphere.dev/logovger/cepheus/
   logosphere: https://logosphere.dev/schema/
   malleus: https://malleus.dev/schema/
 

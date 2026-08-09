@@ -59,7 +59,7 @@ from character generation to the first session, all of it in the open.
 It is also the example that forces the engine's space era. Every game
 in this repo earned engine mechanisms by needing them (logotron the
 interaction model, logogenesis worldgen, the predator the NPC layer);
-logoveyer's needs — star systems, ship interiors, subsector views, the
+logovger's needs — star systems, ship interiors, subsector views, the
 things science fiction is made of — flow upstream as engine issues, not
 as forks. Zero-g was an engine invariant before this game existed.
 
