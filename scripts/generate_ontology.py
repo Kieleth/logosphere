@@ -108,7 +108,7 @@ def generate(schema: dict) -> bool:
     # absolute one for malleus). Zero tracked symlinks: stage the schema
     # beside its import dependencies in a temp dir and generate there.
     with tempfile.TemporaryDirectory() as td:
-        # A game's schema dir may be a TREE (logoveyer keeps per-chapter
+        # A game's schema dir may be a TREE (logovger keeps per-chapter
         # packs in subdirectories, imported as "cepheus/<pack>"). Stage
         # the whole tree with structure preserved so intra-game imports
         # resolve exactly as authored; the importing file keeps its
@@ -201,7 +201,7 @@ def main():
 
     # Discover game extension schemas (only the game's own yaml, not
     # symlinks). Recursive: a game may keep MANY schema packs, organized
-    # in subdirectories (logoveyer's per-chapter cepheus packs are the
+    # in subdirectories (logovger's per-chapter cepheus packs are the
     # first). Output names derive from the FILE STEM, not the game name,
     # so packs cannot overwrite each other; every existing game names
     # its single file after itself, so nothing changes for them.

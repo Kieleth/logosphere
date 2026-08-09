@@ -15,7 +15,7 @@ description: >-
   here earn existence by the rule of two - no meta-class exists
   without two concrete instances from real text needing it; the first
   instances come from the Cepheus Engine SRD chapter 1
-  (examples/logoveyer).
+  (examples/logovger).
 
   Logic stays in code. A ProcedureStep names a primitive, it never
   computes. Outcomes are typed data executed through the one

@@ -19,7 +19,7 @@ with steps, constants buried in prose, referee judgment points) are not
 Traveller concepts. Any tabletop-derived ruleset is made of them,
 including ones a game invents for itself. By the engine's own boundary
 rule, "would it make sense in a farming game and a combat game equally":
-it would. First consumer: logoveyer (issue #48).
+it would. First consumer: logovger (issue #48).
 
 ## The stack
 
@@ -29,7 +29,7 @@ ENGINE   rulebook meta-ontology  what any book of rules is made of
          rule executor           rolls checks, rolls tables,
                                  applies outcomes via registry
 GAME     cepheus layer           what THIS book says: per-chapter
-(logoveyer)                      schema packs + rule instances in
+(logovger)                      schema packs + rule instances in
                                  the KG. Nothing of ours in it.
          voyager layer           what OUR game changes and adds.
                                  Cherry-picks cepheus by import.
@@ -193,7 +193,7 @@ Load-bearing properties:
 |---|---|
 | 2026-08-08 | Absorb Traveller; the book is the spec; referee cannot roll; everything watchable (rule 12) |
 | 2026-08-08 | Spin: psionics-forward frontier sensibility; EA's Sentinel Worlds is tone inspiration only, no names/text/assets |
-| 2026-08-09 | Bundled in-repo as examples/logoveyer, the engine's LLM-runs-a-game showcase |
+| 2026-08-09 | Bundled in-repo as examples/logovger, the engine's LLM-runs-a-game showcase |
 | 2026-08-09 | Pure Cepheus (Mongoose dropped); source is orffen/cepheus-srd mdBook, commit-pinned; credit in README, owner sends personal note |
 | 2026-08-09 | Two game layers, 100% separated; cepheus targets 100% of the book's data model; per-chapter packs 1:1 with SRD files |
 | 2026-08-09 | Character is the book's class; Voyager is_a Character, game layer, holds all deviations (incl. learn-by-doing growth if ever adopted) |
@@ -253,6 +253,6 @@ above and removed here._
 
 ## Pointers
 
-- Absorption contract: examples/logoveyer/docs/ABSORPTION_INVENTORY.md
-- The mission and binding rules: examples/logoveyer/README.md, CLAUDE.md
+- Absorption contract: examples/logovger/docs/ABSORPTION_INVENTORY.md
+- The mission and binding rules: examples/logovger/README.md, CLAUDE.md
 - Tracking issue: #48

@@ -1,4 +1,4 @@
-id: https://logosphere.dev/logoveyer/voyager
+id: https://logosphere.dev/logovger/voyager
 name: voyager
 title: Voyager — the game layer
 description: >-
@@ -13,7 +13,7 @@ default_range: string
 
 prefixes:
   linkml: https://w3id.org/linkml/
-  voyager: https://logosphere.dev/logoveyer/voyager/
+  voyager: https://logosphere.dev/logovger/voyager/
   logosphere: https://logosphere.dev/schema/
   malleus: https://malleus.dev/schema/
 

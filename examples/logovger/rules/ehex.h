@@ -14,7 +14,7 @@
 
 #include <string>
 
-namespace logoveyer {
+namespace logovger {
 
 inline constexpr char kEhexDigits[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 // index:                              0.........9..........^skip I  ^skip O
@@ -40,6 +40,6 @@ inline std::string upp(int str, int dex, int end, int intel, int edu,
     return s;
 }
 
-} // namespace logoveyer
+} // namespace logovger
 
 #endif

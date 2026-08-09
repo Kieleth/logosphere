@@ -2,7 +2,7 @@
 //
 // Design under test: docs/RPG_MODULE.md. The pack earns its classes
 // by the rule of two, so this test instantiates each class from the
-// Cepheus SRD chapter 1 (examples/logoveyer/srd/cepheus), with the
+// Cepheus SRD chapter 1 (examples/logovger/srd/cepheus), with the
 // verbatim quotes the classes were justified by. Three contracts:
 //
 //   1. LAYERING - the vocabulary exists only when the pack is
@@ -256,7 +256,7 @@ void test_chapter_one_instantiates() {
 
     // LookupTable + rows: keyed by what the character already is.
     // The characteristic-DM table's VALUES are already a tested code
-    // primitive (logoveyer rules/characteristics.h); the table itself
+    // primitive (logovger rules/characteristics.h); the table itself
     // is still citable data, and the step-4 invariant check will hold
     // code and table to each other.
     auto dm_table = cite(kg, kg.createEntity("LookupTable"),
@@ -464,7 +464,7 @@ void test_every_quote_is_verbatim() {
         }
         if (!files.count(file))
             files[file] = slurp(std::string(LOGOSPHERE_SOURCE_DIR) +
-                                "/examples/logoveyer/srd/cepheus/" + file);
+                                "/examples/logovger/srd/cepheus/" + file);
         if (files[file].find(quote) == std::string::npos) {
             all = false;
             std::cout << "  [measure] NOT VERBATIM (" << rec.label

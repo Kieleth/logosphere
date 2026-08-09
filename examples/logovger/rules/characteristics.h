@@ -10,13 +10,13 @@
 #ifndef LOGOVEYER_CHARACTERISTICS_H
 #define LOGOVEYER_CHARACTERISTICS_H
 
-namespace logoveyer {
+namespace logovger {
 
 inline int characteristic_dm(int score) {
     if (score < 0) score = 0;
     return score / 3 - 2;   // integer division IS "dropping fractions"
 }
 
-} // namespace logoveyer
+} // namespace logovger
 
 #endif
