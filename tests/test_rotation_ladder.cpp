@@ -791,6 +791,13 @@ Rung rung4(Engine& engine) {
                 g->plastic_yield_angle = 0.25f;   // BENT: damage sticks
                 g->max_strain = 5.0f;             // plastic yields, it does not tear
             }
+            if (k == 3) {
+                // One tear law: brittle snaps by STRAIN. The old force-path
+                // break (blocked stiff joints sustaining 40 N) was retired
+                // with the tear-law unification; brittleness is a declared
+                // elongation limit now, same as the grass panel.
+                g->max_strain = 1.15f;
+            }
             if (k == 1) {
                 // LEANING keeps a trace of the event: only the deepest part
                 // of the fold plasticizes, so it settles slightly leaning.
