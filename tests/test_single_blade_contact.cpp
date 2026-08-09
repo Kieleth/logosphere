@@ -50,6 +50,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <set>
+#include <array>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -127,13 +129,46 @@ bool test_single_blade_contact() {
 
     // The blade's anatomy, captured at rest: every bond with its rest length,
     // and the TIP (highest particle) with its grown position.
-    struct Bond { size_t a, b; float rest; };
+    // Orientation instrumentation. A particle's long axis is local +Z rotated
+    // by its Euler triple (generation guarantees this: direction_to_euler maps
+    // local +Z onto the grown segment direction, X-then-Y rotation, CCW —
+    // organic_generator.cpp:345-349). The SHEAR angle of a bond is how far the
+    // parent-to-child direction has rotated away from the parent's own axis,
+    // relative to the grown baseline. A blade that BENDS keeps shear near zero
+    // (pose rotates with geometry). A blade that only TRANSLATES converts all
+    // bending into shear, because physics never writes rotation_x/y of a
+    // default DYNAMIC particle and contacts carry no torque at all.
+    auto axis_of = [](const Particle& p) {
+        // local +Z through R = Rz(-rz) * Ry(ry) * Rx(rx), X-then-Y-then-Z
+        // (Z clockwise per engine convention; stems carry rz ~ 0 anyway).
+        const float cx = std::cos(p.rotation_x), sx = std::sin(p.rotation_x);
+        const float cy = std::cos(p.rotation_y), sy = std::sin(p.rotation_y);
+        const float cz = std::cos(-p.rotation_z), sz = std::sin(-p.rotation_z);
+        // v = (0,0,1) -> Rx -> (0,-sx,cx) -> Ry -> (cy*0+sy*cx, -sx, -sy*0+cy*cx)
+        float x = sy * cx, y = -sx, z = cy * cx;
+        // -> Rz
+        const float x2 = cz * x - sz * y, y2 = sz * x + cz * y;
+        return std::array<float,3>{x2, y2, z};
+    };
+    auto angle_between = [](std::array<float,3> u, std::array<float,3> v2) {
+        const float du = std::sqrt(u[0]*u[0]+u[1]*u[1]+u[2]*u[2]);
+        const float dv = std::sqrt(v2[0]*v2[0]+v2[1]*v2[1]+v2[2]*v2[2]);
+        if (du < 1e-9f || dv < 1e-9f) return 0.0f;
+        float c = (u[0]*v2[0]+u[1]*v2[1]+u[2]*v2[2]) / (du*dv);
+        c = std::fmax(-1.0f, std::fmin(1.0f, c));
+        return std::acos(c);
+    };
+
+    struct Bond { size_t a, b; float rest; float base_shear; };
     std::vector<Bond> bonds;
+    struct GrownPose { float rx, ry, rz; };
+    std::map<size_t, GrownPose> grown_pose;
     size_t tip_id = 0; float tip_x0 = 0, tip_y0 = 0, tip_z0 = -1.0f;
     {
         auto v = ps.lock_particles_for_write();
         std::set<std::pair<size_t,size_t>> seen;
         for (size_t id : blade_ids) {
+            grown_pose[id] = {v[id].rotation_x, v[id].rotation_y, v[id].rotation_z};
             if (v[id].z > tip_z0) { tip_z0 = v[id].z; tip_id = id; tip_x0 = v[id].x; tip_y0 = v[id].y; }
             for (const auto* g : engine.get_physics_system().get_gluons_for_particle(id)) {
                 auto key = std::minmax(g->particle_a, g->particle_b);
@@ -141,8 +176,10 @@ bool test_single_blade_contact() {
                 const Particle& pa = v[g->particle_a];
                 const Particle& pb = v[g->particle_b];
                 const float dx = pb.x - pa.x, dy = pb.y - pa.y, dz = pb.z - pa.z;
+                // particle_a is the parent (generation bonds parent -> child).
+                const float base = angle_between(axis_of(pa), {dx, dy, dz});
                 bonds.push_back({g->particle_a, g->particle_b,
-                                 std::sqrt(dx*dx + dy*dy + dz*dz)});
+                                 std::sqrt(dx*dx + dy*dy + dz*dz), base});
             }
         }
     }
@@ -208,13 +245,14 @@ bool test_single_blade_contact() {
     uint64_t contacts_total = 0;
     double worst_rel_speed = 0.0;
     double peak_tip = 0.0, peak_bond = 0.0, worst_blade_speed = 0.0;
+    double peak_shear = 0.0, peak_pose_rot = 0.0;
     int    peak_tip_frame = -1;
     double tip_deflect = 0.0;
     int half_life_frames = -1;
 
     // Timeline rows for the headless table: sampled every 15 frames plus
     // every phase change.
-    struct Row { int f; Phase ph; float eva_y; double tip, bond; uint64_t c; };
+    struct Row { int f; Phase ph; float eva_y; double tip, bond, shear, pose; uint64_t c; };
     std::vector<Row> table;
 
     for (int f = 0; f < FRAMES; ++f) {
@@ -243,8 +281,15 @@ bool test_single_blade_contact() {
         }
         contacts_total += contacts_now;
 
-        double bond_stretch = 0.0;
+        double bond_stretch = 0.0, shear_now = 0.0, pose_rot_now = 0.0;
         {
+            // Torn bonds drift arbitrarily; shear is only meaningful on the
+            // joints that still exist. Re-enumerate the survivors each frame.
+            std::set<std::pair<size_t,size_t>> alive;
+            for (size_t id : blade_ids)
+                for (const auto* g : engine.get_physics_system().get_gluons_for_particle(id))
+                    alive.insert(std::minmax(g->particle_a, g->particle_b));
+
             auto v = ps.lock_particles_for_write();
             for (const Bond& b : bonds) {
                 if (b.a >= v.size() || b.b >= v.size()) continue;
@@ -252,6 +297,21 @@ bool test_single_blade_contact() {
                             dz = v[b.b].z - v[b.a].z;
                 bond_stretch = std::fmax(bond_stretch,
                     std::fabs(std::sqrt(dx*dx + dy*dy + dz*dz) - b.rest));
+                if (alive.count(std::minmax(b.a, b.b))) {
+                    const float sh = angle_between(axis_of(v[b.a]), {dx, dy, dz});
+                    shear_now = std::fmax(shear_now,
+                                          (double)std::fabs(sh - b.base_shear));
+                }
+            }
+            // How much has any segment's POSE actually rotated since growth?
+            for (const auto& [id, g0] : grown_pose) {
+                if (id >= v.size()) continue;
+                Particle ref;  // grown pose replayed through the same axis math
+                ref.rotation_x = g0.rx; ref.rotation_y = g0.ry; ref.rotation_z = g0.rz;
+                const auto now = axis_of(v[id]);
+                const auto was = axis_of(ref);
+                pose_rot_now = std::fmax(pose_rot_now,
+                                         (double)angle_between(was, now));
             }
             // Worst BLADE speed: her limbs legitimately swing at gait speed,
             // so the fired/carried verdict must read the blade alone.
@@ -274,13 +334,16 @@ bool test_single_blade_contact() {
         if (phase != APPROACH) {
             if (tip_deflect > peak_tip) { peak_tip = tip_deflect; peak_tip_frame = f; }
             peak_bond = std::fmax(peak_bond, bond_stretch);
+            peak_shear = std::fmax(peak_shear, shear_now);
+            peak_pose_rot = std::fmax(peak_pose_rot, pose_rot_now);
         }
         if (phase == RECOVERY && half_life_frames < 0 && peak_tip > 0.02 &&
             tip_deflect <= peak_tip * 0.5)
             half_life_frames = f - recovery_start;
 
         if (f % 15 == 0 || phase != before)
-            table.push_back({f, phase, eva_y, tip_deflect, bond_stretch, contacts_now});
+            table.push_back({f, phase, eva_y, tip_deflect, bond_stretch,
+                             shear_now, pose_rot_now, contacts_now});
 
         if (interactive) {
             static const char* PH[3] = {"APPROACH", "CONTACT", "RECOVERY"};
@@ -317,11 +380,14 @@ bool test_single_blade_contact() {
 
     // ---- the study, printed --------------------------------------------------
     static const char* PH[3] = {"APPROACH", "CONTACT", "RECOVERY"};
-    printf("\n  %6s %-9s %7s %10s %10s %9s\n",
-           "frame", "phase", "eva_y", "tip_defl", "bond_str", "contacts");
+    printf("\n  %6s %-9s %7s %10s %10s %9s %9s %9s\n",
+           "frame", "phase", "eva_y", "tip_defl", "bond_str",
+           "shear_deg", "pose_deg", "contacts");
     for (const Row& r : table)
-        printf("  %6d %-9s %7.2f %10.3f %10.3f %9llu\n",
-               r.f, PH[r.ph], r.eva_y, r.tip, r.bond, (unsigned long long)r.c);
+        printf("  %6d %-9s %7.2f %10.3f %10.3f %9.1f %9.1f %9llu\n",
+               r.f, PH[r.ph], r.eva_y, r.tip, r.bond,
+               r.shear * 180.0 / M_PI, r.pose * 180.0 / M_PI,
+               (unsigned long long)r.c);
 
     const X::Stats s = X::stats();
     printf("\n  THE ENCOUNTER, SUMMARISED\n");
@@ -330,6 +396,10 @@ bool test_single_blade_contact() {
            (unsigned long long)contacts_total, worst_rel_speed);
     printf("  %-46s %.3f m at frame %d\n", "peak tip deflection", peak_tip, peak_tip_frame);
     printf("  %-46s %.3f m\n", "peak bond stretch (the gluons carrying it)", peak_bond);
+    printf("  %-46s %.1f deg\n", "peak SHEAR (geometry rotated away from pose)",
+           peak_shear * 180.0 / M_PI);
+    printf("  %-46s %.1f deg\n", "peak POSE rotation (any segment, any axis)",
+           peak_pose_rot * 180.0 / M_PI);
     if (recovery_start >= 0) {
         printf("  %-46s frame %d\n", "recovery began", recovery_start);
         if (half_life_frames >= 0)
@@ -387,6 +457,16 @@ bool test_single_blade_contact() {
     const bool carries   = peak_bond < 0.3;
     // And the world does not detonate over a footstep.
     const bool calm      = s.speed_events == 0;
+    // The owner's observation, encoded (2026-08-09): "blades moved but not
+    // rotate". A blade keeps its entity and its gluon placement via ROTATION
+    // and translation. Bending must live in the pose, not in shear: the bond
+    // direction may not rotate away from the parent's own axis by more than
+    // 15 degrees, and when the geometry really bends the pose must have
+    // turned too. RED today: physics never writes rotation_x/y of a default
+    // particle, contacts carry no torque, so ALL bending is shear.
+    const bool rotates   = peak_shear < (15.0 * M_PI / 180.0) &&
+                           (peak_tip < 0.15 ||
+                            peak_pose_rot > (10.0 * M_PI / 180.0));
 
     printf("\n  THE GATE (A+B, the owner's design)\n");
     printf("  %-52s %s\n", "contact happened", got_hit ? "yes" : "*** NO ***");
@@ -398,8 +478,12 @@ bool test_single_blade_contact() {
            carries ? "yes" : "*** SLINGSHOT ***", peak_bond);
     printf("  %-52s %s (%llu events)\n", "no detonation",
            calm ? "yes" : "*** DETONATED ***", (unsigned long long)s.speed_events);
+    printf("  %-52s %s (shear %.1f deg, pose %.1f deg)\n",
+           "bends by ROTATING, not by shearing",
+           rotates ? "yes" : "*** TRANSLATED, NEVER ROTATED ***",
+           peak_shear * 180.0 / M_PI, peak_pose_rot * 180.0 / M_PI);
 
-    const bool pass = got_hit && no_fling && bends && carries && calm;
+    const bool pass = got_hit && no_fling && bends && carries && calm && rotates;
     printf("\n  %s\n", pass ? "PASS" : "FAIL (RED until A+B exist; the study above is why)");
     engine.shutdown();
     return pass;
