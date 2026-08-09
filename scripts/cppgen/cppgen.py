@@ -153,29 +153,53 @@ class CppGenerator(OOCodeGenerator):
         """
         return TYPE_DEFAULTS.get(typ, "{}")
 
-    @staticmethod
-    def sort_classes(clist: list[ClassDefinition]) -> list[ClassDefinition]:
-        """Sort classes so that parents appear before children.
+    def sort_classes(self, clist: list[ClassDefinition]) -> list[ClassDefinition]:
+        """Sort classes so that every dependency appears before its users.
+
+        Dependencies are (a) parents: is_a plus mixins, which become C++
+        base classes, and (b) class-ranged slots, which become by-value
+        struct members (``std::optional<Outcome> outcome``) and so need
+        the member's struct complete first. (b) mirrors exactly the
+        slots ``generate_struct`` will emit for the class: direct slots
+        when it has base classes, all slots otherwise. Self-references
+        are skipped (a struct cannot embed itself by value; that case is
+        broken regardless of order).
 
         Args:
             clist: Unsorted class definitions.
 
         Returns:
             Topologically sorted list.
+
+        Raises:
+            ValueError: On a dependency cycle, which no declaration
+                order could compile anyway.
         """
         clist = list(clist)
+        class_names = {c.name for c in clist}
+        sv = self.schemaview
+
+        deps: dict[str, list[str]] = {}
+        for cls in clist:
+            d = []
+            if cls.is_a:
+                d.append(cls.is_a)
+            if cls.mixins:
+                d.extend(cls.mixins)
+            direct = bool(d)
+            for sn in sv.class_slots(cls.name, direct=direct):
+                rng = sv.induced_slot(sn, cls.name).range
+                if rng in class_names and rng != cls.name and rng not in d:
+                    d.append(rng)
+            deps[cls.name] = d
+
         slist: list[ClassDefinition] = []
         while len(clist) > 0:
             can_add = False
             for i in range(len(clist)):
                 candidate = clist[i]
-                parents = []
-                if candidate.is_a:
-                    parents.append(candidate.is_a)
-                if candidate.mixins:
-                    parents.extend(candidate.mixins)
-
-                if not parents or set(parents) <= {p.name for p in slist}:
+                placed = {p.name for p in slist}
+                if set(deps[candidate.name]) <= placed:
                     can_add = True
                     slist.append(candidate)
                     del clist[i]

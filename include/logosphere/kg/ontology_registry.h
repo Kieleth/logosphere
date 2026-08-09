@@ -39,6 +39,11 @@ struct PropertyDef {
     bool   has_max = false;
     double min_value = 0.0;
     double max_value = 0.0;
+
+    // Set only when value_type == "entity_ref": the class the
+    // referenced entity must be, or be a subtype of. Enforced on
+    // the validated write path; empty means unconstrained.
+    std::string ref_target;
 };
 
 /// Runtime ontology registry. The KG is constructed FROM this.
@@ -199,6 +204,17 @@ public:
                      bool has_max, double max_value) {
         properties_[entity_type].push_back({prop_name, value_type, required,
                                             has_min, has_max, min_value, max_value});
+    }
+
+    // Entity-reference property (a class-ranged slot in the schema):
+    // the value is an entity id whose type must be, or be a subtype
+    // of, target_class. Generated code uses this for class ranges.
+    void addRefProperty(const std::string& entity_type, const std::string& prop_name,
+                        bool required, const std::string& target_class) {
+        PropertyDef def{prop_name, "entity_ref", required,
+                        false, false, 0.0, 0.0};
+        def.ref_target = target_class;
+        properties_[entity_type].push_back(def);
     }
 
 private:
