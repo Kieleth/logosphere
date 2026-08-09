@@ -164,16 +164,57 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
     // recreated KG gluons all along, for entities that stored any.
     // ========================================================================
     auto bond = [&](kg::KGParticleID a, kg::KGParticleID b,
-                    const Particle& pa, const Particle& pb) {
+                    const Particle& pa, const Particle& pb,
+                    bool stem_anchors = false) {
         kg::KGGluonID g = kg_->createKGGluon(entity, a, b);
         kg::KGGluonData d;
         d.type = kg::KGGluonType::ORGANIC;
-        // Zero offsets + the placed centre distance: hold what generation
-        // built. Same shape as the physics-tree leaf fix (8c0e86e), where the
-        // gluon preserving the ACTUAL placement was the difference between a
-        // canopy and shrapnel.
+        // STEM bonds carry REAL ANCHORS at the joint (parent's local +Z end
+        // meets child's local -Z start, the find_parent_segment contract).
+        // Zero-offset centre bonds have zero lever arms: no anchor torque
+        // can flow, the pose drive pins every segment at its grown
+        // orientation, and a hit blade can only TRANSLATE (the owner's
+        // exact observation on the grass-natures panel). Foliage keeps
+        // point bonds: a leaf's orientation is unrelated to its bond.
         const float dx = pb.x - pa.x, dy = pb.y - pa.y, dz = pb.z - pa.z;
-        d.target_distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        if (stem_anchors) {
+            // The joint is the child's ACTUAL grown start point (segments
+            // overlap ~10% by design, so idealized +/-t/2 anchors spawn
+            // pre-strained: gram bodies whipped 180 deg and tore at f0).
+            // offset_b is exact by construction; offset_a expresses that
+            // same world point in the parent's local frame (inverse Euler,
+            // Z-Y-X transpose of the engine's X-Y-Z rotation).
+            auto rot = [](float rx, float ry, float rz,
+                          float x, float y, float z, bool inverse,
+                          float& ox, float& oy, float& oz) {
+                const float cx = std::cos(rx), sx = std::sin(rx);
+                const float cy = std::cos(ry), sy = std::sin(ry);
+                const float cz = std::cos(rz), sz = std::sin(rz);
+                if (!inverse) {
+                    const float y1 = y * cx - z * sx, z1 = y * sx + z * cx;
+                    const float x2 = x * cy + z1 * sy, z2 = -x * sy + z1 * cy;
+                    ox = x2 * cz - y1 * sz; oy = x2 * sz + y1 * cz; oz = z2;
+                } else {
+                    const float x1 = x * cz + y * sz, y1 = -x * sz + y * cz;
+                    const float x2 = x1 * cy - z * sy, z2 = x1 * sy + z * cy;
+                    ox = x2; oy = y1 * cx + z2 * sx; oz = -y1 * sx + z2 * cx;
+                }
+            };
+            float jx, jy, jz;   // child's start, world-relative to child centre
+            rot(pb.rotation_x, pb.rotation_y, pb.rotation_z,
+                0.0f, 0.0f, -pb.thickness * 0.5f, false, jx, jy, jz);
+            const float wx = pb.x + jx - pa.x;   // joint relative to parent centre
+            const float wy = pb.y + jy - pa.y;
+            const float wz = pb.z + jz - pa.z;
+            float ax, ay, az;
+            rot(pa.rotation_x, pa.rotation_y, pa.rotation_z,
+                wx, wy, wz, true, ax, ay, az);
+            d.offset_a_x = ax; d.offset_a_y = ay; d.offset_a_z = az;
+            d.offset_b_z = -pb.thickness * 0.5f;
+            d.target_distance = 0.0f;   // anchors coincide at the grown joint
+        } else {
+            d.target_distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        }
         d.stiffness = spec.gluon_stiffness;
         d.damping = spec.gluon_damping;
         d.angular_stiffness = spec.gluon_angular_stiffness;
@@ -201,18 +242,21 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
                   << std::endl;
     } else {
     for (size_t j = 0; j + 1 < trunk_particles.size(); ++j) {
-        bond(trunk_kg[j], trunk_kg[j + 1], trunk_particles[j], trunk_particles[j + 1]);
+        bond(trunk_kg[j], trunk_kg[j + 1], trunk_particles[j], trunk_particles[j + 1],
+             /*stem_anchors=*/true);
         gluons_stored++;
     }
     for (size_t cidx = 0; cidx < crown_particles.size(); ++cidx) {
         const int pp = crown_parents[cidx];
         if (pp >= 0) {
-            bond(crown_kg[pp], crown_kg[cidx], crown_particles[pp], crown_particles[cidx]);
+            bond(crown_kg[pp], crown_kg[cidx], crown_particles[pp], crown_particles[cidx],
+                 /*stem_anchors=*/true);
             gluons_stored++;
         } else if (!trunk_kg.empty()) {
             // Skeleton roots hang off the trunk top.
             bond(trunk_kg.back(), crown_kg[cidx],
-                 trunk_particles.back(), crown_particles[cidx]);
+                 trunk_particles.back(), crown_particles[cidx],
+                 /*stem_anchors=*/true);
             gluons_stored++;
         }
         // No trunk and no parent: the plant's own base, nothing to bond to.

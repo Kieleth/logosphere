@@ -77,6 +77,24 @@ void ghold(Engine& e) {
     }
 }
 
+void axis_of(const Particle& p, float& wx, float& wy, float& wz) {
+    const float cx = std::cos(p.rotation_x), sx = std::sin(p.rotation_x);
+    const float cy = std::cos(p.rotation_y), sy = std::sin(p.rotation_y);
+    const float cz = std::cos(p.rotation_z), sz = std::sin(p.rotation_z);
+    const float y1 = -sx, z1 = cx;
+    const float x2 = z1 * sy, z2 = z1 * cy;
+    wx = x2 * cz - y1 * sz; wy = x2 * sz + y1 * cz; wz = z2;
+}
+
+float ang3(float ax, float ay, float az, float bx, float by, float bz) {
+    const float da = std::sqrt(ax*ax + ay*ay + az*az);
+    const float db = std::sqrt(bx*bx + by*by + bz*bz);
+    if (da < 1e-9f || db < 1e-9f) return 0.0f;
+    float c = (ax*bx + ay*by + az*bz) / (da*db);
+    c = std::fmax(-1.0f, std::fmin(1.0f, c));
+    return std::acos(c);
+}
+
 float d3(float ax, float ay, float az, float bx, float by, float bz) {
     const float dx = ax - bx, dy = ay - by, dz = az - bz;
     return std::sqrt(dx * dx + dy * dy + dz * dz);
@@ -89,7 +107,9 @@ struct Blade {
     size_t tip = 0;
     float tx = 0, ty = 0, tz = 0;
     size_t bonds0 = 0;
-    float peak = 0, fin = 0;
+    std::vector<std::array<float,3>> grown_axis;
+    size_t quat_driven = 0;
+    float peak = 0, fin = 0, peak_rot = 0;
     int swings = 0;
     size_t bonds_end = 0;
 };
@@ -211,6 +231,22 @@ bool test_grass_natures() {
         }
     }
     for (int k = 0; k < 5; ++k) blades[k].bonds0 = count_bonds(engine, blades[k].ids);
+    {
+        auto v = ps.lock_particles_for_write();
+        for (int k = 0; k < 5; ++k) {
+            for (size_t id : blades[k].ids) {
+                float ax, ay, az;
+                axis_of(v[id], ax, ay, az);
+                blades[k].grown_axis.push_back({ax, ay, az});
+                if (v[id].is_quat_driven) blades[k].quat_driven++;
+            }
+        }
+    }
+    printf("  quat-driven bodies per blade: ");
+    for (int k = 0; k < 5; ++k)
+        printf("%s %zu/%zu  ", blades[k].tag, blades[k].quat_driven,
+               blades[k].ids.size());
+    printf("\n");
     printf("  blades grown: ");
     for (int k = 0; k < 5; ++k)
         printf("%s %zu bodies/%zu bonds  ", blades[k].tag, blades[k].ids.size(),
@@ -277,6 +313,13 @@ bool test_grass_natures() {
             const float td = d3(v[b.tip].x, v[b.tip].y, v[b.tip].z, b.tx, b.ty, b.tz);
             b.peak = std::fmax(b.peak, td);
             b.fin = td;
+            for (size_t i = 0; i < b.ids.size(); ++i) {
+                float ax, ay, az;
+                axis_of(v[b.ids[i]], ax, ay, az);
+                b.peak_rot = std::fmax(b.peak_rot,
+                    ang3(ax, ay, az, b.grown_axis[i][0], b.grown_axis[i][1],
+                         b.grown_axis[i][2]));
+            }
         }
         if (g_live && (f % 10) == 0) {
             char buf[288];
@@ -358,6 +401,10 @@ bool test_grass_natures() {
            (unsigned long long)det_p1, X::stats().worst_speed);
     printf("  first bond tear: BENT f%d  LEANING f%d  STRAIGHT f%d  BRITTLE f%d\n",
            first_break[0], first_break[1], first_break[2], first_break[3]);
+    printf("  peak segment ROTATION: BENT %.0f  LEANING %.0f  STRAIGHT %.0f  "
+           "BRITTLE %.0f deg (owner: they only TRANSLATE)\n",
+           blades[0].peak_rot * 57.3f, blades[1].peak_rot * 57.3f,
+           blades[2].peak_rot * 57.3f, blades[3].peak_rot * 57.3f);
 
     // ---- PART 2: the human over one blade -------------------------------
     if (g_title) g_title->set_text(
@@ -428,6 +475,15 @@ bool test_grass_natures() {
                              blades[1].bonds_end == blades[1].bonds0 &&
                              blades[2].bonds_end == blades[2].bonds0;
     const bool p1_calm     = det_p1 == 0;
+    // Owner: 'grass do not have any rotation, they just translate
+    // vertically.' A hit blade must BEND BY ROTATING: some segment's pose
+    // turns > 15 deg on the three bendy natures, and the plumbing must
+    // actually be live (quat-driven bodies exist on every blade).
+    const bool p1_rotates  = blades[0].peak_rot > 0.26f &&
+                             blades[1].peak_rot > 0.26f &&
+                             blades[2].peak_rot > 0.26f &&
+                             blades[0].quat_driven > 0 && blades[1].quat_driven > 0 &&
+                             blades[2].quat_driven > 0 && blades[3].quat_driven > 0;
     const bool p2_crossed  = eva_y > 1.5f;
     const bool p2_blade    = hb_bonds == hb.bonds0 && hb_fin < 0.30f;
     const bool p2_calm     = det_p2 == 0;
@@ -439,12 +495,14 @@ bool test_grass_natures() {
     printf("  %-46s %s\n", "4 BRITTLE snaps, others hold",
            (p1_brittle && p1_whole) ? "ok" : "*** OFF ***");
     printf("  %-46s %s\n", "part 1 calm",                 p1_calm ? "ok" : "*** DETONATED ***");
+    printf("  %-46s %s\n", "blades bend by ROTATING",
+           p1_rotates ? "ok" : "*** TRANSLATE ONLY ***");
     printf("  %-46s %s\n", "human crossed",               p2_crossed ? "ok" : "*** STUCK ***");
     printf("  %-46s %s\n", "her blade held and recovered", p2_blade ? "ok" : "*** OFF ***");
     printf("  %-46s %s\n", "part 2 calm",                 p2_calm ? "ok" : "*** DETONATED ***");
 
     const bool pass = p1_bent && p1_leaning && p1_straight && p1_brittle && p1_whole &&
-                      p1_calm && p2_crossed && p2_blade && p2_calm;
+                      p1_calm && p1_rotates && p2_crossed && p2_blade && p2_calm;
     if (g_title) {
         char buf[192];
         snprintf(buf, sizeof buf, "GRASS NATURES %s — ESC or close when satisfied",
