@@ -443,6 +443,31 @@ if(LOGOSPHERE_FULL)
     )
     target_compile_features(at_predator_hunger_visual PRIVATE cxx_std_17)
     add_test(NAME at_predator_hunger_visual COMMAND at_predator_hunger_visual)
+
+    # The search: walls, meander, smell, getting lost — the full NPC
+    # loop (senses -> facts -> plan -> executors -> replan) on screen.
+    add_executable(at_predator_search
+        examples/predator/at_predator_search.cpp
+        examples/predator/ai/eat_executor.cpp
+        examples/predator/ai/grab_prey_executor.cpp
+        examples/predator/ai/meander_executor.cpp
+    )
+    target_link_libraries(at_predator_search
+        PRIVATE
+            logosphere
+            "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+            "-framework CoreGraphics" "-framework AppKit"
+            "-framework Foundation" "-framework QuartzCore"
+            "-framework Metal" "-framework MetalKit"
+            "-framework MetalPerformanceShaders"
+    )
+    target_include_directories(at_predator_search PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/predator
+    )
+    target_compile_features(at_predator_search PRIVATE cxx_std_17)
+    add_test(NAME at_predator_search COMMAND at_predator_search)
     add_engine_at(test_knockback_scene)  # contact rule -> knockback against the REAL solver (#36)
     add_engine_at(test_tree_collapse_threshold)  # small trees must not be bare poles (#21)
     add_engine_at(test_tree_collapse_demo)  # shows WHY small trees collapsed (#21)
