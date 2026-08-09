@@ -209,7 +209,7 @@ Rung rung1(Engine& engine) {
 
     // A 5x5 kinematic tile floor for spatial reference: the owner needs a
     // ground to read the swing against, and the working viewers all have one.
-    for (int cx = -2; cx <= 2; ++cx)
+    for (int cx = -2; cx <= 4; ++cx)   // reaches under the rung-3 chain at x=3
         for (int cy = -2; cy <= 2; ++cy) {
             Particle t = {};
             t.shape = ParticleShape::BOX;
@@ -266,7 +266,9 @@ Rung rung1(Engine& engine) {
 
     if (g_interactive)
         // The single-blade viewer's proven light: far above, out of frame.
-        ps.queue_light(-2.0f, 0.0f, 10.0f, 350000.0f, 40.0f, 1.0f, 0.96f, 0.9f);
+        // High and behind the camera line so the emitter quad stays out of
+        // the isometric frame (it photobombed the first zoom-out).
+        ps.queue_light(0.0f, -5.0f, 16.0f, 650000.0f, 50.0f, 1.0f, 0.96f, 0.9f);
 
     // Settle: child must simply stay put on the post.
     if (g_label) g_label->set_text(
@@ -499,8 +501,8 @@ Rung rung3(Engine& engine) {
         g->enable_angular_constraint = true;
         g->angular_drive_enabled = true;
         g->use_quat_target = true;   // grown pose: identity (upright)
-        g->angular_stiffness = 500.0f;   // N*m/rad
-        g->angular_damping = 20.0f;
+        g->angular_stiffness = 150.0f;   // N*m/rad — soft in bend: the joint
+        g->angular_damping = 20.0f;      // yields by rotating, not by gaping
         engine.get_physics_system().add_gluon_between(a, b, std::move(g));
     };
     bond(root, s1, +0.2f, -0.3f);
@@ -662,9 +664,11 @@ bool test_rotation_ladder() {
     }
     if (g_interactive) {
         auto& camera = engine.get_camera_system();
-        camera.set_position(-4.0f, -2.5f, 2.4f);
-        camera.look_at(0.0f, 0.0f, 1.6f);       // post + child, floor in frame
-        camera.set_pixels_per_unit(110.0f);
+        // Owner QA: wider frame — both rigs (post at x=0, chain at x=3) and
+        // the finger's whole approach lane must be observable at once.
+        camera.set_position(-5.7f, -3.7f, 3.1f);
+        camera.look_at(1.2f, 0.2f, 1.2f);
+        camera.set_pixels_per_unit(74.0f);
         if (auto* uis = engine.get_ui_system()) {
             g_label = new ui::Label("", "");
             g_label->set_position(24, 24);
