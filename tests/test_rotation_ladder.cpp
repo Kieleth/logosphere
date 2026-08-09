@@ -497,12 +497,12 @@ Rung rung3(Engine& engine) {
         // Fiber character: STIFF in length (joints must not gape under a
         // walking push), SOFT in bend (the same push folds the joints).
         g->stiffness = 500000.0f;
-        g->damping = 2000.0f;
+        g->damping = 4000.0f;
         g->enable_angular_constraint = true;
         g->angular_drive_enabled = true;
         g->use_quat_target = true;   // grown pose: identity (upright)
         g->angular_stiffness = 150.0f;   // N*m/rad — soft in bend: the joint
-        g->angular_damping = 20.0f;      // yields by rotating, not by gaping
+        g->angular_damping = 40.0f;      // near-critical: grass sways once
         engine.get_physics_system().add_gluon_between(a, b, std::move(g));
     };
     bond(root, s1, +0.2f, -0.3f);
@@ -607,9 +607,20 @@ Rung rung3(Engine& engine) {
         v[finger].x = 30.0f; v[finger].y = -20.0f; v[finger].vy = 0.0f;  // gone
     }
     const float rot_at_push = peak_rot, shear_at_push = peak_shear;
+    int swings = 0;   // owner QA: grass should overshoot ONCE, not ring 5-8x
     if (g_label) g_label->set_text(
         "RUNG 3  finger gone: the chain must spring back upright (the drives restore)");
-    for (int f = 0; f < 400 && engine.is_running(); ++f) { step(engine); measure("RECOV", f); }
+    {
+        float prev_vy = 0.0f;
+        for (int f = 0; f < 400 && engine.is_running(); ++f) {
+            step(engine);
+            measure("RECOV", f);
+            auto v = ps.lock_particles_for_write();
+            const float vy = v[s3].vy;
+            if (std::fabs(vy) > 0.05f && vy * prev_vy < 0.0f) swings++;
+            if (std::fabs(vy) > 0.05f) prev_vy = vy;
+        }
+    }
 
     float final_tip;
     {
@@ -642,6 +653,7 @@ Rung rung3(Engine& engine) {
              shear_at_push * 180.0f / (float)M_PI, low_shear ? "" : "(SHEARED)",
              peak_gap * 1000.0f, connected ? "" : "(DISMEMBERED)",
              final_tip, recovered ? "(recovered)" : "(STAYED BENT)");
+    printf("      swings during recovery: %d (owner: grass should swing ~once)\n", swings);
     return r;
 }
 

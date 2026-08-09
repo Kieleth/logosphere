@@ -2868,12 +2868,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // correction), decayed to bound drift, capped at bond strength.
         {
             const float DECAY = 0.98f;
+            // Anti-windup (owner QA: the chain rang 5-8 swings): when the
+            // solver's fresh impulse OPPOSES the carried load, the spring
+            // has crossed rest and the memory is now driving the next
+            // swing — bleed it fast instead of carrying it through.
+            const float DECAY_REVERSED = 0.55f;
             const float cap = gluon->calculate_breaking_force(
                 particles[gluon->particle_a], particles[gluon->particle_b]) * dt;
             auto upd = [&](float warm_old, size_t row_idx, float acc) {
                 const Constraint& rc = constraints[row_idx];
                 const float velocity_part = acc - rc.bias * rc.effective_mass;
-                return std::clamp(DECAY * (warm_old + velocity_part), -cap, cap);
+                const float d = (warm_old * velocity_part < 0.0f) ? DECAY_REVERSED : DECAY;
+                return std::clamp(d * (warm_old + velocity_part), -cap, cap);
             };
             gluon->warm_ix = upd(gluon->warm_ix, idx.x_idx, impulse_x);
             gluon->warm_iy = upd(gluon->warm_iy, idx.y_idx, impulse_y);
