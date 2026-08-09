@@ -432,6 +432,9 @@ int Engine::initialize(const EngineConfig& config) {
     // Initialize Knowledge Graph (core system)
     kg_module_.setMode(kg::KGMode::MINIMAL);
     kg_module_.set_event_bus(&event_bus_);
+    // Capability store rides the same bus the KG just joined: tracked
+    // entities recompute on STATE_CHANGE and write capability.* back.
+    capability_store_.initialize(&kg_module_, &event_bus_);
     DEBUG_LOG("Knowledge Graph initialized (MINIMAL mode)");
 
     // Particle interaction model: the solver consults the (game-filled)

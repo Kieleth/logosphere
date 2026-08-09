@@ -121,6 +121,7 @@ set(LOGOSPHERE_CORE_SOURCES
     src/generated/earth_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
+    src/capability/capability_store.cpp
     src/capability/dynamics_params.cpp
     src/capability/trigger_registry.cpp
     src/capability/effect_registry.cpp
@@ -359,6 +360,7 @@ add_headless_test(test_entity_type_strings)
 # ctest runs from the build directory, not the repo root.
 target_compile_definitions(test_entity_type_strings
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_capability_store)
 add_headless_test(test_kg_reverse_relations)
 add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
