@@ -1218,6 +1218,31 @@ void Engine::update(double delta_time) {
     }
     interaction_system_.process_filtered_overlaps(
         physics_system_.get_filtered_overlaps(), &event_bus_);
+    // The contact producer (issue #36). Until this existed the
+    // ontological CollisionEvent was a class with no instances: declared
+    // in the schema, given a bus channel, emitted by nothing outside
+    // tests. Physics computes the geometry every frame and it died at
+    // the layer boundary.
+    //
+    // The translation is here because the interaction system is
+    // headless-core safe and may not include physics, the same split
+    // FilteredOverlap already uses. wants_contacts() gates the copy as
+    // well as the resolution: a tiled floor generates contacts by the
+    // thousand and none of it is built when nobody listens.
+    if (interaction_system_.wants_contacts(&event_bus_)) {
+        const auto& raw = physics_system_.get_collision_events();
+        std::vector<logosphere::interaction::RigidContact> contacts;
+        contacts.reserve(raw.size());
+        for (const auto& e : raw) {
+            contacts.push_back({
+                static_cast<uint32_t>(e.particle_a),
+                static_cast<uint32_t>(e.particle_b),
+                e.normal_x, e.normal_y, e.normal_z,
+                e.contact_x, e.contact_y, e.contact_z,
+                e.penetration, e.relative_velocity});
+        }
+        interaction_system_.process_contacts(contacts, kg_module_, &event_bus_);
+    }
     // Declarative transformations: rules fire off this frame's episode
     // opens + armed timers. The tick reports deletions; the engine owns
     // queueing them (deferred, triple-buffer safe) — the interaction

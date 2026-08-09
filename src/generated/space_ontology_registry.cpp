@@ -134,6 +134,16 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("CelestialBody", "moon_brightness", "float", false, true, 0.0, false, 0.0);
     reg.addProperty("CelestialBody", "moon_size", "float", false, true, 0.0, false, 0.0);
     reg.addProperty("CollisionEvent", "collision_force", "float", false);
+    reg.addProperty("CollisionEvent", "normal_x", "float", false);
+    reg.addProperty("CollisionEvent", "normal_y", "float", false);
+    reg.addProperty("CollisionEvent", "normal_z", "float", false);
+    reg.addProperty("CollisionEvent", "contact_x", "float", false);
+    reg.addProperty("CollisionEvent", "contact_y", "float", false);
+    reg.addProperty("CollisionEvent", "contact_z", "float", false);
+    reg.addProperty("CollisionEvent", "penetration", "float", false);
+    reg.addProperty("CollisionEvent", "approach_speed", "float", false);
+    reg.addProperty("CollisionEvent", "source_part_id", "string", false);
+    reg.addProperty("CollisionEvent", "target_part_id", "string", false);
     reg.addProperty("Constraint", "gluon_type", "enum", true);
     reg.addProperty("Constraint", "stiffness", "float", true);
     reg.addProperty("Constraint", "damping", "float", false);
@@ -196,7 +206,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Temporal", "created_at", "datetime", false);
     reg.addProperty("Temporal", "updated_at", "datetime", false);
     reg.addProperty("TransformationEvent", "rule_name", "string", false);
-    reg.addProperty("TransformationRule", "trigger", "string", false);
+    reg.addProperty("TransformationRule", "trigger", "enum", false);
+    reg.addProperty("TransformationRule", "condition", "string", false);
     reg.addProperty("TransformationRule", "effect", "string", false);
     reg.addProperty("TransformationRule", "target_profile", "integer", false);
     reg.addProperty("TransformationRule", "duration_s", "float", false);

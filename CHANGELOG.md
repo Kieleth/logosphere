@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Breaking (generated ontology):** `TransformationRule.trigger` is now
+  typed `TransformationTrigger` instead of `std::string`. Event rules
+  answer three separable questions and now have one slot each: `trigger`
+  is WHICH engine event source to listen to (a closed enum, because every
+  value is a queue the interaction system owns and a game cannot add one
+  without engine code), `condition` is WHETHER a given occurrence matters
+  (open string, new), and `effect` is WHAT to do (open string, unchanged).
+  `condition` generalizes `trigger_profile`, which is the same idea
+  hardcoded to a single comparison; new rules should prefer it. KG storage
+  is unaffected: rules are still authored as string properties and the
+  loader normalizes case.
 - Spheres now render at subdivision **1** (80 triangles) instead of 2 (320),
   with **analytic smooth normals** on by default. The G-buffer derives the
   normal per pixel as `normalize(world_pos - centre)`, which decouples shading
@@ -20,6 +31,46 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   with `LOGOSPHERE_SPHERE_LOD=<0..4>` and `LOGOSPHERE_SMOOTH_SPHERES=0`.
 
 ### Added
+- **Contact response**: an `ON_CONTACT` rule can now select on who touched
+  you and do something about it. `ContactConditionRegistry` and
+  `ContactEffectRegistry` are open the way the capability registries are, so
+  bleeding and armour absorption are game effects registered by name and the
+  engine ships neither. Built-in conditions `with_type:<EntityType>`,
+  `with_part_type:<EntityType>` and `impact_above:<m/s>`; built-in effects
+  `knockback:<speed>` and `emit_event:<name>`.
+
+  Conditions ask about the OTHER party and effects act on SELF, so a rule
+  says "how I react to being touched by X", never "what I do to X". An
+  entity with no rule of its own is unaffected: nothing happens to you that
+  your own ontology did not allow.
+- `ParticleInteractionSystem::deposit_impulse` / `take_impulse`: a
+  pending-impulse inbox, sparse and keyed by stable `KGParticleID`, so it
+  costs nothing per particle and survives swap-and-pop. `knockback` deposits
+  here and moves nothing, because a KINEMATIC body's position belongs to an
+  external writer and the solver will never push it. Whoever owns the
+  position drains the inbox and decides what a shove means; ignoring one is
+  a legitimate choice.
+- `KGModule::getRelatedReverse(id, relation)` walks a relation backwards:
+  `getRelated(creature, "HAS_PART")` lists the parts, and this takes a part
+  back to its creature. Needed wherever a system starts from something
+  physical (a particle, a contact) and has to reach the entity that owns it,
+  which was previously impossible at any price. Reads the incoming-relation
+  index the KG has maintained since relations existed and nothing ever
+  queried; same cost as the forward query, no new bookkeeping.
+- `CollisionEvent` now carries the contact itself, not just the fact of one:
+  `normal_x/y/z`, `contact_x/y/z`, `penetration`, `approach_speed`, and
+  `source_part_id` / `target_part_id`. A consequence needs the geometry and
+  the energy (knockback needs the normal, absorption needs the speed, injury
+  is per-part), and previously none of it survived the layer boundary. The
+  normal comes from the contact manifold, so it is meaningful on walls,
+  ceilings and in zero-g; `approach_speed` keeps the solver's sign
+  convention, negative when approaching. Groundwork for issue #36.
+- `TransformationTrigger.ON_CONTACT` and `TransformationEffect.KNOCKBACK`.
+  `ON_CONTACT` is the rigid-contact counterpart of the existing
+  `ON_CONTACT_FILTERED`. `KNOCKBACK` deposits an impulse along the contact
+  normal into the target's pending-impulse inbox and deliberately does not
+  move anything: a KINEMATIC body's position belongs to an external writer,
+  so the impulse is delivered to that owner to apply or ignore.
 - `tests/test_shadow_lod_wall`: judges LOD by the SHADOW an object casts rather
   than by the object. Four identical spheres at increasing distance from one
   light throw shadows magnified 10x, 3.3x, 1.7x and 1.1x onto a wall, which is
@@ -39,6 +90,25 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   so read the per-stage split from it and ignore its frame time.
 
 ### Fixed
+- **`CollisionEvent`'s contact normal pointed the wrong way.** The field is
+  documented "unit normal from A toward B" and shipped pointing from B
+  toward A, so every consumer written against the documented contract got
+  the negated vector. Measured with a mirrored approach (`A` left of `B`
+  reported `-x`, `A` right of `B` reported `+x`), so it flipped with the
+  geometry and was a genuine inverted convention rather than a constant.
+
+  Consequences, both fixed by the same correction: the humanoid obstacle
+  push (`humanoid_locomotion.cpp`) applies `is_a ? -normal : normal` to
+  move away from an obstacle and was therefore driving humanoids **into**
+  them; and `relative_velocity`, documented "negative = approaching", was
+  positive while closing, so anything thresholding on approach speed could
+  never fire on a real contact.
+
+  Corrected at the emission site only. The solver's manifold normal is left
+  untouched because the constraint jacobians are written for its actual
+  sign; `contact_manifold.h` now states that plainly instead of claiming the
+  opposite. The composed-corner path already emitted A toward B, so the two
+  writers now agree. Locked by `tests/test_knockback_scene`.
 - Trees under about 4 m came out as bare poles. Space colonization
   deletes every attractor within `kill_distance` of any node, and that
   distance had a hard floor of 1.5 m while the crown is capped at 60%

@@ -555,6 +555,77 @@ inline bool from_string(const char* str, SemanticChannel& out) {
     return false;
 }
 
+/// When an event rule fires. Event rules are PUSHED: every value here names a class of occurrence that the interaction system consumes once per episode and then discards. Contrast the capability response rules, which are state predicates pulled over KG state and safe to re-evaluate. A condition that merely holds over time does not belong in this enum.
+/// The KG stores the value as a string on a TransformationRule. The loader normalizes case, so "ON_CONTACT" and "on_contact" both resolve; an unrecognized value warns and skips the whole rule, because a rule that cannot say when is not a rule.
+enum class TransformationTrigger {
+    /// Two particles exchanged rigid contact. Fires once per contact episode, carrying the contact geometry and both participants resolved to their KG entities.
+    ON_CONTACT,
+    /// A broad-phase overlap was excluded from the narrow phase because the pair's interaction profiles decline rigid contact. The pass-through counterpart of ON_CONTACT.
+    ON_CONTACT_FILTERED,
+    /// A particle entered the volume of a particle whose profile declares a medium.
+    ON_VOLUME_ENTER,
+    /// An armed duration elapsed.
+    ON_TIMER
+};
+
+/// Convert TransformationTrigger to its string representation.
+inline const char* to_string(TransformationTrigger value) {
+    switch (value) {
+        case TransformationTrigger::ON_CONTACT: return "ON_CONTACT";
+        case TransformationTrigger::ON_CONTACT_FILTERED: return "ON_CONTACT_FILTERED";
+        case TransformationTrigger::ON_VOLUME_ENTER: return "ON_VOLUME_ENTER";
+        case TransformationTrigger::ON_TIMER: return "ON_TIMER";
+    }
+    return "unknown";
+}
+
+/// Parse a string into TransformationTrigger. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, TransformationTrigger& out) {
+    if (std::strcmp(str, "ON_CONTACT") == 0) { out = TransformationTrigger::ON_CONTACT; return true; }
+    if (std::strcmp(str, "ON_CONTACT_FILTERED") == 0) { out = TransformationTrigger::ON_CONTACT_FILTERED; return true; }
+    if (std::strcmp(str, "ON_VOLUME_ENTER") == 0) { out = TransformationTrigger::ON_VOLUME_ENTER; return true; }
+    if (std::strcmp(str, "ON_TIMER") == 0) { out = TransformationTrigger::ON_TIMER; return true; }
+    return false;
+}
+
+/// The engine's built-in event-rule effects. This enum is a FLOOR, not a closed range, which is why the `effect` slot is typed string and not typed to this enum: games register their own effects by name through the interaction effect registry, and such a name is an equally legal value. Declaring the range closed here would say something false about the slot.
+/// Effect syntax is "<name>" or "<name>:<args>", matching the capability effect registry. An effect the registry does not know warns and skips.
+/// Engine effects stay mechanism, never policy. KNOCKBACK delivers an impulse; what a push does to a walking creature is the game's to decide. Bleeding, armour absorption and their kin are game effects and deliberately absent here.
+enum class TransformationEffect {
+    /// Write a different interaction profile onto the particle.
+    SWAP_PROFILE,
+    /// Ramp alpha to zero over duration_s, then delete.
+    FADE_OUT,
+    /// Queue the particle for deferred deletion.
+    DELETE,
+    /// Emit a TransformationEvent naming the rule that fired.
+    EMIT_EVENT,
+    /// Deposit an impulse along the contact normal into the particle's pending-impulse inbox. Does NOT move the particle: a KINEMATIC body's position is owned by an external writer, so the impulse is delivered to that owner to apply or ignore. Requires a contact trigger, which is where the normal comes from.
+    KNOCKBACK
+};
+
+/// Convert TransformationEffect to its string representation.
+inline const char* to_string(TransformationEffect value) {
+    switch (value) {
+        case TransformationEffect::SWAP_PROFILE: return "SWAP_PROFILE";
+        case TransformationEffect::FADE_OUT: return "FADE_OUT";
+        case TransformationEffect::DELETE: return "DELETE";
+        case TransformationEffect::EMIT_EVENT: return "EMIT_EVENT";
+        case TransformationEffect::KNOCKBACK: return "KNOCKBACK";
+    }
+    return "unknown";
+}
+
+/// Parse a string into TransformationEffect. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, TransformationEffect& out) {
+    if (std::strcmp(str, "SWAP_PROFILE") == 0) { out = TransformationEffect::SWAP_PROFILE; return true; }
+    if (std::strcmp(str, "FADE_OUT") == 0) { out = TransformationEffect::FADE_OUT; return true; }
+    if (std::strcmp(str, "DELETE") == 0) { out = TransformationEffect::DELETE; return true; }
+    if (std::strcmp(str, "EMIT_EVENT") == 0) { out = TransformationEffect::EMIT_EVENT; return true; }
+    if (std::strcmp(str, "KNOCKBACK") == 0) { out = TransformationEffect::KNOCKBACK; return true; }
+    return false;
+}
+
 /// Classification of game world events.
 enum class WorldEventType {
     COLLISION,
@@ -1279,11 +1350,19 @@ struct ParticleInteractionProfile : public Entity {
 };
 
 
-/// Declarative particle transformation executed by the interaction system: a trigger condition (on_contact_filtered, on_volume_enter, on_timer) and an effect (swap_profile, fade_out, delete, emit_event) with parameters.
+/// A declarative EVENT rule, executed by the interaction system. Three separable questions, one slot each: `trigger` is which engine event source to listen to (closed), `condition` is whether this occurrence matters (open), `effect` is what to do (open).
+/// Event rules are pushed and fire once per episode. They are not the same mechanism as capability response rules, which are state predicates pulled over the KG and safe to re-evaluate; see docs/GAME_LAYER.md for when to reach for which.
 struct TransformationRule : public Entity {
-    /// Transformation trigger (on_contact_filtered, on_volume_enter, on_timer).
-    std::optional<std::string> trigger = std::nullopt;
-    /// Transformation effect (swap_profile, fade_out, delete, emit_event).
+    /// WHICH engine event source this rule listens to. Genuinely closed: each value is a queue the interaction system owns, and a game cannot add one without engine code. See TransformationTrigger for the vocabulary and the case-normalization rule.
+    std::optional<TransformationTrigger> trigger = std::nullopt;
+    /// WHETHER this rule cares about a given occurrence, evaluated against the event context once the trigger has selected it. Open by design: engine built-ins plus anything a game registers. Syntax "<name>" or "<name>:<args>". Empty means unconditional.
+    /// Engine built-ins for ON_CONTACT:
+    ///   with_type:<EntityType>   the other party resolves to this type
+    ///   impact_above:<m/s>       approach speed exceeds a threshold
+    ///
+    /// This slot generalizes trigger_profile, which is the same idea hardcoded to one comparison. New rules should prefer condition.
+    std::optional<std::string> condition = std::nullopt;
+    /// WHAT this rule does when it fires. Open by design: the TransformationEffect enum lists the engine built-ins, and a game-registered effect name is an equally legal value here, which is why this slot is a string rather than typed to that enum.
     std::optional<std::string> effect = std::nullopt;
     /// Profile id the effect targets (for swap_profile).
     std::optional<int32_t> target_profile = std::nullopt;
@@ -1322,10 +1401,31 @@ struct WorldEvent : public Event {
 };
 
 
-/// Two entities physically collide.
+/// Two entities physically collide. Carries the contact itself, not just the fact of it: an event rule can only be as specific as the occurrence it reads, and a consequence (knockback, absorption, where to spawn blood) needs the geometry and the energy.
+/// source/target_entity_id name the two creatures; source/target_part_id name the body parts that actually touched, because armour and injury are per-part. The normal comes from contact geometry, never from a world-up assumption, so it is meaningful on walls, ceilings and in zero-g.
 struct CollisionEvent : public WorldEvent {
     /// Magnitude of collision impact in Newtons.
     std::optional<float> collision_force = std::nullopt;
+    /// Contact normal X, unit, pointing from source toward target.
+    std::optional<float> normal_x = std::nullopt;
+    /// Contact normal Y, unit, pointing from source toward target.
+    std::optional<float> normal_y = std::nullopt;
+    /// Contact normal Z, unit, pointing from source toward target.
+    std::optional<float> normal_z = std::nullopt;
+    /// World-space contact point X.
+    std::optional<float> contact_x = std::nullopt;
+    /// World-space contact point Y.
+    std::optional<float> contact_y = std::nullopt;
+    /// World-space contact point Z.
+    std::optional<float> contact_z = std::nullopt;
+    /// Overlap depth at the contact, metres.
+    std::optional<float> penetration = std::nullopt;
+    /// Relative velocity along the contact normal, m/s. NEGATIVE means the pair is approaching; positive means separating. This is the energy term a consequence scales with, and the sign convention is the solver's, not a reinterpretation.
+    std::optional<float> approach_speed = std::nullopt;
+    /// KG EntityID of the body part on the source side, decimal string. Matches the source_entity_id/target_entity_id convention on WorldEvent rather than introducing a second id encoding.
+    std::optional<std::string> source_part_id = std::nullopt;
+    /// KG EntityID of the body part on the target side, decimal string.
+    std::optional<std::string> target_part_id = std::nullopt;
 };
 
 

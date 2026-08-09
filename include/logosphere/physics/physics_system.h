@@ -67,23 +67,32 @@ struct CollisionEvent {
     size_t particle_b;     // Second particle index
     float penetration;     // Overlap depth
     // Collision geometry (added for step climbing, combat knockback, etc.)
-    float normal_x, normal_y, normal_z;    // Unit normal from A toward B
+    // Unit normal from A toward B. Oriented at the emission site: the
+    // solver's manifold normal points the other way, and consumers were
+    // written against this contract. Guarded by test_knockback_scene.
+    float normal_x, normal_y, normal_z;
     float contact_x, contact_y, contact_z; // World-space contact point
     // Dynamics system info
-    float relative_velocity;  // Approach speed along normal (m/s, negative = approaching)
-    bool a_is_dynamics;       // Is particle_a dynamics-controlled?
-    bool b_is_dynamics;       // Is particle_b dynamics-controlled?
+    // Approach speed along the reported normal (m/s). NEGATIVE while
+    // approaching, positive while separating. Computed with the oriented
+    // normal, so this sign is the documented one.
+    float relative_velocity;
+    // TODO(#36 D4): these two are a STOPGAP rename, not the fix. The old
+    // names said "dynamics" while the value written is
+    // `solver_mode == ParticleSolverMode::KINEMATIC`
+    // (physics_system_v4.cpp, the push_back in the contact recording
+    // block). The honest fix is to carry ParticleSolverMode itself and
+    // drop the flattened bools; deferred so the rename could land with
+    // zero readers rather than after a consumer bakes the lie in.
+    bool a_is_kinematic;      // particle_a's solver_mode == KINEMATIC
+    bool b_is_kinematic;      // particle_b's solver_mode == KINEMATIC
     bool is_corner_contact;   // V4.12 corner detection (center-to-center normal, not axis-aligned)
 };
 
-// Impact event for combat systems (high-velocity collisions)
-// Populated each frame during physics update when impact_velocity > threshold
-struct ImpactEvent {
-    size_t particle_a;        // First particle index
-    size_t particle_b;        // Second particle index
-    float impact_velocity;    // Relative velocity at impact (m/s)
-    Vec3 normal;              // Impact normal (from A toward B)
-};
+// ImpactEvent was declared here for years, never pushed to, never read:
+// three references in the whole tree, all declarations (#36). Deleted.
+// Impact speed lives on CollisionEvent.relative_velocity, which is
+// computed, sign-correct, and consumed.
 
 // REMOVED: ParticleConstraint struct - old spring constraint system was never used
 // Only gluon_v2 constraints are active in the codebase
@@ -349,9 +358,6 @@ public:
     Logosphere::PhysicsTelemetry& get_telemetry() { return telemetry_; }
     const Logosphere::PhysicsTelemetry& get_telemetry() const { return telemetry_; }
 
-    // Get impact events from this frame (high-velocity collisions for combat)
-    const std::vector<ImpactEvent>& get_impact_events() const { return impact_events_; }
-
     // REMOVED: Old spring constraint methods - never used
     // Only gluon_v2 system is active
 
@@ -527,9 +533,6 @@ private:
 
     // Physics telemetry: per-particle contact recording
     Logosphere::PhysicsTelemetry telemetry_;
-
-    // Impact events for combat systems - high-velocity collisions
-    std::vector<ImpactEvent> impact_events_;
 
     // Pre-constraint omega_z values - saved BEFORE angular constraints propagate omega_z
     // Used by position projection to identify which particle is being externally controlled

@@ -4,12 +4,27 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/core/kg_parse.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 
 namespace logosphere::interaction {
+
+namespace {
+// The ontology spells enum values upper (as every other enum in
+// schema/logosphere.yaml does); rules in the wild are authored lower.
+// One normalization rule, applied at the single parse point, so both
+// spellings resolve and neither becomes a second vocabulary.
+std::string to_upper(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+        return static_cast<char>(std::toupper(c));
+    });
+    return s;
+}
+}  // namespace
 
 const InteractionProfile& ParticleInteractionSystem::default_profile() {
     // Category bit 0, full mask, no medium: rigid-contact everything
@@ -185,6 +200,181 @@ void ParticleInteractionSystem::process_filtered_overlaps(
     open_episodes_ = std::move(current);
 }
 
+// Who a contacting particle actually is, in ontology terms.
+//
+// A particle belongs to a body part; a body part belongs to a creature.
+// Both matter to a consequence: armour and injury are per-part, while
+// "the predator touched the prey" is per-entity. An unowned part (no
+// incoming HAS_PART) is its own entity, which is the common case for
+// scenery.
+namespace {
+struct ContactParty {
+    kg::EntityID part = kg::INVALID_ENTITY;
+    kg::EntityID entity = kg::INVALID_ENTITY;
+    kg::KGParticleID particle = 0;   // stable id, for the impulse inbox
+    bool resolved() const { return part != kg::INVALID_ENTITY; }
+};
+
+ContactParty resolve_party(const kg::KGModule& kg, uint32_t render_idx) {
+    ContactParty p;
+    kg::KGParticleID kgid = kg.getKGParticleByRenderIndex(render_idx);
+    if (kgid == kg::INVALID_KG_PARTICLE_ID) return p;   // not in the ontology
+    p.particle = kgid;
+    p.part = kg.getEntityByKGParticle(kgid);
+    if (p.part == kg::INVALID_ENTITY) return p;
+
+    // One hop up. A part claimed by several owners is legal but
+    // ambiguous for attribution, so take the first and stay
+    // deterministic rather than guessing.
+    auto owners = kg.getRelatedReverse(p.part, "HAS_PART");
+    p.entity = owners.empty() ? p.part : owners.front();
+    return p;
+}
+
+// Build one side's view. `flip` is true for the side the manifold normal
+// points AWAY from, so that in the finished context +normal always means
+// "away from other, toward self" and no downstream author has to reason
+// about which particle the solver happened to call A.
+ContactContext view_from(const kg::KGModule& kg, const RigidContact& c,
+                         const ContactParty& self, const ContactParty& other,
+                         bool flip) {
+    ContactContext v;
+    v.self_entity  = self.entity;
+    v.self_part    = self.part;
+    v.other_entity = other.entity;
+    v.other_part   = other.part;
+    v.self_particle  = self.particle;
+    v.other_particle = other.particle;
+    if (self.entity != kg::INVALID_ENTITY)  v.self_type  = kg.getType(self.entity);
+    if (other.entity != kg::INVALID_ENTITY) v.other_type = kg.getType(other.entity);
+
+    const float s = flip ? -1.0f : 1.0f;
+    v.normal_x = c.normal_x * s;
+    v.normal_y = c.normal_y * s;
+    v.normal_z = c.normal_z * s;
+    v.contact_x = c.contact_x;
+    v.contact_y = c.contact_y;
+    v.contact_z = c.contact_z;
+    v.penetration = c.penetration;
+    v.approach_speed = c.approach_speed;   // sign is symmetric: closing is closing
+    v.kg = &kg;
+    return v;
+}
+}  // namespace
+
+void ParticleInteractionSystem::deposit_impulse(kg::KGParticleID id,
+                                                float x, float y, float z) {
+    if (id == 0) return;
+    Impulse& acc = impulses_[id];
+    acc.x += x;
+    acc.y += y;
+    acc.z += z;
+}
+
+bool ParticleInteractionSystem::take_impulse(kg::KGParticleID id,
+                                             float& x, float& y, float& z) {
+    auto it = impulses_.find(id);
+    if (it == impulses_.end()) return false;
+    x = it->second.x;
+    y = it->second.y;
+    z = it->second.z;
+    impulses_.erase(it);
+    return true;
+}
+
+bool ParticleInteractionSystem::wants_contacts(
+    const logosphere::EventBus* bus) const {
+    if (has_contact_rules_) return true;
+    return bus && bus->collisions().subscriber_count() > 0;
+}
+
+size_t ParticleInteractionSystem::process_contacts(
+    const std::vector<RigidContact>& contacts, const kg::KGModule& kg,
+    logosphere::EventBus* bus) {
+    using Trigger = TransformationRule::Trigger;
+    // The gate. Contacts are cheap to ignore and expensive to resolve,
+    // and a tiled floor produces them by the thousand, so nothing below
+    // runs when nobody is listening. open_contacts_ is cleared so a
+    // later listener starts from a clean slate rather than inheriting
+    // episodes opened while unobserved.
+    if (!wants_contacts(bus)) {
+        open_contacts_.clear();
+        return 0;
+    }
+
+    std::unordered_set<uint64_t> current;
+    current.reserve(contacts.size());
+    size_t emitted = 0;
+
+    for (const auto& c : contacts) {
+        const uint64_t k = pair_key(c.particle_a, c.particle_b);
+        if (!current.insert(k).second) continue;   // substep duplicate
+        if (open_contacts_.count(k)) continue;     // episode already open
+
+        // A pair with no KG identity on either side cannot be named in
+        // an event. Skipping here also keeps the common floor-tile case
+        // off the resolution path entirely.
+        ContactParty a = resolve_party(kg, c.particle_a);
+        ContactParty b = resolve_party(kg, c.particle_b);
+        if (!a.resolved() && !b.resolved()) continue;
+
+        if (bus) {
+            onto::CollisionEvent e;
+            e.event_type = "COLLISION";
+            if (a.resolved()) {
+                e.source_entity_id = std::to_string(a.entity);
+                e.source_part_id   = std::to_string(a.part);
+            }
+            if (b.resolved()) {
+                e.target_entity_id = std::to_string(b.entity);
+                e.target_part_id   = std::to_string(b.part);
+            }
+            e.normal_x = c.normal_x;
+            e.normal_y = c.normal_y;
+            e.normal_z = c.normal_z;
+            e.contact_x = c.contact_x;
+            e.contact_y = c.contact_y;
+            e.contact_z = c.contact_z;
+            e.penetration = c.penetration;
+            e.approach_speed = c.approach_speed;
+            bus->collisions().emit(e);
+            ++emitted;
+        }
+
+        // Fire the rules. Evaluated from EACH side in turn, the same way
+        // process_filtered_overlaps records both directions of an
+        // episode open: a rule reading "when something bites me" is
+        // written once and fires for whoever was bitten.
+        //
+        // `flip` re-orients the manifold normal so that in each view
+        // +normal points away from the other party. Without it every
+        // effect author would have to work out which particle the solver
+        // called A, and half of them would get it wrong silently.
+        if (has_contact_rules_) {
+            const auto& conditions = ContactConditionRegistry::instance();
+            const auto& effects = ContactEffectRegistry::instance();
+            for (int side = 0; side < 2; ++side) {
+                const ContactParty& self  = (side == 0) ? a : b;
+                const ContactParty& other = (side == 0) ? b : a;
+                if (!self.resolved()) continue;   // nothing to act on
+
+                ContactContext view =
+                    view_from(kg, c, self, other, /*flip=*/side == 0);
+
+                for (const auto& [rid, r] : rules_) {
+                    if (r.trigger != Trigger::ON_CONTACT) continue;
+                    if (!conditions.evaluate(r.condition, view)) continue;
+                    ContactEffectContext ectx{view, *this, bus};
+                    effects.apply(r.effect_expr, ectx);
+                }
+            }
+        }
+    }
+
+    open_contacts_ = std::move(current);
+    return emitted;
+}
+
 size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
     using Trigger = TransformationRule::Trigger;
     using Effect = TransformationRule::Effect;
@@ -196,27 +386,79 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         // trigger + effect are the rule's identity: malformed values
         // warn and skip the whole rule (a rule that can't say when or
         // what is not a rule).
+        //
+        // The vocabulary lives in the ontology (enum TransformationTrigger)
+        // and is parsed through the GENERATED from_string, so the schema
+        // and this loader cannot drift: adding a value to the YAML is the
+        // only way to add one here. Case is normalized first because the
+        // schema spells enums upper (matching every other enum in the
+        // file) while rules in the wild are authored lower.
+        //
+        // This parse is the ONLY enforcement point. KGCore::setProperty
+        // validates nothing (ontology_registry.h:46 claims otherwise and
+        // is wrong for property writes), so an unknown trigger is caught
+        // here or never.
         auto trig = kg.getProperty(id, "trigger");
-        if (trig == "on_contact_filtered") r.trigger = Trigger::ON_CONTACT_FILTERED;
-        else if (trig == "on_volume_enter") r.trigger = Trigger::ON_VOLUME_ENTER;
-        else if (trig == "on_timer") r.trigger = Trigger::ON_TIMER;
-        else {
+        onto::TransformationTrigger parsed_trigger{};
+        if (!onto::from_string(to_upper(trig).c_str(), parsed_trigger)) {
             std::fprintf(stderr,
                          "[INTERACTION] rule %u: unknown trigger '%s' — skipped\n",
                          id, trig.c_str());
             continue;
         }
-        auto eff = kg.getProperty(id, "effect");
-        if (eff == "swap_profile") r.effect = Effect::SWAP_PROFILE;
-        else if (eff == "fade_out") r.effect = Effect::FADE_OUT;
-        else if (eff == "delete") r.effect = Effect::DELETE_PARTICLE;
-        else if (eff == "emit_event") r.effect = Effect::EMIT_EVENT;
-        else {
-            std::fprintf(stderr,
-                         "[INTERACTION] rule %u: unknown effect '%s' — skipped\n",
-                         id, eff.c_str());
-            continue;
+        switch (parsed_trigger) {
+        case onto::TransformationTrigger::ON_CONTACT:
+            r.trigger = Trigger::ON_CONTACT; break;
+        case onto::TransformationTrigger::ON_CONTACT_FILTERED:
+            r.trigger = Trigger::ON_CONTACT_FILTERED; break;
+        case onto::TransformationTrigger::ON_VOLUME_ENTER:
+            r.trigger = Trigger::ON_VOLUME_ENTER; break;
+        case onto::TransformationTrigger::ON_TIMER:
+            r.trigger = Trigger::ON_TIMER; break;
         }
+        // Effects split by trigger family, because the two need
+        // different things and only one of them can be open.
+        //
+        // A contact effect is handed a ContactContext and resolved
+        // through ContactEffectRegistry, so a game name is as legal as a
+        // built-in: that is what makes the schema's "this enum is a
+        // floor" true. Everything else runs on the particle-transform
+        // path, whose effects manipulate this system's private state
+        // (the fade_out arming list) and stay a closed enum.
+        //
+        // knockback on an on_timer rule is not an oversight to fix
+        // later: without a contact there is no normal, so the effect has
+        // no direction and the rule is meaningless.
+        auto eff = kg.getProperty(id, "effect");
+        r.effect_expr = eff;
+        if (r.trigger == Trigger::ON_CONTACT) {
+            const std::string ename = ContactConditionRegistry::name_of(eff);
+            if (!ContactEffectRegistry::instance().is_registered(ename)) {
+                std::fprintf(stderr,
+                             "[INTERACTION] rule %u: no contact effect named "
+                             "'%s' — skipped (register it before loading)\n",
+                             id, ename.c_str());
+                continue;
+            }
+        } else {
+            const std::string eff_norm = to_upper(eff);
+            if (eff_norm == "SWAP_PROFILE") r.effect = Effect::SWAP_PROFILE;
+            else if (eff_norm == "FADE_OUT") r.effect = Effect::FADE_OUT;
+            else if (eff_norm == "DELETE") r.effect = Effect::DELETE_PARTICLE;
+            else if (eff_norm == "EMIT_EVENT") r.effect = Effect::EMIT_EVENT;
+            else {
+                std::fprintf(stderr,
+                             "[INTERACTION] rule %u: unknown effect '%s' — skipped\n",
+                             id, eff.c_str());
+                continue;
+            }
+        }
+
+        // The predicate. Unlike trigger and effect this is NOT validated
+        // here: it is open by design, its evaluator is chosen when the
+        // event fires, and an unknown condition name is reported there
+        // where the context to describe it exists. Empty = unconditional.
+        r.condition = kg.getProperty(id, "condition");
 
         // Optional tuning slots: absent keeps defaults, malformed warns
         // through kg_parse (same discipline as profile loading).
@@ -239,6 +481,14 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         rules_[r.id] = r;
         ++loaded;
     }
+
+    // Refresh the hot-path gate once, here, rather than scanning rules
+    // every frame in process_contacts.
+    has_contact_rules_ = false;
+    for (const auto& [id, r] : rules_) {
+        if (r.trigger == Trigger::ON_CONTACT) { has_contact_rules_ = true; break; }
+    }
+
     return loaded;
 }
 
