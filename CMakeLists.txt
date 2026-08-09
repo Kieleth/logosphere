@@ -417,6 +417,31 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_activation_queue_stale_ids)  # queued ids can die before processing (#21)
     add_engine_at(test_predator_senses)  # sense_system: what a creature can and cannot know
     add_engine_at(test_predator_hunt)  # senses + pathfinding over time: it loses the prey
+    # The hunger loop ON SCREEN (visual-verifiability rule): same GOAP
+    # loop as at_predator_hunger, in a real scene, carcass shrinking
+    # bite by bite, AI panel asserted as pixels. Game sources compiled
+    # in, engine consumed as a library — the boundary, watchable.
+    add_executable(at_predator_hunger_visual
+        examples/predator/at_predator_hunger_visual.cpp
+        examples/predator/ai/eat_executor.cpp
+        examples/predator/ai/grab_prey_executor.cpp
+    )
+    target_link_libraries(at_predator_hunger_visual
+        PRIVATE
+            logosphere
+            "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+            "-framework CoreGraphics" "-framework AppKit"
+            "-framework Foundation" "-framework QuartzCore"
+            "-framework Metal" "-framework MetalKit"
+            "-framework MetalPerformanceShaders"
+    )
+    target_include_directories(at_predator_hunger_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/predator
+    )
+    target_compile_features(at_predator_hunger_visual PRIVATE cxx_std_17)
+    add_test(NAME at_predator_hunger_visual COMMAND at_predator_hunger_visual)
     add_engine_at(test_knockback_scene)  # contact rule -> knockback against the REAL solver (#36)
     add_engine_at(test_tree_collapse_threshold)  # small trees must not be bare poles (#21)
     add_engine_at(test_tree_collapse_demo)  # shows WHY small trees collapsed (#21)

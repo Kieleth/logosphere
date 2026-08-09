@@ -49,6 +49,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   legitimately consume the state that admitted them).
 
 ### Added
+- `at_predator_hunger_visual`: the hunger loop ON SCREEN — the predator
+  walks in, the carcass shrinks bite by bite (FoodState mass driving
+  particle scale), and the AI panel shows goal / action / distance /
+  grams / bites. Same loop and same `[measure]` numbers headless and
+  windowed; glyph pixels and frame brightness asserted, not promised.
+  First feature under the project rule that every delivered feature is
+  visually verifiable (`docs/testing_guidelines.md` rule 12), which this
+  pair now demonstrates: `at_predator_hunger` proves the numbers in the
+  headless core, the visual shows them.
 - `examples/predator/`: the reference for the AI boundary. A game-side
   diet (EAT bite-by-bite through `FoodState`, GRAB_PREY), its own
   schema declaring its action vocabulary, a `PredatorContext` riding the
