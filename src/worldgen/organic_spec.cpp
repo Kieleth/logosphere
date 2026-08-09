@@ -230,6 +230,10 @@ OrganicSpec OrganicSpec::grass_blade() {
     // says. Verified: the walk-through-grass gate's numbers are IDENTICAL to
     // the digit with and without this tilt. Render fixed here; the
     // contact-shape mismatch is recorded on issue #47 as a root constraint.
+    // Soft plant tissue: with the blade's ~1.2e-5 m2 tear section this
+    // gives ~60 N joints. A footstep's transient load (~3 N measured on the
+    // single-blade study) survives; a stomp or a grab tears.
+    spec.material_strength = 5e6f;
     spec.foliage_tilt_probability = 1.0f;
     spec.foliage_tilt_angle_min = 75.0f;
     spec.foliage_tilt_angle_max = 88.0f;

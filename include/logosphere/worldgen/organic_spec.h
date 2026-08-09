@@ -35,6 +35,14 @@ struct OrganicSpec {
     float width = 5.0f;                // Horizontal spread (m)
     float base_thickness = 1.0f;       // Starting branch/stem thickness (m)
 
+    // === Material ===
+    // Tensile strength (Pa) written onto every generated particle; with the
+    // bond's tear cross-section it sets the force at which joints tear.
+    // Default matches the engine-wide particle default (wood-like). Soft
+    // tissue (grass) overrides far lower: a blade should tear at tens of
+    // newtons, not tens of kilonewtons.
+    float material_strength = 100e6f;
+
     // === Space Colonization Parameters ===
     AttractorShape attractor_shape = AttractorShape::SPHERE;
     int attractor_count = 120;         // Number of target points

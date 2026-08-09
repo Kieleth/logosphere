@@ -185,6 +185,16 @@ public:
     // Each gluon type calculates its own breaking force (polymorphic)
     virtual float calculate_breaking_force(const Particle& p_a, const Particle& p_b) const = 0;
 
+    // Tear-at-elongation limit, as a ratio of rest length. Infinity = never
+    // tears by strain (rigid joints, nails). Needed because force-based
+    // breaking cannot fire on light bodies: a 2-gram blade segment's rows
+    // can only ever accumulate ~2 N through its own inertia (measured,
+    // single-blade study), so a 60 N tear threshold is unreachable no
+    // matter how far the bond is dragged. Fibers tear by STRAIN.
+    virtual float max_strain_ratio() const {
+        return std::numeric_limits<float>::infinity();
+    }
+
     // ========================================================================
     // FK ANIMATION QUERY INTERFACE
     // ========================================================================
@@ -247,6 +257,11 @@ public:
         float strength = (p_a.material_strength + p_b.material_strength) * 0.5f;
         return contact_area * strength;
     }
+
+    // Plant fiber tears at roughly double its rest length. Generous vs the
+    // few-percent elongation of real fiber, deliberately: bends and normal
+    // brushing survive, dragging a blade through a walker's body does not.
+    float max_strain_ratio() const override { return 2.0f; }
 };
 
 // Elastic: Actual spring behavior (future - knees, tendons)

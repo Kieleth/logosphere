@@ -586,9 +586,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             }
             c.penetration = penetration;   // measurement, see the field's comment
 
-            // Contact can only push up (non-negative impulse)
+            // Contact can only push up (non-negative impulse), and MECHANISM A
+            // bounds it by capture: stop the approach plus the support cushion,
+            // never more (see CONTACT_CAPTURE_CUSHION).
             c.min_impulse = 0.0f;
-            c.max_impulse = std::numeric_limits<float>::infinity();
+            {
+                const float approach = std::fabs(pi.vz);
+                c.max_impulse = c.effective_mass *
+                                (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+            }
             c.accumulated_impulse = 0.0f;
 
             // Mark as contact for friction processing
@@ -957,7 +963,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     }
 
                     c.min_impulse = 0.0f;
-                    c.max_impulse = std::numeric_limits<float>::infinity();
+                    // MECHANISM A: capture-bounded, stop the approach plus the
+                    // support cushion, never more (CONTACT_CAPTURE_CUSHION).
+                    {
+                        const float approach = std::fabs(
+                            (pi.vx - pj.vx) * c.jx + (pi.vy - pj.vy) * c.jy +
+                            (pi.vz - pj.vz) * c.jz);
+                        c.max_impulse = c.effective_mass *
+                                        (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                    }
                     c.accumulated_impulse = 0.0f;
                     c.is_contact = true;
                     c.friction_impulse_t1 = 0.0f;
@@ -1091,7 +1105,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             // path, which is all it computes.
                             c.penetration = gap_z;
                             c.min_impulse = 0.0f;
-                            c.max_impulse = std::numeric_limits<float>::infinity();
+                            // MECHANISM A: capture-bounded (Z-only row, so the
+                            // approach speed is the relative vz along jz).
+                            {
+                                const float approach = std::fabs(
+                                    (pi.vz - pj.vz) * c.jz);
+                                c.max_impulse = c.effective_mass *
+                                                (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                            }
                             c.accumulated_impulse = 0.0f;
                             c.is_contact = true;
                             c.is_turtle_contact = false;
@@ -1389,7 +1410,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Gentle correction: bias = BETA * separation (no /dt to prevent explosion)
             // Negative bias because we want to CLOSE the gap (reduce separation)
             if constexpr (PhysicsV4::ENABLE_GLUON_JACOBIAN_POSITION_BIAS) {
-                c.bias = -PhysicsV4::GLUON_POSITION_BETA * separation[axis];
+                // B1: bounded closing speed (see GLUON_MAX_BIAS_VELOCITY).
+                c.bias = std::clamp(
+                    -PhysicsV4::GLUON_POSITION_BETA * separation[axis],
+                    -PhysicsV4::GLUON_MAX_BIAS_VELOCITY,
+                     PhysicsV4::GLUON_MAX_BIAS_VELOCITY);
             } else {
                 c.bias = 0.0f;  // Old: Gluons match velocities only
             }
@@ -1525,7 +1550,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // gentler than theta itself for big rotations, which
                     // happens to curb the initial overshoot that ran the
                     // chain into saturation.
-                    c_axis.angular_bias = ANGULAR_BETA * e_mag / dt;
+                    c_axis.angular_bias = std::min(
+                        ANGULAR_BETA * e_mag / dt,
+                        PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY);
                     c_axis.min_angular_impulse = -std::numeric_limits<float>::infinity();
                     c_axis.max_angular_impulse = std::numeric_limits<float>::infinity();
                     c_axis.accumulated_angular_impulse = 0.0f;
@@ -1588,6 +1615,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             }
 
             // Note: min/max_angular_impulse already set above for one-way limit
+            // B1 angular: bounded correction rate (MAX_ANGULAR_BIAS_VELOCITY).
+            c_ang.angular_bias = std::clamp(c_ang.angular_bias,
+                                            -PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY,
+                                             PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY);
             c_ang.accumulated_angular_impulse = 0.0f;
 
             PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
@@ -2663,6 +2694,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         if (force >= breaking * 0.99f) {  // Near the limit = broke
             mark_gluon_for_removal(gluon->id);
+            continue;
+        }
+
+        // MECHANISM B2 (issue #47): tear by STRAIN. See max_strain_ratio().
+        const float max_strain = gluon->max_strain_ratio();
+        if (std::isfinite(max_strain)) {
+            const float ddx = pb.x - pa.x, ddy = pb.y - pa.y, ddz = pb.z - pa.z;
+            const float dist = std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz);
+            // Rest geometry: organic bonds carry it in target_distance
+            // (center to center); rigid offset-anchored gluons (nails)
+            // carry it in the attachment offsets with target_distance 0.
+            // Take the larger, floored at 1 cm, or a nail's centers read
+            // as a torn fiber and scenario 8 of the battery loses its box.
+            const float rest = std::max({gluon->target_distance,
+                                         gluon->get_segment_length(), 0.01f});
+            if (dist > max_strain * rest) {
+                mark_gluon_for_removal(gluon->id);
+            }
         }
     }
 

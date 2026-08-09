@@ -28,6 +28,25 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   knowledge of game action vocabulary.
 
 ### Fixed
+- **Solver: constraints can no longer create energy** (#47). Three
+  unbounded impulse/bias paths turned ordinary footsteps into
+  detonations (measured: a 9 m/s leg swing handed a 2-gram grass
+  segment 675 m/s; a walk across three grass patches produced bodies
+  at 2.36e9 m/s). Contact rows are now capture-bounded (a contact may
+  stop an approach plus a support cushion, never amplify it), gluon
+  position bias is velocity-capped like V4.14 capped contacts, and
+  angular bias — whose 0.4·error/dt formula requested exactly the
+  151 rad/s the walk gate measured — is rate-capped the same way.
+  Walk-through-grass now completes with zero detonation events and a
+  worst body speed of 3.2 m/s; the 8-scenario physics battery is
+  unchanged.
+- **Organic joints can now actually tear.** Breaking force used a
+  1e-4 m² area floor against the 100 MPa particle default, so every
+  grass joint held 10 kN. Bonds now use the real tear cross-section
+  (the two smallest extents), specs carry `material_strength` (grass:
+  5 MPa, ~60 N joints), and gluons gain a strain criterion
+  (`max_strain_ratio`, organic default 2.0x rest) because force-based
+  breaking is unreachable for gram-scale bodies regardless of load.
 - **GOAP: a target at the world origin was mistaken for "no target"**
   (#44). Routing used `food_x != 0` per axis as a presence test, so a
   goal at the origin was silently swapped for the smell target, and a

@@ -65,6 +65,31 @@ constexpr float  BETA              = 0.4f;    // Position correction strength (0
 // rotated boxes) becomes a ballistic ejection — a wedged boulder
 // left the world at 72 m/s. Deep overlaps resolve over frames.
 constexpr float  MAX_BIAS_VELOCITY = 4.0f;    // m/s
+// MECHANISM A (issue #47): a contact may STOP an approach, never amplify it.
+// Every contact row's impulse budget is effective_mass * (|approach speed| +
+// this cushion), instead of infinity. The cushion is what sustains STATIC
+// support: a resting row has zero approach speed but must still carry weight,
+// m*g*dt per tick is 0.16 m/s-equivalent, so 4.0 funds a ~25-body stack of
+// equals. Rows are rebuilt every frame with fresh speeds, so a sustained load
+// re-earns its budget each tick. What this forbids is exactly the disease
+// measured on the single-blade study: a 9 m/s footstep handing a 2-gram sheet
+// an impulse worth 675 m/s. Capture-bounded, that same row can give the sheet
+// at most (9 + 4) m/s: carried, not fired. It is also a global brake on the
+// divergence class, since energy-from-nothing is precisely what it removes.
+constexpr float  CONTACT_CAPTURE_CUSHION = 4.0f;   // m/s
+// MECHANISM B1 (issue #47): the gluon twin of MAX_BIAS_VELOCITY. Gluon rows
+// request bias = GLUON_POSITION_BETA * separation, which is dimensionally a
+// velocity with no cap: the single-blade study measured a bond stretched to
+// 434 m requesting a 434 m/s closing speed on a 2-gram body. A stretched bond
+// may pull itself home at a bounded speed; separation beyond that resolves
+// over frames, exactly the V4.14 argument for contacts.
+constexpr float  GLUON_MAX_BIAS_VELOCITY = 4.0f;   // m/s
+// MECHANISM B1, angular twin. Angular rows compute bias = 0.4 * error / dt,
+// so an angle error at the pi wrap requests 0.4*pi*120 = 151 rad/s with an
+// infinite impulse budget: the walk-through-grass gate's worst detonation
+// measured exactly 151.2 m/s. A joint may correct toward its target at a
+// bounded rate; larger errors resolve over frames (V4.14, third verse).
+constexpr float  MAX_ANGULAR_BIAS_VELOCITY = 4.0f; // rad/s
 constexpr float  GRAVITY           = 9.8f;    // m/s²
 constexpr float  FRICTION_COEFFICIENT = 0.5f; // Coulomb friction coefficient (0.5 = moderate grip)
 constexpr float  CONTACT_MARGIN    = 0.08f;   // 80mm Z margin for speculative contacts

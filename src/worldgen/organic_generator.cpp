@@ -179,8 +179,16 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
         d.angular_stiffness = 50.0f;   // loose: blades bend
         d.angular_damping = 5.0f;
         d.enable_angular_constraint = true;
-        // Breaking scales with the child's cross-section: thin things tear.
-        d.contact_area = std::max(1e-4f, pb.width * pb.height);
+        // Breaking scales with the child's REAL tear cross-section: the two
+        // smallest extents (a blade tears across its width * thickness, not
+        // its face). The old 1e-4 floor plus the 100 MPa particle default
+        // made every grass joint hold 10 kN, which is why the single-blade
+        // study saw a bond stretch to 434 m without tearing.
+        float e0 = pb.width, e1 = pb.height, e2 = pb.thickness;
+        if (e0 > e1) std::swap(e0, e1);
+        if (e1 > e2) std::swap(e1, e2);
+        if (e0 > e1) std::swap(e0, e1);
+        d.contact_area = std::max(1e-8f, e0 * e1);
         kg_->setKGGluonData(g, d);
     };
 
@@ -289,6 +297,7 @@ std::vector<Particle> OrganicGenerator::generate_trunk(float world_x, float worl
         trunk_seg.width = diameter_at_segment;
         trunk_seg.height = diameter_at_segment;
         trunk_seg.thickness = segment_length * 1.1f;  // Slight overlap
+        trunk_seg.material_strength = spec.material_strength;
 
         // Rotate to match segment direction
         trunk_seg.rotation_x = -std::asin(seg_dir_y);
@@ -380,6 +389,7 @@ std::vector<Particle> OrganicGenerator::skeleton_to_particles(const TreeSkeleton
         p.width = seg.thickness * spec.stem_width_multiplier;
         p.height = seg.thickness * spec.stem_height_multiplier;
         p.thickness = length;
+        p.material_strength = spec.material_strength;
         direction_to_euler(dir, p.rotation_x, p.rotation_y, p.rotation_z);
         p.reflectivity = 0.3f;
         p.pattern_id = 1;  // PATTERN_WOOD for branches
@@ -459,6 +469,7 @@ std::vector<Particle> OrganicGenerator::create_foliage(const Vec3& position,
         leaf.width = random_variance(spec.foliage_base_width * size_factor, 0.03f);
         leaf.height = random_variance(spec.foliage_base_height * size_factor, 0.02f);
         leaf.thickness = 0.001f;  // Paper-thin grass blades (1mm)
+        leaf.material_strength = spec.material_strength;
         leaf.facing_angle = random_variance(0.0f, 180.0f);
         leaf.reflectivity = 0.2f;
 
