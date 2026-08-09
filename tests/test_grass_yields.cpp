@@ -107,8 +107,16 @@ bool test_grass_yields() {
     {
         const size_t b0 = [&] { auto v = ps.lock_particles_for_write(); return v.size(); }();
         const size_t g0 = engine.get_physics_system().get_total_gluon_count();
+        // A/B LEVER (symptom B discriminator): GRASS_YIELDS_LEGACY=1 builds
+        // the patch UNBONDED, the pre-fix world. If she wades freely through
+        // unbonded grass and sticks in bonded grass, the bonded-and-anchored
+        // structure is the resistance; if she sticks in both, the drag is the
+        // contact field itself and the bonds are acquitted too.
+        if (std::getenv("GRASS_YIELDS_LEGACY"))
+            OrganicGenerator::set_legacy_unbonded(true);
         kg::EntityID patch = ogen.generate_grass_patch(0.0f, 4.0f, 0.1f,
                                                        GrassPatchSpec::tall_grass());
+        OrganicGenerator::set_legacy_unbonded(false);
         scene.activate_entity_now(patch);
         ps.flush_pending_particles();
         grass_gluons = engine.get_physics_system().get_total_gluon_count() - g0;
@@ -160,7 +168,8 @@ bool test_grass_yields() {
 
     printf("  scene: %zu grass bodies, %zu gluons (%zu bonds tracked), Eva wading at %.1f m/s\n",
            grass_ids.size(), grass_gluons, bonds.size(), COMMANDED);
-    if (grass_ids.empty() || grass_gluons == 0 || bonds.empty()) {
+    const bool legacy = std::getenv("GRASS_YIELDS_LEGACY") != nullptr;
+    if (grass_ids.empty() || (!legacy && (grass_gluons == 0 || bonds.empty()))) {
         printf("\n  *** SCENE DID NOT BUILD (grass %zu, gluons %zu, bonds %zu).\n\n  FAIL\n",
                grass_ids.size(), grass_gluons, bonds.size());
         engine.shutdown();

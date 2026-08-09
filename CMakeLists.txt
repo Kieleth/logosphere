@@ -1841,6 +1841,7 @@ set(TEST_SOURCES
     tests/test_walk_through_grass.cpp          # issue #47: a human walks through grasses, all asserted good
     tests/test_divergence_microscope.cpp       # issue #47: freeze on the crime scene, single-step ticks
     tests/test_grass_yields.cpp                # owner: grass must bend gracefully; stuck-ness instrumented
+    tests/test_single_blade_contact.cpp        # one blade, one human: the contact, studied end to end
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)
