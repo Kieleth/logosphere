@@ -95,6 +95,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # can instrument. Methodology: docs/PERFORMANCE_RESEARCH.md
     src/core/telemetry.cpp
     src/core/physics_trace.cpp
+    src/core/explosion_detector.cpp
     # Tiny shared utility — global BVH-rebuild tick. Lives in core so any
     # caller (ParticleSystem, lighting, headless tests) can resolve the
     # symbol without dragging the rest of LightingPrimitives.
@@ -958,6 +959,7 @@ set(LOGOSPHERE_SOURCES
     # LLM sources now live in the logosphere_llm STATIC target (see below).
     src/core/telemetry.cpp
     src/core/physics_trace.cpp
+    src/core/explosion_detector.cpp
     # rendering/resolution_manager.cpp lives in logosphere_rendering.
     src/debug_overlay.cpp
     src/scene_manager.cpp
@@ -1770,6 +1772,7 @@ set(TEST_SOURCES
     tests/test_foliage_stays_attached.cpp      # issue #38: do leaves stay bonded to their branch?
     tests/test_no_overlap_at_creation.cpp      # issue #38 RED: nothing created inside something else
     tests/test_tree_repair_visual.cpp          # issue #38: broken vs fixed tree side by side, INTERACTIVE=1
+    tests/test_explosion_detector.cpp          # issue #42: silent when quiet, fires on detonation, names the body
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)

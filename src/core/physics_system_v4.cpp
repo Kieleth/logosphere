@@ -96,6 +96,7 @@
 
 #include "logosphere/physics/physics_system.h"
 #include "physics_trace.h"
+#include "explosion_detector.h"
 #include "logosphere/physics/physics_solver.h"
 #include "logosphere/physics/narrow_phase.h"
 #include "engine.h"
@@ -318,6 +319,23 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 
     // Cleanup broken gluons
     remove_marked_gluons();
+
+    // PHASE 8: EXPLOSION DETECTOR (issue #42). One pass over final velocities,
+    // always on. Two world-scale explosions were found by a human looking at a
+    // screen while every number needed to raise the alarm sat in this array;
+    // one of them no longer reproduces on demand, which is exactly the kind of
+    // intermittent a permanent tripwire exists for. Cost is ~tens of
+    // microseconds at 19k bodies, below the kit's measured noise floor.
+    if (::logosphere::expdet::enabled()) {
+        ::logosphere::expdet::begin_frame();
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_light_source) continue;   // lights float by design
+            ::logosphere::expdet::sample((int)i, p.vx, p.vy, p.vz,
+                                         p.GetMass(), p.x, p.y, p.z);
+        }
+        ::logosphere::expdet::end_frame();
+    }
 
     // DEBUG: Track gluon 21,25 values at END of physics update
     if (frame_track >= 29 && frame_track <= 32) {
