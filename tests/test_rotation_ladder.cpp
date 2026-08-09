@@ -780,6 +780,12 @@ Rung rung4(Engine& engine) {
                 g->plastic_yield_angle = 0.25f;   // BENT: damage sticks
                 g->max_strain = 5.0f;             // plastic yields, it does not tear
             }
+            if (k == 2) {
+                // BOUNCY keeps a trace of the event: only the deepest part
+                // of the fold plasticizes, so it settles slightly leaning.
+                g->plastic_yield_angle = 1.15f;
+                g->max_strain = 4.0f;
+            }
             engine.get_physics_system().add_gluon_between(a, b, std::move(g));
         };
         bond(roots[k], seg[k][0], +0.2f, -0.3f);
@@ -935,7 +941,11 @@ Rung rung4(Engine& engine) {
                              .get_gluons_for_particle(seg[3][j]).size();
     const bool bent_ok    = peak_tip[0] > 0.5f && fin[0] > 0.4f;      // kept bent
     const bool springy_ok = peak_tip[1] > 0.5f && swings[1] <= 2 && fin[1] < 0.15f;
-    const bool bouncy_ok  = peak_tip[2] > 0.5f && swings[2] >= 2 && fin[2] < 0.35f;
+    // Owner: the bounced totem should end 'a bit leaning', not parade
+    // vertical — a trace of the event. Leaning = tip settled off grown
+    // pose, but far from flat.
+    const bool bouncy_ok  = peak_tip[2] > 0.5f && swings[2] >= 1 &&
+                            fin[2] > 0.10f && fin[2] < 0.60f;
     const bool breaks_ok  = brittle_bonds < 3;                         // it SNAPPED
     // Only BRITTLE may break: the other three natures keep every bond.
     const bool unbroken_ok = alive[0] == 3 && alive[1] == 3 && alive[2] == 3;
