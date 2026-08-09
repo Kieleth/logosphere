@@ -370,6 +370,12 @@ enums:
           bonds make many particles behave as one rigid body, weak
           ones give under load. Use it to fix things in place
           relative to each other rather than to the world.
+      SPECIALIZES:
+        description: >-
+          A narrower thing refines a broader one: the specialization
+          points at what it specializes (Slug Rifle SPECIALIZES Gun
+          Combat in a skill cascade). Generic taxonomy vocabulary,
+          first used by the rulebook module's skill cascades.
 
 # -------------------------------------------------------------------
 # Mixins (cross-cutting traits for game entities)
@@ -1126,7 +1132,7 @@ slots:
     description: Individual die results, comma-separated, in roll order.
   roll_total:
     range: integer
-    description: Sum of the dice plus the modifier.
+    description: (Sum of the dice plus the modifier) times the multiplier.
   roll_stream:
     range: string
     description: >-

@@ -1,0 +1,418 @@
+id: https://logosphere.dev/packs/rulebook
+name: rulebook
+title: Rulebook — what any book of rules is made of
+description: >-
+  The meta-ontology for tabletop-derived rulesets: checks you throw
+  dice against, tables you roll on, tables you look up by what you
+  already are, outcomes that change the world, constants buried in
+  prose, procedures with steps and gotos, and the spots where the
+  book hands judgment to a referee.
+
+  This is a MODULE PACK, not part of the universe core, and it is not
+  any one game's rules. A game supplies WHICH book it plays by as
+  data: instances of these classes, ingested from the book's own text
+  and cited back to it. Design record: docs/RPG_MODULE.md. Classes
+  here earn existence by the rule of two - no meta-class exists
+  without two concrete instances from real text needing it; the first
+  instances come from the Cepheus Engine SRD chapter 1
+  (examples/logoveyer).
+
+  Logic stays in code. A ProcedureStep names a primitive, it never
+  computes. Outcomes are typed data executed through the one
+  validated KG write path. Nothing in this pack rolls, adds, or
+  decides; it describes what the book says so that engine code and
+  LLM referees can.
+
+  Load it with kg.extendOntology(rulebook::ontology::registry()).
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  rulebook: https://logosphere.dev/packs/rulebook/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Classes
+# -------------------------------------------------------------------
+
+classes:
+  Cited:
+    mixin: true
+    description: >-
+      Provenance back to the book. Every rule entity ingested from a
+      source text carries the file it came from, the section heading
+      under it, and the verbatim quote it was extracted from; the
+      ingestion verifier string-matches the quote into the source and
+      rejects what does not match. The slots are optional at the KG
+      layer because referee-improvised entities have no book to cite;
+      the rulebook verifier requires them on ingested data.
+    slots:
+      - source_file
+      - source_section
+      - source_quote
+
+  DiceExpression:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A dice expression as the book writes it: count, sides, modifier,
+      multiplier. "2D6" is count 2 sides 6; "1D6x10000" is the
+      Cepheus medical bill. Mirrors logosphere::dice::DiceExpression
+      field for field, so an entity of this type can be handed to the
+      DiceService and rolled; total = (dice sum + modifier) *
+      multiplier.
+    annotations:
+      facets: rulebook
+    slots:
+      - dice_count
+      - dice_sides
+      - dice_modifier
+      - dice_multiplier
+
+  TaskCheck:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A throw against a target: roll the dice, add the DM derived
+      from the named attribute, succeed on target or more. The book's
+      "Int 8+". The attribute is a reference resolved against the
+      target class's declared slots, never a bare label the graph
+      cannot check.
+    annotations:
+      facets: rulebook
+    slots:
+      - attribute_ref
+      - target_number
+      - dice
+
+  RollableTable:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A table keyed by a die result: roll the dice, land in a row.
+      Rows are TableEntry entities attached with HAS_PART; each row
+      claims a result band, and a well-formed table covers its dice
+      range with no gaps and no overlaps (the ingestion verifier
+      proves that per table).
+    annotations:
+      facets: rulebook
+    slots:
+      - dice
+
+  TableEntry:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One row of a RollableTable: the band of results it claims
+      (a single-value row has roll_min = roll_max) and the outcome
+      it applies.
+    annotations:
+      facets: rulebook
+    slots:
+      - roll_min
+      - roll_max
+      - outcome
+
+  LookupTable:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A table keyed by what the character already is, not by a die:
+      characteristic modifier by score, title by social standing,
+      rank ladder by earned rank, retirement pay by terms served.
+      Same row shape as a RollableTable, different key: the executor
+      reads the referenced attribute instead of rolling.
+    annotations:
+      facets: rulebook
+    slots:
+      - attribute_ref
+
+  LookupEntry:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One row of a LookupTable: the key band it claims (a single-key
+      row has key_min = key_max) and the outcome it applies.
+    annotations:
+      facets: rulebook
+    slots:
+      - key_min
+      - key_max
+      - outcome
+
+  Outcome:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Cited
+    description: >-
+      The mechanical consequence a rule applies. Abstract: each kind
+      of consequence is a concrete subclass with typed slots, and the
+      executor pairs one registered handler per subclass; the handler
+      performs the actual writes through the validated KG-ops path.
+      Games add outcome kinds by declaring a subclass in their own
+      pack and registering a handler. New subclasses obey the rule
+      of two like everything else here.
+
+  GrantSkill:
+    is_a: Outcome
+    description: >-
+      Gain a skill at a level: basic training at Level 0, a skill
+      table result like Athletics-1. The skill is an entity
+      reference into the game's skill vocabulary, never a name
+      string.
+    annotations:
+      facets: rulebook
+    slots:
+      - skill
+      - skill_level
+
+  ModifyAttribute:
+    is_a: Outcome
+    description: >-
+      Change a numeric attribute by a delta: "+1 Int" on a skill
+      table, "Reduce Strength or Dexterity by 2" on the injury
+      table. The attribute is a verifier-resolved reference, the
+      delta is signed.
+    annotations:
+      facets: rulebook
+    slots:
+      - attribute_ref
+      - attribute_delta
+
+  GainMoney:
+    is_a: Outcome
+    description: >-
+      Money changes hands: a fixed amount (Cr20000 on a benefits
+      table, a debt as a negative amount) or a rolled one (the
+      1D6x10000 medical bill), one of the two per instance. The
+      currency is an entity reference into the game's monetary
+      vocabulary, exactly as a skill is: credits are one currency of
+      one game, and the engine does not know which currencies exist.
+    annotations:
+      facets: rulebook
+    slots:
+      - currency
+      - amount
+      - amount_dice
+
+  GrantTableRoll:
+    is_a: Outcome
+    description: >-
+      Gain extra rolls on a named table: a successful commission or
+      advancement grants an extra roll on the career's skill tables.
+    annotations:
+      facets: rulebook
+    slots:
+      - table
+      - roll_count
+
+  RuleConstant:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A number the book fixes in prose: the age of majority is 18,
+      each prior career is DM-2 on qualification, seven terms is the
+      cap. Captured as data so a rule can point at it and the quote
+      can prove it; code primitives read it, never re-hardcode it.
+    annotations:
+      facets: rulebook
+    slots:
+      - constant_value
+
+  Procedure:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      An ordered sequence the book walks you through: the character
+      creation checklist, the characteristic generation steps. Steps
+      are ProcedureStep entities attached with HAS_PART, ordered by
+      step_index; flow falls through to the next index unless a
+      route redirects it.
+    annotations:
+      facets: rulebook
+
+  ProcedureStep:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One step of a Procedure. It NAMES a code primitive through
+      primitive_ref (resolved against the executor's registry, never
+      computed in data) and carries its routes as StepRoute parts:
+      the book's own gotos, transcribed as routing data.
+    annotations:
+      facets: rulebook
+    slots:
+      - step_index
+      - primitive_ref
+
+  StepRoute:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One goto: when the step's primitive reports route_label, flow
+      continues at next_step instead of falling through. "Fail
+      survival, go to the mishap step" and the natural-12 forced
+      reenlistment are both this.
+    annotations:
+      facets: rulebook
+    slots:
+      - route_label
+      - next_step
+
+  JudgmentPoint:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A spot where the book hands the decision to the Referee: "the
+      Referee may want to change the maximum number of terms", "with
+      the Referee's approval". prompt_text is what the referee is
+      asked to judge, in the book's own words; the LLM referee
+      receives it as its brief for that judgment.
+    annotations:
+      facets: rulebook
+    slots:
+      - prompt_text
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  source_file:
+    range: string
+    description: >-
+      Path of the source text this was extracted from, relative to
+      the game's vendored source root (e.g.
+      book1/character-creation.md).
+  source_section:
+    range: string
+    description: The nearest heading above the quote in the source.
+  source_quote:
+    range: string
+    description: >-
+      Verbatim quote from the source, exact substring: the ingestion
+      verifier string-matches it into source_file and rejects any
+      value that does not match.
+  dice_count:
+    range: integer
+    minimum_value: 1
+    maximum_value: 100
+    description: How many dice.
+  dice_sides:
+    range: integer
+    minimum_value: 2
+    maximum_value: 1000
+    description: Sides per die.
+  dice_modifier:
+    range: integer
+    description: Signed modifier added to the dice sum.
+  dice_multiplier:
+    range: integer
+    minimum_value: 1
+    maximum_value: 1000000
+    description: >-
+      Multiplier applied to (dice sum + modifier); 1 when the book
+      writes none.
+  constant_value:
+    range: integer
+    description: The value the book fixes; signed.
+  attribute_ref:
+    range: string
+    description: >-
+      Reference to an attribute: the name of a declared slot on the
+      class the rule applies to (e.g. a characteristic score slot on
+      the game's Character). Resolved and rejected-if-unresolvable by
+      the ingestion verifier; never a free label.
+  target_number:
+    range: integer
+    description: Succeed on this or more.
+  dice:
+    range: DiceExpression
+    description: The dice this check or table is rolled with.
+  roll_min:
+    range: integer
+    description: Lowest die result this row claims, inclusive.
+  roll_max:
+    range: integer
+    description: Highest die result this row claims, inclusive.
+  key_min:
+    range: integer
+    description: Lowest key value this row claims, inclusive.
+  key_max:
+    range: integer
+    description: Highest key value this row claims, inclusive.
+  outcome:
+    range: Outcome
+    description: The outcome this row applies when it matches.
+  skill:
+    range: Entity
+    description: >-
+      The skill granted, as an entity reference into the game's
+      skill vocabulary (the engine does not know which skills exist).
+  skill_level:
+    range: integer
+    minimum_value: 0
+    description: The level granted.
+  attribute_delta:
+    range: integer
+    description: Signed change applied to the referenced attribute.
+  currency:
+    range: Entity
+    description: >-
+      The currency the amount is denominated in, as a reference into
+      the game's monetary vocabulary.
+  amount:
+    range: integer
+    description: Fixed amount; negative is a debt.
+  amount_dice:
+    range: DiceExpression
+    description: Rolled amount, when the book rolls for the money.
+  table:
+    range: RollableTable
+    description: The table the extra rolls are granted on.
+  roll_count:
+    range: integer
+    minimum_value: 1
+    description: How many extra rolls.
+  step_index:
+    range: integer
+    minimum_value: 0
+    description: Position in the procedure; flow falls through in
+      index order unless a route redirects it.
+  primitive_ref:
+    range: string
+    description: >-
+      Name of the code primitive this step invokes, resolved against
+      the executor's primitive registry. The step never computes;
+      the primitive does.
+  route_label:
+    range: string
+    description: >-
+      The primitive-reported outcome label this route fires on
+      (e.g. failed, natural_12). Labels come from the primitive's
+      declared vocabulary; the verifier rejects labels the named
+      primitive cannot report.
+  next_step:
+    range: ProcedureStep
+    description: Where flow continues when this route fires.
+  prompt_text:
+    range: string
+    description: What the referee is asked to judge, in the book's
+      own words.

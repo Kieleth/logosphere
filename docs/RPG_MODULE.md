@@ -46,32 +46,39 @@ space. Classes earn existence by the RULE OF TWO: no meta-class until
 two concrete instances from real text need it. Logic stays in code:
 a ProcedureStep names a primitive, it never computes.
 
+Shipped in PR2 as built (2026-08-09); the table below is the pack as
+it exists. Contract test: `tests/test_rulebook_pack.cpp`, which
+instantiates chapter-1 instances of every class and string-matches
+every citation into the vendored SRD.
+
 | Class | Models | First instances (Cepheus ch. 1) |
 |---|---|---|
-| DiceExpression | count, sides, modifier | 2D6, 1D6 |
-| TaskCheck | characteristic ref, target, dice | Navy survival Int 5+ |
-| RollableTable | die, ordered entries | Athlete cash benefits |
-| TableEntry | roll value(s), outcome | 3 -> Cr20000 |
-| Outcome | a KG-OP TEMPLATE (see below) | grant skill, +1 Int, gain Cr |
-| RuleConstant | value + verbatim quote | prior-career DM -2 |
-| Procedure / ProcedureStep | ordered steps naming code primitives | the book's chargen checklist |
-| JudgmentPoint | "the Referee may..." spots, prompt text | alien Soc halving |
-| Cited (mixin) | source file, section, quote on everything | every row above |
+| Cited (mixin) | source file, section, verbatim quote on everything | every row below |
+| DiceExpression | count, sides, modifier, multiplier; mirrors the engine dice struct field for field | 2D6 characteristics, 1D6x10000 medical bill |
+| TaskCheck | attribute ref, target, dice ref | the book's "Int 8+" definition, Athlete survival Dex 5+ |
+| RollableTable / TableEntry | dice ref; rows as HAS_PART, each claiming a roll band (min/max) | Survival Mishaps 1D6, Aging Table 2D6 |
+| LookupTable / LookupEntry | state-keyed tables: attribute ref + key bands | char modifier by score, Titles of Nobility by Soc |
+| Outcome (abstract) + GrantSkill, ModifyAttribute, GainMoney, GrantTableRoll | typed consequence kinds, one executor handler per class; money is currency-neutral, the currency itself an entity ref like a skill | basic training at Level 0, injury -2 Str, Cr10000 debt, commission extra roll |
+| RuleConstant | the number + the quote that fixes it | age of majority 18, prior-career DM-2 |
+| Procedure / ProcedureStep / StepRoute | ordered steps naming code primitives; gotos as route entities (label -> next step ref) | the chargen checklist; survival-fail and natural-12 routes |
+| JudgmentPoint | "the Referee may..." spots, prompt text | the 7-term cap, failed-survival optional rule |
 
 ## No magic strings (decided 2026-08-09)
 
 Captured data contains POINTERS TO ONTOLOGY ELEMENTS and KG
 EXPRESSIONS, never bare names. `Athletics` is a reference that must
-resolve to a skill defined in the cepheus skills pack; `+1 Int` is an
-increment op against a schema slot. The verifier rejects any reference
-that does not resolve. Verbatim source text rides alongside every typed
-value for audit:
+resolve to a skill defined in the cepheus skills pack; `+1 Int` is a
+typed ModifyAttribute whose attribute ref must resolve against the
+target class's declared slots. The verifier rejects any reference that
+does not resolve. Verbatim source text rides alongside every typed
+value for audit (the Cited mixin):
 
 ```yaml
 - rank: 0
-  bonus:
-    text: "[Athletics-1]"
-    op: {grant_skill: cepheus:skill/athletics, level: 1}
+  bonus:                # a GrantSkill entity
+    skill: cepheus:skill/athletics
+    skill_level: 1
+    source_quote: "[Athletics-1]"
 ```
 
 Consequence, resolved decision: SKILLS ARE ONTOLOGY ELEMENTS, not
@@ -86,6 +93,16 @@ outcomes are parameterized KG-ops, and the referee's writes are KG-ops.
 One write path for the book, the referee, and the game. An Outcome the
 validator rejects cannot ship, whether a Haiku extracted it from a
 table or an Opus improvised it mid-session.
+
+Refined 2026-08-09 (PR2 ruling): outcome DATA is typed, not stringly.
+Outcome is an abstract class; each consequence kind is a concrete
+subclass with typed slots (GrantSkill, ModifyAttribute, GainCredits,
+GrantTableRoll), instances are ordinary KG entities validated at
+creation, and the executor pairs one registered handler per subclass.
+The handler is what emits the actual KG-ops; the keystone holds, the
+op-template-in-a-string-slot alternative was rejected. Games add
+outcome kinds by declaring a subclass in their own pack and
+registering a handler.
 
 ## Ingestion: LLM extracts, machine verifies (DESIGN)
 
@@ -192,16 +209,18 @@ Load-bearing properties:
 | 2026-08-09 | Skills modeling: `Skill` is a CLASS, the ~50 skills are KG-seeded INSTANCES (ops file), cascades are relations. Decisive evidence is the book's own line: "Referees may add other skills as needed" — the open vocabulary is the book's design, so voyager extends by ops, never by editing the cepheus pack |
 | 2026-08-09 | First divergence-from-source recorded: the SRD's Available Skills List prints "Slug Pistol" twice; the Gun Combat cascade and the description sections prove the second entry is "Slug Rifle". We transcribe from the descriptions with a divergence note; reported upstream as orffen/cepheus-srd#36 |
 | 2026-08-09 | Rule instances load as KG-OPS FILES applied at game start (ingestion emits ops; one write grammar for book, referee, game). World persistence direction: LAYERED MANIFEST, never a monolith: named+versioned seed layers (engine, cepheus@commit, voyager@version, worldgen@seed) plus a session delta (ops or snapshot+journal). Snapshot is a cache, not a format. KG save/load is future ENGINE work |
+| 2026-08-09 | Post-review rulings, owner: (1) typed entity refs land NOW on the validated write path (registry carries the target class per class-ranged slot; validator rejects non-ids, dangling ids, and wrong-class ids), not deferred to the step-4 verifier. (2) Money is generic: GainCredits renamed GainMoney; the currency is an entity reference into the game's monetary vocabulary exactly as a skill is, credits being one currency of one game |
+| 2026-08-09 | PR2 rulings, all owner: (1) DiceExpression is a CLASS, no strings-and-parse in rule data; the engine dice grammar grew the xK multiplier so the book's 1D6x10000 is representable and rollable, total = (sum + modifier) * multiplier. (2) LookupTable/LookupEntry added: state-keyed tables (char DM, nobility, rank ladders, retirement pay) are ontology + KG entities exactly like rollable ones; all tables are ingested into the KG. (3) attribute refs (the "Int" in "Int 8+") are verifier-resolved slot references: a string that must resolve against the target class's declared slots, rejected otherwise; characteristics stay slots, not entities. (4) Outcomes are TYPED SUBCLASSES (option B), op-template strings rejected. (5) Table rows are BANDS: roll_min/roll_max and key_min/key_max, single-value row = band of one; buys the coverage invariant (a 2D6 table must cover 2..12, no gaps, no overlaps). StepRoute entities carry the checklist's gotos by the same no-strings principle |
 
 ## Build state (updated at each compaction point)
 
-_Last updated 2026-08-09, post dice-service merge._
+_Last updated 2026-08-09, PR2 built._
 
 | Step | What | State |
 |---|---|---|
-| 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 25/0, merged to main (584c3f5) |
-| 2 | rulebook.yaml engine meta-pack (+ Cited mixin, SPECIALIZES relation for skill cascades) | next: PR2 |
-| 3 | cepheus skills pack (Skill class; 50 instances come later via ops) | after PR2, uses Cited |
+| 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 30/0 (incl. xK multiplier), merged to main (584c3f5) |
+| 2 | rulebook.yaml engine meta-pack: 16 classes incl. Cited mixin, LookupTable/LookupEntry, typed Outcome subclasses, StepRoute; SPECIALIZES in core; dice xK multiplier; typed entity refs in the validator | BUILT, 34/0 (test_rulebook_pack verbatim-checks 28 ch1 instances against the vendored SRD; entity refs class-checked on the ops path) |
+| 3 | cepheus skills pack (Skill class; 50 instances come later via ops) | next, uses Cited |
 | 4 | The three-check verifier (verbatim / schema / invariant) | pending |
 | 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | pending, needs 3+4 |
 | 6 | Ops loader: seed files -> KG at game start | pending |

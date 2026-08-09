@@ -223,6 +223,15 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
             slot = sv.induced_slot(sn, cn)
             value_type = _linkml_range_to_value_type(sv, slot.range)
             required = "true" if slot.required else "false"
+            # Class-ranged slots are entity references: the registry
+            # keeps the target class so the OntologyValidator can
+            # check the referenced entity is-a that class.
+            if value_type == "entity_ref":
+                lines.append(
+                    f'    reg.addRefProperty("{cn}", "{sn}", {required}, '
+                    f'"{slot.range}");'
+                )
+                continue
             # Range annotations (LinkML's minimum_value / maximum_value
             # fields) flow through to PropertyDef so the OntologyValidator
             # can clamp LLM-proposed SetProperty values per Phase C.3.

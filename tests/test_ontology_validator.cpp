@@ -40,6 +40,7 @@ static kg::OntologyRegistry make_registry() {
     r.addProperty("Cycle",        "lap_count", "integer", false);
     r.addProperty("Cycle",        "is_user",   "boolean", false);
     r.addProperty("TrailSegment", "start_x",   "float", false);
+    r.addRefProperty("Cycle",     "trail",     false, "TrailSegment");
     r.addRelationType("PARENT_OF",
         std::unordered_set<std::string>{"Cycle"},
         std::unordered_set<std::string>{"TrailSegment"});
@@ -207,6 +208,62 @@ void set_property_boolean_value_ok() {
     ASSERT_TRUE(r.ok, std::string("expected ok; got: ") + r.reason);
 }
 
+// Entity-reference properties (class-ranged slots): the value must be
+// the id of an existing entity of the declared class or a subtype.
+
+void set_ref_property_right_class_ok() {
+    Fixture f;
+    auto cyc = f.kg.createEntity("Cycle");
+    auto seg = f.kg.createEntity("TrailSegment");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", std::to_string(seg)};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("expected ok; got: ") + r.reason);
+}
+
+void set_ref_property_wrong_class_rejected() {
+    Fixture f;
+    auto cyc   = f.kg.createEntity("Cycle");
+    auto other = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", std::to_string(other)};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "a Cycle where a TrailSegment belongs must reject");
+    ASSERT_TRUE(r.reason.find("not a TrailSegment") != std::string::npos,
+        std::string("reason names the expected class; got '") + r.reason + "'");
+}
+
+void set_ref_property_junk_rejected() {
+    Fixture f;
+    auto cyc = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", "banana"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "a non-id value must reject");
+}
+
+void set_ref_property_missing_entity_rejected() {
+    Fixture f;
+    auto cyc = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", "999"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "a dangling id must reject");
+}
+
+void create_with_ref_property_validated() {
+    Fixture f;
+    kg::KGOp bad = kg::KGOpCreateEntity{"Cycle", {{"trail", "banana"}}};
+    auto r = kg::validate_kg_op(bad, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "create_entity must not bypass the ref check");
+
+    auto seg = f.kg.createEntity("TrailSegment");
+    kg::KGOp ok = kg::KGOpCreateEntity{"Cycle",
+                                       {{"trail", std::to_string(seg)}}};
+    auto r2 = kg::validate_kg_op(ok, f.kg, f.registry);
+    ASSERT_TRUE(r2.ok, std::string("expected ok; got: ") + r2.reason);
+}
+
 int main() {
     if (std::getenv("CI")) {
         std::cout << "SKIP all (CI)" << std::endl;
@@ -229,6 +286,11 @@ int main() {
     TEST(set_property_below_min_rejected);
     TEST(set_property_wrong_value_type_rejected);
     TEST(set_property_boolean_value_ok);
+    TEST(set_ref_property_right_class_ok);
+    TEST(set_ref_property_wrong_class_rejected);
+    TEST(set_ref_property_junk_rejected);
+    TEST(set_ref_property_missing_entity_rejected);
+    TEST(create_with_ref_property_validated);
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;
     return tests_failed > 0 ? 1 : 0;

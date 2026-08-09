@@ -64,6 +64,41 @@ const PropertyDef* find_property_def(const OntologyRegistry& ont,
     return nullptr;
 }
 
+// Entity-reference values (class-ranged slots, e.g. TableEntry.outcome
+// ranging Outcome): the value must be the id of an existing entity
+// whose type is, or is a subtype of, the schema-declared target class.
+// Without this, the one validated write path would accept "banana" or
+// a Wall where a rule expects an Outcome.
+ValidationResult check_entity_ref(const std::string& where,
+                                  const PropertyDef& def,
+                                  const std::string& value,
+                                  const KGModule& kg,
+                                  const OntologyRegistry& ont) {
+    EntityID id = INVALID_ENTITY;
+    try {
+        size_t end = 0;
+        const long long n = std::stoll(value, &end);
+        if (end != value.size() || n <= 0) throw std::invalid_argument("bad id");
+        id = static_cast<EntityID>(n);
+    } catch (...) {
+        return fail(where + ": expected an entity id for '" + def.name
+                    + "', got '" + value + "'");
+    }
+    std::string actual_type;
+    EntityRef ref;
+    ref.id = id;
+    if (auto r = resolve_type(ref, kg, actual_type); !r.ok) {
+        return fail(where + " '" + def.name + "': " + r.reason);
+    }
+    if (!def.ref_target.empty() &&
+        !ont.isSubtypeOf(actual_type, def.ref_target)) {
+        return fail(where + " '" + def.name + "': entity " + value
+                    + " is a " + actual_type + ", not a "
+                    + def.ref_target);
+    }
+    return ValidationResult{};
+}
+
 // Coerce a property value (KG stores strings) against its declared
 // value_type. Returns ok + parsed numeric (when applicable) so the
 // range check below doesn't reparse.
@@ -115,6 +150,7 @@ CoerceResult coerce_property_value(const std::string& value_type,
 }
 
 ValidationResult validate_create(const KGOpCreateEntity& op,
+                                 const KGModule& kg,
                                  const OntologyRegistry& ont) {
     if (op.type.empty()) return fail("create_entity: empty type");
     if (!ont.hasEntityType(op.type)) {
@@ -136,6 +172,13 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
         }
         const PropertyDef* def = find_property_def(ont, op.type, k);
         if (!def) continue;
+        if (def->value_type == "entity_ref") {
+            if (auto r = check_entity_ref("create_entity '" + op.type + "'",
+                                          *def, v, kg, ont); !r.ok) {
+                return r;
+            }
+            continue;
+        }
         auto coerce = coerce_property_value(def->value_type, v);
         if (!coerce.ok) {
             return fail("create_entity '" + op.type + "." + k + "': "
@@ -171,6 +214,10 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
     // Value-type + range checks (C.3). Look up the PropertyDef
     // for the schema-declared value_type + min/max.
     const PropertyDef* def = find_property_def(ont, t, op.property);
+    if (def && def->value_type == "entity_ref") {
+        return check_entity_ref("set_property '" + t + "'", *def, op.value,
+                                kg, ont);
+    }
     if (def) {
         auto coerce = coerce_property_value(def->value_type, op.value);
         if (!coerce.ok) {
@@ -221,7 +268,7 @@ ValidationResult validate_kg_op(const KGOp& op,
     return std::visit([&](const auto& concrete) -> ValidationResult {
         using T = std::decay_t<decltype(concrete)>;
         if constexpr (std::is_same_v<T, KGOpCreateEntity>)
-            return validate_create(concrete, ont);
+            return validate_create(concrete, kg, ont);
         if constexpr (std::is_same_v<T, KGOpDestroyEntity>)
             return validate_destroy(concrete, kg);
         if constexpr (std::is_same_v<T, KGOpSetProperty>)

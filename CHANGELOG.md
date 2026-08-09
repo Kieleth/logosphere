@@ -8,6 +8,30 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **`rulebook` ontology pack** (`schema/packs/rulebook.yaml`): the
+  meta-ontology for tabletop-derived rulesets, what any book of rules
+  is made of. `Cited` mixin (source file, section, verbatim quote on
+  every rule entity), `DiceExpression`, `TaskCheck`, `RollableTable` /
+  `TableEntry`, `LookupTable` / `LookupEntry` (state-keyed tables),
+  abstract `Outcome` with typed kinds (`GrantSkill`, `ModifyAttribute`,
+  `GainMoney`, `GrantTableRoll`), `RuleConstant`, `Procedure` /
+  `ProcedureStep` / `StepRoute` (the book's gotos as routing data), and
+  `JudgmentPoint`. Opt-in like every pack:
+  `kg.extendOntology(rulebook::ontology::registry())`. Classes earn
+  existence by the rule of two; first instances come from the Cepheus
+  SRD chapter 1 and are verbatim-checked against the vendored source in
+  `test_rulebook_pack`. Design record: docs/RPG_MODULE.md.
+- `SPECIALIZES` relation in the core vocabulary: a narrower thing
+  refines a broader one (skill cascades, taxonomies).
+- **Typed entity references on the validated write path.** A
+  class-ranged slot (`TableEntry.outcome` ranging `Outcome`) now
+  generates `OntologyRegistry::addRefProperty` with the target class,
+  and `validate_kg_op` rejects any value that is not the id of an
+  existing entity of that class or a subtype. Previously such slots
+  validated as pass-through strings.
+- `DiceExpression` grammar gains an `xK` multiplier suffix
+  (`1D6x10000`): total = (dice sum + modifier) * multiplier, journaled
+  and event-carried like every roll.
 - `DiceService` (engine core): the only place randomness becomes fact.
   Named, independently seeded streams replay deterministically (the
   chargen stream replays the same life regardless of interleaving);
