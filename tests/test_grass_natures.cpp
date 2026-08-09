@@ -172,9 +172,9 @@ bool test_grass_natures() {
     if (g_inter) {
         ps.queue_light(4.0f, -6.0f, 16.0f, 700000.0f, 55.0f, 1.0f, 0.96f, 0.9f);
         auto& cam = engine.get_camera_system();
-        cam.set_position(-3.0f, -6.5f, 3.0f);
-        cam.look_at(6.0f, 0.0f, 0.8f);
-        cam.set_pixels_per_unit(85.0f);
+        cam.set_position(-1.0f, -8.0f, 3.5f);
+        cam.look_at(5.0f, 0.0f, 0.6f);
+        cam.set_pixels_per_unit(70.0f);
         if (auto* uis = engine.get_ui_system()) {
             auto mk = [&](int y, uint8_t r, uint8_t g, uint8_t b) {
                 auto* L = new ui::Label("", "");
@@ -246,6 +246,26 @@ bool test_grass_natures() {
     if (g_title) g_title->set_text(
         "GRASS NATURES pt 1: BENT | LEANING | STRAIGHT | BRITTLE.  SPACE: the bar sweeps them");
     for (int f = 0; f < 60 && engine.is_running(); ++f) gstep(engine);
+    if (g_inter && std::getenv("GRASS_DUMP")) {
+        engine.get_renderer().wait_for_completion();
+        int w = engine.get_render_buffer().width();
+        int h = engine.get_render_buffer().height();
+        std::vector<uint32_t> px((size_t)w * h, 0u);
+        if (engine.read_latest_framebuffer(px.data(), w, h)) {
+            FILE* fp = fopen("/tmp/grass_frame.ppm", "wb");
+            if (fp) {
+                fprintf(fp, "P6\n%d %d\n255\n", w, h);
+                for (uint32_t c : px) {
+                    unsigned char rgb[3] = {(unsigned char)((c >> 16) & 0xFF),
+                                            (unsigned char)((c >> 8) & 0xFF),
+                                            (unsigned char)(c & 0xFF)};
+                    fwrite(rgb, 1, 3, fp);
+                }
+                fclose(fp);
+                printf("      [frame] dumped /tmp/grass_frame.ppm\n");
+            }
+        }
+    }
     if (!gwait(engine)) { engine.shutdown(); return false; }
 
     auto sample = [&](int f, const char* ph) {
@@ -274,6 +294,28 @@ bool test_grass_natures() {
             g_live->set_text(buf);
         }
     };
+    // BREAK TIMELINE (owner: 'the grass is breaking!'): per blade, the
+    // frame its first bond tore and the bond-count curve, sampled coarse.
+    int first_break[4] = {-1, -1, -1, -1};
+    auto watch_breaks = [&](int f, const char* ph) {
+        bool any = false;
+        for (int k = 0; k < 4; ++k) {
+            const size_t alive = count_bonds(engine, blades[k].ids);
+            if (alive < blades[k].bonds0 && first_break[k] < 0) {
+                first_break[k] = f;
+                any = true;
+            }
+        }
+        if (any || (f % 60) == 0) {
+            printf("      [bonds %s f%3d] %s %zu/%zu  %s %zu/%zu  %s %zu/%zu  %s %zu/%zu  det %llu\n",
+                   ph, f,
+                   blades[0].tag, count_bonds(engine, blades[0].ids), blades[0].bonds0,
+                   blades[1].tag, count_bonds(engine, blades[1].ids), blades[1].bonds0,
+                   blades[2].tag, count_bonds(engine, blades[2].ids), blades[2].bonds0,
+                   blades[3].tag, count_bonds(engine, blades[3].ids), blades[3].bonds0,
+                   (unsigned long long)X::stats().speed_events);
+        }
+    };
     for (int f = 0; f < 240 && engine.is_running(); ++f) {
         {
             auto v = ps.lock_particles_for_write();
@@ -282,6 +324,7 @@ bool test_grass_natures() {
         }
         gstep(engine);
         sample(f, "SWEEP");
+        watch_breaks(f, "SWEEP");
     }
     {
         auto v = ps.lock_particles_for_write();
@@ -292,6 +335,7 @@ bool test_grass_natures() {
     for (int f = 0; f < 500 && engine.is_running(); ++f) {
         gstep(engine);
         sample(f, "RECOV");
+        if ((f % 100) == 0) watch_breaks(240 + f, "RECOV");
         auto v = ps.lock_particles_for_write();
         for (int k = 0; k < 4; ++k) {
             const float vy = v[blades[k].tip].vy;
@@ -310,6 +354,8 @@ bool test_grass_natures() {
                blades[k].bonds_end, blades[k].bonds0);
     printf("  detector events part 1: %llu (worst %.1f m/s)\n",
            (unsigned long long)det_p1, X::stats().worst_speed);
+    printf("  first bond tear: BENT f%d  LEANING f%d  STRAIGHT f%d  BRITTLE f%d\n",
+           first_break[0], first_break[1], first_break[2], first_break[3]);
 
     // ---- PART 2: the human over one blade -------------------------------
     if (g_title) g_title->set_text(
