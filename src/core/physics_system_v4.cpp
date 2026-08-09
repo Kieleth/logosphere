@@ -797,16 +797,36 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                       const Particle& sleeper,
                                       float active_speed) {
                     if (active.solver_mode == ParticleSolverMode::KINEMATIC) {
-                        const float dx = sleeper.x - active.x;
-                        const float dy = sleeper.y - active.y;
-                        const float dz = sleeper.z - active.z;
-                        const float d = std::sqrt(dx*dx + dy*dy + dz*dz);
-                        if (d < 1e-6f) return true;   // coincident: definitely engaging
-                        const float closing =
-                            ((active.vx - sleeper.vx) * dx +
-                             (active.vy - sleeper.vy) * dy +
-                             (active.vz - sleeper.vz) * dz) / d;
-                        return closing >= WAKE_KINEMATIC_APPROACH;
+                        // Closing speed along the CONTACT NORMAL (the
+                        // minimum-overlap axis), not the centre line: a wide
+                        // bar's centre can be metres off-axis while its face
+                        // plows straight in (rung 4's finger woke nobody),
+                        // and a gliding pin anchor overlaps the floor while
+                        // approaching on no axis at all.
+                        const float ox = std::fmin(active.x + active.width * 0.5f,
+                                                   sleeper.x + sleeper.width * 0.5f) -
+                                         std::fmax(active.x - active.width * 0.5f,
+                                                   sleeper.x - sleeper.width * 0.5f);
+                        const float oy = std::fmin(active.y + active.height * 0.5f,
+                                                   sleeper.y + sleeper.height * 0.5f) -
+                                         std::fmax(active.y - active.height * 0.5f,
+                                                   sleeper.y - sleeper.height * 0.5f);
+                        const float oz = std::fmin(active.z + active.thickness * 0.5f,
+                                                   sleeper.z + sleeper.thickness * 0.5f) -
+                                         std::fmax(active.z - active.thickness * 0.5f,
+                                                   sleeper.z - sleeper.thickness * 0.5f);
+                        int axis = 0; float om = ox;
+                        if (oy < om) { om = oy; axis = 1; }
+                        if (oz < om) { om = oz; axis = 2; }
+                        const float rv[3] = {active.vx - sleeper.vx,
+                                             active.vy - sleeper.vy,
+                                             active.vz - sleeper.vz};
+                        const float toward = (axis == 0)
+                            ? ((sleeper.x >= active.x) ? rv[0] : -rv[0])
+                            : (axis == 1)
+                            ? ((sleeper.y >= active.y) ? rv[1] : -rv[1])
+                            : ((sleeper.z >= active.z) ? rv[2] : -rv[2]);
+                        return toward >= WAKE_KINEMATIC_APPROACH;
                     }
                     float ma = active.GetMass();
                     float ms = sleeper.GetMass();

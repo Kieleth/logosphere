@@ -657,6 +657,230 @@ Rung rung3(Engine& engine) {
     return r;
 }
 
+// ---------------------------------------------------------------------------
+// RUNG 4 (owner-designed): the NATURE of the grass. Four identical chains,
+// four gluon declarations, ONE wide finger sweeping through all of them in
+// a single pass:
+//   SPRINGY   near-critical damping    -> one sway, upright again
+//   RINGY     low damping (rubber)     -> rings several swings, recovers
+//   SLOW      overdamped               -> creeps back, no overshoot
+//   MALLEABLE plastic yield            -> STAYS BENT (damage done)
+// The malleable clause is the mechanism RED: nothing in the engine moves a
+// bond's rest pose when bent past yield, so today it recovers like springy.
+// ---------------------------------------------------------------------------
+struct ChainSpec {
+    const char* tag;
+    float lin_damping;
+    float ang_stiffness, ang_damping;
+};
+
+Rung rung4(Engine& engine) {
+    Rung r; r.name = "4 four natures, one finger";
+    auto& ps = engine.get_particle_system();
+
+    const ChainSpec specs[4] = {
+        {"SPRINGY",   4000.0f, 150.0f,  40.0f},
+        {"RINGY",     1000.0f, 150.0f,   5.0f},
+        {"SLOW",      8000.0f, 150.0f, 400.0f},
+        {"MALLEABLE", 4000.0f, 150.0f,  40.0f},   // + plastic yield (MISSING)
+    };
+    const float xs[4] = {6.0f, 8.0f, 10.0f, 12.0f};
+
+    // Ground under the new row.
+    for (int cx = 5; cx <= 13; ++cx)
+        for (int cy = -2; cy <= 2; ++cy) {
+            Particle t = {};
+            t.shape = ParticleShape::BOX;
+            t.x = (float)cx; t.y = (float)cy; t.z = 0.05f;
+            t.width = t.height = 1.0f; t.thickness = 0.1f; t.size = 1.0f;
+            t.r = 0.35f; t.g = 0.4f; t.b = 0.35f; t.a = 1.0f;
+            t.SetMaterial(Materials::Type::STONE);
+            const int id = engine.add_particle(t);
+            ps.flush_pending_particles();
+            auto v = ps.lock_particles_for_write();
+            v[id].solver_mode = ParticleSolverMode::KINEMATIC;
+            v[id].owner = ParticleOwner::DYNAMICS;
+            v[id].is_at_rest = true;
+        }
+
+    int seg[4][3]; int roots[4];
+    for (int k = 0; k < 4; ++k) {
+        Particle rp = {};
+        rp.shape = ParticleShape::BOX;
+        rp.x = xs[k]; rp.y = 0.0f; rp.z = 0.3f;
+        rp.width = rp.height = 0.4f; rp.thickness = 0.4f; rp.size = 0.4f;
+        rp.r = 0.45f; rp.g = 0.3f; rp.b = 0.2f; rp.a = 1.0f;
+        rp.SetMaterial(Materials::Type::STONE);
+        roots[k] = engine.add_particle(rp);
+        for (int j = 0; j < 3; ++j) {
+            Particle p = {};
+            p.shape = ParticleShape::BOX;
+            p.x = xs[k]; p.y = 0.0f; p.z = 0.8f + 0.6f * (float)j;
+            p.width = 0.25f; p.height = 0.25f; p.thickness = 0.6f;
+            p.size = 0.25f;
+            // tint per nature so the owner can tell them apart at a glance
+            p.r = (k == 1) ? 0.75f : 0.4f;
+            p.g = (k == 3) ? 0.55f : 0.75f;
+            p.b = (k == 2) ? 0.8f : 0.35f;
+            p.a = 1.0f;
+            p.SetMaterial(Materials::Type::WOOD_HARD);
+            seg[k][j] = engine.add_particle(p);
+        }
+    }
+    // One wide finger covering the whole row.
+    Particle fing = {};
+    fing.shape = ParticleShape::BOX;
+    fing.x = 9.0f; fing.y = -2.0f; fing.z = 1.4f;
+    fing.width = 8.0f; fing.height = 0.3f; fing.thickness = 0.3f; fing.size = 0.3f;
+    fing.r = 0.8f; fing.g = 0.35f; fing.b = 0.3f; fing.a = 1.0f;
+    fing.SetMaterial(Materials::Type::STONE);
+    const int finger = engine.add_particle(fing);
+    ps.flush_pending_particles();
+    {
+        auto v = ps.lock_particles_for_write();
+        v[finger].solver_mode = ParticleSolverMode::KINEMATIC;
+        v[finger].owner = ParticleOwner::DYNAMICS;
+        v[finger].material_strength = 1e9f;
+        for (int k = 0; k < 4; ++k) {
+            v[roots[k]].solver_mode = ParticleSolverMode::KINEMATIC;
+            v[roots[k]].owner = ParticleOwner::DYNAMICS;
+            v[roots[k]].material_strength = 1e9f;
+            for (int j = 0; j < 3; ++j) {
+                v[seg[k][j]].material_strength = 1e9f;
+                v[seg[k][j]].is_quat_driven = true;
+            }
+        }
+    }
+    for (int k = 0; k < 4; ++k) {
+        auto bond = [&](int a, int b, float za, float zb) {
+            auto g = std::make_unique<OrganicGluon>();
+            g->offset_a = {0.0f, 0.0f, za};
+            g->offset_b = {0.0f, 0.0f, zb};
+            g->target_distance = 0.0f;
+            g->rotate_offsets = true;
+            g->contact_area = 1.0f;
+            g->stiffness = 500000.0f;
+            g->damping = specs[k].lin_damping;
+            g->enable_angular_constraint = true;
+            g->angular_drive_enabled = true;
+            g->use_quat_target = true;
+            g->angular_stiffness = specs[k].ang_stiffness;
+            g->angular_damping = specs[k].ang_damping;
+            engine.get_physics_system().add_gluon_between(a, b, std::move(g));
+        };
+        bond(roots[k], seg[k][0], +0.2f, -0.3f);
+        bond(seg[k][0], seg[k][1], +0.3f, -0.3f);
+        bond(seg[k][1], seg[k][2], +0.3f, -0.3f);
+    }
+
+    if (g_interactive) {
+        auto& camera = engine.get_camera_system();
+        camera.set_position(2.0f, -7.5f, 4.5f);
+        camera.look_at(9.0f, 0.0f, 1.2f);
+        camera.set_pixels_per_unit(52.0f);
+    }
+    if (g_label) g_label->set_text(
+        "RUNG 4  four natures: SPRINGY | RINGY(red) | SLOW(blue) | MALLEABLE(yellow). "
+        "SPACE: one wide finger sweeps them all");
+    for (int f = 0; f < 90 && engine.is_running(); ++f) step(engine);
+
+    float tip_y0[4], tip_z0[4];
+    {
+        auto v = ps.lock_particles_for_write();
+        for (int k = 0; k < 4; ++k) { tip_y0[k] = v[seg[k][2]].y; tip_z0[k] = v[seg[k][2]].z; }
+    }
+    if (!wait_for_space(engine)) { r.passed = false;
+        snprintf(r.detail, sizeof r.detail, "owner quit before the sweep");
+        return r; }
+
+    float peak_tip[4] = {0,0,0,0};
+    for (int f = 0; f < 240 && engine.is_running(); ++f) {
+        {
+            auto v = ps.lock_particles_for_write();
+            v[finger].y = -2.0f + (float)f * (1.0f / 60.0f);
+            v[finger].vy = 1.0f;
+        }
+        step(engine);
+        auto v = ps.lock_particles_for_write();
+        for (int k = 0; k < 4; ++k)
+            peak_tip[k] = std::fmax(peak_tip[k],
+                dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
+                      xs[k], tip_y0[k], tip_z0[k]));
+    }
+    {
+        auto v = ps.lock_particles_for_write();
+        v[finger].x = 40.0f; v[finger].y = -30.0f; v[finger].vy = 0.0f;
+    }
+    if (g_label) g_label->set_text(
+        "RUNG 4  finger gone: watch four different recoveries (or non-recoveries)");
+
+    int swings[4] = {0,0,0,0};
+    float prev_vy[4] = {0,0,0,0};
+    float mid_tip[4] = {0,0,0,0};
+    for (int f = 0; f < 600 && engine.is_running(); ++f) {
+        step(engine);
+        auto v = ps.lock_particles_for_write();
+        for (int k = 0; k < 4; ++k) {
+            const float vy = v[seg[k][2]].vy;
+            if (std::fabs(vy) > 0.05f && vy * prev_vy[k] < 0.0f) swings[k]++;
+            if (std::fabs(vy) > 0.05f) prev_vy[k] = vy;
+            if (f == 150)
+                mid_tip[k] = dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
+                                   xs[k], tip_y0[k], tip_z0[k]);
+        }
+        if (g_live && (f % 10) == 0) {
+            char buf[288];
+            auto td = [&](int k) {
+                return dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
+                             xs[k], tip_y0[k], tip_z0[k]);
+            };
+            snprintf(buf, sizeof buf,
+                     "RECOV f%3d  tips m: SPRINGY %.2f (sw %d) | RINGY %.2f (sw %d) | "
+                     "SLOW %.2f (sw %d) | MALLEABLE %.2f (sw %d)",
+                     f, td(0), swings[0], td(1), swings[1],
+                     td(2), swings[2], td(3), swings[3]);
+            g_live->set_text(buf);
+        }
+    }
+    float fin[4];
+    {
+        auto v = ps.lock_particles_for_write();
+        for (int k = 0; k < 4; ++k)
+            fin[k] = dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
+                           xs[k], tip_y0[k], tip_z0[k]);
+    }
+    printf("      nature      peak_tip  mid_tip  final_tip  swings\n");
+    for (int k = 0; k < 4; ++k)
+        printf("      %-10s %8.2f %8.2f %10.2f %7d\n",
+               specs[k].tag, peak_tip[k], mid_tip[k], fin[k], swings[k]);
+
+    const bool all_bent  = peak_tip[0] > 0.5f && peak_tip[1] > 0.5f &&
+                           peak_tip[2] > 0.5f && peak_tip[3] > 0.5f;
+    const bool springy_ok = swings[0] <= 2 && fin[0] < 0.15f;
+    const bool ringy_ok   = swings[1] >= 3 && fin[1] < 0.35f;
+    const bool slow_ok    = swings[2] <= 1 && mid_tip[2] > 0.35f && fin[2] < 0.25f;
+    // THE MECHANISM RED: damage done must be remembered.
+    const bool stays_bent = fin[3] > 0.5f;
+    r.passed = all_bent && springy_ok && ringy_ok && slow_ok && stays_bent;
+    snprintf(r.detail, sizeof r.detail,
+             "all bent %s; springy %s (sw %d, fin %.2f); ringy %s (sw %d, fin %.2f); "
+             "slow %s (mid %.2f, fin %.2f); MALLEABLE %s (fin %.2f, need > 0.5: "
+             "no yield mechanism exists)",
+             all_bent ? "yes" : "NO", springy_ok ? "ok" : "OFF", swings[0], fin[0],
+             ringy_ok ? "ok" : "OFF", swings[1], fin[1],
+             slow_ok ? "ok" : "OFF", mid_tip[2], fin[2],
+             stays_bent ? "ok" : "*** RECOVERED, FORGOT THE DAMAGE ***", fin[3]);
+    if (g_label) {
+        char buf[224];
+        snprintf(buf, sizeof buf,
+                 "RUNG 4 done: finals %.2f | %.2f | %.2f | %.2f m. ESC or close when satisfied.",
+                 fin[0], fin[1], fin[2], fin[3]);
+        g_label->set_text(buf);
+    }
+    hold_until_close(engine);
+    return r;
+}
+
 } // namespace
 
 bool test_rotation_ladder() {
@@ -695,7 +919,7 @@ bool test_rotation_ladder() {
         }
     }
 
-    Rung rungs[] = { rung1(engine), rung2_verdict(), rung3(engine) };
+    Rung rungs[] = { rung1(engine), rung2_verdict(), rung3(engine), rung4(engine) };
 
     bool all = true;
     for (const Rung& r : rungs) {
