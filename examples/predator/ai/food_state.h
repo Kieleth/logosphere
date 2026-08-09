@@ -8,7 +8,7 @@
 #ifndef FOOD_STATE_H
 #define FOOD_STATE_H
 
-#include "../particle.h"
+#include "particle.h"
 #include <cmath>
 
 namespace npc_ai {

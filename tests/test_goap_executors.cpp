@@ -135,6 +135,22 @@ struct PlanStore {
         }
         return p;
     }
+
+    // Same, but each action declares which named target it consumes.
+    goap::Plan build_with_targets(
+        const std::vector<std::pair<std::string, std::string>>& actions) {
+        goap::Plan p;
+        p.valid = true;
+        for (const auto& [n, key] : actions) {
+            auto a = std::make_unique<goap::Action>();
+            a->name = n;
+            a->target_key = key;
+            a->effects[n + "_done"] = 1;
+            p.actions.push_back(a.get());
+            owned.push_back(std::move(a));
+        }
+        return p;
+    }
 };
 
 CreatureParams default_params() {
@@ -334,12 +350,14 @@ void test_no_registry_is_reported_honestly() {
               << std::endl;
 
     check(plan.size() == 1, "the plan is untouched, so nothing was faked");
-    // A caller that trusts plan_completed will believe the creature did
-    // its job. Nothing distinguishes this from success.
-    check(r.action_failed || r.needs_replan,
-          "a missing registry is reported as a failure, not as a completed plan "
-          "(#45)",
-          /*xfail=*/true);
+    // #45, fixed: this used to report plan_completed=true, the same
+    // signal a finished plan gives, and a brain doing
+    // `if (plan_completed) pick_new_goal()` concluded the creature
+    // achieved something while it silently did nothing every frame.
+    check(r.action_failed && r.needs_replan,
+          "a missing registry is reported as a failure needing a replan");
+    check(!r.plan_completed,
+          "and NOT as a completed plan, which is what it used to claim");
 }
 
 void test_an_empty_plan_completes_without_executing() {
@@ -420,51 +438,52 @@ void test_goal_satisfaction_decides_replan() {
 
 // ----------------------------------------------------- targets, and #53
 
-// build_context picks the target from the action NAME. The engine
-// therefore knows the words PURSUE, EAT, INVESTIGATE_SMELL and
-// ESCAPE_BLOCK, which is the boundary question in roadmap #37 item 3.
-// Whatever the answer, the routing must at least be correct.
-void test_the_target_follows_the_action_name() {
+// Targets route by the ACTION's target_key declaration (#37 item 3
+// removed the hardcoded name ladder: the engine no longer knows the
+// words PURSUE or EAT). The action names here are deliberately words no
+// engine executor has ever heard of, which IS part of the assertion.
+void test_the_target_follows_the_action_declaration() {
     ExecutorRegistry reg;
-    auto pursue = std::make_unique<Spy>("PURSUE");
-    pursue->complete_after = 1;
-    Spy* p_raw = pursue.get();
-    reg.register_executor("PURSUE", std::move(pursue));
-    auto smell = std::make_unique<Spy>("INVESTIGATE_SMELL");
-    smell->complete_after = 1;
-    Spy* s_raw = smell.get();
-    reg.register_executor("INVESTIGATE_SMELL", std::move(smell));
+    auto forage = std::make_unique<Spy>("FORAGE");
+    forage->complete_after = 1;
+    Spy* f_raw = forage.get();
+    reg.register_executor("FORAGE", std::move(forage));
+    auto sniff = std::make_unique<Spy>("SNIFF");
+    sniff->complete_after = 1;
+    Spy* s_raw = sniff.get();
+    reg.register_executor("SNIFF", std::move(sniff));
 
     GOAPPlanExecutor exec;
     exec.set_registry(&reg);
     exec.set_verbose(false);
 
     auto params = default_params();
-    params.food_x = 10.0f;  params.food_y = 11.0f;
-    params.smell_target_x = -5.0f; params.smell_target_y = -6.0f;
+    params.targets["food"] = {10.0f, 11.0f};
+    params.targets["smell"] = {-5.0f, -6.0f};
 
-    PlanStore store; goap::Plan plan = store.build({"PURSUE", "INVESTIGATE_SMELL"});
+    PlanStore store;
+    goap::Plan plan = store.build_with_targets(
+        {{"FORAGE", "food"}, {"SNIFF", "smell"}});
     goap::WorldState ws;
     for (int f = 0; f < 6 && !plan.empty(); ++f)
         exec.update(plan, ws, 0, 0, 0, 1.0f / 60.0f, params);
 
-    std::cout << "  [measure] PURSUE got target (" << p_raw->last_target_x
-              << ", " << p_raw->last_target_y << "), INVESTIGATE_SMELL got ("
+    std::cout << "  [measure] FORAGE got target (" << f_raw->last_target_x
+              << ", " << f_raw->last_target_y << "), SNIFF got ("
               << s_raw->last_target_x << ", " << s_raw->last_target_y << ")"
               << std::endl;
-    check(p_raw->last_target_x == 10.0f && p_raw->last_target_y == 11.0f,
-          "PURSUE is sent to the food");
+    check(f_raw->last_target_x == 10.0f && f_raw->last_target_y == 11.0f,
+          "the action declaring target_key=food is sent to the food");
     check(s_raw->last_target_x == -5.0f && s_raw->last_target_y == -6.0f,
-          "INVESTIGATE_SMELL is sent to the smell");
+          "and target_key=smell is sent to the smell");
 }
 
-// ESCAPE_BLOCK picks its target with
-//   food_x != 0 ? food_x : smell_x     (and the same, separately, for y)
-// Zero is a real coordinate. A creature whose food sits at the world
-// origin is told to escape toward the smell instead, and because the
-// axes are chosen INDEPENDENTLY it can be handed a point that is
-// neither location.
-void test_a_target_on_the_origin_is_mistaken_for_absent() {
+// #44, fixed. The old routing used `food_x != 0 ? food_x : smell_x`,
+// separately per axis: a target at the world origin read as absent, and
+// a target on one axis produced a coordinate welded from two different
+// places. With named targets, presence is the KEY being present, and a
+// point is routed whole.
+void test_a_target_on_the_origin_is_a_target() {
     ExecutorRegistry reg;
     auto esc = std::make_unique<Spy>("ESCAPE_BLOCK");
     esc->complete_after = 1;
@@ -476,48 +495,99 @@ void test_a_target_on_the_origin_is_mistaken_for_absent() {
     exec.set_verbose(false);
 
     auto params = default_params();
-    params.food_x = 0.0f;   params.food_y = 0.0f;      // food AT the origin
-    params.smell_target_x = 99.0f; params.smell_target_y = 77.0f;
+    params.targets["escape"] = {0.0f, 0.0f};      // AT the origin
+    params.targets["smell"] = {99.0f, 77.0f};     // the old wrong answer
 
-    PlanStore store; goap::Plan plan = store.build({"ESCAPE_BLOCK"});
+    PlanStore store;
+    goap::Plan plan = store.build_with_targets({{"ESCAPE_BLOCK", "escape"}});
     goap::WorldState ws;
     for (int f = 0; f < 4 && !plan.empty(); ++f)
         exec.update(plan, ws, 0, 0, 0, 1.0f / 60.0f, params);
 
-    std::cout << "  [measure] food at the origin, smell at (99, 77) -> "
-              << "ESCAPE_BLOCK got (" << raw->last_target_x << ", "
-              << raw->last_target_y << ")" << std::endl;
+    std::cout << "  [measure] target at the origin -> ESCAPE_BLOCK got ("
+              << raw->last_target_x << ", " << raw->last_target_y
+              << "), has_target=" << raw->last_had_target << std::endl;
+    check(raw->last_had_target,
+          "a target at the origin is PRESENT, not mistaken for absent");
     check(raw->last_target_x == 0.0f && raw->last_target_y == 0.0f,
-          "a target at the origin is used, not treated as unset (#44)",
-          /*xfail=*/true);
+          "and routed as-is (" + std::to_string(raw->last_target_x) + ", " +
+          std::to_string(raw->last_target_y) + ")");
+}
 
-    // The mixed-axis case, which is the worse half: food on the y axis
-    // only. x comes from food, y comes from smell, and the result is a
-    // place nothing is.
-    ExecutorRegistry reg2;
-    auto esc2 = std::make_unique<Spy>("ESCAPE_BLOCK");
-    esc2->complete_after = 1;
-    Spy* raw2 = esc2.get();
-    reg2.register_executor("ESCAPE_BLOCK", std::move(esc2));
-    GOAPPlanExecutor exec2;
-    exec2.set_registry(&reg2);
-    exec2.set_verbose(false);
-    auto p2 = default_params();
-    p2.food_x = 4.0f;  p2.food_y = 0.0f;               // on the x axis
-    p2.smell_target_x = 99.0f; p2.smell_target_y = 77.0f;
-    PlanStore store2; goap::Plan plan2 = store2.build({"ESCAPE_BLOCK"});
-    goap::WorldState ws2;
-    for (int f = 0; f < 4 && !plan2.empty(); ++f)
-        exec2.update(plan2, ws2, 0, 0, 0, 1.0f / 60.0f, p2);
+// The other half of #44: a declared target nobody published must read
+// as honestly ABSENT, never fabricated from other targets' axes.
+void test_an_unpublished_target_is_absent_not_fabricated() {
+    ExecutorRegistry reg;
+    auto esc = std::make_unique<Spy>("ESCAPE_BLOCK");
+    esc->complete_after = 1;
+    Spy* raw = esc.get();
+    reg.register_executor("ESCAPE_BLOCK", std::move(esc));
 
-    std::cout << "  [measure] food at (4, 0), smell at (99, 77) -> "
-              << "ESCAPE_BLOCK got (" << raw2->last_target_x << ", "
-              << raw2->last_target_y << ")" << std::endl;
-    check(raw2->last_target_x == 4.0f && raw2->last_target_y == 0.0f,
-          "the two axes come from the SAME location, #44 (" +
-          std::to_string(raw2->last_target_x) + ", " +
-          std::to_string(raw2->last_target_y) + ")",
-          /*xfail=*/true);
+    GOAPPlanExecutor exec;
+    exec.set_registry(&reg);
+    exec.set_verbose(false);
+
+    auto params = default_params();
+    params.targets["smell"] = {99.0f, 77.0f};    // present, but not what
+                                                  // the action declared
+
+    PlanStore store;
+    goap::Plan plan = store.build_with_targets({{"ESCAPE_BLOCK", "escape"}});
+    goap::WorldState ws;
+    for (int f = 0; f < 4 && !plan.empty(); ++f)
+        exec.update(plan, ws, 0, 0, 0, 1.0f / 60.0f, params);
+
+    std::cout << "  [measure] declared 'escape', published only 'smell' -> "
+              << "has_target=" << raw->last_had_target << " ("
+              << raw->last_target_x << ", " << raw->last_target_y << ")"
+              << std::endl;
+    check(raw->executes > 0, "the executor still runs (its own no-target path)");
+    check(!raw->last_had_target,
+          "but is told the target is ABSENT rather than handed a "
+          "coordinate borrowed from another target");
+}
+
+// The precondition gate, forced into existence by the predator AT's
+// control: a failed action does not apply its effects, and the next
+// action must not START into a world that no longer satisfies it — the
+// AT caught EAT eating imaginary food at a place PURSUE never reached.
+void test_an_action_does_not_start_on_unmet_preconditions() {
+    ExecutorRegistry reg;
+    auto pursue = std::make_unique<Spy>("GO");
+    pursue->complete_after = 1;
+    pursue->succeed = false;                     // fails: effects withheld
+    reg.register_executor("GO", std::move(pursue));
+    auto consume = std::make_unique<Spy>("CONSUME");
+    consume->complete_after = 1;
+    Spy* c_raw = consume.get();
+    reg.register_executor("CONSUME", std::move(consume));
+
+    GOAPPlanExecutor exec;
+    exec.set_registry(&reg);
+    exec.set_verbose(false);
+
+    PlanStore store;
+    goap::Plan plan = store.build({"GO", "CONSUME"});
+    // CONSUME requires what GO would have provided.
+    const_cast<goap::Action*>(plan.actions[1])->preconditions["GO_done"] = 1;
+
+    goap::WorldState ws;
+    auto params = default_params();
+    bool replan = false;
+    for (int f = 0; f < 10 && !plan.empty(); ++f) {
+        auto r = exec.update(plan, ws, 0, 0, 0, 1.0f / 60.0f, params);
+        replan = replan || r.needs_replan;
+        if (r.needs_replan) break;
+    }
+
+    std::cout << "  [measure] GO failed -> CONSUME executed " << c_raw->executes
+              << " time(s), needs_replan=" << replan << std::endl;
+    check(c_raw->executes == 0,
+          "the dependent action never starts into a world that does not "
+          "satisfy it (" + std::to_string(c_raw->executes) + " executions)");
+    check(replan, "the stale plan is reported as needing a replan");
+    check(!ws.count("CONSUME_done"),
+          "and no imaginary effects reached the world state");
 }
 
 // ------------------------------------------------------------- reset()
@@ -582,8 +652,10 @@ int main() {
     test_an_empty_plan_completes_without_executing();
 
     test_goal_satisfaction_decides_replan();
-    test_the_target_follows_the_action_name();
-    test_a_target_on_the_origin_is_mistaken_for_absent();
+    test_the_target_follows_the_action_declaration();
+    test_a_target_on_the_origin_is_a_target();
+    test_an_unpublished_target_is_absent_not_fabricated();
+    test_an_action_does_not_start_on_unmet_preconditions();
 
     test_reset_mid_action_hands_the_executor_an_empty_context();
     test_reset_without_a_registry_is_harmless();

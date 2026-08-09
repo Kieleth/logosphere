@@ -8,6 +8,54 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Breaking (NPC layer): the engine/game AI boundary is now real.** The
+  engine keeps GOAP *mechanism* — planner, A* pathfinding,
+  `ExecutorRegistry`, `GOAPPlanExecutor`, and the generic executors
+  (PURSUE, SCAN, ESCAPE_BLOCK, GIVE_UP, INVESTIGATE_SMELL). Diet is
+  *policy* and left: `EatExecutor`, `GrabPreyExecutor` and `FoodState`
+  now live in `examples/predator/ai/`, registered like any game
+  behaviour, and `GOAPAction` in the ontology lost EAT and GRAB_PREY (a
+  game declares its own actions in its own schema — see
+  `examples/predator/schema`). `ExecutionContext` lost
+  `mouth_volume_cm3`/`food_state` and gained an opaque `game_data`
+  passthrough the engine never reads; `CreatureParams` likewise
+  (`eat_duration` is now `action_duration`).
+- **Breaking (NPC layer): targets route by declaration, not by name.**
+  `goap::Action` gains `target_key`; the brain publishes named targets in
+  `CreatureParams.targets` and the plan executor routes by the action's
+  declaration. The hardcoded PURSUE/EAT/INVESTIGATE_SMELL/ESCAPE_BLOCK
+  name ladder in `build_context` is gone, and with it the engine's last
+  knowledge of game action vocabulary.
+
+### Fixed
+- **GOAP: a target at the world origin was mistaken for "no target"**
+  (#44). Routing used `food_x != 0` per axis as a presence test, so a
+  goal at the origin was silently swapped for the smell target, and a
+  goal on one axis produced a coordinate welded from two different
+  places — x from the food, y from the smell, a point where nothing is.
+  Presence is now the key being present in `CreatureParams.targets`;
+  there is no sentinel.
+- **GOAP: a plan executor with no registry reported the plan as
+  COMPLETED** (#45), the same signal a finished plan gives, so a brain
+  picking its next goal on `plan_completed` concluded the creature had
+  achieved something while it silently did nothing every frame. Now
+  reported as `action_failed` + `needs_replan`, plan left intact.
+- **GOAP: an action could start into a world that does not satisfy its
+  preconditions.** A failed action correctly withholds its effects, but
+  the plan loop ran the next action anyway: the predator AT's control
+  caught EAT consuming imaginary food at a place PURSUE never reached.
+  Actions now start only if `can_execute(world_state)` holds; a stale
+  plan reports `needs_replan`. In-flight actions are exempt (they may
+  legitimately consume the state that admitted them).
+
+### Added
+- `examples/predator/`: the reference for the AI boundary. A game-side
+  diet (EAT bite-by-bite through `FoodState`, GRAB_PREY), its own
+  schema declaring its action vocabulary, a `PredatorContext` riding the
+  engine's `game_data` slot, and `at_predator_hunger` — a headless AT
+  where a hungry predator plans PURSUE→EAT, walks to a carcass AT THE
+  WORLD ORIGIN (the #44 regression geometry), eats it bite by bite, and
+  a control with no published target that must starve honestly.
 - **Breaking (generated ontology):** `TransformationRule.trigger` is now
   typed `TransformationTrigger` instead of `std::string`. Event rules
   answer three separable questions and now have one slot each: `trigger`

@@ -184,12 +184,15 @@ set(LOGOSPHERE_CORE_SOURCES
     src/npc-ai/executor_registry.cpp
     src/npc-ai/goap_plan_executor.cpp
     src/npc-ai/executors/pursue_executor.cpp
-    src/npc-ai/executors/eat_executor.cpp
     src/npc-ai/executors/scan_executor.cpp
     src/npc-ai/executors/investigate_smell_executor.cpp
     src/npc-ai/executors/escape_block_executor.cpp
     src/npc-ai/executors/give_up_executor.cpp
-    src/npc-ai/executors/grab_prey_executor.cpp
+    # EAT, GRAB_PREY and FoodState left the engine (#37 item 3): they are
+    # creature-diet policy, not mechanism, and one of them named a
+    # specific game monster in its header. They live in
+    # examples/predator/ai/ now and register through the same
+    # ExecutorRegistry as any game behaviour.
 )
 
 # ============================================================================
@@ -305,6 +308,20 @@ function(add_headless_test name)
     target_compile_features(${name} PRIVATE cxx_std_17)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
+
+# The predator example's AT. Not add_headless_test because the example's
+# diet executors are GAME sources compiled into the AT itself, which is
+# exactly how a game consumes the engine (#37 item 3): the engine core
+# does not contain them.
+add_executable(at_predator_hunger
+    examples/predator/at_predator_hunger.cpp
+    examples/predator/ai/eat_executor.cpp
+    examples/predator/ai/grab_prey_executor.cpp
+)
+target_link_libraries(at_predator_hunger PRIVATE logosphere_core)
+target_compile_features(at_predator_hunger PRIVATE cxx_std_17)
+target_include_directories(at_predator_hunger PRIVATE examples/predator)
+add_test(NAME at_predator_hunger COMMAND at_predator_hunger)
 
 add_headless_test(test_goap_planner)  # the NPC planner, previously untested
 add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untested
@@ -997,12 +1014,10 @@ set(LOGOSPHERE_SOURCES
     src/npc-ai/executor_registry.cpp
     src/npc-ai/goap_plan_executor.cpp
     src/npc-ai/executors/pursue_executor.cpp
-    src/npc-ai/executors/eat_executor.cpp
     src/npc-ai/executors/scan_executor.cpp
     src/npc-ai/executors/investigate_smell_executor.cpp
     src/npc-ai/executors/escape_block_executor.cpp
     src/npc-ai/executors/give_up_executor.cpp
-    src/npc-ai/executors/grab_prey_executor.cpp
     src/celestial/celestial_system.cpp
     src/test_projections.cpp
     src/test_overlay.cpp

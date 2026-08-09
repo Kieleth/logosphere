@@ -7,7 +7,8 @@
 // See logomancers/docs/npc_consumables.md for consumption design.
 
 #include "eat_executor.h"
-#include "../food_state.h"
+#include "food_state.h"
+#include "predator_context.h"
 #include <iostream>
 #include <random>
 
@@ -26,9 +27,11 @@ static float random_variability() {
 }
 
 void EatExecutor::on_start(ExecutionContext& ctx) {
-    // Physics-based mode: initialize first bite
-    if (ctx.food_state && ctx.mouth_volume_cm3 > 0) {
-        FoodState& food = *ctx.food_state;
+    // Physics-based mode: initialize first bite. The diet context rides
+    // the engine's opaque game_data slot; absent means timer mode.
+    predator::PredatorContext* pc = predator::predator_context(ctx);
+    if (pc && pc->food_state && pc->mouth_volume_cm3 > 0) {
+        FoodState& food = *pc->food_state;
 
         // Calculate time for first bite
         float base_time = 1.5f;  // seconds per bite
@@ -63,8 +66,9 @@ ExecutionResult EatExecutor::execute(const ExecutionContext& ctx) {
     // ========================================
     // Physics-based consumption (bite-by-bite)
     // ========================================
-    if (ctx.food_state && ctx.mouth_volume_cm3 > 0) {
-        FoodState& food = *ctx.food_state;
+    predator::PredatorContext* pc = predator::predator_context(ctx);
+    if (pc && pc->food_state && pc->mouth_volume_cm3 > 0) {
+        FoodState& food = *pc->food_state;
 
         // Already depleted?
         if (food.is_depleted()) {
@@ -77,7 +81,7 @@ ExecutionResult EatExecutor::execute(const ExecutionContext& ctx) {
 
             if (food.current_bite_timer <= 0) {
                 // Bite complete - consume food
-                bool has_more = food.take_bite(ctx.mouth_volume_cm3);
+                bool has_more = food.take_bite(pc->mouth_volume_cm3);
 
                 if (!has_more) {
                     // Food fully consumed (brain handles logging)

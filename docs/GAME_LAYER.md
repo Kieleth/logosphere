@@ -724,11 +724,23 @@ What the engine provides:
 - DamageSystem (opt-in HP tracking)
 - CapabilityProfile + DynamicsParams (capability aggregation, derived dynamics)
 - ParticleInteractionSystem (contact masks, passable media, declarative transformations)
+- NPC decision MECHANISM: GOAP planner, A* grid pathfinding,
+  ExecutorRegistry + GOAPPlanExecutor, SenseSystem, and the generic
+  executors (PURSUE, SCAN, ESCAPE_BLOCK, GIVE_UP, INVESTIGATE_SMELL —
+  navigation, attention and frustration, meaningful in any genre)
 - RenderSystem, LightSystem (rendering, shadows)
 - ChunkSystem, WorldGenSystem (streaming, generation)
 
 What the engine does NOT provide:
-- AI, behavior trees, planners (game responsibility)
+- AI POLICY: what actions exist, their costs and preconditions, goals,
+  diet, combat behaviours. This line used to read "AI, behavior trees,
+  planners (game responsibility)" while the engine compiled a GOAP
+  planner — the resolution (#37 item 3) is the mechanism/policy split
+  above. A game registers its own executors by name and declares its
+  own actions; `examples/predator` is the reference: its EAT and
+  GRAB_PREY executors and FoodState were evicted from engine sources,
+  and its context rides the engine's opaque `game_data` slot, so the
+  engine never learns a mouth exists.
 - Game-specific entity types (use OntologyRegistry::extend())
 - Combat rules, weapons, armor, status effects (game logic)
 - Save/load (game responsibility)

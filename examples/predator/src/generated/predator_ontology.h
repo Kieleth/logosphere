@@ -8,7 +8,35 @@
 #include <vector>
 
 
-namespace eden::ontology {
+namespace predator::ontology {
+
+/// Lifecycle state of any identifiable entity.
+enum class EntityStatus {
+    /// Entity exists and is operational.
+    ACTIVE,
+    /// Entity exists but is suspended.
+    INACTIVE,
+    /// Entity has been permanently removed.
+    DESTROYED
+};
+
+/// Convert EntityStatus to its string representation.
+inline const char* to_string(EntityStatus value) {
+    switch (value) {
+        case EntityStatus::ACTIVE: return "ACTIVE";
+        case EntityStatus::INACTIVE: return "INACTIVE";
+        case EntityStatus::DESTROYED: return "DESTROYED";
+    }
+    return "unknown";
+}
+
+/// Parse a string into EntityStatus. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, EntityStatus& out) {
+    if (std::strcmp(str, "ACTIVE") == 0) { out = EntityStatus::ACTIVE; return true; }
+    if (std::strcmp(str, "INACTIVE") == 0) { out = EntityStatus::INACTIVE; return true; }
+    if (std::strcmp(str, "DESTROYED") == 0) { out = EntityStatus::DESTROYED; return true; }
+    return false;
+}
 
 /// Physical material classification.
 enum class MaterialType {
@@ -750,238 +778,120 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
-/// Lifecycle state of any identifiable entity.
-enum class EntityStatus {
-    /// Entity exists and is operational.
-    ACTIVE,
-    /// Entity exists but is suspended.
-    INACTIVE,
-    /// Entity has been permanently removed.
-    DESTROYED
+/// Diet actions this game adds on top of the engine's generic GOAPAction vocabulary. GOAP actions are strings at the planning layer; this enum is the declared vocabulary a schema reader learns the game by.
+enum class PredatorAction {
+    /// Consume food at the current location, bite by bite
+    EAT,
+    /// Latch onto living prey and hold on
+    GRAB_PREY
 };
 
-/// Convert EntityStatus to its string representation.
-inline const char* to_string(EntityStatus value) {
+/// Convert PredatorAction to its string representation.
+inline const char* to_string(PredatorAction value) {
     switch (value) {
-        case EntityStatus::ACTIVE: return "ACTIVE";
-        case EntityStatus::INACTIVE: return "INACTIVE";
-        case EntityStatus::DESTROYED: return "DESTROYED";
+        case PredatorAction::EAT: return "EAT";
+        case PredatorAction::GRAB_PREY: return "GRAB_PREY";
     }
     return "unknown";
 }
 
-/// Parse a string into EntityStatus. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, EntityStatus& out) {
-    if (std::strcmp(str, "ACTIVE") == 0) { out = EntityStatus::ACTIVE; return true; }
-    if (std::strcmp(str, "INACTIVE") == 0) { out = EntityStatus::INACTIVE; return true; }
-    if (std::strcmp(str, "DESTROYED") == 0) { out = EntityStatus::DESTROYED; return true; }
+/// Parse a string into PredatorAction. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, PredatorAction& out) {
+    if (std::strcmp(str, "EAT") == 0) { out = PredatorAction::EAT; return true; }
+    if (std::strcmp(str, "GRAB_PREY") == 0) { out = PredatorAction::GRAB_PREY; return true; }
     return false;
 }
 
-/// Tree growth archetype (species only — age is expressed through anatomy slots like canopy_start and lower_branches, not baked into the enum). Replaced TreeVariant, which baked age into the species name (SAPLING, YOUNG_OAK, ANCIENT_OAK alongside PINE and WILLOW) and so could not describe a young pine at all.
-enum class TreeSpecies {
-    /// Broad crown, sturdy trunk. The default tree.
-    OAK,
-    /// Tall, narrow, conical.
-    PINE,
-    /// Drooping, wide, melancholic.
-    WILLOW,
-    /// Bare trunk, crown burst at the top.
-    PALM,
-    /// Massive squat trunk, sparse crown.
-    BAOBAB,
-    /// Very tall, reddish bark, high crown. The "redwood" / "sequoia" silhouette.
-    REDWOOD
+/// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
+struct Identifiable {
+    /// Globally unique identifier.
+    std::string id;
+    /// Human-readable name.
+    std::optional<std::string> name = std::nullopt;
 };
 
-/// Convert TreeSpecies to its string representation.
-inline const char* to_string(TreeSpecies value) {
-    switch (value) {
-        case TreeSpecies::OAK: return "OAK";
-        case TreeSpecies::PINE: return "PINE";
-        case TreeSpecies::WILLOW: return "WILLOW";
-        case TreeSpecies::PALM: return "PALM";
-        case TreeSpecies::BAOBAB: return "BAOBAB";
-        case TreeSpecies::REDWOOD: return "REDWOOD";
-    }
-    return "unknown";
-}
 
-/// Parse a string into TreeSpecies. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, TreeSpecies& out) {
-    if (std::strcmp(str, "OAK") == 0) { out = TreeSpecies::OAK; return true; }
-    if (std::strcmp(str, "PINE") == 0) { out = TreeSpecies::PINE; return true; }
-    if (std::strcmp(str, "WILLOW") == 0) { out = TreeSpecies::WILLOW; return true; }
-    if (std::strcmp(str, "PALM") == 0) { out = TreeSpecies::PALM; return true; }
-    if (std::strcmp(str, "BAOBAB") == 0) { out = TreeSpecies::BAOBAB; return true; }
-    if (std::strcmp(str, "REDWOOD") == 0) { out = TreeSpecies::REDWOOD; return true; }
-    return false;
-}
-
-/// Procedural organic entity classification.
-enum class OrganicType {
-    TREE,
-    BUSH,
-    GRASS,
-    VINE,
-    ROOT,
-    FLOWER,
-    FERN
+/// Timestamps for creation and last modification. Follows PROV-O temporal patterns.
+struct Temporal {
+    /// When this was created.
+    std::optional<std::string> created_at = std::nullopt;
+    /// When this was last modified.
+    std::optional<std::string> updated_at = std::nullopt;
 };
 
-/// Convert OrganicType to its string representation.
-inline const char* to_string(OrganicType value) {
-    switch (value) {
-        case OrganicType::TREE: return "TREE";
-        case OrganicType::BUSH: return "BUSH";
-        case OrganicType::GRASS: return "GRASS";
-        case OrganicType::VINE: return "VINE";
-        case OrganicType::ROOT: return "ROOT";
-        case OrganicType::FLOWER: return "FLOWER";
-        case OrganicType::FERN: return "FERN";
-    }
-    return "unknown";
-}
 
-/// Parse a string into OrganicType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, OrganicType& out) {
-    if (std::strcmp(str, "TREE") == 0) { out = OrganicType::TREE; return true; }
-    if (std::strcmp(str, "BUSH") == 0) { out = OrganicType::BUSH; return true; }
-    if (std::strcmp(str, "GRASS") == 0) { out = OrganicType::GRASS; return true; }
-    if (std::strcmp(str, "VINE") == 0) { out = OrganicType::VINE; return true; }
-    if (std::strcmp(str, "ROOT") == 0) { out = OrganicType::ROOT; return true; }
-    if (std::strcmp(str, "FLOWER") == 0) { out = OrganicType::FLOWER; return true; }
-    if (std::strcmp(str, "FERN") == 0) { out = OrganicType::FERN; return true; }
-    return false;
-}
-
-/// Classification of fallen wood.
-enum class LogType {
-    /// Full fallen tree trunk
-    TRUNK,
-    /// Cut or broken log section
-    LOG,
-    /// Broken branch, arm-thick
-    BRANCH,
-    /// Small twig or stick
-    TWIG
+/// Human-readable description and metadata.
+struct Describable {
+    /// Free-text description.
+    std::optional<std::string> description = std::nullopt;
+    /// Arbitrary classification tags.
+    std::vector<std::string> tags = {};
 };
 
-/// Convert LogType to its string representation.
-inline const char* to_string(LogType value) {
-    switch (value) {
-        case LogType::TRUNK: return "TRUNK";
-        case LogType::LOG: return "LOG";
-        case LogType::BRANCH: return "BRANCH";
-        case LogType::TWIG: return "TWIG";
-    }
-    return "unknown";
-}
 
-/// Parse a string into LogType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, LogType& out) {
-    if (std::strcmp(str, "TRUNK") == 0) { out = LogType::TRUNK; return true; }
-    if (std::strcmp(str, "LOG") == 0) { out = LogType::LOG; return true; }
-    if (std::strcmp(str, "BRANCH") == 0) { out = LogType::BRANCH; return true; }
-    if (std::strcmp(str, "TWIG") == 0) { out = LogType::TWIG; return true; }
-    return false;
-}
-
-/// Natural rock size classification.
-enum class RockSize {
-    /// Small egg-shaped (~0.2m)
-    PEBBLE,
-    /// Fist-sized (~0.4m)
-    SMALL_ROCK,
-    /// Head-sized (~0.8m)
-    MEDIUM_ROCK,
-    /// Large boulder (~1.5m)
-    LARGE_BOULDER
+/// Entity with a lifecycle status.
+struct Statusable {
+    /// Lifecycle status.
+    std::optional<EntityStatus> status = std::nullopt;
 };
 
-/// Convert RockSize to its string representation.
-inline const char* to_string(RockSize value) {
-    switch (value) {
-        case RockSize::PEBBLE: return "PEBBLE";
-        case RockSize::SMALL_ROCK: return "SMALL_ROCK";
-        case RockSize::MEDIUM_ROCK: return "MEDIUM_ROCK";
-        case RockSize::LARGE_BOULDER: return "LARGE_BOULDER";
-    }
-    return "unknown";
-}
 
-/// Parse a string into RockSize. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, RockSize& out) {
-    if (std::strcmp(str, "PEBBLE") == 0) { out = RockSize::PEBBLE; return true; }
-    if (std::strcmp(str, "SMALL_ROCK") == 0) { out = RockSize::SMALL_ROCK; return true; }
-    if (std::strcmp(str, "MEDIUM_ROCK") == 0) { out = RockSize::MEDIUM_ROCK; return true; }
-    if (std::strcmp(str, "LARGE_BOULDER") == 0) { out = RockSize::LARGE_BOULDER; return true; }
-    return false;
-}
-
-/// Eden-specific relation types.
-enum class EdenRelationType {
-    /// Tree bears fruit
-    BEARS,
-    /// Agent tempts another agent
-    TEMPTS,
-    /// Agent follows another agent
-    FOLLOWS,
-    /// Entity forbids an action or knowledge
-    FORBIDS,
-    /// Agent desires entity or knowledge
-    DESIRES
+/// Capability of acting, deciding, or bearing responsibility. Aligned with PROV:Agent and BDI model. Agency is a trait, not a taxonomic position: an entity CAN act, it is not defined by acting. Apply this mixin to any entity class that needs volitional behavior.
+struct Agent {
+    /// Classification of the agent. Domain projects should constrain this to an enum.
+    std::optional<std::string> agent_type = std::nullopt;
 };
 
-/// Convert EdenRelationType to its string representation.
-inline const char* to_string(EdenRelationType value) {
-    switch (value) {
-        case EdenRelationType::BEARS: return "BEARS";
-        case EdenRelationType::TEMPTS: return "TEMPTS";
-        case EdenRelationType::FOLLOWS: return "FOLLOWS";
-        case EdenRelationType::FORBIDS: return "FORBIDS";
-        case EdenRelationType::DESIRES: return "DESIRES";
-    }
-    return "unknown";
-}
 
-/// Parse a string into EdenRelationType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, EdenRelationType& out) {
-    if (std::strcmp(str, "BEARS") == 0) { out = EdenRelationType::BEARS; return true; }
-    if (std::strcmp(str, "TEMPTS") == 0) { out = EdenRelationType::TEMPTS; return true; }
-    if (std::strcmp(str, "FOLLOWS") == 0) { out = EdenRelationType::FOLLOWS; return true; }
-    if (std::strcmp(str, "FORBIDS") == 0) { out = EdenRelationType::FORBIDS; return true; }
-    if (std::strcmp(str, "DESIRES") == 0) { out = EdenRelationType::DESIRES; return true; }
-    return false;
-}
-
-/// Eden-specific event types.
-enum class EdenEventType {
-    /// A temptation event occurs
-    TEMPTATION,
-    /// Loss of innocence
-    FALL,
-    /// Exile from the garden
-    EXPULSION
+/// Root class for all identifiable, enduring things. Aligned with BFO:Independent Continuant. Every domain object that persists through time and needs identity extends this.
+struct Entity : public Identifiable, public Temporal, public Describable {
 };
 
-/// Convert EdenEventType to its string representation.
-inline const char* to_string(EdenEventType value) {
-    switch (value) {
-        case EdenEventType::TEMPTATION: return "TEMPTATION";
-        case EdenEventType::FALL: return "FALL";
-        case EdenEventType::EXPULSION: return "EXPULSION";
-    }
-    return "unknown";
-}
 
-/// Parse a string into EdenEventType. Returns false if the string is not a valid value.
-inline bool from_string(const char* str, EdenEventType& out) {
-    if (std::strcmp(str, "TEMPTATION") == 0) { out = EdenEventType::TEMPTATION; return true; }
-    if (std::strcmp(str, "FALL") == 0) { out = EdenEventType::FALL; return true; }
-    if (std::strcmp(str, "EXPULSION") == 0) { out = EdenEventType::EXPULSION; return true; }
-    return false;
-}
+/// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
+struct Event : public Identifiable, public Temporal {
+    /// Classification of the event. Domain projects should constrain this to an enum.
+    std::string event_type;
+    /// When the event happened (instantaneous events).
+    std::optional<std::string> occurred_at = std::nullopt;
+    /// When a duration event began.
+    std::optional<std::string> started_at = std::nullopt;
+    /// When a duration event ended.
+    std::optional<std::string> ended_at = std::nullopt;
+    /// ID of the event or agent that caused this event. Follows PROV-O wasInformedBy / wasAssociatedWith pattern.
+    std::optional<std::string> caused_by = std::nullopt;
+};
+
+
+/// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
+struct Signal : public Identifiable, public Temporal {
+    /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
+    std::string signal_type;
+    /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
+    std::optional<float> value = std::nullopt;
+    /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
+    std::optional<std::string> algorithm = std::nullopt;
+    /// ID of the entity from whose perspective this signal is computed. Null for global/objective signals (e.g., graph density). Set for subjective signals (e.g., trust computed from one agent's viewpoint).
+    std::optional<std::string> perspective = std::nullopt;
+    /// When this signal value was last computed.
+    std::optional<std::string> computed_at = std::nullopt;
+    /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
+    std::string bearer_id;
+};
+
+
+/// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
+struct Relation : public Identifiable, public Temporal {
+    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
+    std::optional<std::string> relation_type = std::nullopt;
+    /// ID of the source entity.
+    std::string source_id;
+    /// ID of the target entity.
+    std::string target_id;
+    /// Weight or confidence of the relation (0.0 to 1.0).
+    std::optional<float> strength = std::nullopt;
+};
+
 
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
@@ -1082,52 +992,6 @@ struct Growable {
     std::optional<int32_t> growth_iteration = std::nullopt;
     std::optional<bool> is_mature = std::nullopt;
     std::optional<std::string> species = std::nullopt;
-};
-
-
-/// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
-struct Identifiable {
-    /// Globally unique identifier.
-    std::string id;
-    /// Human-readable name.
-    std::optional<std::string> name = std::nullopt;
-};
-
-
-/// Timestamps for creation and last modification. Follows PROV-O temporal patterns.
-struct Temporal {
-    /// When this was created.
-    std::optional<std::string> created_at = std::nullopt;
-    /// When this was last modified.
-    std::optional<std::string> updated_at = std::nullopt;
-};
-
-
-/// Human-readable description and metadata.
-struct Describable {
-    /// Free-text description.
-    std::optional<std::string> description = std::nullopt;
-    /// Arbitrary classification tags.
-    std::vector<std::string> tags = {};
-};
-
-
-/// Entity with a lifecycle status.
-struct Statusable {
-    /// Lifecycle status.
-    std::optional<EntityStatus> status = std::nullopt;
-};
-
-
-/// Capability of acting, deciding, or bearing responsibility. Aligned with PROV:Agent and BDI model. Agency is a trait, not a taxonomic position: an entity CAN act, it is not defined by acting. Apply this mixin to any entity class that needs volitional behavior.
-struct Agent {
-    /// Classification of the agent. Domain projects should constrain this to an enum.
-    std::optional<std::string> agent_type = std::nullopt;
-};
-
-
-/// Root class for all identifiable, enduring things. Aligned with BFO:Independent Continuant. Every domain object that persists through time and needs identity extends this.
-struct Entity : public Identifiable, public Temporal, public Describable {
 };
 
 
@@ -1365,21 +1229,6 @@ struct TransformationRule : public Entity {
 };
 
 
-/// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
-struct Event : public Identifiable, public Temporal {
-    /// Classification of the event. Domain projects should constrain this to an enum.
-    std::string event_type;
-    /// When the event happened (instantaneous events).
-    std::optional<std::string> occurred_at = std::nullopt;
-    /// When a duration event began.
-    std::optional<std::string> started_at = std::nullopt;
-    /// When a duration event ended.
-    std::optional<std::string> ended_at = std::nullopt;
-    /// ID of the event or agent that caused this event. Follows PROV-O wasInformedBy / wasAssociatedWith pattern.
-    std::optional<std::string> caused_by = std::nullopt;
-};
-
-
 /// Something that happens in the game world.
 struct WorldEvent : public Event {
     /// ID of the entity that caused the event.
@@ -1448,8 +1297,8 @@ struct PerceptionEvent : public WorldEvent {
 
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
-    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
+    std::optional<std::string> relation_type = std::nullopt;
 };
 
 
@@ -1478,175 +1327,9 @@ struct TransformationEvent : public WorldEvent {
 };
 
 
-/// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
-struct Signal : public Identifiable, public Temporal {
-    /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
-    std::string signal_type;
-    /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
-    std::optional<float> value = std::nullopt;
-    /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
-    std::optional<std::string> algorithm = std::nullopt;
-    /// ID of the entity from whose perspective this signal is computed. Null for global/objective signals (e.g., graph density). Set for subjective signals (e.g., trust computed from one agent's viewpoint).
-    std::optional<std::string> perspective = std::nullopt;
-    /// When this signal value was last computed.
-    std::optional<std::string> computed_at = std::nullopt;
-    /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
-    std::string bearer_id;
-};
-
-
-/// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
-struct Relation : public Identifiable, public Temporal {
-    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
-    /// ID of the source entity.
-    std::string source_id;
-    /// ID of the target entity.
-    std::string target_id;
-    /// Weight or confidence of the relation (0.0 to 1.0).
-    std::optional<float> strength = std::nullopt;
-};
-
-
 /// A typed relationship between world entities.
 struct WorldRelation : public Relation {
 };
 
 
-/// Living plant entity.
-struct Plant : public LivingEntity, public Growable {
-    std::optional<OrganicType> organic_type = std::nullopt;
-};
-
-
-/// Living tree grown via space colonization.
-struct Tree : public Plant {
-    /// Tree height in meters. A garden sapling is ~1, a grand oak ~8, a redwood 25-30. Bounded to what the growth algorithm reliably delivers.
-    std::optional<float> tree_height = std::nullopt;
-    /// Crown radius in meters (physically capped near 60% of tree height).
-    std::optional<float> crown_radius = std::nullopt;
-    /// Fraction of the height where the crown begins. 0.25 = bushy, leaves almost to the ground; 0.45 = classic oak; 0.7 = palm or redwood silhouette (long bare trunk, high crown).
-    std::optional<float> canopy_start = std::nullopt;
-    /// Crown fullness multiplier. 0.5 = airy and sparse, 1.0 = natural, 1.5 = lush and dense.
-    std::optional<float> canopy_density = std::nullopt;
-    /// Limbs sprouting from the bare trunk below the crown. Old oaks and willows carry 2-4; redwoods and palms stay clean at 0. Age vocabulary: ancient = more limbs + lower canopy_start.
-    std::optional<int32_t> lower_branches = std::nullopt;
-};
-
-
-/// Physics-enabled tree with collision and breakage.
-struct PhysicsTree : public Tree {
-};
-
-
-/// A patch of grass: container entity whose blades hang off HAS_PART relations. Root type for deferred worldgen materialization (vegetation activator walks the children).
-struct GrassPatch : public Plant {
-};
-
-
-/// A grass blade or tuft grown by the organic generator.
-struct Grass : public Plant {
-};
-
-
-/// Tree branch segment.
-struct Branch : public WorldEntity, public HasMaterial {
-};
-
-
-/// Foliage cluster on a branch.
-struct Leaves : public WorldEntity {
-};
-
-
-/// Fallen tree trunk or log.
-struct FallenTree : public NaturalFormation, public HasMaterial {
-    /// Classification of fallen wood (trunk, branch, twig).
-    std::optional<LogType> log_type = std::nullopt;
-};
-
-
-/// Rock or boulder.
-struct Rock : public NaturalFormation {
-    std::optional<RockSize> rock_size = std::nullopt;
-};
-
-
-/// Physics-enabled rock with full collision.
-struct PhysicsRock : public Rock {
-};
-
-
-/// Flying insect creature.
-struct Butterfly : public Creature {
-};
-
-
-/// Limbless reptile creature.
-struct Snake : public Creature {
-};
-
-
-/// Vertical totem structure with stacked segments.
-struct Totem : public Structure {
-};
-
-
-/// A human being in the garden.
-struct Human : public Humanoid {
-    /// Level of innocence (1.0 = pure, 0.0 = fallen).
-    std::optional<float> innocence = std::nullopt;
-};
-
-
-/// The serpent, agent of temptation.
-struct Serpent : public Creature {
-};
-
-
-/// Individual body segment of a serpent chain.
-struct SerpentSegment : public WorldEntity {
-};
-
-
-/// Fruit borne by a tree.
-struct Fruit : public WorldEntity {
-};
-
-
-/// The tree of knowledge, bearing forbidden fruit.
-struct KnowledgeTree : public Tree {
-};
-
-
-/// Abstract knowledge entity.
-struct Knowledge : public Entity {
-};
-
-
-/// The garden location.
-struct Garden : public WorldEntity {
-};
-
-
-/// Structural block forming a room.
-struct RoomBlock : public Structure {
-};
-
-
-/// Simple test cube entity.
-struct Cube : public WorldEntity, public HasMaterial {
-};
-
-
-/// Eden-specific typed relationship.
-struct EdenRelation : public Relation {
-};
-
-
-/// Eden narrative event.
-struct EdenEvent : public Event {
-};
-
-
-} // namespace eden::ontology
+} // namespace predator::ontology
