@@ -21,12 +21,16 @@ namespace logosphere { class EventBus; }
 
 namespace logosphere::dice {
 
-// "NdS+M" / "NdS-M" / "dS". Canonical spelling is upper D, modifier
-// only when nonzero ("2D6", "1D6+2").
+// "NdS+M" / "NdS-M" / "dS", with an optional "xK" multiplier suffix
+// for book expressions like "1D6x10000" (Cepheus: 1D6 x 10,000 Cr).
+// Canonical spelling is upper D, lower x, modifier and multiplier
+// only when they matter ("2D6", "1D6+2", "1D6x10000").
+// Total = (dice sum + modifier) * multiplier.
 struct DiceExpression {
     int count = 1;
     int sides = 6;
     int modifier = 0;
+    int multiplier = 1;
 
     // Strict parse: returns false and leaves out untouched on anything
     // malformed. "2D6", "d20", "3d6-1" are valid; "2X6", "D", "" are not.
@@ -38,7 +42,7 @@ struct DiceRoll {
     uint64_t id = 0;                 // monotonic, citable
     DiceExpression expression;
     std::vector<int> values;         // individual dice, roll order
-    int total = 0;                   // sum + modifier
+    int total = 0;                   // (sum + modifier) * multiplier
     std::string stream;
     std::string purpose;             // the roller's words
 };

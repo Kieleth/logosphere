@@ -8,8 +8,9 @@
 namespace logosphere::dice {
 
 bool DiceExpression::parse(const std::string& text, DiceExpression& out) {
-    // Grammar: [count] D sides [(+|-) modifier], case-insensitive D.
-    // Strict: no spaces, no trailing junk, all numbers positive.
+    // Grammar: [count] D sides [(+|-) modifier] [x multiplier],
+    // case-insensitive D and x. Strict: no spaces, no trailing junk,
+    // all numbers positive.
     const char* p = text.c_str();
     char* end = nullptr;
     long count = 1;
@@ -28,13 +29,34 @@ bool DiceExpression::parse(const std::string& text, DiceExpression& out) {
         if (!std::isdigit(static_cast<unsigned char>(*p))) return false;
         modifier = std::strtol(p, &end, 10);
         p = end;
+        // Bound before use: strtol saturates silently on huge digit
+        // strings (no errno check here by design), and an unbounded
+        // modifier would overflow the worst-case guard below.
+        if (modifier > 1000000) return false;
         if (sign == '-') modifier = -modifier;
+    }
+    long multiplier = 1;
+    if (*p == 'x' || *p == 'X') {
+        ++p;
+        if (!std::isdigit(static_cast<unsigned char>(*p))) return false;
+        multiplier = std::strtol(p, &end, 10);
+        p = end;
     }
     if (*p != '\0') return false;
     if (count < 1 || count > 100 || sides < 2 || sides > 1000) return false;
+    if (multiplier < 1 || multiplier > 1000000) return false;
+    // The extreme corners of the grammar (100D1000x1000000) would
+    // overflow the int totals rolls travel in; refuse any expression
+    // whose largest possible total does not fit. Every operand is
+    // bounded above, so this arithmetic itself cannot overflow.
+    const long long worst =
+        (static_cast<long long>(count) * sides + std::llabs(modifier)) *
+        multiplier;
+    if (worst > 2147483647LL) return false;
     out.count = static_cast<int>(count);
     out.sides = static_cast<int>(sides);
     out.modifier = static_cast<int>(modifier);
+    out.multiplier = static_cast<int>(multiplier);
     return true;
 }
 
@@ -42,6 +64,7 @@ std::string DiceExpression::to_string() const {
     std::string s = std::to_string(count) + "D" + std::to_string(sides);
     if (modifier > 0) s += "+" + std::to_string(modifier);
     if (modifier < 0) s += std::to_string(modifier);
+    if (multiplier != 1) s += "x" + std::to_string(multiplier);
     return s;
 }
 
@@ -86,6 +109,7 @@ DiceRoll DiceService::roll(const DiceExpression& expr,
         r.values.push_back(v);
         r.total += v;
     }
+    r.total *= expr.multiplier;
     journal_.push_back(r);
 
     if (bus_) {

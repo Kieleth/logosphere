@@ -46,10 +46,28 @@ void test_the_grammar_is_strict() {
     check(DiceExpression::parse("1D6+2", e) && e.modifier == 2,
           "1D6+2 parses");
 
+    // The book writes "1D6 x 10,000 Credits"; the grammar spells it
+    // 1D6x10000. Multiplier applies to the whole: (sum + mod) * mult.
+    check(DiceExpression::parse("1D6x10000", e) && e.multiplier == 10000 &&
+              e.count == 1 && e.sides == 6 && e.modifier == 0,
+          "1D6x10000 parses with multiplier");
+    check(DiceExpression::parse("2d6+1X10", e) && e.modifier == 1 &&
+              e.multiplier == 10, "modifier and multiplier combine");
+    check(DiceExpression::parse("2D6", e) && e.multiplier == 1,
+          "multiplier defaults to 1");
+
     // The control half: everything malformed must be refused, because
     // a lenient dice parser is how a typo becomes a different game.
+    // The saturation twins: strtol caps a 20-digit modifier at
+    // LONG_MAX; unbounded, that wrapped the overflow guard and parsed
+    // as a DIFFERENT expression (1D6-1). Regression for that bug.
     const char* bad[] = {"", "D", "2X6", "2D", "2D6+", "2D6 ", " 2D6",
-                         "2D6+1x", "0D6", "2D1", "-1D6"};
+                         "2D6+1x", "0D6", "2D1", "-1D6",
+                         "2D6x0", "2D6x-5", "x10", "2D6x1000001",
+                         "100D1000x1000000",
+                         "1D6+99999999999999999999",
+                         "1D6-99999999999999999999",
+                         "2D6x", "2D6x5x2", "2D6x+5"};
     bool all_refused = true;
     for (const char* b : bad) {
         DiceExpression tmp;
@@ -59,10 +77,13 @@ void test_the_grammar_is_strict() {
                       << std::endl;
         }
     }
-    check(all_refused, "all eleven malformed expressions are refused");
+    check(all_refused, "all twenty-one malformed expressions are refused");
 
     e = DiceExpression{2, 6, 1};
     check(e.to_string() == "2D6+1", "canonical spelling round-trips");
+    e = DiceExpression{1, 6, 0, 10000};
+    check(e.to_string() == "1D6x10000",
+          "multiplier round-trips, omitted when 1");
 }
 
 // -------------------------------------------------------- determinism
@@ -156,6 +177,15 @@ void test_bounds_and_totals() {
     }
     check(in_bounds, "1000 rolls of 3D6: every die in 1..6");
     check(totals_ok, "and every total is the sum plus the modifier");
+
+    // The medical-bill expression: totals are whole multiples in range.
+    bool mult_ok = true;
+    for (int i = 0; i < 100; ++i) {
+        const auto r = d.roll("1D6x10000", "s", "medical care");
+        if (r.total < 10000 || r.total > 60000 || r.total % 10000 != 0)
+            mult_ok = false;
+    }
+    check(mult_ok, "100 rolls of 1D6x10000: totals are 10000..60000 in steps");
 }
 
 void test_the_distribution_is_dicelike() {
