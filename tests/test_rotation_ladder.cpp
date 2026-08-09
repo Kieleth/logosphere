@@ -678,11 +678,17 @@ Rung rung4(Engine& engine) {
     Rung r; r.name = "4 four natures, one finger";
     auto& ps = engine.get_particle_system();
 
+    // Owner's palette, their order: kept bent | almost vertical | a bit of
+    // bounce | breaks because it is too stiff to yield.
     const ChainSpec specs[4] = {
+        {"BENT",      4000.0f, 150.0f,  40.0f},   // + plastic yield 0.25 rad
         {"SPRINGY",   4000.0f, 150.0f,  40.0f},
-        {"RINGY",     1000.0f, 150.0f,   5.0f},
-        {"SLOW",      8000.0f, 150.0f, 400.0f},
-        {"MALLEABLE", 4000.0f, 150.0f,  40.0f},   // + plastic yield (MISSING)
+        // 50/6 is the stable 'a bit of bounce' (2 visible swings). Wilder
+        // (20/2) whips wide enough to strike the neighbour chain and the
+        // chain-chain interaction detonates (#47 family): the panel's
+        // spacing bounds how ringy a declaration may be.
+        {"BOUNCY",      50.0f, 150.0f,   6.0f},
+        {"BRITTLE",   4000.0f, 4000.0f, 40.0f},   // stiff joints, honest strength
     };
     const float xs[4] = {6.0f, 8.0f, 10.0f, 12.0f};
 
@@ -719,9 +725,9 @@ Rung rung4(Engine& engine) {
             p.width = 0.25f; p.height = 0.25f; p.thickness = 0.6f;
             p.size = 0.25f;
             // tint per nature so the owner can tell them apart at a glance
-            p.r = (k == 1) ? 0.75f : 0.4f;
-            p.g = (k == 3) ? 0.55f : 0.75f;
-            p.b = (k == 2) ? 0.8f : 0.35f;
+            p.r = (k == 2) ? 0.75f : ((k == 0) ? 0.65f : 0.4f);
+            p.g = (k == 0) ? 0.6f : 0.75f;
+            p.b = (k == 3) ? 0.8f : 0.35f;
             p.a = 1.0f;
             p.SetMaterial(Materials::Type::WOOD_HARD);
             seg[k][j] = engine.add_particle(p);
@@ -746,7 +752,9 @@ Rung rung4(Engine& engine) {
             v[roots[k]].owner = ParticleOwner::DYNAMICS;
             v[roots[k]].material_strength = 1e9f;
             for (int j = 0; j < 3; ++j) {
-                v[seg[k][j]].material_strength = 1e9f;
+                // BRITTLE declares an honest strength so its stiff joints
+                // can actually break; the others stay out of tear range.
+                v[seg[k][j]].material_strength = (k == 3) ? 40.0f : 1e9f;
                 v[seg[k][j]].is_quat_driven = true;
             }
         }
@@ -766,6 +774,7 @@ Rung rung4(Engine& engine) {
             g->use_quat_target = true;
             g->angular_stiffness = specs[k].ang_stiffness;
             g->angular_damping = specs[k].ang_damping;
+            if (k == 0) g->plastic_yield_angle = 0.25f;   // BENT: damage sticks
             engine.get_physics_system().add_gluon_between(a, b, std::move(g));
         };
         bond(roots[k], seg[k][0], +0.2f, -0.3f);
@@ -780,7 +789,7 @@ Rung rung4(Engine& engine) {
         camera.set_pixels_per_unit(52.0f);
     }
     if (g_label) g_label->set_text(
-        "RUNG 4  four natures: SPRINGY | RINGY(red) | SLOW(blue) | MALLEABLE(yellow). "
+        "RUNG 4  four natures: BENT(yellow-ish) | SPRINGY | BOUNCY(red) | BRITTLE(blue). "
         "SPACE: one wide finger sweeps them all");
     for (int f = 0; f < 90 && engine.is_running(); ++f) step(engine);
 
@@ -835,8 +844,8 @@ Rung rung4(Engine& engine) {
                              xs[k], tip_y0[k], tip_z0[k]);
             };
             snprintf(buf, sizeof buf,
-                     "RECOV f%3d  tips m: SPRINGY %.2f (sw %d) | RINGY %.2f (sw %d) | "
-                     "SLOW %.2f (sw %d) | MALLEABLE %.2f (sw %d)",
+                     "RECOV f%3d  tips m: BENT %.2f (sw %d) | SPRINGY %.2f (sw %d) | "
+                     "BOUNCY %.2f (sw %d) | BRITTLE %.2f (sw %d)",
                      f, td(0), swings[0], td(1), swings[1],
                      td(2), swings[2], td(3), swings[3]);
             g_live->set_text(buf);
@@ -854,22 +863,23 @@ Rung rung4(Engine& engine) {
         printf("      %-10s %8.2f %8.2f %10.2f %7d\n",
                specs[k].tag, peak_tip[k], mid_tip[k], fin[k], swings[k]);
 
-    const bool all_bent  = peak_tip[0] > 0.5f && peak_tip[1] > 0.5f &&
-                           peak_tip[2] > 0.5f && peak_tip[3] > 0.5f;
-    const bool springy_ok = swings[0] <= 2 && fin[0] < 0.15f;
-    const bool ringy_ok   = swings[1] >= 3 && fin[1] < 0.35f;
-    const bool slow_ok    = swings[2] <= 1 && mid_tip[2] > 0.35f && fin[2] < 0.25f;
-    // THE MECHANISM RED: damage done must be remembered.
-    const bool stays_bent = fin[3] > 0.5f;
-    r.passed = all_bent && springy_ok && ringy_ok && slow_ok && stays_bent;
+    size_t brittle_bonds = 0;
+    for (int j = 0; j < 3; ++j)
+        brittle_bonds += engine.get_physics_system()
+                             .get_gluons_for_particle(seg[3][j]).size();
+    const bool bent_ok    = peak_tip[0] > 0.5f && fin[0] > 0.4f;      // kept bent
+    const bool springy_ok = peak_tip[1] > 0.5f && swings[1] <= 2 && fin[1] < 0.15f;
+    const bool bouncy_ok  = peak_tip[2] > 0.5f && swings[2] >= 2 && fin[2] < 0.35f;
+    const bool breaks_ok  = brittle_bonds < 3;                         // it SNAPPED
+    r.passed = bent_ok && springy_ok && bouncy_ok && breaks_ok;
     snprintf(r.detail, sizeof r.detail,
-             "all bent %s; springy %s (sw %d, fin %.2f); ringy %s (sw %d, fin %.2f); "
-             "slow %s (mid %.2f, fin %.2f); MALLEABLE %s (fin %.2f, need > 0.5: "
-             "no yield mechanism exists)",
-             all_bent ? "yes" : "NO", springy_ok ? "ok" : "OFF", swings[0], fin[0],
-             ringy_ok ? "ok" : "OFF", swings[1], fin[1],
-             slow_ok ? "ok" : "OFF", mid_tip[2], fin[2],
-             stays_bent ? "ok" : "*** RECOVERED, FORGOT THE DAMAGE ***", fin[3]);
+             "BENT %s (peak %.2f, fin %.2f, need fin > 0.4); SPRINGY %s (sw %d, "
+             "fin %.2f); BOUNCY %s (sw %d, fin %.2f); BRITTLE %s (%zu bond edges "
+             "left of 3+)",
+             bent_ok ? "ok" : "*** FORGOT THE DAMAGE ***", peak_tip[0], fin[0],
+             springy_ok ? "ok" : "OFF", swings[1], fin[1],
+             bouncy_ok ? "ok" : "OFF (does not ring)", swings[2], fin[2],
+             breaks_ok ? "SNAPPED ok" : "*** DID NOT BREAK ***", brittle_bonds);
     if (g_label) {
         char buf[224];
         snprintf(buf, sizeof buf,

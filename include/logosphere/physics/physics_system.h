@@ -194,6 +194,13 @@ public:
     // with decay; capped at breaking force * dt. A/B'd on the sweep.
     float warm_ix = 0.0f, warm_iy = 0.0f, warm_iz = 0.0f;
 
+    // PLASTIC YIELD (rung 4, owner: 'a bent grass would stay bent if
+    // damage is done'). Finite = plastic: bent past this angle, the bond's
+    // rest orientation CREEPS to keep the elastic error at the yield —
+    // deformation beyond yield is absorbed into the rest pose and the bond
+    // remembers its damage. Infinity = purely elastic.
+    float plastic_yield_angle = std::numeric_limits<float>::infinity();
+
     // FORCE-BOUNDED bonds (rung 3). A row's impulse budget per substep is
     // the force the bond's spring could actually exert at its current
     // stretch, (stiffness * |error| + damping * |v_rel|) * dt, capped by

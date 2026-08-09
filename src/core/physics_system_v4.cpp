@@ -1278,6 +1278,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // target_v_rel = current_v_rel * (1 - damping_factor)
         // =====================================================================
         float damping_factor = Materials::GetCombinedDamping(pa.material_type, pb.material_type);
+        // Force-bounded bonds own their damping character: the gluon's
+        // declared damping maps to the per-substep dissipated fraction,
+        // c*dt/m of the lighter endpoint. Without this the material table
+        // (wood absorbs hard) overrode every declaration and no bond could
+        // ring, however low its damping (rung 4: BOUNCY swung zero times).
+        if (gluon->force_bounded()) {
+            const float m_light = std::fmin(pa.GetMass(), pb.GetMass());
+            damping_factor = (m_light > 0.0f)
+                ? std::clamp(gluon->damping * dt / m_light, 0.0f, 0.95f)
+                : damping_factor;
+        }
 
         // Compute relative velocities for damping bias
         float v_rel[3] = {
@@ -1676,6 +1687,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         particles[body_a].is_at_rest = false;
                     if (pb.solver_mode != ParticleSolverMode::KINEMATIC)
                         particles[body_b].is_at_rest = false;
+                }
+                // PLASTIC YIELD: absorb deformation beyond the yield angle
+                // into the rest pose. rel = q_b * q_a^-1; the new target
+                // keeps exactly 'yield' of elastic error along the current
+                // axis: target_new = FA(axis, -yield) * rel.
+                if (std::isfinite(gluon->plastic_yield_angle) &&
+                    e_mag > gluon->plastic_yield_angle && e_mag > 1e-6f) {
+                    const float inv_m = 1.0f / e_mag;
+                    lm::Quat rel = q_b * q_a.conjugate();
+                    gluon->target_relative_q = lm::Quat::from_axis_angle(
+                        ex * inv_m, ey * inv_m, ez * inv_m,
+                        -gluon->plastic_yield_angle) * rel;
+                    // Recompute the error at the (now clamped) yield.
+                    lm::Quat q2 = rel * gluon->target_relative_q.conjugate();
+                    ex = 2.0f * q2.x; ey = 2.0f * q2.y; ez = 2.0f * q2.z;
+                    if (q2.w < 0.0f) { ex = -ex; ey = -ey; ez = -ez; }
+                    e_mag = std::sqrt(ex*ex + ey*ey + ez*ez);
                 }
                 if (e_mag > 1e-6f) {
                     float inv_mag = 1.0f / e_mag;
