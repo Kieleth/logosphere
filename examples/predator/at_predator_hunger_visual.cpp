@@ -145,7 +145,7 @@ int main() {
                 p.width = p.height = 8.0f; p.thickness = 0.8f;
                 p.size = 8.0f;
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;
-                p.r = t; p.g = t + 0.04f; p.b = t - 0.04f; p.a = 1.0f;
+                p.r = t - 0.03f; p.g = t + 0.05f; p.b = t; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::DIRT);
                 p.solver_mode = ParticleSolverMode::STATIC;
                 p.is_at_rest = true;
@@ -169,15 +169,17 @@ int main() {
     // Carcass at the WORLD ORIGIN (the #44 regression geometry): a dark
     // red box whose size tracks remaining mass, so the bite model is
     // literally watchable.
-    const float kCarcassFull = 0.6f;   // 216 kg at flesh density — a
-                                        // carcass, not a whale
+    const float kCarcassFull = 1.0f;   // 1 m cube: big enough to SEE at
+                                        // this zoom (guideline 10 — the
+                                        // 0.6 m dark-red version read as
+                                        // nothing on dark ground)
     Particle carc{};
     carc.shape = ParticleShape::BOX;
     carc.particle_id = 7;
     carc.x = 0.0f; carc.y = 0.0f; carc.z = 0.6f;
     carc.width = carc.height = carc.thickness = kCarcassFull;
     carc.size = kCarcassFull;
-    carc.r = 0.55f; carc.g = 0.15f; carc.b = 0.12f; carc.a = 1.0f;
+    carc.r = 0.90f; carc.g = 0.12f; carc.b = 0.10f; carc.a = 1.0f;
     carc.SetMaterial(Materials::Type::FLESH);
     carc.material_density = 1000.0f;
     carc.solver_mode = ParticleSolverMode::KINEMATIC;
@@ -227,7 +229,8 @@ int main() {
     npc_ai::FoodState food = npc_ai::FoodState::from_particle(carc, 0.5f);
     const float initial_mass = food.remaining_g;
     predator::PredatorContext pctx;
-    pctx.mouth_volume_cm3 = 24000.0f;   // 24 kg bites: ~9 visible bites
+    pctx.mouth_volume_cm3 = 110000.0f;  // 110 kg bites: ~9 visible bites
+                                        // of a 1-tonne carcass
     pctx.food_state = &food;
 
     npc_ai::CreatureParams params;
@@ -363,7 +366,7 @@ int main() {
         panel->add_line("");
         if (phase == Phase::WAITING) {
             panel->add_line("the predator is hungry.");
-            panel->add_line("the carcass is 216 kg.");
+            panel->add_line("the carcass is one tonne.");
             panel->add_line("");
             panel->add_line("> SPACE  release the predator");
             panel->add_line("> ESC    quit");
