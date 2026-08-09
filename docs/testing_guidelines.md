@@ -221,7 +221,27 @@ XFAIL: step up: no teleporting (biggest single frame 0.350000 m)  (known-red, no
 test. Never mark a test XFAIL to silence it, and never promote one
 because the runner nagged you: check *what* it asserts first.
 
-## 12. Agent and tool reports are hypotheses
+## 12. Every delivered feature is visually verifiable
+
+Project rule, stated 2026-08-08 after a feature shipped headless-only:
+a feature without a watchable mode is not done, and the visual mode
+ships WITH the feature, not as a follow-up.
+
+The convention: `LOGOSPHERE_VISUAL=1 ./build/<name>` opens the window
+(raised and focused, ESC quits), lights at strength-in-the-millions,
+a `TextWindow` panel for live state, and — because a watchable test is
+still a test — the pixels asserted: glyph pixels distinguished from the
+panel's background rectangle, frame brightness measured, headless and
+windowed printing the same `[measure]` lines. `at_predator_hunger` /
+`at_predator_hunger_visual` is the reference pair: the first proves the
+numbers in the headless core, the second shows the carcass shrinking
+bite by bite.
+
+**Rule.** Before calling a feature delivered, answer: what does the user
+RUN to watch it work? If the answer is "read the measure lines", it is
+not delivered.
+
+## 13. Agent and tool reports are hypotheses
 
 Subagent findings, search results and summaries are leads. Several in
 this session were subtly wrong in ways that would have produced
