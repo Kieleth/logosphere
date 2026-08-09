@@ -24,7 +24,11 @@
 //
 // INTERACTIVE=1 is stage-gated: the window opens lit and WAITS. SPACE turns
 // the post; the swing plays out; the final pose holds until ESC or close.
-// Nothing runs and nothing exits without the owner.
+// Nothing runs and nothing exits without the owner. The viewer PROVES itself
+// visible: after settle it reads the framebuffer and counts structured pixels
+// (lit but not blown out) — an all-black or all-white frame fails the rung
+// before wasting the owner's time. AUTOPILOT=1 with INTERACTIVE=1 skips the
+// waits so the visibility proof can run unattended.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -41,20 +45,62 @@
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <vector>
 
 namespace {
 
 bool g_interactive = false;
+bool g_autopilot = false;
 ui::Label* g_label = nullptr;
 
-// One paced step: headless runs flat out, interactive runs at frame rate so
-// the owner can watch the swing happen.
-void step(Engine& engine) { engine.update(1.0 / 60.0); }
+// Count pixels that are lit but not blown out. An all-black frame (no light)
+// and an all-white frame (light in the lens) both score ~0.
+long structured_pixels(Engine& engine) {
+    engine.get_renderer().wait_for_completion();
+    int w = engine.get_render_buffer().width();
+    int h = engine.get_render_buffer().height();
+    std::vector<uint32_t> px((size_t)w * h, 0u);
+    long n = 0;
+    long black = 0, white = 0;
+    bool read_ok = engine.read_latest_framebuffer(px.data(), w, h);
+    if (read_ok) {
+        for (uint32_t c : px) {
+            const int sum = ((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF);
+            if (sum <= 60) black++;
+            else if (sum >= 720) white++;
+            else n++;
+        }
+    }
+    printf("      [frame] read_ok=%d %dx%d black=%ld white=%ld structured=%ld\n",
+           (int)read_ok, w, h, black, white, n);
+    if (std::getenv("ROTLADDER_DUMP")) {
+        FILE* f = fopen("/tmp/rotladder_frame.ppm", "wb");
+        if (f) {
+            fprintf(f, "P6\n%d %d\n255\n", w, h);
+            for (uint32_t c : px) {
+                unsigned char rgb[3] = {(unsigned char)((c >> 16) & 0xFF),
+                                        (unsigned char)((c >> 8) & 0xFF),
+                                        (unsigned char)(c & 0xFF)};
+                fwrite(rgb, 1, 3, f);
+            }
+            fclose(f);
+            printf("      [frame] dumped /tmp/rotladder_frame.ppm\n");
+        }
+    }
+    return n;
+}
+
+// One paced step. Interactive must ALSO call render(): update() alone never
+// dispatches a frame (the blank-window bug — the owner saw white, twice).
+void step(Engine& engine) {
+    engine.update(1.0 / 60.0);
+    if (g_interactive) engine.render();
+}
 
 // Freeze the world (dt = 0 still pumps the window) until SPACE. Returns
 // false if the owner quit instead.
 bool wait_for_space(Engine& engine) {
-    if (!g_interactive) return true;
+    if (!g_interactive || g_autopilot) return true;
     bool space_was = true;   // swallow a still-held press from the last stage
     while (engine.is_running()) {
         const auto& in = engine.get_input_system().get_input_state();
@@ -63,6 +109,7 @@ bool wait_for_space(Engine& engine) {
         space_was = space;
         if (in.keys[GLFW_KEY_ESCAPE]) return false;
         engine.update(0.0);
+        engine.render();
     }
     return false;
 }
@@ -70,6 +117,7 @@ bool wait_for_space(Engine& engine) {
 // Hold the final pose, world live, until ESC or window close.
 void hold_until_close(Engine& engine) {
     if (!g_interactive) return;
+    if (g_autopilot) { for (int f = 0; f < 30 && engine.is_running(); ++f) step(engine); return; }
     while (engine.is_running()) {
         if (engine.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE]) return;
         step(engine);
@@ -104,11 +152,30 @@ Rung rung1(Engine& engine) {
         return engine.add_particle(p);
     };
 
-    // Parent post at z=5 (mid-air; the bond, not a floor, holds the child).
-    // Child sits on top: parent top anchor (0,0,+0.5) meets child bottom
-    // anchor (0,0,-0.5); centres 1 m apart, anchors coincident.
-    const int parent = make_box(0, 0, 5.0f, 1.0f);
-    const int child  = make_box(0, 0, 6.0f, 1.0f);
+    // A 5x5 kinematic tile floor for spatial reference: the owner needs a
+    // ground to read the swing against, and the working viewers all have one.
+    for (int cx = -2; cx <= 2; ++cx)
+        for (int cy = -2; cy <= 2; ++cy) {
+            Particle t = {};
+            t.shape = ParticleShape::BOX;
+            t.x = (float)cx; t.y = (float)cy; t.z = 0.05f;
+            t.width = t.height = 1.0f; t.thickness = 0.1f; t.size = 1.0f;
+            t.r = 0.35f; t.g = 0.4f; t.b = 0.35f; t.a = 1.0f;
+            t.SetMaterial(Materials::Type::STONE);
+            const int id = engine.add_particle(t);
+            ps.flush_pending_particles();
+            auto v = ps.lock_particles_for_write();
+            v[id].solver_mode = ParticleSolverMode::KINEMATIC;
+            v[id].owner = ParticleOwner::DYNAMICS;
+            v[id].is_at_rest = true;
+        }
+
+    // Parent post floats KINEMATIC at z=1.2 (the bond, not the floor, holds
+    // the child). Child on top: parent top anchor (0,0,+0.5) meets child
+    // bottom anchor (0,0,-0.5). After the 90-degree turn about X the child's
+    // target hangs at (0,-0.5, z=1.7): clear of the floor, easy to read.
+    const int parent = make_box(0, 0, 1.2f, 1.0f);
+    const int child  = make_box(0, 0, 2.2f, 1.0f);
     ps.flush_pending_particles();
     {
         auto v = ps.lock_particles_for_write();
@@ -128,7 +195,8 @@ Rung rung1(Engine& engine) {
     engine.get_physics_system().add_gluon_between(parent, child, std::move(g));
 
     if (g_interactive)
-        ps.queue_light(-3.0f, -2.0f, 10.0f, 400000.0f, 45.0f, 1.0f, 0.96f, 0.9f);
+        // The single-blade viewer's proven light: far above, out of frame.
+        ps.queue_light(-2.0f, 0.0f, 10.0f, 350000.0f, 40.0f, 1.0f, 0.96f, 0.9f);
 
     // Settle: child must simply stay put on the post.
     if (g_label) g_label->set_text(
@@ -139,6 +207,20 @@ Rung rung1(Engine& engine) {
         auto v = ps.lock_particles_for_write();
         settle_gap = dist3(v[parent].x, v[parent].y, v[parent].z + 0.5f,
                            v[child].x,  v[child].y,  v[child].z - 0.5f);
+    }
+
+    // Visibility proof: never hand the owner a blind window.
+    long lit = -1;
+    if (g_interactive) {
+        lit = structured_pixels(engine);
+        printf("      structured pixels after settle: %ld (need > 5000)\n", lit);
+        if (lit <= 5000) {
+            r.passed = false;
+            snprintf(r.detail, sizeof r.detail,
+                     "SCENE NOT VISIBLE: %ld structured pixels (all-black or "
+                     "all-white frame). Fix the viewer before showing it.", lit);
+            return r;
+        }
     }
 
     // The kinematic writer turns the post 90 degrees about X. Its top anchor
@@ -199,6 +281,7 @@ Rung rung1(Engine& engine) {
 
 bool test_rotation_ladder() {
     g_interactive = std::getenv("INTERACTIVE") != nullptr;
+    g_autopilot   = std::getenv("AUTOPILOT") != nullptr;
     printf("\n=== THE ROTATION LADDER: bend-by-rotation, one rung at a time ===\n");
     printf("  mode: %s\n\n", g_interactive ? "INTERACTIVE (ESC quits)" : "HEADLESS");
 
@@ -213,9 +296,9 @@ bool test_rotation_ladder() {
     }
     if (g_interactive) {
         auto& camera = engine.get_camera_system();
-        camera.set_position(-5.0f, -3.0f, 6.0f);
-        camera.look_at(0.0f, 0.0f, 5.5f);       // the post and its child
-        camera.set_pixels_per_unit(90.0f);
+        camera.set_position(-4.0f, -2.5f, 2.4f);
+        camera.look_at(0.0f, 0.0f, 1.6f);       // post + child, floor in frame
+        camera.set_pixels_per_unit(110.0f);
         if (auto* uis = engine.get_ui_system()) {
             g_label = new ui::Label("", "");
             g_label->set_position(24, 24);
