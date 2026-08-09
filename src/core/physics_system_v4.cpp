@@ -317,8 +317,8 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         update_rest_state(particles);
     }
 
-    // Cleanup broken gluons
-    remove_marked_gluons();
+    // Cleanup broken gluons (and wake what they freed)
+    remove_marked_gluons(&particles);
 
     // PHASE 8: EXPLOSION DETECTOR (issue #42). One pass over final velocities,
     // always on. Two world-scale explosions were found by a human looking at a
@@ -3727,10 +3727,32 @@ void PhysicsSystem::mark_gluon_for_removal(size_t gluon_id) {
     gluons_to_remove_.push_back(gluon_id);
 }
 
-void PhysicsSystem::remove_marked_gluons() {
+void PhysicsSystem::remove_marked_gluons(ParticleSystem::WriteView* particles) {
     if (gluons_to_remove_.empty()) return;
 
     for (size_t id : gluons_to_remove_) {
+        // WAKE-ON-BREAK: a snapping bond frees its bodies, and freedom is
+        // an event — a sleeping segment whose bond tears must FALL, not
+        // hover where the bond left it (rung 4, owner QA: the brittle
+        // chain's upper segment stood on air after the snap).
+        if (particles) {
+            for (const auto& g : gluon_constraints_v2_) {
+                if (g->id != id) continue;
+                // Clearing is_at_rest alone is not enough: gravity grows
+                // velocity too slowly (0.16 m/s in the first frame) to
+                // escape the rest counter's hysteresis band, so the damper
+                // crushes it and the particle re-latches at_rest while
+                // FLOATING. Freedom resets the counter too.
+                if (g->particle_a < particles->size()) {
+                    (*particles)[g->particle_a].is_at_rest = false;
+                    (*particles)[g->particle_a].low_velocity_frames = 0;
+                }
+                if (g->particle_b < particles->size()) {
+                    (*particles)[g->particle_b].is_at_rest = false;
+                    (*particles)[g->particle_b].low_velocity_frames = 0;
+                }
+            }
+        }
         // Unindex BEFORE the unique_ptr frees the gluon. Without this,
         // gluon_pair_index_ keeps a dangling pointer and get_gluon(_mut)
         // serves freed memory to every later caller for that pair —

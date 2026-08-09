@@ -584,7 +584,7 @@ private:
 
     // Gluon removal (deferred to avoid modifying container during iteration)
     void mark_gluon_for_removal(size_t gluon_id);
-    void remove_marked_gluons();
+    void remove_marked_gluons(ParticleSystem::WriteView* particles = nullptr);
 
     // Wake propagation through gluon graph (BFS)
     // V4.6: Threshold-based propagation - only propagate if impact_velocity exceeds threshold
