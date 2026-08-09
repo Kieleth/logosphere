@@ -91,6 +91,8 @@ extern bool test_tree_repair_visual();        // issue #38: broken vs fixed tree
 extern bool test_explosion_detector();        // issue #42: the engine reports its own explosions (STANDALONE)
 extern bool test_butterfly_detonation();      // issue #47: gram-scale bodies vs the solver, ladder (STANDALONE)
 extern bool test_grass_holds_together();      // issue #47 fix 1: grass is bonded and does not detonate (STANDALONE)
+extern bool test_blockers_visual();           // issue #47: the two merge blockers, visible, INTERACTIVE=1 (STANDALONE)
+extern bool test_walk_through_grass();        // issue #47: Eva crosses 3 grass patches, all must stay good (STANDALONE)
 extern bool test_immovable_pair_phantom_impulse(); // TDD RED: phantom impulse from zero-inv-mass pairs (STANDALONE)
 extern bool test_ui_label_actually_renders();// Does a registered widget actually render? (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
@@ -279,6 +281,8 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_explosion_detector"] = [](TestContext&) { return test_explosion_detector(); };  // STANDALONE: own engine
     registry["test_butterfly_detonation"] = [](TestContext&) { return test_butterfly_detonation(); };  // STANDALONE: own engine
     registry["test_grass_holds_together"] = [](TestContext&) { return test_grass_holds_together(); };  // STANDALONE: own engine
+    registry["test_blockers_visual"] = [](TestContext&) { return test_blockers_visual(); };  // STANDALONE: own engine
+    registry["test_walk_through_grass"] = [](TestContext&) { return test_walk_through_grass(); };  // STANDALONE: own engine
     registry["test_immovable_pair_phantom_impulse"] = [](TestContext&) { return test_immovable_pair_phantom_impulse(); };  // STANDALONE: own engine
     registry["test_ui_label_actually_renders"] = [](TestContext&) { return test_ui_label_actually_renders(); };  // STANDALONE: own engine
 
@@ -693,6 +697,8 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_explosion_detector",
         "test_butterfly_detonation",
         "test_grass_holds_together",
+        "test_blockers_visual",
+        "test_walk_through_grass",
         "test_immovable_pair_phantom_impulse",
         "test_ui_label_actually_renders",
         "test_interaction_filtering",
@@ -793,6 +799,8 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_explosion_detector", test_explosion_detector},
         {"test_butterfly_detonation", test_butterfly_detonation},
         {"test_grass_holds_together", test_grass_holds_together},
+        {"test_blockers_visual", test_blockers_visual},
+        {"test_walk_through_grass", test_walk_through_grass},
         {"test_immovable_pair_phantom_impulse", test_immovable_pair_phantom_impulse},
         {"test_ui_label_actually_renders", test_ui_label_actually_renders},
         {"test_interaction_filtering", test_interaction_filtering},

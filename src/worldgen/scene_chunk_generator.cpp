@@ -445,9 +445,12 @@ void SceneChunkGenerator::activate_entity_now(kg::EntityID entity_id) {
                   << ") - creating " << result.particles.size() << " particles" << std::endl;
 
         // Create render particles and update KG particle bindings
+        std::vector<int> render_indices;
+        render_indices.reserve(result.particles.size());
         for (size_t i = 0; i < result.particles.size(); i++) {
             const Particle& p = result.particles[i];
             int render_idx = engine_->get_particle_system().add_particle(p);
+            render_indices.push_back(render_idx);
 
             // Track first particle for floor anchoring
             if (first_render_idx < 0) {
@@ -490,6 +493,33 @@ void SceneChunkGenerator::activate_entity_now(kg::EntityID entity_id) {
         // NOTE: Turtle architecture (2025-12-12) - no more floor anchoring
         // Trees rest on floor tiles via contact collision
         // Floor tiles rest on Turtle (world boundary at TURTLE_Z)
+
+        // ====================================================================
+        // GLUONS (issue #47). This direct-activation path created particles
+        // and DROPPED result.gluon_requests on the floor; only the chunk-load
+        // path a few hundred lines up ever created bonds. So an entity got
+        // its gluons if and only if its activation happened to FORCE-LOAD its
+        // chunk, and lost them whenever the chunk was already resident, which
+        // is every click-spawned entity in a live world and every patch after
+        // the first in a test. Third instance of the same defect class: the
+        // generator stored bonds, an activation path silently discarded them.
+        // ====================================================================
+        int gluons_created_now = 0;
+        for (const auto& req : result.gluon_requests) {
+            if (req.particle_a_index < render_indices.size() &&
+                req.particle_b_index < render_indices.size()) {
+                engine_->get_entity_manager().create_gluon_from_kg(
+                    req.kg_gluon_id,
+                    render_indices[req.particle_a_index],
+                    render_indices[req.particle_b_index]);
+                gluons_created_now++;
+            }
+        }
+        if (!result.gluon_requests.empty()) {
+            SCENE_LOG << "[SceneChunkGenerator]   Created " << gluons_created_now
+                      << " of " << result.gluon_requests.size()
+                      << " gluons (direct activation)" << std::endl;
+        }
     } else {
         SCENE_LOG << "[SceneChunkGenerator] Entity " << entity_id << " (" << type
                   << ") is container entity (no direct particles, has " << children.size() << " children)" << std::endl;

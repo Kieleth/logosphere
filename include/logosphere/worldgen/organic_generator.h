@@ -61,6 +61,15 @@ public:
 
     // Generate grass patch (parent entity with child blade entities)
     // Returns KG entity ID for the patch root
+    // A/B LEVER for showing the unbonded disease next to the bonded cure
+    // (issue #47). When true, generation skips storing gluons, which is
+    // exactly what the code did for its whole life until the fix. Off by
+    // default; exists so a broken patch and a fixed one can stand side by
+    // side in one frame and be compared by eye. Same pattern as
+    // PhysicsTreeGenerator::set_legacy_placement.
+    static void set_legacy_unbonded(bool on);
+    static bool legacy_unbonded();
+
     kg::EntityID generate_grass_patch(float world_x, float world_y, float world_z,
                                       const GrassPatchSpec& spec);
 

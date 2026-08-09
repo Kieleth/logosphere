@@ -1,6 +1,11 @@
 #include "logosphere/worldgen/organic_generator.h"
 #include "core/engine.h"
 #include "core/particle_system.h"
+
+namespace { bool g_legacy_unbonded = false; }
+void OrganicGenerator::set_legacy_unbonded(bool on) { g_legacy_unbonded = on; }
+bool OrganicGenerator::legacy_unbonded() { return g_legacy_unbonded; }
+
 #include "core/game_time.h"
 #include "logosphere/worldgen/space_colonization.h"
 #include "logosphere/worldgen/attractor_shapes.h"
@@ -180,6 +185,10 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
     };
 
     int gluons_stored = 0;
+    if (g_legacy_unbonded) {
+        std::cout << "[OrganicGenerator] LEGACY UNBONDED (A/B lever): storing no gluons"
+                  << std::endl;
+    } else {
     for (size_t j = 0; j + 1 < trunk_particles.size(); ++j) {
         bond(trunk_kg[j], trunk_kg[j + 1], trunk_particles[j], trunk_particles[j + 1]);
         gluons_stored++;
@@ -196,6 +205,7 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
             gluons_stored++;
         }
         // No trunk and no parent: the plant's own base, nothing to bond to.
+    }
     }
     std::cout << "[OrganicGenerator] Bonded: " << gluons_stored
               << " gluons stored in KG" << std::endl;
