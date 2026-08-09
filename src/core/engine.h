@@ -47,6 +47,7 @@ typedef struct GLFWwindow GLFWwindow;
 #include "spatial/entity_spatial.h"  // Entity-aware spatial queries
 #include "player_controller.h"  // Player input handling (mouse look, WASD, abilities)
 #include "logosphere/events/event_bus.h"  // Two-tier event system (signals + log)
+#include "logosphere/capability/capability_store.h"
 #include "logosphere/interaction/particle_interaction_system.h"
 #include "logosphere/kg/entity_physical_state.h"
 #include "logosphere/core/ground_locator.h"  // KG-declared contact policy
@@ -246,6 +247,12 @@ public:
     // the physics broad phase consults it (empty = today's behavior).
     logosphere::interaction::ParticleInteractionSystem& get_interaction_system() {
         return interaction_system_;
+    }
+
+    // Capability store: tracked entities' profiles, recomputed on
+    // state change, written back to the KG as capability.* (#37).
+    capability::CapabilityStore& get_capability_store() {
+        return capability_store_;
     }
     // Where a body can be. Ask this instead of assuming a height:
     // there is no floor at zero, the ground is particles, and it
@@ -579,6 +586,7 @@ private:
     // Event bus - Two-tier event system (synchronous signals + append-only log)
     logosphere::EventBus event_bus_;
     logosphere::interaction::ParticleInteractionSystem interaction_system_;
+    capability::CapabilityStore capability_store_;
     logosphere::EntityPhysicalState entity_physical_state_;
     logosphere::GroundLocator ground_locator_;
     Logosphere::HumanoidIntegrityMonitor humanoid_integrity_monitor_;

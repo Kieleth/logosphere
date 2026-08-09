@@ -280,14 +280,13 @@ void test_max_depth_semantics() {
     check(!at_1.valid, "a 2-action plan is refused at max_depth=1");
     check(at_3.valid, "and allowed at max_depth=3");
 
-    // Issue #34. The depth test runs BEFORE the goal test in plan(), so a
-    // node holding a finished plan of exactly max_depth actions is
-    // discarded without ever being checked against the goal. That
-    // makes max_depth mean "fewer than max_depth actions".
+    // Issue #34, FIXED: the goal test now runs before the depth gate,
+    // so a finished plan of exactly max_depth actions is an answer and
+    // the depth limit means what it says. The gate still stops
+    // expansion (the max_depth=1 refusal above is the control).
     check(at_2.valid,
-          "a 2-action plan is allowed at max_depth=2, rather than "
-          "max_depth meaning 'strictly fewer than'",
-          /*xfail=*/true);
+          "a 2-action plan is allowed at max_depth=2: the bound is "
+          "inclusive, as documented");
 }
 
 // ---------------------------------------------------------------- lifetime
