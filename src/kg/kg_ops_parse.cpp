@@ -81,6 +81,25 @@ bool parse_create_entity(const json& obj, KGOp& out, std::string& warn) {
             ce.properties.emplace_back(it.key(), scalar_to_string(it.value()));
         }
     }
+    // Optional symbolic binder. Strict: when present it must be a
+    // string of the form "@alias" with a non-empty name - anything
+    // else is refused rather than normalized, so a seed file with a
+    // mistyped binder fails loudly instead of silently binding
+    // nothing.
+    if (obj.contains("as")) {
+        const auto& as = obj.at("as");
+        if (!as.is_string()) {
+            warn = "create_entity 'as' must be a string";
+            return false;
+        }
+        const std::string s = as.get<std::string>();
+        if (s.size() < 2 || s[0] != '@') {
+            warn = "create_entity 'as' must be '@alias' with a non-empty "
+                   "name, got '" + s + "'";
+            return false;
+        }
+        ce.as = s.substr(1);
+    }
     out = std::move(ce);
     return true;
 }
