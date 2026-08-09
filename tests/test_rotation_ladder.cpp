@@ -22,8 +22,9 @@
 //   RUNG 3 — a 3-segment chain bends by rotating, shear stays ~0.
 //   RUNG 4 — the single-blade gate clause 'bends by ROTATING' goes green.
 //
-// INTERACTIVE=1 shows the current rung's scene, slowed: the post turns at
-// frame 90, the child swings around to follow the rotated anchor. ESC quits.
+// INTERACTIVE=1 is stage-gated: the window opens lit and WAITS. SPACE turns
+// the post; the swing plays out; the final pose holds until ESC or close.
+// Nothing runs and nothing exits without the owner.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -33,6 +34,8 @@
 #include "../src/ui/ui_system.h"
 #include "../src/ui/widgets.h"
 #include "logosphere/physics/physics_system.h"
+
+#include <GLFW/glfw3.h>
 
 #include <cmath>
 #include <cstdio>
@@ -47,6 +50,31 @@ ui::Label* g_label = nullptr;
 // One paced step: headless runs flat out, interactive runs at frame rate so
 // the owner can watch the swing happen.
 void step(Engine& engine) { engine.update(1.0 / 60.0); }
+
+// Freeze the world (dt = 0 still pumps the window) until SPACE. Returns
+// false if the owner quit instead.
+bool wait_for_space(Engine& engine) {
+    if (!g_interactive) return true;
+    bool space_was = true;   // swallow a still-held press from the last stage
+    while (engine.is_running()) {
+        const auto& in = engine.get_input_system().get_input_state();
+        const bool space = in.keys[GLFW_KEY_SPACE];
+        if (space && !space_was) return true;
+        space_was = space;
+        if (in.keys[GLFW_KEY_ESCAPE]) return false;
+        engine.update(0.0);
+    }
+    return false;
+}
+
+// Hold the final pose, world live, until ESC or window close.
+void hold_until_close(Engine& engine) {
+    if (!g_interactive) return;
+    while (engine.is_running()) {
+        if (engine.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE]) return;
+        step(engine);
+    }
+}
 
 struct Rung {
     const char* name = "";
@@ -99,6 +127,9 @@ Rung rung1(Engine& engine) {
     g->damping = 1000.0f;
     engine.get_physics_system().add_gluon_between(parent, child, std::move(g));
 
+    if (g_interactive)
+        ps.queue_light(-3.0f, -2.0f, 10.0f, 400000.0f, 45.0f, 1.0f, 0.96f, 0.9f);
+
     // Settle: child must simply stay put on the post.
     if (g_label) g_label->set_text(
         "RUNG 1  settling: child bonded to the post's top anchor");
@@ -113,17 +144,18 @@ Rung rung1(Engine& engine) {
     // The kinematic writer turns the post 90 degrees about X. Its top anchor
     // swings from parent + (0,0,+0.5) to parent + R_x(90)*(0,0,+0.5)
     //   = parent + (0,-0.5, 0).
+    if (g_label) g_label->set_text(
+        "RUNG 1  settled. SPACE: turn the post 90deg — the child must swing with the anchor");
+    if (!wait_for_space(engine)) { r.passed = false;
+        snprintf(r.detail, sizeof r.detail, "owner quit before the turn");
+        return r; }
     {
         auto v = ps.lock_particles_for_write();
         v[parent].rotation_x = (float)(M_PI / 2.0);
     }
     if (g_label) g_label->set_text(
-        "RUNG 1  the post turned 90deg about X: the child must swing to the rotated anchor");
+        "RUNG 1  the post turned: watch the child swing around to the rotated anchor");
     for (int f = 0; f < 120 && engine.is_running(); ++f) step(engine);
-    if (g_interactive) {
-        // Hold the final pose so the result is inspectable, not a flash.
-        for (int f = 0; f < 240 && engine.is_running(); ++f) step(engine);
-    }
 
     // Where must the child's bottom anchor be? At the ROTATED parent anchor.
     // (The child has no torque path yet, so its own offset stays unrotated;
@@ -137,6 +169,16 @@ Rung rung1(Engine& engine) {
         child_y = v[child].y; child_z = v[child].z;
         py = v[parent].y; pz = v[parent].z;
     }
+
+    if (g_label) {
+        char buf[192];
+        snprintf(buf, sizeof buf,
+                 "RUNG 1  done: child anchor %.2f m from the rotated anchor "
+                 "(0.71 m before the fix). ESC or close when satisfied.",
+                 gap_after);
+        g_label->set_text(buf);
+    }
+    hold_until_close(engine);
 
     const bool settled  = settle_gap < 0.05f;
     // The rotation moved the anchor 0.707 m; the child follows to within a
