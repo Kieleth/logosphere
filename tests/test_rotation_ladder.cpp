@@ -527,6 +527,7 @@ Rung rung3(Engine& engine) {
     // Sweep: finger crosses from y=-2 to y=+2 at 1 m/s (240 frames), then
     // teleports away and the chain gets 300 frames (5 tau) to recover.
     float peak_rot = 0.0f, peak_shear = 0.0f, peak_gap = 0.0f, peak_tip = 0.0f;
+    float settled_shear = 0.0f, settled_gap = 0.0f;
     uint64_t contacts = 0;
     auto measure = [&](const char* phase_txt, int f) {
         auto v = ps.lock_particles_for_write();
@@ -580,6 +581,8 @@ Rung rung3(Engine& engine) {
         peak_shear = std::fmax(peak_shear, worst_shear);
         peak_gap = std::fmax(peak_gap, worst_gap);
         peak_tip = std::fmax(peak_tip, tipd);
+        settled_shear = worst_shear;   // last call = settled state
+        settled_gap = worst_gap;
         for (const auto& ev : engine.get_physics_system().get_collision_events()) {
             const bool fa = (int)ev.particle_a == finger, fb = (int)ev.particle_b == finger;
             if (fa || fb) contacts++;
@@ -640,13 +643,19 @@ Rung rung3(Engine& engine) {
     }
     hold_until_close(engine);
 
+    // Owner's contract (option C): fiber DISTORTS during a strike and must
+    // come back TRUE at rest. Transient bounds are calibrated to the
+    // QA-approved behavior; settled bounds are strict.
     const bool touched   = contacts > 0;
     const bool bent      = peak_tip > 0.15f;
     const bool by_rot    = rot_at_push > (15.0f * (float)M_PI / 180.0f);
-    const bool low_shear = shear_at_push < (15.0f * (float)M_PI / 180.0f);
-    const bool connected = peak_gap < 0.05f;
+    const bool low_shear = shear_at_push < (60.0f * (float)M_PI / 180.0f);
+    const bool connected = peak_gap < 0.300f;
     const bool recovered = final_tip < 0.15f;
-    r.passed = touched && bent && by_rot && low_shear && connected && recovered;
+    const bool true_at_rest = settled_shear < (5.0f * (float)M_PI / 180.0f) &&
+                              settled_gap < 0.025f;
+    r.passed = touched && bent && by_rot && low_shear && connected &&
+               recovered && true_at_rest;
     snprintf(r.detail, sizeof r.detail,
              "contacts %llu; tip defl peak %.2f m (bend %s); seg rot %.1f deg %s; "
              "shear %.1f deg %s; joint gap peak %.0f mm %s; final tip %.2f m %s",
@@ -656,6 +665,9 @@ Rung rung3(Engine& engine) {
              peak_gap * 1000.0f, connected ? "" : "(DISMEMBERED)",
              final_tip, recovered ? "(recovered)" : "(STAYED BENT)");
     printf("      swings during recovery: %d (owner: grass should swing ~once)\n", swings);
+    printf("      settled: shear %.1f deg (need < 5), gap %.0f mm (need < 25)%s\n",
+           settled_shear * 180.0f / (float)M_PI, settled_gap * 1000.0f,
+           true_at_rest ? "" : "  *** NOT TRUE AT REST ***");
     return r;
 }
 
