@@ -858,6 +858,52 @@ Rung rung4(Engine& engine) {
             fin[k] = dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
                            xs[k], tip_y0[k], tip_z0[k]);
     }
+    // HOVER WATCH (owner: 'still not fixed', a freed segment stood on air).
+    // 400 extra frames; a bondless body must end RESTING on something (its
+    // bottom within 15 mm of a real top surface) or still be falling. A body
+    // holding altitude over a gap is supported by nothing and fails the rung.
+    bool ghost = false;
+    char ghost_txt[160] = {0};
+    for (int f = 0; f < 400 && engine.is_running(); ++f) {
+        step(engine);
+        if ((f % 100) == 99) {
+            auto v = ps.lock_particles_for_write();
+            for (int j = 0; j < 3; ++j)
+                printf("      [hover f%3d] s%d z=%.2f vz=%+.3f at_rest=%d bonds=%zu\n",
+                       f, j, v[seg[3][j]].z, v[seg[3][j]].vz,
+                       (int)v[seg[3][j]].is_at_rest,
+                       engine.get_physics_system().get_gluons_for_particle(seg[3][j]).size());
+        }
+    }
+    {
+        auto v = ps.lock_particles_for_write();
+        for (int j = 0; j < 3; ++j) {
+            if (!engine.get_physics_system().get_gluons_for_particle(seg[3][j]).empty())
+                continue;   // still bonded: the stump may stand
+            const Particle& q = v[seg[3][j]];
+            const float bottom = q.z - q.thickness * 0.5f;
+            // Highest REAL top surface under it (xy-overlapping): floor,
+            // stump, or any other brittle piece.
+            float support = 0.1f;   // floor tile top
+            auto consider = [&](const Particle& o) {
+                const bool xo = std::fabs(q.x - o.x) < (q.width + o.width) * 0.5f;
+                const bool yo = std::fabs(q.y - o.y) < (q.height + o.height) * 0.5f;
+                const float top = o.z + o.thickness * 0.5f;
+                if (xo && yo && top <= bottom + 0.05f)
+                    support = std::fmax(support, top);
+            };
+            consider(v[roots[3]]);
+            for (int m = 0; m < 3; ++m) if (m != j) consider(v[seg[3][m]]);
+            const float air = bottom - support;
+            const bool falling = q.vz < -0.5f;
+            if (air > 0.015f && !falling) {
+                ghost = true;
+                snprintf(ghost_txt, sizeof ghost_txt,
+                         "s%d floats: %.0f mm of air below, vz %+.3f", j,
+                         air * 1000.0f, q.vz);
+            }
+        }
+    }
     printf("      nature      peak_tip  mid_tip  final_tip  swings\n");
     for (int k = 0; k < 4; ++k)
         printf("      %-10s %8.2f %8.2f %10.2f %7d\n",
@@ -871,7 +917,7 @@ Rung rung4(Engine& engine) {
     const bool springy_ok = peak_tip[1] > 0.5f && swings[1] <= 2 && fin[1] < 0.15f;
     const bool bouncy_ok  = peak_tip[2] > 0.5f && swings[2] >= 2 && fin[2] < 0.35f;
     const bool breaks_ok  = brittle_bonds < 3;                         // it SNAPPED
-    r.passed = bent_ok && springy_ok && bouncy_ok && breaks_ok;
+    r.passed = bent_ok && springy_ok && bouncy_ok && breaks_ok && !ghost;
     snprintf(r.detail, sizeof r.detail,
              "BENT %s (peak %.2f, fin %.2f, need fin > 0.4); SPRINGY %s (sw %d, "
              "fin %.2f); BOUNCY %s (sw %d, fin %.2f); BRITTLE %s (%zu bond edges "
@@ -880,6 +926,9 @@ Rung rung4(Engine& engine) {
              springy_ok ? "ok" : "OFF", swings[1], fin[1],
              bouncy_ok ? "ok" : "OFF (does not ring)", swings[2], fin[2],
              breaks_ok ? "SNAPPED ok" : "*** DID NOT BREAK ***", brittle_bonds);
+    if (ghost)
+        printf("      *** GHOST SUPPORT: %s — a body may not stand on air ***\n",
+               ghost_txt);
     if (g_label) {
         char buf[224];
         snprintf(buf, sizeof buf,
