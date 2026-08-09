@@ -159,9 +159,10 @@ bool test_divergence_microscope() {
         // Pulled back after the owner reviewed: 180 ppu framed three blades
         // and no context. This shows Eva approaching AND the patch she will
         // detonate, with room for the aftermath.
-        camera.set_position(-8.0f, 2.0f, 4.5f);
+        // Owner asked twice for less zoom; this frames the whole path.
+        camera.set_position(-12.0f, 0.5f, 6.5f);
         camera.look_at(0.0f, 5.5f, 1.0f);
-        camera.set_pixels_per_unit(85.0f);
+        camera.set_pixels_per_unit(55.0f);
     }
     ui::Label *l_title = nullptr, *l_hist = nullptr, *l_hint = nullptr;
     if (auto* uis = engine.get_ui_system()) {
