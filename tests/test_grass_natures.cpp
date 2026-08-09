@@ -230,7 +230,9 @@ bool test_grass_natures() {
     // ---- PART 1: the bar ------------------------------------------------
     Particle bar = {};
     bar.shape = ParticleShape::BOX;
-    bar.x = 5.0f; bar.y = -2.0f; bar.z = 0.55f;
+    // Top-third contact: a HIT, not a mow. At blade-middle height the bar
+    // is a lawnmower blade and mowing is the correct physics.
+    bar.x = 5.0f; bar.y = -2.0f; bar.z = 0.85f;
     bar.width = 8.5f; bar.height = 0.25f; bar.thickness = 0.25f; bar.size = 0.25f;
     bar.r = 0.8f; bar.g = 0.35f; bar.b = 0.3f; bar.a = 1.0f;
     bar.SetMaterial(Materials::Type::STONE);

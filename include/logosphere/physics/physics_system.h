@@ -211,6 +211,14 @@ public:
     // welds stay unbounded: that is their semantic.
     virtual bool force_bounded() const { return false; }
 
+    // FATIGUE (grass-natures red): a single-substep force spike must not
+    // tear fiber — grass declares damping whose transient at a 1 m/s brush
+    // (~100 N) exceeds its own strength (~58 N), so every first touch
+    // ripped every bond (all four natures at f113, detonation downstream).
+    // Force-based tearing now requires the load to be SUSTAINED; strain
+    // tearing stays instant because stretched IS torn.
+    uint16_t force_over_frames = 0;
+
     // Tear-at-elongation limit, as a ratio of rest length. Infinity = never
     // tears by strain (rigid joints, nails). Needed because force-based
     // breaking cannot fire on light bodies: a 2-gram blade segment's rows

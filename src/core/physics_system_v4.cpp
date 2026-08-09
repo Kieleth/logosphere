@@ -2968,11 +2968,27 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         const Particle& pa = particles[gluon->particle_a];
         const Particle& pb = particles[gluon->particle_b];
+
+        // Fiber tears from TENSION, not from viscous drag. For force-bounded
+        // bonds the row impulse is dominated by the damper under any
+        // sustained rub (grass: c=100 x 1 m/s = 100 N of drag against 58 N
+        // of strength — every brush tore every bond, 3-frame fatigue only
+        // delayed it). Structural load = stiffness x stretch. Welds (nails)
+        // keep impulse-based breaking: that is their contract.
         float breaking = gluon->calculate_breaking_force(pa, pb);
 
-        if (force >= breaking * 0.99f) {  // Near the limit = broke
-            mark_gluon_for_removal(gluon->id);
-            continue;
+        // Fiber has ONE tear law: elongation (the strain check below).
+        // Impulse- or tension-derived force checks double-declare the same
+        // physics at inconsistent thresholds (grass: 11.6 mm by tension vs
+        // 100+ mm by strain) and the stricter one always fires under drag.
+        // Welds (nails) keep impulse-based breaking: that is their contract.
+        if (!gluon->force_bounded() && force >= breaking * 0.99f) {
+            if (++gluon->force_over_frames >= 12) {
+                mark_gluon_for_removal(gluon->id);
+                continue;
+            }
+        } else {
+            gluon->force_over_frames = 0;
         }
 
         // MECHANISM B2 (issue #47): tear by STRAIN. See max_strain_ratio().
