@@ -123,6 +123,43 @@ go" is bounded improvisation: procedural content comes from the book's
 own tables via requests; schema-bounded content through validated ops;
 pure narration is its own.
 
+## The decision ladder (DESIGN, owner vision 2026-08-09)
+
+Most of a session is not the referee. Gameplay decisions route to the
+cheapest tier that can honestly make them:
+
+| Tier | Who | Latency | Handles |
+|---|---|---|---|
+| 0 | engine rules, GOAP, executors | none | movement, combat math, checks, table rolls, routine NPC behavior |
+| 1 | pre-prepared content | none | dialogue trees (a-b-c), prepared scenes, pre-created characters with items |
+| 2 | fast LLM (Haiku-class) | a speech beat | the ever-present L option: free-form dialogue, immediate NPC reactions |
+| 3 | referee (Sonnet-class) | masked by in-game time | scene preparation, plot, the out-of-the-ordinary, judgment the book leaves to the Referee |
+
+Load-bearing properties:
+
+- TIME IS THE MASK. In-game time passing is a property; tier-3 latency
+  hides inside travel, scene cuts, nights. Tiers 0-1 keep running
+  underneath: the world does not stop because the referee is thinking.
+  It is acceptable to make the player wait when it is worth it.
+- THE REFEREE WORKS AHEAD. Most tier-3 work is preparation during
+  quiet: dialogue trees, scenery, seeded NPCs, before the player
+  arrives. The slow tier is rarely on the critical path.
+- THE BAKE-BACK IS THE SAFETY. Tier-2 free-form output has
+  consequences: it returns narration + validated KG-ops + an NPC
+  INTENT (attack, flee, pacify), and an intent is a GOAP goal executed
+  by the creature's own in-world brain (the #37 NPC layer). Canon
+  cannot corrupt: tier 2 reads only the KG and writes only through the
+  validator; its worst case is a refused op.
+- Escalation policy lives ON THE CONTENT (leaning, confirm at build):
+  an NPC carries its tree, persona brief and escalation marks; a scene
+  carries what is prepared and what escalates.
+- Dialogue trees: a-b-[c]+L, branches pre-created per character as
+  part of story/context; L always present, engages tier 2.
+- Slice 1 needs almost none of this (chargen is tier 3 conversational
+  plus tier 0 rolls); the ladder is built when the ship-interior slice
+  brings NPCs. Rule of two applies to its meta-classes
+  (DialogueNode, PersonaBrief, PreparedScene).
+
 ## Decisions log
 
 | Date | Decision |
@@ -138,6 +175,11 @@ pure narration is its own.
 | 2026-08-09 | No magic strings: ontology refs + KG expressions everywhere; skills are ontology elements; outcomes are KG-ops |
 | 2026-08-09 | Ingestion is LLM-extraction with the three-check verifier, not per-format parsers |
 | 2026-08-09 | OPEN-1 decided: override = COPY-ON-WRITE FORK (option C). Voyager copies a book rule entity, edits the copy; runtime loads ONLY voyager's set. Guardrails: forked_from + content hash on every fork; CI drift check reports (not gates) when the cepheus original changes after a fork |
+| 2026-08-09 | Procedure primitives: THIN, sub-step grain, the book's own gotos transcribed as routing data (outcome label -> step id, nothing else in data; conditions live in primitives). The more granularity the better |
+| 2026-08-09 | Rule text per turn: curated fragments, LEARNABLE. Referee may request find_rule(query); the engine searches the vendored SRD (plain text first); results are BAKED BACK as curation-link entities in the KG, so curation grows by play |
+| 2026-08-09 | Orchestration: the DECISION LADDER (see section below). Time passing masks LLM latency; the referee works AHEAD of play; free-form output bakes back as validated ops + NPC intents that become GOAP goals |
+| 2026-08-09 | Models: Sonnet-class referee, Haiku-class fast tier and extraction, KISS; Opus-class noted for heavy world creation later. Model is config, never a constant |
+| 2026-08-09 | Rule instances load as KG-OPS FILES applied at game start (ingestion emits ops; one write grammar for book, referee, game). World persistence direction: LAYERED MANIFEST, never a monolith: named+versioned seed layers (engine, cepheus@commit, voyager@version, worldgen@seed) plus a session delta (ops or snapshot+journal). Snapshot is a cache, not a format. KG save/load is future ENGINE work |
 
 ## OPEN (not yet decided, do not build past them)
 
