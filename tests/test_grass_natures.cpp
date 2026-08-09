@@ -116,6 +116,7 @@ struct Blade {
     float tip0[3] = {0, 0, 0};
     // instrumentation
     float peak_tip = 0, fin_tip = 0, peak_rot = 0, peak_stretch = 0;
+    float peak_sep_mm = 0;   // TRUE anchor gap, orientation-aware
     float worst_speed = 0;
     int first_tear = -1;
 };
@@ -293,6 +294,18 @@ bool test_grass_natures() {
                 const Particle& pb = v[b.seg[j + 1]];
                 b.peak_stretch = std::fmax(b.peak_stretch,
                     d3(pa.x, pa.y, pa.z, pb.x, pb.y, pb.z) / SEG_T);
+                // ANCHOR GAP (owner: bonds may not separate more than a
+                // handful of mms): parent's top anchor vs child's bottom
+                // anchor, each rotated by its own orientation.
+                float aax, aay, aaz, bax, bay, baz;
+                axis_of(pa, aax, aay, aaz);
+                axis_of(pb, bax, bay, baz);
+                const float gap = d3(
+                    pa.x + aax * SEG_T * 0.5f, pa.y + aay * SEG_T * 0.5f,
+                    pa.z + aaz * SEG_T * 0.5f,
+                    pb.x - bax * SEG_T * 0.5f, pb.y - bay * SEG_T * 0.5f,
+                    pb.z - baz * SEG_T * 0.5f);
+                b.peak_sep_mm = std::fmax(b.peak_sep_mm, gap * 1000.0f);
             }
             const size_t alive = bonds_alive(engine, b);
             if (alive < b.bonds0 && b.first_tear < 0) b.first_tear = f;
@@ -339,15 +352,28 @@ bool test_grass_natures() {
     const uint64_t det_p1 = X::stats().speed_events;
 
     printf("\n  PART 1, measured\n");
-    printf("  %-9s %8s %8s %8s %9s %8s %6s %10s\n",
-           "nature", "peak_tip", "final", "rot_deg", "stretch_x", "spd_max",
-           "bonds", "first_tear");
+    printf("  %-9s %8s %8s %8s %9s %7s %8s %6s %10s\n",
+           "nature", "peak_tip", "final", "rot_deg", "stretch_x", "sep_mm",
+           "spd_max", "bonds", "first_tear");
     for (int k = 0; k < 3; ++k)
-        printf("  %-9s %8.2f %8.2f %8.0f %9.2f %8.1f %3zu of %zu %7d\n",
+        printf("  %-9s %8.2f %8.2f %8.0f %9.2f %7.0f %8.1f %3zu of %zu %7d\n",
                blades[k].tag, blades[k].peak_tip, blades[k].fin_tip,
                blades[k].peak_rot * 57.3f, blades[k].peak_stretch,
-               blades[k].worst_speed, bonds_alive(engine, blades[k]),
-               blades[k].bonds0, blades[k].first_tear);
+               blades[k].peak_sep_mm, blades[k].worst_speed,
+               bonds_alive(engine, blades[k]), blades[k].bonds0,
+               blades[k].first_tear);
+    {   // RCA arithmetic: who outguns whom, per substep, at 1 mm of gap.
+        const float m_seg = 500.0f * SEG_W * SEG_H * SEG_T;   // WOOD_SOFT
+        const float dt_sub = 1.0f / 240.0f;
+        const float bond_budget_1mm = NATURES[1].stiffness * 0.001f * dt_sub;
+        const float contact_budget = m_seg * (1.0f + 4.0f);   // capture: v+cushion
+        printf("  RCA: seg mass %.0f g; bond budget at 1 mm gap %.4f N*s/substep "
+               "vs contact capture budget %.4f N*s\n",
+               m_seg * 1000.0f, bond_budget_1mm, contact_budget);
+        printf("       the bond only outguns the contact once the gap reaches "
+               "%.0f mm: spring-weakness at small error IS the separation\n",
+               contact_budget / (NATURES[1].stiffness * dt_sub) * 1000.0f);
+    }
     printf("  detector events part 1: %llu (worst %.1f m/s)\n",
            (unsigned long long)det_p1, X::stats().worst_speed);
 
@@ -459,6 +485,10 @@ bool test_grass_natures() {
                              bonds_alive(engine, blades[1]) == blades[1].bonds0;
     const bool brittle_ok  = bonds_alive(engine, blades[2]) < blades[2].bonds0;
     const bool rotates_ok  = blades[0].peak_rot > 0.26f && blades[1].peak_rot > 0.26f;
+    // Owner: bonds may not separate more than a handful of mms; rotation
+    // is where the flexibility lives.
+    const bool tight_ok    = blades[0].peak_sep_mm < 10.0f &&
+                             blades[1].peak_sep_mm < 10.0f;
     const bool p1_calm     = det_p1 == 0;
     const bool p2_crossed  = eva_y > 1.5f;
     const bool p2_blade    = hb_bonds == hb.bonds0 && hb_fin < 0.20f;
@@ -470,6 +500,9 @@ bool test_grass_natures() {
     printf("  %-46s %s\n", "STRAIGHT bends, springs back, holds bonds",
            straight_ok ? "ok" : "*** OFF ***");
     printf("  %-46s %s\n", "BRITTLE snaps", brittle_ok ? "ok" : "*** OFF ***");
+    printf("  %-46s %s (%.0f | %.0f mm)\n", "bonds stay TIGHT (< 10 mm)",
+           tight_ok ? "ok" : "*** SEPARATING ***",
+           blades[0].peak_sep_mm, blades[1].peak_sep_mm);
     printf("  %-46s %s\n", "blades bend by ROTATING",
            rotates_ok ? "ok" : "*** TRANSLATE ONLY ***");
     printf("  %-46s %s\n", "part 1 calm", p1_calm ? "ok" : "*** DETONATED ***");
@@ -479,7 +512,7 @@ bool test_grass_natures() {
     printf("  %-46s %s\n", "part 2 calm", p2_calm ? "ok" : "*** DETONATED ***");
 
     const bool pass = bent_ok && straight_ok && brittle_ok && rotates_ok &&
-                      p1_calm && p2_crossed && p2_blade && p2_calm;
+                      tight_ok && p1_calm && p2_crossed && p2_blade && p2_calm;
     if (g_title) {
         char buf[160];
         snprintf(buf, sizeof buf, "GRASS NATURES %s — ESC or close when satisfied",
