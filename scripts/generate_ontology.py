@@ -108,17 +108,44 @@ def generate(schema: dict) -> bool:
     # absolute one for malleus). Zero tracked symlinks: stage the schema
     # beside its import dependencies in a temp dir and generate there.
     with tempfile.TemporaryDirectory() as td:
-        staged = Path(td) / yaml_path.name
-        shutil.copy(yaml_path, staged)
+        # A game's schema dir may be a TREE (logoveyer keeps per-chapter
+        # packs in subdirectories, imported as "cepheus/<pack>"). Stage
+        # the whole tree with structure preserved so intra-game imports
+        # resolve exactly as authored; the importing file keeps its
+        # relative position.
+        schema_root = None
+        for parent in yaml_path.parents:
+            if parent.name == "schema":
+                schema_root = parent
+                break
+        if schema_root is not None and "examples" in yaml_path.parts:
+            shutil.copytree(schema_root, td, dirs_exist_ok=True)
+            staged = Path(td) / yaml_path.relative_to(schema_root)
+        else:
+            staged = Path(td) / yaml_path.name
+            shutil.copy(yaml_path, staged)
         deps = [SCHEMA_DIR / "logosphere.yaml", SCHEMA_DIR / "malleus.yaml"]
         # Setting packs (schema/packs/*.yaml) are import dependencies
         # in exactly the same way: a schema that imports `space` has to
         # find space.yaml beside its own file when LinkML resolves.
         if PACK_DIR.is_dir():
             deps.extend(sorted(PACK_DIR.glob("*.yaml")))
+        # Engine deps must sit beside EVERY staged schema, at every
+        # level of the tree: LinkML resolves an import relative to the
+        # file that declares it, and a pack in a subdirectory imports
+        # `logosphere` too.
+        import os as _os
+        dep_dirs = {Path(td)}
+        for droot, dnames, _f in _os.walk(td):
+            for dn in dnames:
+                dep_dirs.add(Path(droot) / dn)
         for dep_src in deps:
-            if dep_src.exists() and dep_src.name != yaml_path.name:
-                shutil.copy(dep_src, Path(td) / dep_src.name)
+            if not dep_src.exists():
+                continue
+            for dd in dep_dirs:
+                target = dd / dep_src.name
+                if not target.exists() and dep_src.name != yaml_path.name:
+                    shutil.copy(dep_src, target)
 
         # 1. Generate type definitions header
         cmd = [
@@ -172,17 +199,27 @@ def main():
             "output_registry": OUTPUT_DIR / f"{pack_name}_ontology_registry.cpp",
         })
 
-    # Discover game extension schemas (only the game's own yaml, not symlinks)
-    for game_schema in sorted(SCHEMA_DIR.parent.glob("examples/*/schema/*.yaml")):
+    # Discover game extension schemas (only the game's own yaml, not
+    # symlinks). Recursive: a game may keep MANY schema packs, organized
+    # in subdirectories (logoveyer's per-chapter cepheus packs are the
+    # first). Output names derive from the FILE STEM, not the game name,
+    # so packs cannot overwrite each other; every existing game names
+    # its single file after itself, so nothing changes for them.
+    for game_schema in sorted(SCHEMA_DIR.parent.glob("examples/*/schema/**/*.yaml")):
         if game_schema.is_symlink():
             continue
-        game_name = game_schema.parent.parent.name
-        game_output = game_schema.parent.parent / "src" / "generated"
+        # The game root is the directory that CONTAINS schema/.
+        d = game_schema.parent
+        while d.name != "schema":
+            d = d.parent
+        game_root = d.parent
+        stem = game_schema.stem.replace("-", "_")
+        game_output = game_root / "src" / "generated"
         SCHEMAS.append({
             "yaml": game_schema,
-            "namespace": f"{game_name}::ontology",
-            "output_header": game_output / f"{game_name}_ontology.h",
-            "output_registry": game_output / f"{game_name}_ontology_registry.cpp",
+            "namespace": f"{stem}::ontology",
+            "output_header": game_output / f"{stem}_ontology.h",
+            "output_registry": game_output / f"{stem}_ontology_registry.cpp",
         })
 
     ok = True

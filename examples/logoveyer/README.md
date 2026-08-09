@@ -29,6 +29,15 @@ frontier sensibility. No invented mechanics. The book is the spec.
 | Mongoose Traveller SRD | ORC | Current-rules cross-reference |
 
 Both license texts ship in `srd/` alongside the material they cover.
+
+**Credit where it is due.** The Cepheus Engine SRD is by Jason "Flynn"
+Kemp, Samardan Press, 2016. Our vendored copy comes from the mdBook
+conversion maintained by Steve Simenic ([orffen/cepheus-srd on
+GitHub](https://github.com/orffen/cepheus-srd), rendered at
+[orffenspace.com/cepheus-srd](https://www.orffenspace.com/cepheus-srd/)),
+pinned by commit in `srd/cepheus/SOURCE_COMMIT`. The markdown-source
+conversion is what makes citation-grade absorption possible, and this
+project would be poorer without it.
 The spin draws tone from late-80s frontier sci-fi RPGs; all names,
 text and settings here are our own. No trademarked titles, universes
 or assets are used.

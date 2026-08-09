@@ -1,18 +1,19 @@
-id: https://logosphere.dev/logoveyer/schema
-name: logoveyer
-title: Logoveyer — Traveller absorbed, an LLM referees
+id: https://logosphere.dev/logoveyer/cepheus/book1-character-creation
+name: cepheus_book1_character_creation
+title: Cepheus layer — Book 1, Character Creation
 description: >-
-  Game ontology transcribed from the Cepheus Engine SRD (OGL 1.0a,
-  vendored at srd/cepheus with license and source commit). Every class
-  and slot cites its section. Nothing here is invented; divergences
-  from the Mongoose Traveller SRD get recorded per section in
-  docs/ABSORPTION_INVENTORY.md when that cross-reference pass runs.
+  The data model of srd/cepheus/book1/character-creation.md, transcribed
+  faithfully. LAYER RULE (100% separation): nothing in this file is
+  ours. Every class and slot is the book's, cited to its section; the
+  game's corrections, tweaks and expansions live in the voyager layer,
+  which cherry-picks from these packs. One pack per SRD chapter file,
+  one to one, so 100% capture is auditable by file listing.
 
 default_range: string
 
 prefixes:
   linkml: https://w3id.org/linkml/
-  logoveyer: https://logosphere.dev/logoveyer/schema/
+  cepheus: https://logosphere.dev/logoveyer/cepheus/
   logosphere: https://logosphere.dev/schema/
   malleus: https://malleus.dev/schema/
 
@@ -21,15 +22,15 @@ imports:
   - logosphere
 
 classes:
-  Voyager:
+  Character:
     is_a: LivingEntity
     description: >-
-      A player character or NPC in the Cepheus rules sense: seven
-      characteristic scores in fixed order, summarized as a UPP string.
+      The book's own word and the book's own concept: seven
+      characteristic scores in fixed order, summarized as a UPP string
       [srd/cepheus book1/character-creation.md "Characteristics", "The
-      Universal Persona Profile (UPP)"]. Named Voyager because
-      "Character" is engine-ambiguous and "Traveller" is a trademark
-      this repo does not touch.
+      Universal Persona Profile (UPP)"]. This class is the BOOK's;
+      the game's character is Voyager, in the voyager layer, extending
+      this one.
     slots:
       - strength
       - dexterity

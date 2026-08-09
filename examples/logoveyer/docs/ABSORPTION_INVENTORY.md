@@ -7,6 +7,21 @@ implemented with the section cited in a comment, its tables load as
 data, its referee prompt fragment exists where one is owed, and a test
 proves the numbers against the book's own examples.
 
+## The two layers (decided 2026-08-09)
+
+**100% separation.** `schema/cepheus/` is the book: one pack per SRD
+chapter file, one to one, nothing of ours in it, every slot cited. The
+target for this layer is 100% of the book's data model, as its own
+workstream, independent of game slices. `schema/voyager.yaml` is the
+game: it cherry-picks cepheus packs by explicit import, whenever the
+game first needs that chapter, and it is the ONLY place corrections,
+tweaks and expansions may live. The diff between layers is the design
+document of the game.
+
+Audit rule: every file under `srd/cepheus/**.md` that carries data
+model gets exactly one `schema/cepheus/*.yaml`; coverage is checked by
+listing. Procedures, tables and referee material stay slice-driven.
+
 **Sources.** Primary text: Cepheus Engine SRD (OGL 1.0a, Classic-era
 2D6 restatement, chapters as published at orffenspace.com/cepheus-srd
 and in the SRD PDF). Cross-reference: Mongoose Traveller SRD (ORC, 2022

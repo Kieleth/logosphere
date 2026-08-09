@@ -3,10 +3,10 @@
 
 #include "logosphere/kg/ontology_registry.h"
 
-namespace logoveyer::ontology {
+namespace cepheus_book1_character_creation::ontology {
 
 /// Returns the singleton ontology registry populated from the schema YAML.
 /// This is the TBox that defines the KG's type system.
 const kg::OntologyRegistry& registry();
 
-} // namespace logoveyer::ontology
+} // namespace cepheus_book1_character_creation::ontology

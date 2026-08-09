@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace logoveyer::ontology {
+namespace cepheus_book1_character_creation::ontology {
 
 /// Lifecycle state of any identifiable entity.
 enum class EntityStatus {
@@ -1308,8 +1308,8 @@ struct WorldRelation : public Relation {
 };
 
 
-/// A player character or NPC in the Cepheus rules sense: seven characteristic scores in fixed order, summarized as a UPP string. [srd/cepheus book1/character-creation.md "Characteristics", "The Universal Persona Profile (UPP)"]. Named Voyager because "Character" is engine-ambiguous and "Traveller" is a trademark this repo does not touch.
-struct Voyager : public LivingEntity {
+/// The book's own word and the book's own concept: seven characteristic scores in fixed order, summarized as a UPP string [srd/cepheus book1/character-creation.md "Characteristics", "The Universal Persona Profile (UPP)"]. This class is the BOOK's; the game's character is Voyager, in the voyager layer, extending this one.
+struct Character : public LivingEntity {
     /// Str, position 1 of the UPP.
     std::optional<int32_t> strength = std::nullopt;
     /// Dex, position 2 of the UPP.
@@ -1365,4 +1365,4 @@ struct ServiceTerm : public Event {
 };
 
 
-} // namespace logoveyer::ontology
+} // namespace cepheus_book1_character_creation::ontology
