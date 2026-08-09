@@ -90,7 +90,9 @@ float ang3(float ax, float ay, float az, float bx, float by, float bz) {
 }
 
 // One blade: three thin vertical particles on a kinematic peg.
-constexpr float SEG_W = 0.03f, SEG_T = 0.3f;   // 3 cm x 3 cm x 30 cm
+// FLAT blades (owner): wide and paper-thin like a real blade, not square
+// columns. 4 cm wide, 3 mm thick, 30 cm per segment.
+constexpr float SEG_W = 0.04f, SEG_H = 0.003f, SEG_T = 0.3f;
 constexpr int SEGS = 3;
 
 struct Nature {
@@ -134,7 +136,7 @@ Blade make_blade(Engine& engine, float x, const Nature& n) {
         Particle p = {};
         p.shape = ParticleShape::BOX;
         p.x = x; p.y = 0.0f; p.z = 0.18f + SEG_T * 0.5f + SEG_T * (float)j;
-        p.width = p.height = SEG_W; p.thickness = SEG_T; p.size = SEG_W;
+        p.width = SEG_W; p.height = SEG_H; p.thickness = SEG_T; p.size = SEG_W;
         p.r = 0.35f; p.g = 0.8f; p.b = 0.3f; p.a = 1.0f;
         p.SetMaterial(Materials::Type::WOOD_SOFT);
         b.seg[j] = engine.add_particle(p);
@@ -159,7 +161,7 @@ Blade make_blade(Engine& engine, float x, const Nature& n) {
         g->offset_b = {0.0f, 0.0f, zb};
         g->target_distance = 0.0f;
         g->rotate_offsets = true;
-        g->contact_area = std::max(1e-8f, SEG_W * SEG_W);
+        g->contact_area = std::max(1e-8f, SEG_W * SEG_H);
         g->stiffness = n.stiffness;
         g->damping = n.damping;
         g->enable_angular_constraint = true;
