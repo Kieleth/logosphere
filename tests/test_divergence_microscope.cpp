@@ -156,9 +156,12 @@ bool test_divergence_microscope() {
         auto& camera = engine.get_camera_system();
         // Aimed at the KNOWN detonator, the tall patch at y=6, close enough
         // that blades are blades. Eva walks INTO frame from the left.
-        camera.set_position(-4.5f, 3.6f, 2.6f);
-        camera.look_at(0.0f, 6.0f, 1.2f);
-        camera.set_pixels_per_unit(180.0f);
+        // Pulled back after the owner reviewed: 180 ppu framed three blades
+        // and no context. This shows Eva approaching AND the patch she will
+        // detonate, with room for the aftermath.
+        camera.set_position(-8.0f, 2.0f, 4.5f);
+        camera.look_at(0.0f, 5.5f, 1.0f);
+        camera.set_pixels_per_unit(85.0f);
     }
     ui::Label *l_title = nullptr, *l_hist = nullptr, *l_hint = nullptr;
     if (auto* uis = engine.get_ui_system()) {

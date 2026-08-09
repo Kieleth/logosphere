@@ -213,6 +213,18 @@ OrganicSpec OrganicSpec::grass_blade() {
     spec.foliage_count_max = 1;
     spec.foliage_offset_radius = 0.02f;
     spec.foliage_offset_variance = 0.01f;
+    // BLADES STAND UP, visually. Owner's eye caught this in the divergence
+    // microscope: with no tilt set the blade sheet lies HORIZONTAL, stacked
+    // cards instead of blades. NOTE WHAT THIS DOES NOT FIX: the physics narrow
+    // phase is pure AABB and reads no rotation at all (narrow_phase.cpp), so
+    // the solver still collides every blade as a horizontal 1 mm slab
+    // whatever rotation_x says. Verified by measurement: the walk-through-
+    // grass gate's numbers are IDENTICAL to the digit with and without this
+    // tilt. Render orientation fixed here; the contact-shape mismatch is
+    // recorded on issue #47 as a root constraint.
+    spec.foliage_tilt_probability = 1.0f;
+    spec.foliage_tilt_angle_min = 75.0f;
+    spec.foliage_tilt_angle_max = 88.0f;
     spec.foliage_base_width = 0.015f;  // Thin blade width
     spec.foliage_base_height = 0.05f;  // Blade segment height
     spec.foliage_maturity_size_min = 1.0f;  // Grass blades always full size (no maturity scaling)
