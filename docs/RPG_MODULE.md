@@ -155,9 +155,19 @@ Load-bearing properties:
   carries what is prepared and what escalates.
 - Dialogue trees: a-b-[c]+L, branches pre-created per character as
   part of story/context; L always present, engages tier 2.
-- Slice 1 needs almost none of this (chargen is tier 3 conversational
-  plus tier 0 rolls); the ladder is built when the ship-interior slice
-  brings NPCs. Rule of two applies to its meta-classes
+- THE LADDER APPLIES TO CHARGEN TOO (owner, 2026-08-09). The book's
+  choice points (career, commission, skill table, reenlist, benefits)
+  ARE the baked a-b-c options, cepheus layer. The L slot at marked
+  decision beats is VOYAGER-layer: the player goes off-script mid-life
+  and the LLM converts it into consequences WITHIN chargen, constrained
+  to a small validated consequence vocabulary (a DM on a coming check,
+  a Contact/Enemy/Ally relation, a flag on the ServiceTerm). The
+  referee picks which legal consequence; the validator decides whether.
+  This makes slice 1 the first true showcase moment: a life you can
+  steer, with mechanical echoes.
+- Slice 1 otherwise needs little of the ladder (tier 3 conversational
+  plus tier 0 rolls); the full ladder is built when the ship-interior
+  slice brings NPCs. Rule of two applies to its meta-classes
   (DialogueNode, PersonaBrief, PreparedScene).
 
 ## Decisions log
