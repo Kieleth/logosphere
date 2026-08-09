@@ -1527,6 +1527,27 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
         gluon_constraint_indices.push_back(indices);
 
+        // IMPULSE MEMORY apply: last frame's carried load, up front, so the
+        // rows correct residuals instead of rebuilding the force from the
+        // error (see the field's comment). Infinite-mass endpoints absorb
+        // nothing, same as the solve.
+        {
+            Particle& wa = particles[body_a];
+            Particle& wb = particles[body_b];
+            const float winv_a = (wa.is_at_rest ||
+                                  wa.solver_mode == ParticleSolverMode::KINEMATIC)
+                                 ? 0.0f : (1.0f / wa.GetMass());
+            const float winv_b = (wb.is_at_rest ||
+                                  wb.solver_mode == ParticleSolverMode::KINEMATIC)
+                                 ? 0.0f : (1.0f / wb.GetMass());
+            wa.vx += gluon->warm_ix * winv_a;
+            wa.vy += gluon->warm_iy * winv_a;
+            wa.vz += gluon->warm_iz * winv_a;
+            wb.vx -= gluon->warm_ix * winv_b;
+            wb.vy -= gluon->warm_iy * winv_b;
+            wb.vz -= gluon->warm_iz * winv_b;
+        }
+
         // =================================================================
         // ANGULAR CONSTRAINT (V4.2) - Rotation coupling
         // =================================================================
@@ -2841,6 +2862,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         float impulse_x = constraints[idx.x_idx].accumulated_impulse;
         float impulse_y = constraints[idx.y_idx].accumulated_impulse;
         float impulse_z = constraints[idx.z_idx].accumulated_impulse;
+
+        // IMPULSE MEMORY store-back: carried load = pre-applied + solver
+        // delta, minus the position-bias part (never cache position
+        // correction), decayed to bound drift, capped at bond strength.
+        {
+            const float DECAY = 0.98f;
+            const float cap = gluon->calculate_breaking_force(
+                particles[gluon->particle_a], particles[gluon->particle_b]) * dt;
+            auto upd = [&](float warm_old, size_t row_idx, float acc) {
+                const Constraint& rc = constraints[row_idx];
+                const float velocity_part = acc - rc.bias * rc.effective_mass;
+                return std::clamp(DECAY * (warm_old + velocity_part), -cap, cap);
+            };
+            gluon->warm_ix = upd(gluon->warm_ix, idx.x_idx, impulse_x);
+            gluon->warm_iy = upd(gluon->warm_iy, idx.y_idx, impulse_y);
+            gluon->warm_iz = upd(gluon->warm_iz, idx.z_idx, impulse_z);
+        }
 
         // Total force magnitude
         float total_impulse = std::sqrt(impulse_x * impulse_x

@@ -185,6 +185,15 @@ public:
     // Each gluon type calculates its own breaking force (polymorphic)
     virtual float calculate_breaking_force(const Particle& p_a, const Particle& p_b) const = 0;
 
+    // IMPULSE MEMORY (the integral term). A bond under SUSTAINED load must
+    // not re-earn its force from the error every frame: the bias term is a
+    // proportional controller, so under a 1 m/s drag a joint equilibrates
+    // at drag/BETA ~= 0.35 m of standing error no matter the stiffness
+    // (measured: linear stiffness x10 changed the sweep gap by zero).
+    // Last frame's per-axis impulse, applied at warm start, stored back
+    // with decay; capped at breaking force * dt. A/B'd on the sweep.
+    float warm_ix = 0.0f, warm_iy = 0.0f, warm_iz = 0.0f;
+
     // FORCE-BOUNDED bonds (rung 3). A row's impulse budget per substep is
     // the force the bond's spring could actually exert at its current
     // stretch, (stiffness * |error| + damping * |v_rel|) * dt, capped by
