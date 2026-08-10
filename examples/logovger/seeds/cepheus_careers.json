@@ -1,0 +1,577 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "Skill": 9,
+      "TableEntry": 12,
+      "GrantSkill": 12,
+      "RollableTable": 2,
+      "Career": 2
+    },
+    "unique_name_per_type": [
+      "Skill",
+      "TableEntry",
+      "GrantSkill",
+      "Career",
+      "RollableTable"
+    ],
+    "band_coverage": {
+      "@agent_service": [
+        1,
+        6
+      ],
+      "@athlete_service": [
+        1,
+        6
+      ]
+    }
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d1d6",
+      "properties": {
+        "name": "1D6",
+        "dice_count": "1",
+        "dice_sides": "6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_admin",
+      "properties": {
+        "name": "Admin",
+        "source_file": "book1/skills.md",
+        "source_section": "Admin",
+        "source_quote": "### Admin"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_computer",
+      "properties": {
+        "name": "Computer",
+        "source_file": "book1/skills.md",
+        "source_section": "Computer",
+        "source_quote": "### Computer"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_streetwise",
+      "properties": {
+        "name": "Streetwise",
+        "source_file": "book1/skills.md",
+        "source_section": "Streetwise",
+        "source_quote": "### Streetwise"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_bribery",
+      "properties": {
+        "name": "Bribery",
+        "source_file": "book1/skills.md",
+        "source_section": "Bribery",
+        "source_quote": "### Bribery"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_leadership",
+      "properties": {
+        "name": "Leadership",
+        "source_file": "book1/skills.md",
+        "source_section": "Leadership",
+        "source_quote": "### Leadership"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_vehicle",
+      "properties": {
+        "name": "Vehicle",
+        "source_file": "book1/skills.md",
+        "source_section": "Vehicle (Cascade Skill)",
+        "source_quote": "### Vehicle (Cascade Skill)",
+        "is_cascade": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_athletics",
+      "properties": {
+        "name": "Athletics",
+        "source_file": "book1/skills.md",
+        "source_section": "Athletics",
+        "source_quote": "### Athletics"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_carousing",
+      "properties": {
+        "name": "Carousing",
+        "source_file": "book1/skills.md",
+        "source_section": "Carousing",
+        "source_quote": "### Carousing"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@skill_gambling",
+      "properties": {
+        "name": "Gambling",
+        "source_file": "book1/skills.md",
+        "source_section": "Gambling",
+        "source_quote": "### Gambling"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@agent_service",
+      "properties": {
+        "name": "Agent Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@agent_grant_1",
+      "properties": {
+        "name": "Agent: gain Admin",
+        "skill": "@skill_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@agent_row_1",
+      "properties": {
+        "name": "Agent service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@agent_grant_1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent_service",
+      "relation": "HAS_PART",
+      "to": "@agent_row_1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@agent_grant_2",
+      "properties": {
+        "name": "Agent: gain Computer",
+        "skill": "@skill_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@agent_row_2",
+      "properties": {
+        "name": "Agent service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@agent_grant_2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent_service",
+      "relation": "HAS_PART",
+      "to": "@agent_row_2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@agent_grant_3",
+      "properties": {
+        "name": "Agent: gain Streetwise",
+        "skill": "@skill_streetwise",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@agent_row_3",
+      "properties": {
+        "name": "Agent service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@agent_grant_3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent_service",
+      "relation": "HAS_PART",
+      "to": "@agent_row_3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@agent_grant_4",
+      "properties": {
+        "name": "Agent: gain Bribery",
+        "skill": "@skill_bribery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@agent_row_4",
+      "properties": {
+        "name": "Agent service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@agent_grant_4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent_service",
+      "relation": "HAS_PART",
+      "to": "@agent_row_4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@agent_grant_5",
+      "properties": {
+        "name": "Agent: gain Leadership",
+        "skill": "@skill_leadership",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@agent_row_5",
+      "properties": {
+        "name": "Agent service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@agent_grant_5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent_service",
+      "relation": "HAS_PART",
+      "to": "@agent_row_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@agent_grant_6",
+      "properties": {
+        "name": "Agent: gain Vehicle",
+        "skill": "@skill_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@agent_row_6",
+      "properties": {
+        "name": "Agent service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@agent_grant_6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent_service",
+      "relation": "HAS_PART",
+      "to": "@agent_row_6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@agent",
+      "properties": {
+        "name": "Agent",
+        "qualification_target": "6",
+        "qualification_dm_characteristic": "social_standing",
+        "survival_target": "6",
+        "survival_dm_characteristic": "intelligence"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@agent",
+      "relation": "HAS_PART",
+      "to": "@agent_service"
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@athlete_service",
+      "properties": {
+        "name": "Athlete Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@athlete_grant_1",
+      "properties": {
+        "name": "Athlete: gain Athletics",
+        "skill": "@skill_athletics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@athlete_row_1",
+      "properties": {
+        "name": "Athlete service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@athlete_grant_1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete_service",
+      "relation": "HAS_PART",
+      "to": "@athlete_row_1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@athlete_grant_2",
+      "properties": {
+        "name": "Athlete: gain Admin",
+        "skill": "@skill_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@athlete_row_2",
+      "properties": {
+        "name": "Athlete service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@athlete_grant_2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete_service",
+      "relation": "HAS_PART",
+      "to": "@athlete_row_2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@athlete_grant_3",
+      "properties": {
+        "name": "Athlete: gain Carousing",
+        "skill": "@skill_carousing",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@athlete_row_3",
+      "properties": {
+        "name": "Athlete service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@athlete_grant_3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete_service",
+      "relation": "HAS_PART",
+      "to": "@athlete_row_3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@athlete_grant_4",
+      "properties": {
+        "name": "Athlete: gain Computer",
+        "skill": "@skill_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@athlete_row_4",
+      "properties": {
+        "name": "Athlete service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@athlete_grant_4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete_service",
+      "relation": "HAS_PART",
+      "to": "@athlete_row_4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@athlete_grant_5",
+      "properties": {
+        "name": "Athlete: gain Gambling",
+        "skill": "@skill_gambling",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@athlete_row_5",
+      "properties": {
+        "name": "Athlete service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@athlete_grant_5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete_service",
+      "relation": "HAS_PART",
+      "to": "@athlete_row_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@athlete_grant_6",
+      "properties": {
+        "name": "Athlete: gain Vehicle",
+        "skill": "@skill_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@athlete_row_6",
+      "properties": {
+        "name": "Athlete service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@athlete_grant_6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete_service",
+      "relation": "HAS_PART",
+      "to": "@athlete_row_6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@athlete",
+      "properties": {
+        "name": "Athlete",
+        "qualification_target": "8",
+        "qualification_dm_characteristic": "endurance",
+        "survival_target": "5",
+        "survival_dm_characteristic": "dexterity"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@athlete",
+      "relation": "HAS_PART",
+      "to": "@athlete_service"
+    }
+  ]
+}

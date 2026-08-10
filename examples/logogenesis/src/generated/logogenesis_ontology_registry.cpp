@@ -396,8 +396,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Growable", "growth_iteration", "integer", false);
     reg.addProperty("Growable", "is_mature", "boolean", false);
     reg.addProperty("Growable", "species", "string", false);
-    reg.addProperty("HasHealth", "health", "float", true);
-    reg.addProperty("HasHealth", "max_health", "float", true);
+    reg.addProperty("HasHealth", "health", "float", false);
+    reg.addProperty("HasHealth", "max_health", "float", false);
     reg.addProperty("HasMaterial", "material_type", "enum", false);
     reg.addProperty("HasMaterial", "material_density", "float", false);
     reg.addProperty("HasMaterial", "material_friction", "float", false);
@@ -487,9 +487,9 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/space");
     reg.addProperty("Sky", "time_of_day", "float", false, true, 0.0, true, 24.0);
     reg.setSource("https://logosphere.dev/schema");
-    reg.addProperty("Spatial", "position_x", "float", true);
-    reg.addProperty("Spatial", "position_y", "float", true);
-    reg.addProperty("Spatial", "position_z", "float", true);
+    reg.addProperty("Spatial", "position_x", "float", false);
+    reg.addProperty("Spatial", "position_y", "float", false);
+    reg.addProperty("Spatial", "position_z", "float", false);
     reg.addProperty("Spatial", "facing_angle", "float", false);
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addProperty("StarfieldSeed", "star_count", "integer", false, true, 10.0, true, 600.0);

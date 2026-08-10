@@ -70,7 +70,7 @@ kg::OntologyRegistry game_registry() {
 
 // A world with the Agent career loaded the way a game loads it.
 bool build_world(kg::KGModule& kg, std::string& why) {
-    const std::string json = slurp(game_path("seeds/cepheus_agent_career.json"));
+    const std::string json = slurp(game_path("seeds/cepheus_careers.json"));
     if (json.empty()) { why = "career seed unreadable"; return false; }
 
     auto parsed = kg::parse_seed_envelope(json);

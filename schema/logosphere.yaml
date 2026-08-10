@@ -854,15 +854,19 @@ slots:
       flat box.
 
   # --- Spatial mixin ---
+  # NOT required: an entity may exist before it is anywhere. A being
+  # rolled up but not yet in the world, an NPC written into the story
+  # before it is spawned, a design not yet placed - all are legitimate
+  # KG entities. Position arrives when the entity is embodied, and
+  # "is it here" is observed (has position, has particles), never
+  # demanded at creation. Some entities are also spatial in a shape
+  # this triple cannot express: a TrailSegment is its two endpoints.
   position_x:
     range: float
-    required: true
   position_y:
     range: float
-    required: true
   position_z:
     range: float
-    required: true
   facing_angle:
     range: float
     description: Direction entity faces in radians.
@@ -881,12 +885,14 @@ slots:
     description: Tensile strength in Pa.
 
   # --- HasHealth mixin ---
+  # NOT required, for the same reason, plus one of its own: not every
+  # ruleset has hit points. Cepheus puts damage on the characteristics
+  # themselves, so a living entity from that book has no health value
+  # to give.
   health:
     range: float
-    required: true
   max_health:
     range: float
-    required: true
 
   # --- HasOdor mixin ---
   odor_type:

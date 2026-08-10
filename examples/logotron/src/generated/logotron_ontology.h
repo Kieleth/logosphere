@@ -1019,9 +1019,9 @@ struct Relation : public Identifiable, public Temporal {
 
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
-    float position_x;
-    float position_y;
-    float position_z;
+    std::optional<float> position_x = std::nullopt;
+    std::optional<float> position_y = std::nullopt;
+    std::optional<float> position_z = std::nullopt;
     /// Direction entity faces in radians.
     std::optional<float> facing_angle = std::nullopt;
 };
@@ -1041,8 +1041,8 @@ struct HasMaterial {
 
 /// Entity that can take damage and die.
 struct HasHealth {
-    float health;
-    float max_health;
+    std::optional<float> health = std::nullopt;
+    std::optional<float> max_health = std::nullopt;
 };
 
 
