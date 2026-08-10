@@ -3,34 +3,55 @@
 
 // The ingestion verifier - the machine half of "LLM extracts,
 // machine verifies" (docs/RPG_MODULE.md). Runs three checks over a
-// parsed seed file against the source text it claims to come from:
+// parsed seed file against the source text it claims to come from.
 //
-//   VERBATIM   every created entity with a source_quote has it as
-//              an exact BYTE substring of source_root/<source.file>.
-//              No normalization: the SRD has en dashes and
-//              multiplication signs, and byte-exact is the
-//              discipline. A hallucinated quote matches nothing.
+// All checks read the LOADED world (the seed applied through the
+// loader), never the raw op list: a quote injected or rewritten by
+// a later set_property op is ground truth for VALUE, so it must be
+// the same state VERBATIM certifies. SCHEMA therefore runs first;
+// when it fails, the schema violation alone fails the verification
+// and the other checks are not run.
+//
 //   SCHEMA     the seed loads through the seed loader into a
 //              throwaway MINIMAL-mode world built from the given
 //              registry, so every op passes alias resolution and
 //              validate_kg_op - refs-resolve comes for free.
-//   VALUE      every numeric slot on a quoted entity has its digits
-//              (absolute value) somewhere in that entity's own
-//              quote, and TableEntry / LookupEntry bands equal the
-//              band the quoted leading markdown cell declares
-//              ("| 3 |" or "| 3-5 |"). A hallucinated number
-//              matches nothing either.
+//   VERBATIM   every loaded entity with a source_quote has it as an
+//              exact BYTE substring of its source file. The file is
+//              the entity's own source_file property when set
+//              (multi-file seeds are legal), else the envelope's
+//              source.file, both relative to source_root. No
+//              normalization: the SRD has en dashes and
+//              multiplication signs, and byte-exact is the
+//              discipline. A hallucinated quote matches nothing.
+//              An entity whose TYPE declares source_quote (the
+//              Cited contract) but whose loaded state has none is
+//              an uncited-ingested-entity violation; types without
+//              the slot are exempt. Source paths containing ".."
+//              are rejected before opening.
+//   VALUE      every numeric slot on a quoted entity must EQUAL one
+//              of the quote's number tokens (digit runs; embedded
+//              thousands-commas normalize, "10,000" -> "10000";
+//              sign dropped). TableEntry / LookupEntry bands must
+//              equal the band the quoted leading markdown cell
+//              declares, in the notations the book itself prints:
+//              "| 3 |", "| 3-5 |", "| 3–5 |" (en dash),
+//              "| 0 through 2 |", markdown-escaped negatives
+//              ("| \-6 |"). A hallucinated number matches nothing
+//              either.
 //   INVARIANT  the envelope's assertions hold: count_of_type,
-//              unique_name_per_type, band_coverage.
+//              unique_name_per_type (every instance of a listed
+//              type carries a distinct non-empty name, read from
+//              the loaded world), band_coverage.
+//
+// Source drift: when source_root/SOURCE_COMMIT exists and disagrees
+// with the envelope's source.commit pin, the report carries a drift
+// WARNING - report, not gate (owner CI ruling); ok() ignores it.
 //
 // Registry-parameterized on purpose: the engine CLI
 // (tools/logosphere_verify.cpp) passes the merged engine packs; a
 // game verifies its own seed files by calling this library with its
 // own registry. The verifier has no game knowledge.
-//
-// VALUE and INVARIANT checks need the loaded world, so they run
-// only when SCHEMA passed; a schema failure already fails the
-// verification. VERBATIM always runs.
 
 #include "logosphere/kg/seed_loader.h"
 
@@ -52,6 +73,9 @@ struct SeedViolation {
 
 struct SeedVerifyReport {
     std::vector<SeedViolation> violations;
+
+    // Non-gating findings (source-commit drift). ok() ignores them.
+    std::vector<std::string> warnings;
 
     // Summary counts - what was actually checked, not just pass/fail.
     size_t quotes_checked     = 0;

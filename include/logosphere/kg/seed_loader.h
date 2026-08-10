@@ -107,9 +107,11 @@ struct SeedLoadReport {
 };
 
 // Apply a parsed seed to the KG through the validated write path,
-// in file order. Stops at the first violation. Validation runs
-// against kg.getRegistry() - the registry the world was built from.
-// Returns report.ok.
+// in file order. Stops at the first violation, and a violating op
+// mutates nothing. The report is CLEARED on entry - reusing one
+// report object across loads cannot leak bindings between seeds.
+// Validation runs against kg.getRegistry() - the registry the world
+// was built from. Returns report.ok.
 bool load_seed(const SeedEnvelope& seed, KGModule& kg,
                SeedLoadReport& report);
 

@@ -384,6 +384,18 @@ target_compile_definitions(test_seed_verifier
 add_executable(logosphere-verify tools/logosphere_verify.cpp)
 target_link_libraries(logosphere-verify PRIVATE logosphere_core)
 target_compile_features(logosphere-verify PRIVATE cxx_std_17)
+# The CLI under ctest, both directions: the positive fixture must
+# verify clean (exit 0), the misquote fixture must fail (exit 1,
+# expressed as WILL_FAIL).
+add_test(NAME logosphere_verify_positive
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/chargen_ch1.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+add_test(NAME logosphere_verify_negative
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
 
 # Logovger: absorbed rules proven against the book's own numbers.
 # Game sources compiled into the test, engine as a library.

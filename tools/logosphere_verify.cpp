@@ -79,6 +79,10 @@ int main(int argc, char** argv) {
     std::cout << "  source: " << parsed.seed.source.file << " @ "
               << parsed.seed.source.commit << std::endl;
     std::cout << "  layer: " << parsed.seed.layer << std::endl;
+    // Drift warnings report without gating (exit stays 0 when clean).
+    for (const auto& w : report.warnings) {
+        std::cout << "  [warn] " << w << std::endl;
+    }
     for (const auto& v : report.violations) print_violation(v);
     std::cout << "  checked: " << report.quotes_checked << " quotes, "
               << report.ops_loaded << "/" << parsed.seed.ops.size()
