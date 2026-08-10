@@ -112,7 +112,15 @@ long structured_pixels(Engine& engine) {
 // Every working viewer calls all three.
 void step(Engine& engine) {
     engine.update(1.0 / 60.0);
-    if (g_interactive) { engine.render(); engine.present(); }
+    if (g_interactive) {
+        engine.render();
+        engine.present();
+        // ESC MUST QUIT, from any phase. It was polled only inside the hold
+        // loops, so during a sweep or a settle the key did nothing and the
+        // owner had to kill the process. Every stepped frame checks now.
+        if (engine.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE])
+            engine.stop();
+    }
 }
 
 // Freeze the world (dt = 0 still pumps the window) until SPACE. Returns

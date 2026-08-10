@@ -86,6 +86,8 @@ extern bool test_constraint_order_matters();  // S19 re-run: does order change t
 extern bool test_physics_battery();           // Ladder of scenarios, one mechanism each (STANDALONE)
 extern bool test_rotation_ladder();           // Rotation TDD ladder, red first (STANDALONE)
 extern bool test_grass_natures();             // Palette on real grass + human (STANDALONE)
+extern bool test_settling_wiggle();           // Focused: a carried body must stop (STANDALONE)
+extern bool test_settling_flat();             // Focused: at rest means ON the ground (STANDALONE)
 extern bool test_async_prep_churn();          // issue #31: KG lookup must never leave the frame thread (STANDALONE)
 extern bool test_foliage_stays_attached();    // issue #38: do leaves stay bonded to their branch? (STANDALONE)
 extern bool test_no_overlap_at_creation();    // issue #38 RED: nothing may be created inside something else (STANDALONE)
@@ -281,6 +283,8 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_physics_battery"] = [](TestContext&) { return test_physics_battery(); };  // STANDALONE: own engine
     registry["test_rotation_ladder"] = [](TestContext&) { return test_rotation_ladder(); };  // STANDALONE: own engine
     registry["test_grass_natures"] = [](TestContext&) { return test_grass_natures(); };  // STANDALONE: own engine
+    registry["test_settling_wiggle"] = [](TestContext&) { return test_settling_wiggle(); };  // STANDALONE
+    registry["test_settling_flat"] = [](TestContext&) { return test_settling_flat(); };  // STANDALONE
     registry["test_async_prep_churn"] = [](TestContext&) { return test_async_prep_churn(); };  // STANDALONE: own engine
     registry["test_foliage_stays_attached"] = [](TestContext&) { return test_foliage_stays_attached(); };  // STANDALONE: own engine
     registry["test_no_overlap_at_creation"] = [](TestContext&) { return test_no_overlap_at_creation(); };  // STANDALONE: own engine
@@ -702,6 +706,8 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_physics_battery",
         "test_rotation_ladder",
         "test_grass_natures",
+        "test_settling_wiggle",
+        "test_settling_flat",
         "test_async_prep_churn",
         "test_foliage_stays_attached",
         "test_no_overlap_at_creation",
@@ -809,6 +815,8 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_physics_battery", test_physics_battery},
         {"test_rotation_ladder", test_rotation_ladder},
         {"test_grass_natures", test_grass_natures},
+        {"test_settling_wiggle", test_settling_wiggle},
+        {"test_settling_flat", test_settling_flat},
         {"test_async_prep_churn", test_async_prep_churn},
         {"test_foliage_stays_attached", test_foliage_stays_attached},
         {"test_no_overlap_at_creation", test_no_overlap_at_creation},

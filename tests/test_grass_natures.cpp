@@ -45,7 +45,12 @@ ui::Label *g_title = nullptr, *g_live = nullptr;
 
 void gstep(Engine& e) {
     e.update(1.0 / 60.0);
-    if (g_inter) { e.render(); e.present(); }
+    if (g_inter) {
+        e.render();
+        e.present();
+        // ESC quits from any phase (see the ladder's note).
+        if (e.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE]) e.stop();
+    }
 }
 bool gwait(Engine& e) {
     if (!g_inter || g_auto) return true;
