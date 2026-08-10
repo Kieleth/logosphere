@@ -46,8 +46,10 @@
 //              the separate number tokens in "2D6".
 //   SEMANTIC   lookup tables name one known concrete LookupEntry subtype
 //              and contain only rows of that type; rollable tables contain
-//              TableEntry rows; OutcomeSequence parts are OutcomeSteps
-//              ordered by contiguous step_index values starting at zero.
+//              TableEntry rows; ordered outcomes and procedures have
+//              contiguous steps; procedure primitives and route labels
+//              match the supplied primitive registry, and routes remain
+//              inside their Procedure.
 //   INVARIANT  the envelope's assertions hold: count_of_type,
 //              unique_name_per_type (every instance of a listed
 //              type carries a distinct non-empty name, read from
@@ -67,6 +69,10 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+
+namespace logosphere::rules {
+class ProcedurePrimitiveRegistry;
+}
 
 namespace kg {
 
@@ -106,7 +112,10 @@ struct SeedVerifyReport {
 
 SeedVerifyReport verify_seed(const SeedEnvelope& seed,
                              const std::string& source_root,
-                             const OntologyRegistry& registry);
+                             const OntologyRegistry& registry,
+                             const logosphere::rules::
+                                 ProcedurePrimitiveRegistry*
+                                     procedure_primitives = nullptr);
 
 }  // namespace kg
 

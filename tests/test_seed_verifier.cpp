@@ -10,8 +10,9 @@
 //              world - refs-resolve comes for free.
 //   VALUE      numeric slots have their digits in the entity's own
 //              quote; table-row bands equal the quoted leading cell.
-//   SEMANTIC   table row types and ordered outcome composition agree
-//              with the loaded ontology and graph structure.
+//   SEMANTIC   table row types, ordered outcome composition, and
+//              procedure primitive and routing contracts agree with the
+//              loaded ontology and graph structure.
 //   INVARIANT  count_of_type / unique_name_per_type / band_coverage.
 //
 // The positive fixture cites the vendored Cepheus SRD with quotes
@@ -28,6 +29,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
+#include "logosphere/rules/procedure_runner.h"
 #include "generated/earth_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -586,6 +588,140 @@ void test_band_shapes_the_book_actually_prints() {
           "a markdown-escaped negative cell '| \\-6 |' derives to [-6, -6]");
 }
 
+logosphere::rules::ProcedurePrimitiveRegistry procedure_contracts() {
+    logosphere::rules::ProcedurePrimitiveRegistry registry;
+    std::string error;
+    CHECK(registry.declare_primitive("choose_career", {"failed"}, error),
+          "the choose_career contract declares: " + error);
+    CHECK(registry.declare_primitive("finish_character", {}, error),
+          "the finish_character contract declares: " + error);
+    return registry;
+}
+
+kg::SeedEnvelope complete_procedure_seed() {
+    return mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"Procedure","as":"@procedure",
+            "properties":{"name":"test_chargen",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"## Character Creation Checklist"}},
+           {"op":"create_entity","type":"ProcedureStep","as":"@choose",
+            "properties":{"name":"choose","step_index":0,
+              "primitive_ref":"choose_career",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"Choose a career. You cannot choose a career you've already left except Drifter."}},
+           {"op":"create_entity","type":"ProcedureStep","as":"@finish",
+            "properties":{"name":"finish","step_index":1,
+              "primitive_ref":"finish_character",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"If you wish to leave this career, go to step 10."}},
+           {"op":"create_entity","type":"StepRoute","as":"@failed",
+            "properties":{"name":"failed","route_label":"failed",
+              "next_step":"@finish",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"If you do not qualify for that career"}},
+           {"op":"set_relation","from":"@procedure","relation":"HAS_PART","to":"@choose"},
+           {"op":"set_relation","from":"@procedure","relation":"HAS_PART","to":"@finish"},
+           {"op":"set_relation","from":"@choose","relation":"HAS_PART","to":"@failed"})");
+}
+
+void test_procedures_verify_against_registered_primitive_contracts() {
+    const auto contracts = procedure_contracts();
+    const auto complete = kg::verify_seed(
+        complete_procedure_seed(), kSourceRoot, engine_registry(),
+        &contracts);
+    for (const auto& violation : complete.violations) {
+        std::cout << "  [measure] UNEXPECTED [" << violation.check << "] "
+                  << violation.reason << std::endl;
+    }
+    CHECK(complete.ok(),
+          "a complete procedure verifies against its primitive contracts");
+
+    const auto no_catalog = kg::verify_seed(
+        complete_procedure_seed(), kSourceRoot, engine_registry());
+    CHECK(reason_contains(no_catalog, "semantic", "primitive registry"),
+          "procedure verification fails when no primitive registry exists");
+
+    auto unknown = complete_procedure_seed();
+    CHECK(set_prop(unknown, "choose", "primitive_ref", "invented"),
+          "the unknown primitive mutation was applied");
+    const auto unknown_report = kg::verify_seed(
+        unknown, kSourceRoot, engine_registry(), &contracts);
+    CHECK(reason_contains(unknown_report, "semantic",
+                          "unknown primitive 'invented'"),
+          "an unknown primitive fails semantic verification");
+
+    auto label = complete_procedure_seed();
+    CHECK(set_prop(label, "failed", "route_label", "maybe"),
+          "the undeclared route-label mutation was applied");
+    const auto label_report = kg::verify_seed(
+        label, kSourceRoot, engine_registry(), &contracts);
+    CHECK(reason_contains(label_report, "semantic",
+                          "undeclared route_label 'maybe'"),
+          "a route label outside the primitive contract fails");
+
+    auto gap = complete_procedure_seed();
+    CHECK(set_prop(gap, "finish", "step_index", "2"),
+          "the procedure step gap mutation was applied");
+    const auto gap_report = kg::verify_seed(
+        gap, kSourceRoot, engine_registry(), &contracts);
+    CHECK(reason_contains(gap_report, "semantic", "not contiguous"),
+          "procedure step indices must be contiguous from zero");
+
+    auto duplicate = complete_procedure_seed();
+    duplicate.ops.push_back(kg::KGOp{kg::KGOpCreateEntity{
+        "StepRoute",
+        {{"name", "failed_again"},
+         {"route_label", "failed"},
+         {"next_step", "@finish"},
+         {"source_section", "Character Creation Checklist"},
+         {"source_quote", "If you do not qualify for that career"}},
+        "failed_again"}});
+    kg::KGOpSetRelation attach_duplicate;
+    attach_duplicate.from.symbolic = "choose";
+    attach_duplicate.relation = "HAS_PART";
+    attach_duplicate.to.symbolic = "failed_again";
+    duplicate.ops.push_back(kg::KGOp{attach_duplicate});
+    const auto duplicate_report = kg::verify_seed(
+        duplicate, kSourceRoot, engine_registry(), &contracts);
+    CHECK(reason_contains(duplicate_report, "semantic",
+                          "duplicate route_label 'failed'"),
+          "one procedure step cannot define the same route twice");
+
+    const auto cross_procedure = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"Procedure","as":"@first",
+            "properties":{"name":"first",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"## Character Creation Checklist"}},
+           {"op":"create_entity","type":"ProcedureStep","as":"@choose",
+            "properties":{"name":"choose","step_index":0,
+              "primitive_ref":"choose_career",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"Choose a career. You cannot choose a career you've already left except Drifter."}},
+           {"op":"create_entity","type":"Procedure","as":"@second",
+            "properties":{"name":"second",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"## Character Creation Checklist"}},
+           {"op":"create_entity","type":"ProcedureStep","as":"@finish",
+            "properties":{"name":"finish","step_index":0,
+              "primitive_ref":"finish_character",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"If you wish to leave this career, go to step 10."}},
+           {"op":"create_entity","type":"StepRoute","as":"@escaped",
+            "properties":{"name":"escaped","route_label":"failed",
+              "next_step":"@finish",
+              "source_section":"Character Creation Checklist",
+              "source_quote":"If you do not qualify for that career"}},
+           {"op":"set_relation","from":"@first","relation":"HAS_PART","to":"@choose"},
+           {"op":"set_relation","from":"@second","relation":"HAS_PART","to":"@finish"},
+           {"op":"set_relation","from":"@choose","relation":"HAS_PART","to":"@escaped"})");
+    const auto cross_report = kg::verify_seed(
+        cross_procedure, kSourceRoot, engine_registry(), &contracts);
+    CHECK(reason_contains(cross_report, "semantic", "outside Procedure"),
+          "a route cannot jump to a step owned by another procedure");
+}
+
 // ------------------------------------------------ each check must bite
 
 void test_misquote_fails_verbatim() {
@@ -1045,6 +1181,7 @@ int main() {
     test_loader_rejects_non_data_ops_atomically();
     test_positive_seed_verifies();
     test_band_shapes_the_book_actually_prints();
+    test_procedures_verify_against_registered_primitive_contracts();
     test_misquote_fails_verbatim();
     test_quote_rewritten_by_set_property_is_still_checked();
     test_rewritten_quote_that_is_real_passes();

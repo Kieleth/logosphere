@@ -445,6 +445,11 @@ classes:
       the book's own gotos, transcribed as routing data.
     annotations:
       facets: rulebook
+    slot_usage:
+      step_index:
+        required: true
+      primitive_ref:
+        required: true
     slots:
       - step_index
       - primitive_ref
@@ -460,6 +465,11 @@ classes:
       reenlistment are both this.
     annotations:
       facets: rulebook
+    slot_usage:
+      route_label:
+        required: true
+      next_step:
+        required: true
     slots:
       - route_label
       - next_step

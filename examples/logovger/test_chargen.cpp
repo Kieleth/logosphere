@@ -21,6 +21,7 @@
 #undef NDEBUG
 
 #include "chargen/chargen.h"
+#include "chargen/procedure_catalog.h"
 
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
@@ -35,6 +36,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <type_traits>
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -47,6 +49,9 @@ static int tests_failed = 0;
     } while (0)
 
 namespace {
+
+static_assert(!std::is_copy_constructible_v<logovger::ChargenSession>);
+static_assert(!std::is_move_constructible_v<logovger::ChargenSession>);
 
 std::string game_path(const std::string& rel) {
     return std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/" + rel;
@@ -70,28 +75,34 @@ kg::OntologyRegistry game_registry() {
 
 // A world with the Agent career loaded the way a game loads it.
 bool build_world(kg::KGModule& kg, std::string& why) {
-    const std::string json = slurp(game_path("seeds/cepheus_careers.json"));
-    if (json.empty()) { why = "career seed unreadable"; return false; }
-
-    auto parsed = kg::parse_seed_envelope(json);
-    if (!parsed.ok()) { why = "envelope: " + parsed.error; return false; }
-
-    const auto v = kg::verify_seed(parsed.seed,
-                                   game_path("srd/cepheus"), game_registry());
-    if (!v.ok()) {
-        std::ostringstream o;
-        for (const auto& viol : v.violations)
-            o << "[" << viol.check << "] " << viol.alias << ": "
-              << viol.reason << "; ";
-        why = "verify: " + o.str();
-        return false;
-    }
-
     kg.setMode(kg::KGMode::MINIMAL);
-    kg::SeedLoadReport report;
-    if (!kg::load_seed(parsed.seed, kg, report)) {
-        why = "load: " + report.error;
-        return false;
+    const auto procedures = logovger::make_chargen_procedure_registry();
+    const char* seeds[] = {"seeds/cepheus_careers.json",
+                           "seeds/cepheus_basic_chargen_procedure.json"};
+    for (const char* seed : seeds) {
+        const std::string json = slurp(game_path(seed));
+        if (json.empty()) { why = std::string(seed) + " unreadable"; return false; }
+
+        auto parsed = kg::parse_seed_envelope(json);
+        if (!parsed.ok()) { why = "envelope: " + parsed.error; return false; }
+
+        const auto v = kg::verify_seed(parsed.seed,
+                                       game_path("srd/cepheus"),
+                                       game_registry(), &procedures);
+        if (!v.ok()) {
+            std::ostringstream o;
+            for (const auto& viol : v.violations)
+                o << "[" << viol.check << "] " << viol.alias << ": "
+                  << viol.reason << "; ";
+            why = "verify: " + o.str();
+            return false;
+        }
+
+        kg::SeedLoadReport report;
+        if (!kg::load_seed(parsed.seed, kg, report)) {
+            why = "load: " + report.error;
+            return false;
+        }
     }
     return true;
 }
@@ -234,9 +245,24 @@ void test_missing_rules_fail_loudly() {
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(req, empty, dice, sheet, error);
-    CHECK(!ok && error.find("no Career") != std::string::npos,
-          "a world with no careers refuses to generate, and says so: "
+    CHECK(!ok && error.find("no Procedure") != std::string::npos &&
+              empty.findByType("Character").empty(),
+          "a world with no procedure refuses before creating state: "
               + error);
+
+    const std::string procedure_json = slurp(
+        game_path("seeds/cepheus_basic_chargen_procedure.json"));
+    auto procedure_seed = kg::parse_seed_envelope(procedure_json);
+    kg::SeedLoadReport procedure_load;
+    CHECK(procedure_seed.ok() &&
+              kg::load_seed(procedure_seed.seed, empty, procedure_load),
+          "the missing-career control loads only the procedure");
+    error.clear();
+    const bool no_careers =
+        logovger::run_chargen(req, empty, dice, sheet, error);
+    CHECK(!no_careers && error.find("no Career") != std::string::npos,
+          "a world with the procedure but no careers fails explicitly: " +
+              error);
 
     kg::KGModule world(game_registry());
     std::string why;
@@ -331,6 +357,85 @@ void test_skill_outcome_parameters_drive_the_executor() {
           "missing required outcome data stops chargen loudly: " + error);
 }
 
+void test_procedure_data_drives_chargen_control_flow() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the procedure-control world loads: " + why);
+
+    kg::EntityID procedure = kg::INVALID_ENTITY;
+    kg::EntityID decision = kg::INVALID_ENTITY;
+    kg::EntityID finish = kg::INVALID_ENTITY;
+    for (const auto id : world.findByType("Procedure")) {
+        if (world.getProperty(id, "name") == "basic_chargen") {
+            procedure = id;
+        }
+    }
+    if (procedure != kg::INVALID_ENTITY) {
+        for (const auto step : world.getRelated(procedure, "HAS_PART")) {
+            const auto primitive = world.getProperty(step, "primitive_ref");
+            if (primitive == "choose_term_end") decision = step;
+            if (primitive == "finish_character") finish = step;
+        }
+    }
+    CHECK(procedure != kg::INVALID_ENTITY &&
+              decision != kg::INVALID_ENTITY &&
+              finish != kg::INVALID_ENTITY,
+          "the current playable flow is a seeded Procedure");
+    if (decision == kg::INVALID_ENTITY || finish == kg::INVALID_ENTITY) return;
+
+    bool redirected = false;
+    for (const auto route : world.getRelated(decision, "HAS_PART")) {
+        if (world.getProperty(route, "route_label") == "continue") {
+            world.setProperty(route, "next_step", std::to_string(finish));
+            redirected = true;
+        }
+    }
+    CHECK(redirected, "the term decision carries a continue route in data");
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest request{"Agent", 1, 4};
+    logovger::CharacterSheet sheet;
+    std::string error;
+    const bool ok = logovger::run_chargen(
+        request, world, dice, sheet, error);
+    CHECK(ok && sheet.terms_served == 1,
+          "retargeting only the seeded continue route ends after one term: "
+              + error);
+}
+
+void test_unknown_runtime_primitive_fails_before_character_state() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why),
+          "the unknown-primitive world loads: " + why);
+    kg::EntityID procedure = kg::INVALID_ENTITY;
+    for (const auto id : world.findByType("Procedure")) {
+        if (world.getProperty(id, "name") == "basic_chargen") procedure = id;
+    }
+    bool mutated = false;
+    for (const auto step : world.getRelated(procedure, "HAS_PART")) {
+        if (world.getProperty(step, "primitive_ref") ==
+            "roll_qualification") {
+            world.setProperty(step, "primitive_ref", "invented_primitive");
+            mutated = true;
+        }
+    }
+    CHECK(mutated, "the runtime primitive mutation was applied");
+    const auto characters_before = world.findByType("Character").size();
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest request{"Agent", 1, 4};
+    logovger::CharacterSheet sheet;
+    std::string error;
+    const bool ok = logovger::run_chargen(
+        request, world, dice, sheet, error);
+    CHECK(!ok && error.find("invented_primitive") != std::string::npos &&
+              world.findByType("Character").size() == characters_before &&
+              dice.journal().empty(),
+          "runtime contract drift fails before character state or rolls: " +
+              error);
+}
+
 }  // namespace
 
 int main() {
@@ -341,6 +446,8 @@ int main() {
     test_missing_rules_fail_loudly();
     test_the_rules_are_data();
     test_skill_outcome_parameters_drive_the_executor();
+    test_procedure_data_drives_chargen_control_flow();
+    test_unknown_runtime_primitive_fails_before_character_state();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

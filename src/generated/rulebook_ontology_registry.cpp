@@ -366,7 +366,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("PerceptionEvent", "memory_layer", "enum", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("ProcedureStep", "step_index", "integer", true, true, 0.0, false, 0.0);
-    reg.addProperty("ProcedureStep", "primitive_ref", "string", false);
+    reg.addProperty("ProcedureStep", "primitive_ref", "string", true);
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("RelationEvent", "relation_type", "string", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -382,8 +382,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Statusable", "status", "enum", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
-    reg.addProperty("StepRoute", "route_label", "string", false);
-    reg.addRefProperty("StepRoute", "next_step", false, "ProcedureStep");
+    reg.addProperty("StepRoute", "route_label", "string", true);
+    reg.addRefProperty("StepRoute", "next_step", true, "ProcedureStep");
     reg.addProperty("TableEntry", "roll_min", "integer", true);
     reg.addProperty("TableEntry", "roll_max", "integer", true);
     reg.addRefProperty("TableEntry", "outcome", true, "Outcome");

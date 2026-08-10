@@ -19,6 +19,7 @@
 #include "ui/ui_system.h"
 
 #include "chargen/chargen.h"
+#include "chargen/procedure_catalog.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
@@ -125,27 +126,35 @@ private:
     // the same the ingestion pipeline makes offline. A seed that
     // cannot prove its citations never reaches the table.
     bool load_rules(kg::KGModule& kg, std::string& why) {
-        const std::string json =
-            slurp(game_path("seeds/cepheus_careers.json"));
-        if (json.empty()) { why = "the careers seed is unreadable"; return false; }
+        const auto procedures = make_chargen_procedure_registry();
+        const char* seeds[] = {
+            "seeds/cepheus_careers.json",
+            "seeds/cepheus_basic_chargen_procedure.json"};
+        for (const char* seed : seeds) {
+            const std::string json = slurp(game_path(seed));
+            if (json.empty()) {
+                why = std::string(seed) + " is unreadable";
+                return false;
+            }
 
-        auto parsed = kg::parse_seed_envelope(json);
-        if (!parsed.ok()) { why = parsed.error; return false; }
+            auto parsed = kg::parse_seed_envelope(json);
+            if (!parsed.ok()) { why = parsed.error; return false; }
 
-        const auto v = kg::verify_seed(parsed.seed,
-                                       game_path("srd/cepheus"),
-                                       kg.getRegistry());
-        if (!v.ok()) {
-            std::ostringstream o;
-            for (const auto& viol : v.violations)
-                o << "[" << viol.check << "] " << viol.reason << " ";
-            why = o.str();
-            return false;
-        }
-        kg::SeedLoadReport report;
-        if (!kg::load_seed(parsed.seed, kg, report)) {
-            why = report.error;
-            return false;
+            const auto v = kg::verify_seed(
+                parsed.seed, game_path("srd/cepheus"), kg.getRegistry(),
+                &procedures);
+            if (!v.ok()) {
+                std::ostringstream o;
+                for (const auto& viol : v.violations)
+                    o << "[" << viol.check << "] " << viol.reason << " ";
+                why = o.str();
+                return false;
+            }
+            kg::SeedLoadReport report;
+            if (!kg::load_seed(parsed.seed, kg, report)) {
+                why = report.error;
+                return false;
+            }
         }
         rules_loaded_ = true;
         return true;

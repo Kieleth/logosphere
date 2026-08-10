@@ -122,6 +122,7 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/seed_loader.cpp
     src/kg/seed_verifier.cpp
     src/rules/outcome_executor.cpp
+    src/rules/procedure_runner.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -358,6 +359,7 @@ add_headless_test(test_ontology_validator)
 add_headless_test(test_kg_ops_apply)
 add_headless_test(test_kg_ops_transaction)
 add_headless_test(test_outcome_executor)
+add_headless_test(test_procedure_runner)
 # test_mutation_playback links logosphere_core only (no Engine
 # dereferencing in the tests; dummy pointers in fixtures).
 add_executable(test_mutation_playback

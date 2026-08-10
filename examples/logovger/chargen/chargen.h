@@ -2,8 +2,9 @@
 //
 // Design record: docs/RPG_MODULE.md. This is the first executable
 // slice, and it is deliberately GAME-side code (examples/logovger),
-// not engine code. Game procedure selects the table row; the engine's
-// typed outcome executor applies the row's structured consequence.
+// not engine code. A seeded Procedure owns ordering and routing. Game
+// primitives select table rows; the engine's typed outcome executor
+// applies each row's structured consequence.
 //
 // What it proves, or fails to:
 //   - The rules come out of the KG. Careers, targets, characteristics,
@@ -27,6 +28,7 @@
 
 #include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
+#include "logosphere/rules/procedure_runner.h"
 
 #include <string>
 #include <vector>
@@ -56,25 +58,24 @@ struct CharacterSheet {
 };
 
 // One option at a decision point. `key` is what the player types.
-struct Choice {
-    std::string key;      // "a", "b", ...
-    std::string label;    // "Agent"
-    std::string detail;   // "qualify on Soc 6+, survive on Int 6+"
-};
+using Choice = logosphere::rules::ProcedureChoice;
 
 // A life being lived, one decision at a time.
 //
-// begin() rolls the characteristics and stops at the first question.
-// choose() applies the answer and runs until the next question, or
-// until the life is done. Nothing happens without an answer, which is
-// what makes a player (or later, a referee) part of the procedure.
+// begin() starts the seeded Procedure and runs to its first question.
+// choose() resumes the suspended step and runs until the next question,
+// or until the life is done. Nothing happens without an answer, which
+// is what makes a player (or later, a referee) part of the procedure.
 class ChargenSession {
 public:
-    ChargenSession(kg::KGModule& kg, logosphere::dice::DiceService& dice)
-        : kg_(kg), dice_(dice) {}
+    ChargenSession(kg::KGModule& kg, logosphere::dice::DiceService& dice);
+    ChargenSession(const ChargenSession&) = delete;
+    ChargenSession& operator=(const ChargenSession&) = delete;
+    ChargenSession(ChargenSession&&) = delete;
+    ChargenSession& operator=(ChargenSession&&) = delete;
 
-    // Rolls the six characteristics and offers the careers the KG
-    // knows. False with `error` set when the world has no careers.
+    // Starts basic_chargen from the KG. False with `error` set when the
+    // procedure graph, its primitives, or its required game data is missing.
     bool begin(uint64_t seed, std::string& error);
 
     bool finished() const { return finished_; }
@@ -92,17 +93,36 @@ public:
     std::vector<LifeEvent> drain();
 
 private:
+    using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
+    using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
+
+    void bind_primitives();
+    bool accept(logosphere::rules::ProcedureResult result,
+                std::string& error);
     void offer_careers();
-    bool run_term(std::string& error);  // survive, train, age, then ask
     void finish(const std::string& why);
+
+    PrimitiveResult generate_characteristics(const PrimitiveContext& context);
+    PrimitiveResult choose_career(const PrimitiveContext& context);
+    PrimitiveResult roll_qualification(const PrimitiveContext& context);
+    PrimitiveResult roll_survival(const PrimitiveContext& context);
+    PrimitiveResult roll_training(const PrimitiveContext& context);
+    PrimitiveResult advance_term(const PrimitiveContext& context);
+    PrimitiveResult choose_term_end(const PrimitiveContext& context);
+    PrimitiveResult finish_character(const PrimitiveContext& context);
 
     kg::KGModule&                    kg_;
     logosphere::dice::DiceService&   dice_;
+    logosphere::rules::ProcedurePrimitiveRegistry primitives_;
+    logosphere::rules::ProcedureRunner runner_;
     CharacterSheet                   sheet_;
     std::vector<Choice>              choices_;
     std::string                      prompt_;
     bool                             finished_ = false;
     kg::EntityID                     career_ = kg::INVALID_ENTITY;
+    kg::EntityID                     procedure_ = kg::INVALID_ENTITY;
+    logosphere::rules::ProcedureCursor cursor_;
+    std::string                      finish_reason_;
     size_t                           drained_ = 0;
 };
 

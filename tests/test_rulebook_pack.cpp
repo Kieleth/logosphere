@@ -218,6 +218,13 @@ void test_table_results_have_one_complete_shape() {
               required("OutcomeOption", "option_label", "string") &&
               required("OutcomeOption", "outcome", "entity_ref"),
           "every choice option is ordered, labeled, and typed");
+
+    CHECK(required("ProcedureStep", "step_index", "integer") &&
+              required("ProcedureStep", "primitive_ref", "string"),
+          "every procedure step is ordered and names one primitive");
+    CHECK(required("StepRoute", "route_label", "string") &&
+              required("StepRoute", "next_step", "entity_ref"),
+          "every procedure route names its label and destination");
 }
 
 // ------------------------------------------------- chapter 1, as data

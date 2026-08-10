@@ -20,6 +20,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   Pirate's. A cell citation refuses it, with the source's own answer in
   the failure. Markdown parses today; a new source format needs a
   parser into the model and nothing else. Docs: docs/SOURCE_LOCATORS.md.
+- Data-driven procedure execution. `ProcedureRunner` validates a complete
+  Procedure graph against exact game-declared primitive and route contracts
+  before invoking handlers, follows seeded routes, suspends and resumes typed
+  choices, rejects cross-procedure jumps, and stops synchronous cycles. The
+  seed verifier applies the same primitive and routing contracts at ingestion.
+  Logovger's existing playable chargen slice now runs as an eight-step cited
+  Procedure instead of a handwritten control-flow chain.
 - Typed, atomic rulebook outcome execution. `OutcomeExecutor` resolves
   ordered sequences and suspending choices, dispatches exact concrete
   outcome types, validates one complete KG-operation plan, and commits its
