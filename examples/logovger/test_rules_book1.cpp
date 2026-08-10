@@ -44,6 +44,8 @@ int main() {
     check(to_ehex(22) == 'N' && to_ehex(23) == 'P',
           "22-23 is N-P: the alphabet skips O");
     check(to_ehex(33) == 'Z', "33 is Z, the table's last row");
+    check(to_ehex(34) == 'Z' && to_ehex(1000) == 'Z',
+          "the book's 33-or-higher row remains Z");
     check(from_ehex('I') == -1 && from_ehex('O') == -1,
           "I and O are NOT ehex digits and parse as invalid");
     // Round trip, the whole range.
@@ -71,6 +73,12 @@ int main() {
     check(all, "the formula matches all 12 rows of the published table");
     check(characteristic_dm(7) == 0,
           "and the book's stated anchor: average 7 has DM+0");
+    check(characteristic_dm(33) == 9 && characteristic_dm(36) == 9 &&
+              characteristic_dm(1000) == 9,
+          "the book's 33-or-higher row remains DM+9");
+
+    check(upp(34, 8, 7, 11, 9, 12) == "Z87B9C",
+          "UPP uses Z for a characteristic above 33");
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

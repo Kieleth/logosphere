@@ -4,6 +4,7 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <limits>
 
 namespace logosphere::dice {
 
@@ -29,10 +30,6 @@ bool DiceExpression::parse(const std::string& text, DiceExpression& out) {
         if (!std::isdigit(static_cast<unsigned char>(*p))) return false;
         modifier = std::strtol(p, &end, 10);
         p = end;
-        // Bound before use: strtol saturates silently on huge digit
-        // strings (no errno check here by design), and an unbounded
-        // modifier would overflow the worst-case guard below.
-        if (modifier > 1000000) return false;
         if (sign == '-') modifier = -modifier;
     }
     long multiplier = 1;
@@ -43,21 +40,33 @@ bool DiceExpression::parse(const std::string& text, DiceExpression& out) {
         p = end;
     }
     if (*p != '\0') return false;
-    if (count < 1 || count > 100 || sides < 2 || sides > 1000) return false;
-    if (multiplier < 1 || multiplier > 1000000) return false;
-    // The extreme corners of the grammar (100D1000x1000000) would
-    // overflow the int totals rolls travel in; refuse any expression
-    // whose largest possible total does not fit. Every operand is
-    // bounded above, so this arithmetic itself cannot overflow.
-    const long long worst =
-        (static_cast<long long>(count) * sides + std::llabs(modifier)) *
-        multiplier;
-    if (worst > 2147483647LL) return false;
-    out.count = static_cast<int>(count);
-    out.sides = static_cast<int>(sides);
-    out.modifier = static_cast<int>(modifier);
-    out.multiplier = static_cast<int>(multiplier);
+    const auto int_max = std::numeric_limits<int>::max();
+    const auto int_min = std::numeric_limits<int>::min();
+    if (count > int_max || sides > int_max || modifier < int_min ||
+        modifier > int_max || multiplier > int_max) return false;
+
+    DiceExpression parsed;
+    parsed.count = static_cast<int>(count);
+    parsed.sides = static_cast<int>(sides);
+    parsed.modifier = static_cast<int>(modifier);
+    parsed.multiplier = static_cast<int>(multiplier);
+    if (!parsed.is_valid()) return false;
+    out = parsed;
     return true;
+}
+
+bool DiceExpression::is_valid() const {
+    if (count < 1 || count > 100 || sides < 2 || sides > 1000 ||
+        modifier < -1000000 || modifier > 1000000 ||
+        multiplier < 1 || multiplier > 1000000) return false;
+
+    const int64_t modifier_magnitude = modifier < 0
+        ? -static_cast<int64_t>(modifier)
+        : static_cast<int64_t>(modifier);
+    const int64_t worst =
+        (static_cast<int64_t>(count) * sides + modifier_magnitude) *
+        multiplier;
+    return worst <= std::numeric_limits<int>::max();
 }
 
 std::string DiceExpression::to_string() const {
@@ -95,6 +104,8 @@ uint64_t DiceService::next_u64(const std::string& stream) {
 DiceRoll DiceService::roll(const DiceExpression& expr,
                            const std::string& stream,
                            const std::string& purpose) {
+    if (!expr.is_valid()) return DiceRoll{};
+
     DiceRoll r;
     r.id = next_id_++;
     r.expression = expr;

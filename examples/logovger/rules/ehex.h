@@ -5,7 +5,8 @@
 //  PseudoHex column; "The Universal Persona Profile (UPP)"]
 //
 // Digits 0-9 then letters, SKIPPING I and O (the table is explicit:
-// 15-17 is F-H, 18-20 is J-L, 21-23 is M-P). Range 0..33 = '0'..'Z'.
+// 15-17 is F-H, 18-20 is J-L, 21-23 is M-P). Range 0..32 maps to
+// '0'..'Y'; the book's 33-or-higher row is always 'Z'.
 // The book's worked example is the test vector: scores
 // 6,8,7,11,9,12 -> "687B9C", and with Psi 4 -> "687B9C-4".
 
@@ -20,7 +21,8 @@ inline constexpr char kEhexDigits[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 // index:                              0.........9..........^skip I  ^skip O
 
 inline char to_ehex(int value) {
-    if (value < 0 || value > 33) return '?';
+    if (value < 0) return '?';
+    if (value >= 33) return 'Z';
     return kEhexDigits[value];
 }
 

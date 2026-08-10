@@ -35,6 +35,7 @@ struct DiceExpression {
     // Strict parse: returns false and leaves out untouched on anything
     // malformed. "2D6", "d20", "3d6-1" are valid; "2X6", "D", "" are not.
     static bool parse(const std::string& text, DiceExpression& out);
+    bool is_valid() const;
     std::string to_string() const;
 };
 
@@ -58,8 +59,10 @@ public:
     // point, so there is no entropy fallback anywhere in this class.
     void seed_stream(const std::string& stream, uint64_t seed);
 
-    // Roll. Emits DiceRollEvent when a bus is wired, records in the
-    // in-memory journal either way.
+    // Roll. Invalid expressions return the id-0 sentinel without
+    // touching the stream, journal, id sequence, or event bus. Valid
+    // rolls emit DiceRollEvent when a bus is wired and are recorded in
+    // the in-memory journal either way.
     DiceRoll roll(const DiceExpression& expr, const std::string& stream,
                   const std::string& purpose);
     // Convenience: parse + roll. Returns a roll with id 0 and empty

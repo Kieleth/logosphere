@@ -162,6 +162,47 @@ void test_malformed_expressions_cannot_roll() {
     check(d.journal().empty(), "and nothing enters the journal");
 }
 
+void test_struct_expressions_cannot_bypass_validation() {
+    DiceService d;
+    logosphere::EventBus bus;
+    d.initialize(&bus);
+
+    int events = 0;
+    bus.dice_rolls().subscribe(
+        [&](const logosphere::ontology::DiceRollEvent&) { ++events; });
+
+    const DiceExpression invalid[] = {
+        {0, 6, 0, 1},
+        {101, 6, 0, 1},
+        {1, 0, 0, 1},
+        {1, 1, 0, 1},
+        {1, 1001, 0, 1},
+        {1, 6, 1000001, 1},
+        {1, 6, -1000001, 1},
+        {1, 6, 0, 0},
+        {1, 6, 0, 1000001},
+        {100, 1000, 0, 1000000},
+    };
+
+    bool all_refused = true;
+    for (const auto& expression : invalid) {
+        const auto roll = d.roll(expression, "chargen", "invalid struct");
+        if (roll.id != 0 || !roll.values.empty()) all_refused = false;
+    }
+
+    check(all_refused,
+          "directly constructed expressions obey the parser's bounds");
+    check(d.journal().empty() && events == 0,
+          "invalid structs create no journal entry or event");
+    check(d.stream_count() == 0,
+          "invalid structs do not create or advance an RNG stream");
+
+    const auto valid = d.roll(DiceExpression{2, 6, 1, 1},
+                              "chargen", "valid struct");
+    check(valid.id == 1 && valid.values.size() == 2,
+          "a valid struct remains the first real roll");
+}
+
 void test_bounds_and_totals() {
     DiceService d;
     d.seed_stream("s", 5);
@@ -245,6 +286,7 @@ int main() {
     test_unseeded_streams_are_deterministic_not_entropic();
     test_rolls_are_citable_facts();
     test_malformed_expressions_cannot_roll();
+    test_struct_expressions_cannot_bypass_validation();
     test_bounds_and_totals();
     test_the_distribution_is_dicelike();
     test_the_bus_carries_what_the_journal_records();
