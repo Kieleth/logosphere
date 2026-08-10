@@ -177,6 +177,9 @@ bool test_walk_through_grass() {
         uis->add_widget(l_live);
     }
 
+    const size_t gluons_at_start =
+        engine.get_physics_system().get_total_gluon_count();
+
     X::set_enabled(true);
     X::reset();
 
@@ -222,6 +225,37 @@ bool test_walk_through_grass() {
                                           std::sqrt(dx * dx + dy * dy + dz * dz));
         }
     }
+    // WHO DRIFTED, AND WAS IT STILL ATTACHED? A max over a set says a blade
+    // moved; it does not say whether it was dragged while bonded or torn loose
+    // and thrown. Those are different defects with different fixes.
+    {
+        auto v = ps.lock_particles_for_write();
+        size_t worst_k = 0; double worst = -1.0;
+        for (size_t k = 0; k < grass_ids.size(); ++k) {
+            const size_t i = grass_ids[k];
+            if (i >= v.size()) continue;
+            const double dx = v[i].x - gx0[k], dy = v[i].y - gy0[k], dz = v[i].z - gz0[k];
+            const double d = std::sqrt(dx*dx + dy*dy + dz*dz);
+            if (d > worst) { worst = d; worst_k = k; }
+        }
+        const size_t wi = grass_ids[worst_k];
+        if (wi < v.size()) {
+            const size_t bonds_now =
+                engine.get_physics_system().get_gluons_for_particle(wi).size();
+            printf("\n  worst drifter P%zu: d=(%.2f, %.2f, %.2f) m\n",
+                   wi, v[wi].x - gx0[worst_k], v[wi].y - gy0[worst_k],
+                   v[wi].z - gz0[worst_k]);
+            printf("    bonds still attached %zu | at_rest %d | mode %d | mass %.6f kg\n",
+                   bonds_now, (int)v[wi].is_at_rest, (int)v[wi].solver_mode,
+                   v[wi].GetMass());
+            printf("    grass bonds in world: %zu at start -> %zu now (%s)\n",
+                   gluons_at_start,
+                   engine.get_physics_system().get_total_gluon_count(),
+                   engine.get_physics_system().get_total_gluon_count() < gluons_at_start
+                       ? "BONDS TORE" : "none tore");
+        }
+    }
+
     const float progressed = eva_y - eva_y0;
 
     printf("\n  %-46s %8.2f m  (need > 6.0)\n", "1. SHE GOT THERE: hips advanced", progressed);
