@@ -1576,7 +1576,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             else indices.z_idx = constraint_idx;
 
             // Anchor lever arms for the force-to-rotation transducer.
-            c.apply_anchor_torque = true;
+            // RCA lever: ANCHOR_TORQUE_OFF=1 removes the reciprocal half of
+            // the pivot problem. If the perfectly-opposed row pair (drive
+            // +3.3 rad/s vs anchor -3.3) is what stalls the solve, removing
+            // one side must drop the improvement_below_min_rate exits.
+            static const bool at_off = std::getenv("ANCHOR_TORQUE_OFF") != nullptr;
+            c.apply_anchor_torque = !at_off;
             c.anchor_rax = lever_a[0]; c.anchor_ray = lever_a[1]; c.anchor_raz = lever_a[2];
             c.anchor_rbx = lever_b[0]; c.anchor_rby = lever_b[1]; c.anchor_rbz = lever_b[2];
             // The row's effective mass must include the angular response,

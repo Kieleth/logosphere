@@ -37,6 +37,7 @@
 
 #include "../src/core/engine.h"
 #include "../src/core/particle_system.h"
+#include "../src/core/telemetry.h"
 #include "../src/materials.h"
 #include "../src/particle.h"
 #include "../src/ui/ui_system.h"
@@ -1079,6 +1080,15 @@ Rung rung4(Engine& engine) {
                 amp_max[k] = std::fmax(amp_max[k], td);
             }
         }
+        {   // CONVERGENCE READOUT: if the system converged, order could not
+            // matter. Rows, unsolvable rows, and worst penetration in the
+            // steady state say whether this configuration is solvable at all.
+            namespace T = ::logosphere::telemetry;
+            const T::SolveResidual sr = T::solve_residual();
+            printf("\n      SOLVE RESIDUAL (steady state): rows %u, unsolvable %u, "
+                   "worst penetration %.5f m\n",
+                   sr.rows, sr.rows_unsolvable, sr.max_penetration);
+        }
         printf("\n      LONG WATCH, 1200 frames after settling (the hold phase)\n");
         printf("      %-10s %12s %14s %12s\n", "nature", "awake_frames",
                "swing_mm", "worst_speed");
@@ -1207,6 +1217,8 @@ bool test_rotation_ladder() {
         printf("  engine init failed\n  FAIL\n");
         return false;
     }
+    ::logosphere::telemetry::set_enabled(true);
+    ::logosphere::telemetry::set_residual_enabled(true);
     if (g_interactive) {
         auto& camera = engine.get_camera_system();
         // Owner QA: wider frame — both rigs (post at x=0, chain at x=3) and
