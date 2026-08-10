@@ -1284,6 +1284,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // Skip gluon constraints for DYNAMICS-owned particles
         // Dynamics system maintains entity shape via position anchoring, not gluons
         if (pa.solver_mode == ParticleSolverMode::KINEMATIC && pb.solver_mode == ParticleSolverMode::KINEMATIC) {
+            // FALSIFICATION CHECK (env GLUON_SKIP_DEBUG): this `continue`
+            // skips the row build WITHOUT pushing an index entry, so
+            // gluon_constraint_indices compacts while gluon_constraints_v2_
+            // does not. Four later loops walk both with one counter, so
+            // after the first skip every subsequent gluon is torn,
+            // warm-loaded and repaired against ANOTHER bond's rows. Counted
+            // here to establish whether it fires in real scenes at all.
+            static const bool skip_dbg = std::getenv("GLUON_SKIP_DEBUG") != nullptr;
+            if (skip_dbg) {
+                static size_t skips = 0, frames = 0;
+                if (++skips % 500 == 1)
+                    printf("[GLUON_SKIP] both-KINEMATIC skip #%zu at gluon pair "
+                           "(%zu,%zu); every later gluon this substep is now "
+                           "misassociated\n", skips, body_a, body_b);
+                (void)frames;
+            }
             continue;
         }
 
