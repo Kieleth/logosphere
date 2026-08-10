@@ -37,6 +37,8 @@ enum class LocatorKind {
     Sentence,   // one sentence of prose, the usual home of a stated rule
     Cell,       // one cell of a table: where tabulated rules live
     Row,        // a whole table row, when the rule really is the row
+    Table,      // the table itself, addressed by its label - what a
+                // table entity cites when it says "I am this table"
     Heading,    // the heading itself
     ListItem,
 };

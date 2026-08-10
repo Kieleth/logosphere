@@ -528,7 +528,9 @@ void test_positive_seed_verifies() {
           "and the envelope pin matches the vendored SOURCE_COMMIT");
     CHECK(report.quotes_checked == 20, "twenty quotes checked");
     CHECK(report.ops_loaded == 28, "twenty-eight ops loaded");
-    CHECK(report.values_checked == 24, "twenty-four numeric values checked");
+    CHECK(report.values_checked == 12,
+          "twelve numeric values checked - a row's band is proven by "
+          "the row KEY it addresses, not by digits in its text");
     CHECK(report.bands_derived == 6, "six bands derived from quotes");
     CHECK(report.semantics_checked == 12,
           "twelve table and outcome structures checked");
@@ -612,7 +614,7 @@ void test_quote_rewritten_by_set_property_is_still_checked() {
     const auto report = kg::verify_seed(seed, kSourceRoot,
                                         engine_registry());
     CHECK(!report.ok(), "a quote injected by set_property is checked");
-    CHECK(reason_contains(report, "verbatim", "not a byte-exact substring"),
+    CHECK(reason_contains(report, "verbatim", "is not in section"),
           "and VERBATIM is what names it - the loaded world is the "
           "state under audit");
 }
@@ -671,8 +673,10 @@ void test_wrong_source_section_fails_citation() {
     const auto report = kg::verify_seed(seed, kSourceRoot,
                                         engine_registry());
     CHECK(!report.ok(), "a real quote under the wrong heading fails");
-    CHECK(reason_contains(report, "verbatim", "nearest heading"),
-          "and the citation error explains the section mismatch");
+    CHECK(reason_contains(report, "verbatim", "is not in section"),
+          "and the citation error explains the section mismatch: the "
+          "locator names the section it was asked for and could not "
+          "find the text under");
 }
 
 // The Cited contract: a type that declares source_quote must carry
@@ -849,8 +853,10 @@ void test_dice_fields_must_match_the_same_quoted_expression() {
         R"({"op":"create_entity","type":"DiceExpression","as":"@duration",
             "properties":{"name":"regina_flu_duration","dice_count":1,
               "dice_sides":6,"dice_modifier":-2,
-              "source_section":"Diseases",
-              "source_quote":"| Regina Flu | +1 | 1D6–2 | 1D6 days |"}})");
+              "source_section":"Diseases","source_kind":"cell",
+              "source_table":"Disease","source_row":"Regina Flu",
+              "source_column":"Damage",
+              "source_quote":"1D6–2"}})");
     const auto en_dash_report = kg::verify_seed(
         en_dash_modifier, kSourceRoot, engine_registry());
     CHECK(en_dash_report.ok(),

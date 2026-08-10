@@ -129,7 +129,9 @@
         "name": "2D6",
         "dice_count": "2",
         "dice_sides": "6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Careers",
+        "source_kind": "sentence",
         "source_quote": "Most of these throws are characteristic throws \u2013 roll 2D6, add the DM from the listed characteristic, and try to get a total higher than the listed value."
       }
     },
@@ -141,7 +143,9 @@
         "name": "1D6",
         "dice_count": "1",
         "dice_sides": "6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -153,7 +157,8 @@
         "name": "Admin",
         "source_file": "book1/skills.md",
         "source_section": "Admin",
-        "source_quote": "### Admin"
+        "source_kind": "heading",
+        "source_quote": "Admin"
       }
     },
     {
@@ -164,7 +169,8 @@
         "name": "Aircraft",
         "source_file": "book1/skills.md",
         "source_section": "Aircraft (Cascade Skill)",
-        "source_quote": "### Aircraft (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Aircraft (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -176,7 +182,8 @@
         "name": "Animals",
         "source_file": "book1/skills.md",
         "source_section": "Animals (Cascade Skill)",
-        "source_quote": "### Animals (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Animals (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -188,7 +195,8 @@
         "name": "Athletics",
         "source_file": "book1/skills.md",
         "source_section": "Athletics",
-        "source_quote": "### Athletics"
+        "source_kind": "heading",
+        "source_quote": "Athletics"
       }
     },
     {
@@ -199,7 +207,8 @@
         "name": "Battle Dress",
         "source_file": "book1/skills.md",
         "source_section": "Battle Dress",
-        "source_quote": "### Battle Dress"
+        "source_kind": "heading",
+        "source_quote": "Battle Dress"
       }
     },
     {
@@ -210,7 +219,8 @@
         "name": "Bribery",
         "source_file": "book1/skills.md",
         "source_section": "Bribery",
-        "source_quote": "### Bribery"
+        "source_kind": "heading",
+        "source_quote": "Bribery"
       }
     },
     {
@@ -221,7 +231,8 @@
         "name": "Broker",
         "source_file": "book1/skills.md",
         "source_section": "Broker",
-        "source_quote": "### Broker"
+        "source_kind": "heading",
+        "source_quote": "Broker"
       }
     },
     {
@@ -232,7 +243,8 @@
         "name": "Carousing",
         "source_file": "book1/skills.md",
         "source_section": "Carousing",
-        "source_quote": "### Carousing"
+        "source_kind": "heading",
+        "source_quote": "Carousing"
       }
     },
     {
@@ -243,7 +255,8 @@
         "name": "Comms",
         "source_file": "book1/skills.md",
         "source_section": "Comms",
-        "source_quote": "### Comms"
+        "source_kind": "heading",
+        "source_quote": "Comms"
       }
     },
     {
@@ -254,7 +267,8 @@
         "name": "Computer",
         "source_file": "book1/skills.md",
         "source_section": "Computer",
-        "source_quote": "### Computer"
+        "source_kind": "heading",
+        "source_quote": "Computer"
       }
     },
     {
@@ -265,7 +279,8 @@
         "name": "Demolitions",
         "source_file": "book1/skills.md",
         "source_section": "Demolitions",
-        "source_quote": "### Demolitions"
+        "source_kind": "heading",
+        "source_quote": "Demolitions"
       }
     },
     {
@@ -276,7 +291,8 @@
         "name": "Electronics",
         "source_file": "book1/skills.md",
         "source_section": "Electronics",
-        "source_quote": "### Electronics"
+        "source_kind": "heading",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -287,7 +303,8 @@
         "name": "Engineering",
         "source_file": "book1/skills.md",
         "source_section": "Engineering",
-        "source_quote": "### Engineering"
+        "source_kind": "heading",
+        "source_quote": "Engineering"
       }
     },
     {
@@ -298,7 +315,8 @@
         "name": "Gambling",
         "source_file": "book1/skills.md",
         "source_section": "Gambling",
-        "source_quote": "### Gambling"
+        "source_kind": "heading",
+        "source_quote": "Gambling"
       }
     },
     {
@@ -309,7 +327,8 @@
         "name": "Gun Combat",
         "source_file": "book1/skills.md",
         "source_section": "Gun Combat (Cascade Skill)",
-        "source_quote": "### Gun Combat (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Gun Combat (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -321,7 +340,8 @@
         "name": "Gunnery",
         "source_file": "book1/skills.md",
         "source_section": "Gunnery (Cascade Skill)",
-        "source_quote": "### Gunnery (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Gunnery (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -333,7 +353,8 @@
         "name": "Leadership",
         "source_file": "book1/skills.md",
         "source_section": "Leadership",
-        "source_quote": "### Leadership"
+        "source_kind": "heading",
+        "source_quote": "Leadership"
       }
     },
     {
@@ -344,7 +365,8 @@
         "name": "Liaison",
         "source_file": "book1/skills.md",
         "source_section": "Liaison",
-        "source_quote": "### Liaison"
+        "source_kind": "heading",
+        "source_quote": "Liaison"
       }
     },
     {
@@ -355,7 +377,8 @@
         "name": "Mechanics",
         "source_file": "book1/skills.md",
         "source_section": "Mechanics",
-        "source_quote": "### Mechanics"
+        "source_kind": "heading",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -366,7 +389,8 @@
         "name": "Medicine",
         "source_file": "book1/skills.md",
         "source_section": "Medicine",
-        "source_quote": "### Medicine"
+        "source_kind": "heading",
+        "source_quote": "Medicine"
       }
     },
     {
@@ -377,7 +401,8 @@
         "name": "Melee Combat",
         "source_file": "book1/skills.md",
         "source_section": "Melee Combat (Cascade Skill)",
-        "source_quote": "### Melee Combat (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Melee Combat (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -389,7 +414,8 @@
         "name": "Piloting",
         "source_file": "book1/skills.md",
         "source_section": "Piloting",
-        "source_quote": "### Piloting"
+        "source_kind": "heading",
+        "source_quote": "Piloting"
       }
     },
     {
@@ -400,7 +426,11 @@
         "name": "Prospecting",
         "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Belter",
+        "source_quote": "Prospecting"
       }
     },
     {
@@ -411,7 +441,8 @@
         "name": "Recon",
         "source_file": "book1/skills.md",
         "source_section": "Recon",
-        "source_quote": "### Recon"
+        "source_kind": "heading",
+        "source_quote": "Recon"
       }
     },
     {
@@ -422,7 +453,8 @@
         "name": "Sciences",
         "source_file": "book1/skills.md",
         "source_section": "Sciences (Cascade Skill)",
-        "source_quote": "### Sciences (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Sciences (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -434,7 +466,8 @@
         "name": "Streetwise",
         "source_file": "book1/skills.md",
         "source_section": "Streetwise",
-        "source_quote": "### Streetwise"
+        "source_kind": "heading",
+        "source_quote": "Streetwise"
       }
     },
     {
@@ -445,7 +478,8 @@
         "name": "Survival",
         "source_file": "book1/skills.md",
         "source_section": "Survival",
-        "source_quote": "### Survival"
+        "source_kind": "heading",
+        "source_quote": "Survival"
       }
     },
     {
@@ -456,7 +490,8 @@
         "name": "Vehicle",
         "source_file": "book1/skills.md",
         "source_section": "Vehicle (Cascade Skill)",
-        "source_quote": "### Vehicle (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Vehicle (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -468,7 +503,8 @@
         "name": "Watercraft",
         "source_file": "book1/skills.md",
         "source_section": "Watercraft (Cascade Skill)",
-        "source_quote": "### Watercraft (Cascade Skill)",
+        "source_kind": "heading",
+        "source_quote": "Watercraft (Cascade Skill)",
         "is_cascade": "true"
       }
     },
@@ -481,8 +517,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Aerospace Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -494,8 +535,13 @@
         "attribute_ref": "dexterity",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Aerospace Defense",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -505,7 +551,9 @@
       "properties": {
         "name": "Aerospace Defense Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -518,7 +566,9 @@
         "skill": "@sk_electronics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -531,8 +581,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@aerospace_defense_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Aerospace",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -550,7 +605,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -563,8 +620,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@aerospace_defense_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Aerospace",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -582,7 +644,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -595,8 +659,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@aerospace_defense_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Aerospace",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -614,7 +683,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -627,8 +698,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@aerospace_defense_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Aerospace",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -646,7 +722,9 @@
         "skill": "@sk_survival",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -659,8 +737,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@aerospace_defense_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Aerospace",
+        "source_quote": "Survival"
       }
     },
     {
@@ -678,7 +761,9 @@
         "skill": "@sk_aircraft",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -691,8 +776,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@aerospace_defense_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Aerospace",
+        "source_quote": "Aircraft"
       }
     },
     {
@@ -709,8 +799,13 @@
         "name": "Aerospace Defense",
         "qualification_check": "@aerospace_defense_qual",
         "survival_check": "@aerospace_defense_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Aerospace Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -728,8 +823,13 @@
         "attribute_ref": "social_standing",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Agent",
+        "source_quote": "Soc 6+"
       }
     },
     {
@@ -741,8 +841,13 @@
         "attribute_ref": "intelligence",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Agent",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -752,7 +857,9 @@
       "properties": {
         "name": "Agent Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -765,7 +872,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -778,8 +887,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@agent_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Agent",
+        "source_quote": "Admin"
       }
     },
     {
@@ -797,7 +911,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -810,8 +926,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@agent_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Agent",
+        "source_quote": "Computer"
       }
     },
     {
@@ -829,7 +950,9 @@
         "skill": "@sk_streetwise",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -842,8 +965,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@agent_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Agent",
+        "source_quote": "Streetwise"
       }
     },
     {
@@ -861,7 +989,9 @@
         "skill": "@sk_bribery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -874,8 +1004,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@agent_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Agent",
+        "source_quote": "Bribery"
       }
     },
     {
@@ -893,7 +1028,9 @@
         "skill": "@sk_leadership",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -906,8 +1043,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@agent_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Agent",
+        "source_quote": "Leadership"
       }
     },
     {
@@ -925,7 +1067,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -938,8 +1082,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@agent_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Agent",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -956,8 +1105,13 @@
         "name": "Agent",
         "qualification_check": "@agent_qual",
         "survival_check": "@agent_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Agent",
+        "source_quote": "Soc 6+"
       }
     },
     {
@@ -975,8 +1129,13 @@
         "attribute_ref": "endurance",
         "target_number": "8",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Athlete",
+        "source_quote": "End 8+"
       }
     },
     {
@@ -988,8 +1147,13 @@
         "attribute_ref": "dexterity",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Athlete",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -999,7 +1163,9 @@
       "properties": {
         "name": "Athlete Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -1012,7 +1178,9 @@
         "skill": "@sk_athletics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1025,8 +1193,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@athlete_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Athlete",
+        "source_quote": "Athletics"
       }
     },
     {
@@ -1044,7 +1217,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1057,8 +1232,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@athlete_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Athlete",
+        "source_quote": "Admin"
       }
     },
     {
@@ -1076,7 +1256,9 @@
         "skill": "@sk_carousing",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1089,8 +1271,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@athlete_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Athlete",
+        "source_quote": "Carousing"
       }
     },
     {
@@ -1108,7 +1295,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1121,8 +1310,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@athlete_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Athlete",
+        "source_quote": "Computer"
       }
     },
     {
@@ -1140,7 +1334,9 @@
         "skill": "@sk_gambling",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1153,8 +1349,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@athlete_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Athlete",
+        "source_quote": "Gambling"
       }
     },
     {
@@ -1172,7 +1373,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1185,8 +1388,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@athlete_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Athlete",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -1203,8 +1411,13 @@
         "name": "Athlete",
         "qualification_check": "@athlete_qual",
         "survival_check": "@athlete_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Athlete",
+        "source_quote": "End 8+"
       }
     },
     {
@@ -1222,8 +1435,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Barbarian",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -1235,8 +1453,13 @@
         "attribute_ref": "strength",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Barbarian",
+        "source_quote": "Str 6+"
       }
     },
     {
@@ -1246,7 +1469,9 @@
       "properties": {
         "name": "Barbarian Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -1259,7 +1484,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1272,8 +1499,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@barbarian_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Barbarian",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -1291,7 +1523,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1304,8 +1538,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@barbarian_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Barbarian",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -1323,7 +1562,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1336,8 +1577,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@barbarian_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Barbarian",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -1355,7 +1601,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1368,8 +1616,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@barbarian_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Barbarian",
+        "source_quote": "Recon"
       }
     },
     {
@@ -1387,7 +1640,9 @@
         "skill": "@sk_survival",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1400,8 +1655,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@barbarian_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Barbarian",
+        "source_quote": "Survival"
       }
     },
     {
@@ -1419,7 +1679,9 @@
         "skill": "@sk_animals",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1432,8 +1694,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@barbarian_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Barbarian",
+        "source_quote": "Animals"
       }
     },
     {
@@ -1450,8 +1717,13 @@
         "name": "Barbarian",
         "qualification_check": "@barbarian_qual",
         "survival_check": "@barbarian_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Barbarian",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -1469,8 +1741,13 @@
         "attribute_ref": "intelligence",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Belter",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -1482,8 +1759,13 @@
         "attribute_ref": "dexterity",
         "target_number": "7",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Belter",
+        "source_quote": "Dex 7+"
       }
     },
     {
@@ -1493,7 +1775,9 @@
       "properties": {
         "name": "Belter Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -1506,7 +1790,9 @@
         "skill": "@sk_comms",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1519,8 +1805,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@belter_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Belter",
+        "source_quote": "Comms"
       }
     },
     {
@@ -1538,7 +1829,9 @@
         "skill": "@sk_demolitions",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1551,8 +1844,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@belter_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Belter",
+        "source_quote": "Demolitions"
       }
     },
     {
@@ -1570,7 +1868,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1583,8 +1883,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@belter_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Belter",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -1602,7 +1907,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1615,8 +1922,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@belter_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Belter",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -1634,7 +1946,9 @@
         "skill": "@sk_prospecting",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1647,8 +1961,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@belter_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Belter",
+        "source_quote": "Prospecting"
       }
     },
     {
@@ -1666,7 +1985,9 @@
         "skill": "@sk_piloting",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1679,8 +2000,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@belter_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Belter",
+        "source_quote": "Piloting"
       }
     },
     {
@@ -1697,8 +2023,13 @@
         "name": "Belter",
         "qualification_check": "@belter_qual",
         "survival_check": "@belter_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Belter",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -1716,8 +2047,13 @@
         "attribute_ref": "social_standing",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Bureaucrat",
+        "source_quote": "Soc 6+"
       }
     },
     {
@@ -1729,8 +2065,13 @@
         "attribute_ref": "education",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Bureaucrat",
+        "source_quote": "Edu 4+"
       }
     },
     {
@@ -1740,7 +2081,9 @@
       "properties": {
         "name": "Bureaucrat Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -1753,7 +2096,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1766,8 +2111,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@bureaucrat_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Bureaucrat",
+        "source_quote": "Admin"
       }
     },
     {
@@ -1785,7 +2135,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1798,8 +2150,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@bureaucrat_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Bureaucrat",
+        "source_quote": "Computer"
       }
     },
     {
@@ -1817,7 +2174,9 @@
         "skill": "@sk_carousing",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1830,8 +2189,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@bureaucrat_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Bureaucrat",
+        "source_quote": "Carousing"
       }
     },
     {
@@ -1849,7 +2213,9 @@
         "skill": "@sk_bribery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1862,8 +2228,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@bureaucrat_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Bureaucrat",
+        "source_quote": "Bribery"
       }
     },
     {
@@ -1881,7 +2252,9 @@
         "skill": "@sk_leadership",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1894,8 +2267,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@bureaucrat_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Bureaucrat",
+        "source_quote": "Leadership"
       }
     },
     {
@@ -1913,7 +2291,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -1926,8 +2306,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@bureaucrat_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Bureaucrat",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -1944,8 +2329,13 @@
         "name": "Bureaucrat",
         "qualification_check": "@bureaucrat_qual",
         "survival_check": "@bureaucrat_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Bureaucrat",
+        "source_quote": "Soc 6+"
       }
     },
     {
@@ -1963,8 +2353,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Colonist",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -1976,8 +2371,13 @@
         "attribute_ref": "endurance",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Colonist",
+        "source_quote": "End 6+"
       }
     },
     {
@@ -1987,7 +2387,9 @@
       "properties": {
         "name": "Colonist Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -2000,7 +2402,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2013,8 +2417,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@colonist_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Colonist",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -2032,7 +2441,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2045,8 +2456,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@colonist_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Colonist",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -2064,7 +2480,9 @@
         "skill": "@sk_animals",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2077,8 +2495,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@colonist_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Colonist",
+        "source_quote": "Animals"
       }
     },
     {
@@ -2096,7 +2519,9 @@
         "skill": "@sk_electronics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2109,8 +2534,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@colonist_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Colonist",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -2128,7 +2558,9 @@
         "skill": "@sk_survival",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2141,8 +2573,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@colonist_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Colonist",
+        "source_quote": "Survival"
       }
     },
     {
@@ -2160,7 +2597,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2173,8 +2612,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@colonist_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Colonist",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -2191,8 +2635,13 @@
         "name": "Colonist",
         "qualification_check": "@colonist_qual",
         "survival_check": "@colonist_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Colonist",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -2210,8 +2659,13 @@
         "attribute_ref": "social_standing",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Diplomat",
+        "source_quote": "Soc 6+"
       }
     },
     {
@@ -2223,8 +2677,13 @@
         "attribute_ref": "education",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Diplomat",
+        "source_quote": "Edu 5+"
       }
     },
     {
@@ -2234,7 +2693,9 @@
       "properties": {
         "name": "Diplomat Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -2247,7 +2708,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2260,8 +2723,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@diplomat_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Diplomat",
+        "source_quote": "Admin"
       }
     },
     {
@@ -2279,7 +2747,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2292,8 +2762,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@diplomat_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Diplomat",
+        "source_quote": "Computer"
       }
     },
     {
@@ -2311,7 +2786,9 @@
         "skill": "@sk_carousing",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2324,8 +2801,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@diplomat_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Diplomat",
+        "source_quote": "Carousing"
       }
     },
     {
@@ -2343,7 +2825,9 @@
         "skill": "@sk_bribery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2356,8 +2840,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@diplomat_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Diplomat",
+        "source_quote": "Bribery"
       }
     },
     {
@@ -2375,7 +2864,9 @@
         "skill": "@sk_liaison",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2388,8 +2879,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@diplomat_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Diplomat",
+        "source_quote": "Liaison"
       }
     },
     {
@@ -2407,7 +2903,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2420,8 +2918,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@diplomat_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Diplomat",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -2438,8 +2941,13 @@
         "name": "Diplomat",
         "qualification_check": "@diplomat_qual",
         "survival_check": "@diplomat_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Diplomat",
+        "source_quote": "Soc 6+"
       }
     },
     {
@@ -2457,8 +2965,13 @@
         "attribute_ref": "dexterity",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Drifter",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -2470,8 +2983,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Drifter",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -2481,7 +2999,9 @@
       "properties": {
         "name": "Drifter Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -2494,7 +3014,9 @@
         "skill": "@sk_streetwise",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2507,8 +3029,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@drifter_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Drifter",
+        "source_quote": "Streetwise"
       }
     },
     {
@@ -2526,7 +3053,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2539,8 +3068,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@drifter_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Drifter",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -2558,7 +3092,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2571,8 +3107,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@drifter_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Drifter",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -2590,7 +3131,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2603,8 +3146,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@drifter_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Drifter",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -2622,7 +3170,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2635,8 +3185,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@drifter_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Drifter",
+        "source_quote": "Recon"
       }
     },
     {
@@ -2654,7 +3209,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2667,8 +3224,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@drifter_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Drifter",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -2685,8 +3247,13 @@
         "name": "Drifter",
         "qualification_check": "@drifter_qual",
         "survival_check": "@drifter_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Drifter",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -2704,8 +3271,13 @@
         "attribute_ref": "social_standing",
         "target_number": "8",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Entertainer",
+        "source_quote": "Soc 8+"
       }
     },
     {
@@ -2717,8 +3289,13 @@
         "attribute_ref": "intelligence",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Entertainer",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -2728,7 +3305,9 @@
       "properties": {
         "name": "Entertainer Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -2741,7 +3320,9 @@
         "skill": "@sk_athletics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2754,8 +3335,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@entertainer_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Entertainer",
+        "source_quote": "Athletics"
       }
     },
     {
@@ -2773,7 +3359,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2786,8 +3374,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@entertainer_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Entertainer",
+        "source_quote": "Admin"
       }
     },
     {
@@ -2805,7 +3398,9 @@
         "skill": "@sk_carousing",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2818,8 +3413,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@entertainer_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Entertainer",
+        "source_quote": "Carousing"
       }
     },
     {
@@ -2837,7 +3437,9 @@
         "skill": "@sk_bribery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2850,8 +3452,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@entertainer_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Entertainer",
+        "source_quote": "Bribery"
       }
     },
     {
@@ -2869,7 +3476,9 @@
         "skill": "@sk_gambling",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2882,8 +3491,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@entertainer_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Entertainer",
+        "source_quote": "Gambling"
       }
     },
     {
@@ -2901,7 +3515,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -2914,8 +3530,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@entertainer_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Entertainer",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -2932,8 +3553,13 @@
         "name": "Entertainer",
         "qualification_check": "@entertainer_qual",
         "survival_check": "@entertainer_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Entertainer",
+        "source_quote": "Soc 8+"
       }
     },
     {
@@ -2951,8 +3577,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Hunter",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -2964,8 +3595,13 @@
         "attribute_ref": "strength",
         "target_number": "8",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Hunter",
+        "source_quote": "Str 8+"
       }
     },
     {
@@ -2975,7 +3611,9 @@
       "properties": {
         "name": "Hunter Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -2988,7 +3626,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3001,8 +3641,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@hunter_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Hunter",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -3020,7 +3665,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3033,8 +3680,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@hunter_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Hunter",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -3052,7 +3704,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3065,8 +3719,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@hunter_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Hunter",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -3084,7 +3743,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3097,8 +3758,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@hunter_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Hunter",
+        "source_quote": "Recon"
       }
     },
     {
@@ -3116,7 +3782,9 @@
         "skill": "@sk_survival",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3129,8 +3797,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@hunter_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Hunter",
+        "source_quote": "Survival"
       }
     },
     {
@@ -3148,7 +3821,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3161,8 +3836,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@hunter_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Hunter",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -3179,8 +3859,13 @@
         "name": "Hunter",
         "qualification_check": "@hunter_qual",
         "survival_check": "@hunter_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Hunter",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -3198,8 +3883,13 @@
         "attribute_ref": "intelligence",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Marine",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -3211,8 +3901,13 @@
         "attribute_ref": "endurance",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Marine",
+        "source_quote": "End 6+"
       }
     },
     {
@@ -3222,7 +3917,9 @@
       "properties": {
         "name": "Marine Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -3235,7 +3932,9 @@
         "skill": "@sk_comms",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3248,8 +3947,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@marine_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Marine",
+        "source_quote": "Comms"
       }
     },
     {
@@ -3267,7 +3971,9 @@
         "skill": "@sk_demolitions",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3280,8 +3986,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@marine_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Marine",
+        "source_quote": "Demolitions"
       }
     },
     {
@@ -3299,7 +4010,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3312,8 +4025,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@marine_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Marine",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -3331,7 +4049,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3344,8 +4064,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@marine_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Marine",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -3363,7 +4088,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3376,8 +4103,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@marine_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Marine",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -3395,7 +4127,9 @@
         "skill": "@sk_battle_dress",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3408,8 +4142,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@marine_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Marine",
+        "source_quote": "Battle Dress"
       }
     },
     {
@@ -3426,8 +4165,13 @@
         "name": "Marine",
         "qualification_check": "@marine_qual",
         "survival_check": "@marine_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Marine",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -3445,8 +4189,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Maritime Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -3458,8 +4207,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Maritime Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -3469,7 +4223,9 @@
       "properties": {
         "name": "Maritime Defense Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -3482,7 +4238,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3495,8 +4253,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@maritime_defense_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Maritime Defense",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -3514,7 +4277,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3527,8 +4292,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@maritime_defense_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Maritime Defense",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -3546,7 +4316,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3559,8 +4331,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@maritime_defense_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Maritime Defense",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -3578,7 +4355,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3591,8 +4370,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@maritime_defense_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Maritime Defense",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -3610,7 +4394,9 @@
         "skill": "@sk_survival",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3623,8 +4409,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@maritime_defense_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Maritime Defense",
+        "source_quote": "Survival"
       }
     },
     {
@@ -3642,7 +4433,9 @@
         "skill": "@sk_watercraft",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3655,8 +4448,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@maritime_defense_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Maritime Defense",
+        "source_quote": "Watercraft"
       }
     },
     {
@@ -3673,8 +4471,13 @@
         "name": "Maritime Defense",
         "qualification_check": "@maritime_defense_qual",
         "survival_check": "@maritime_defense_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Maritime Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -3692,8 +4495,13 @@
         "attribute_ref": "intelligence",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Mercenary",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -3705,8 +4513,13 @@
         "attribute_ref": "endurance",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Mercenary",
+        "source_quote": "End 6+"
       }
     },
     {
@@ -3716,7 +4529,9 @@
       "properties": {
         "name": "Mercenary Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -3729,7 +4544,9 @@
         "skill": "@sk_comms",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3742,8 +4559,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@mercenary_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Mercenary",
+        "source_quote": "Comms"
       }
     },
     {
@@ -3761,7 +4583,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3774,8 +4598,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@mercenary_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Mercenary",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -3793,7 +4622,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3806,8 +4637,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@mercenary_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Mercenary",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -3825,7 +4661,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3838,8 +4676,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@mercenary_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Mercenary",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -3857,7 +4700,9 @@
         "skill": "@sk_gambling",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3870,8 +4715,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@mercenary_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Mercenary",
+        "source_quote": "Gambling"
       }
     },
     {
@@ -3889,7 +4739,9 @@
         "skill": "@sk_battle_dress",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3902,8 +4754,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@mercenary_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Mercenary",
+        "source_quote": "Battle Dress"
       }
     },
     {
@@ -3920,8 +4777,13 @@
         "name": "Mercenary",
         "qualification_check": "@mercenary_qual",
         "survival_check": "@mercenary_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Mercenary",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -3939,8 +4801,13 @@
         "attribute_ref": "intelligence",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Merchant",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -3952,8 +4819,13 @@
         "attribute_ref": "intelligence",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Merchant",
+        "source_quote": "Int 5+"
       }
     },
     {
@@ -3963,7 +4835,9 @@
       "properties": {
         "name": "Merchant Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -3976,7 +4850,9 @@
         "skill": "@sk_comms",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -3989,8 +4865,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@merchant_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Merchant",
+        "source_quote": "Comms"
       }
     },
     {
@@ -4008,7 +4889,9 @@
         "skill": "@sk_engineering",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4021,8 +4904,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@merchant_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Merchant",
+        "source_quote": "Engineering"
       }
     },
     {
@@ -4040,7 +4928,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4053,8 +4943,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@merchant_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Merchant",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -4072,7 +4967,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4085,8 +4982,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@merchant_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Merchant",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -4104,7 +5006,9 @@
         "skill": "@sk_broker",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4117,8 +5021,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@merchant_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Merchant",
+        "source_quote": "Broker"
       }
     },
     {
@@ -4136,7 +5045,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4149,8 +5060,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@merchant_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Merchant",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -4167,8 +5083,13 @@
         "name": "Merchant",
         "qualification_check": "@merchant_qual",
         "survival_check": "@merchant_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Merchant",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -4186,8 +5107,13 @@
         "attribute_ref": "intelligence",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Navy",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -4199,8 +5125,13 @@
         "attribute_ref": "intelligence",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Navy",
+        "source_quote": "Int 5+"
       }
     },
     {
@@ -4210,7 +5141,9 @@
       "properties": {
         "name": "Navy Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -4223,7 +5156,9 @@
         "skill": "@sk_comms",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4236,8 +5171,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@navy_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Navy",
+        "source_quote": "Comms"
       }
     },
     {
@@ -4255,7 +5195,9 @@
         "skill": "@sk_engineering",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4268,8 +5210,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@navy_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Navy",
+        "source_quote": "Engineering"
       }
     },
     {
@@ -4287,7 +5234,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4300,8 +5249,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@navy_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Navy",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -4319,7 +5273,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4332,8 +5288,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@navy_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Navy",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -4351,7 +5312,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4364,8 +5327,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@navy_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Navy",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -4383,7 +5351,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4396,8 +5366,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@navy_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Navy",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -4414,8 +5389,13 @@
         "name": "Navy",
         "qualification_check": "@navy_qual",
         "survival_check": "@navy_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Navy",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -4433,8 +5413,13 @@
         "attribute_ref": "social_standing",
         "target_number": "8",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Noble",
+        "source_quote": "Soc 8+"
       }
     },
     {
@@ -4446,8 +5431,13 @@
         "attribute_ref": "social_standing",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Noble",
+        "source_quote": "Soc 4+"
       }
     },
     {
@@ -4457,7 +5447,9 @@
       "properties": {
         "name": "Noble Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -4470,7 +5462,9 @@
         "skill": "@sk_athletics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4483,8 +5477,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@noble_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Noble",
+        "source_quote": "Athletics"
       }
     },
     {
@@ -4502,7 +5501,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4515,8 +5516,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@noble_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Noble",
+        "source_quote": "Admin"
       }
     },
     {
@@ -4534,7 +5540,9 @@
         "skill": "@sk_carousing",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4547,8 +5555,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@noble_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Noble",
+        "source_quote": "Carousing"
       }
     },
     {
@@ -4566,7 +5579,9 @@
         "skill": "@sk_leadership",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4579,8 +5594,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@noble_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Noble",
+        "source_quote": "Leadership"
       }
     },
     {
@@ -4598,7 +5618,9 @@
         "skill": "@sk_gambling",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4611,8 +5633,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@noble_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Noble",
+        "source_quote": "Gambling"
       }
     },
     {
@@ -4630,7 +5657,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4643,8 +5672,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@noble_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Noble",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -4661,8 +5695,13 @@
         "name": "Noble",
         "qualification_check": "@noble_qual",
         "survival_check": "@noble_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Noble",
+        "source_quote": "Soc 8+"
       }
     },
     {
@@ -4680,8 +5719,13 @@
         "attribute_ref": "education",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Physician",
+        "source_quote": "Edu 6+"
       }
     },
     {
@@ -4693,8 +5737,13 @@
         "attribute_ref": "intelligence",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Physician",
+        "source_quote": "Int 4+"
       }
     },
     {
@@ -4704,7 +5753,9 @@
       "properties": {
         "name": "Physician Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -4717,7 +5768,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4730,8 +5783,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@physician_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Physician",
+        "source_quote": "Admin"
       }
     },
     {
@@ -4749,7 +5807,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4762,8 +5822,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@physician_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Physician",
+        "source_quote": "Computer"
       }
     },
     {
@@ -4781,7 +5846,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4794,8 +5861,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@physician_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Physician",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -4813,7 +5885,9 @@
         "skill": "@sk_medicine",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4826,8 +5900,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@physician_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Physician",
+        "source_quote": "Medicine"
       }
     },
     {
@@ -4845,7 +5924,9 @@
         "skill": "@sk_leadership",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4858,8 +5939,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@physician_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Physician",
+        "source_quote": "Leadership"
       }
     },
     {
@@ -4877,7 +5963,9 @@
         "skill": "@sk_sciences",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4890,8 +5978,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@physician_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Physician",
+        "source_quote": "Sciences"
       }
     },
     {
@@ -4908,8 +6001,13 @@
         "name": "Physician",
         "qualification_check": "@physician_qual",
         "survival_check": "@physician_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Physician",
+        "source_quote": "Edu 6+"
       }
     },
     {
@@ -4927,8 +6025,13 @@
         "attribute_ref": "dexterity",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Pirate",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -4940,8 +6043,13 @@
         "attribute_ref": "dexterity",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Pirate",
+        "source_quote": "Dex 6+"
       }
     },
     {
@@ -4951,7 +6059,9 @@
       "properties": {
         "name": "Pirate Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -4964,7 +6074,9 @@
         "skill": "@sk_streetwise",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -4977,8 +6089,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@pirate_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Pirate",
+        "source_quote": "Streetwise"
       }
     },
     {
@@ -4996,7 +6113,9 @@
         "skill": "@sk_electronics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5009,8 +6128,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@pirate_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Pirate",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -5028,7 +6152,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5041,8 +6167,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@pirate_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Pirate",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -5060,7 +6191,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5073,8 +6206,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@pirate_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Pirate",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -5092,7 +6230,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5105,8 +6245,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@pirate_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Pirate",
+        "source_quote": "Recon"
       }
     },
     {
@@ -5124,7 +6269,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5137,8 +6284,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@pirate_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Pirate",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -5155,8 +6307,13 @@
         "name": "Pirate",
         "qualification_check": "@pirate_qual",
         "survival_check": "@pirate_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Pirate",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -5174,8 +6331,13 @@
         "attribute_ref": "dexterity",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Rogue",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -5187,8 +6349,13 @@
         "attribute_ref": "dexterity",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Rogue",
+        "source_quote": "Dex 4+"
       }
     },
     {
@@ -5198,7 +6365,9 @@
       "properties": {
         "name": "Rogue Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -5211,7 +6380,9 @@
         "skill": "@sk_streetwise",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5224,8 +6395,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@rogue_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Rogue",
+        "source_quote": "Streetwise"
       }
     },
     {
@@ -5243,7 +6419,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5256,8 +6434,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@rogue_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Rogue",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -5275,7 +6458,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5288,8 +6473,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@rogue_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Rogue",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -5307,7 +6497,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5320,8 +6512,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@rogue_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Rogue",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -5339,7 +6536,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5352,8 +6551,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@rogue_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Rogue",
+        "source_quote": "Recon"
       }
     },
     {
@@ -5371,7 +6575,9 @@
         "skill": "@sk_vehicle",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5384,8 +6590,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@rogue_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Rogue",
+        "source_quote": "Vehicle"
       }
     },
     {
@@ -5402,8 +6613,13 @@
         "name": "Rogue",
         "qualification_check": "@rogue_qual",
         "survival_check": "@rogue_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Rogue",
+        "source_quote": "Dex 5+"
       }
     },
     {
@@ -5421,8 +6637,13 @@
         "attribute_ref": "education",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Scientist",
+        "source_quote": "Edu 6+"
       }
     },
     {
@@ -5434,8 +6655,13 @@
         "attribute_ref": "education",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Scientist",
+        "source_quote": "Edu 5+"
       }
     },
     {
@@ -5445,7 +6671,9 @@
       "properties": {
         "name": "Scientist Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -5458,7 +6686,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5471,8 +6701,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@scientist_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Scientist",
+        "source_quote": "Admin"
       }
     },
     {
@@ -5490,7 +6725,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5503,8 +6740,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@scientist_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Scientist",
+        "source_quote": "Computer"
       }
     },
     {
@@ -5522,7 +6764,9 @@
         "skill": "@sk_electronics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5535,8 +6779,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@scientist_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Scientist",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -5554,7 +6803,9 @@
         "skill": "@sk_medicine",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5567,8 +6818,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@scientist_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Scientist",
+        "source_quote": "Medicine"
       }
     },
     {
@@ -5586,7 +6842,9 @@
         "skill": "@sk_bribery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5599,8 +6857,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@scientist_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Scientist",
+        "source_quote": "Bribery"
       }
     },
     {
@@ -5618,7 +6881,9 @@
         "skill": "@sk_sciences",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5631,8 +6896,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@scientist_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Scientist",
+        "source_quote": "Sciences"
       }
     },
     {
@@ -5649,8 +6919,13 @@
         "name": "Scientist",
         "qualification_check": "@scientist_qual",
         "survival_check": "@scientist_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Scientist",
+        "source_quote": "Edu 6+"
       }
     },
     {
@@ -5668,8 +6943,13 @@
         "attribute_ref": "intelligence",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Scout",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -5681,8 +6961,13 @@
         "attribute_ref": "endurance",
         "target_number": "7",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Scout",
+        "source_quote": "End 7+"
       }
     },
     {
@@ -5692,7 +6977,9 @@
       "properties": {
         "name": "Scout Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -5705,7 +6992,9 @@
         "skill": "@sk_comms",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5718,8 +7007,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@scout_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Scout",
+        "source_quote": "Comms"
       }
     },
     {
@@ -5737,7 +7031,9 @@
         "skill": "@sk_electronics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5750,8 +7046,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@scout_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Scout",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -5769,7 +7070,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5782,8 +7085,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@scout_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Scout",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -5801,7 +7109,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5814,8 +7124,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@scout_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Scout",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -5833,7 +7148,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5846,8 +7163,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@scout_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Scout",
+        "source_quote": "Recon"
       }
     },
     {
@@ -5865,7 +7187,9 @@
         "skill": "@sk_piloting",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5878,8 +7202,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@scout_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Scout",
+        "source_quote": "Piloting"
       }
     },
     {
@@ -5896,8 +7225,13 @@
         "name": "Scout",
         "qualification_check": "@scout_qual",
         "survival_check": "@scout_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Scout",
+        "source_quote": "Int 6+"
       }
     },
     {
@@ -5915,8 +7249,13 @@
         "attribute_ref": "endurance",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Surface Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -5928,8 +7267,13 @@
         "attribute_ref": "education",
         "target_number": "5",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Surface Defense",
+        "source_quote": "Edu 5+"
       }
     },
     {
@@ -5939,7 +7283,9 @@
       "properties": {
         "name": "Surface Defense Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -5952,7 +7298,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5965,8 +7313,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@surface_defense_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Surface Defense",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -5984,7 +7337,9 @@
         "skill": "@sk_gun_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -5997,8 +7352,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@surface_defense_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Surface Defense",
+        "source_quote": "Gun Combat"
       }
     },
     {
@@ -6016,7 +7376,9 @@
         "skill": "@sk_gunnery",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6029,8 +7391,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@surface_defense_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Surface Defense",
+        "source_quote": "Gunnery"
       }
     },
     {
@@ -6048,7 +7415,9 @@
         "skill": "@sk_melee_combat",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6061,8 +7430,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@surface_defense_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Surface Defense",
+        "source_quote": "Melee Combat"
       }
     },
     {
@@ -6080,7 +7454,9 @@
         "skill": "@sk_recon",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6093,8 +7469,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@surface_defense_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Surface Defense",
+        "source_quote": "Recon"
       }
     },
     {
@@ -6112,7 +7493,9 @@
         "skill": "@sk_battle_dress",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6125,8 +7508,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@surface_defense_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Surface Defense",
+        "source_quote": "Battle Dress"
       }
     },
     {
@@ -6143,8 +7531,13 @@
         "name": "Surface Defense",
         "qualification_check": "@surface_defense_qual",
         "survival_check": "@surface_defense_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Surface Defense",
+        "source_quote": "End 5+"
       }
     },
     {
@@ -6162,8 +7555,13 @@
         "attribute_ref": "education",
         "target_number": "6",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Technician",
+        "source_quote": "Edu 6+"
       }
     },
     {
@@ -6175,8 +7573,13 @@
         "attribute_ref": "dexterity",
         "target_number": "4",
         "dice": "@d2d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Technician",
+        "source_quote": "Dex 4+"
       }
     },
     {
@@ -6186,7 +7589,9 @@
       "properties": {
         "name": "Technician Service Skills",
         "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Skills and Training",
+        "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
     },
@@ -6199,7 +7604,9 @@
         "skill": "@sk_admin",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6212,8 +7619,13 @@
         "roll_min": "1",
         "roll_max": "1",
         "outcome": "@technician_g1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "1",
+        "source_column": "Technician",
+        "source_quote": "Admin"
       }
     },
     {
@@ -6231,7 +7643,9 @@
         "skill": "@sk_computer",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6244,8 +7658,13 @@
         "roll_min": "2",
         "roll_max": "2",
         "outcome": "@technician_g2",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "2",
+        "source_column": "Technician",
+        "source_quote": "Computer"
       }
     },
     {
@@ -6263,7 +7682,9 @@
         "skill": "@sk_mechanics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6276,8 +7697,13 @@
         "roll_min": "3",
         "roll_max": "3",
         "outcome": "@technician_g3",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "3",
+        "source_column": "Technician",
+        "source_quote": "Mechanics"
       }
     },
     {
@@ -6295,7 +7721,9 @@
         "skill": "@sk_medicine",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6308,8 +7736,13 @@
         "roll_min": "4",
         "roll_max": "4",
         "outcome": "@technician_g4",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "4",
+        "source_column": "Technician",
+        "source_quote": "Medicine"
       }
     },
     {
@@ -6327,7 +7760,9 @@
         "skill": "@sk_electronics",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6340,8 +7775,13 @@
         "roll_min": "5",
         "roll_max": "5",
         "outcome": "@technician_g5",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "5",
+        "source_column": "Technician",
+        "source_quote": "Electronics"
       }
     },
     {
@@ -6359,7 +7799,9 @@
         "skill": "@sk_sciences",
         "initial_skill_level": "1",
         "existing_skill_delta": "1",
+        "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
       }
     },
@@ -6372,8 +7814,13 @@
         "roll_min": "6",
         "roll_max": "6",
         "outcome": "@technician_g6",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+        "source_kind": "cell",
+        "source_table": "Service Skills",
+        "source_row": "6",
+        "source_column": "Technician",
+        "source_quote": "Sciences"
       }
     },
     {
@@ -6390,8 +7837,13 @@
         "name": "Technician",
         "qualification_check": "@technician_qual",
         "survival_check": "@technician_surv",
+        "source_file": "book1/character-creation.md",
         "source_section": "Career Tables",
-        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Technician",
+        "source_quote": "Edu 6+"
       }
     },
     {

@@ -50,6 +50,7 @@ const char* to_string(LocatorKind k) {
         case LocatorKind::Sentence: return "sentence";
         case LocatorKind::Cell:     return "cell";
         case LocatorKind::Row:      return "row";
+        case LocatorKind::Table:    return "table";
         case LocatorKind::Heading:  return "heading";
         case LocatorKind::ListItem: return "list_item";
     }
@@ -60,6 +61,7 @@ bool kind_from_string(const std::string& s, LocatorKind& out) {
     if (s == "sentence")  { out = LocatorKind::Sentence; return true; }
     if (s == "cell")      { out = LocatorKind::Cell;     return true; }
     if (s == "row")       { out = LocatorKind::Row;      return true; }
+    if (s == "table")     { out = LocatorKind::Table;    return true; }
     if (s == "heading")   { out = LocatorKind::Heading;  return true; }
     if (s == "list_item") { out = LocatorKind::ListItem; return true; }
     return false;
@@ -86,6 +88,7 @@ ResolveResult resolve(const SourceDocument& doc, const SourceLocator& loc) {
             return r;
         }
 
+        case LocatorKind::Table:
         case LocatorKind::Cell:
         case LocatorKind::Row: {
             if (!section)
@@ -107,7 +110,9 @@ ResolveResult resolve(const SourceDocument& doc, const SourceLocator& loc) {
                 for (const auto& t : section->tables)
                     if (t.label == loc.table) labelled.push_back(&t);
                 for (const auto* t : labelled) {
-                    if (loc.kind == LocatorKind::Row) {
+                    if (loc.kind == LocatorKind::Table) {
+                        matching.push_back(t);
+                    } else if (loc.kind == LocatorKind::Row) {
                         // A column may be given purely to disambiguate:
                         // four career blocks all print a table labelled
                         // "Career" with a row "Qualifications", and only
@@ -162,14 +167,28 @@ ResolveResult resolve(const SourceDocument& doc, const SourceLocator& loc) {
                             join(loc.path, " > ") + "' (that section has: " +
                             (had.empty() ? "no tables" : had) + ")");
             }
+            // Rows and tables resolve to the line as the source PRINTS
+            // it, pipes included, because that is the form a citation
+            // quotes and a reader recognises.
+            auto as_line = [](const std::vector<std::string>& cells) {
+                std::string out = "|";
+                for (const auto& c : cells) out += " " + c + " |";
+                return out;
+            };
+            if (loc.kind == LocatorKind::Table) {
+                ResolveResult out;
+                out.ok = true;
+                out.line = table->first_line;
+                out.text = as_line(table->columns);
+                return out;
+            }
             if (loc.kind == LocatorKind::Row) {
                 for (const auto& r : table->rows) {
                     if (r.empty() || r[0] != loc.row) continue;
                     ResolveResult out;
                     out.ok = true;
                     out.line = table->first_line;
-                    for (size_t i = 0; i < r.size(); ++i)
-                        out.text += (i ? " | " : "") + r[i];
+                    out.text = as_line(r);
                     return out;
                 }
                 return fail("table '" + loc.table + "' has no row '" +
@@ -223,6 +242,17 @@ ResolveResult resolve(const SourceDocument& doc, const SourceLocator& loc) {
                         return &hit;
                     }
                 }
+                // A rule stated inside a numbered step is prose too.
+                for (const auto& item : s.list_items) {
+                    for (const auto& sent : item.sentences) {
+                        if (!occurs_with_context(sent, loc)) continue;
+                        hit = ResolveResult{};
+                        hit.ok = true;
+                        hit.text = sent;
+                        hit.line = item.line;
+                        return &hit;
+                    }
+                }
                 for (const auto& p : s.paragraphs) {
                     if (!occurs_with_context(p.text, loc)) continue;
                     hit = ResolveResult{};
@@ -230,6 +260,43 @@ ResolveResult resolve(const SourceDocument& doc, const SourceLocator& loc) {
                     hit.text = p.text;
                     hit.line = p.first_line;
                     return &hit;
+                }
+                for (const auto& item : s.list_items) {
+                    if (!occurs_with_context(item.text, loc)) continue;
+                    hit = ResolveResult{};
+                    hit.ok = true;
+                    hit.text = item.text;
+                    hit.line = item.line;
+                    return &hit;
+                }
+                // Last: a table row quoted without an address. It
+                // resolves, because the text really is there, but it
+                // proves only what its own line contains - which is
+                // why the value check refuses to prove a number
+                // against a multi-column row. See the comment there.
+                for (const auto& t : s.tables) {
+                    auto as_line = [](const std::vector<std::string>& cells) {
+                        std::string out = "|";
+                        for (const auto& c : cells) out += " " + c + " |";
+                        return out;
+                    };
+                    for (const auto& r : t.rows) {
+                        const auto line = as_line(r);
+                        if (!occurs_with_context(line, loc)) continue;
+                        hit = ResolveResult{};
+                        hit.ok = true;
+                        hit.text = line;
+                        hit.line = t.first_line;
+                        return &hit;
+                    }
+                    const auto header = as_line(t.columns);
+                    if (occurs_with_context(header, loc)) {
+                        hit = ResolveResult{};
+                        hit.ok = true;
+                        hit.text = header;
+                        hit.line = t.first_line;
+                        return &hit;
+                    }
                 }
                 return nullptr;
             };

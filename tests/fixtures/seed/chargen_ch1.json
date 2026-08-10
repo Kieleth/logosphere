@@ -21,13 +21,26 @@
       "OutcomeStep": 2
     },
     "unique_name_per_type": [
-      "DiceExpression", "RuleConstant", "TableEntry",
-      "CharacteristicModifierEntry", "DifficultyEntry", "OutcomeSequence"
+      "DiceExpression",
+      "RuleConstant",
+      "TableEntry",
+      "CharacteristicModifierEntry",
+      "DifficultyEntry",
+      "OutcomeSequence"
     ],
     "band_coverage": {
-      "@mishap_table": [2, 3],
-      "@dm_table": [0, 5],
-      "@law_table": [0, 3]
+      "@mishap_table": [
+        2,
+        3
+      ],
+      "@dm_table": [
+        0,
+        5
+      ],
+      "@law_table": [
+        0,
+        3
+      ]
     }
   },
   "ops": [
@@ -52,7 +65,9 @@
         "dice_count": 1,
         "dice_sides": 6,
         "source_section": "Survival",
-        "source_quote": "| 1D6 | Mishaps |"
+        "source_quote": "| 1D6 | Mishaps |",
+        "source_kind": "table",
+        "source_table": "1D6"
       }
     },
     {
@@ -87,7 +102,7 @@
         "name": "prior_career_dm",
         "constant_value": -2,
         "source_section": "Qualifying and the Draft",
-        "source_quote": "You suffer a DM–2 to qualification rolls for each previous career you have entered."
+        "source_quote": "You suffer a DM\u20132 to qualification rolls for each previous career you have entered."
       }
     },
     {
@@ -97,7 +112,7 @@
       "properties": {
         "name": "Credits",
         "source_section": "Injury Crisis",
-        "source_quote": "he can pay 1D6×10,000 Credits for medical care"
+        "source_quote": "he can pay 1D6\u00d710,000 Credits for medical care"
       }
     },
     {
@@ -119,7 +134,10 @@
         "currency": "@credits",
         "amount": -10000,
         "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+        "source_kind": "row",
+        "source_table": "1D6",
+        "source_row": "3"
       }
     },
     {
@@ -129,7 +147,10 @@
       "properties": {
         "name": "mishap_3_consequences",
         "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+        "source_kind": "row",
+        "source_table": "1D6",
+        "source_row": "3"
       }
     },
     {
@@ -141,7 +162,10 @@
         "step_index": 0,
         "outcome": "@end_career",
         "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+        "source_kind": "row",
+        "source_table": "1D6",
+        "source_row": "3"
       }
     },
     {
@@ -153,7 +177,10 @@
         "step_index": 1,
         "outcome": "@debt_10000",
         "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+        "source_kind": "row",
+        "source_table": "1D6",
+        "source_row": "3"
       }
     },
     {
@@ -176,7 +203,9 @@
         "name": "survival_mishaps",
         "dice": "@d1d6",
         "source_section": "Survival",
-        "source_quote": "| 1D6 | Mishaps |"
+        "source_quote": "| 1D6 | Mishaps |",
+        "source_kind": "table",
+        "source_table": "1D6"
       }
     },
     {
@@ -189,7 +218,10 @@
         "roll_max": 2,
         "outcome": "@end_career",
         "source_section": "Survival",
-        "source_quote": "| 2 | Honorably discharged from the service. |"
+        "source_quote": "| 2 | Honorably discharged from the service. |",
+        "source_kind": "row",
+        "source_table": "1D6",
+        "source_row": "2"
       }
     },
     {
@@ -202,7 +234,10 @@
         "roll_max": 3,
         "outcome": "@mishap_3_sequence",
         "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+        "source_kind": "row",
+        "source_table": "1D6",
+        "source_row": "3"
       }
     },
     {
@@ -217,7 +252,6 @@
       "relation": "HAS_PART",
       "to": "@mishap_row_3"
     },
-
     {
       "op": "create_entity",
       "type": "LookupTable",
@@ -226,7 +260,9 @@
         "name": "characteristic_modifiers",
         "entry_type": "CharacteristicModifierEntry",
         "source_section": "Characteristic Modifiers",
-        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |"
+        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |",
+        "source_kind": "table",
+        "source_table": "Score Range"
       }
     },
     {
@@ -241,7 +277,11 @@
         "pseudohex_max": "2",
         "characteristic_modifier": -2,
         "source_section": "Characteristic Modifiers",
-        "source_quote": "| 0 through 2 | 0-2 | \\-2 |"
+        "source_quote": "\\-2",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "0 through 2",
+        "source_column": "Characteristic Modifier"
       }
     },
     {
@@ -256,7 +296,11 @@
         "pseudohex_max": "5",
         "characteristic_modifier": -1,
         "source_section": "Characteristic Modifiers",
-        "source_quote": "| 3 through 5 | 3-5 | \\-1 |"
+        "source_quote": "\\-1",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "3 through 5",
+        "source_column": "Characteristic Modifier"
       }
     },
     {
@@ -271,7 +315,6 @@
       "relation": "HAS_PART",
       "to": "@dm_row_3_5"
     },
-
     {
       "op": "create_entity",
       "type": "LookupTable",
@@ -281,7 +324,9 @@
         "entry_type": "DifficultyEntry",
         "source_file": "book1/skills.md",
         "source_section": "Local Law Level",
-        "source_quote": "| Law Level | Difficulty |"
+        "source_quote": "| Law Level | Difficulty |",
+        "source_kind": "table",
+        "source_table": "Law Level"
       }
     },
     {
@@ -296,7 +341,10 @@
         "difficulty_modifier": 2,
         "source_file": "book1/skills.md",
         "source_section": "Local Law Level",
-        "source_quote": "| 0 | Routine (DM+2) |"
+        "source_quote": "| 0 | Routine (DM+2) |",
+        "source_kind": "row",
+        "source_table": "Law Level",
+        "source_row": "0"
       }
     },
     {
@@ -311,7 +359,10 @@
         "difficulty_modifier": 0,
         "source_file": "book1/skills.md",
         "source_section": "Local Law Level",
-        "source_quote": "| 1-3 | Average (DM+0) |"
+        "source_quote": "| 1-3 | Average (DM+0) |",
+        "source_kind": "row",
+        "source_table": "Law Level",
+        "source_row": "1-3"
       }
     },
     {

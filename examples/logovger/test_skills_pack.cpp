@@ -341,7 +341,7 @@ void test_a_lying_seed_is_refused() {
          "similar to that of a trained athlete.",
          "similar to that of a TRAINED athlete.", "verbatim"},
         {"a skill with no citation",
-         "\"source_quote\": \"### Gun Combat (Cascade Skill)\"",
+         "\"source_quote\": \"Gun Combat (Cascade Skill)\"",
          "\"source_quote\": \"\"", "verbatim"},
         {"a cascade link to a skill that was never created",
          "\"to\": \"@gun_combat\"", "\"to\": \"@laser_pistol\"", "schema"},

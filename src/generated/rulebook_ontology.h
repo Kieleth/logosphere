@@ -1335,8 +1335,16 @@ struct Cited {
     std::optional<std::string> source_file = std::nullopt;
     /// The nearest heading above the quote in the source.
     std::optional<std::string> source_section = std::nullopt;
-    /// Verbatim quote from the source, exact substring: the ingestion verifier string-matches it into source_file and rejects any value that does not match.
+    /// What the addressed piece of the source says. For a cell this is the CELL, not the line it sits on, which is the difference between proving a value and merely being near it: a career-table row carries six careers' numbers, so a value cited to the row can borrow a neighbour's. See docs/SOURCE_LOCATORS.md.
     std::optional<std::string> source_quote = std::nullopt;
+    /// What shape of thing is addressed: cell, row, sentence, heading or list_item. Absent means sentence, the usual home of a stated rule.
+    std::optional<std::string> source_kind = std::nullopt;
+    /// The table's label (the first cell of its header row). Required for cell and row citations, and it is what tells apart six different tables that each have a row keyed "1".
+    std::optional<std::string> source_table = std::nullopt;
+    /// The row's key, its first cell ("1", "Qualifications").
+    std::optional<std::string> source_row = std::nullopt;
+    /// The column's header ("Scout"). Required for a cell; optional on a row, where it serves only to say which of several like-labelled tables is meant.
+    std::optional<std::string> source_column = std::nullopt;
 };
 
 

@@ -22,7 +22,8 @@
         "is_cascade": "true",
         "source_file": "book1/skills.md",
         "source_section": "Gun Combat (Cascade Skill)",
-        "source_quote": "### Gun Combat (Cascade Skill)"
+        "source_quote": "Gun Combat (Cascade Skill)",
+        "source_kind": "heading"
       }
     },
     {
@@ -59,7 +60,6 @@
       "relation": "SPECIALIZES",
       "to": "@gun_combat"
     },
-
     {
       "op": "create_entity",
       "type": "Skill",
@@ -71,7 +71,6 @@
         "source_quote": "This skill covers physical fitness and training, similar to that of a trained athlete."
       }
     },
-
     {
       "op": "create_entity",
       "type": "Skill",
@@ -81,7 +80,8 @@
         "is_cascade": "true",
         "source_file": "book1/skills.md",
         "source_section": "Vehicle (Cascade Skill)",
-        "source_quote": "### Vehicle (Cascade Skill)"
+        "source_quote": "Vehicle (Cascade Skill)",
+        "source_kind": "heading"
       }
     },
     {
@@ -93,7 +93,8 @@
         "is_cascade": "true",
         "source_file": "book1/skills.md",
         "source_section": "Aircraft (Cascade Skill)",
-        "source_quote": "### Aircraft (Cascade Skill)"
+        "source_quote": "Aircraft (Cascade Skill)",
+        "source_kind": "heading"
       }
     },
     {

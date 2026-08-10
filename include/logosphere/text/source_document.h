@@ -52,8 +52,11 @@ struct SourceParagraph {
 };
 
 struct SourceListItem {
-    std::string text;
-    int         line = 0;
+    std::string              text;
+    std::vector<std::string> sentences;   // a rule stated inside a
+                                          // numbered step is still a
+                                          // stated rule
+    int                      line = 0;
 };
 
 // One heading and everything under it, until the next heading of the

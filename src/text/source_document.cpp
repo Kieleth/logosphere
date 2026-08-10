@@ -231,7 +231,11 @@ SourceDocument SourceDocument::parse_markdown(const std::string& text) {
 
         if (is_list_item(line)) {
             flush_paragraph(current, para, para_line);
-            current.list_items.push_back({trim(line), lineno});
+            SourceListItem item;
+            item.text = trim(line);
+            item.sentences = split_sentences(item.text);
+            item.line = lineno;
+            current.list_items.push_back(std::move(item));
             continue;
         }
 

@@ -1,5 +1,8 @@
 #include "logosphere/kg/seed_verifier.h"
 
+#include "logosphere/text/source_document.h"
+#include "logosphere/text/source_locator.h"
+
 #include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
@@ -366,6 +369,51 @@ struct Checker {
     // set_property ops are certified too - the same state the VALUE
     // check treats as ground truth. The file is the entity's own
     // source_file when set (multi-file seeds), else the envelope's.
+    // Cache: a source is parsed into the document model once.
+    std::map<std::string, logosphere::text::SourceDocument> docs;
+
+    const logosphere::text::SourceDocument* document(const std::string& rel,
+                                                     std::string& why) {
+        const std::string* text = source_text(rel, why);
+        if (!text) return nullptr;
+        auto it = docs.find(rel);
+        if (it == docs.end())
+            it = docs.emplace(rel,
+                    logosphere::text::SourceDocument::parse_markdown(*text))
+                     .first;
+        return &it->second;
+    }
+
+    // Build the locator an entity claims. Its shape decides how much
+    // the citation can prove: a cell citation proves one value, a
+    // sentence citation proves a stated rule, and a bare quote proves
+    // only that the words are somewhere under a heading.
+    logosphere::text::SourceLocator locator_of(const KGModule& world,
+                                               EntityID id,
+                                               const std::string& rel) {
+        using namespace logosphere::text;
+        SourceLocator loc;
+        loc.file   = rel;
+        loc.exact  = world.getProperty(id, "source_quote");
+        loc.table  = world.getProperty(id, "source_table");
+        loc.row    = world.getProperty(id, "source_row");
+        loc.column = world.getProperty(id, "source_column");
+        const auto section = world.getProperty(id, "source_section");
+        if (!section.empty()) loc.path = {section};
+        const auto kind = world.getProperty(id, "source_kind");
+        if (kind.empty())
+            loc.kind = loc.table.empty() ? LocatorKind::Sentence
+                                         : LocatorKind::Cell;
+        else if (!kind_from_string(kind, loc.kind))
+            loc.kind = LocatorKind::Sentence;
+        return loc;
+    }
+
+    // What the source says at each cited entity's address, kept so the
+    // VALUE check can test digits against the addressed text rather
+    // than against a whole line.
+    std::map<EntityID, std::string> resolved;
+
     void check_verbatim(const KGModule& world, const SeedLoadReport& load) {
         for (size_t i = 0; i < seed.ops.size(); ++i) {
             const EntityID id = load.created_ids[i];
@@ -385,38 +433,28 @@ struct Checker {
                 continue;
             }
             ++report.quotes_checked;
-            const std::string own_file =
-                world.getProperty(id, "source_file");
+            const std::string own_file = world.getProperty(id, "source_file");
             const std::string rel =
                 own_file.empty() ? seed.source.file : own_file;
             std::string why;
-            const std::string* text = source_text(rel, why);
-            if (!text) {
+            const auto* doc = document(rel, why);
+            if (!doc) {
                 violate("verbatim", static_cast<int>(i), alias, why);
                 continue;
             }
-            if (text->find(quote) == std::string::npos) {
-                violate("verbatim", static_cast<int>(i), alias,
-                        "source_quote is not a byte-exact substring of " +
-                        rel + ": \"" + preview(quote) + "\"");
-                continue;
-            }
-            const std::string section =
-                world.getProperty(id, "source_section");
-            if (section.empty()) {
+            if (world.getProperty(id, "source_section").empty()) {
                 violate("verbatim", static_cast<int>(i), alias,
                         "cited entity has no source_section");
                 continue;
             }
-            std::string actual_section;
-            if (!quote_occurs_in_section(*text, quote, section,
-                                         actual_section)) {
+            const auto loc = locator_of(world, id, rel);
+            const auto r = logosphere::text::resolve_and_match(*doc, loc);
+            if (!r.ok) {
                 violate("verbatim", static_cast<int>(i), alias,
-                        "source_section '" + section +
-                        "' is not the nearest heading for any matching "
-                        "quote in " + rel + "; nearest heading is '" +
-                        actual_section + "'");
+                        r.reason + " [" + rel + "]");
+                continue;
             }
+            resolved[id] = r.text;
         }
     }
 
@@ -444,11 +482,42 @@ struct Checker {
                     continue;
                 }
                 if (key == "step_index" || key == "option_index") continue;
+                // A row's band is proven by the row KEY it addresses,
+                // checked below, not by the cell's text. Asking the
+                // cell "Electronics" to contain a 1 is asking the
+                // wrong question.
+                if (!world.getProperty(id, "source_row").empty() &&
+                    (key == "roll_min" || key == "roll_max" ||
+                     key == "key_min"  || key == "key_max")) {
+                    continue;
+                }
                 ++report.values_checked;
                 std::string digits = value;
                 if (!digits.empty() &&
                     (digits[0] == '-' || digits[0] == '+')) {
                     digits.erase(0, 1);
+                }
+                // A citation that quotes a MULTI-COLUMN table row
+                // cannot prove a number: the row carries every
+                // column's, so a wrong value borrows a neighbour's.
+                // This is the defect found 2026-08-10, where Scout
+                // qualifying on 5+ passed because Pirate's cell said
+                // Dex 5+. Such a citation must address its cell.
+                if (world.getProperty(id, "source_column").empty() &&
+                    quote.size() > 2 && quote.front() == '|') {
+                    size_t cells = 0;
+                    for (char ch : quote) if (ch == '|') ++cells;
+                    if (cells > 3) {   // more than one data column
+                        violate("value", static_cast<int>(i), alias,
+                                type + "." + key + " = " + value +
+                                ": cited to a table ROW with " +
+                                std::to_string(cells - 2) + " data columns, "
+                                "which cannot prove a value - any column's "
+                                "number would match. Address the cell "
+                                "(source_table / source_row / "
+                                "source_column).");
+                        continue;
+                    }
                 }
                 if (digits.empty() ||
                     std::find(tokens.begin(), tokens.end(), digits) ==
@@ -507,19 +576,24 @@ struct Checker {
                 }
             }
 
-            // Band derivation for table rows: the quoted leading cell
-            // is the band the book printed; the stored band must
-            // equal it.
+            // Band derivation for table rows. The band the book printed
+            // is the row's KEY. A locator says which row it addressed,
+            // so use that; a citation that quotes the whole line still
+            // works by parsing its leading cell.
             const bool is_row = ont.isSubtypeOf(type, "TableEntry") ||
                                 ont.isSubtypeOf(type, "LookupEntry");
             if (!is_row) continue;
+            const std::string addressed_row =
+                world.getProperty(id, "source_row");
+            const std::string band_text =
+                addressed_row.empty() ? quote : ("| " + addressed_row + " |");
             long long cell_lo = 0, cell_hi = 0;
-            if (!parse_band_cell(quote, cell_lo, cell_hi)) {
+            if (!parse_band_cell(band_text, cell_lo, cell_hi)) {
                 violate("value", static_cast<int>(i), alias,
                         type + ": cannot derive a band from the quoted "
                         "leading cell (the book's notations: '| N |', "
                         "'| N-M |', en dash, '| N through M |'): \"" +
-                        preview(quote) + "\"");
+                        preview(band_text) + "\"");
                 continue;
             }
             ++report.bands_derived;
