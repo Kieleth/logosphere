@@ -511,6 +511,23 @@ Rung rung3(Engine& engine) {
     bond(s1, s2, +0.3f, -0.3f);
     bond(s2, s3, +0.3f, -0.3f);
 
+    // ENERGY PROBE: sleep zeroes velocity on entry, so it is an energy SINK.
+    // Did the sleep law remove a mask (energy bounded) or is the constraint
+    // fight pumping (energy grows)?
+    auto chain_ke = [&]() {
+        auto v = ps.lock_particles_for_write();
+        double ke = 0.0;
+        for (int id : {s1, s2, s3}) {
+            const Particle& p = v[id];
+            const double m = p.GetMass();
+            const double I = p.GetMomentOfInertia();
+            ke += 0.5 * m * (p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+            ke += 0.5 * I * (p.omega_x*p.omega_x + p.omega_y*p.omega_y +
+                             p.omega_z*p.omega_z);
+        }
+        return ke;
+    };
+
     if (g_label) g_label->set_text(
         "RUNG 3  settling: free 3-segment chain on a kinematic stump (nothing scripts rotation)");
     for (int f = 0; f < 90 && engine.is_running(); ++f) step(engine);
@@ -620,6 +637,8 @@ Rung rung3(Engine& engine) {
         for (int f = 0; f < 400 && engine.is_running(); ++f) {
             step(engine);
             measure("RECOV", f);
+            if ((f % 60) == 0)
+                printf("      [KE RECOV f%3d] chain KE %.6f J\n", f, chain_ke());
             auto v = ps.lock_particles_for_write();
             const float vy = v[s3].vy;
             if (std::fabs(vy) > 0.05f && vy * prev_vy < 0.0f) swings++;

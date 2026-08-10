@@ -3465,7 +3465,9 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
         // satisfied. Low speed with screaming constraints is a body mid-
         // correction, not a body in equilibrium (the lying blade's
         // wake/re-sleep limit cycle recovered at 0.1 mm/frame).
-        const bool satisfied = i >= constraint_dissatisfied_.size() ||
+        static const bool law_off = std::getenv("SLEEP_LAW_OFF") != nullptr;
+        const bool satisfied = law_off ||
+                               i >= constraint_dissatisfied_.size() ||
                                constraint_dissatisfied_[i] == 0;
         if (!satisfied) {
             p.frames_at_rest = 0;
