@@ -1519,18 +1519,10 @@ struct Character : public LivingEntity {
 /// One career the book offers, with its chargen targets [book1/character-creation.md "Careers", "Qualifying and the Draft", "Survival", "Commission and Advancement"]. The per-career skill tables are table DATA (rules/), not schema.
 /// Cited because its INSTANCES are the book's: the 24 careers and their throws are printed in the career tables, and each must be able to prove its numbers against the row it came from. Character and ServiceTerm are deliberately NOT Cited, and that difference is the rule: a class carries Cited when its instances come out of the book, not when the class itself is described there. A character is a player's, not the book's.
 struct Career : public Entity, public Cited {
-    /// 2D6 target to enter the career.
-    std::optional<int32_t> qualification_target = std::nullopt;
-    /// Which characteristic DMs the qualification roll.
-    std::optional<std::string> qualification_dm_characteristic = std::nullopt;
-    /// 2D6 target to survive a term.
-    std::optional<int32_t> survival_target = std::nullopt;
-    /// Which characteristic DMs survival.
-    std::optional<std::string> survival_dm_characteristic = std::nullopt;
-    /// 2D6 target for a commission (0 = career has none).
-    std::optional<int32_t> commission_target = std::nullopt;
-    /// 2D6 target for advancement (0 = career has none).
-    std::optional<int32_t> advancement_target = std::nullopt;
+    /// The throw to enter this career [book1/character-creation.md "Career Tables" Qualifications row].
+    std::optional<TaskCheck> qualification_check = std::nullopt;
+    /// The throw to survive a term in it [book1/character-creation.md "Career Tables" Survival row].
+    std::optional<TaskCheck> survival_check = std::nullopt;
 };
 
 

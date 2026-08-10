@@ -6,31 +6,133 @@
   "layer": "cepheus",
   "invariants": {
     "count_of_type": {
-      "Skill": 9,
-      "TableEntry": 12,
-      "GrantSkill": 12,
-      "RollableTable": 2,
-      "Career": 2
+      "Skill": 29,
+      "Career": 24,
+      "TaskCheck": 48,
+      "RollableTable": 24,
+      "TableEntry": 144,
+      "GrantSkill": 144
     },
     "unique_name_per_type": [
       "Skill",
-      "TableEntry",
-      "GrantSkill",
       "Career",
-      "RollableTable"
+      "TaskCheck",
+      "RollableTable",
+      "TableEntry",
+      "GrantSkill"
     ],
     "band_coverage": {
-      "@agent_service": [
+      "@aerospace_defense_svc": [
         1,
         6
       ],
-      "@athlete_service": [
+      "@agent_svc": [
+        1,
+        6
+      ],
+      "@athlete_svc": [
+        1,
+        6
+      ],
+      "@barbarian_svc": [
+        1,
+        6
+      ],
+      "@belter_svc": [
+        1,
+        6
+      ],
+      "@bureaucrat_svc": [
+        1,
+        6
+      ],
+      "@colonist_svc": [
+        1,
+        6
+      ],
+      "@diplomat_svc": [
+        1,
+        6
+      ],
+      "@drifter_svc": [
+        1,
+        6
+      ],
+      "@entertainer_svc": [
+        1,
+        6
+      ],
+      "@hunter_svc": [
+        1,
+        6
+      ],
+      "@marine_svc": [
+        1,
+        6
+      ],
+      "@maritime_defense_svc": [
+        1,
+        6
+      ],
+      "@mercenary_svc": [
+        1,
+        6
+      ],
+      "@merchant_svc": [
+        1,
+        6
+      ],
+      "@navy_svc": [
+        1,
+        6
+      ],
+      "@noble_svc": [
+        1,
+        6
+      ],
+      "@physician_svc": [
+        1,
+        6
+      ],
+      "@pirate_svc": [
+        1,
+        6
+      ],
+      "@rogue_svc": [
+        1,
+        6
+      ],
+      "@scientist_svc": [
+        1,
+        6
+      ],
+      "@scout_svc": [
+        1,
+        6
+      ],
+      "@surface_defense_svc": [
+        1,
+        6
+      ],
+      "@technician_svc": [
         1,
         6
       ]
     }
   },
   "ops": [
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d2d6",
+      "properties": {
+        "name": "2D6",
+        "dice_count": "2",
+        "dice_sides": "6",
+        "source_section": "Careers",
+        "source_quote": "Most of these throws are characteristic throws \u2013 roll 2D6, add the DM from the listed characteristic, and try to get a total higher than the listed value."
+      }
+    },
     {
       "op": "create_entity",
       "type": "DiceExpression",
@@ -46,7 +148,7 @@
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_admin",
+      "as": "@sk_admin",
       "properties": {
         "name": "Admin",
         "source_file": "book1/skills.md",
@@ -57,29 +159,53 @@
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_computer",
+      "as": "@sk_aircraft",
       "properties": {
-        "name": "Computer",
+        "name": "Aircraft",
         "source_file": "book1/skills.md",
-        "source_section": "Computer",
-        "source_quote": "### Computer"
+        "source_section": "Aircraft (Cascade Skill)",
+        "source_quote": "### Aircraft (Cascade Skill)",
+        "is_cascade": "true"
       }
     },
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_streetwise",
+      "as": "@sk_animals",
       "properties": {
-        "name": "Streetwise",
+        "name": "Animals",
         "source_file": "book1/skills.md",
-        "source_section": "Streetwise",
-        "source_quote": "### Streetwise"
+        "source_section": "Animals (Cascade Skill)",
+        "source_quote": "### Animals (Cascade Skill)",
+        "is_cascade": "true"
       }
     },
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_bribery",
+      "as": "@sk_athletics",
+      "properties": {
+        "name": "Athletics",
+        "source_file": "book1/skills.md",
+        "source_section": "Athletics",
+        "source_quote": "### Athletics"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_battle_dress",
+      "properties": {
+        "name": "Battle Dress",
+        "source_file": "book1/skills.md",
+        "source_section": "Battle Dress",
+        "source_quote": "### Battle Dress"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_bribery",
       "properties": {
         "name": "Bribery",
         "source_file": "book1/skills.md",
@@ -90,7 +216,119 @@
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_leadership",
+      "as": "@sk_broker",
+      "properties": {
+        "name": "Broker",
+        "source_file": "book1/skills.md",
+        "source_section": "Broker",
+        "source_quote": "### Broker"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_carousing",
+      "properties": {
+        "name": "Carousing",
+        "source_file": "book1/skills.md",
+        "source_section": "Carousing",
+        "source_quote": "### Carousing"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_comms",
+      "properties": {
+        "name": "Comms",
+        "source_file": "book1/skills.md",
+        "source_section": "Comms",
+        "source_quote": "### Comms"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_computer",
+      "properties": {
+        "name": "Computer",
+        "source_file": "book1/skills.md",
+        "source_section": "Computer",
+        "source_quote": "### Computer"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_demolitions",
+      "properties": {
+        "name": "Demolitions",
+        "source_file": "book1/skills.md",
+        "source_section": "Demolitions",
+        "source_quote": "### Demolitions"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_electronics",
+      "properties": {
+        "name": "Electronics",
+        "source_file": "book1/skills.md",
+        "source_section": "Electronics",
+        "source_quote": "### Electronics"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_engineering",
+      "properties": {
+        "name": "Engineering",
+        "source_file": "book1/skills.md",
+        "source_section": "Engineering",
+        "source_quote": "### Engineering"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_gambling",
+      "properties": {
+        "name": "Gambling",
+        "source_file": "book1/skills.md",
+        "source_section": "Gambling",
+        "source_quote": "### Gambling"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_gun_combat",
+      "properties": {
+        "name": "Gun Combat",
+        "source_file": "book1/skills.md",
+        "source_section": "Gun Combat (Cascade Skill)",
+        "source_quote": "### Gun Combat (Cascade Skill)",
+        "is_cascade": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_gunnery",
+      "properties": {
+        "name": "Gunnery",
+        "source_file": "book1/skills.md",
+        "source_section": "Gunnery (Cascade Skill)",
+        "source_quote": "### Gunnery (Cascade Skill)",
+        "is_cascade": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_leadership",
       "properties": {
         "name": "Leadership",
         "source_file": "book1/skills.md",
@@ -101,7 +339,119 @@
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_vehicle",
+      "as": "@sk_liaison",
+      "properties": {
+        "name": "Liaison",
+        "source_file": "book1/skills.md",
+        "source_section": "Liaison",
+        "source_quote": "### Liaison"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_mechanics",
+      "properties": {
+        "name": "Mechanics",
+        "source_file": "book1/skills.md",
+        "source_section": "Mechanics",
+        "source_quote": "### Mechanics"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_medicine",
+      "properties": {
+        "name": "Medicine",
+        "source_file": "book1/skills.md",
+        "source_section": "Medicine",
+        "source_quote": "### Medicine"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_melee_combat",
+      "properties": {
+        "name": "Melee Combat",
+        "source_file": "book1/skills.md",
+        "source_section": "Melee Combat (Cascade Skill)",
+        "source_quote": "### Melee Combat (Cascade Skill)",
+        "is_cascade": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_piloting",
+      "properties": {
+        "name": "Piloting",
+        "source_file": "book1/skills.md",
+        "source_section": "Piloting",
+        "source_quote": "### Piloting"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_prospecting",
+      "properties": {
+        "name": "Prospecting",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_recon",
+      "properties": {
+        "name": "Recon",
+        "source_file": "book1/skills.md",
+        "source_section": "Recon",
+        "source_quote": "### Recon"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_sciences",
+      "properties": {
+        "name": "Sciences",
+        "source_file": "book1/skills.md",
+        "source_section": "Sciences (Cascade Skill)",
+        "source_quote": "### Sciences (Cascade Skill)",
+        "is_cascade": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_streetwise",
+      "properties": {
+        "name": "Streetwise",
+        "source_file": "book1/skills.md",
+        "source_section": "Streetwise",
+        "source_quote": "### Streetwise"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_survival",
+      "properties": {
+        "name": "Survival",
+        "source_file": "book1/skills.md",
+        "source_section": "Survival",
+        "source_quote": "### Survival"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Skill",
+      "as": "@sk_vehicle",
       "properties": {
         "name": "Vehicle",
         "source_file": "book1/skills.md",
@@ -113,40 +463,286 @@
     {
       "op": "create_entity",
       "type": "Skill",
-      "as": "@skill_athletics",
+      "as": "@sk_watercraft",
       "properties": {
-        "name": "Athletics",
+        "name": "Watercraft",
         "source_file": "book1/skills.md",
-        "source_section": "Athletics",
-        "source_quote": "### Athletics"
+        "source_section": "Watercraft (Cascade Skill)",
+        "source_quote": "### Watercraft (Cascade Skill)",
+        "is_cascade": "true"
       }
     },
     {
       "op": "create_entity",
-      "type": "Skill",
-      "as": "@skill_carousing",
+      "type": "TaskCheck",
+      "as": "@aerospace_defense_qual",
       "properties": {
-        "name": "Carousing",
-        "source_file": "book1/skills.md",
-        "source_section": "Carousing",
-        "source_quote": "### Carousing"
+        "name": "Aerospace Defense qualification",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
       }
     },
     {
       "op": "create_entity",
-      "type": "Skill",
-      "as": "@skill_gambling",
+      "type": "TaskCheck",
+      "as": "@aerospace_defense_surv",
       "properties": {
-        "name": "Gambling",
-        "source_file": "book1/skills.md",
-        "source_section": "Gambling",
-        "source_quote": "### Gambling"
+        "name": "Aerospace Defense survival",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
       }
     },
     {
       "op": "create_entity",
       "type": "RollableTable",
-      "as": "@agent_service",
+      "as": "@aerospace_defense_svc",
+      "properties": {
+        "name": "Aerospace Defense Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@aerospace_defense_g1",
+      "properties": {
+        "name": "Aerospace Defense: gain Electronics",
+        "skill": "@sk_electronics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aerospace_defense_r1",
+      "properties": {
+        "name": "Aerospace Defense service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@aerospace_defense_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@aerospace_defense_g2",
+      "properties": {
+        "name": "Aerospace Defense: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aerospace_defense_r2",
+      "properties": {
+        "name": "Aerospace Defense service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@aerospace_defense_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@aerospace_defense_g3",
+      "properties": {
+        "name": "Aerospace Defense: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aerospace_defense_r3",
+      "properties": {
+        "name": "Aerospace Defense service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@aerospace_defense_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@aerospace_defense_g4",
+      "properties": {
+        "name": "Aerospace Defense: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aerospace_defense_r4",
+      "properties": {
+        "name": "Aerospace Defense service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@aerospace_defense_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@aerospace_defense_g5",
+      "properties": {
+        "name": "Aerospace Defense: gain Survival",
+        "skill": "@sk_survival",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aerospace_defense_r5",
+      "properties": {
+        "name": "Aerospace Defense service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@aerospace_defense_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@aerospace_defense_g6",
+      "properties": {
+        "name": "Aerospace Defense: gain Aircraft",
+        "skill": "@sk_aircraft",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aerospace_defense_r6",
+      "properties": {
+        "name": "Aerospace Defense service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@aerospace_defense_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@aerospace_defense",
+      "properties": {
+        "name": "Aerospace Defense",
+        "qualification_check": "@aerospace_defense_qual",
+        "survival_check": "@aerospace_defense_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aerospace_defense",
+      "relation": "HAS_PART",
+      "to": "@aerospace_defense_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@agent_qual",
+      "properties": {
+        "name": "Agent qualification",
+        "attribute_ref": "social_standing",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@agent_surv",
+      "properties": {
+        "name": "Agent survival",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@agent_svc",
       "properties": {
         "name": "Agent Service Skills",
         "dice": "@d1d6",
@@ -157,10 +753,10 @@
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@agent_grant_1",
+      "as": "@agent_g1",
       "properties": {
         "name": "Agent: gain Admin",
-        "skill": "@skill_admin",
+        "skill": "@sk_admin",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -169,29 +765,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@agent_row_1",
+      "as": "@agent_r1",
       "properties": {
         "name": "Agent service 1",
         "roll_min": "1",
         "roll_max": "1",
-        "outcome": "@agent_grant_1",
+        "outcome": "@agent_g1",
         "source_section": "Career Tables",
         "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@agent_service",
+      "from": "@agent_svc",
       "relation": "HAS_PART",
-      "to": "@agent_row_1"
+      "to": "@agent_r1"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@agent_grant_2",
+      "as": "@agent_g2",
       "properties": {
         "name": "Agent: gain Computer",
-        "skill": "@skill_computer",
+        "skill": "@sk_computer",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -200,29 +796,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@agent_row_2",
+      "as": "@agent_r2",
       "properties": {
         "name": "Agent service 2",
         "roll_min": "2",
         "roll_max": "2",
-        "outcome": "@agent_grant_2",
+        "outcome": "@agent_g2",
         "source_section": "Career Tables",
         "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@agent_service",
+      "from": "@agent_svc",
       "relation": "HAS_PART",
-      "to": "@agent_row_2"
+      "to": "@agent_r2"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@agent_grant_3",
+      "as": "@agent_g3",
       "properties": {
         "name": "Agent: gain Streetwise",
-        "skill": "@skill_streetwise",
+        "skill": "@sk_streetwise",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -231,29 +827,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@agent_row_3",
+      "as": "@agent_r3",
       "properties": {
         "name": "Agent service 3",
         "roll_min": "3",
         "roll_max": "3",
-        "outcome": "@agent_grant_3",
+        "outcome": "@agent_g3",
         "source_section": "Career Tables",
         "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@agent_service",
+      "from": "@agent_svc",
       "relation": "HAS_PART",
-      "to": "@agent_row_3"
+      "to": "@agent_r3"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@agent_grant_4",
+      "as": "@agent_g4",
       "properties": {
         "name": "Agent: gain Bribery",
-        "skill": "@skill_bribery",
+        "skill": "@sk_bribery",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -262,29 +858,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@agent_row_4",
+      "as": "@agent_r4",
       "properties": {
         "name": "Agent service 4",
         "roll_min": "4",
         "roll_max": "4",
-        "outcome": "@agent_grant_4",
+        "outcome": "@agent_g4",
         "source_section": "Career Tables",
         "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@agent_service",
+      "from": "@agent_svc",
       "relation": "HAS_PART",
-      "to": "@agent_row_4"
+      "to": "@agent_r4"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@agent_grant_5",
+      "as": "@agent_g5",
       "properties": {
         "name": "Agent: gain Leadership",
-        "skill": "@skill_leadership",
+        "skill": "@sk_leadership",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -293,29 +889,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@agent_row_5",
+      "as": "@agent_r5",
       "properties": {
         "name": "Agent service 5",
         "roll_min": "5",
         "roll_max": "5",
-        "outcome": "@agent_grant_5",
+        "outcome": "@agent_g5",
         "source_section": "Career Tables",
         "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@agent_service",
+      "from": "@agent_svc",
       "relation": "HAS_PART",
-      "to": "@agent_row_5"
+      "to": "@agent_r5"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@agent_grant_6",
+      "as": "@agent_g6",
       "properties": {
         "name": "Agent: gain Vehicle",
-        "skill": "@skill_vehicle",
+        "skill": "@sk_vehicle",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -324,21 +920,21 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@agent_row_6",
+      "as": "@agent_r6",
       "properties": {
         "name": "Agent service 6",
         "roll_min": "6",
         "roll_max": "6",
-        "outcome": "@agent_grant_6",
+        "outcome": "@agent_g6",
         "source_section": "Career Tables",
         "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@agent_service",
+      "from": "@agent_svc",
       "relation": "HAS_PART",
-      "to": "@agent_row_6"
+      "to": "@agent_r6"
     },
     {
       "op": "create_entity",
@@ -346,10 +942,8 @@
       "as": "@agent",
       "properties": {
         "name": "Agent",
-        "qualification_target": "6",
-        "qualification_dm_characteristic": "social_standing",
-        "survival_target": "6",
-        "survival_dm_characteristic": "intelligence",
+        "qualification_check": "@agent_qual",
+        "survival_check": "@agent_surv",
         "source_section": "Career Tables",
         "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
       }
@@ -358,12 +952,38 @@
       "op": "set_relation",
       "from": "@agent",
       "relation": "HAS_PART",
-      "to": "@agent_service"
+      "to": "@agent_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@athlete_qual",
+      "properties": {
+        "name": "Athlete qualification",
+        "attribute_ref": "endurance",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@athlete_surv",
+      "properties": {
+        "name": "Athlete survival",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+      }
     },
     {
       "op": "create_entity",
       "type": "RollableTable",
-      "as": "@athlete_service",
+      "as": "@athlete_svc",
       "properties": {
         "name": "Athlete Service Skills",
         "dice": "@d1d6",
@@ -374,10 +994,10 @@
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@athlete_grant_1",
+      "as": "@athlete_g1",
       "properties": {
         "name": "Athlete: gain Athletics",
-        "skill": "@skill_athletics",
+        "skill": "@sk_athletics",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -386,29 +1006,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@athlete_row_1",
+      "as": "@athlete_r1",
       "properties": {
         "name": "Athlete service 1",
         "roll_min": "1",
         "roll_max": "1",
-        "outcome": "@athlete_grant_1",
+        "outcome": "@athlete_g1",
         "source_section": "Career Tables",
         "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@athlete_service",
+      "from": "@athlete_svc",
       "relation": "HAS_PART",
-      "to": "@athlete_row_1"
+      "to": "@athlete_r1"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@athlete_grant_2",
+      "as": "@athlete_g2",
       "properties": {
         "name": "Athlete: gain Admin",
-        "skill": "@skill_admin",
+        "skill": "@sk_admin",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -417,29 +1037,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@athlete_row_2",
+      "as": "@athlete_r2",
       "properties": {
         "name": "Athlete service 2",
         "roll_min": "2",
         "roll_max": "2",
-        "outcome": "@athlete_grant_2",
+        "outcome": "@athlete_g2",
         "source_section": "Career Tables",
         "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@athlete_service",
+      "from": "@athlete_svc",
       "relation": "HAS_PART",
-      "to": "@athlete_row_2"
+      "to": "@athlete_r2"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@athlete_grant_3",
+      "as": "@athlete_g3",
       "properties": {
         "name": "Athlete: gain Carousing",
-        "skill": "@skill_carousing",
+        "skill": "@sk_carousing",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -448,29 +1068,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@athlete_row_3",
+      "as": "@athlete_r3",
       "properties": {
         "name": "Athlete service 3",
         "roll_min": "3",
         "roll_max": "3",
-        "outcome": "@athlete_grant_3",
+        "outcome": "@athlete_g3",
         "source_section": "Career Tables",
         "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@athlete_service",
+      "from": "@athlete_svc",
       "relation": "HAS_PART",
-      "to": "@athlete_row_3"
+      "to": "@athlete_r3"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@athlete_grant_4",
+      "as": "@athlete_g4",
       "properties": {
         "name": "Athlete: gain Computer",
-        "skill": "@skill_computer",
+        "skill": "@sk_computer",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -479,29 +1099,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@athlete_row_4",
+      "as": "@athlete_r4",
       "properties": {
         "name": "Athlete service 4",
         "roll_min": "4",
         "roll_max": "4",
-        "outcome": "@athlete_grant_4",
+        "outcome": "@athlete_g4",
         "source_section": "Career Tables",
         "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@athlete_service",
+      "from": "@athlete_svc",
       "relation": "HAS_PART",
-      "to": "@athlete_row_4"
+      "to": "@athlete_r4"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@athlete_grant_5",
+      "as": "@athlete_g5",
       "properties": {
         "name": "Athlete: gain Gambling",
-        "skill": "@skill_gambling",
+        "skill": "@sk_gambling",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -510,29 +1130,29 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@athlete_row_5",
+      "as": "@athlete_r5",
       "properties": {
         "name": "Athlete service 5",
         "roll_min": "5",
         "roll_max": "5",
-        "outcome": "@athlete_grant_5",
+        "outcome": "@athlete_g5",
         "source_section": "Career Tables",
         "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@athlete_service",
+      "from": "@athlete_svc",
       "relation": "HAS_PART",
-      "to": "@athlete_row_5"
+      "to": "@athlete_r5"
     },
     {
       "op": "create_entity",
       "type": "GrantSkill",
-      "as": "@athlete_grant_6",
+      "as": "@athlete_g6",
       "properties": {
         "name": "Athlete: gain Vehicle",
-        "skill": "@skill_vehicle",
+        "skill": "@sk_vehicle",
         "skill_level": "1",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
@@ -541,21 +1161,21 @@
     {
       "op": "create_entity",
       "type": "TableEntry",
-      "as": "@athlete_row_6",
+      "as": "@athlete_r6",
       "properties": {
         "name": "Athlete service 6",
         "roll_min": "6",
         "roll_max": "6",
-        "outcome": "@athlete_grant_6",
+        "outcome": "@athlete_g6",
         "source_section": "Career Tables",
         "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
       }
     },
     {
       "op": "set_relation",
-      "from": "@athlete_service",
+      "from": "@athlete_svc",
       "relation": "HAS_PART",
-      "to": "@athlete_row_6"
+      "to": "@athlete_r6"
     },
     {
       "op": "create_entity",
@@ -563,10 +1183,8 @@
       "as": "@athlete",
       "properties": {
         "name": "Athlete",
-        "qualification_target": "8",
-        "qualification_dm_characteristic": "endurance",
-        "survival_target": "5",
-        "survival_dm_characteristic": "dexterity",
+        "qualification_check": "@athlete_qual",
+        "survival_check": "@athlete_surv",
         "source_section": "Career Tables",
         "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
       }
@@ -575,7 +1193,5068 @@
       "op": "set_relation",
       "from": "@athlete",
       "relation": "HAS_PART",
-      "to": "@athlete_service"
+      "to": "@athlete_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@barbarian_qual",
+      "properties": {
+        "name": "Barbarian qualification",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@barbarian_surv",
+      "properties": {
+        "name": "Barbarian survival",
+        "attribute_ref": "strength",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@barbarian_svc",
+      "properties": {
+        "name": "Barbarian Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@barbarian_g1",
+      "properties": {
+        "name": "Barbarian: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@barbarian_r1",
+      "properties": {
+        "name": "Barbarian service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@barbarian_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian_svc",
+      "relation": "HAS_PART",
+      "to": "@barbarian_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@barbarian_g2",
+      "properties": {
+        "name": "Barbarian: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@barbarian_r2",
+      "properties": {
+        "name": "Barbarian service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@barbarian_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian_svc",
+      "relation": "HAS_PART",
+      "to": "@barbarian_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@barbarian_g3",
+      "properties": {
+        "name": "Barbarian: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@barbarian_r3",
+      "properties": {
+        "name": "Barbarian service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@barbarian_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian_svc",
+      "relation": "HAS_PART",
+      "to": "@barbarian_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@barbarian_g4",
+      "properties": {
+        "name": "Barbarian: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@barbarian_r4",
+      "properties": {
+        "name": "Barbarian service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@barbarian_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian_svc",
+      "relation": "HAS_PART",
+      "to": "@barbarian_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@barbarian_g5",
+      "properties": {
+        "name": "Barbarian: gain Survival",
+        "skill": "@sk_survival",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@barbarian_r5",
+      "properties": {
+        "name": "Barbarian service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@barbarian_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian_svc",
+      "relation": "HAS_PART",
+      "to": "@barbarian_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@barbarian_g6",
+      "properties": {
+        "name": "Barbarian: gain Animals",
+        "skill": "@sk_animals",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@barbarian_r6",
+      "properties": {
+        "name": "Barbarian service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@barbarian_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian_svc",
+      "relation": "HAS_PART",
+      "to": "@barbarian_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@barbarian",
+      "properties": {
+        "name": "Barbarian",
+        "qualification_check": "@barbarian_qual",
+        "survival_check": "@barbarian_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@barbarian",
+      "relation": "HAS_PART",
+      "to": "@barbarian_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@belter_qual",
+      "properties": {
+        "name": "Belter qualification",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@belter_surv",
+      "properties": {
+        "name": "Belter survival",
+        "attribute_ref": "dexterity",
+        "target_number": "7",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@belter_svc",
+      "properties": {
+        "name": "Belter Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@belter_g1",
+      "properties": {
+        "name": "Belter: gain Comms",
+        "skill": "@sk_comms",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@belter_r1",
+      "properties": {
+        "name": "Belter service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@belter_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter_svc",
+      "relation": "HAS_PART",
+      "to": "@belter_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@belter_g2",
+      "properties": {
+        "name": "Belter: gain Demolitions",
+        "skill": "@sk_demolitions",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@belter_r2",
+      "properties": {
+        "name": "Belter service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@belter_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter_svc",
+      "relation": "HAS_PART",
+      "to": "@belter_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@belter_g3",
+      "properties": {
+        "name": "Belter: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@belter_r3",
+      "properties": {
+        "name": "Belter service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@belter_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter_svc",
+      "relation": "HAS_PART",
+      "to": "@belter_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@belter_g4",
+      "properties": {
+        "name": "Belter: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@belter_r4",
+      "properties": {
+        "name": "Belter service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@belter_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter_svc",
+      "relation": "HAS_PART",
+      "to": "@belter_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@belter_g5",
+      "properties": {
+        "name": "Belter: gain Prospecting",
+        "skill": "@sk_prospecting",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@belter_r5",
+      "properties": {
+        "name": "Belter service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@belter_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter_svc",
+      "relation": "HAS_PART",
+      "to": "@belter_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@belter_g6",
+      "properties": {
+        "name": "Belter: gain Piloting",
+        "skill": "@sk_piloting",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@belter_r6",
+      "properties": {
+        "name": "Belter service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@belter_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter_svc",
+      "relation": "HAS_PART",
+      "to": "@belter_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@belter",
+      "properties": {
+        "name": "Belter",
+        "qualification_check": "@belter_qual",
+        "survival_check": "@belter_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@belter",
+      "relation": "HAS_PART",
+      "to": "@belter_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@bureaucrat_qual",
+      "properties": {
+        "name": "Bureaucrat qualification",
+        "attribute_ref": "social_standing",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@bureaucrat_surv",
+      "properties": {
+        "name": "Bureaucrat survival",
+        "attribute_ref": "education",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 5+ | Dex 5+ | Int 6+ | Str 6+ | Dex 7+ | Edu 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@bureaucrat_svc",
+      "properties": {
+        "name": "Bureaucrat Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@bureaucrat_g1",
+      "properties": {
+        "name": "Bureaucrat: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@bureaucrat_r1",
+      "properties": {
+        "name": "Bureaucrat service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@bureaucrat_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Athletics | Electronics | Admin | Mechanics | Comms | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat_svc",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@bureaucrat_g2",
+      "properties": {
+        "name": "Bureaucrat: gain Computer",
+        "skill": "@sk_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@bureaucrat_r2",
+      "properties": {
+        "name": "Bureaucrat service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@bureaucrat_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Admin | Gun Combat | Computer | Gun Combat | Demolitions | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat_svc",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@bureaucrat_g3",
+      "properties": {
+        "name": "Bureaucrat: gain Carousing",
+        "skill": "@sk_carousing",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@bureaucrat_r3",
+      "properties": {
+        "name": "Bureaucrat service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@bureaucrat_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Carousing | Gunnery | Streetwise | Melee Combat | Gun Combat | Carousing |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat_svc",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@bureaucrat_g4",
+      "properties": {
+        "name": "Bureaucrat: gain Bribery",
+        "skill": "@sk_bribery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@bureaucrat_r4",
+      "properties": {
+        "name": "Bureaucrat service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@bureaucrat_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Computer | Melee Combat | Bribery | Recon | Gunnery | Bribery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat_svc",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@bureaucrat_g5",
+      "properties": {
+        "name": "Bureaucrat: gain Leadership",
+        "skill": "@sk_leadership",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@bureaucrat_r5",
+      "properties": {
+        "name": "Bureaucrat service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@bureaucrat_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Gambling | Survival | Leadership | Survival | Prospecting | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat_svc",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@bureaucrat_g6",
+      "properties": {
+        "name": "Bureaucrat: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@bureaucrat_r6",
+      "properties": {
+        "name": "Bureaucrat service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@bureaucrat_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Aircraft | Vehicle | Animals | Piloting | Vehicle |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat_svc",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@bureaucrat",
+      "properties": {
+        "name": "Bureaucrat",
+        "qualification_check": "@bureaucrat_qual",
+        "survival_check": "@bureaucrat_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@bureaucrat",
+      "relation": "HAS_PART",
+      "to": "@bureaucrat_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@colonist_qual",
+      "properties": {
+        "name": "Colonist qualification",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@colonist_surv",
+      "properties": {
+        "name": "Colonist survival",
+        "attribute_ref": "endurance",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@colonist_svc",
+      "properties": {
+        "name": "Colonist Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@colonist_g1",
+      "properties": {
+        "name": "Colonist: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@colonist_r1",
+      "properties": {
+        "name": "Colonist service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@colonist_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist_svc",
+      "relation": "HAS_PART",
+      "to": "@colonist_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@colonist_g2",
+      "properties": {
+        "name": "Colonist: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@colonist_r2",
+      "properties": {
+        "name": "Colonist service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@colonist_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist_svc",
+      "relation": "HAS_PART",
+      "to": "@colonist_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@colonist_g3",
+      "properties": {
+        "name": "Colonist: gain Animals",
+        "skill": "@sk_animals",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@colonist_r3",
+      "properties": {
+        "name": "Colonist service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@colonist_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist_svc",
+      "relation": "HAS_PART",
+      "to": "@colonist_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@colonist_g4",
+      "properties": {
+        "name": "Colonist: gain Electronics",
+        "skill": "@sk_electronics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@colonist_r4",
+      "properties": {
+        "name": "Colonist service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@colonist_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist_svc",
+      "relation": "HAS_PART",
+      "to": "@colonist_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@colonist_g5",
+      "properties": {
+        "name": "Colonist: gain Survival",
+        "skill": "@sk_survival",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@colonist_r5",
+      "properties": {
+        "name": "Colonist service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@colonist_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist_svc",
+      "relation": "HAS_PART",
+      "to": "@colonist_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@colonist_g6",
+      "properties": {
+        "name": "Colonist: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@colonist_r6",
+      "properties": {
+        "name": "Colonist service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@colonist_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist_svc",
+      "relation": "HAS_PART",
+      "to": "@colonist_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@colonist",
+      "properties": {
+        "name": "Colonist",
+        "qualification_check": "@colonist_qual",
+        "survival_check": "@colonist_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@colonist",
+      "relation": "HAS_PART",
+      "to": "@colonist_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@diplomat_qual",
+      "properties": {
+        "name": "Diplomat qualification",
+        "attribute_ref": "social_standing",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@diplomat_surv",
+      "properties": {
+        "name": "Diplomat survival",
+        "attribute_ref": "education",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@diplomat_svc",
+      "properties": {
+        "name": "Diplomat Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@diplomat_g1",
+      "properties": {
+        "name": "Diplomat: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@diplomat_r1",
+      "properties": {
+        "name": "Diplomat service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@diplomat_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat_svc",
+      "relation": "HAS_PART",
+      "to": "@diplomat_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@diplomat_g2",
+      "properties": {
+        "name": "Diplomat: gain Computer",
+        "skill": "@sk_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@diplomat_r2",
+      "properties": {
+        "name": "Diplomat service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@diplomat_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat_svc",
+      "relation": "HAS_PART",
+      "to": "@diplomat_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@diplomat_g3",
+      "properties": {
+        "name": "Diplomat: gain Carousing",
+        "skill": "@sk_carousing",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@diplomat_r3",
+      "properties": {
+        "name": "Diplomat service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@diplomat_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat_svc",
+      "relation": "HAS_PART",
+      "to": "@diplomat_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@diplomat_g4",
+      "properties": {
+        "name": "Diplomat: gain Bribery",
+        "skill": "@sk_bribery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@diplomat_r4",
+      "properties": {
+        "name": "Diplomat service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@diplomat_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat_svc",
+      "relation": "HAS_PART",
+      "to": "@diplomat_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@diplomat_g5",
+      "properties": {
+        "name": "Diplomat: gain Liaison",
+        "skill": "@sk_liaison",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@diplomat_r5",
+      "properties": {
+        "name": "Diplomat service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@diplomat_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat_svc",
+      "relation": "HAS_PART",
+      "to": "@diplomat_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@diplomat_g6",
+      "properties": {
+        "name": "Diplomat: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@diplomat_r6",
+      "properties": {
+        "name": "Diplomat service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@diplomat_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat_svc",
+      "relation": "HAS_PART",
+      "to": "@diplomat_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@diplomat",
+      "properties": {
+        "name": "Diplomat",
+        "qualification_check": "@diplomat_qual",
+        "survival_check": "@diplomat_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@diplomat",
+      "relation": "HAS_PART",
+      "to": "@diplomat_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@drifter_qual",
+      "properties": {
+        "name": "Drifter qualification",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@drifter_surv",
+      "properties": {
+        "name": "Drifter survival",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@drifter_svc",
+      "properties": {
+        "name": "Drifter Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@drifter_g1",
+      "properties": {
+        "name": "Drifter: gain Streetwise",
+        "skill": "@sk_streetwise",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@drifter_r1",
+      "properties": {
+        "name": "Drifter service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@drifter_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter_svc",
+      "relation": "HAS_PART",
+      "to": "@drifter_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@drifter_g2",
+      "properties": {
+        "name": "Drifter: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@drifter_r2",
+      "properties": {
+        "name": "Drifter service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@drifter_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter_svc",
+      "relation": "HAS_PART",
+      "to": "@drifter_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@drifter_g3",
+      "properties": {
+        "name": "Drifter: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@drifter_r3",
+      "properties": {
+        "name": "Drifter service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@drifter_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter_svc",
+      "relation": "HAS_PART",
+      "to": "@drifter_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@drifter_g4",
+      "properties": {
+        "name": "Drifter: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@drifter_r4",
+      "properties": {
+        "name": "Drifter service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@drifter_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter_svc",
+      "relation": "HAS_PART",
+      "to": "@drifter_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@drifter_g5",
+      "properties": {
+        "name": "Drifter: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@drifter_r5",
+      "properties": {
+        "name": "Drifter service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@drifter_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter_svc",
+      "relation": "HAS_PART",
+      "to": "@drifter_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@drifter_g6",
+      "properties": {
+        "name": "Drifter: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@drifter_r6",
+      "properties": {
+        "name": "Drifter service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@drifter_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter_svc",
+      "relation": "HAS_PART",
+      "to": "@drifter_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@drifter",
+      "properties": {
+        "name": "Drifter",
+        "qualification_check": "@drifter_qual",
+        "survival_check": "@drifter_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@drifter",
+      "relation": "HAS_PART",
+      "to": "@drifter_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@entertainer_qual",
+      "properties": {
+        "name": "Entertainer qualification",
+        "attribute_ref": "social_standing",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@entertainer_surv",
+      "properties": {
+        "name": "Entertainer survival",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@entertainer_svc",
+      "properties": {
+        "name": "Entertainer Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@entertainer_g1",
+      "properties": {
+        "name": "Entertainer: gain Athletics",
+        "skill": "@sk_athletics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@entertainer_r1",
+      "properties": {
+        "name": "Entertainer service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@entertainer_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer_svc",
+      "relation": "HAS_PART",
+      "to": "@entertainer_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@entertainer_g2",
+      "properties": {
+        "name": "Entertainer: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@entertainer_r2",
+      "properties": {
+        "name": "Entertainer service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@entertainer_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer_svc",
+      "relation": "HAS_PART",
+      "to": "@entertainer_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@entertainer_g3",
+      "properties": {
+        "name": "Entertainer: gain Carousing",
+        "skill": "@sk_carousing",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@entertainer_r3",
+      "properties": {
+        "name": "Entertainer service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@entertainer_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer_svc",
+      "relation": "HAS_PART",
+      "to": "@entertainer_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@entertainer_g4",
+      "properties": {
+        "name": "Entertainer: gain Bribery",
+        "skill": "@sk_bribery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@entertainer_r4",
+      "properties": {
+        "name": "Entertainer service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@entertainer_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer_svc",
+      "relation": "HAS_PART",
+      "to": "@entertainer_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@entertainer_g5",
+      "properties": {
+        "name": "Entertainer: gain Gambling",
+        "skill": "@sk_gambling",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@entertainer_r5",
+      "properties": {
+        "name": "Entertainer service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@entertainer_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer_svc",
+      "relation": "HAS_PART",
+      "to": "@entertainer_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@entertainer_g6",
+      "properties": {
+        "name": "Entertainer: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@entertainer_r6",
+      "properties": {
+        "name": "Entertainer service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@entertainer_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer_svc",
+      "relation": "HAS_PART",
+      "to": "@entertainer_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@entertainer",
+      "properties": {
+        "name": "Entertainer",
+        "qualification_check": "@entertainer_qual",
+        "survival_check": "@entertainer_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@entertainer",
+      "relation": "HAS_PART",
+      "to": "@entertainer_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@hunter_qual",
+      "properties": {
+        "name": "Hunter qualification",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@hunter_surv",
+      "properties": {
+        "name": "Hunter survival",
+        "attribute_ref": "strength",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@hunter_svc",
+      "properties": {
+        "name": "Hunter Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@hunter_g1",
+      "properties": {
+        "name": "Hunter: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@hunter_r1",
+      "properties": {
+        "name": "Hunter service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@hunter_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter_svc",
+      "relation": "HAS_PART",
+      "to": "@hunter_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@hunter_g2",
+      "properties": {
+        "name": "Hunter: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@hunter_r2",
+      "properties": {
+        "name": "Hunter service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@hunter_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter_svc",
+      "relation": "HAS_PART",
+      "to": "@hunter_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@hunter_g3",
+      "properties": {
+        "name": "Hunter: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@hunter_r3",
+      "properties": {
+        "name": "Hunter service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@hunter_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter_svc",
+      "relation": "HAS_PART",
+      "to": "@hunter_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@hunter_g4",
+      "properties": {
+        "name": "Hunter: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@hunter_r4",
+      "properties": {
+        "name": "Hunter service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@hunter_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter_svc",
+      "relation": "HAS_PART",
+      "to": "@hunter_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@hunter_g5",
+      "properties": {
+        "name": "Hunter: gain Survival",
+        "skill": "@sk_survival",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@hunter_r5",
+      "properties": {
+        "name": "Hunter service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@hunter_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter_svc",
+      "relation": "HAS_PART",
+      "to": "@hunter_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@hunter_g6",
+      "properties": {
+        "name": "Hunter: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@hunter_r6",
+      "properties": {
+        "name": "Hunter service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@hunter_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter_svc",
+      "relation": "HAS_PART",
+      "to": "@hunter_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@hunter",
+      "properties": {
+        "name": "Hunter",
+        "qualification_check": "@hunter_qual",
+        "survival_check": "@hunter_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@hunter",
+      "relation": "HAS_PART",
+      "to": "@hunter_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@marine_qual",
+      "properties": {
+        "name": "Marine qualification",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@marine_surv",
+      "properties": {
+        "name": "Marine survival",
+        "attribute_ref": "endurance",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 6+ | Edu 5+ | End 5+ | Int 4+ | Str 8+ | End 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@marine_svc",
+      "properties": {
+        "name": "Marine Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@marine_g1",
+      "properties": {
+        "name": "Marine: gain Comms",
+        "skill": "@sk_comms",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@marine_r1",
+      "properties": {
+        "name": "Marine service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@marine_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Admin | Streetwise | Athletics | Mechanics | Comms |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine_svc",
+      "relation": "HAS_PART",
+      "to": "@marine_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@marine_g2",
+      "properties": {
+        "name": "Marine: gain Demolitions",
+        "skill": "@sk_demolitions",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@marine_r2",
+      "properties": {
+        "name": "Marine service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@marine_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Computer | Mechanics | Admin | Gun Combat | Demolitions |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine_svc",
+      "relation": "HAS_PART",
+      "to": "@marine_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@marine_g3",
+      "properties": {
+        "name": "Marine: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@marine_r3",
+      "properties": {
+        "name": "Marine service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@marine_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Animals | Carousing | Gun Combat | Carousing | Melee Combat | Gun Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine_svc",
+      "relation": "HAS_PART",
+      "to": "@marine_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@marine_g4",
+      "properties": {
+        "name": "Marine: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@marine_r4",
+      "properties": {
+        "name": "Marine service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@marine_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Electronics | Bribery | Melee Combat | Bribery | Recon | Gunnery |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine_svc",
+      "relation": "HAS_PART",
+      "to": "@marine_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@marine_g5",
+      "properties": {
+        "name": "Marine: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@marine_r5",
+      "properties": {
+        "name": "Marine service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@marine_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Liaison | Recon | Gambling | Survival | Melee Combat |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine_svc",
+      "relation": "HAS_PART",
+      "to": "@marine_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@marine_g6",
+      "properties": {
+        "name": "Marine: gain Battle Dress",
+        "skill": "@sk_battle_dress",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@marine_r6",
+      "properties": {
+        "name": "Marine service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@marine_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Vehicle | Vehicle | Vehicle | Battle Dress |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine_svc",
+      "relation": "HAS_PART",
+      "to": "@marine_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@marine",
+      "properties": {
+        "name": "Marine",
+        "qualification_check": "@marine_qual",
+        "survival_check": "@marine_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Soc 6+ | Dex 5+ | Soc 8+ | End 5+ | Int 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@marine",
+      "relation": "HAS_PART",
+      "to": "@marine_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@maritime_defense_qual",
+      "properties": {
+        "name": "Maritime Defense qualification",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@maritime_defense_surv",
+      "properties": {
+        "name": "Maritime Defense survival",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@maritime_defense_svc",
+      "properties": {
+        "name": "Maritime Defense Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@maritime_defense_g1",
+      "properties": {
+        "name": "Maritime Defense: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@maritime_defense_r1",
+      "properties": {
+        "name": "Maritime Defense service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@maritime_defense_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@maritime_defense_g2",
+      "properties": {
+        "name": "Maritime Defense: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@maritime_defense_r2",
+      "properties": {
+        "name": "Maritime Defense service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@maritime_defense_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@maritime_defense_g3",
+      "properties": {
+        "name": "Maritime Defense: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@maritime_defense_r3",
+      "properties": {
+        "name": "Maritime Defense service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@maritime_defense_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@maritime_defense_g4",
+      "properties": {
+        "name": "Maritime Defense: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@maritime_defense_r4",
+      "properties": {
+        "name": "Maritime Defense service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@maritime_defense_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@maritime_defense_g5",
+      "properties": {
+        "name": "Maritime Defense: gain Survival",
+        "skill": "@sk_survival",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@maritime_defense_r5",
+      "properties": {
+        "name": "Maritime Defense service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@maritime_defense_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@maritime_defense_g6",
+      "properties": {
+        "name": "Maritime Defense: gain Watercraft",
+        "skill": "@sk_watercraft",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@maritime_defense_r6",
+      "properties": {
+        "name": "Maritime Defense service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@maritime_defense_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@maritime_defense",
+      "properties": {
+        "name": "Maritime Defense",
+        "qualification_check": "@maritime_defense_qual",
+        "survival_check": "@maritime_defense_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@maritime_defense",
+      "relation": "HAS_PART",
+      "to": "@maritime_defense_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@mercenary_qual",
+      "properties": {
+        "name": "Mercenary qualification",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@mercenary_surv",
+      "properties": {
+        "name": "Mercenary survival",
+        "attribute_ref": "endurance",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@mercenary_svc",
+      "properties": {
+        "name": "Mercenary Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@mercenary_g1",
+      "properties": {
+        "name": "Mercenary: gain Comms",
+        "skill": "@sk_comms",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mercenary_r1",
+      "properties": {
+        "name": "Mercenary service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@mercenary_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary_svc",
+      "relation": "HAS_PART",
+      "to": "@mercenary_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@mercenary_g2",
+      "properties": {
+        "name": "Mercenary: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mercenary_r2",
+      "properties": {
+        "name": "Mercenary service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@mercenary_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary_svc",
+      "relation": "HAS_PART",
+      "to": "@mercenary_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@mercenary_g3",
+      "properties": {
+        "name": "Mercenary: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mercenary_r3",
+      "properties": {
+        "name": "Mercenary service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@mercenary_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary_svc",
+      "relation": "HAS_PART",
+      "to": "@mercenary_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@mercenary_g4",
+      "properties": {
+        "name": "Mercenary: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mercenary_r4",
+      "properties": {
+        "name": "Mercenary service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@mercenary_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary_svc",
+      "relation": "HAS_PART",
+      "to": "@mercenary_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@mercenary_g5",
+      "properties": {
+        "name": "Mercenary: gain Gambling",
+        "skill": "@sk_gambling",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mercenary_r5",
+      "properties": {
+        "name": "Mercenary service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@mercenary_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary_svc",
+      "relation": "HAS_PART",
+      "to": "@mercenary_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@mercenary_g6",
+      "properties": {
+        "name": "Mercenary: gain Battle Dress",
+        "skill": "@sk_battle_dress",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mercenary_r6",
+      "properties": {
+        "name": "Mercenary service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@mercenary_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary_svc",
+      "relation": "HAS_PART",
+      "to": "@mercenary_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@mercenary",
+      "properties": {
+        "name": "Mercenary",
+        "qualification_check": "@mercenary_qual",
+        "survival_check": "@mercenary_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mercenary",
+      "relation": "HAS_PART",
+      "to": "@mercenary_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@merchant_qual",
+      "properties": {
+        "name": "Merchant qualification",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@merchant_surv",
+      "properties": {
+        "name": "Merchant survival",
+        "attribute_ref": "intelligence",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@merchant_svc",
+      "properties": {
+        "name": "Merchant Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@merchant_g1",
+      "properties": {
+        "name": "Merchant: gain Comms",
+        "skill": "@sk_comms",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@merchant_r1",
+      "properties": {
+        "name": "Merchant service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@merchant_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant_svc",
+      "relation": "HAS_PART",
+      "to": "@merchant_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@merchant_g2",
+      "properties": {
+        "name": "Merchant: gain Engineering",
+        "skill": "@sk_engineering",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@merchant_r2",
+      "properties": {
+        "name": "Merchant service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@merchant_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant_svc",
+      "relation": "HAS_PART",
+      "to": "@merchant_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@merchant_g3",
+      "properties": {
+        "name": "Merchant: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@merchant_r3",
+      "properties": {
+        "name": "Merchant service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@merchant_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant_svc",
+      "relation": "HAS_PART",
+      "to": "@merchant_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@merchant_g4",
+      "properties": {
+        "name": "Merchant: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@merchant_r4",
+      "properties": {
+        "name": "Merchant service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@merchant_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant_svc",
+      "relation": "HAS_PART",
+      "to": "@merchant_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@merchant_g5",
+      "properties": {
+        "name": "Merchant: gain Broker",
+        "skill": "@sk_broker",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@merchant_r5",
+      "properties": {
+        "name": "Merchant service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@merchant_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant_svc",
+      "relation": "HAS_PART",
+      "to": "@merchant_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@merchant_g6",
+      "properties": {
+        "name": "Merchant: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@merchant_r6",
+      "properties": {
+        "name": "Merchant service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@merchant_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant_svc",
+      "relation": "HAS_PART",
+      "to": "@merchant_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@merchant",
+      "properties": {
+        "name": "Merchant",
+        "qualification_check": "@merchant_qual",
+        "survival_check": "@merchant_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@merchant",
+      "relation": "HAS_PART",
+      "to": "@merchant_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@navy_qual",
+      "properties": {
+        "name": "Navy qualification",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@navy_surv",
+      "properties": {
+        "name": "Navy survival",
+        "attribute_ref": "intelligence",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@navy_svc",
+      "properties": {
+        "name": "Navy Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@navy_g1",
+      "properties": {
+        "name": "Navy: gain Comms",
+        "skill": "@sk_comms",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@navy_r1",
+      "properties": {
+        "name": "Navy service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@navy_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy_svc",
+      "relation": "HAS_PART",
+      "to": "@navy_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@navy_g2",
+      "properties": {
+        "name": "Navy: gain Engineering",
+        "skill": "@sk_engineering",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@navy_r2",
+      "properties": {
+        "name": "Navy service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@navy_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy_svc",
+      "relation": "HAS_PART",
+      "to": "@navy_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@navy_g3",
+      "properties": {
+        "name": "Navy: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@navy_r3",
+      "properties": {
+        "name": "Navy service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@navy_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy_svc",
+      "relation": "HAS_PART",
+      "to": "@navy_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@navy_g4",
+      "properties": {
+        "name": "Navy: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@navy_r4",
+      "properties": {
+        "name": "Navy service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@navy_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy_svc",
+      "relation": "HAS_PART",
+      "to": "@navy_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@navy_g5",
+      "properties": {
+        "name": "Navy: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@navy_r5",
+      "properties": {
+        "name": "Navy service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@navy_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy_svc",
+      "relation": "HAS_PART",
+      "to": "@navy_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@navy_g6",
+      "properties": {
+        "name": "Navy: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@navy_r6",
+      "properties": {
+        "name": "Navy service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@navy_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy_svc",
+      "relation": "HAS_PART",
+      "to": "@navy_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@navy",
+      "properties": {
+        "name": "Navy",
+        "qualification_check": "@navy_qual",
+        "survival_check": "@navy_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@navy",
+      "relation": "HAS_PART",
+      "to": "@navy_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@noble_qual",
+      "properties": {
+        "name": "Noble qualification",
+        "attribute_ref": "social_standing",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@noble_surv",
+      "properties": {
+        "name": "Noble survival",
+        "attribute_ref": "social_standing",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@noble_svc",
+      "properties": {
+        "name": "Noble Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@noble_g1",
+      "properties": {
+        "name": "Noble: gain Athletics",
+        "skill": "@sk_athletics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@noble_r1",
+      "properties": {
+        "name": "Noble service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@noble_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble_svc",
+      "relation": "HAS_PART",
+      "to": "@noble_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@noble_g2",
+      "properties": {
+        "name": "Noble: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@noble_r2",
+      "properties": {
+        "name": "Noble service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@noble_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble_svc",
+      "relation": "HAS_PART",
+      "to": "@noble_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@noble_g3",
+      "properties": {
+        "name": "Noble: gain Carousing",
+        "skill": "@sk_carousing",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@noble_r3",
+      "properties": {
+        "name": "Noble service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@noble_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble_svc",
+      "relation": "HAS_PART",
+      "to": "@noble_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@noble_g4",
+      "properties": {
+        "name": "Noble: gain Leadership",
+        "skill": "@sk_leadership",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@noble_r4",
+      "properties": {
+        "name": "Noble service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@noble_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble_svc",
+      "relation": "HAS_PART",
+      "to": "@noble_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@noble_g5",
+      "properties": {
+        "name": "Noble: gain Gambling",
+        "skill": "@sk_gambling",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@noble_r5",
+      "properties": {
+        "name": "Noble service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@noble_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble_svc",
+      "relation": "HAS_PART",
+      "to": "@noble_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@noble_g6",
+      "properties": {
+        "name": "Noble: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@noble_r6",
+      "properties": {
+        "name": "Noble service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@noble_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble_svc",
+      "relation": "HAS_PART",
+      "to": "@noble_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@noble",
+      "properties": {
+        "name": "Noble",
+        "qualification_check": "@noble_qual",
+        "survival_check": "@noble_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@noble",
+      "relation": "HAS_PART",
+      "to": "@noble_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@physician_qual",
+      "properties": {
+        "name": "Physician qualification",
+        "attribute_ref": "education",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@physician_surv",
+      "properties": {
+        "name": "Physician survival",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | End 5+ | End 6+ | Int 5+ | Int 5+ | Soc 4+ | Int 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@physician_svc",
+      "properties": {
+        "name": "Physician Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@physician_g1",
+      "properties": {
+        "name": "Physician: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@physician_r1",
+      "properties": {
+        "name": "Physician service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@physician_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Mechanics | Comms | Comms | Comms | Athletics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician_svc",
+      "relation": "HAS_PART",
+      "to": "@physician_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@physician_g2",
+      "properties": {
+        "name": "Physician: gain Computer",
+        "skill": "@sk_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@physician_r2",
+      "properties": {
+        "name": "Physician service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@physician_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Gun Combat | Mechanics | Engineering | Engineering | Admin | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician_svc",
+      "relation": "HAS_PART",
+      "to": "@physician_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@physician_g3",
+      "properties": {
+        "name": "Physician: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@physician_r3",
+      "properties": {
+        "name": "Physician service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@physician_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gunnery | Gun Combat | Gun Combat | Gun Combat | Carousing | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician_svc",
+      "relation": "HAS_PART",
+      "to": "@physician_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@physician_g4",
+      "properties": {
+        "name": "Physician: gain Medicine",
+        "skill": "@sk_medicine",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@physician_r4",
+      "properties": {
+        "name": "Physician service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@physician_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Melee Combat | Gunnery | Leadership | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician_svc",
+      "relation": "HAS_PART",
+      "to": "@physician_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@physician_g5",
+      "properties": {
+        "name": "Physician: gain Leadership",
+        "skill": "@sk_leadership",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@physician_r5",
+      "properties": {
+        "name": "Physician service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@physician_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Survival | Gambling | Broker | Melee Combat | Gambling | Leadership |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician_svc",
+      "relation": "HAS_PART",
+      "to": "@physician_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@physician_g6",
+      "properties": {
+        "name": "Physician: gain Sciences",
+        "skill": "@sk_sciences",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@physician_r6",
+      "properties": {
+        "name": "Physician service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@physician_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Watercraft | Battle Dress | Vehicle | Vehicle | Vehicle | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician_svc",
+      "relation": "HAS_PART",
+      "to": "@physician_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@physician",
+      "properties": {
+        "name": "Physician",
+        "qualification_check": "@physician_qual",
+        "survival_check": "@physician_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 5+ | Int 4+ | Int 4+ | Int 6+ | Soc 8+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@physician",
+      "relation": "HAS_PART",
+      "to": "@physician_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@pirate_qual",
+      "properties": {
+        "name": "Pirate qualification",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@pirate_surv",
+      "properties": {
+        "name": "Pirate survival",
+        "attribute_ref": "dexterity",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@pirate_svc",
+      "properties": {
+        "name": "Pirate Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@pirate_g1",
+      "properties": {
+        "name": "Pirate: gain Streetwise",
+        "skill": "@sk_streetwise",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@pirate_r1",
+      "properties": {
+        "name": "Pirate service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@pirate_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate_svc",
+      "relation": "HAS_PART",
+      "to": "@pirate_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@pirate_g2",
+      "properties": {
+        "name": "Pirate: gain Electronics",
+        "skill": "@sk_electronics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@pirate_r2",
+      "properties": {
+        "name": "Pirate service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@pirate_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate_svc",
+      "relation": "HAS_PART",
+      "to": "@pirate_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@pirate_g3",
+      "properties": {
+        "name": "Pirate: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@pirate_r3",
+      "properties": {
+        "name": "Pirate service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@pirate_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate_svc",
+      "relation": "HAS_PART",
+      "to": "@pirate_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@pirate_g4",
+      "properties": {
+        "name": "Pirate: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@pirate_r4",
+      "properties": {
+        "name": "Pirate service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@pirate_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate_svc",
+      "relation": "HAS_PART",
+      "to": "@pirate_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@pirate_g5",
+      "properties": {
+        "name": "Pirate: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@pirate_r5",
+      "properties": {
+        "name": "Pirate service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@pirate_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate_svc",
+      "relation": "HAS_PART",
+      "to": "@pirate_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@pirate_g6",
+      "properties": {
+        "name": "Pirate: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@pirate_r6",
+      "properties": {
+        "name": "Pirate service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@pirate_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate_svc",
+      "relation": "HAS_PART",
+      "to": "@pirate_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@pirate",
+      "properties": {
+        "name": "Pirate",
+        "qualification_check": "@pirate_qual",
+        "survival_check": "@pirate_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@pirate",
+      "relation": "HAS_PART",
+      "to": "@pirate_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@rogue_qual",
+      "properties": {
+        "name": "Rogue qualification",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@rogue_surv",
+      "properties": {
+        "name": "Rogue survival",
+        "attribute_ref": "dexterity",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@rogue_svc",
+      "properties": {
+        "name": "Rogue Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@rogue_g1",
+      "properties": {
+        "name": "Rogue: gain Streetwise",
+        "skill": "@sk_streetwise",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@rogue_r1",
+      "properties": {
+        "name": "Rogue service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@rogue_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue_svc",
+      "relation": "HAS_PART",
+      "to": "@rogue_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@rogue_g2",
+      "properties": {
+        "name": "Rogue: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@rogue_r2",
+      "properties": {
+        "name": "Rogue service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@rogue_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue_svc",
+      "relation": "HAS_PART",
+      "to": "@rogue_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@rogue_g3",
+      "properties": {
+        "name": "Rogue: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@rogue_r3",
+      "properties": {
+        "name": "Rogue service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@rogue_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue_svc",
+      "relation": "HAS_PART",
+      "to": "@rogue_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@rogue_g4",
+      "properties": {
+        "name": "Rogue: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@rogue_r4",
+      "properties": {
+        "name": "Rogue service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@rogue_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue_svc",
+      "relation": "HAS_PART",
+      "to": "@rogue_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@rogue_g5",
+      "properties": {
+        "name": "Rogue: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@rogue_r5",
+      "properties": {
+        "name": "Rogue service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@rogue_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue_svc",
+      "relation": "HAS_PART",
+      "to": "@rogue_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@rogue_g6",
+      "properties": {
+        "name": "Rogue: gain Vehicle",
+        "skill": "@sk_vehicle",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@rogue_r6",
+      "properties": {
+        "name": "Rogue service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@rogue_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue_svc",
+      "relation": "HAS_PART",
+      "to": "@rogue_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@rogue",
+      "properties": {
+        "name": "Rogue",
+        "qualification_check": "@rogue_qual",
+        "survival_check": "@rogue_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@rogue",
+      "relation": "HAS_PART",
+      "to": "@rogue_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scientist_qual",
+      "properties": {
+        "name": "Scientist qualification",
+        "attribute_ref": "education",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scientist_surv",
+      "properties": {
+        "name": "Scientist survival",
+        "attribute_ref": "education",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@scientist_svc",
+      "properties": {
+        "name": "Scientist Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scientist_g1",
+      "properties": {
+        "name": "Scientist: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scientist_r1",
+      "properties": {
+        "name": "Scientist service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@scientist_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist_svc",
+      "relation": "HAS_PART",
+      "to": "@scientist_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scientist_g2",
+      "properties": {
+        "name": "Scientist: gain Computer",
+        "skill": "@sk_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scientist_r2",
+      "properties": {
+        "name": "Scientist service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@scientist_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist_svc",
+      "relation": "HAS_PART",
+      "to": "@scientist_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scientist_g3",
+      "properties": {
+        "name": "Scientist: gain Electronics",
+        "skill": "@sk_electronics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scientist_r3",
+      "properties": {
+        "name": "Scientist service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@scientist_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist_svc",
+      "relation": "HAS_PART",
+      "to": "@scientist_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scientist_g4",
+      "properties": {
+        "name": "Scientist: gain Medicine",
+        "skill": "@sk_medicine",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scientist_r4",
+      "properties": {
+        "name": "Scientist service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@scientist_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist_svc",
+      "relation": "HAS_PART",
+      "to": "@scientist_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scientist_g5",
+      "properties": {
+        "name": "Scientist: gain Bribery",
+        "skill": "@sk_bribery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scientist_r5",
+      "properties": {
+        "name": "Scientist service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@scientist_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist_svc",
+      "relation": "HAS_PART",
+      "to": "@scientist_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scientist_g6",
+      "properties": {
+        "name": "Scientist: gain Sciences",
+        "skill": "@sk_sciences",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scientist_r6",
+      "properties": {
+        "name": "Scientist service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@scientist_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist_svc",
+      "relation": "HAS_PART",
+      "to": "@scientist_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@scientist",
+      "properties": {
+        "name": "Scientist",
+        "qualification_check": "@scientist_qual",
+        "survival_check": "@scientist_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scientist",
+      "relation": "HAS_PART",
+      "to": "@scientist_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scout_qual",
+      "properties": {
+        "name": "Scout qualification",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scout_surv",
+      "properties": {
+        "name": "Scout survival",
+        "attribute_ref": "endurance",
+        "target_number": "7",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@scout_svc",
+      "properties": {
+        "name": "Scout Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scout_g1",
+      "properties": {
+        "name": "Scout: gain Comms",
+        "skill": "@sk_comms",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scout_r1",
+      "properties": {
+        "name": "Scout service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@scout_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout_svc",
+      "relation": "HAS_PART",
+      "to": "@scout_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scout_g2",
+      "properties": {
+        "name": "Scout: gain Electronics",
+        "skill": "@sk_electronics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scout_r2",
+      "properties": {
+        "name": "Scout service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@scout_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout_svc",
+      "relation": "HAS_PART",
+      "to": "@scout_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scout_g3",
+      "properties": {
+        "name": "Scout: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scout_r3",
+      "properties": {
+        "name": "Scout service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@scout_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout_svc",
+      "relation": "HAS_PART",
+      "to": "@scout_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scout_g4",
+      "properties": {
+        "name": "Scout: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scout_r4",
+      "properties": {
+        "name": "Scout service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@scout_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout_svc",
+      "relation": "HAS_PART",
+      "to": "@scout_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scout_g5",
+      "properties": {
+        "name": "Scout: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scout_r5",
+      "properties": {
+        "name": "Scout service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@scout_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout_svc",
+      "relation": "HAS_PART",
+      "to": "@scout_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@scout_g6",
+      "properties": {
+        "name": "Scout: gain Piloting",
+        "skill": "@sk_piloting",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@scout_r6",
+      "properties": {
+        "name": "Scout service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@scout_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout_svc",
+      "relation": "HAS_PART",
+      "to": "@scout_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@scout",
+      "properties": {
+        "name": "Scout",
+        "qualification_check": "@scout_qual",
+        "survival_check": "@scout_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@scout",
+      "relation": "HAS_PART",
+      "to": "@scout_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@surface_defense_qual",
+      "properties": {
+        "name": "Surface Defense qualification",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@surface_defense_surv",
+      "properties": {
+        "name": "Surface Defense survival",
+        "attribute_ref": "education",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@surface_defense_svc",
+      "properties": {
+        "name": "Surface Defense Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@surface_defense_g1",
+      "properties": {
+        "name": "Surface Defense: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@surface_defense_r1",
+      "properties": {
+        "name": "Surface Defense service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@surface_defense_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@surface_defense_g2",
+      "properties": {
+        "name": "Surface Defense: gain Gun Combat",
+        "skill": "@sk_gun_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@surface_defense_r2",
+      "properties": {
+        "name": "Surface Defense service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@surface_defense_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@surface_defense_g3",
+      "properties": {
+        "name": "Surface Defense: gain Gunnery",
+        "skill": "@sk_gunnery",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@surface_defense_r3",
+      "properties": {
+        "name": "Surface Defense service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@surface_defense_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@surface_defense_g4",
+      "properties": {
+        "name": "Surface Defense: gain Melee Combat",
+        "skill": "@sk_melee_combat",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@surface_defense_r4",
+      "properties": {
+        "name": "Surface Defense service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@surface_defense_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@surface_defense_g5",
+      "properties": {
+        "name": "Surface Defense: gain Recon",
+        "skill": "@sk_recon",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@surface_defense_r5",
+      "properties": {
+        "name": "Surface Defense service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@surface_defense_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@surface_defense_g6",
+      "properties": {
+        "name": "Surface Defense: gain Battle Dress",
+        "skill": "@sk_battle_dress",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@surface_defense_r6",
+      "properties": {
+        "name": "Surface Defense service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@surface_defense_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense_svc",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@surface_defense",
+      "properties": {
+        "name": "Surface Defense",
+        "qualification_check": "@surface_defense_qual",
+        "survival_check": "@surface_defense_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@surface_defense",
+      "relation": "HAS_PART",
+      "to": "@surface_defense_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@technician_qual",
+      "properties": {
+        "name": "Technician qualification",
+        "attribute_ref": "education",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@technician_surv",
+      "properties": {
+        "name": "Technician survival",
+        "attribute_ref": "dexterity",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "source_section": "Career Tables",
+        "source_quote": "| Survival | Dex 6+ | Dex 4+ | Edu 5+ | End 7+ | Edu 5+ | Dex 4+ |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@technician_svc",
+      "properties": {
+        "name": "Technician Service Skills",
+        "dice": "@d1d6",
+        "source_section": "Skills and Training",
+        "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@technician_g1",
+      "properties": {
+        "name": "Technician: gain Admin",
+        "skill": "@sk_admin",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@technician_r1",
+      "properties": {
+        "name": "Technician service 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@technician_g1",
+        "source_section": "Career Tables",
+        "source_quote": "| 1 | Streetwise | Streetwise | Admin | Comms | Mechanics | Admin |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician_svc",
+      "relation": "HAS_PART",
+      "to": "@technician_r1"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@technician_g2",
+      "properties": {
+        "name": "Technician: gain Computer",
+        "skill": "@sk_computer",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@technician_r2",
+      "properties": {
+        "name": "Technician service 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@technician_g2",
+        "source_section": "Career Tables",
+        "source_quote": "| 2 | Electronics | Mechanics | Computer | Electronics | Gun Combat | Computer |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician_svc",
+      "relation": "HAS_PART",
+      "to": "@technician_r2"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@technician_g3",
+      "properties": {
+        "name": "Technician: gain Mechanics",
+        "skill": "@sk_mechanics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@technician_r3",
+      "properties": {
+        "name": "Technician service 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@technician_g3",
+        "source_section": "Career Tables",
+        "source_quote": "| 3 | Gun Combat | Gun Combat | Electronics | Gun Combat | Gunnery | Mechanics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician_svc",
+      "relation": "HAS_PART",
+      "to": "@technician_r3"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@technician_g4",
+      "properties": {
+        "name": "Technician: gain Medicine",
+        "skill": "@sk_medicine",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@technician_r4",
+      "properties": {
+        "name": "Technician service 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@technician_g4",
+        "source_section": "Career Tables",
+        "source_quote": "| 4 | Melee Combat | Melee Combat | Medicine | Gunnery | Melee Combat | Medicine |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician_svc",
+      "relation": "HAS_PART",
+      "to": "@technician_r4"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@technician_g5",
+      "properties": {
+        "name": "Technician: gain Electronics",
+        "skill": "@sk_electronics",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@technician_r5",
+      "properties": {
+        "name": "Technician service 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@technician_g5",
+        "source_section": "Career Tables",
+        "source_quote": "| 5 | Recon | Recon | Bribery | Recon | Recon | Electronics |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician_svc",
+      "relation": "HAS_PART",
+      "to": "@technician_r5"
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantSkill",
+      "as": "@technician_g6",
+      "properties": {
+        "name": "Technician: gain Sciences",
+        "skill": "@sk_sciences",
+        "skill_level": "1",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you gain a skill as a result and you do not already have levels in that skill, take it at level 1."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@technician_r6",
+      "properties": {
+        "name": "Technician service 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@technician_g6",
+        "source_section": "Career Tables",
+        "source_quote": "| 6 | Vehicle | Vehicle | Sciences | Piloting | Battle Dress | Sciences |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician_svc",
+      "relation": "HAS_PART",
+      "to": "@technician_r6"
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@technician",
+      "properties": {
+        "name": "Technician",
+        "qualification_check": "@technician_qual",
+        "survival_check": "@technician_surv",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | Dex 5+ | Dex 5+ | Edu 6+ | Int 6+ | End 5+ | Edu 6+ |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@technician",
+      "relation": "HAS_PART",
+      "to": "@technician_svc"
     }
   ]
 }

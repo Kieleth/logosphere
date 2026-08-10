@@ -38,6 +38,38 @@ int characteristic_of(const CharacterSheet& s, const std::string& slot) {
     return -1;   // caller treats a negative as "no such characteristic"
 }
 
+
+// A TaskCheck as the book printed it: a target, the characteristic
+// whose DM applies, and the dice to throw. The dice come from the
+// referenced DiceExpression, not from an assumption that every throw
+// is 2D6.
+struct Check {
+    int         target = 0;
+    std::string attribute;
+    int         count = 2, sides = 6, modifier = 0;
+    bool        valid = false;
+};
+
+Check read_check(kg::KGModule& kg, const std::string& ref) {
+    Check c;
+    if (ref.empty()) return c;
+    const auto id = static_cast<kg::EntityID>(std::stoul(ref));
+    const auto target = kg.getProperty(id, "target_number");
+    c.attribute = kg.getProperty(id, "attribute_ref");
+    if (target.empty() || c.attribute.empty()) return c;
+    c.target = std::stoi(target);
+    const auto dice_ref = kg.getProperty(id, "dice");
+    if (dice_ref.empty()) return c;
+    const auto d = static_cast<kg::EntityID>(std::stoul(dice_ref));
+    bool ok = true;
+    c.count = property_int(kg, d, "dice_count", ok);
+    c.sides = property_int(kg, d, "dice_sides", ok);
+    const auto m = kg.getProperty(d, "dice_modifier");
+    if (!m.empty()) c.modifier = std::stoi(m);
+    c.valid = ok;
+    return c;
+}
+
 // One throw of the book's basic check: 2D6, plus the DM of the named
 // characteristic, against a target. The DM comes from the tested
 // primitive, which agrees with the book's published table row for row.
@@ -47,24 +79,25 @@ struct Throw {
     std::string detail;
 };
 
-Throw throw_check(int target, const std::string& attribute,
-                  const CharacterSheet& sheet,
+Throw throw_check(const Check& c, const CharacterSheet& sheet,
                   logosphere::dice::DiceService& dice,
                   const std::string& purpose) {
     Throw t;
-    logosphere::dice::DiceExpression two_d6;
-    two_d6.count = 2;
-    two_d6.sides = 6;
+    logosphere::dice::DiceExpression expr;
+    expr.count    = c.count;
+    expr.sides    = c.sides;
+    expr.modifier = c.modifier;
 
-    const auto roll = dice.roll(two_d6, "chargen", purpose);
-    const int dm    = characteristic_dm(characteristic_of(sheet, attribute));
+    const auto roll = dice.roll(expr, "chargen", purpose);
+    const int dm    = characteristic_dm(characteristic_of(sheet, c.attribute));
     const int total = roll.total + dm;
     t.roll_id = roll.id;
-    t.passed  = total >= target;
+    t.passed  = total >= c.target;
 
     std::ostringstream d;
-    d << "2D6 = " << roll.total << (dm >= 0 ? " +" : " ") << dm
-      << " DM -> " << total << " vs " << target << "+";
+    d << expr.to_string() << " = " << roll.total
+      << (dm >= 0 ? " +" : " ") << dm << " DM -> " << total
+      << " vs " << c.target << "+";
     t.detail = d.str();
     return t;
 }
@@ -201,18 +234,22 @@ bool ChargenSession::begin(uint64_t seed, std::string& error) {
 
 void ChargenSession::offer_careers() {
     choices_.clear();
-    const char* keys = "abcdefghijklmnop";
+    // Numbered, not lettered: the book offers 24 careers and a single
+    // letter runs out at 16, which silently made eight of them
+    // unchoosable.
     size_t n = 0;
     for (auto id : kg_.findByType("Career")) {
         const auto name = kg_.getProperty(id, "name");
-        if (name.empty() || n >= 16) continue;
-        const auto qt = kg_.getProperty(id, "qualification_target");
-        const auto qa = kg_.getProperty(id, "qualification_dm_characteristic");
-        const auto st = kg_.getProperty(id, "survival_target");
-        const auto sa = kg_.getProperty(id, "survival_dm_characteristic");
-        choices_.push_back({std::string(1, keys[n]), name,
-                            "qualify on " + qa + " " + qt +
-                                "+, survive on " + sa + " " + st + "+"});
+        if (name.empty()) continue;
+        const auto q = read_check(kg_, kg_.getProperty(id, "qualification_check"));
+        const auto v = read_check(kg_, kg_.getProperty(id, "survival_check"));
+        if (!q.valid || !v.valid) continue;   // a career that cannot be
+                                              // thrown for is not offered
+        choices_.push_back({std::to_string(n + 1), name,
+                            "qualify on " + q.attribute + " " +
+                                std::to_string(q.target) + "+, survive on " +
+                                v.attribute + " " +
+                                std::to_string(v.target) + "+"});
         ++n;
     }
     prompt_ = "Which career do you try for?";
@@ -227,14 +264,9 @@ void ChargenSession::finish(const std::string& why) {
 
 void ChargenSession::run_term() {
     const int term = sheet_.terms_served + 1;
-    bool have = true;
-    const int surv_target = property_int(kg_, career_, "survival_target",
-                                         have);
-    const auto surv_attr = kg_.getProperty(career_,
-                                           "survival_dm_characteristic");
-
-    const auto s = throw_check(surv_target, surv_attr, sheet_, dice_,
-                               "survival");
+    const auto check = read_check(kg_,
+                                  kg_.getProperty(career_, "survival_check"));
+    const auto s = throw_check(check, sheet_, dice_, "survival");
     sheet_.life.push_back({term, s.passed ? "survived" : "did not survive",
                            s.detail, s.roll_id});
     if (!s.passed) {
@@ -261,9 +293,9 @@ void ChargenSession::run_term() {
                            "age " + std::to_string(sheet_.age_years), 0});
     write_sheet(kg_, sheet_);
 
-    choices_ = {{"a", "Serve another term",
+    choices_ = {{"1", "Serve another term",
                  "four more years in the " + sheet_.career},
-                {"b", "Muster out", "leave with what you have"}};
+                {"2", "Muster out", "leave with what you have"}};
     prompt_ = "Term " + std::to_string(term) + " is over. What now?";
 }
 
@@ -292,17 +324,14 @@ bool ChargenSession::choose(const std::string& answer, std::string& error) {
             return false;
         }
         sheet_.career = picked->label;
-        bool have = true;
-        const int qt = property_int(kg_, career_, "qualification_target",
-                                    have);
-        const auto qa = kg_.getProperty(career_,
-                                        "qualification_dm_characteristic");
-        if (!have || qa.empty()) {
+        const auto check =
+            read_check(kg_, kg_.getProperty(career_, "qualification_check"));
+        if (!check.valid) {
             error = "career '" + picked->label +
-                    "' has no qualification throw";
+                    "' has no qualification throw in the graph";
             return false;
         }
-        const auto q = throw_check(qt, qa, sheet_, dice_, "qualification");
+        const auto q = throw_check(check, sheet_, dice_, "qualification");
         sheet_.qualified = q.passed;
         sheet_.life.push_back({0, q.passed ? "qualified"
                                            : "failed to qualify",
@@ -317,7 +346,7 @@ bool ChargenSession::choose(const std::string& answer, std::string& error) {
         return true;
     }
 
-    if (picked->key == "a") { run_term(); return true; }
+    if (picked->key == "1") { run_term(); return true; }
     finish("Mustered out at age " + std::to_string(sheet_.age_years) +
            " after " + std::to_string(sheet_.terms_served) + " term(s).");
     return true;
@@ -352,9 +381,9 @@ bool run_chargen(const ChargenRequest& request,
 
     while (!session.finished() && session.sheet().terms_served <
                                       request.max_terms) {
-        if (!session.choose("a", error)) return false;
+        if (!session.choose("1", error)) return false;
     }
-    if (!session.finished()) session.choose("b", error);
+    if (!session.finished()) session.choose("2", error);
     out = session.sheet();
     return true;
 }
