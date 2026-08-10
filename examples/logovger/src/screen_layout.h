@@ -24,15 +24,15 @@ constexpr int kLine = 18;
 constexpr int kStatRows = 12;         // six characteristics, career, age...
 constexpr int kNarrationLines = 14;
 constexpr int kProvLines = 6;
-constexpr int kDossierLines = 6;      // where they are from, how they look
-constexpr int kFileRows = 9;          // the biopic, one clause per beat
-constexpr int kAssessLines = 5;       // what the service made of them
+constexpr int kDossierLines = 7;      // where they are from, how they look
+constexpr int kFileRows = 7;          // the biopic, one clause per beat
+constexpr int kAssessLines = 6;       // what the service made of them
 
 // One place decides the window size; main.cpp and the layout agree.
 // Sized to fit a laptop display in POINTS, not pixels: a window wider
 // than the screen is not a big window, it is a window you never see.
 constexpr int kScreenW = 1600;
-constexpr int kScreenH = 950;
+constexpr int kScreenH = 1000;
 
 struct Rect {
     int x = 0, y = 0, w = 0, h = 0;

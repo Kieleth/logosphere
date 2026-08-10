@@ -2,15 +2,27 @@
 #include "logovger_app.h"
 
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 
 int main(int argc, char** argv) {
     bool headless = false;
-    for (int i = 1; i < argc; ++i)
+    bool pin = false;
+    unsigned long long pinned = 0;
+    for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--headless") == 0) headless = true;
+        // Lives are random by default. --seed N replays a specific
+        // one: the seed of every life is printed on screen, so a life
+        // worth keeping can be asked for again.
+        if (std::strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
+            pinned = std::strtoull(argv[++i], nullptr, 10);
+            pin = true;
+        }
+    }
 
     logovger::LogovgerApplication app;
+    if (pin) app.pin_seed(pinned);
     Engine engine(&app);
 
     EngineConfig config;

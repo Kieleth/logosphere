@@ -153,10 +153,11 @@ std::string Narrator::build_prompt(const Beat& beat) const {
              "beginning with its label and nothing else, no other "
              "text before or after:\n"
              "NAME: a full name that belongs in this setting\n"
-             "BORN: a place, and one clause about what that place is "
-             "like to be from\n"
-             "BUILD: how they look and carry themselves, one clause, "
-             "read from what they are strong and weak at\n"
+             "BORN: a place, and one short clause about what that "
+             "place is like to be from. At most 70 characters.\n"
+             "BUILD: how they look and carry themselves, read from "
+             "what they are strong and weak at. At most 70 "
+             "characters.\n"
              "NOTE: one dry line an assessor would actually write "
              "about them\n\n"
              "Invent the name and the place. Never mention a number, "
@@ -167,10 +168,10 @@ std::string Narrator::build_prompt(const Beat& beat) const {
         o << "This life is over. The whole record:\n\n";
         for (const auto& f : beat.facts) o << "  " << f << "\n";
         o << "\n" << beat.sheet << "\n\n"
-          << "Close the file. Two or three sentences, the assessor's "
-             "own words, about what this person turned out to be and "
-             "what the service made of them. Never mention a number, "
-             "a characteristic name, a die or a rule.";
+          << "Close the file in at most 280 characters, the assessor's "
+             "own words: what this person turned out to be, and what "
+             "the service made of them. Never mention a number, a "
+             "characteristic name, a die or a rule.";
         return o.str();
     }
     o << "This just happened. Each line is a fact; where a throw is "

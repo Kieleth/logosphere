@@ -32,6 +32,9 @@
 
 #include <fstream>
 #include <cstring>
+#include <iostream>
+#include <optional>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -101,6 +104,12 @@ public:
     // Ask for prose about what just happened, and put it on screen when
     // it arrives. The character keeps it: every narration is written
     // into the graph beside the facts it was written from.
+    // Reproduce a specific life. Off unless the caller asks: lives
+    // are drawn from real entropy by default.
+public:
+    void pin_seed(uint64_t seed) { pinned_seed_ = seed; }
+
+private:
     void narrate_beat(const std::string& kind, int term,
                       std::vector<std::string> facts,
                       std::vector<uint64_t> rolls) {
@@ -313,9 +322,13 @@ private:
     void start_life() {
         if (!rules_loaded_) return;
         auto& kg = engine_->get_kg();
-        // A fresh stream per life, so each is its own reproducible
-        // sequence rather than a continuation of the last.
-        seed_ += 1;
+        // Real randomness by default: a life should be a life, not
+        // the same life every launch. A fixed seed is available with
+        // --seed for reproducing a specific one, and the seed of the
+        // life you are playing is printed so a good one can be asked
+        // for again.
+        seed_ = pinned_seed_ ? *pinned_seed_ + lives_ : random_seed();
+        ++lives_;
         session_ = std::make_unique<ChargenSession>(kg, dice_);
         file_closed_ = false;
         std::string error;
@@ -326,6 +339,8 @@ private:
         }
         screen_.say("--- a new life, seed " + std::to_string(seed_) +
                     " ---");
+        // Also on the console, where it can be copied into --seed.
+        std::cout << "[logovger] life seed " << seed_ << std::endl;
         // The opening rolls are the BIO's material, not a term of
         // their own. Show them, collect nothing, and let the bio be
         // the one thing said about a character who has done nothing.
@@ -480,6 +495,16 @@ private:
     std::unique_ptr<ChargenSession>    session_;
     bool                               rules_loaded_ = false;
     uint64_t                           seed_ = 0;
+    // Off by default. Set with --seed to replay a particular life.
+    std::optional<uint64_t>            pinned_seed_;
+    uint64_t                           lives_ = 0;
+
+    // Entropy from the machine, not from a counter. Two draws because
+    // random_device yields 32 bits at a time on the platforms we run.
+    static uint64_t random_seed() {
+        std::random_device rd;
+        return (static_cast<uint64_t>(rd()) << 32) ^ rd();
+    }
 };
 
 }  // namespace logovger

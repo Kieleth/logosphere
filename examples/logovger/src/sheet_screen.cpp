@@ -60,11 +60,6 @@ std::vector<std::string> wrap_text(const std::string& text, size_t cols) {
     return out;
 }
 
-std::string ellipsize(const std::string& s, size_t max) {
-    if (s.size() <= max) return s;
-    return s.substr(0, max - 3) + "...";
-}
-
 }  // namespace
 
 void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
@@ -244,7 +239,7 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
     record_->set_position(L.record.x, L.record.y);
     record_->set_size(L.record.w, L.record.h);
     record_->set_ui_system(&ui);
-    record_->set_detail_column(70);
+    record_->set_detail_column(120);
     record_->set_commit_hint("");
     ui.add_widget(record_);
 
@@ -274,6 +269,7 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
                                   screen_w - 4 * kPad, 150, 220, 170);
     prov_title->set_text("WHY -- click a value on the sheet and the book "
                          "answers");
+    prov_columns_ = static_cast<size_t>((L.bottom.w - 3 * kPad) / 6);
     back_ = new ui::Button("  < back", "logovger_back");
     back_->set_position(screen_w - 3 * kPad - 110, kPad - 2);
     back_->set_size(110, kLine + 2);
@@ -304,6 +300,21 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
             make_label(bottom_, kPad, by, screen_w - 4 * kPad,
                        190, 215, 200));
         by += kLine;
+    }
+}
+
+void SheetScreen::write_prov(size_t& at, const std::string& text,
+                             uint8_t r, uint8_t g, uint8_t b) {
+    // The book's own words are the point of this panel, so they are
+    // never cut short. A long quote takes as many lines as it needs;
+    // when the panel is full the rest is dropped rather than being
+    // silently half-shown, and the panel is six lines of 250-odd
+    // columns, which no citation in the book comes near.
+    for (const auto& one : wrap_text(renderable(text), prov_columns_)) {
+        if (at >= provenance_lines_.size()) return;
+        provenance_lines_[at]->set_text(one);
+        provenance_lines_[at]->set_color(r, g, b);
+        ++at;
     }
 }
 
@@ -338,11 +349,8 @@ void SheetScreen::add_file_line(const std::string& clause) {
     // A file entry is a sentence, so it wraps. Clipping it to one row
     // was hiding the end of every line the narrator wrote.
     std::vector<CareerList::Row> rows;
-    for (const auto& c : file_lines_) {
-        const auto wrapped = wrap_text(renderable(c), dossier_columns_ - 2);
-        for (size_t i = 0; i < wrapped.size(); ++i)
-            rows.push_back({"", (i == 0 ? "- " : "  ") + wrapped[i], ""});
-    }
+    for (const auto& c : file_lines_)
+        rows.push_back({"", "- " + renderable(c), ""});
     biopic_->set_rows(std::move(rows));
     biopic_->scroll_to_end();     // the newest line is the one to read
 }
@@ -519,9 +527,8 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
         std::vector<CareerList::Row> rec;
         for (const auto& e : s.life) {
             rec.push_back({"",
-                           "T" + std::to_string(e.term) + "  " +
-                               ellipsize(e.what, 26),
-                           ellipsize(e.detail, 30)});
+                           "T" + std::to_string(e.term) + "  " + e.what,
+                           e.detail});
         }
         record_->set_rows(std::move(rec));
         record_->scroll_to_end();
@@ -578,10 +585,7 @@ void SheetScreen::inspect_career(kg::KGModule& kg, const std::string& name) {
 
     size_t i = 0;
     auto line = [&](const std::string& s, uint8_t r, uint8_t g, uint8_t b) {
-        if (i >= provenance_lines_.size()) return;
-        provenance_lines_[i]->set_text(renderable(s));
-        provenance_lines_[i]->set_color(r, g, b);
-        ++i;
+        write_prov(i, s, r, g, b);
     };
     line(name + " -- what you would be signing up for", 235, 235, 210);
     if (qual != kg::INVALID_ENTITY) {
@@ -624,10 +628,7 @@ void SheetScreen::show_skill(kg::KGModule& kg, const std::string& name) {
 
     size_t i = 0;
     auto line = [&](const std::string& s, uint8_t r, uint8_t g, uint8_t b) {
-        if (i >= provenance_lines_.size()) return;
-        provenance_lines_[i]->set_text(renderable(s));
-        provenance_lines_[i]->set_color(r, g, b);
-        ++i;
+        write_prov(i, s, r, g, b);
     };
     for (auto* b : teaches_buttons_) b->set_visible(false);
     refresh_back();
@@ -648,14 +649,7 @@ void SheetScreen::show_skill(kg::KGModule& kg, const std::string& name) {
         if (const auto* sec = doc->find_section({section})) {
             for (const auto& para : sec->paragraphs) {
                 if (para.text.empty()) continue;
-                // Two lines of the entry is enough to know what it is.
-                const auto text = ellipsize(para.text, 220);
-                const size_t half = text.size() / 2;
-                size_t brk = text.find(' ', half);
-                if (brk == std::string::npos) brk = text.size();
-                line("  " + text.substr(0, brk), 200, 230, 210);
-                if (brk < text.size())
-                    line("  " + text.substr(brk + 1), 200, 230, 210);
+                line("  " + para.text, 200, 230, 210);
                 line("  " + file + "  >  " + section + "   (line " +
                      std::to_string(sec->line) + ")", 140, 180, 155);
                 said = true;
@@ -749,10 +743,7 @@ void SheetScreen::show_provenance(const Provenance& p) {
     record({View::Kind::Prov, p, ""});
     size_t i = 0;
     auto line = [&](const std::string& s, uint8_t r, uint8_t g, uint8_t b) {
-        if (i >= provenance_lines_.size()) return;
-        provenance_lines_[i]->set_text(s);
-        provenance_lines_[i]->set_color(r, g, b);
-        ++i;
+        write_prov(i, s, r, g, b);
     };
 
     line(renderable(p.claim), 235, 235, 210);
@@ -761,9 +752,7 @@ void SheetScreen::show_provenance(const Provenance& p) {
     if (!p.detail.empty())
         line("  address: " + p.detail, 150, 200, 170);
     if (p.resolved) {
-        line("  the book says:  \"" + renderable(ellipsize(p.says, 110)) +
-         "\"",
-             190, 240, 200);
+        line("  the book says:  \"" + p.says + "\"", 190, 240, 200);
         line("  line " + std::to_string(p.line) +
              "   -- resolved against the vendored source, just now",
              120, 170, 140);

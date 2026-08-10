@@ -9,20 +9,30 @@
 namespace logovger {
 namespace {
 
-// Cut a string to the pixels it is allowed, marking the cut so a
-// truncated value never reads as a complete one.
-std::string clip(const std::string& s, int pixels) {
+// Break a string into lines that fit `pixels` of a 6 px fixed-pitch
+// font, on spaces where there is one. Never drops anything.
+std::vector<std::string> wrap(const std::string& s, int pixels) {
+    std::vector<std::string> out;
     const size_t cols = pixels > 0 ? static_cast<size_t>(pixels / 6) : 0;
-    if (cols == 0) return "";
-    if (s.size() <= cols) return s;
-    if (cols <= 3) return s.substr(0, cols);
-    return s.substr(0, cols - 3) + "...";
+    if (cols == 0 || s.empty()) return out;
+    size_t at = 0;
+    while (at < s.size()) {
+        size_t take = std::min(cols, s.size() - at);
+        if (at + take < s.size()) {
+            const size_t brk = s.rfind(' ', at + take);
+            if (brk != std::string::npos && brk > at) take = brk - at;
+        }
+        out.push_back(s.substr(at, take));
+        at += take;
+        while (at < s.size() && s[at] == ' ') ++at;
+    }
+    return out;
 }
 
 }  // namespace
 
 void CareerList::scroll_to_end() {
-    scroll_ = std::max(0, static_cast<int>(rows_.size()) - visible_rows());
+    scroll_ = std::max(0, static_cast<int>(lines_.size()) - visible_rows());
     invalidate();
 }
 
@@ -31,7 +41,34 @@ void CareerList::set_rows(std::vector<Row> rows) {
     scroll_ = 0;
     selected_ = -1;
     hovered_ = -1;
+    relayout();
     invalidate();
+}
+
+void CareerList::relayout() {
+    lines_.clear();
+    const auto b = get_absolute_bounds();
+    const int usable = b.width - 2 * kPad - kScrollGutter;
+    // A row with a second column keeps the columns apart; a row
+    // without one gets the whole width.
+    for (size_t i = 0; i < rows_.size(); ++i) {
+        const auto& r = rows_[i];
+        const bool two = !r.detail.empty();
+        const int label_px = two ? detail_x_ - kPad : usable;
+        const auto label = wrap(r.label, label_px);
+        const auto detail = two ? wrap(r.detail, usable - detail_x_)
+                                : std::vector<std::string>{};
+        const size_t n = std::max<size_t>(std::max(label.size(), detail.size()),
+                                          1);
+        for (size_t k = 0; k < n; ++k) {
+            DisplayLine dl;
+            dl.row = static_cast<int>(i);
+            if (k < label.size())
+                dl.label = (k == 0 ? "" : "  ") + label[k];
+            if (k < detail.size()) dl.detail = detail[k];
+            lines_.push_back(std::move(dl));
+        }
+    }
 }
 
 int CareerList::visible_rows() const {
@@ -41,17 +78,16 @@ int CareerList::visible_rows() const {
 
 void CareerList::clamp_scroll() {
     const int max_scroll =
-        std::max(0, static_cast<int>(rows_.size()) - visible_rows());
+        std::max(0, static_cast<int>(lines_.size()) - visible_rows());
     scroll_ = std::max(0, std::min(scroll_, max_scroll));
 }
 
 int CareerList::row_at(int local_y) const {
     const int i = (local_y - kPad) / kRowH;
-    if (i < 0) return -1;
-    const int abs = scroll_ + i;
-    if (abs >= static_cast<int>(rows_.size())) return -1;
-    if (i >= visible_rows()) return -1;
-    return abs;
+    if (i < 0 || i >= visible_rows()) return -1;
+    const int line = scroll_ + i;
+    if (line >= static_cast<int>(lines_.size())) return -1;
+    return lines_[static_cast<size_t>(line)].row;   // any line, one row
 }
 
 bool CareerList::on_mouse_scroll(int delta) {
@@ -100,11 +136,12 @@ void CareerList::render(IDrawSurface* renderer) {
     renderer->draw_rect(b.x, b.y, b.width, b.height, 70, 80, 110, 255);
 
     const int rows_shown = visible_rows();
-    const int total = static_cast<int>(rows_.size());
+    const int total = static_cast<int>(lines_.size());
     for (int i = 0; i < rows_shown; ++i) {
-        const int idx = scroll_ + i;
-        if (idx >= total) break;
-        const auto& r = rows_[static_cast<size_t>(idx)];
+        const int at = scroll_ + i;
+        if (at >= total) break;
+        const auto& r = lines_[static_cast<size_t>(at)];
+        const int idx = r.row;
         const int y = b.y + kPad + i * kRowH;
 
         if (idx == selected_)
@@ -114,23 +151,16 @@ void CareerList::render(IDrawSurface* renderer) {
             renderer->fill_rect(b.x + 2, y - 2, b.width - 4, kRowH,
                                 32, 38, 52, 255);
 
-        // The font is fixed-pitch at 6 px, so a column is a character
-        // budget. Clip to it here rather than trusting every caller to
-        // pre-trim: two columns that overlap are unreadable, and the
-        // widget is the only place that knows how wide they are.
         const bool lit = (idx == selected_ || idx == hovered_);
-        const int label_px = detail_x_ - kPad;
-        const int detail_px = b.width - 2 * kPad - detail_x_ -
-                              (total > rows_shown ? 10 : 0);
-        renderer->draw_string(b.x + kPad, y, clip(r.label, label_px),
+        renderer->draw_string(b.x + kPad, y, r.label,
                               lit ? 255 : 210, lit ? 235 : 210,
                               lit ? 200 : 220);
         // The terms of the deal, dimmer, to the right of the name.
-        renderer->draw_string(b.x + kPad + detail_x_, y,
-                              clip(r.detail, detail_px),
+        renderer->draw_string(b.x + kPad + detail_x_, y, r.detail,
                               lit ? 190 : 130, lit ? 200 : 140,
                               lit ? 215 : 155);
-        if (idx == selected_ && !commit_hint_.empty())
+        if (idx == selected_ && !commit_hint_.empty() &&
+            lines_[static_cast<size_t>(at)].label.compare(0, 2, "  ") != 0)
             renderer->draw_string(b.x + b.width - 130, y,
                                   commit_hint_, 255, 210, 140);
     }

@@ -37,6 +37,11 @@ public:
 
     void set_rows(std::vector<Row> rows);
 
+    // Nothing is ever cut. A row too long for its column becomes as
+    // many display lines as it needs, and clicking any of them means
+    // the same row. A list that hides the end of a sentence is worse
+    // than a list that is taller.
+
     // Where the dimmer second column starts. Careers need room for a
     // name; a skill level or a record entry does not.
     void set_detail_column(int x) { detail_x_ = x; }
@@ -47,7 +52,13 @@ public:
 
     // Keep the newest rows in view: a record is read at its end.
     void scroll_to_end();
-    void clear() { rows_.clear(); scroll_ = 0; selected_ = -1; hovered_ = -1; }
+    void clear() {
+        rows_.clear();
+        lines_.clear();
+        scroll_ = 0;
+        selected_ = -1;
+        hovered_ = -1;
+    }
 
     // Looking is free; choosing is deliberate.
     std::function<void(const std::string& key)> on_inspect;
@@ -64,7 +75,18 @@ private:
     int visible_rows() const;
     void clamp_scroll();
 
-    std::vector<Row> rows_;
+    // One entry per DISPLAY line, pointing back at the row it came
+    // from. Built by set_rows, so wrapping is decided once and not on
+    // every frame.
+    struct DisplayLine {
+        int         row = 0;
+        std::string label;
+        std::string detail;
+    };
+    void relayout();
+
+    std::vector<Row>         rows_;
+    std::vector<DisplayLine> lines_;
     int scroll_ = 0;        // first visible row
     int selected_ = -1;
     int hovered_ = -1;
@@ -73,6 +95,7 @@ private:
     std::string commit_hint_ = "click again to join";
 
     static constexpr int kRowH = 22;
+    static constexpr int kScrollGutter = 10;
     static constexpr int kPad = 6;
 };
 

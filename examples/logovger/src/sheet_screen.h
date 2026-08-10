@@ -148,6 +148,10 @@ private:
     // Wrap a paragraph into a fixed run of labels, blanking the rest.
     void fill_wrapped(std::vector<ui::Label*>& into,
                       const std::string& text);
+    // Write into the provenance panel, wrapping. `at` is advanced.
+    void write_prov(size_t& at, const std::string& text,
+                    uint8_t r, uint8_t g, uint8_t b);
+    size_t prov_columns_ = 250;
     CareerList*   choices_ = nullptr;
     ui::Label*    prompt_ = nullptr;
 
