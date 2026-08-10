@@ -126,3 +126,25 @@ Present-tense imperative subject with conventional prefixes
 (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `perf:`, `chore:`).
 Body explains why, not what. Every commit carries a DCO sign-off
 (`git commit -s`). Keep each PR to one logical change.
+
+## Never revert without explicit consent
+
+Do not revert, discard, `git checkout --`, stash away, or otherwise undo
+work without the owner asking for it. This includes your own failed
+experiments.
+
+**Why:** a failed experiment is evidence. Reverting it destroys the
+state the owner may want to inspect, question, or fix, and it makes the
+owner's own review impossible: they cannot look at something that is
+already gone. Deciding on their behalf that an attempt is worthless is
+their call, not yours.
+
+**How to apply:** when an experiment fails, STOP and report. Say what
+was tried, what the numbers were, what you believe is wrong, and what
+the options are (keep and iterate, keep behind a flag, revert). Then
+wait. If the work is unstable and must not become the default, put it
+behind an env lever or a branch and say so, but leave the code in place.
+Commit failed experiments with honest messages rather than erasing them.
+
+The same applies to deleting files, dropping branches, resetting, and
+force-pushing.
