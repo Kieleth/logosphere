@@ -41,6 +41,9 @@
 //   7120ff46938a7b0d  carried through the inertia-tensor and gluon-identity
 //                     work; held bit-identical across the debug-rot deletion,
 //                     the orphan-model deletion and both material commits
+//   db2d1f7ad9d245bf  position repair reaches sleeping bodies (only KINEMATIC
+//                     is immovable to it). Should have been pinned with that
+//                     commit and was not; recorded here on discovery.
 //   5962bcfd9ad272b8  split impulse corrected: a speculative contact's
 //                     NEGATIVE bias is an approach-speed LIMIT, not geometry,
 //                     and stays in the velocity solve. Zeroing it made a

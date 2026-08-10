@@ -29,9 +29,18 @@
 //   1 POP     two deeply overlapping free boxes on a floor. Contact bias only.
 //             They must end separated AND slow. Today they pop apart
 //             ballistically at up to the 4 m/s cushion.
-//   2 SLING   a body bonded to a kinematic anchor, released 2 m from target.
-//             Gluon bias only. It must arrive AND hang quiet. Today it is
-//             slung at the bias cap and oscillates.
+//   2 SLING   a body bonded to a kinematic anchor, released with its bond
+//             STRETCHED but within the tear limit. Gluon bias only. It must
+//             arrive AND hang quiet.
+//             The first draft released it 2 m from a 0.5 m target — 4.7x rest
+//             length against OrganicGluon::max_strain_ratio() of 2.0. The bond
+//             correctly TORE, and the test then measured a body in free fall
+//             and called the solver broken. Traced with CANARY_PID on the body:
+//             frames 481-484 show the rows solved and repair lifting it
+//             0.0333 m per frame, z 0.500 -> 0.633; at frame 485 the rows
+//             VANISH and velocity becomes pure gravity, -0.082, -0.163, -0.245.
+//             The engine was right and the scenario was asking a fibre to
+//             stretch five times its length.
 //   3 ROCKET  a rooted column of five boxes whose bonds are COMPRESSED to a
 //             third of their target, so every bias pushes its pair apart with
 //             an error that never closes. The column must settle. Today it
@@ -183,14 +192,14 @@ bool test_baumgarte_ratchet() {
 
     // ---- 2. SLING — gluon bias alone --------------------------------------
     {
-        printf("\n  [2] SLING: a bond 2 m from target must close QUIETLY\n");
+        printf("\n  [2] SLING: a stretched bond must close QUIETLY (within tear limit)\n");
         Engine engine;
         if (!start(engine)) { printf("  engine init failed\n  FAIL\n"); return false; }
         auto& ps = engine.get_particle_system();
 
         const int anchor = add_box(engine, 0.0f, 0.0f, 3.0f, 0.30f,
                                    Materials::Type::STONE);
-        const int body   = add_box(engine, 0.0f, 0.0f, 0.50f, 0.30f,
+        const int body   = add_box(engine, 0.0f, 0.0f, 1.20f, 0.30f,
                                    Materials::Type::WOOD_SOFT);
         ps.flush_pending_particles();
         {
@@ -199,8 +208,10 @@ bool test_baumgarte_ratchet() {
             v[anchor].owner = ParticleOwner::DYNAMICS;
             v[anchor].is_at_rest = true;
         }
-        // Target 0.5 m below the anchor; the body starts 2.5 m below it.
-        bond(engine, anchor, body, 0.5f, 50000.0f, 1000.0f);
+        // Anchor at z=3.0, body released at z=1.2, so the bond starts at 1.8 m
+        // against a 1.0 m target: stretched 1.8x, inside the 2.0x tear ratio.
+        // 0.8 m of position error to repair, and the bond must survive doing it.
+        bond(engine, anchor, body, 1.0f, 50000.0f, 1000.0f);
 
         const Motion m = run_watching(engine, {body}, 300);
         float dist = 0.0f;
@@ -211,7 +222,7 @@ bool test_baumgarte_ratchet() {
             const float dz = v[body].z - v[anchor].z;
             dist = std::sqrt(dx*dx + dy*dy + dz*dz);
         }
-        printf("      bond length at end: %.3f m (target 0.500)\n", dist);
+        printf("      bond length at end: %.3f m (target 1.000, released at 1.800)\n", dist);
         {   // Why did it not arrive? Name the state instead of guessing.
             auto v = ps.lock_particles_for_write();
             printf("      body: z %.3f  at_rest %d  mode %d  mass %.4f kg\n",
@@ -220,16 +231,8 @@ bool test_baumgarte_ratchet() {
             printf("      anchor: z %.3f  mode %d\n",
                    v[anchor].z, (int)v[anchor].solver_mode);
         }
-        // RED for a DIFFERENT reason than the ratchet, and it is left red
-        // deliberately. The body falls to the world floor and goes to sleep
-        // holding a 2.35 m bond error (measured: z 0.153, at_rest 1). Asleep
-        // means inverse mass 0, so the position pass skips it and the error
-        // becomes permanent. The sleep law (f61b8a9) says a body may rest only
-        // while its constraints are satisfied; it does not check gluon
-        // DISTANCE error, so this body was allowed to sleep on a stretched
-        // bond. Split impulse cannot fix that and should not pretend to.
-        judge("repair happened: within 10%% of target",
-              std::fabs(dist - 0.5f) <= 0.05f, dist, 0.55f, "m ");
+        judge("repair happened: within 5%% of target",
+              std::fabs(dist - 1.0f) <= 0.05f, dist, 1.05f, "m ");
         judge("peak real speed during the 2 m repair", m.peak <= 1.0f,
               m.peak, 1.0f, "m/s");
         judge("still moving at the end", m.final_v <= 0.10f, m.final_v, 0.10f, "m/s");
