@@ -3260,6 +3260,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             const float rest = std::max({gluon->target_distance,
                                          gluon->get_segment_length(), 0.01f});
             if (dist > max_strain * rest) {
+                // TEAR_DEBUG=1: name every bond that snaps and the state that
+                // snapped it. A tear is silent by construction — the bond is
+                // simply gone next frame — so without this the only evidence is
+                // a count going down and a blade 2.5 m from home.
+                static const bool tear_dbg = std::getenv("TEAR_DEBUG") != nullptr;
+                if (tear_dbg) {
+                    std::cout << "[TEAR] P" << gluon->particle_a
+                              << "<->P" << gluon->particle_b
+                              << " dist=" << dist << " rest=" << rest
+                              << " strain=" << (dist / rest) << "x (limit "
+                              << max_strain << "x)"
+                              << " | a: pos=(" << pa.x << "," << pa.y << "," << pa.z
+                              << ") vel=(" << pa.vx << "," << pa.vy << "," << pa.vz
+                              << ") m=" << pa.GetMass() << " mode=" << (int)pa.solver_mode
+                              << " | b: pos=(" << pb.x << "," << pb.y << "," << pb.z
+                              << ") vel=(" << pb.vx << "," << pb.vy << "," << pb.vz
+                              << ") m=" << pb.GetMass() << " mode=" << (int)pb.solver_mode
+                              << std::endl;
+                }
                 mark_gluon_for_removal(gluon->id);
             }
         }
