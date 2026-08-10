@@ -108,7 +108,10 @@ const Nature NATURES[3] = {
     // ~0.5 N*m/rad or the joint oscillates above the 240 Hz substep
     // Nyquist (sqrt(60/1.4e-4) = 667 rad/s) and averages to zero lift.
     {"STRAIGHT", 5000.0f, 100.0f,   0.3f, 0.02f, 0.0f,  6.0f},
-    {"BRITTLE",  5000.0f, 100.0f, 400.0f, 2.0f, 0.0f,  1.3f},
+    // Tear limits are relative to what bonds now actually stretch. With
+    // one correction law they hold to ~1.11x under this hit, so brittle
+    // fiber must declare a limit inside that band to express its nature.
+    {"BRITTLE",  5000.0f, 100.0f, 400.0f, 2.0f, 0.0f,  1.05f},
 };
 
 struct Blade {

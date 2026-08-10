@@ -820,7 +820,7 @@ Rung rung4(Engine& engine) {
             if (k == 1) {
                 // LEANING keeps a trace of the event: only the deepest part
                 // of the fold plasticizes, so it settles slightly leaning.
-                g->plastic_yield_angle = 1.15f;
+                g->plastic_yield_angle = 1.00f;
                 g->max_strain = 4.0f;
             }
             engine.get_physics_system().add_gluon_between(a, b, std::move(g));
