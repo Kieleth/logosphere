@@ -348,6 +348,7 @@ target_link_libraries(test_mutation_playback PRIVATE logosphere_core)
 target_compile_features(test_mutation_playback PRIVATE cxx_std_17)
 add_headless_test(test_body_plan)
 add_headless_test(test_game_time)
+add_headless_test(test_material_properties)  # mechanical constants must be physically possible
 add_headless_test(test_kg_setproperty_events)
 add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)
