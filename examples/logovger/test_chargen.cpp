@@ -234,18 +234,18 @@ void test_missing_rules_fail_loudly() {
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(req, empty, dice, sheet, error);
-    CHECK(!ok && error.find("Agent") != std::string::npos,
-          "a world with no career refuses to generate, and says which: "
+    CHECK(!ok && error.find("no Career") != std::string::npos,
+          "a world with no careers refuses to generate, and says so: "
               + error);
 
     kg::KGModule world(game_registry());
     std::string why;
     build_world(world, why);
-    req.career_name = "Scout";
+    req.career_name = "Xenolinguist";
     const bool ok2 = logovger::run_chargen(req, world, dice, sheet, error);
-    CHECK(!ok2 && error.find("Scout") != std::string::npos,
-          "and a career the book defined but the seed did not is refused "
-          "by name, not silently substituted");
+    CHECK(!ok2 && error.find("Xenolinguist") != std::string::npos,
+          "and a career that is not in the book at all is refused by "
+          "name, not silently substituted");
 }
 
 // The rules are DATA: change what the book says and the life changes,
@@ -270,7 +270,12 @@ void test_the_rules_are_data() {
     CHECK(!quote.empty() && chapter.find(quote) != std::string::npos,
           "the career cites the career-table row it came from");
 
-    kg.setProperty(career, "qualification_target", "13");
+    // The target lives on the career's qualification TaskCheck now, so
+    // this reaches through the reference the seed built.
+    const auto check_ref = kg.getProperty(career, "qualification_check");
+    CHECK(!check_ref.empty(), "the career points at a qualification check");
+    kg.setProperty(static_cast<kg::EntityID>(std::stoul(check_ref)),
+                   "target_number", "13");
 
     logosphere::dice::DiceService dice;
     logovger::ChargenRequest req;

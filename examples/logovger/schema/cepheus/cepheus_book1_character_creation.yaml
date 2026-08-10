@@ -68,12 +68,8 @@ classes:
       the book, not when the class itself is described there. A
       character is a player's, not the book's.
     slots:
-      - qualification_target
-      - qualification_dm_characteristic
-      - survival_target
-      - survival_dm_characteristic
-      - commission_target
-      - advancement_target
+      - qualification_check
+      - survival_check
 
   ServiceTerm:
     is_a: Event
@@ -180,24 +176,6 @@ slots:
   credits:
     range: integer
     description: Money, in credits, from mustering out onward.
-  qualification_target:
-    range: integer
-    description: 2D6 target to enter the career.
-  qualification_dm_characteristic:
-    range: string
-    description: Which characteristic DMs the qualification roll.
-  survival_target:
-    range: integer
-    description: 2D6 target to survive a term.
-  survival_dm_characteristic:
-    range: string
-    description: Which characteristic DMs survival.
-  commission_target:
-    range: integer
-    description: 2D6 target for a commission (0 = career has none).
-  advancement_target:
-    range: integer
-    description: 2D6 target for advancement (0 = career has none).
   term_number:
     range: integer
     description: 1-based index of the term in the Voyager's life.
@@ -210,6 +188,21 @@ slots:
   commissioned:
     range: boolean
     description: Whether a commission was earned this term.
+  # Each throw is its own TaskCheck, so it can cite the row it was
+  # printed on. A career's qualification and survival come from
+  # DIFFERENT rows of the career table; one entity carrying both
+  # numbers could only ever prove one of them, and the ingestion
+  # verifier caught exactly that.
+  qualification_check:
+    range: TaskCheck
+    description: >-
+      The throw to enter this career
+      [book1/character-creation.md "Career Tables" Qualifications row].
+  survival_check:
+    range: TaskCheck
+    description: >-
+      The throw to survive a term in it
+      [book1/character-creation.md "Career Tables" Survival row].
   pseudohex_min:
     range: string
     required: true

@@ -255,12 +255,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("BodyPart", "body_part_name", "string", false);
     reg.addProperty("Bondable", "bond_strength", "float", false, true, 0.0, true, 1000000.0);
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
-    reg.addProperty("Career", "qualification_target", "integer", false);
-    reg.addProperty("Career", "qualification_dm_characteristic", "string", false);
-    reg.addProperty("Career", "survival_target", "integer", false);
-    reg.addProperty("Career", "survival_dm_characteristic", "string", false);
-    reg.addProperty("Career", "commission_target", "integer", false);
-    reg.addProperty("Career", "advancement_target", "integer", false);
+    reg.addRefProperty("Career", "qualification_check", false, "TaskCheck");
+    reg.addRefProperty("Career", "survival_check", false, "TaskCheck");
     reg.addProperty("Character", "dexterity", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "endurance", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "intelligence", "integer", false, true, 0.0, true, 33.0);
