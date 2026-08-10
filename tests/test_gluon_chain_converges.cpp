@@ -32,7 +32,6 @@
 
 #include "../src/core/engine.h"
 #include "logosphere/physics/physics_system.h"
-#include "logosphere/physics/gluon_particle.h"
 #include "../src/math/quat.h"
 #include "../src/materials.h"
 #include "../src/particle.h"

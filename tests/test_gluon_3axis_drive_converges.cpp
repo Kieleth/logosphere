@@ -21,7 +21,6 @@
 
 #include "../src/core/engine.h"
 #include "logosphere/physics/physics_system.h"
-#include "logosphere/physics/gluon_particle.h"
 #include "../src/particle.h"
 #include "../src/math/quat.h"
 #include <cstdio>

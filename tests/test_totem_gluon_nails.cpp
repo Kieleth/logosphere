@@ -1,5 +1,4 @@
 #include "../src/core/engine.h"
-#include "logosphere/physics/gluon_particle.h"
 #include <iostream>
 #include <cmath>
 #include <iomanip>

@@ -940,7 +940,6 @@ target_compile_definitions(logosphere_dynamics PUBLIC HAS_LLAMA)
 # ---- logosphere_physics — XPBD solver, gluons, narrow-phase, BVH ----
 set(LOGOSPHERE_PHYSICS_SOURCES
     src/core/physics_system_v4.cpp
-    src/core/gluon_particle.cpp
     src/bvh.cpp
 )
 add_library(logosphere_physics STATIC ${LOGOSPHERE_PHYSICS_SOURCES})
@@ -999,7 +998,7 @@ set(LOGOSPHERE_SOURCES
     src/scanline_uv_cache.cpp
     src/surface_cache.cpp      # Scanline UV coherence optimization
     # NOTE: rendering sources live in logosphere_rendering (see below).
-    # NOTE: physics_system_v4 / narrow_phase / gluon_particle / bvh live in
+    # NOTE: physics_system_v4 / narrow_phase / bvh live in
     # logosphere_physics (see below). narrow_phase is also in logosphere_core
     # for headless shape tests.
     src/core/light_system.cpp
