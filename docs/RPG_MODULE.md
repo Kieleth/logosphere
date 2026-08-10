@@ -281,6 +281,83 @@ Load-bearing properties:
   slice brings NPCs. Rule of two applies to its meta-classes
   (DialogueNode, PersonaBrief, PreparedScene).
 
+## What the first playable slice taught us (2026-08-10)
+
+Chargen now runs end to end with a screen you can interrogate. These
+are the things that were learned the expensive way, in the order they
+cost time.
+
+**A citation that addresses a line cannot prove a cell.** The verifier
+passed a deliberately corrupted rule (Scout qualifying on 5 instead of
+6) because the quoted line was still present in the source. A number
+that lives in a table cell has to be addressed as a cell: file,
+heading trail, table, row key, column. This is what `SourceLocator`
+exists for, and why the verifier now refuses a citation that quotes a
+multi-column row as proof of a single number. See SOURCE_LOCATORS.md.
+
+**Ambiguity must fail, and failure must name what is there.** A
+locator that resolves to two cells is a broken citation, not a
+fifty-fifty guess. When resolution fails the error lists the headings,
+tables and columns that DO exist at that address, because the common
+case is a citation written against a slightly different edition.
+
+**Extraction is a retrieval problem, not a parsing problem.** Regexes
+over the SRD were fragile and quietly wrong on the career blocks,
+where a run of pipe rows holds several sub-tables that restate their
+headers. The shape that works: bound a region of the source, hand it
+to a fast model to fill, then verify every value against the source
+mechanically. The verifier is what makes the model's output
+trustworthy; without it, extraction is just plausible text.
+
+**Enforce a rule where the book conditions it.** The seven-term cap
+was missing, so a character could serve thirteen terms and die of old
+age. Putting the check at "term ends" was still wrong: the book
+conditions the PERMISSION TO CHOOSE A NEW CAREER on having terms left.
+Enforced there, the behaviour falls out correctly and the citation
+sits on the sentence that actually says it.
+
+**Narration must not name the machinery.** The narrator wrote "snake
+eyes, nothing Dex 9 could buy back" to a player looking at a sheet
+that already says Dex 9. Prose earns its place only by saying what the
+numbers cannot: where they were, who else was there, what it cost.
+The prompt forbids naming a die, target, modifier or characteristic,
+and asks for invented concrete detail inside the setting.
+
+**One call can carry two products.** Each beat returns the scene AND
+one clipped clause for the character's file. The file is therefore
+written a line at a time as the life happens, at no extra latency and
+no extra call.
+
+**A prose cache must be keyed by the whole prompt.** Keying on the
+seed and the lore alone meant a change to the narrator's rules served
+prose written under the old rules. The key now covers the exact
+prompt, so changing the voice rewrites every story.
+
+**Nothing on screen may be cut.** Ellipsis is a lie about what the
+book says. Wrapping belongs in the widget, not in its callers: a
+caller that has to pre-trim will eventually pass something too long.
+The provenance panel matters most, since quoting the book is the
+entire point of it.
+
+**Layout is arithmetic, so test it.** A window widened to 1820 points
+on a 1728-point display does not appear at all, and no screenshot can
+catch a window that was never drawn. Geometry is now a pure function
+with a headless test: the window fits a display measured in points,
+panels do not overlap, and every absolutely-positioned root widget
+lands inside the panel it visually belongs to.
+
+**Reproducibility is a tool, not a default.** Seeding lives from a
+counter meant every launch played the same lives. Play draws from real
+entropy and prints its seed; `--seed N` replays a specific life.
+
+**Generated code must be ordered by every dependency.** The ontology
+generator sorted classes by inheritance only, so a class embedding
+another by value could be emitted first and fail to compile. Slot
+ranges are dependencies too.
+
+**A gate that runs a hardcoded list is not a gate.** CI listed 21
+tests by hand while the suite had grown past 50. It runs `ctest` now.
+
 ## Decisions log
 
 | Date | Decision |
@@ -315,7 +392,8 @@ Load-bearing properties:
 
 ## Build state (updated at each compaction point)
 
-_Last updated 2026-08-10, two-phase RollableTable selection built and used by Logovger training._
+_Last updated 2026-08-10, first playable slice merged; see "What the
+first playable slice taught us"._
 
 | Step | What | State |
 |---|---|---|
@@ -329,7 +407,8 @@ _Last updated 2026-08-10, two-phase RollableTable selection built and used by Lo
 | 7a | Outcome executor | BUILT with exact dispatch, atomic KG and dice execution, typed choices, generic skill and currency state, typed pending table rolls, and game procedure signals |
 | 7b | Procedure runner (outcome-label routing) + thin game primitives | BUILT for the current slice: generic engine runner plus eight registered Logovger primitives; full-checklist primitives remain part of later absorption |
 | 7c | RollableTable runner | BUILT with complete preflight, one committed citable selection, and explicit separate outcome application |
-| 8 | Chargen session and rule-12 life timeline | BASIC SLICE BUILT on the seeded `basic_chargen` Procedure; skill training uses engine table selection followed explicitly by the engine outcome executor; broader checklist and referee integration remain |
+| 8 | Chargen session, playable screen (sheet + live personnel file + provenance), multi-career, refusal to Draft/Drifter, seven-term cap, LLM narration recorded as Narration entities | PLAYABLE END TO END, merged (6f775d7); mishap table, ageing and mustering-out benefits not yet absorbed |
+| 8-prev | Chargen session and rule-12 life timeline | BASIC SLICE BUILT on the seeded `basic_chargen` Procedure; skill training uses engine table selection followed explicitly by the engine outcome executor; broader checklist and referee integration remain |
 
 Working agreements in force: decisions surfaced BEFORE building; gated
 merges only (conclusion checked in the same command); background tasks
