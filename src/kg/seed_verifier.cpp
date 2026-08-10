@@ -994,7 +994,16 @@ struct Checker {
         // one - an unnamed instance cannot be deduplicated.
         for (const auto& type : inv.unique_name_per_type) {
             ++report.invariants_checked;
-            std::vector<std::string> seen;
+            // Scoped to the WORLD, not to this file. Scanning only our
+            // own ops let two seeds each create a "Gun Combat" and
+            // both pass, which is how four duplicate Skills reached
+            // the graph. A name is unique among everything loaded or
+            // it is not unique at all.
+            std::map<std::string, int> counts;
+            for (EntityID id : world.findByType(type)) {
+                const std::string name = world.getProperty(id, "name");
+                if (!name.empty()) ++counts[name];
+            }
             for (size_t i = 0; i < seed.ops.size(); ++i) {
                 const EntityID id = load.created_ids[i];
                 if (id == INVALID_ENTITY || world.getType(id) != type)
@@ -1007,13 +1016,14 @@ struct Checker {
                             ": instance has no name");
                     continue;
                 }
-                if (std::find(seen.begin(), seen.end(), name) !=
-                    seen.end()) {
+                if (counts[name] > 1) {
                     violate("invariant", static_cast<int>(i), alias,
                             "unique_name_per_type " + type +
-                            ": duplicate name '" + name + "'");
-                } else {
-                    seen.push_back(name);
+                            ": '" + name + "' exists " +
+                            std::to_string(counts[name]) +
+                            " times in the loaded world (another seed "
+                            "may already create it; reference it with "
+                            "@@" + type + ":" + name + " instead)");
                 }
             }
         }
