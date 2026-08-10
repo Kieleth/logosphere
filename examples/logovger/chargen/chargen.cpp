@@ -3,6 +3,7 @@
 #include "rules/characteristics.h"
 #include "rules/ehex.h"
 
+#include <cctype>
 #include <sstream>
 
 namespace logovger {
@@ -153,103 +154,208 @@ std::string roll_for_skill(kg::KGModule& kg, kg::EntityID career,
 
 }  // namespace
 
-bool run_chargen(const ChargenRequest& request,
-                 kg::KGModule& kg,
-                 logosphere::dice::DiceService& dice,
-                 CharacterSheet& out,
-                 std::string& error) {
+// --- the session: a life, one decision at a time -------------------
+
+bool ChargenSession::begin(uint64_t seed, std::string& error) {
     error.clear();
-    out = CharacterSheet{};
-    out.career = request.career_name;
-    dice.seed_stream("chargen", request.seed);
+    sheet_ = CharacterSheet{};
+    finished_ = false;
+    drained_ = 0;
+    dice_.seed_stream("chargen", seed);
 
-    // --- the career the book defined -------------------------------
-    const auto career = find_named(kg, "Career", request.career_name);
-    if (career == kg::INVALID_ENTITY) {
-        error = "no Career named '" + request.career_name + "' in the graph";
-        return false;
-    }
-    bool have = true;
-    const int qual_target = property_int(kg, career, "qualification_target",
-                                         have);
-    const int surv_target = property_int(kg, career, "survival_target", have);
-    const auto qual_attr = kg.getProperty(career,
-                                          "qualification_dm_characteristic");
-    const auto surv_attr = kg.getProperty(career,
-                                          "survival_dm_characteristic");
-    if (!have || qual_attr.empty() || surv_attr.empty()) {
-        error = "career '" + request.career_name +
-                "' is missing a qualification or survival throw";
-        return false;
-    }
-
-    // --- the character ---------------------------------------------
-    out.id = kg.createEntity("Character");
-    if (out.id == kg::INVALID_ENTITY) {
+    sheet_.id = kg_.createEntity("Character");
+    if (sheet_.id == kg::INVALID_ENTITY) {
         error = "the world does not know what a Character is; load the "
                 "cepheus character-creation pack";
         return false;
     }
 
-    // Step 1: six characteristics, 2D6 each, in the book's order.
-    int* scores[] = {&out.strength, &out.dexterity, &out.endurance,
-                     &out.intelligence, &out.education, &out.social_standing};
+    // Six characteristics, 2D6 each, in the book's order.
+    int* scores[] = {&sheet_.strength, &sheet_.dexterity, &sheet_.endurance,
+                     &sheet_.intelligence, &sheet_.education,
+                     &sheet_.social_standing};
     const char* names[] = {"Str", "Dex", "End", "Int", "Edu", "Soc"};
     logosphere::dice::DiceExpression two_d6;
     two_d6.count = 2;
     two_d6.sides = 6;
     for (int i = 0; i < 6; ++i) {
-        const auto r = dice.roll(two_d6, "chargen",
-                                 std::string("characteristic ") + names[i]);
+        const auto r = dice_.roll(two_d6, "chargen",
+                                  std::string("characteristic ") + names[i]);
         *scores[i] = r.total;
-        out.life.push_back({0, std::string("rolled ") + names[i],
-                            std::to_string(r.total), r.id});
+        sheet_.life.push_back({0, std::string("rolled ") + names[i],
+                               std::to_string(r.total), r.id});
     }
-    if (characteristic_of(out, qual_attr) < 0 ||
-        characteristic_of(out, surv_attr) < 0) {
-        error = "career '" + request.career_name +
-                "' names a characteristic the character does not have";
+    sheet_.upp = upp(sheet_.strength, sheet_.dexterity, sheet_.endurance,
+                     sheet_.intelligence, sheet_.education,
+                     sheet_.social_standing);
+    sheet_.life.push_back({0, "UPP", sheet_.upp, 0});
+    write_sheet(kg_, sheet_);
+
+    offer_careers();
+    if (choices_.empty()) {
+        error = "no Career in the knowledge graph; load a careers seed";
         return false;
     }
-    out.upp = upp(out.strength, out.dexterity, out.endurance,
-                  out.intelligence, out.education, out.social_standing);
-    out.life.push_back({0, "UPP", out.upp, 0});
+    return true;
+}
 
-    // Step 2: qualify.
-    const auto q = throw_check(qual_target, qual_attr, out, dice,
-                               "qualification");
-    out.qualified = q.passed;
-    out.life.push_back({0, q.passed ? "qualified" : "failed to qualify",
-                        q.detail, q.roll_id});
-    if (!q.passed) {
-        write_sheet(kg, out);
-        return true;   // a life that never joined is still a life
+void ChargenSession::offer_careers() {
+    choices_.clear();
+    const char* keys = "abcdefghijklmnop";
+    size_t n = 0;
+    for (auto id : kg_.findByType("Career")) {
+        const auto name = kg_.getProperty(id, "name");
+        if (name.empty() || n >= 16) continue;
+        const auto qt = kg_.getProperty(id, "qualification_target");
+        const auto qa = kg_.getProperty(id, "qualification_dm_characteristic");
+        const auto st = kg_.getProperty(id, "survival_target");
+        const auto sa = kg_.getProperty(id, "survival_dm_characteristic");
+        choices_.push_back({std::string(1, keys[n]), name,
+                            "qualify on " + qa + " " + qt +
+                                "+, survive on " + sa + " " + st + "+"});
+        ++n;
+    }
+    prompt_ = "Which career do you try for?";
+}
+
+void ChargenSession::finish(const std::string& why) {
+    finished_ = true;
+    choices_.clear();
+    prompt_ = why;
+    write_sheet(kg_, sheet_);
+}
+
+void ChargenSession::run_term() {
+    const int term = sheet_.terms_served + 1;
+    bool have = true;
+    const int surv_target = property_int(kg_, career_, "survival_target",
+                                         have);
+    const auto surv_attr = kg_.getProperty(career_,
+                                           "survival_dm_characteristic");
+
+    const auto s = throw_check(surv_target, surv_attr, sheet_, dice_,
+                               "survival");
+    sheet_.life.push_back({term, s.passed ? "survived" : "did not survive",
+                           s.detail, s.roll_id});
+    if (!s.passed) {
+        // "If you fail this roll, your character is dead." The mishap
+        // table is an optional rule and a later slice.
+        finish("The career ended here. (Cepheus: a failed survival roll "
+               "is death; the mishap table is an optional rule we have "
+               "not absorbed yet.)");
+        return;
     }
 
-    // Steps 3-8: terms of service. Survive, train, age.
-    for (int term = 1; term <= request.max_terms; ++term) {
-        const auto s = throw_check(surv_target, surv_attr, out, dice,
-                                   "survival");
-        out.life.push_back({term, s.passed ? "survived" : "did not survive",
-                            s.detail, s.roll_id});
-        if (!s.passed) break;   // mishaps are a later slice
+    uint64_t skill_roll = 0;
+    const auto skill = roll_for_skill(kg_, career_, sheet_.id, dice_,
+                                      skill_roll);
+    if (!skill.empty()) {
+        sheet_.skills.push_back(skill);
+        sheet_.life.push_back({term, "gained " + skill,
+                               "skills and training", skill_roll});
+    }
 
-        uint64_t skill_roll = 0;
-        const auto skill = roll_for_skill(kg, career, out.id, dice,
-                                          skill_roll);
-        if (!skill.empty()) {
-            out.skills.push_back(skill);
-            out.life.push_back({term, "gained " + skill,
-                                "skills and training", skill_roll});
+    sheet_.age_years   += 4;
+    sheet_.terms_served = term;
+    sheet_.life.push_back({term, "term ends",
+                           "age " + std::to_string(sheet_.age_years), 0});
+    write_sheet(kg_, sheet_);
+
+    choices_ = {{"a", "Serve another term",
+                 "four more years in the " + sheet_.career},
+                {"b", "Muster out", "leave with what you have"}};
+    prompt_ = "Term " + std::to_string(term) + " is over. What now?";
+}
+
+bool ChargenSession::choose(const std::string& answer, std::string& error) {
+    error.clear();
+    if (finished_) { error = "this life is finished"; return false; }
+
+    std::string a = answer;
+    for (auto& ch : a) ch = static_cast<char>(std::tolower(ch));
+    const Choice* picked = nullptr;
+    for (const auto& c : choices_) {
+        std::string label = c.label;
+        for (auto& ch : label) ch = static_cast<char>(std::tolower(ch));
+        if (a == c.key || a == label) { picked = &c; break; }
+    }
+    if (!picked) {
+        error = "'" + answer + "' is not one of the options";
+        return false;
+    }
+
+    // Career chosen: qualify, then live the first term.
+    if (career_ == kg::INVALID_ENTITY) {
+        career_ = find_named(kg_, "Career", picked->label);
+        if (career_ == kg::INVALID_ENTITY) {
+            error = "no Career named '" + picked->label + "'";
+            return false;
         }
-
-        out.age_years   += 4;
-        out.terms_served = term;
-        out.life.push_back({term, "term ends",
-                            "age " + std::to_string(out.age_years), 0});
+        sheet_.career = picked->label;
+        bool have = true;
+        const int qt = property_int(kg_, career_, "qualification_target",
+                                    have);
+        const auto qa = kg_.getProperty(career_,
+                                        "qualification_dm_characteristic");
+        if (!have || qa.empty()) {
+            error = "career '" + picked->label +
+                    "' has no qualification throw";
+            return false;
+        }
+        const auto q = throw_check(qt, qa, sheet_, dice_, "qualification");
+        sheet_.qualified = q.passed;
+        sheet_.life.push_back({0, q.passed ? "qualified"
+                                           : "failed to qualify",
+                               q.detail, q.roll_id});
+        if (!q.passed) {
+            finish("Not accepted. (A life that never joined is still a "
+                   "life; the book would send you to the draft, which is "
+                   "a later slice.)");
+            return true;
+        }
+        run_term();
+        return true;
     }
 
-    write_sheet(kg, out);
+    if (picked->key == "a") { run_term(); return true; }
+    finish("Mustered out at age " + std::to_string(sheet_.age_years) +
+           " after " + std::to_string(sheet_.terms_served) + " term(s).");
+    return true;
+}
+
+std::vector<LifeEvent> ChargenSession::drain() {
+    std::vector<LifeEvent> out;
+    for (size_t i = drained_; i < sheet_.life.size(); ++i)
+        out.push_back(sheet_.life[i]);
+    drained_ = sheet_.life.size();
+    return out;
+}
+
+// --- auto-play -----------------------------------------------------
+
+bool run_chargen(const ChargenRequest& request,
+                 kg::KGModule& kg,
+                 logosphere::dice::DiceService& dice,
+                 CharacterSheet& out,
+                 std::string& error) {
+    ChargenSession session(kg, dice);
+    if (!session.begin(request.seed, error)) return false;
+
+    bool offered = false;
+    for (const auto& c : session.choices())
+        if (c.label == request.career_name) offered = true;
+    if (!offered) {
+        error = "no Career named '" + request.career_name + "' in the graph";
+        return false;
+    }
+    if (!session.choose(request.career_name, error)) return false;
+
+    while (!session.finished() && session.sheet().terms_served <
+                                      request.max_terms) {
+        if (!session.choose("a", error)) return false;
+    }
+    if (!session.finished()) session.choose("b", error);
+    out = session.sheet();
     return true;
 }
 

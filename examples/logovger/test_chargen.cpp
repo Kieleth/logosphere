@@ -234,8 +234,8 @@ void test_missing_rules_fail_loudly() {
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(req, empty, dice, sheet, error);
-    CHECK(!ok && error.find("Agent") != std::string::npos,
-          "a world with no career refuses to generate, and says which: "
+    CHECK(!ok && error.find("no Career") != std::string::npos,
+          "a world with no careers refuses to generate, and says so: "
               + error);
 
     kg::KGModule world(game_registry());
