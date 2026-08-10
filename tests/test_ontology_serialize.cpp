@@ -21,7 +21,6 @@ static std::string snapshot_via_query(const kg::KGModule& kg,
     return kg::render_query_json(kg::run_query(kg, q));
 }
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -231,10 +230,6 @@ void snapshot_is_deterministic() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_ontology_serialize ===" << std::endl;
     TEST(emits_basic_type_with_properties);
     TEST(emits_multiple_types_and_abstract_flag);

@@ -312,11 +312,15 @@ install(FILES
 # standards-compliant C++17 toolchain. No engine state, no GPU, no GLFW.
 enable_testing()
 
+function(register_headless_test name)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
 function(add_headless_test name)
     add_executable(${name} tests/${name}.cpp)
     target_link_libraries(${name} PRIVATE logosphere_core)
     target_compile_features(${name} PRIVATE cxx_std_17)
-    add_test(NAME ${name} COMMAND ${name})
+    register_headless_test(${name})
 endfunction()
 
 # The predator example's AT. Not add_headless_test because the example's
@@ -355,6 +359,7 @@ add_executable(test_mutation_playback
 )
 target_link_libraries(test_mutation_playback PRIVATE logosphere_core)
 target_compile_features(test_mutation_playback PRIVATE cxx_std_17)
+register_headless_test(test_mutation_playback)
 add_headless_test(test_body_plan)
 add_headless_test(test_game_time)
 add_headless_test(test_kg_setproperty_events)
@@ -721,6 +726,7 @@ target_include_directories(test_logotron_cycle PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src
 )
 target_compile_features(test_logotron_cycle PRIVATE cxx_std_17)
+register_headless_test(test_logotron_cycle)
 
 # v0.4 — KG-backed cycles and trails. Needs the KG module + the
 # logotron-side ontology registry (an example-local generated file)
@@ -738,6 +744,7 @@ target_include_directories(test_logotron_trails PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_trails PRIVATE cxx_std_17)
+register_headless_test(test_logotron_trails)
 
 # v0.5 — Collision detection. Same source set as test_logotron_trails.
 add_executable(test_logotron_collision
@@ -752,6 +759,7 @@ target_include_directories(test_logotron_collision PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_collision PRIVATE cxx_std_17)
+register_headless_test(test_logotron_collision)
 
 # v0.6 — Round status: pure function of two cycles' KG state.
 add_executable(test_logotron_round
@@ -767,6 +775,7 @@ target_include_directories(test_logotron_round PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_round PRIVATE cxx_std_17)
+register_headless_test(test_logotron_round)
 
 # v0.9 — Weirden Director: KG-side primitives (respawn_ai today,
 # mutations + prompt + parser as they land). Headless: links only
@@ -797,6 +806,7 @@ target_include_directories(test_logotron_director PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(test_logotron_director PRIVATE cxx_std_17)
+register_headless_test(test_logotron_director)
 
 # Pure-logic logotron test for the SymbolicRefs helper.
 add_executable(test_symbolic_refs
@@ -808,6 +818,7 @@ target_include_directories(test_symbolic_refs PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src
 )
 target_compile_features(test_symbolic_refs PRIVATE cxx_std_17)
+register_headless_test(test_symbolic_refs)
 
 # Pure-logic logotron test for the narrative_hint formatter.
 add_executable(test_narrative_hint
@@ -819,6 +830,7 @@ target_include_directories(test_narrative_hint PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src
 )
 target_compile_features(test_narrative_hint PRIVATE cxx_std_17)
+register_headless_test(test_narrative_hint)
 
 # v0.7 — AI driver: tactics + head rotation + perception contract.
 # Headless: links only logosphere_core + cycle.cpp / arena.cpp /
@@ -845,6 +857,7 @@ target_include_directories(test_logotron_ai PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_ai PRIVATE cxx_std_17)
+register_headless_test(test_logotron_ai)
 
 # ============================================================================
 # Logotron Acceptance Tests (ATs) — feature-level, headless by default,
@@ -871,6 +884,7 @@ function(add_logotron_at name)
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/tests/at
     )
     target_compile_features(at_logotron_${name} PRIVATE cxx_std_17)
+    register_headless_test(at_logotron_${name})
 endfunction()
 
 add_logotron_at(vision_memory_excludes_dynamic)
@@ -896,6 +910,7 @@ target_include_directories(at_logotron_director_random_apply PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(at_logotron_director_random_apply PRIVATE cxx_std_17)
+register_headless_test(at_logotron_director_random_apply)
 
 # Director ↔ MLX smoke AT — same Director sources as the random AT,
 # plus LLMSystemHTTP for the live HTTP round trip. Auto-skips with
@@ -952,6 +967,7 @@ target_include_directories(at_logotron_wall_visibility PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(at_logotron_wall_visibility PRIVATE cxx_std_17)
+register_headless_test(at_logotron_wall_visibility)
 
 # ============================================================================
 # Short-circuit for LOGOSPHERE_HEADLESS_ONLY=ON builds (Linux / Windows CI)
@@ -960,6 +976,15 @@ target_compile_features(at_logotron_wall_visibility PRIVATE cxx_std_17)
 # platform, worldgen, Metal shaders, examples, and their tests). Skipped
 # entirely when HEADLESS is set.
 if(LOGOSPHERE_CORE_ONLY)
+    get_property(_headless_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    get_property(_headless_tests DIRECTORY PROPERTY TESTS)
+    foreach(_target IN LISTS _headless_targets)
+        if(_target MATCHES "^(test_|at_)" AND
+           NOT _target IN_LIST _headless_tests)
+            message(FATAL_ERROR
+                "Headless test target '${_target}' is not registered with CTest")
+        endif()
+    endforeach()
     return()
 endif()
 

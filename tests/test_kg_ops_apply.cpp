@@ -14,7 +14,6 @@
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/ontology_validator.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -147,10 +146,6 @@ void e2e_wormhole_pair_landed_with_no_cpp_change() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_kg_ops_apply ===" << std::endl;
     TEST(create_entity_writes_type_and_properties);
     TEST(destroy_entity_removes_from_kg);

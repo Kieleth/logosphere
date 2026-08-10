@@ -11,7 +11,6 @@
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/ontology_validator.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -265,10 +264,6 @@ void create_with_ref_property_validated() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_ontology_validator ===" << std::endl;
     TEST(create_known_concrete_type_ok);
     TEST(create_unknown_type_rejected);

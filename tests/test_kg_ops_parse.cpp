@@ -12,7 +12,6 @@
 #include "logosphere/kg/kg_ops.h"
 #include "logosphere/kg/kg_ops_parse.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -223,10 +222,6 @@ void malformed_as_binder_is_refused() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_kg_ops_parse ===" << std::endl;
     TEST(parses_create_entity_with_properties);
     TEST(parses_destroy_entity_with_symbolic_target);
