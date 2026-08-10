@@ -1,4 +1,4 @@
-// The seed verifier: LLM extracts, machine verifies.
+// The seed verifier: Shelob extracts, the engine verifies.
 //
 // Design under test: docs/RPG_MODULE.md, step 4. A seed file (the
 // envelope + KG-ops with @alias binders) is verified by three checks
@@ -50,9 +50,9 @@ static int tests_failed = 0;
 namespace {
 
 // The vendored SRD root - the ONE place the examples path lives, so
-// the in-flight logoveyer -> logovger rename is a one-line fix here.
+// Keep the source root tied to the canonical Logovger directory.
 const char* kSourceRoot =
-    LOGOSPHERE_SOURCE_DIR "/examples/logoveyer/srd/cepheus";
+    LOGOSPHERE_SOURCE_DIR "/examples/logovger/srd/cepheus";
 const char* kFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/chargen_ch1.json";
 
@@ -362,7 +362,7 @@ void test_duplicate_name_fails_invariant() {
 }  // namespace
 
 int main() {
-    std::cout << "Seed verifier (LLM extracts, machine verifies)"
+    std::cout << "Seed verifier (Shelob extracts, the engine verifies)"
               << std::endl;
     test_envelope_parses();
     test_envelope_parser_is_loud();

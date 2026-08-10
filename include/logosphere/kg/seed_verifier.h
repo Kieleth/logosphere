@@ -1,8 +1,8 @@
 #ifndef LOGOSPHERE_KG_SEED_VERIFIER_H
 #define LOGOSPHERE_KG_SEED_VERIFIER_H
 
-// The ingestion verifier - the machine half of "LLM extracts,
-// machine verifies" (docs/RPG_MODULE.md). Runs three checks over a
+// The ingestion verifier - the engine half of "Shelob extracts,
+// the engine verifies" (docs/RPG_MODULE.md). Runs three checks over a
 // parsed seed file against the source text it claims to come from.
 //
 // All checks read the LOADED world (the seed applied through the
