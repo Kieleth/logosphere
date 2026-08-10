@@ -245,6 +245,59 @@ public:
         }
     }
 
+    // Inertia about an arbitrary WORLD axis, from the body's real extents.
+    //
+    // GetMomentOfInertia() above returns ONE scalar, built from width and
+    // height only, and the solver has been using it for rotation about all
+    // three axes alike. For anything that is not roughly cubic that is wrong
+    // by the aspect ratio squared: a 40 x 3 x 300 mm grass blade gets
+    // 5.8e-5*m where its true transverse inertia is 7.5e-3*m, so the solver
+    // believes the blade is 130x easier to tip over than it is. Nothing
+    // catches it because the error is internally consistent: the same wrong
+    // number is used to size the impulse and to apply it.
+    //
+    // A box's inertia is diagonal in its own frame, so the honest answer is
+    // to rotate the world axis into body space and project. No tensor
+    // storage, no new state: the extents already say everything.
+    float GetInertiaAboutAxis(float ax, float ay, float az) const {
+        const float m = GetMass();
+        if (m <= 0.0f) return 0.0f;
+        const float w = width, h = height, t = thickness;
+        float Ixx, Iyy, Izz;
+        switch (shape) {
+            case ParticleShape::SPHERE: {
+                const float r = size * 0.5f;
+                Ixx = Iyy = Izz = 0.4f * m * r * r;
+                break;
+            }
+            case ParticleShape::ELLIPSOID: {
+                const float a = w * 0.5f, b = h * 0.5f, cc = t * 0.5f;
+                Ixx = 0.2f * m * (b * b + cc * cc);
+                Iyy = 0.2f * m * (a * a + cc * cc);
+                Izz = 0.2f * m * (a * a + b * b);
+                break;
+            }
+            case ParticleShape::BOX:
+            default: {
+                Ixx = m * (h * h + t * t) / 12.0f;
+                Iyy = m * (w * w + t * t) / 12.0f;
+                Izz = m * (w * w + h * h) / 12.0f;
+                break;
+            }
+        }
+        // World axis -> body frame: inverse of the engine's X then Y then Z.
+        const float cx = std::cos(rotation_x), sx = std::sin(rotation_x);
+        const float cy = std::cos(rotation_y), sy = std::sin(rotation_y);
+        const float cz = std::cos(rotation_z), sz = std::sin(rotation_z);
+        const float x1 =  ax * cz + ay * sz, y1 = -ax * sz + ay * cz;
+        const float x2 =  x1 * cy - az * sy, z2 =  x1 * sy + az * cy;
+        const float y3 =  y1 * cx + z2 * sx, z3 = -y1 * sx + z2 * cx;
+        const float bx = x2, by = y3, bz = z3;
+        const float len2 = bx * bx + by * by + bz * bz;
+        if (len2 < 1e-12f) return Izz;
+        return (Ixx * bx * bx + Iyy * by * by + Izz * bz * bz) / len2;
+    }
+
     float GetHalfHeight() const { return thickness * 0.5f; }
     float GetHalfWidth()  const { return width     * 0.5f; }
     float GetHalfDepth()  const { return height    * 0.5f; }

@@ -1689,8 +1689,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Effective inertia (reduced inertia) - same as reduced mass for rotation
             // DYNAMICS particles = infinite inertia (inv_inertia = 0), matching
             // the linear solver convention (inv_mass = 0 for DYNAMICS).
-            float I_a = pa.GetMomentOfInertia();
-            float I_b = pb.GetMomentOfInertia();
+            // The row's inertia must be about the axis it actually turns, not
+            // a single scalar built from two of the three extents (see
+            // Particle::GetInertiaAboutAxis). The scalar path turns about Z;
+            // the quaternion path recomputes below, once its axis is known.
+            float I_a = pa.GetInertiaAboutAxis(0.0f, 0.0f, 1.0f);
+            float I_b = pb.GetInertiaAboutAxis(0.0f, 0.0f, 1.0f);
             float inv_inertia_sum = 0.0f;
             if (I_a > 0.0f && pa.solver_mode != ParticleSolverMode::KINEMATIC) inv_inertia_sum += 1.0f / I_a;
             if (I_b > 0.0f && pb.solver_mode != ParticleSolverMode::KINEMATIC) inv_inertia_sum += 1.0f / I_b;
@@ -1842,6 +1846,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // gentler than theta itself for big rotations, which
                     // happens to curb the initial overshoot that ran the
                     // chain into saturation.
+                    {   // size this row by the inertia about ITS axis
+                        const float axx = c_axis.angular_axis_x;
+                        const float axy = c_axis.angular_axis_y;
+                        const float axz = c_axis.angular_axis_z;
+                        const float Ia2 = (pa.solver_mode == ParticleSolverMode::KINEMATIC)
+                            ? 0.0f : pa.GetInertiaAboutAxis(axx, axy, axz);
+                        const float Ib2 = (pb.solver_mode == ParticleSolverMode::KINEMATIC)
+                            ? 0.0f : pb.GetInertiaAboutAxis(axx, axy, axz);
+                        float inv2 = 0.0f;
+                        if (Ia2 > 0.0f) inv2 += 1.0f / Ia2;
+                        if (Ib2 > 0.0f) inv2 += 1.0f / Ib2;
+                        if (inv2 > 0.0f) c_axis.effective_inertia = 1.0f / inv2;
+                    }
                     c_axis.angular_bias = std::min(
                         ANGULAR_BETA * e_mag / dt,
                         PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY);
@@ -2456,8 +2473,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // the reciprocal couplings — force-at-anchor makes torque,
                 // torque-at-anchor makes motion — need ONE row carrying a
                 // full Jacobian, not two rows correcting each other.
-                float I_a = pa.GetMomentOfInertia();
-                float I_b = pb.GetMomentOfInertia();
+                // Apply with the SAME inertia the row was sized with, about
+                // the same axis. Sizing and applying with different numbers
+                // is how a row over- or under-corrects by a constant factor.
+                float I_a = pa.GetInertiaAboutAxis(ax_x, ax_y, ax_z);
+                float I_b = pb.GetInertiaAboutAxis(ax_x, ax_y, ax_z);
 
                 if (I_a > 0.0f && pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                     float inv = 1.0f / I_a;

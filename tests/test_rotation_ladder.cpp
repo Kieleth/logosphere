@@ -543,7 +543,10 @@ Rung rung3(Engine& engine) {
         g->enable_angular_constraint = true;
         g->angular_drive_enabled = true;
         g->use_quat_target = true;   // grown pose: identity (upright)
-        g->angular_stiffness = 150.0f;   // N*m/rad — soft in bend: the joint
+        // Rescaled x4.5 when the inertia tensor landed: every angular
+        // declaration in this file was tuned against a scalar inertia 4.5x
+        // too small for this segment shape (0.25 x 0.25 x 0.6).
+        g->angular_stiffness = 675.0f;   // N*m/rad — soft in bend: the joint
         g->angular_damping = 40.0f;      // near-critical: grass sways once
         engine.get_physics_system().add_gluon_between(a, b, std::move(g));
     };
@@ -757,10 +760,10 @@ Rung rung4(Engine& engine) {
     // 50/6 is the stable 'a bit of bounce'; wilder (20/2) whips into the
     // neighbour chain and the interaction detonates (#47 family).
     const ChainSpec specs[4] = {
-        {"BENT",      4000.0f, 150.0f,  40.0f},   // + plastic yield 0.25 rad
-        {"LEANING",     50.0f, 150.0f,   6.0f},   // + mild yield: bounce once, settle leaning
-        {"STRAIGHT",  4000.0f, 150.0f,  40.0f},
-        {"BRITTLE",   4000.0f, 4000.0f, 40.0f},   // stiff joints, honest strength
+        {"BENT",      4000.0f, 675.0f, 180.0f},   // + plastic yield 0.25 rad
+        {"LEANING",     50.0f, 675.0f,  27.0f},   // + mild yield: bounce once, settle leaning
+        {"STRAIGHT",  4000.0f, 675.0f, 180.0f},
+        {"BRITTLE",   4000.0f,18000.0f,180.0f},   // stiff joints, honest strength
     };
     const float xs[4] = {6.0f, 8.0f, 10.0f, 12.0f};
 
