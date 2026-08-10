@@ -1630,6 +1630,13 @@ struct EndCareer : public Outcome {
 };
 
 
+/// Enter a named career as the result of a roll rather than a choice: the Draft table's six services [book1/character-creation.md "Qualifying and the Draft"]. The career is an entity reference, so a draft row cannot name a career the game does not have.
+struct EnterCareer : public Outcome {
+    /// The career this result puts the character into.
+    Career drafted_career = {};
+};
+
+
 /// A unit of money named by the book. Credits are the first instance [book1/character-creation.md "Injury Crisis"]. GainMoney points to this vocabulary rather than baking a currency into the engine.
 struct Currency : public Entity, public Cited {
 };

@@ -7,16 +7,6 @@
 namespace logovger {
 namespace {
 
-// A dark table with a lamp on it.
-constexpr int kPad = 12;
-constexpr int kLine = 18;
-constexpr int kStatRows = 12;      // six characteristics, career, age, terms
-constexpr int kNarrationLines = 6;   // the list needs the room:
-                                     // containers do not clip children,
-                                     // so an overflowing menu draws
-                                     // outside its panel
-constexpr int kProvLines = 6;
-
 ui::Label* make_label(ui::Container* parent, int x, int y, int w,
                       uint8_t r, uint8_t g, uint8_t b) {
     auto* l = new ui::Label("", "");
@@ -49,6 +39,27 @@ std::string renderable(const std::string& s) {
     return out;
 }
 
+// Break text into lines of at most `cols` characters, on spaces where
+// there is one. A '\n' is a break the writer meant.
+std::vector<std::string> wrap_text(const std::string& text, size_t cols) {
+    std::vector<std::string> out;
+    if (cols == 0) return out;
+    size_t at = 0;
+    while (at < text.size()) {
+        const size_t hard = text.find('\n', at);
+        const size_t end = (hard == std::string::npos) ? text.size() : hard;
+        size_t take = std::min(cols, end - at);
+        if (at + take < end) {
+            const size_t brk = text.rfind(' ', at + take);
+            if (brk != std::string::npos && brk > at) take = brk - at;
+        }
+        out.push_back(text.substr(at, take));
+        at += take;
+        while (at < text.size() && (text[at] == ' ' || text[at] == '\n')) ++at;
+    }
+    return out;
+}
+
 std::string ellipsize(const std::string& s, size_t max) {
     if (s.size() <= max) return s;
     return s.substr(0, max - 3) + "...";
@@ -59,19 +70,26 @@ std::string ellipsize(const std::string& s, size_t max) {
 void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
     ui_ = &ui;
 
-    const int right_w = 340;
-    const int bottom_h = kProvLines * kLine + 3 * kPad;
-    const int left_w = screen_w - right_w - 3 * kPad;
-    const int top_h = screen_h - bottom_h - 3 * kPad;
+    // One function owns the arithmetic, and a headless test asserts
+    // it. See screen_layout.h for why that is not over-engineering.
+    const ScreenLayout L = compute_layout(screen_w, screen_h);
+    const int left_w = L.left.w;
+    const int right_w = L.right.w;
+    const int dossier_w = L.dossier.w;
+    const int top_h = L.left.h;
 
     // ---- LEFT: what is happening, and what you are asked --------------
     left_ = new ui::Panel("logovger_narration");
-    left_->set_position(kPad, kPad);
-    left_->set_size(left_w, top_h);
+    left_->set_position(L.left.x, L.left.y);
+    left_->set_size(L.left.w, L.left.h);
     left_->set_background_color(16, 16, 22, 235);
     left_->set_border(true, 70, 80, 110);
     left_->set_ui_system(&ui);
     ui.add_widget(left_);
+
+    // The engine font is fixed-pitch at 6 px per character, so the
+    // column count is the panel's width in characters.
+    wrap_columns_ = static_cast<size_t>(L.narration_columns);
 
     int y = kPad;
     auto* title = make_label(left_, kPad, y, left_w - 2 * kPad, 235, 225, 190);
@@ -91,8 +109,8 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
     y += kLine + 4;
 
     choices_ = new CareerList("logovger_choices");
-    choices_->set_position(kPad * 2, y + kPad);
-    choices_->set_size(left_w - 4 * kPad, top_h - y - 3 * kPad);
+    choices_->set_position(L.choices.x, L.choices.y);
+    choices_->set_size(L.choices.w, L.choices.h);
     choices_->set_ui_system(&ui);
     choices_->on_choose = [this](const std::string& key) {
         if (on_answer) on_answer(key);
@@ -106,8 +124,8 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
 
     // ---- RIGHT: the sheet, every value clickable ----------------------
     right_ = new ui::Panel("logovger_sheet");
-    right_->set_position(kPad * 2 + left_w, kPad);
-    right_->set_size(right_w, top_h);
+    right_->set_position(L.right.x, L.right.y);
+    right_->set_size(L.right.w, L.right.h);
     right_->set_background_color(22, 20, 16, 240);
     right_->set_border(true, 120, 100, 60);
     right_->set_ui_system(&ui);
@@ -152,32 +170,100 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
                                     200, 190, 150);
     skills_title->set_text("SKILLS   (click one to read it)");
     sy += kLine + 2;
-    for (int i = 0; i < 8; ++i) {
-        auto* b = new ui::Button("", "skill" + std::to_string(i));
-        b->set_position(kPad, sy);
-        b->set_size(right_w - 2 * kPad, kLine);
-        const size_t idx = static_cast<size_t>(i);
-        b->on_click = [this, idx]() {
-            if (!kg_ || idx >= skill_names_.size()) return;
-            if (skill_names_[idx].empty()) return;
-            show_skill(*kg_, skill_names_[idx]);
-        };
-        right_->add_child(b);
-        skill_buttons_.push_back(b);
-        sy += kLine + 2;
-    }
-    skill_names_.assign(8, "");
 
+    // A seven-term life can learn more skills than any fixed run of
+    // rows would hold, so this is the scrolling list, sized to the
+    // room that is left. It grows; the panel does not.
+    skills_list_ = new CareerList("logovger_skills");
+    skills_list_->set_position(L.skills.x, L.skills.y);
+    skills_list_->set_size(L.skills.w, L.skills.h);
+    skills_list_->set_ui_system(&ui);
+    skills_list_->set_detail_column(150);
+    skills_list_->set_commit_hint("read it");
+    auto read_skill = [this](const std::string& key) {
+        if (kg_ && !key.empty()) show_skill(*kg_, key);
+    };
+    skills_list_->on_inspect = read_skill;
+    skills_list_->on_choose = read_skill;
+    ui.add_widget(skills_list_);
     auto* again = new ui::Button("   [ another life ]", "logovger_again");
-    again->set_position(kPad, sy + kPad);
+    again->set_position(kPad, L.again_y - L.right.y);
     again->set_size(right_w - 2 * kPad, kLine + 6);
     again->on_click = [this]() { if (on_new_life) on_new_life(); };
     right_->add_child(again);
 
+    // ---- MIDDLE: the file, written as the life happens ---------------
+    dossier_ = new ui::Panel("logovger_dossier");
+    dossier_->set_position(L.dossier.x, L.dossier.y);
+    dossier_->set_size(L.dossier.w, L.dossier.h);
+    dossier_->set_background_color(20, 18, 24, 240);
+    dossier_->set_border(true, 110, 90, 120);
+    dossier_->set_ui_system(&ui);
+    ui.add_widget(dossier_);
+
+    dossier_columns_ = static_cast<size_t>(L.dossier_columns);
+
+    int dy = kPad;
+    auto* file_title = make_label(dossier_, kPad, dy, dossier_w - 2 * kPad,
+                                  200, 170, 220);
+    file_title->set_text("PERSONNEL FILE");
+    dy += kLine + kPad / 2;
+
+    dossier_name_ = make_label(dossier_, kPad,
+                               L.dossier_name_y - L.dossier.y,
+                               dossier_w - 2 * kPad, 255, 230, 190);
+    dy = L.dossier_body_y - L.dossier.y;
+    for (int i = 0; i < kDossierLines; ++i) {
+        dossier_lines_.push_back(
+            make_label(dossier_, kPad, dy, dossier_w - 2 * kPad,
+                       190, 185, 205));
+        dy += kLine;
+    }
+
+    auto* biopic_title = make_label(dossier_, kPad,
+                                    L.file_title_y - L.dossier.y,
+                                    dossier_w - 2 * kPad, 190, 160, 210);
+    biopic_title->set_text("FILE");
+
+    biopic_ = new CareerList("logovger_biopic");
+    biopic_->set_position(L.biopic.x, L.biopic.y);
+    biopic_->set_size(L.biopic.w, L.biopic.h);
+    biopic_->set_ui_system(&ui);
+    biopic_->set_detail_column(L.biopic.w - 2 * kPad);   // no second column
+    biopic_->set_commit_hint("");
+    ui.add_widget(biopic_);
+
+    auto* rec_title = make_label(dossier_, kPad,
+                                 L.record_title_y - L.dossier.y,
+                                 dossier_w - 2 * kPad, 190, 160, 210);
+    rec_title->set_text("SERVICE RECORD");
+
+    // The bottom of the file is the assessment, written last. The
+    // record takes everything between here and there, and scrolls.
+    record_ = new CareerList("logovger_record");
+    record_->set_position(L.record.x, L.record.y);
+    record_->set_size(L.record.w, L.record.h);
+    record_->set_ui_system(&ui);
+    record_->set_detail_column(70);
+    record_->set_commit_hint("");
+    ui.add_widget(record_);
+
+    int ay = L.assessment_y - L.dossier.y - kLine;
+    auto* assess_title = make_label(dossier_, kPad, ay, dossier_w - 2 * kPad,
+                                    190, 160, 210);
+    assess_title->set_text("ASSESSMENT");
+    ay += kLine;
+    for (int i = 0; i < kAssessLines; ++i) {
+        assessment_lines_.push_back(
+            make_label(dossier_, kPad, ay, dossier_w - 2 * kPad,
+                       205, 195, 175));
+        ay += kLine;
+    }
+
     // ---- BOTTOM: why. the book answers -------------------------------
     bottom_ = new ui::Panel("logovger_provenance");
-    bottom_->set_position(kPad, kPad * 2 + top_h);
-    bottom_->set_size(screen_w - 2 * kPad, bottom_h);
+    bottom_->set_position(L.bottom.x, L.bottom.y);
+    bottom_->set_size(L.bottom.w, L.bottom.h);
     bottom_->set_background_color(12, 18, 16, 240);
     bottom_->set_border(true, 70, 120, 90);
     bottom_->set_ui_system(&ui);
@@ -188,6 +274,12 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
                                   screen_w - 4 * kPad, 150, 220, 170);
     prov_title->set_text("WHY -- click a value on the sheet and the book "
                          "answers");
+    back_ = new ui::Button("  < back", "logovger_back");
+    back_->set_position(screen_w - 3 * kPad - 110, kPad - 2);
+    back_->set_size(110, kLine + 2);
+    back_->set_visible(false);
+    back_->on_click = [this]() { go_back(); };
+    bottom_->add_child(back_);
     by += kLine + 2;
     // A career's "it teaches" list, as buttons rather than a sentence,
     // so any skill in it can be read before you sign.
@@ -215,8 +307,84 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
     }
 }
 
+void SheetScreen::fill_wrapped(std::vector<ui::Label*>& into,
+                               const std::string& text) {
+    // Same reason as say(): a Label is one clipped line, and the file
+    // is written in sentences.
+    const auto lines = wrap_text(renderable(text), dossier_columns_);
+    for (size_t i = 0; i < into.size(); ++i)
+        into[i]->set_text(i < lines.size() ? lines[i] : "");
+}
+
+void SheetScreen::set_dossier(const std::string& name,
+                              const std::string& born,
+                              const std::string& build,
+                              const std::string& note) {
+    if (dossier_name_) dossier_name_->set_text(renderable(name));
+    // Two facts, two blocks: where they are from, and what they look
+    // like. Running them together into one paragraph was unreadable.
+    std::string body;
+    if (!born.empty())  body += "b. " + born;
+    if (!build.empty()) body += (body.empty() ? "" : "\n") + build;
+    fill_wrapped(dossier_lines_, body);
+    // The assessor's one dry line is the file's first entry, not part
+    // of the header: the file starts the moment someone writes in it.
+    if (!note.empty()) add_file_line(note);
+}
+
+void SheetScreen::add_file_line(const std::string& clause) {
+    if (clause.empty()) return;
+    file_lines_.push_back(clause);
+    // A file entry is a sentence, so it wraps. Clipping it to one row
+    // was hiding the end of every line the narrator wrote.
+    std::vector<CareerList::Row> rows;
+    for (const auto& c : file_lines_) {
+        const auto wrapped = wrap_text(renderable(c), dossier_columns_ - 2);
+        for (size_t i = 0; i < wrapped.size(); ++i)
+            rows.push_back({"", (i == 0 ? "- " : "  ") + wrapped[i], ""});
+    }
+    biopic_->set_rows(std::move(rows));
+    biopic_->scroll_to_end();     // the newest line is the one to read
+}
+
+void SheetScreen::set_assessment(const std::string& text) {
+    fill_wrapped(assessment_lines_, text);
+}
+
+void SheetScreen::clear_dossier() {
+    file_lines_.clear();
+    if (biopic_) biopic_->clear();
+    if (dossier_name_) dossier_name_->set_text("(unfiled)");
+    for (auto* l : dossier_lines_) l->set_text("");
+    for (auto* l : assessment_lines_) l->set_text("");
+    if (record_) record_->clear();
+}
+
 void SheetScreen::say(const std::string& raw, Tone tone) {
-    const std::string line = renderable(raw);
+    // Label draws ONE line and clips it. Prose is paragraphs, so wrap
+    // here or lose the right-hand half of every sentence. The font is
+    // fixed-pitch, so character count is the measure.
+    const std::string whole = renderable(raw);
+    const size_t width = wrap_columns_;
+    if (whole.size() > width) {
+        size_t at = 0;
+        while (at < whole.size()) {
+            size_t take = std::min(width, whole.size() - at);
+            if (at + take < whole.size()) {
+                const size_t brk = whole.rfind(' ', at + take);
+                if (brk != std::string::npos && brk > at) take = brk - at;
+            }
+            say_line(whole.substr(at, take), tone);
+            at += take;
+            while (at < whole.size() && whole[at] == ' ') ++at;
+        }
+        return;
+    }
+    say_line(whole, tone);
+}
+
+void SheetScreen::say_line(const std::string& raw, Tone tone) {
+    const std::string line = raw;
     // A rolling window: newest at the bottom, older ones scroll up,
     // and the flash travels with its line rather than staying put.
     if (narration_next_ < narration_.size()) {
@@ -332,26 +500,39 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
 
     // What has been learned so far, from the ratings hanging off the
     // character: name and level, one row each, updated every term.
-    size_t slot = 0;
+    std::vector<CareerList::Row> skill_rows;
     for (auto part : kg.getRelated(s.id, "HAS_PART")) {
         const auto ref = kg.getProperty(part, "skill");
-        if (ref.empty() || slot >= skill_buttons_.size()) continue;
+        if (ref.empty()) continue;
         const auto skill = static_cast<kg::EntityID>(std::stoul(ref));
         const auto name = kg.getProperty(skill, "name");
-        const auto level = kg.getProperty(part, "skill_level");
         if (name.empty()) continue;
-        skill_buttons_[slot]->set_text("  " + name + "-" +
-                                       (level.empty() ? "1" : level));
-        skill_names_[slot] = name;
-        ++slot;
+        const auto level = kg.getProperty(part, "skill_level");
+        skill_rows.push_back({name, name, "-" + (level.empty() ? "1" : level)});
     }
-    for (size_t k = slot; k < skill_buttons_.size(); ++k) {
-        skill_buttons_[k]->set_text(k == 0 && slot == 0 ? "  (none yet)" : "");
-        skill_names_[k].clear();
+    if (skill_rows.empty())
+        skill_rows.push_back({"", "(none yet)", ""});
+    if (skills_list_) skills_list_->set_rows(std::move(skill_rows));
+
+    // The record: every term of it, newest at the bottom, scrolling.
+    if (record_) {
+        std::vector<CareerList::Row> rec;
+        for (const auto& e : s.life) {
+            rec.push_back({"",
+                           "T" + std::to_string(e.term) + "  " +
+                               ellipsize(e.what, 26),
+                           ellipsize(e.detail, 30)});
+        }
+        record_->set_rows(std::move(rec));
+        record_->scroll_to_end();
     }
 
     // The question, and the answers as a clickable list.
     clear_choices();
+    if (waiting_for_prose_) {
+        prompt_->set_text("... the narrator is writing ...");
+        return;                 // no options while the beat is unfinished
+    }
     prompt_->set_text(session.prompt());
     std::vector<CareerList::Row> rows;
     for (const auto& c : session.choices())
@@ -361,6 +542,7 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
 
 void SheetScreen::inspect_career(kg::KGModule& kg, const std::string& name) {
     kg_ = &kg;
+    record({View::Kind::Career, Provenance{}, name});
     kg::EntityID career = kg::INVALID_ENTITY;
     for (auto id : kg.findByType("Career"))
         if (kg.getProperty(id, "name") == name) career = id;
@@ -435,6 +617,7 @@ void SheetScreen::inspect_career(kg::KGModule& kg, const std::string& name) {
 // read what the chapter says under it, rather than paraphrasing.
 void SheetScreen::show_skill(kg::KGModule& kg, const std::string& name) {
     kg_ = &kg;
+    record({View::Kind::Skill, Provenance{}, name});
     kg::EntityID skill = kg::INVALID_ENTITY;
     for (auto id : kg.findByType("Skill"))
         if (kg.getProperty(id, "name") == name) skill = id;
@@ -447,6 +630,7 @@ void SheetScreen::show_skill(kg::KGModule& kg, const std::string& name) {
         ++i;
     };
     for (auto* b : teaches_buttons_) b->set_visible(false);
+    refresh_back();
 
     line(name + " -- what the book says", 235, 235, 210);
     if (skill == kg::INVALID_ENTITY) {
@@ -531,7 +715,38 @@ Provenance SheetScreen::provenance_of(kg::KGModule& kg, kg::EntityID id,
     return p;
 }
 
+void SheetScreen::record(View v) {
+    if (replaying_) return;
+    history_.push_back(std::move(v));
+    if (history_.size() > 24) history_.erase(history_.begin());
+    refresh_back();
+}
+
+void SheetScreen::refresh_back() {
+    if (!back_) return;
+    const bool can = history_.size() > 1;
+    back_->set_visible(can);
+    if (can)
+        back_->set_text("  < back (" +
+                        std::to_string(history_.size() - 1) + ")");
+}
+
+// Step back one view and show it again, without recording the step.
+void SheetScreen::go_back() {
+    if (history_.size() < 2 || !kg_) return;
+    history_.pop_back();                 // the one being looked at
+    const View v = history_.back();
+    history_.pop_back();                 // it re-records itself below
+    replaying_ = false;
+    switch (v.kind) {
+        case View::Kind::Career: inspect_career(*kg_, v.name); break;
+        case View::Kind::Skill:  show_skill(*kg_, v.name);     break;
+        case View::Kind::Prov:   show_provenance(v.prov);      break;
+    }
+}
+
 void SheetScreen::show_provenance(const Provenance& p) {
+    record({View::Kind::Prov, p, ""});
     size_t i = 0;
     auto line = [&](const std::string& s, uint8_t r, uint8_t g, uint8_t b) {
         if (i >= provenance_lines_.size()) return;

@@ -9,9 +9,11 @@
       "Skill": 29,
       "Career": 24,
       "TaskCheck": 48,
-      "RollableTable": 24,
-      "TableEntry": 144,
-      "AdvanceSkill": 144
+      "RollableTable": 25,
+      "TableEntry": 150,
+      "AdvanceSkill": 144,
+      "RuleConstant": 2,
+      "EnterCareer": 6
     },
     "unique_name_per_type": [
       "Skill",
@@ -19,7 +21,9 @@
       "TaskCheck",
       "RollableTable",
       "TableEntry",
-      "AdvanceSkill"
+      "AdvanceSkill",
+      "RuleConstant",
+      "EnterCareer"
     ],
     "band_coverage": {
       "@aerospace_defense_svc": [
@@ -117,10 +121,40 @@
       "@technician_svc": [
         1,
         6
+      ],
+      "@draft_table": [
+        1,
+        6
       ]
     }
   },
   "ops": [
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@prior_career_dm",
+      "properties": {
+        "name": "prior_career_dm",
+        "constant_value": "-2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "sentence",
+        "source_quote": "You suffer a DM\u20132 to qualification rolls for each previous career you have entered."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@max_terms",
+      "properties": {
+        "name": "max_terms",
+        "constant_value": "7",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Reenlistment and Retirement",
+        "source_kind": "sentence",
+        "source_quote": "The Referee may want to change the maximum number of terms spent in character creation from 7 to something else."
+      }
+    },
     {
       "op": "create_entity",
       "type": "DiceExpression",
@@ -7851,6 +7885,260 @@
       "from": "@technician",
       "relation": "HAS_PART",
       "to": "@technician_svc"
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@draft_table",
+      "properties": {
+        "name": "Draft Career",
+        "dice": "@d1d6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "table",
+        "source_table": "Roll",
+        "source_quote": "| Roll | Draft Career |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "EnterCareer",
+      "as": "@draft_out_1",
+      "properties": {
+        "name": "drafted into Aerospace Defense",
+        "drafted_career": "@aerospace_defense",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "1",
+        "source_column": "Draft Career",
+        "source_quote": "Aerospace System Defense (Planetary Air Force)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@draft_row_1",
+      "properties": {
+        "name": "draft 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@draft_out_1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "1",
+        "source_column": "Draft Career",
+        "source_quote": "Aerospace System Defense (Planetary Air Force)"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_table",
+      "relation": "HAS_PART",
+      "to": "@draft_row_1"
+    },
+    {
+      "op": "create_entity",
+      "type": "EnterCareer",
+      "as": "@draft_out_2",
+      "properties": {
+        "name": "drafted into Marine",
+        "drafted_career": "@marine",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "2",
+        "source_column": "Draft Career",
+        "source_quote": "Marine"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@draft_row_2",
+      "properties": {
+        "name": "draft 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@draft_out_2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "2",
+        "source_column": "Draft Career",
+        "source_quote": "Marine"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_table",
+      "relation": "HAS_PART",
+      "to": "@draft_row_2"
+    },
+    {
+      "op": "create_entity",
+      "type": "EnterCareer",
+      "as": "@draft_out_3",
+      "properties": {
+        "name": "drafted into Maritime Defense",
+        "drafted_career": "@maritime_defense",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "3",
+        "source_column": "Draft Career",
+        "source_quote": "Maritime System Defense (Planetary Navy)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@draft_row_3",
+      "properties": {
+        "name": "draft 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@draft_out_3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "3",
+        "source_column": "Draft Career",
+        "source_quote": "Maritime System Defense (Planetary Navy)"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_table",
+      "relation": "HAS_PART",
+      "to": "@draft_row_3"
+    },
+    {
+      "op": "create_entity",
+      "type": "EnterCareer",
+      "as": "@draft_out_4",
+      "properties": {
+        "name": "drafted into Navy",
+        "drafted_career": "@navy",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "4",
+        "source_column": "Draft Career",
+        "source_quote": "Navy"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@draft_row_4",
+      "properties": {
+        "name": "draft 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@draft_out_4",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "4",
+        "source_column": "Draft Career",
+        "source_quote": "Navy"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_table",
+      "relation": "HAS_PART",
+      "to": "@draft_row_4"
+    },
+    {
+      "op": "create_entity",
+      "type": "EnterCareer",
+      "as": "@draft_out_5",
+      "properties": {
+        "name": "drafted into Scout",
+        "drafted_career": "@scout",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "5",
+        "source_column": "Draft Career",
+        "source_quote": "Scout"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@draft_row_5",
+      "properties": {
+        "name": "draft 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@draft_out_5",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "5",
+        "source_column": "Draft Career",
+        "source_quote": "Scout"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_table",
+      "relation": "HAS_PART",
+      "to": "@draft_row_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "EnterCareer",
+      "as": "@draft_out_6",
+      "properties": {
+        "name": "drafted into Surface Defense",
+        "drafted_career": "@surface_defense",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "6",
+        "source_column": "Draft Career",
+        "source_quote": "Surface System Defense (Planetary Army)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@draft_row_6",
+      "properties": {
+        "name": "draft 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@draft_out_6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "cell",
+        "source_table": "Roll",
+        "source_row": "6",
+        "source_column": "Draft Career",
+        "source_quote": "Surface System Defense (Planetary Army)"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_table",
+      "relation": "HAS_PART",
+      "to": "@draft_row_6"
     }
   ]
 }

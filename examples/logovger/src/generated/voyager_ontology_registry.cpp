@@ -32,6 +32,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("EndCareer", "Outcome", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("EnsureSkillLevel", "Outcome", false);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addEntityType("EnterCareer", "Outcome", false);
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Entity", "", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -60,6 +62,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("LookupEntry", "Entity", true);
     reg.addEntityType("LookupTable", "Entity", false);
     reg.addEntityType("ModifyAttribute", "Outcome", false);
+    reg.setSource("https://logosphere.dev/logovger/voyager");
+    reg.addEntityType("Narration", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("NaturalFormation", "WorldEntity", true);
     reg.addEntityType("Neck", "BodyPart", false);
@@ -131,6 +135,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("EndCareer", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("EnsureSkillLevel", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addAncestors("EnterCareer", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://malleus.dev/schema");
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -159,6 +165,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("LookupEntry", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("LookupTable", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("ModifyAttribute", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.setSource("https://logosphere.dev/logovger/voyager");
+    reg.addAncestors("Narration", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("NaturalFormation", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Neck", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -218,6 +226,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("EndCareer", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("EnsureSkillLevel", {"rulebook"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addFacets("EnterCareer", {"rulebook"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("GainFixedMoney", {"rulebook"});
     reg.addFacets("GainMoney", {"rulebook"});
     reg.addFacets("GainRolledMoney", {"rulebook"});
@@ -355,6 +366,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addRefProperty("EnsureSkillLevel", "skill", true, "Entity");
     reg.addProperty("EnsureSkillLevel", "skill_level", "integer", true, true, 0.0, false, 0.0);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addRefProperty("EnterCareer", "drafted_career", true, "Career");
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Event", "event_type", "string", true);
     reg.addProperty("Event", "occurred_at", "datetime", false);
@@ -402,6 +415,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("LookupTable", "entry_type", "string", true);
     reg.addProperty("ModifyAttribute", "attribute_ref", "string", true);
     reg.addProperty("ModifyAttribute", "attribute_delta", "integer", true);
+    reg.setSource("https://logosphere.dev/logovger/voyager");
+    reg.addProperty("Narration", "narrative_text", "string", true);
+    reg.addRefProperty("Narration", "narrates", true, "Entity");
+    reg.addProperty("Narration", "narration_kind", "string", false);
+    reg.addProperty("Narration", "narration_term", "integer", false);
+    reg.addProperty("Narration", "narration_rolls", "string", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("OutcomeChoice", "choice_authority", "string", true);
     reg.addProperty("OutcomeOption", "option_index", "integer", true, true, 0.0, false, 0.0);
     reg.addProperty("OutcomeOption", "option_label", "string", true);

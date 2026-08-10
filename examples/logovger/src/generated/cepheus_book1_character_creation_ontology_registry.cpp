@@ -32,6 +32,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("EndCareer", "Outcome", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("EnsureSkillLevel", "Outcome", false);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addEntityType("EnterCareer", "Outcome", false);
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Entity", "", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -128,6 +130,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("EndCareer", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("EnsureSkillLevel", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addAncestors("EnterCareer", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://malleus.dev/schema");
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -212,6 +216,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("EndCareer", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("EnsureSkillLevel", {"rulebook"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addFacets("EnterCareer", {"rulebook"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("GainFixedMoney", {"rulebook"});
     reg.addFacets("GainMoney", {"rulebook"});
     reg.addFacets("GainRolledMoney", {"rulebook"});
@@ -349,6 +356,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addRefProperty("EnsureSkillLevel", "skill", true, "Entity");
     reg.addProperty("EnsureSkillLevel", "skill_level", "integer", true, true, 0.0, false, 0.0);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addRefProperty("EnterCareer", "drafted_career", true, "Career");
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Event", "event_type", "string", true);
     reg.addProperty("Event", "occurred_at", "datetime", false);

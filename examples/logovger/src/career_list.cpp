@@ -4,8 +4,27 @@
 #include "logosphere/rendering/i_draw_surface.h"
 
 #include <algorithm>
+#include <string>
 
 namespace logovger {
+namespace {
+
+// Cut a string to the pixels it is allowed, marking the cut so a
+// truncated value never reads as a complete one.
+std::string clip(const std::string& s, int pixels) {
+    const size_t cols = pixels > 0 ? static_cast<size_t>(pixels / 6) : 0;
+    if (cols == 0) return "";
+    if (s.size() <= cols) return s;
+    if (cols <= 3) return s.substr(0, cols);
+    return s.substr(0, cols - 3) + "...";
+}
+
+}  // namespace
+
+void CareerList::scroll_to_end() {
+    scroll_ = std::max(0, static_cast<int>(rows_.size()) - visible_rows());
+    invalidate();
+}
 
 void CareerList::set_rows(std::vector<Row> rows) {
     rows_ = std::move(rows);
@@ -95,17 +114,25 @@ void CareerList::render(IDrawSurface* renderer) {
             renderer->fill_rect(b.x + 2, y - 2, b.width - 4, kRowH,
                                 32, 38, 52, 255);
 
+        // The font is fixed-pitch at 6 px, so a column is a character
+        // budget. Clip to it here rather than trusting every caller to
+        // pre-trim: two columns that overlap are unreadable, and the
+        // widget is the only place that knows how wide they are.
         const bool lit = (idx == selected_ || idx == hovered_);
-        renderer->draw_string(b.x + kPad, y, r.label,
+        const int label_px = detail_x_ - kPad;
+        const int detail_px = b.width - 2 * kPad - detail_x_ -
+                              (total > rows_shown ? 10 : 0);
+        renderer->draw_string(b.x + kPad, y, clip(r.label, label_px),
                               lit ? 255 : 210, lit ? 235 : 210,
                               lit ? 200 : 220);
         // The terms of the deal, dimmer, to the right of the name.
-        renderer->draw_string(b.x + kPad + 150, y, r.detail,
+        renderer->draw_string(b.x + kPad + detail_x_, y,
+                              clip(r.detail, detail_px),
                               lit ? 190 : 130, lit ? 200 : 140,
                               lit ? 215 : 155);
-        if (idx == selected_)
+        if (idx == selected_ && !commit_hint_.empty())
             renderer->draw_string(b.x + b.width - 130, y,
-                                  "click again to join", 255, 210, 140);
+                                  commit_hint_, 255, 210, 140);
     }
 
     // A scrollbar, so it is obvious there is more than fits.

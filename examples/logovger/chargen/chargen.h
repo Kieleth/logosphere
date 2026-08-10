@@ -54,6 +54,9 @@ struct CharacterSheet {
     std::string  career;
     bool         qualified = false;
     std::vector<std::string> skills;   // as gained, "Admin-1", "Admin-2"
+    // Every career lived, in order. The book lets you leave one and
+    // try another, at a price, and forbids going back.
+    std::vector<std::string> careers_served;
     std::vector<LifeEvent>   life;
 };
 
@@ -100,11 +103,13 @@ private:
     bool accept(logosphere::rules::ProcedureResult result,
                 std::string& error);
     void offer_careers();
+    int  constant(const char* name, int fallback) const;
     void finish(const std::string& why);
 
     PrimitiveResult generate_characteristics(const PrimitiveContext& context);
     PrimitiveResult choose_career(const PrimitiveContext& context);
     PrimitiveResult roll_qualification(const PrimitiveContext& context);
+    PrimitiveResult draft_or_drifter(const PrimitiveContext& context);
     PrimitiveResult roll_survival(const PrimitiveContext& context);
     PrimitiveResult roll_training(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
@@ -124,6 +129,7 @@ private:
     logosphere::rules::ProcedureCursor cursor_;
     std::string                      finish_reason_;
     size_t                           drained_ = 0;
+    std::string                      turned_away_from_;
 };
 
 // Auto-played convenience: the whole life with no questions asked,

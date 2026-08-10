@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Logovger character creation is playable end to end**, with the sheet,
+  the personnel file, and the book's own citations on one screen. Careers
+  are a scrollable list you can read before you join; every value on the
+  sheet answers where it came from; skills and the service record grow
+  with the life instead of capping at a fixed number of rows.
+- **A narrated file, written live.** Each beat asks the narrator for the
+  scene and for one clipped clause, and the clause is appended to the
+  character's file as the life happens. Narration never names a die, a
+  target or a characteristic: the numbers are already on screen, and the
+  prose is the part they cannot say. Every narration is stored as a
+  `Narration` entity carrying the roll ids it was written from.
 - Two-phase rollable-table execution. `RollableTableRunner` validates a
   complete table and every reachable dice total before consuming randomness,
   then commits one citable selection containing the table, row, typed outcome,

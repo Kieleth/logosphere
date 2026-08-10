@@ -7,8 +7,8 @@
   "invariants": {
     "count_of_type": {
       "Procedure": 1,
-      "ProcedureStep": 8,
-      "StepRoute": 4
+      "ProcedureStep": 9,
+      "StepRoute": 6
     },
     "unique_name_per_type": [
       "Procedure",
@@ -126,14 +126,30 @@
     },
     {
       "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@draft_or_drifter",
+      "properties": {
+        "name": "draft or drifter",
+        "step_index": "8",
+        "primitive_ref": "draft_or_drifter",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "sentence",
+        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
+      }
+    },
+    {
+      "op": "create_entity",
       "type": "StepRoute",
       "as": "@qualification_failed",
       "properties": {
         "name": "qualification_failed",
         "route_label": "failed",
-        "next_step": "@finish_character",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "If you do not qualify for that career"
+        "next_step": "@draft_or_drifter",
+        "source_section": "Qualifying and the Draft",
+        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term.",
+        "source_file": "book1/character-creation.md",
+        "source_kind": "sentence"
       }
     },
     {
@@ -167,9 +183,11 @@
       "properties": {
         "name": "muster_out",
         "route_label": "muster_out",
-        "next_step": "@finish_character",
+        "next_step": "@choose_career",
         "source_section": "Character Creation Checklist",
-        "source_quote": "If you wish to leave this career, go to step 10."
+        "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character.",
+        "source_kind": "sentence",
+        "source_file": "book1/character-creation.md"
       }
     },
     {
@@ -189,6 +207,12 @@
       "from": "@basic_chargen",
       "relation": "HAS_PART",
       "to": "@roll_qualification"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@draft_or_drifter"
     },
     {
       "op": "set_relation",
@@ -243,6 +267,46 @@
       "from": "@choose_term_end",
       "relation": "HAS_PART",
       "to": "@muster_out"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@took_the_term",
+      "properties": {
+        "name": "took the term",
+        "route_label": "took_it",
+        "next_step": "@roll_survival",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Qualifying and the Draft",
+        "source_kind": "sentence",
+        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@draft_or_drifter",
+      "relation": "HAS_PART",
+      "to": "@took_the_term"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@chose_to_finish",
+      "properties": {
+        "name": "chose to finish",
+        "route_label": "finish",
+        "next_step": "@finish_character",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
+        "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@choose_career",
+      "relation": "HAS_PART",
+      "to": "@chose_to_finish"
     }
   ]
 }

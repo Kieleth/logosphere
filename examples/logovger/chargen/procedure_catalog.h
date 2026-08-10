@@ -20,8 +20,10 @@ make_chargen_procedure_registry() {
         }
     };
     add("generate_characteristics");
-    add("choose_career");
+    add("choose_career", {"finish"});
     add("roll_qualification", {"passed", "failed"});
+    // Turned away: the book gives exactly two ways to spend the term.
+    add("draft_or_drifter", {"took_it"});
     add("roll_survival", {"passed", "failed"});
     add("roll_training");
     add("advance_term");

@@ -36,6 +36,17 @@ public:
     explicit CareerList(const std::string& id) : ui::Panel(id) {}
 
     void set_rows(std::vector<Row> rows);
+
+    // Where the dimmer second column starts. Careers need room for a
+    // name; a skill level or a record entry does not.
+    void set_detail_column(int x) { detail_x_ = x; }
+
+    // What a selected row offers, if anything. A list you only read
+    // from should not promise a commit that will not happen.
+    void set_commit_hint(const std::string& hint) { commit_hint_ = hint; }
+
+    // Keep the newest rows in view: a record is read at its end.
+    void scroll_to_end();
     void clear() { rows_.clear(); scroll_ = 0; selected_ = -1; hovered_ = -1; }
 
     // Looking is free; choosing is deliberate.
@@ -57,6 +68,9 @@ private:
     int scroll_ = 0;        // first visible row
     int selected_ = -1;
     int hovered_ = -1;
+
+    int         detail_x_ = 150;
+    std::string commit_hint_ = "click again to join";
 
     static constexpr int kRowH = 22;
     static constexpr int kPad = 6;
