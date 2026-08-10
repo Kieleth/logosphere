@@ -695,8 +695,10 @@ void test_uncited_entity_of_a_cited_type_fails() {
 void test_type_without_the_slot_is_exempt() {
     kg::SeedEnvelope seed = mini_seed(
         "book1/character-creation.md",
-        R"({"op":"create_entity","type":"SkillRating","as":"@rating",
-            "properties":{"name":"slug_rifle_2","skill_level":2}})");
+        R"({"op":"create_entity","type":"Entity","as":"@skill"},
+            {"op":"create_entity","type":"SkillRating","as":"@rating",
+             "properties":{"name":"slug_rifle_2","skill":"@skill",
+                           "skill_level":2}})");
     const auto report = kg::verify_seed(seed, kSourceRoot,
                                         engine_registry());
     for (const auto& v : report.violations)
@@ -801,8 +803,10 @@ void test_value_must_equal_a_whole_number_token() {
     // Thousands-comma: the book writes Cr10,000; the datum is 10000.
     kg::SeedEnvelope comma = mini_seed(
         "book1/character-creation.md",
-        R"({"op":"create_entity","type":"GainMoney","as":"@debt",
-            "properties":{"name":"legal_debt","amount":-10000,
+        R"({"op":"create_entity","type":"Entity","as":"@credits"},
+            {"op":"create_entity","type":"GainFixedMoney","as":"@debt",
+            "properties":{"name":"legal_debt","currency":"@credits",
+              "amount":-10000,
               "source_section":"Survival",
               "source_quote":"| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"}})");
     auto r_comma = kg::verify_seed(comma, kSourceRoot, engine_registry());

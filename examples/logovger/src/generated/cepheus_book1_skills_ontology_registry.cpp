@@ -9,6 +9,9 @@ static kg::OntologyRegistry build_registry() {
     // Entity types
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Abdomen", "BodyPart", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("AdvanceSkill", "Outcome", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Antenna", "BodyPart", false);
     reg.addEntityType("Arm", "BodyPart", false);
     reg.addEntityType("AutoParticle", "WorldEntity", false);
@@ -16,9 +19,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Constraint", "Entity", false);
     reg.addEntityType("Creature", "LivingEntity", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("CurrencyBalance", "Entity", false);
     reg.addEntityType("DiceExpression", "Entity", false);
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-skills");
     reg.addEntityType("DifficultyEntry", "LookupEntry", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("EnsureSkillLevel", "Outcome", false);
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Entity", "", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -28,8 +34,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Foot", "BodyPart", false);
     reg.addEntityType("Forearm", "BodyPart", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
-    reg.addEntityType("GainMoney", "Outcome", false);
-    reg.addEntityType("GrantSkill", "Outcome", false);
+    reg.addEntityType("GainFixedMoney", "GainMoney", false);
+    reg.addEntityType("GainMoney", "Outcome", true);
+    reg.addEntityType("GainRolledMoney", "GainMoney", false);
     reg.addEntityType("GrantTableRoll", "Outcome", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Hand", "BodyPart", false);
@@ -52,6 +59,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("NoEffect", "Outcome", false);
     reg.addEntityType("Outcome", "Entity", true);
+    reg.addEntityType("OutcomeChoice", "Outcome", false);
+    reg.addEntityType("OutcomeOption", "Entity", false);
     reg.addEntityType("OutcomeSequence", "Outcome", false);
     reg.addEntityType("OutcomeStep", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -91,6 +100,9 @@ static kg::OntologyRegistry build_registry() {
 
     // Inheritance chains
     reg.addAncestors("Abdomen", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("AdvanceSkill", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Antenna", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Arm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("AutoParticle", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -98,9 +110,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Constraint", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("Creature", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("CurrencyBalance", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("DiceExpression", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-skills");
     reg.addAncestors("DifficultyEntry", {"Cited", "Describable", "Entity", "Identifiable", "LookupEntry", "Temporal"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("EnsureSkillLevel", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://malleus.dev/schema");
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -110,8 +125,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Foot", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Forearm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("GainFixedMoney", {"Cited", "Describable", "Entity", "GainMoney", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("GainMoney", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
-    reg.addAncestors("GrantSkill", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.addAncestors("GainRolledMoney", {"Cited", "Describable", "Entity", "GainMoney", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("GrantTableRoll", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Hand", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -134,6 +150,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("NoEffect", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("Outcome", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("OutcomeChoice", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.addAncestors("OutcomeOption", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("OutcomeSequence", {"Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("OutcomeStep", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -173,18 +191,24 @@ static kg::OntologyRegistry build_registry() {
 
     // Facets
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addFacets("AdvanceSkill", {"rulebook"});
+    reg.addFacets("CurrencyBalance", {"rulebook"});
     reg.addFacets("DiceExpression", {"rulebook"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-skills");
     reg.addFacets("DifficultyEntry", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addFacets("EnsureSkillLevel", {"rulebook"});
+    reg.addFacets("GainFixedMoney", {"rulebook"});
     reg.addFacets("GainMoney", {"rulebook"});
-    reg.addFacets("GrantSkill", {"rulebook"});
+    reg.addFacets("GainRolledMoney", {"rulebook"});
     reg.addFacets("GrantTableRoll", {"rulebook"});
     reg.addFacets("JudgmentPoint", {"rulebook"});
     reg.addFacets("LookupEntry", {"rulebook"});
     reg.addFacets("LookupTable", {"rulebook"});
     reg.addFacets("ModifyAttribute", {"rulebook"});
     reg.addFacets("NoEffect", {"rulebook"});
+    reg.addFacets("OutcomeChoice", {"rulebook"});
+    reg.addFacets("OutcomeOption", {"rulebook"});
     reg.addFacets("OutcomeSequence", {"rulebook"});
     reg.addFacets("OutcomeStep", {"rulebook"});
     reg.addFacets("Procedure", {"rulebook"});
@@ -230,6 +254,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("SUPPORTS", {"Entity"}, {"Entity"});
 
     // Properties per entity type
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addRefProperty("AdvanceSkill", "skill", true, "Entity");
+    reg.addProperty("AdvanceSkill", "initial_skill_level", "integer", true, true, 0.0, false, 0.0);
+    reg.addProperty("AdvanceSkill", "existing_skill_delta", "integer", true);
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Agent", "agent_type", "string", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -257,6 +285,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Constraint", "breaking_force", "float", false);
     reg.addProperty("ContactFilteredEvent", "profile_a", "integer", false);
     reg.addProperty("ContactFilteredEvent", "profile_b", "integer", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addRefProperty("CurrencyBalance", "currency", true, "Entity");
+    reg.addProperty("CurrencyBalance", "balance_amount", "integer", true);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("DamageEvent", "damage_type", "enum", false);
     reg.addProperty("DamageEvent", "damage_amount", "float", false);
     reg.setSource("https://malleus.dev/schema");
@@ -283,6 +315,9 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("EmitsLight", "emission_strength", "float", false);
     reg.addProperty("EmitsLight", "emission_radius", "float", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addRefProperty("EnsureSkillLevel", "skill", true, "Entity");
+    reg.addProperty("EnsureSkillLevel", "skill_level", "integer", true, true, 0.0, false, 0.0);
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Event", "event_type", "string", true);
     reg.addProperty("Event", "occurred_at", "datetime", false);
@@ -293,13 +328,11 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Floor", "floor_type", "enum", false);
     reg.addProperty("Floor", "terrain", "enum", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
-    reg.addRefProperty("GainMoney", "currency", false, "Entity");
-    reg.addProperty("GainMoney", "amount", "integer", false);
-    reg.addRefProperty("GainMoney", "amount_dice", false, "DiceExpression");
-    reg.addRefProperty("GrantSkill", "skill", false, "Entity");
-    reg.addProperty("GrantSkill", "skill_level", "integer", false, true, 0.0, false, 0.0);
-    reg.addRefProperty("GrantTableRoll", "table", false, "RollableTable");
-    reg.addProperty("GrantTableRoll", "roll_count", "integer", false, true, 1.0, false, 0.0);
+    reg.addProperty("GainFixedMoney", "amount", "integer", true);
+    reg.addRefProperty("GainMoney", "currency", true, "Entity");
+    reg.addRefProperty("GainRolledMoney", "amount_dice", true, "DiceExpression");
+    reg.addRefProperty("GrantTableRoll", "table", true, "RollableTable");
+    reg.addProperty("GrantTableRoll", "roll_count", "integer", true, true, 1.0, false, 0.0);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Growable", "growth_iteration", "integer", false);
     reg.addProperty("Growable", "is_mature", "boolean", false);
@@ -330,8 +363,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("LookupEntry", "key_max", "integer", true);
     reg.addProperty("LookupTable", "attribute_ref", "string", false);
     reg.addProperty("LookupTable", "entry_type", "string", true);
-    reg.addProperty("ModifyAttribute", "attribute_ref", "string", false);
-    reg.addProperty("ModifyAttribute", "attribute_delta", "integer", false);
+    reg.addProperty("ModifyAttribute", "attribute_ref", "string", true);
+    reg.addProperty("ModifyAttribute", "attribute_delta", "integer", true);
+    reg.addProperty("OutcomeChoice", "choice_authority", "string", true);
+    reg.addProperty("OutcomeOption", "option_index", "integer", true, true, 0.0, false, 0.0);
+    reg.addProperty("OutcomeOption", "option_label", "string", true);
+    reg.addRefProperty("OutcomeOption", "outcome", true, "Outcome");
     reg.addProperty("OutcomeStep", "step_index", "integer", true, true, 0.0, false, 0.0);
     reg.addRefProperty("OutcomeStep", "outcome", true, "Outcome");
     reg.setSource("https://logosphere.dev/schema");
@@ -354,8 +391,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-skills");
     reg.addProperty("Skill", "is_cascade", "boolean", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
-    reg.addRefProperty("SkillRating", "skill", false, "Entity");
-    reg.addProperty("SkillRating", "skill_level", "integer", false, true, 0.0, false, 0.0);
+    reg.addRefProperty("SkillRating", "skill", true, "Entity");
+    reg.addProperty("SkillRating", "skill_level", "integer", true, true, 0.0, false, 0.0);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Spatial", "position_x", "float", false);
     reg.addProperty("Spatial", "position_y", "float", false);

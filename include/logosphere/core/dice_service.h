@@ -13,6 +13,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -20,6 +21,24 @@
 namespace logosphere { class EventBus; }
 
 namespace logosphere::dice {
+
+class DiceService;
+
+class DiceTransaction {
+public:
+    DiceTransaction(const DiceTransaction&) = delete;
+    DiceTransaction& operator=(const DiceTransaction&) = delete;
+    DiceTransaction(DiceTransaction&& other) noexcept;
+    DiceTransaction& operator=(DiceTransaction&&) = delete;
+    ~DiceTransaction();
+
+    void commit();
+
+private:
+    friend class DiceService;
+    explicit DiceTransaction(DiceService& service) : service_(&service) {}
+    DiceService* service_ = nullptr;
+};
 
 // "NdS+M" / "NdS-M" / "dS", with an optional "xK" multiplier suffix
 // for book expressions like "1D6x10000" (Cepheus: 1D6 x 10,000 Cr).
@@ -59,6 +78,12 @@ public:
     // point, so there is no entropy fallback anywhere in this class.
     void seed_stream(const std::string& stream, uint64_t seed);
 
+    // A transaction checkpoints every named stream, the journal, and the
+    // next roll id. Rolls remain private until commit. Destruction without
+    // commit restores the checkpoint and emits nothing. Transactions cannot
+    // nest; attempting to begin a second one throws.
+    DiceTransaction begin_transaction();
+
     // Roll. Invalid expressions return the id-0 sentinel without
     // touching the stream, journal, id sequence, or event bus. Valid
     // rolls emit DiceRollEvent when a bus is wired and are recorded in
@@ -79,12 +104,24 @@ public:
     size_t stream_count() const { return streams_.size(); }
 
 private:
+    friend class DiceTransaction;
+
+    struct TransactionState {
+        std::unordered_map<std::string, uint64_t> streams;
+        size_t journal_size = 0;
+        uint64_t next_id = 1;
+    };
+
     uint64_t next_u64(const std::string& stream);
+    void emit_roll_event(const DiceRoll& roll);
+    void commit_transaction();
+    void rollback_transaction();
 
     logosphere::EventBus* bus_ = nullptr;
     std::unordered_map<std::string, uint64_t> streams_;   // xorshift64* state
     std::vector<DiceRoll> journal_;
     uint64_t next_id_ = 1;           // 0 is the never-a-roll sentinel
+    std::optional<TransactionState> transaction_;
 };
 
 } // namespace logosphere::dice

@@ -1,10 +1,13 @@
 #include "chargen/chargen.h"
 
+#include "logosphere/rules/outcome_executor.h"
 #include "rules/characteristics.h"
 #include "rules/ehex.h"
 
 #include <cctype>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 
 namespace logovger {
 namespace {
@@ -114,35 +117,70 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
 }
 
-// Roll on a career's skill table and apply the row's outcome. The
+// Roll on a career's skill table and execute the row's outcome. The
 // whole chain is graph data: career HAS_PART table, table HAS_PART
-// rows, row -> outcome -> skill. Returns the skill's name, empty when
-// the career has no table (the book gives every career one, so an
-// empty result means the seed is thin, not that the rule is optional).
-std::string roll_for_skill(kg::KGModule& kg, kg::EntityID career,
-                           kg::EntityID character,
-                           logosphere::dice::DiceService& dice,
-                           uint64_t& roll_id_out) {
+// rows, row -> outcome -> skill. Missing or malformed rules fail the
+// term. There is no default skill level in procedure code.
+bool roll_for_skill(kg::KGModule& kg, kg::EntityID career,
+                    kg::EntityID character,
+                    logosphere::dice::DiceService& dice,
+                    uint64_t& roll_id_out, std::string& gained,
+                    std::string& error) {
+    gained.clear();
+    error.clear();
     kg::EntityID table = kg::INVALID_ENTITY;
     for (auto part : kg.getRelated(career, "HAS_PART")) {
-        for (auto t : kg.findByType("RollableTable"))
-            if (t == part) { table = part; break; }
+        if (kg.getRegistry().isSubtypeOf(kg.getType(part),
+                                         "RollableTable")) {
+            table = part;
+        }
         if (table != kg::INVALID_ENTITY) break;
     }
-    if (table == kg::INVALID_ENTITY) return "";
+    if (table == kg::INVALID_ENTITY) {
+        error = "career has no RollableTable for skills and training";
+        return false;
+    }
 
     // The table names its own dice; a d6 table and a d3 table are
     // both legal and this code does not care which it got.
     const auto dice_ref = kg.getProperty(table, "dice");
-    if (dice_ref.empty()) return "";
-    const auto dice_id = static_cast<kg::EntityID>(std::stoul(dice_ref));
+    if (dice_ref.empty()) {
+        error = "skills and training table has no dice reference";
+        return false;
+    }
+    kg::EntityID dice_id = kg::INVALID_ENTITY;
+    try {
+        const auto parsed = std::stoull(dice_ref);
+        if (parsed > std::numeric_limits<kg::EntityID>::max()) {
+            throw std::out_of_range("entity id");
+        }
+        dice_id = static_cast<kg::EntityID>(parsed);
+    } catch (...) {
+        error = "skills and training table has invalid dice reference '" +
+                dice_ref + "'";
+        return false;
+    }
+    if (!kg.exists(dice_id) ||
+        !kg.getRegistry().isSubtypeOf(kg.getType(dice_id),
+                                      "DiceExpression")) {
+        error = "skills and training table dice reference does not point "
+                "to a DiceExpression";
+        return false;
+    }
     logosphere::dice::DiceExpression expr;
     bool ok = true;
     expr.count = property_int(kg, dice_id, "dice_count", ok);
     expr.sides = property_int(kg, dice_id, "dice_sides", ok);
-    if (!ok) return "";
+    if (!ok || !expr.is_valid()) {
+        error = "skills and training table has an invalid DiceExpression";
+        return false;
+    }
 
     const auto roll = dice.roll(expr, "chargen", "skills and training");
+    if (roll.id == 0) {
+        error = "skills and training dice roll was rejected";
+        return false;
+    }
     roll_id_out = roll.id;
 
     // The row whose band contains the result.
@@ -153,36 +191,81 @@ std::string roll_for_skill(kg::KGModule& kg, kg::EntityID career,
         if (!have || roll.total < lo || roll.total > hi) continue;
 
         const auto outcome_ref = kg.getProperty(row, "outcome");
-        if (outcome_ref.empty()) return "";
-        const auto outcome =
-            static_cast<kg::EntityID>(std::stoul(outcome_ref));
+        if (outcome_ref.empty()) {
+            error = "matching skills and training row has no outcome";
+            return false;
+        }
+        kg::EntityID outcome = kg::INVALID_ENTITY;
+        try {
+            const auto parsed = std::stoull(outcome_ref);
+            if (parsed > std::numeric_limits<kg::EntityID>::max()) {
+                throw std::out_of_range("entity id");
+            }
+            outcome = static_cast<kg::EntityID>(parsed);
+        } catch (...) {
+            error = "matching skills and training row has invalid outcome "
+                    "reference '" + outcome_ref + "'";
+            return false;
+        }
+        if (!kg.exists(outcome)) {
+            error = "matching skills and training row points to a missing "
+                    "outcome";
+            return false;
+        }
         const auto skill_ref = kg.getProperty(outcome, "skill");
-        if (skill_ref.empty()) return "";   // not a GrantSkill outcome
-        const auto skill = static_cast<kg::EntityID>(std::stoul(skill_ref));
-
-        auto level = kg.getProperty(outcome, "skill_level");
-        if (level.empty()) level = "1";
-
-        // "If you gain a skill as a result and you do not already have
-        // levels in that skill, take it at level 1. If you already have
-        // the skill, increase your skill by one level." One rating per
-        // skill, raised on a repeat, never a second rating.
-        for (auto part : kg.getRelated(character, "HAS_PART")) {
-            if (kg.getProperty(part, "skill") != skill_ref) continue;
-            const auto had = kg.getProperty(part, "skill_level");
-            const int next = (had.empty() ? 0 : std::stoi(had)) + 1;
-            kg.setProperty(part, "skill_level", std::to_string(next));
-            return kg.getProperty(skill, "name") + "-" +
-                   std::to_string(next);
+        if (skill_ref.empty()) {
+            error = "skills and training outcome has no skill reference";
+            return false;
         }
 
-        auto rating = kg.createEntity("SkillRating");
-        kg.setProperty(rating, "skill", skill_ref);
-        kg.setProperty(rating, "skill_level", level);
-        kg.createRelation(character, "HAS_PART", rating);
-        return kg.getProperty(skill, "name") + "-" + level;
+        logosphere::rules::OutcomeExecutor executor(kg, dice);
+        const auto result = executor.apply(
+            outcome, {character, "chargen", "skills and training"});
+        if (result.status != logosphere::rules::OutcomeStatus::APPLIED) {
+            error = "skills and training outcome failed: " + result.error;
+            return false;
+        }
+
+        kg::EntityID skill = kg::INVALID_ENTITY;
+        try {
+            const auto parsed = std::stoull(skill_ref);
+            if (parsed > std::numeric_limits<kg::EntityID>::max()) {
+                throw std::out_of_range("entity id");
+            }
+            skill = static_cast<kg::EntityID>(parsed);
+        } catch (...) {
+            error = "skills and training outcome has invalid skill "
+                    "reference '" + skill_ref + "'";
+            return false;
+        }
+        const std::string skill_name = kg.getProperty(skill, "name");
+        if (skill_name.empty()) {
+            error = "skills and training outcome points to an unnamed skill";
+            return false;
+        }
+        int matches = 0;
+        for (auto part : kg.getRelated(character, "HAS_PART")) {
+            if (kg.getProperty(part, "skill") != skill_ref) continue;
+            ++matches;
+            const auto level = kg.getProperty(part, "skill_level");
+            if (level.empty()) {
+                error = "executed skill outcome created a rating without "
+                        "skill_level";
+                return false;
+            }
+            gained = skill_name + "-" + level;
+        }
+        if (matches != 1) {
+            error = "executed skill outcome left " +
+                    std::to_string(matches) +
+                    " ratings for the selected skill";
+            return false;
+        }
+        return true;
     }
-    return "";
+    error = "skills and training roll " + std::to_string(roll.total) +
+            " matches no table row";
+    return false;
 }
 
 }  // namespace
@@ -262,7 +345,7 @@ void ChargenSession::finish(const std::string& why) {
     write_sheet(kg_, sheet_);
 }
 
-void ChargenSession::run_term() {
+bool ChargenSession::run_term(std::string& error) {
     const int term = sheet_.terms_served + 1;
     const auto check = read_check(kg_,
                                   kg_.getProperty(career_, "survival_check"));
@@ -275,17 +358,18 @@ void ChargenSession::run_term() {
         finish("The career ended here. (Cepheus: a failed survival roll "
                "is death; the mishap table is an optional rule we have "
                "not absorbed yet.)");
-        return;
+        return true;
     }
 
     uint64_t skill_roll = 0;
-    const auto skill = roll_for_skill(kg_, career_, sheet_.id, dice_,
-                                      skill_roll);
-    if (!skill.empty()) {
-        sheet_.skills.push_back(skill);
-        sheet_.life.push_back({term, "gained " + skill,
-                               "skills and training", skill_roll});
+    std::string skill;
+    if (!roll_for_skill(kg_, career_, sheet_.id, dice_, skill_roll,
+                        skill, error)) {
+        return false;
     }
+    sheet_.skills.push_back(skill);
+    sheet_.life.push_back({term, "gained " + skill,
+                           "skills and training", skill_roll});
 
     sheet_.age_years   += 4;
     sheet_.terms_served = term;
@@ -297,6 +381,7 @@ void ChargenSession::run_term() {
                  "four more years in the " + sheet_.career},
                 {"2", "Muster out", "leave with what you have"}};
     prompt_ = "Term " + std::to_string(term) + " is over. What now?";
+    return true;
 }
 
 bool ChargenSession::choose(const std::string& answer, std::string& error) {
@@ -342,11 +427,10 @@ bool ChargenSession::choose(const std::string& answer, std::string& error) {
                    "a later slice.)");
             return true;
         }
-        run_term();
-        return true;
+        return run_term(error);
     }
 
-    if (picked->key == "1") { run_term(); return true; }
+    if (picked->key == "1") return run_term(error);
     finish("Mustered out at age " + std::to_string(sheet_.age_years) +
            " after " + std::to_string(sheet_.terms_served) + " term(s).");
     return true;

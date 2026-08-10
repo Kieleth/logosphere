@@ -8,6 +8,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- Typed, atomic rulebook outcome execution. `OutcomeExecutor` resolves
+  ordered sequences and suspending choices, dispatches exact concrete
+  outcome types, validates one complete KG-operation plan, and commits its
+  KG and dice effects together. Built-in handlers cover attribute changes,
+  skill minimums and advances, fixed and rolled per-currency money, no-op,
+  and pending table-roll requests. Games can register exact concrete
+  handlers that return typed procedure signals. Unknown outcomes and
+  malformed or incomplete data fail without partial state or events.
+- Reusable atomic KG-operation batches and dice transactions. Failed KG
+  batches restore created entities, properties, and relations, while failed
+  dice transactions restore streams, roll IDs, and journal state. Events are
+  held until their transaction commits.
 - Typed rule-table results. `LookupEntry` is now an abstract selection
   shape and games declare concrete result rows; `LookupTable.entry_type`
   is verified against every attached row. Rollable rows require one typed
@@ -20,8 +32,9 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   is made of. `Cited` mixin (source file, section, verbatim quote on
   every rule entity), `DiceExpression`, `TaskCheck`, `RollableTable` /
   `TableEntry`, `LookupTable` / `LookupEntry` (state-keyed tables),
-  abstract `Outcome` with typed kinds (`GrantSkill`, `ModifyAttribute`,
-  `GainMoney`, `GrantTableRoll`), `RuleConstant`, `Procedure` /
+  abstract `Outcome` with typed kinds (`EnsureSkillLevel`, `AdvanceSkill`,
+  `ModifyAttribute`, `GainFixedMoney`, `GainRolledMoney`, `GrantTableRoll`),
+  ordered sequences, typed choices, `RuleConstant`, `Procedure` /
   `ProcedureStep` / `StepRoute` (the book's gotos as routing data), and
   `JudgmentPoint`. Opt-in like every pack:
   `kg.extendOntology(rulebook::ontology::registry())`. Classes earn
@@ -30,8 +43,8 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   `test_rulebook_pack`. Design record: docs/RPG_MODULE.md.
 - `SkillRating` in the rulebook pack: a held skill at a level (typed
   `skill` ref + `skill_level`), game state rather than book content,
-  attached to its holder with `HAS_PART` and written by the generic
-  GrantSkill handler through the validated path.
+  attached to its holder with `HAS_PART` and written by the generic skill
+  outcome handlers through the validated path.
 - `SPECIALIZES` relation in the core vocabulary: a narrower thing
   refines a broader one (skill cascades, taxonomies).
 - **Typed entity references on the validated write path.** A

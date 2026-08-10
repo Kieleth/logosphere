@@ -433,9 +433,9 @@ struct Checker {
             const std::vector<std::string> tokens = number_tokens(quote);
 
             // Digits: every numeric rule value's absolute value must
-            // equal one of the quote's number tokens. step_index is
-            // structural ordering introduced by the data model, not a
-            // number printed by the rulebook.
+            // equal one of the quote's number tokens. Sequence and choice
+            // indices are structural ordering introduced by the data model,
+            // not numbers printed by the rulebook.
             for (const auto& [key, value] :
                  world.getPropertiesWithPrefix(id, "")) {
                 const PropertyDef* def = ont.findProperty(type, key);
@@ -443,7 +443,7 @@ struct Checker {
                              def->value_type != "float")) {
                     continue;
                 }
-                if (key == "step_index") continue;
+                if (key == "step_index" || key == "option_index") continue;
                 ++report.values_checked;
                 std::string digits = value;
                 if (!digits.empty() &&
@@ -622,14 +622,16 @@ struct Checker {
         }
     }
 
-    void check_outcome_sequence(const KGModule& world,
-                                const SeedLoadReport& load,
-                                EntityID sequence) {
+    void check_ordered_parts(const KGModule& world,
+                             const SeedLoadReport& load, EntityID owner,
+                             const std::string& owner_type,
+                             const std::string& part_type,
+                             const std::string& index_property) {
         ++report.semantics_checked;
-        const auto parts = world.getRelated(sequence, "HAS_PART");
+        const auto parts = world.getRelated(owner, "HAS_PART");
         if (parts.empty()) {
-            semantic_violation(sequence, load,
-                               "OutcomeSequence has no OutcomeStep parts");
+            semantic_violation(owner, load, owner_type + " has no " +
+                                part_type + " parts");
             return;
         }
 
@@ -637,43 +639,71 @@ struct Checker {
         for (const EntityID part : parts) {
             ++report.semantics_checked;
             const std::string actual = world.getType(part);
-            if (!ont.isSubtypeOf(actual, "OutcomeStep")) {
+            if (!ont.isSubtypeOf(actual, part_type)) {
                 semantic_violation(
                     part, load,
-                    "OutcomeSequence contains non-OutcomeStep part type '" +
-                        actual + "'");
+                    owner_type + " contains non-" + part_type +
+                        " part type '" + actual + "'");
                 continue;
             }
+            if (part_type == "OutcomeOption" &&
+                world.getProperty(part, "option_label").empty()) {
+                semantic_violation(part, load,
+                                   "OutcomeOption has empty option_label");
+            }
             indices.push_back(std::strtoll(
-                world.getProperty(part, "step_index").c_str(), nullptr, 10));
+                world.getProperty(part, index_property).c_str(), nullptr, 10));
         }
         if (indices.empty()) return;
 
         std::sort(indices.begin(), indices.end());
         if (indices.front() != 0) {
             semantic_violation(
-                sequence, load,
-                "OutcomeSequence step_index values must start at 0, got " +
+                owner, load,
+                owner_type + " " + index_property +
+                    " values must start at 0, got " +
                     std::to_string(indices.front()));
             return;
         }
         for (size_t i = 1; i < indices.size(); ++i) {
             if (indices[i] == indices[i - 1]) {
                 semantic_violation(
-                    sequence, load,
-                    "OutcomeSequence has duplicate step_index " +
+                    owner, load,
+                    owner_type + " has duplicate " + index_property + " " +
                         std::to_string(indices[i]));
                 return;
             }
             if (indices[i] != indices[i - 1] + 1) {
                 semantic_violation(
-                    sequence, load,
-                    "OutcomeSequence step_index values are not contiguous: " +
+                    owner, load,
+                    owner_type + " " + index_property +
+                        " values are not contiguous: " +
                         std::to_string(indices[i - 1]) + " then " +
                         std::to_string(indices[i]));
                 return;
             }
         }
+    }
+
+    void check_outcome_sequence(const KGModule& world,
+                                const SeedLoadReport& load,
+                                EntityID sequence) {
+        check_ordered_parts(world, load, sequence, "OutcomeSequence",
+                            "OutcomeStep", "step_index");
+    }
+
+    void check_outcome_choice(const KGModule& world,
+                              const SeedLoadReport& load, EntityID choice) {
+        const std::string authority =
+            world.getProperty(choice, "choice_authority");
+        if (authority != "player" && authority != "referee" &&
+            authority != "procedure") {
+            semantic_violation(choice, load,
+                               "OutcomeChoice has unknown choice_authority '" +
+                                   authority + "'");
+        }
+        check_ordered_parts(world, load, choice, "OutcomeChoice",
+                            "OutcomeOption", "option_index");
     }
 
     void check_semantics(const KGModule& world,
@@ -687,6 +717,8 @@ struct Checker {
                 check_rollable_table(world, load, id);
             } else if (ont.isSubtypeOf(type, "OutcomeSequence")) {
                 check_outcome_sequence(world, load, id);
+            } else if (ont.isSubtypeOf(type, "OutcomeChoice")) {
+                check_outcome_choice(world, load, id);
             }
         }
     }

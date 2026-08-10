@@ -11,7 +11,7 @@
       "DiceExpression": 1,
       "DifficultyEntry": 2,
       "EndCareer": 1,
-      "GainMoney": 1,
+      "GainFixedMoney": 1,
       "LookupTable": 2,
       "NoEffect": 1,
       "OutcomeSequence": 1,
@@ -69,7 +69,7 @@
     },
     {
       "op": "create_entity",
-      "type": "GainMoney",
+      "type": "GainFixedMoney",
       "as": "@debt_10000",
       "properties": {
         "name": "debt_10000",

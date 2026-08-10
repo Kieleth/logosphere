@@ -102,7 +102,7 @@ void test_the_vocabulary_is_gated() {
           "the engine rulebook pack has no Skill either - the "
           "vocabulary is the game's");
     CHECK(engine_only.createEntity("SkillRating") != kg::INVALID_ENTITY,
-          "but SkillRating is engine: the generic GrantSkill handler "
+          "but SkillRating is engine: generic skill outcome handlers "
           "must know its shape");
 }
 

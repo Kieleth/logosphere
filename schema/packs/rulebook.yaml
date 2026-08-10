@@ -209,18 +209,46 @@ classes:
       - step_index
       - outcome
 
-  GrantSkill:
+  EnsureSkillLevel:
     is_a: Outcome
     description: >-
-      Gain a skill at a level: basic training at Level 0, a skill
-      table result like Athletics-1. The skill is an entity
-      reference into the game's skill vocabulary, never a name
-      string.
+      Ensure that the target holds a skill at no less than the stated
+      level. If no rating exists, create one at that level; if a lower
+      rating exists, raise it; a higher rating is unchanged. Basic
+      training at Level 0 is the first instance. The skill is an entity
+      reference into the game's vocabulary, never a name string.
     annotations:
       facets: rulebook
+    slot_usage:
+      skill:
+        required: true
+      skill_level:
+        required: true
     slots:
       - skill
       - skill_level
+
+  AdvanceSkill:
+    is_a: Outcome
+    description: >-
+      Advance a skill using both branches printed by the rule. If the
+      target has no rating, create one at initial_skill_level; otherwise
+      add existing_skill_delta. Cepheus training uses initial level 1
+      and existing delta 1. These values are rule data, not executor
+      constants.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      skill:
+        required: true
+      initial_skill_level:
+        required: true
+      existing_skill_delta:
+        required: true
+    slots:
+      - skill
+      - initial_skill_level
+      - existing_skill_delta
 
   ModifyAttribute:
     is_a: Outcome
@@ -231,24 +259,58 @@ classes:
       delta is signed.
     annotations:
       facets: rulebook
+    slot_usage:
+      attribute_ref:
+        required: true
+      attribute_delta:
+        required: true
     slots:
       - attribute_ref
       - attribute_delta
 
   GainMoney:
     is_a: Outcome
+    abstract: true
     description: >-
-      Money changes hands: a fixed amount (Cr20000 on a benefits
-      table, a debt as a negative amount) or a rolled one (the
-      1D6x10000 medical bill), one of the two per instance. The
-      currency is an entity reference into the game's monetary
-      vocabulary, exactly as a skill is: credits are one currency of
-      one game, and the engine does not know which currencies exist.
+      Abstract base for a currency-denominated change. Fixed and rolled
+      amounts are different concrete outcome types, so an instance
+      cannot omit both or carry both. The currency is an entity
+      reference into the game's monetary vocabulary; the engine does
+      not know which currencies exist.
     annotations:
       facets: rulebook
+    slot_usage:
+      currency:
+        required: true
     slots:
       - currency
+
+  GainFixedMoney:
+    is_a: GainMoney
+    description: >-
+      Change a balance by the stated fixed amount. Positive values add
+      money; negative values record debt. Cr10,000 debt and fixed
+      mustering benefits are the first instances.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      amount:
+        required: true
+    slots:
       - amount
+
+  GainRolledMoney:
+    is_a: GainMoney
+    description: >-
+      Change a balance by an amount produced by the referenced
+      DiceExpression. The 1D6x10000 medical bill is the first instance.
+      The executor journals the roll and applies its total.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      amount_dice:
+        required: true
+    slots:
       - amount_dice
 
   GrantTableRoll:
@@ -258,9 +320,50 @@ classes:
       advancement grants an extra roll on the career's skill tables.
     annotations:
       facets: rulebook
+    slot_usage:
+      table:
+        required: true
+      roll_count:
+        required: true
     slots:
       - table
       - roll_count
+
+  OutcomeChoice:
+    is_a: Outcome
+    description: >-
+      A consequence that cannot proceed until one attached OutcomeOption
+      is selected. choice_authority is exactly player, referee, or
+      procedure. The executor returns the ordered options without
+      mutation and reruns the complete root outcome after a selection,
+      preserving sequence atomicity.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      choice_authority:
+        required: true
+    slots:
+      - choice_authority
+
+  OutcomeOption:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One labeled alternative attached to an OutcomeChoice through
+      HAS_PART. option_index is contiguous and zero-based; outcome is
+      the typed consequence selected by this alternative.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      option_index:
+        required: true
+      option_label:
+        required: true
+    slots:
+      - option_index
+      - option_label
+      - outcome
 
   RuleConstant:
     is_a: Entity
@@ -283,14 +386,36 @@ classes:
       content, which is why it is the one class here without Cited (a
       rating has no quote; the chargen journal is its provenance).
       Attached to its holder with HAS_PART; the skill is an entity
-      reference into the game's skill vocabulary. The GrantSkill
-      handler creates and increments these through the validated
+      reference into the game's skill vocabulary. EnsureSkillLevel and
+      AdvanceSkill handlers create and update these through the validated
       write path.
     annotations:
       facets: rulebook
+    slot_usage:
+      skill:
+        required: true
+      skill_level:
+        required: true
     slots:
       - skill
       - skill_level
+
+  CurrencyBalance:
+    is_a: Entity
+    description: >-
+      One holder's balance in one currency. Game state, not cited book
+      content. Attached to its holder with HAS_PART; currency points into
+      the game's monetary vocabulary and balance_amount may be negative.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      currency:
+        required: true
+      balance_amount:
+        required: true
+    slots:
+      - currency
+      - balance_amount
 
   Procedure:
     is_a: Entity
@@ -444,6 +569,13 @@ slots:
     range: integer
     minimum_value: 0
     description: The level granted.
+  initial_skill_level:
+    range: integer
+    minimum_value: 0
+    description: Level created when the target does not hold the skill.
+  existing_skill_delta:
+    range: integer
+    description: Signed level change when the target already holds the skill.
   attribute_delta:
     range: integer
     description: Signed change applied to the referenced attribute.
@@ -458,6 +590,9 @@ slots:
   amount_dice:
     range: DiceExpression
     description: Rolled amount, when the book rolls for the money.
+  balance_amount:
+    range: integer
+    description: Current balance in the referenced currency; may be negative.
   table:
     range: RollableTable
     description: The table the extra rolls are granted on.
@@ -465,6 +600,18 @@ slots:
     range: integer
     minimum_value: 1
     description: How many extra rolls.
+  choice_authority:
+    range: string
+    description: >-
+      Who resolves the choice: player, referee, or procedure. The semantic
+      verifier and executor reject every other value.
+  option_index:
+    range: integer
+    minimum_value: 0
+    description: Zero-based order of an option inside an OutcomeChoice.
+  option_label:
+    range: string
+    description: Cited label presented for this alternative.
   step_index:
     range: integer
     required: true

@@ -5,8 +5,26 @@
 #include <cctype>
 #include <cstdlib>
 #include <limits>
+#include <stdexcept>
 
 namespace logosphere::dice {
+
+DiceTransaction::DiceTransaction(DiceTransaction&& other) noexcept
+    : service_(other.service_) {
+    other.service_ = nullptr;
+}
+
+DiceTransaction::~DiceTransaction() {
+    if (service_) service_->rollback_transaction();
+}
+
+void DiceTransaction::commit() {
+    if (!service_) {
+        throw std::logic_error("DiceTransaction is no longer active");
+    }
+    service_->commit_transaction();
+    service_ = nullptr;
+}
 
 bool DiceExpression::parse(const std::string& text, DiceExpression& out) {
     // Grammar: [count] D sides [(+|-) modifier] [x multiplier],
@@ -87,6 +105,51 @@ void DiceService::seed_stream(const std::string& stream, uint64_t seed) {
     streams_[stream] = z ? z : 0x9E3779B97F4A7C15ull;
 }
 
+DiceTransaction DiceService::begin_transaction() {
+    if (transaction_) {
+        throw std::logic_error("DiceService transactions cannot nest");
+    }
+    transaction_ = TransactionState{streams_, journal_.size(), next_id_};
+    return DiceTransaction(*this);
+}
+
+void DiceService::emit_roll_event(const DiceRoll& roll) {
+    if (!bus_) return;
+    logosphere::ontology::DiceRollEvent event;
+    event.event_type = "DICE_ROLL";
+    event.roll_id = static_cast<int32_t>(roll.id);
+    event.dice_expression = roll.expression.to_string();
+    std::string values;
+    for (size_t index = 0; index < roll.values.size(); ++index) {
+        if (index) values += ",";
+        values += std::to_string(roll.values[index]);
+    }
+    event.roll_values = values;
+    event.roll_total = roll.total;
+    event.roll_stream = roll.stream;
+    event.roll_purpose = roll.purpose;
+    bus_->dice_rolls().emit(std::move(event));
+}
+
+void DiceService::commit_transaction() {
+    if (!transaction_) {
+        throw std::logic_error("DiceService has no active transaction");
+    }
+    const size_t first_roll = transaction_->journal_size;
+    transaction_.reset();
+    for (size_t index = first_roll; index < journal_.size(); ++index) {
+        emit_roll_event(journal_[index]);
+    }
+}
+
+void DiceService::rollback_transaction() {
+    if (!transaction_) return;
+    streams_ = std::move(transaction_->streams);
+    journal_.resize(transaction_->journal_size);
+    next_id_ = transaction_->next_id;
+    transaction_.reset();
+}
+
 uint64_t DiceService::next_u64(const std::string& stream) {
     auto it = streams_.find(stream);
     if (it == streams_.end()) {
@@ -123,22 +186,7 @@ DiceRoll DiceService::roll(const DiceExpression& expr,
     r.total *= expr.multiplier;
     journal_.push_back(r);
 
-    if (bus_) {
-        logosphere::ontology::DiceRollEvent e;
-        e.event_type = "DICE_ROLL";
-        e.roll_id = static_cast<int32_t>(r.id);
-        e.dice_expression = expr.to_string();
-        std::string vals;
-        for (size_t i = 0; i < r.values.size(); ++i) {
-            if (i) vals += ",";
-            vals += std::to_string(r.values[i]);
-        }
-        e.roll_values = vals;
-        e.roll_total = r.total;
-        e.roll_stream = stream;
-        e.roll_purpose = purpose;
-        bus_->dice_rolls().emit(std::move(e));
-    }
+    if (!transaction_) emit_roll_event(r);
     return r;
 }
 

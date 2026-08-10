@@ -276,6 +276,51 @@ void test_the_bus_carries_what_the_journal_records() {
     check(events == 1, "a refused expression emits nothing");
 }
 
+void test_a_transaction_rolls_back_stream_journal_ids_and_events() {
+    logosphere::EventBus bus;
+    DiceService d;
+    d.initialize(&bus);
+    d.seed_stream("chargen", 73);
+    int events = 0;
+    bus.dice_rolls().subscribe(
+        [&](const logosphere::ontology::DiceRollEvent&) { ++events; });
+
+    DiceRoll rolled;
+    {
+        auto transaction = d.begin_transaction();
+        rolled = d.roll("2D6", "chargen", "rolled outcome");
+        check(rolled.id == 1 && d.journal().size() == 1 && events == 0,
+              "a pending transaction journals privately and emits nothing");
+    }
+
+    check(d.journal().empty() && d.find(rolled.id) == nullptr && events == 0,
+          "destruction without commit rolls back journal, id, and events");
+    const auto replayed = d.roll("2D6", "chargen", "after rollback");
+    check(replayed.id == rolled.id && replayed.values == rolled.values,
+          "rollback restores both the next id and RNG stream position");
+}
+
+void test_a_transaction_publishes_only_when_committed() {
+    logosphere::EventBus bus;
+    DiceService d;
+    d.initialize(&bus);
+    int events = 0;
+    int event_total = 0;
+    bus.dice_rolls().subscribe(
+        [&](const logosphere::ontology::DiceRollEvent& event) {
+            ++events;
+            event_total = event.roll_total.value_or(0);
+        });
+
+    auto transaction = d.begin_transaction();
+    const auto rolled = d.roll("1D6x10000", "chargen", "medical debt");
+    check(events == 0, "a pending dice transaction buffers its event");
+    transaction.commit();
+    check(events == 1 && event_total == rolled.total &&
+              d.journal().size() == 1,
+          "commit publishes the buffered fact and preserves the journal");
+}
+
 }  // namespace
 
 int main() {
@@ -290,6 +335,8 @@ int main() {
     test_bounds_and_totals();
     test_the_distribution_is_dicelike();
     test_the_bus_carries_what_the_journal_records();
+    test_a_transaction_rolls_back_stream_journal_ids_and_events();
+    test_a_transaction_publishes_only_when_committed();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

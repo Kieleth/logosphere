@@ -1424,41 +1424,80 @@ struct OutcomeStep : public Entity, public Cited {
 };
 
 
-/// Gain a skill at a level: basic training at Level 0, a skill table result like Athletics-1. The skill is an entity reference into the game's skill vocabulary, never a name string.
-struct GrantSkill : public Outcome {
+/// Ensure that the target holds a skill at no less than the stated level. If no rating exists, create one at that level; if a lower rating exists, raise it; a higher rating is unchanged. Basic training at Level 0 is the first instance. The skill is an entity reference into the game's vocabulary, never a name string.
+struct EnsureSkillLevel : public Outcome {
     /// The skill granted, as an entity reference into the game's skill vocabulary (the engine does not know which skills exist).
-    std::optional<Entity> skill = std::nullopt;
+    Entity skill = {};
     /// The level granted.
-    std::optional<int32_t> skill_level = std::nullopt;
+    int32_t skill_level = {};
+};
+
+
+/// Advance a skill using both branches printed by the rule. If the target has no rating, create one at initial_skill_level; otherwise add existing_skill_delta. Cepheus training uses initial level 1 and existing delta 1. These values are rule data, not executor constants.
+struct AdvanceSkill : public Outcome {
+    /// The skill granted, as an entity reference into the game's skill vocabulary (the engine does not know which skills exist).
+    Entity skill = {};
+    /// Level created when the target does not hold the skill.
+    int32_t initial_skill_level = {};
+    /// Signed level change when the target already holds the skill.
+    int32_t existing_skill_delta = {};
 };
 
 
 /// Change a numeric attribute by a delta: "+1 Int" on a skill table, "Reduce Strength or Dexterity by 2" on the injury table. The attribute is a verifier-resolved reference, the delta is signed.
 struct ModifyAttribute : public Outcome {
     /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
-    std::optional<std::string> attribute_ref = std::nullopt;
+    std::string attribute_ref = {};
     /// Signed change applied to the referenced attribute.
-    std::optional<int32_t> attribute_delta = std::nullopt;
+    int32_t attribute_delta = {};
 };
 
 
-/// Money changes hands: a fixed amount (Cr20000 on a benefits table, a debt as a negative amount) or a rolled one (the 1D6x10000 medical bill), one of the two per instance. The currency is an entity reference into the game's monetary vocabulary, exactly as a skill is: credits are one currency of one game, and the engine does not know which currencies exist.
+/// Abstract base for a currency-denominated change. Fixed and rolled amounts are different concrete outcome types, so an instance cannot omit both or carry both. The currency is an entity reference into the game's monetary vocabulary; the engine does not know which currencies exist.
 struct GainMoney : public Outcome {
     /// The currency the amount is denominated in, as a reference into the game's monetary vocabulary.
-    std::optional<Entity> currency = std::nullopt;
+    Entity currency = {};
+};
+
+
+/// Change a balance by the stated fixed amount. Positive values add money; negative values record debt. Cr10,000 debt and fixed mustering benefits are the first instances.
+struct GainFixedMoney : public GainMoney {
     /// Fixed amount; negative is a debt.
-    std::optional<int32_t> amount = std::nullopt;
+    int32_t amount = {};
+};
+
+
+/// Change a balance by an amount produced by the referenced DiceExpression. The 1D6x10000 medical bill is the first instance. The executor journals the roll and applies its total.
+struct GainRolledMoney : public GainMoney {
     /// Rolled amount, when the book rolls for the money.
-    std::optional<DiceExpression> amount_dice = std::nullopt;
+    DiceExpression amount_dice = {};
 };
 
 
 /// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables.
 struct GrantTableRoll : public Outcome {
     /// The table the extra rolls are granted on.
-    std::optional<RollableTable> table = std::nullopt;
+    RollableTable table = {};
     /// How many extra rolls.
-    std::optional<int32_t> roll_count = std::nullopt;
+    int32_t roll_count = {};
+};
+
+
+/// A consequence that cannot proceed until one attached OutcomeOption is selected. choice_authority is exactly player, referee, or procedure. The executor returns the ordered options without mutation and reruns the complete root outcome after a selection, preserving sequence atomicity.
+struct OutcomeChoice : public Outcome {
+    /// Who resolves the choice: player, referee, or procedure. The semantic verifier and executor reject every other value.
+    std::string choice_authority = {};
+};
+
+
+/// One labeled alternative attached to an OutcomeChoice through HAS_PART. option_index is contiguous and zero-based; outcome is the typed consequence selected by this alternative.
+struct OutcomeOption : public Entity, public Cited {
+    /// Zero-based order of an option inside an OutcomeChoice.
+    int32_t option_index = {};
+    /// Cited label presented for this alternative.
+    std::string option_label = {};
+    /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
+    Outcome outcome = {};
 };
 
 
@@ -1469,12 +1508,21 @@ struct RuleConstant : public Entity, public Cited {
 };
 
 
-/// A held skill at a level: Slug Rifle at 2. Game STATE, not book content, which is why it is the one class here without Cited (a rating has no quote; the chargen journal is its provenance). Attached to its holder with HAS_PART; the skill is an entity reference into the game's skill vocabulary. The GrantSkill handler creates and increments these through the validated write path.
+/// A held skill at a level: Slug Rifle at 2. Game STATE, not book content, which is why it is the one class here without Cited (a rating has no quote; the chargen journal is its provenance). Attached to its holder with HAS_PART; the skill is an entity reference into the game's skill vocabulary. EnsureSkillLevel and AdvanceSkill handlers create and update these through the validated write path.
 struct SkillRating : public Entity {
     /// The skill granted, as an entity reference into the game's skill vocabulary (the engine does not know which skills exist).
-    std::optional<Entity> skill = std::nullopt;
+    Entity skill = {};
     /// The level granted.
-    std::optional<int32_t> skill_level = std::nullopt;
+    int32_t skill_level = {};
+};
+
+
+/// One holder's balance in one currency. Game state, not cited book content. Attached to its holder with HAS_PART; currency points into the game's monetary vocabulary and balance_amount may be negative.
+struct CurrencyBalance : public Entity {
+    /// The currency the amount is denominated in, as a reference into the game's monetary vocabulary.
+    Entity currency = {};
+    /// Current balance in the referenced currency; may be negative.
+    int32_t balance_amount = {};
 };
 
 

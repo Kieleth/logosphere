@@ -64,7 +64,7 @@ void test_core_only_world_has_no_rulebook() {
           "module leaked back into the core");
     CHECK(kg.createEntity("RollableTable") == kg::INVALID_ENTITY,
           "nor a RollableTable");
-    CHECK(kg.createEntity("GrantSkill") == kg::INVALID_ENTITY,
+    CHECK(kg.createEntity("AdvanceSkill") == kg::INVALID_ENTITY,
           "nor any outcome kind");
 }
 
@@ -76,8 +76,17 @@ void test_core_only_world_has_no_rulebook() {
 // of generator bug a build failure.
 void test_the_generated_type_surface_compiles() {
     static_assert(std::is_base_of<rulebook::ontology::Outcome,
-                                  rulebook::ontology::GrantSkill>::value,
-                  "GrantSkill is an Outcome");
+                                  rulebook::ontology::EnsureSkillLevel>::value,
+                  "EnsureSkillLevel is an Outcome");
+    static_assert(std::is_base_of<rulebook::ontology::Outcome,
+                                  rulebook::ontology::AdvanceSkill>::value,
+                  "AdvanceSkill is an Outcome");
+    static_assert(std::is_base_of<rulebook::ontology::GainMoney,
+                                  rulebook::ontology::GainFixedMoney>::value,
+                  "fixed money is a concrete GainMoney outcome");
+    static_assert(std::is_base_of<rulebook::ontology::GainMoney,
+                                  rulebook::ontology::GainRolledMoney>::value,
+                  "rolled money is a concrete GainMoney outcome");
     static_assert(std::is_base_of<rulebook::ontology::Cited,
                                   rulebook::ontology::Outcome>::value,
                   "every Outcome is Cited");
@@ -87,6 +96,9 @@ void test_the_generated_type_surface_compiles() {
     static_assert(std::is_base_of<rulebook::ontology::Outcome,
                                   rulebook::ontology::OutcomeSequence>::value,
                   "OutcomeSequence is an Outcome");
+    static_assert(std::is_base_of<rulebook::ontology::Outcome,
+                                  rulebook::ontology::OutcomeChoice>::value,
+                  "OutcomeChoice is an Outcome");
     rulebook::ontology::TableEntry row;
     CHECK(row.roll_min == 0 && row.roll_max == 0 &&
               !row.source_quote.has_value(),
@@ -99,9 +111,11 @@ void test_the_pack_grants_the_vocabulary() {
 
     const char* instantiable[] = {
         "DiceExpression", "TaskCheck", "RollableTable", "TableEntry",
-        "LookupTable",    "GrantSkill", "ModifyAttribute", "GainMoney",
+        "LookupTable", "EnsureSkillLevel", "AdvanceSkill",
+        "ModifyAttribute", "GainFixedMoney", "GainRolledMoney",
         "GrantTableRoll", "NoEffect", "OutcomeSequence", "OutcomeStep",
-        "RuleConstant",   "Procedure", "ProcedureStep", "StepRoute",
+        "OutcomeChoice", "OutcomeOption", "CurrencyBalance",
+        "RuleConstant", "Procedure", "ProcedureStep", "StepRoute",
         "JudgmentPoint"};
     bool all = true;
     for (const char* t : instantiable)
@@ -109,7 +123,7 @@ void test_the_pack_grants_the_vocabulary() {
             all = false;
             std::cout << "  [measure] missing type: " << t << std::endl;
         }
-    CHECK(all, "all seventeen concrete engine classes create");
+    CHECK(all, "all twenty-two concrete engine classes create");
 
     CHECK(kg.createEntity("Outcome") == kg::INVALID_ENTITY,
           "abstract Outcome is rejected at creation - a consequence "
@@ -117,6 +131,11 @@ void test_the_pack_grants_the_vocabulary() {
     CHECK(kg.createEntity("LookupEntry") == kg::INVALID_ENTITY,
           "abstract LookupEntry is rejected - a game must declare the "
           "typed result carried by the row");
+    CHECK(kg.createEntity("GainMoney") == kg::INVALID_ENTITY,
+          "abstract GainMoney is rejected - fixed and rolled amounts "
+          "cannot share one sparse shape");
+    CHECK(!kg.getRegistry().hasEntityType("GrantSkill"),
+          "the ambiguous GrantSkill type has no compatibility fallback");
     CHECK(kg.createEntity("Cited") == kg::INVALID_ENTITY,
           "the Cited mixin is a trait, not a thing");
     CHECK(kg.createEntity("Wall") != kg::INVALID_ENTITY,
@@ -125,6 +144,12 @@ void test_the_pack_grants_the_vocabulary() {
 
 void test_table_results_have_one_complete_shape() {
     const auto& reg = rulebook::ontology::registry();
+
+    auto required = [&](const std::string& type, const std::string& property,
+                        const std::string& value_type) {
+        const auto* def = reg.findProperty(type, property);
+        return def && def->required && def->value_type == value_type;
+    };
 
     const auto* table_dice = reg.findProperty("RollableTable", "dice");
     CHECK(table_dice && table_dice->required &&
@@ -155,6 +180,44 @@ void test_table_results_have_one_complete_shape() {
               step_outcome->value_type == "entity_ref" &&
               step_outcome->ref_target == "Outcome",
           "every OutcomeStep requires its typed child Outcome");
+
+    CHECK(required("EnsureSkillLevel", "skill", "entity_ref") &&
+              required("EnsureSkillLevel", "skill_level", "integer"),
+          "EnsureSkillLevel requires its skill and minimum level");
+    CHECK(required("AdvanceSkill", "skill", "entity_ref") &&
+              required("AdvanceSkill", "initial_skill_level", "integer") &&
+              required("AdvanceSkill", "existing_skill_delta", "integer"),
+          "AdvanceSkill carries both branches of its state-dependent rule");
+    CHECK(required("SkillRating", "skill", "entity_ref") &&
+              required("SkillRating", "skill_level", "integer"),
+          "runtime SkillRating state is complete at creation");
+
+    CHECK(reg.isAbstract("GainMoney") &&
+              required("GainMoney", "currency", "entity_ref"),
+          "GainMoney is an abstract currency-denominated outcome");
+    CHECK(required("GainFixedMoney", "amount", "integer") &&
+              !reg.hasProperty("GainFixedMoney", "amount_dice"),
+          "fixed money requires only its fixed amount");
+    CHECK(required("GainRolledMoney", "amount_dice", "entity_ref") &&
+              !reg.hasProperty("GainRolledMoney", "amount"),
+          "rolled money requires only its DiceExpression");
+    CHECK(required("CurrencyBalance", "currency", "entity_ref") &&
+              required("CurrencyBalance", "balance_amount", "integer"),
+          "runtime money state is a typed balance per currency");
+
+    CHECK(required("ModifyAttribute", "attribute_ref", "string") &&
+              required("ModifyAttribute", "attribute_delta", "integer"),
+          "ModifyAttribute cannot reach execution without both operands");
+    CHECK(required("GrantTableRoll", "table", "entity_ref") &&
+              required("GrantTableRoll", "roll_count", "integer"),
+          "a table-roll request names its table and count");
+
+    CHECK(required("OutcomeChoice", "choice_authority", "string"),
+          "every choice names who must resolve it");
+    CHECK(required("OutcomeOption", "option_index", "integer") &&
+              required("OutcomeOption", "option_label", "string") &&
+              required("OutcomeOption", "outcome", "entity_ref"),
+          "every choice option is ordered, labeled, and typed");
 }
 
 // ------------------------------------------------- chapter 1, as data
@@ -256,7 +319,7 @@ void test_chapter_one_instantiates() {
     auto currency_stub = kg.createEntity("Entity");
     CHECK(currency_stub != kg::INVALID_ENTITY, "the currency stand-in exists");
 
-    auto debt_out = cite(kg, kg.createEntity("GainMoney"), "Cr10000 debt",
+    auto debt_out = cite(kg, kg.createEntity("GainFixedMoney"), "Cr10000 debt",
                          "Survival",
                          "| 3 | Honorably discharged from the service after "
                          "a long legal battle. Legal issues create a debt "
@@ -264,12 +327,14 @@ void test_chapter_one_instantiates() {
     kg.setProperty(debt_out, "amount", "-10000");
     kg.setProperty(debt_out, "currency", std::to_string(currency_stub));
 
-    auto med_out = cite(kg, kg.createEntity("GainMoney"), "medical bill",
+    auto med_out = cite(kg, kg.createEntity("GainRolledMoney"), "medical bill",
                         "Injury Crisis",
                         "he can pay 1D6\xC3\x97" "10,000 Credits for medical care");
+    kg.setProperty(med_out, "currency", std::to_string(currency_stub));
     kg.setProperty(med_out, "amount_dice", std::to_string(dmed));
 
-    auto basic_out = cite(kg, kg.createEntity("GrantSkill"), "basic training",
+    auto basic_out = cite(kg, kg.createEntity("EnsureSkillLevel"),
+                          "basic training",
                           "Basic Training",
                           "For your first career only, you get all the "
                           "skills listed in the Service Skills table at "

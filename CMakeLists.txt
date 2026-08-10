@@ -111,12 +111,14 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/kg_query.cpp
     src/kg/kg_ops_parse.cpp
     src/kg/kg_ops_apply.cpp
+    src/kg/kg_ops_transaction.cpp
     src/kg/ontology_validator.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
     # validated write path, and the ingestion verifier (verbatim /
     # schema / value / semantic / invariants). docs/RPG_MODULE.md.
     src/kg/seed_loader.cpp
     src/kg/seed_verifier.cpp
+    src/rules/outcome_executor.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -351,6 +353,8 @@ add_headless_test(test_particle_self_emissive_field)
 add_headless_test(test_kg_ops_parse)
 add_headless_test(test_ontology_validator)
 add_headless_test(test_kg_ops_apply)
+add_headless_test(test_kg_ops_transaction)
+add_headless_test(test_outcome_executor)
 # test_mutation_playback links logosphere_core only (no Engine
 # dereferencing in the tests; dummy pointers in fixtures).
 add_executable(test_mutation_playback

@@ -291,6 +291,46 @@ void test_the_rules_are_data() {
           "reads the rule rather than knowing it");
 }
 
+void test_skill_outcome_parameters_drive_the_executor() {
+    kg::KGModule changed(game_registry());
+    std::string why;
+    CHECK(build_world(changed, why), "the changed-rule world loads: " + why);
+    for (const auto id : changed.findByType("AdvanceSkill")) {
+        changed.setProperty(id, "existing_skill_delta", "7");
+    }
+
+    logosphere::dice::DiceService changed_dice;
+    logovger::ChargenRequest request{"Agent", 1, 4};
+    logovger::CharacterSheet changed_sheet;
+    std::string error;
+    const bool changed_ok = logovger::run_chargen(
+        request, changed, changed_dice, changed_sheet, error);
+    int max_level = 0;
+    for (const auto part : changed.getRelated(changed_sheet.id, "HAS_PART")) {
+        const auto level = changed.getProperty(part, "skill_level");
+        if (!level.empty()) max_level = std::max(max_level, std::stoi(level));
+    }
+    CHECK(changed_ok && max_level >= 8,
+          "changing existing_skill_delta in the KG changes repeated gains: "
+              + error);
+
+    kg::KGModule incomplete(game_registry());
+    why.clear();
+    CHECK(build_world(incomplete, why),
+          "the incomplete-rule control world loads: " + why);
+    for (const auto id : incomplete.findByType("AdvanceSkill")) {
+        incomplete.removeProperty(id, "existing_skill_delta");
+    }
+    logosphere::dice::DiceService incomplete_dice;
+    logovger::CharacterSheet incomplete_sheet;
+    error.clear();
+    const bool incomplete_ok = logovger::run_chargen(
+        request, incomplete, incomplete_dice, incomplete_sheet, error);
+    CHECK(!incomplete_ok &&
+              error.find("existing_skill_delta") != std::string::npos,
+          "missing required outcome data stops chargen loudly: " + error);
+}
+
 }  // namespace
 
 int main() {
@@ -300,6 +340,7 @@ int main() {
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
     test_the_rules_are_data();
+    test_skill_outcome_parameters_drive_the_executor();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

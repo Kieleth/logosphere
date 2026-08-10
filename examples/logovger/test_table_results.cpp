@@ -114,6 +114,54 @@ bool retarget_relation(kg::SeedEnvelope& seed,
     return false;
 }
 
+void append_create(
+    kg::SeedEnvelope& seed, const std::string& type,
+    const std::string& alias,
+    std::vector<std::pair<std::string, std::string>> properties) {
+    kg::KGOpCreateEntity create;
+    create.type = type;
+    create.as = alias;
+    create.properties = std::move(properties);
+    seed.ops.emplace_back(std::move(create));
+}
+
+void append_relation(kg::SeedEnvelope& seed, const std::string& from,
+                     const std::string& to) {
+    kg::KGOpSetRelation relation;
+    relation.from.symbolic = from;
+    relation.relation = "HAS_PART";
+    relation.to.symbolic = to;
+    seed.ops.emplace_back(std::move(relation));
+}
+
+kg::SeedEnvelope seed_with_complete_choice() {
+    auto seed = parse_table_seed();
+    const std::string quote =
+        "| 3 | Missing eye or limb. Reduce Strength or Dexterity by 2. |";
+    append_create(seed, "OutcomeChoice", "injury_choice",
+                  {{"name", "choose_injured_attribute"},
+                   {"choice_authority", "player"},
+                   {"source_section", "Injuries"},
+                   {"source_quote", quote}});
+    append_create(seed, "OutcomeOption", "injury_choice_strength",
+                  {{"name", "reduce_strength"},
+                   {"option_index", "0"},
+                   {"option_label", "Strength"},
+                   {"outcome", "@no_permanent_effect"},
+                   {"source_section", "Injuries"},
+                   {"source_quote", quote}});
+    append_create(seed, "OutcomeOption", "injury_choice_dexterity",
+                  {{"name", "reduce_dexterity"},
+                   {"option_index", "1"},
+                   {"option_label", "Dexterity"},
+                   {"outcome", "@no_permanent_effect"},
+                   {"source_section", "Injuries"},
+                   {"source_quote", quote}});
+    append_relation(seed, "injury_choice", "injury_choice_strength");
+    append_relation(seed, "injury_choice", "injury_choice_dexterity");
+    return seed;
+}
+
 bool semantic_reason_contains(const kg::SeedVerifyReport& report,
                               const std::string& text) {
     for (const auto& violation : report.violations) {
@@ -332,6 +380,78 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
           "a sequence rejects gaps in its explicit order");
 }
 
+void test_outcome_choice_requires_authority_options_and_order() {
+    auto complete = seed_with_complete_choice();
+    const auto complete_report = kg::verify_seed(
+        complete, game_path("srd/cepheus"), game_registry());
+    if (!complete_report.ok()) {
+        for (const auto& violation : complete_report.violations) {
+            std::cout << "  [measure] " << violation.check << ": "
+                      << violation.reason << std::endl;
+        }
+    }
+    CHECK(complete_report.ok(),
+          "a complete ordered player choice passes semantic verification");
+
+    auto authority = seed_with_complete_choice();
+    CHECK(set_property(authority, "injury_choice", "choice_authority",
+                       "nobody"),
+          "the invalid choice authority mutation was applied");
+    const auto authority_report = kg::verify_seed(
+        authority, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(authority_report,
+                                   "unknown choice_authority 'nobody'"),
+          "a choice rejects authority outside player, referee, procedure");
+
+    auto empty = seed_with_complete_choice();
+    CHECK(remove_relations_from(empty, "injury_choice"),
+          "both choice-option relations were removed");
+    const auto empty_report = kg::verify_seed(
+        empty, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(empty_report,
+                                   "has no OutcomeOption parts"),
+          "a choice without alternatives fails semantic verification");
+
+    auto wrong_part = seed_with_complete_choice();
+    CHECK(retarget_relation(wrong_part, "injury_choice",
+                            "injury_choice_strength", "end_career"),
+          "a choice relation was retargeted to a non-option outcome");
+    const auto wrong_part_report = kg::verify_seed(
+        wrong_part, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(
+              wrong_part_report,
+              "non-OutcomeOption part type 'EndCareer'"),
+          "a choice rejects parts that are not OutcomeOption entities");
+
+    auto duplicate = seed_with_complete_choice();
+    CHECK(set_property(duplicate, "injury_choice_dexterity",
+                       "option_index", "0"),
+          "the duplicate option index mutation was applied");
+    const auto duplicate_report = kg::verify_seed(
+        duplicate, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(duplicate_report,
+                                   "duplicate option_index 0"),
+          "a choice rejects duplicate option order");
+
+    auto gap = seed_with_complete_choice();
+    CHECK(set_property(gap, "injury_choice_dexterity", "option_index", "2"),
+          "the option gap mutation was applied");
+    const auto gap_report = kg::verify_seed(
+        gap, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(gap_report, "are not contiguous"),
+          "a choice rejects gaps in option order");
+
+    auto empty_label = seed_with_complete_choice();
+    CHECK(set_property(empty_label, "injury_choice_dexterity",
+                       "option_label", ""),
+          "the empty option label mutation was applied");
+    const auto empty_label_report = kg::verify_seed(
+        empty_label, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(empty_label_report,
+                                   "has empty option_label"),
+          "a choice rejects an unlabeled alternative");
+}
+
 void test_rollable_table_rejects_non_rows() {
     auto seed = parse_table_seed();
     CHECK(retarget_relation(seed, "mishap_table", "mishap_row_2",
@@ -355,6 +475,7 @@ int main() {
     test_lookup_table_requires_a_concrete_entry_subtype_and_rows();
     test_outcome_sequence_rejects_duplicate_order();
     test_outcome_sequence_requires_steps_and_contiguous_order();
+    test_outcome_choice_requires_authority_options_and_order();
     test_rollable_table_rejects_non_rows();
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

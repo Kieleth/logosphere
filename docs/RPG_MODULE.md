@@ -65,7 +65,7 @@ every citation into the vendored SRD.
 | TaskCheck | attribute ref, target, dice ref | the book's "Int 8+" definition, Athlete survival Dex 5+ |
 | RollableTable / TableEntry | dice ref; rows as HAS_PART, each claiming a roll band (min/max) | Survival Mishaps 1D6, Aging Table 2D6 |
 | LookupTable / LookupEntry | state-keyed tables: a table declares one concrete game row type; the matching row is the typed result | CharacteristicModifierEntry, DifficultyEntry |
-| Outcome (abstract) + GrantSkill, ModifyAttribute, GainMoney, GrantTableRoll, NoEffect, OutcomeSequence / OutcomeStep | typed consequence kinds, explicit no-op, and ordered composition; one executor handler per concrete effect class | basic training at Level 0, injury -2 Str, Cr10000 debt, commission extra roll, Injury 6, Mishap 3 |
+| Outcome (abstract) + EnsureSkillLevel, AdvanceSkill, ModifyAttribute, GainFixedMoney, GainRolledMoney, GrantTableRoll, NoEffect, OutcomeSequence / OutcomeStep, OutcomeChoice / OutcomeOption | typed consequence kinds, explicit no-op, ordered composition, and suspending choices; one executor handler per concrete effect class | basic training at Level 0, repeated training, injury -2 Str, fixed or rolled money, commission extra roll, Injury 6, Mishap 3 |
 | RuleConstant | the number + the quote that fixes it | age of majority 18, prior-career DM-2 |
 | Procedure / ProcedureStep / StepRoute | ordered steps naming code primitives; gotos as route entities (label -> next step ref) | the chargen checklist; survival-fail and natural-12 routes |
 | JudgmentPoint | "the Referee may..." spots, prompt text | the 7-term cap, failed-survival optional rule |
@@ -82,9 +82,10 @@ value for audit (the Cited mixin):
 
 ```yaml
 - rank: 0
-  bonus:                # a GrantSkill entity
+  bonus:                # an AdvanceSkill entity
     skill: cepheus:skill/athletics
-    skill_level: 1
+    initial_skill_level: 1
+    existing_skill_delta: 1
     source_quote: "[Athletics-1]"
 ```
 
@@ -119,13 +120,16 @@ a typed child `outcome`; the verifier rejects empty sequences, wrong part
 types, duplicate indices, gaps, and indices that do not start at zero.
 Relation insertion order is not semantics.
 
-Sequence execution will be atomic: handlers produce their validated KG
-operations, the complete batch validates, then the batch commits. This
-phase defines and verifies the data contract; the executor remains step 7.
+Sequence execution is atomic. Handlers build a complete plan without
+mutating the graph. The executor validates and commits its KG operations as
+one batch, while dice rolls remain private until the same execution commits.
+A failure restores KG state, dice streams, the dice journal, and publishes no
+mutation or dice events.
 
-Choices are not sequences. Mishap and Injury rows that offer alternatives
-still require a separate owner decision about interruption and choice
-authority. This decision does not invent that policy.
+Choices are not sequences. `OutcomeChoice` carries an explicit `player`,
+`referee`, or `procedure` authority and ordered `OutcomeOption` parts. An
+unresolved choice suspends the complete root before mutation. Execution then
+restarts from the root with an explicit selected option.
 
 ## Outcomes are KG-ops (the keystone)
 
@@ -139,9 +143,11 @@ table or an Opus improvised it mid-session.
 
 Refined 2026-08-09 (PR2 ruling): outcome DATA is typed, not stringly.
 Outcome is an abstract class; each consequence kind is a concrete
-subclass with typed slots (GrantSkill, ModifyAttribute, GainMoney,
-GrantTableRoll), instances are ordinary KG entities validated at
-creation, and the executor pairs one registered handler per subclass.
+subclass with typed slots. Skill consequences distinguish minimum-level
+guarantees from advancement, and money consequences distinguish fixed from
+rolled amounts while sharing generic per-currency balance state. Instances
+are ordinary KG entities validated at creation, and the executor pairs one
+registered handler per exact concrete subclass.
 The handler is what emits the actual KG-ops; the keystone holds, the
 op-template-in-a-string-slot alternative was rejected. Games add
 outcome kinds by declaring a subclass in their own pack and
@@ -164,15 +170,20 @@ SRD source commit bumps:
 A hallucinated number matches nothing and fails loudly. The verifier is
 the only load-bearing code and serves every chapter of every book.
 
-## Execution (DESIGN)
+## Execution
 
-Engine executor: roll(TaskCheck), roll_on(RollableTable),
-apply(Outcome). Outcomes dispatch through a handler registry: engine
-ships generic handlers (grant skill, increment slot, gain credits, all
-as validated KG writes), games register exotic ones. Dice are
-engine-side, seeded, journaled, cited by roll id; the referee requests
-rolls and receives facts. A referee that could assert a die result
-would be wrong by construction.
+`OutcomeExecutor::apply` is built. It dispatches exact concrete outcome
+types through a handler registry, traverses sequences and choices, and
+commits validated KG operations and dice as one execution. Engine handlers
+cover attribute changes, skill minimums and advances, fixed and rolled
+money, no-op, and typed pending table-roll requests. Games register their
+own concrete handlers and may return typed procedure signals. Unknown
+concrete types fail loudly.
+
+The TaskCheck runner, RollableTable selection runner, and general Procedure
+runner remain design work. Dice are engine-side, seeded, journaled, and
+cited by roll id. Gameplay code requests rolls and receives facts; it cannot
+assert a die result.
 
 ## The referee (DESIGN)
 
@@ -255,15 +266,16 @@ Load-bearing properties:
 | 2026-08-09 | First divergence-from-source recorded: the SRD's Available Skills List prints "Slug Pistol" twice; the Gun Combat cascade and the description sections prove the second entry is "Slug Rifle". We transcribe from the descriptions with a divergence note; reported upstream as orffen/cepheus-srd#36 |
 | 2026-08-09 | Rule instances load as KG-OPS FILES applied at game start (ingestion emits ops; one write grammar for book, referee, game). World persistence direction: LAYERED MANIFEST, never a monolith: named+versioned seed layers (engine, cepheus@commit, voyager@version, worldgen@seed) plus a session delta (ops or snapshot+journal). Snapshot is a cache, not a format. KG save/load is future ENGINE work |
 | 2026-08-09 | Post-review rulings, owner: (1) typed entity refs land NOW on the validated write path (registry carries the target class per class-ranged slot; validator rejects non-ids, dangling ids, and wrong-class ids), not deferred to the step-4 verifier. (2) Money is generic: GainCredits renamed GainMoney; the currency is an entity reference into the game's monetary vocabulary exactly as a skill is, credits being one currency of one game |
-| 2026-08-09 | Step-3 rulings, owner: Skill is near-empty (is_cascade only; NO characteristic slot, the book assigns characteristics per task not per skill; no alias slot, rule of two unmet). SkillRating lives in the ENGINE rulebook pack because the generic GrantSkill handler writes it; a character holds ratings via HAS_PART (no new relation until a second consumer needs better semantics). Cascades are SPECIALIZES relations and the book nests them two deep (Winged Aircraft -> Aircraft -> Vehicle) |
+| 2026-08-09 | Step-3 rulings, owner: Skill is near-empty (is_cascade only; NO characteristic slot, the book assigns characteristics per task not per skill; no alias slot, rule of two unmet). SkillRating lives in the ENGINE rulebook pack because generic skill outcome handlers write it; a character holds ratings via HAS_PART (no new relation until a second consumer needs better semantics). Cascades are SPECIALIZES relations and the book nests them two deep (Winged Aircraft -> Aircraft -> Vehicle) |
 | 2026-08-09 | Step-4 rulings, owner: verifier is a C++ CLI tool + library reusing validate_kg_op (first engine CLI); seed files are ENVELOPED (source pin + layer + invariants + ops) and the ops grammar gains "as" alias binders with @ref property values, loader-resolved; verbatim strength is quotes byte-exact + value-digit containment + band derivation for table rows; invariants stay KISS (count_of_type, unique_name_per_type, band_coverage) with values as envelope data; CI verifies all seed files every push and reports (not gates) drift on SOURCE_COMMIT bumps. Verification loads the file into a scratch world, so the verifier's core IS the step-6 loader |
 | 2026-08-09 | The project is renamed examples/logovger (logo + V'Ger, Voyager's corrupted name). SRD re-vendored from our fix fork (Kieleth/cepheus-srd fix/book1-skills-typos, upstream PR orffen/cepheus-srd#37): Slug Rifle row, Sciences sentence, and 13 cascade anchors corrected at the source, so the Slug Rifle divergence special-case is retired; re-pin to upstream when the PR merges |
 | 2026-08-09 | PR2 rulings, all owner: (1) DiceExpression is a CLASS, no strings-and-parse in rule data; the engine dice grammar grew the xK multiplier so the book's 1D6x10000 is representable and rollable, total = (sum + modifier) * multiplier. (2) LookupTable/LookupEntry added: state-keyed tables (char DM, nobility, rank ladders, retirement pay) are ontology + KG entities exactly like rollable ones; all tables are ingested into the KG. (3) attribute refs (the "Int" in "Int 8+") are verifier-resolved slot references: a string that must resolve against the target class's declared slots, rejected otherwise; characteristics stay slots, not entities. (4) Outcomes are TYPED SUBCLASSES (option B), op-template strings rejected. (5) Table rows are BANDS: roll_min/roll_max and key_min/key_max, single-value row = band of one; buys the coverage invariant (a 2D6 table must cover 2..12, no gaps, no overlaps). StepRoute entities carry the checklist's gotos by the same no-strings principle |
 | 2026-08-09 | Table-result option 3: a lookup row is the typed result. LookupEntry is abstract; games declare concrete multi-column row types; LookupTable declares and verifies entry_type. Rollable rows require one typed root Outcome; NoEffect is explicit; OutcomeSequence composes ordered OutcomeSteps and will apply atomically. Choice authority remains open. Shelob is the server deployment library and has no gameplay or rule-processing role. |
+| 2026-08-10 | Outcome executor contract, owner: handlers produce plans and never mutate the KG directly; one central executor validates and commits. Exact concrete types dispatch or fail loudly. Choices are typed OutcomeChoice data with player, referee, or procedure authority and suspend before mutation. Skill acquisition separates EnsureSkillLevel from AdvanceSkill so initial and existing-skill behavior remain data. Money uses generic per-currency balance state and distinct fixed versus rolled outcomes. Sequence atomicity includes KG state, mutation events, dice streams, the dice journal, and dice events. GrantTableRoll produces a typed pending request; game-specific outcomes may produce typed procedure signals. |
 
 ## Build state (updated at each compaction point)
 
-_Last updated 2026-08-09, PR2 built._
+_Last updated 2026-08-10, outcome execution built._
 
 | Step | What | State |
 |---|---|---|
@@ -271,11 +283,12 @@ _Last updated 2026-08-09, PR2 built._
 | 2 | rulebook.yaml engine meta-pack: 16 classes incl. Cited mixin, LookupTable/LookupEntry, typed Outcome subclasses, StepRoute; SPECIALIZES in core; dice xK multiplier; typed entity refs in the validator | BUILT, 34/0 (test_rulebook_pack verbatim-checks 28 ch1 instances against the vendored SRD; entity refs class-checked on the ops path) |
 | 3 | cepheus skills pack (Skill + is_cascade, cascades as nested SPECIALIZES; engine SkillRating; 68 instances come later via ops) | BUILT (test_skills_pack; citations verbatim vs the re-vendored fixed SRD) |
 | 4 | The verifier (schema / verbatim / value / semantic / invariant) + seed-file grammar ("as" binders, envelope) + the loader that doubles as step 6 | BUILT; semantic table and outcome checks expanded on codex/logovger-option3 |
-| 4b | Typed table-result completeness: concrete lookup row shapes, required roll outcomes, NoEffect, ordered composite outcomes, semantic verifier | BUILT on codex/logovger-option3; executor intentionally not part of this phase |
-| 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | pending, needs 3+4 |
-| 6 | Ops loader: seed files -> KG at game start | pending |
-| 7 | Executor + procedure runner (outcome-label routing) + ~12 thin primitives | pending |
-| 8 | Chargen session: referee loop (stub for CI, Sonnet behind env key), chat window first consumer, a-b-c choices then the voyager L slot, rule-12 visual (a life as a timeline) | the slice-1 goal |
+| 4b | Typed table-result completeness: concrete lookup row shapes, required roll outcomes, NoEffect, ordered sequences and choices, semantic verifier | BUILT on codex/logovger-outcome-executor |
+| 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | PARTIAL: skills, careers, and selected book-1 tables are production seeds |
+| 6 | Ops loader: seed files -> KG at game start | BUILT; now delegates to the reusable atomic KG-op batch |
+| 7a | Outcome executor | BUILT with exact dispatch, atomic KG and dice execution, typed choices, generic skill and currency state, typed pending table rolls, and game procedure signals |
+| 7b | Procedure runner (outcome-label routing) + ~12 thin primitives | pending owner approval of the concrete primitive list |
+| 8 | Chargen session and rule-12 life timeline | BASIC SLICE BUILT; skill-table consequences now use the engine outcome executor; broader procedure and referee integration remain |
 
 Working agreements in force: decisions surfaced BEFORE building; gated
 merges only (conclusion checked in the same command); background tasks

@@ -2,9 +2,8 @@
 //
 // Design record: docs/RPG_MODULE.md. This is the first executable
 // slice, and it is deliberately GAME-side code (examples/logovger),
-// not engine code. The engine's rule executor does not exist yet;
-// deriving its primitive vocabulary from a path that actually runs
-// beats inventing one in advance.
+// not engine code. Game procedure selects the table row; the engine's
+// typed outcome executor applies the row's structured consequence.
 //
 // What it proves, or fails to:
 //   - The rules come out of the KG. Careers, targets, characteristics,
@@ -94,7 +93,7 @@ public:
 
 private:
     void offer_careers();
-    void run_term();               // survive, train, age, then ask
+    bool run_term(std::string& error);  // survive, train, age, then ask
     void finish(const std::string& why);
 
     kg::KGModule&                    kg_;
