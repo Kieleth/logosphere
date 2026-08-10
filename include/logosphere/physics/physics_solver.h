@@ -118,7 +118,12 @@ constexpr int    CONTACT_PERSISTENCE_FRAMES = 0;  // DISABLED - Keep contacts al
 // ============================================================================
 constexpr bool   ENABLE_GLUON_POSITION_PROJECTION = false;  // Hard path stays off; unified Jacobian alone for now
 constexpr bool   ENABLE_GLUON_JACOBIAN_POSITION_BIAS = true;  // V4.10 unified solver: gluons enforce distance via position bias
-constexpr float  GLUON_POSITION_BETA = 1.0f;   // Tuned 2026-04-21: closes 0.3m gap in ~60 frames, test_oscillation_diagnostic still green
+// With the /dt restored (one correction law), BETA is a true Baumgarte
+// gain: the FRACTION of position error corrected per substep. 1.0 means
+// "erase the whole error this step", which rings (measured: 113 swings on
+// a bond that should sway once). Contacts have used 0.4 all along; bonds
+// now use the same discipline, softer because chains stack corrections.
+constexpr float  GLUON_POSITION_BETA = 0.2f;
 
 // ============================================================================
 // THE TURTLE - World Boundary Collision Plane

@@ -1537,9 +1537,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Gentle correction: bias = BETA * separation (no /dt to prevent explosion)
             // Negative bias because we want to CLOSE the gap (reduce separation)
             if constexpr (PhysicsV4::ENABLE_GLUON_JACOBIAN_POSITION_BIAS) {
-                // B1: bounded closing speed (see GLUON_MAX_BIAS_VELOCITY).
+                // ONE CORRECTION LAW for every constraint: a position error
+                // is corrected at BETA * error / dt, bounded by a velocity
+                // cap. Gluons alone were missing the /dt ("no /dt to prevent
+                // explosion"), which made them 30x weaker than contacts at
+                // the same error: a 0.3 m gap earned 0.12 m/s of closing
+                // speed against a 1 m/s drag, so bonds could never hold
+                // under a sustained push (measured 124-650 mm gaps, blades
+                // stretched past their tear limit for many frames). The
+                // explosion that removal avoided is what the cap now
+                // prevents by construction, so the law can be uniform.
                 c.bias = std::clamp(
-                    -PhysicsV4::GLUON_POSITION_BETA * separation[axis],
+                    -PhysicsV4::GLUON_POSITION_BETA * separation[axis] / dt,
                     -PhysicsV4::GLUON_MAX_BIAS_VELOCITY,
                      PhysicsV4::GLUON_MAX_BIAS_VELOCITY);
             } else {
