@@ -266,11 +266,12 @@ Rung rung1(Engine& engine) {
         v[child].is_quat_driven = true;   // quat is orientation truth; Euler published from it
     }
 
-    if (g_interactive)
-        // The single-blade viewer's proven light: far above, out of frame.
-        // High and behind the camera line so the emitter quad stays out of
-        // the isometric frame (it photobombed the first zoom-out).
-        ps.queue_light(0.0f, -5.0f, 16.0f, 650000.0f, 50.0f, 1.0f, 0.96f, 0.9f);
+    // The light is a PARTICLE. Queueing it only in interactive mode gave the
+    // two modes different particle counts, hence different constraint
+    // ordering, hence DIFFERENT PHYSICS: headless proved the ladder still
+    // while the owner watched a totem pulse at 10.9 m/s. Same scene in both
+    // modes, or the headless verdict is about a world nobody is watching.
+    ps.queue_light(0.0f, -5.0f, 16.0f, 650000.0f, 50.0f, 1.0f, 0.96f, 0.9f);
 
     // Settle: child must simply stay put on the post.
     if (g_label) g_label->set_text(
@@ -1025,6 +1026,13 @@ Rung rung4(Engine& engine) {
                                                        p.omega_z*p.omega_z));
                 }
                 if (worst > 0.02f) woke[k]++;
+                if (k == 1 && (f % 200) == 0 && f <= 600) {
+                    printf("      [diverge f%3d] parts=%zu  LEANING z(%.3f,%.3f,%.3f) "
+                           "rotx(%.2f,%.2f,%.2f) v=%.3f\n",
+                           f, v.size(), v[seg[1][0]].z, v[seg[1][1]].z, v[seg[1][2]].z,
+                           v[seg[1][0]].rotation_x, v[seg[1][1]].rotation_x,
+                           v[seg[1][2]].rotation_x, worst);
+                }
                 // The body can be still while its RENDERED orientation
                 // flickers: quaternion-to-Euler extraction is singular at
                 // +/-90 deg of pitch, and a bent totem sits exactly there.
@@ -1051,7 +1059,7 @@ Rung rung4(Engine& engine) {
             printf("      %-10s %12d %14.1f %12.3f  pose jitter %6.2f deg%s\n",
                    specs[k].tag, woke[k], (amp_max[k] - amp_min[k]) * 1000.0f,
                    worst_late[k], worst_jit,
-                   worst_jit > 1.0f ? "   *** RENDERED POSE FLICKERS ***" : "");
+                   worst_jit > 1.0f ? "   *** OSCILLATING ***" : "");
         }
     }
 
