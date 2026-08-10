@@ -267,7 +267,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("HasTissue", "tendon_health", "float", false);
     reg.addProperty("HasTissue", "bone_health", "float", false);
     reg.setSource("https://malleus.dev/schema");
-    reg.addProperty("Identifiable", "id", "string", true);
+    reg.addIdentifierProperty("Identifiable", "id", "string", true);
     reg.addProperty("Identifiable", "name", "string", false);
     reg.setSource("https://logosphere.dev/logotron/schema");
     reg.addProperty("Motorcycle", "body_length", "float", false);
@@ -327,6 +327,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Wormhole", "y", "float", false);
     reg.addProperty("Wormhole", "pair_id", "string", false);
 
+    reg.validateReferences();
     return reg;
 }
 

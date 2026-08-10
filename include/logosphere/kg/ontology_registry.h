@@ -64,6 +64,7 @@ struct PropertyDef {
     std::string name;
     std::string value_type;  // "string", "float", "integer", "boolean"
     bool required = false;
+    bool identifier = false;
 
     // Optional range annotations from the schema. The validator
     // honours these when present; if has_min / has_max is false
@@ -159,13 +160,7 @@ public:
     // --- Property queries ---
 
     bool hasProperty(const std::string& entity_type, const std::string& prop) const {
-        if (check_property(entity_type, prop)) return true;
-        auto anc_it = ancestors_.find(entity_type);
-        if (anc_it == ancestors_.end()) return false;
-        for (const auto& ancestor : anc_it->second) {
-            if (check_property(ancestor, prop)) return true;
-        }
-        return false;
+        return findProperty(entity_type, prop) != nullptr;
     }
 
     // --- Introspection ---
@@ -188,13 +183,40 @@ public:
     // the seed loader (entity_ref alias resolution).
     const PropertyDef* findProperty(const std::string& entity_type,
                                     const std::string& prop) const {
-        if (const PropertyDef* p = direct_property(entity_type, prop)) return p;
-        auto anc_it = ancestors_.find(entity_type);
-        if (anc_it == ancestors_.end()) return nullptr;
-        for (const auto& ancestor : anc_it->second) {
-            if (const PropertyDef* p = direct_property(ancestor, prop)) return p;
+        for (const PropertyDef* property :
+             effective_properties(entity_type)) {
+            if (property->name == prop) return property;
         }
         return nullptr;
+    }
+
+    // Required properties available on this type, including inherited
+    // mixin and parent properties. Sorted by name for deterministic errors.
+    std::vector<const PropertyDef*> requiredPropertiesOf(
+        const std::string& entity_type) const {
+        std::vector<const PropertyDef*> required;
+        for (const PropertyDef* property : effective_properties(entity_type)) {
+            if (property->required) required.push_back(property);
+        }
+        return required;
+    }
+
+    // The schema identifier available on this type. A valid registry has at
+    // most one. KGCore materializes it from EntityID at creation time.
+    const PropertyDef* identifierPropertyOf(
+        const std::string& entity_type) const {
+        const PropertyDef* identifier = nullptr;
+        for (const PropertyDef* property : effective_properties(entity_type)) {
+            if (!property->identifier) continue;
+            if (identifier && identifier->name != property->name) {
+                throw std::invalid_argument(
+                    "Ontology entity type '" + entity_type +
+                    "' inherits multiple identifier properties: '" +
+                    identifier->name + "' and '" + property->name + "'");
+            }
+            identifier = property;
+        }
+        return identifier;
     }
 
     // Ancestors of a type (transitive parent chain). Empty if the
@@ -206,6 +228,43 @@ public:
     }
 
     bool empty() const { return entity_types_.empty(); }
+
+    // Validate every definition that names another entity type. Building a
+    // registry is incremental, so this runs at the use and extension
+    // boundaries after all layers have been assembled.
+    void validateReferences() const {
+        for (const auto& [name, def] : entity_types_) {
+            if (!def.parent.empty() && !hasEntityType(def.parent)) {
+                throw_reference("entity parent", name, def.source,
+                                def.parent);
+            }
+            (void)identifierPropertyOf(name);
+        }
+        for (const auto& [name, def] : relation_types_) {
+            for (const auto& source_type : def.valid_source_types) {
+                if (!hasEntityType(source_type)) {
+                    throw_reference("relation source", name, def.source,
+                                    source_type);
+                }
+            }
+            for (const auto& target_type : def.valid_target_types) {
+                if (!hasEntityType(target_type)) {
+                    throw_reference("relation target", name, def.source,
+                                    target_type);
+                }
+            }
+        }
+        for (const auto& [owner, properties] : properties_) {
+            for (const auto& property : properties) {
+                if (property.value_type == "entity_ref" &&
+                    !property.ref_target.empty() &&
+                    !hasEntityType(property.ref_target)) {
+                    throw_reference("property", owner + "." + property.name,
+                                    property.source, property.ref_target);
+                }
+            }
+        }
+    }
 
     // --- Extension (additive only) ---
 
@@ -247,18 +306,23 @@ public:
             }
         }
 
+        OntologyRegistry combined = *this;
         for (const auto& [name, def] : other.entity_types_)
-            entity_types_.emplace(name, def);
+            combined.entity_types_.emplace(name, def);
         for (const auto& [name, def] : other.relation_types_)
-            relation_types_.emplace(name, def);
+            combined.relation_types_.emplace(name, def);
         for (const auto& [k, v] : other.properties_) {
-            auto& existing = properties_[k];
+            auto& existing = combined.properties_[k];
             for (const auto& p : v) {
-                if (!direct_property(k, p.name)) existing.push_back(p);
+                if (!combined.direct_property(k, p.name)) {
+                    existing.push_back(p);
+                }
             }
         }
         for (const auto& [type, ancestors] : other.ancestors_)
-            ancestors_.emplace(type, ancestors);
+            combined.ancestors_.emplace(type, ancestors);
+        combined.validateReferences();
+        *this = std::move(combined);
     }
 
     // --- Population (used by generated code) ---
@@ -308,7 +372,7 @@ public:
     void addProperty(const std::string& entity_type, const std::string& prop_name,
                      const std::string& value_type, bool required) {
         add_property(entity_type,
-                     {prop_name, value_type, required, false, false,
+                     {prop_name, value_type, required, false, false, false,
                       0.0, 0.0, "", active_source_});
     }
 
@@ -320,8 +384,18 @@ public:
                      bool has_min, double min_value,
                      bool has_max, double max_value) {
         add_property(entity_type,
-                     {prop_name, value_type, required, has_min, has_max,
+                     {prop_name, value_type, required, false,
+                      has_min, has_max,
                       min_value, max_value, "", active_source_});
+    }
+
+    void addIdentifierProperty(const std::string& entity_type,
+                               const std::string& prop_name,
+                               const std::string& value_type,
+                               bool required) {
+        add_property(entity_type,
+                     {prop_name, value_type, required, true, false, false,
+                      0.0, 0.0, "", active_source_});
     }
 
     // Entity-reference property (a class-ranged slot in the schema):
@@ -330,7 +404,7 @@ public:
     void addRefProperty(const std::string& entity_type, const std::string& prop_name,
                         bool required, const std::string& target_class) {
         PropertyDef def{prop_name, "entity_ref", required,
-                        false, false, 0.0, 0.0, target_class,
+                        false, false, false, 0.0, 0.0, target_class,
                         active_source_};
         add_property(entity_type, std::move(def));
     }
@@ -342,6 +416,14 @@ private:
         const std::string& incoming_source) {
         throw OntologyCollision(kind, definition, existing_source,
                                 incoming_source);
+    }
+
+    [[noreturn]] static void throw_reference(
+        const std::string& kind, const std::string& definition,
+        const std::string& source, const std::string& target) {
+        throw std::invalid_argument(
+            "Ontology " + kind + " '" + definition + "' from " + source +
+            " references unknown entity type '" + target + "'");
     }
 
     static bool same_entity(const EntityTypeDef& a,
@@ -359,7 +441,8 @@ private:
 
     static bool same_property(const PropertyDef& a, const PropertyDef& b) {
         return a.name == b.name && a.value_type == b.value_type &&
-               a.required == b.required && a.has_min == b.has_min &&
+               a.required == b.required &&
+               a.identifier == b.identifier && a.has_min == b.has_min &&
                a.has_max == b.has_max && a.min_value == b.min_value &&
                a.max_value == b.max_value && a.ref_target == b.ref_target;
     }
@@ -382,8 +465,34 @@ private:
         properties_[entity_type].push_back(std::move(incoming));
     }
 
-    bool check_property(const std::string& entity_type, const std::string& prop) const {
-        return direct_property(entity_type, prop) != nullptr;
+    std::vector<const PropertyDef*> effective_properties(
+        const std::string& entity_type) const {
+        std::unordered_map<std::string, const PropertyDef*> by_name;
+        auto add_properties = [&](const std::string& owner) {
+            auto it = properties_.find(owner);
+            if (it == properties_.end()) return;
+            for (const auto& property : it->second) {
+                by_name.emplace(property.name, &property);
+            }
+        };
+
+        // Direct properties override inherited definitions with the same name.
+        add_properties(entity_type);
+        std::vector<std::string> ancestors;
+        if (auto it = ancestors_.find(entity_type); it != ancestors_.end()) {
+            ancestors.assign(it->second.begin(), it->second.end());
+            std::sort(ancestors.begin(), ancestors.end());
+        }
+        for (const auto& ancestor : ancestors) add_properties(ancestor);
+
+        std::vector<const PropertyDef*> out;
+        out.reserve(by_name.size());
+        for (const auto& [name, property] : by_name) out.push_back(property);
+        std::sort(out.begin(), out.end(), [](const PropertyDef* a,
+                                             const PropertyDef* b) {
+            return a->name < b->name;
+        });
+        return out;
     }
 
     const PropertyDef* direct_property(const std::string& entity_type,

@@ -314,6 +314,31 @@ void test_loader_failure_rolls_back_the_whole_seed() {
           "a rejected seed exposes no partial load state");
 }
 
+void test_loader_rejects_missing_required_properties_atomically() {
+    kg::OntologyRegistry reg("schema://required-test");
+    reg.addEntityType("RequiredRecord", "", false);
+    reg.addProperty("RequiredRecord", "code", "string", true);
+
+    kg::SeedEnvelope seed;
+    seed.ops.push_back(kg::KGOp{kg::KGOpCreateEntity{
+        "RequiredRecord", {{"code", "complete"}}, "first"}});
+    seed.ops.push_back(kg::KGOp{kg::KGOpCreateEntity{
+        "RequiredRecord", {}, "missing"}});
+
+    kg::KGModule world(reg);
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedLoadReport report;
+    const bool ok = kg::load_seed(seed, world, report);
+
+    CHECK(!ok, "a seed entity missing a required property is rejected");
+    CHECK(report.error.find("RequiredRecord.code") != std::string::npos,
+          "the load error names the missing required property");
+    CHECK(world.findByType("RequiredRecord").empty(),
+          "the earlier valid entity is rolled back with the failed seed");
+    CHECK(report.ops_applied == 0 && report.bindings.empty(),
+          "the rejected seed exposes no partial load state");
+}
+
 void test_loader_publishes_events_after_commit() {
     kg::SeedEnvelope seed = parse_fixture();
     const kg::OntologyRegistry reg = engine_registry();
@@ -877,6 +902,7 @@ int main() {
     test_envelope_parser_is_loud();
     test_loader_binds_and_resolves();
     test_loader_failure_rolls_back_the_whole_seed();
+    test_loader_rejects_missing_required_properties_atomically();
     test_loader_publishes_events_after_commit();
     test_duplicate_alias_binder_mutates_nothing();
     test_report_reuse_is_fresh();

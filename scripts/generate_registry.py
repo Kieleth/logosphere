@@ -294,6 +294,13 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
             source = _definition_source(slot, f"slot {cn}.{sn}")
             value_type = _linkml_range_to_value_type(sv, slot.range)
             required = "true" if slot.required else "false"
+            if slot.identifier:
+                emit(
+                    source,
+                    f'    reg.addIdentifierProperty("{cn}", "{sn}", '
+                    f'"{value_type}", {required});',
+                )
+                continue
             # Class-ranged slots are entity references: the registry
             # keeps the target class so the OntologyValidator can
             # check the referenced entity is-a that class.
@@ -332,6 +339,7 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
                 )
 
     lines.append("")
+    lines.append("    reg.validateReferences();")
     lines.append("    return reg;")
     lines.append("}")
     lines.append("")

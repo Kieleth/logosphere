@@ -3,7 +3,11 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 
+#include <charconv>
+#include <limits>
 #include <stdexcept>
+#include <system_error>
+#include <unordered_set>
 #include <variant>
 #include <string>
 
@@ -27,18 +31,12 @@ ValidationResult resolve_type(const EntityRef& ref,
     if (!kg.exists(ref.id)) {
         return fail("entity " + std::to_string(ref.id) + " does not exist");
     }
-    // KGModule doesn't expose a direct getEntityType; the registered
-    // type lives in entity.type, accessible via type-iterating queries.
-    // Cheapest route: walk every type in the registry, ask
-    // findByType, see which one contains our id. For Logotron-scale
-    // ontologies (~50 types) this is fine.
-    for (const auto& [type_name, def] : kg.getRegistry().entityTypes()) {
-        const auto ids = kg.findByType(type_name);
-        for (auto id : ids) {
-            if (id == ref.id) { out_type = type_name; return ValidationResult{}; }
-        }
+    out_type = kg.getType(ref.id);
+    if (out_type.empty()) {
+        return fail("entity " + std::to_string(ref.id) +
+                    " has no known type");
     }
-    return fail("entity " + std::to_string(ref.id) + " has no known type");
+    return ValidationResult{};
 }
 
 ValidationResult validate_destroy(const KGOpDestroyEntity& op,
@@ -57,16 +55,16 @@ ValidationResult check_entity_ref(const std::string& where,
                                   const std::string& value,
                                   const KGModule& kg,
                                   const OntologyRegistry& ont) {
-    EntityID id = INVALID_ENTITY;
-    try {
-        size_t end = 0;
-        const long long n = std::stoll(value, &end);
-        if (end != value.size() || n <= 0) throw std::invalid_argument("bad id");
-        id = static_cast<EntityID>(n);
-    } catch (...) {
+    unsigned long long parsed = 0;
+    const auto [end, error] = std::from_chars(
+        value.data(), value.data() + value.size(), parsed);
+    if (error != std::errc{} || end != value.data() + value.size() ||
+        parsed == 0 ||
+        parsed > std::numeric_limits<EntityID>::max()) {
         return fail(where + ": expected an entity id for '" + def.name
                     + "', got '" + value + "'");
     }
+    const EntityID id = static_cast<EntityID>(parsed);
     std::string actual_type;
     EntityRef ref;
     ref.id = id;
@@ -144,6 +142,22 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
         return fail("create_entity: type '" + op.type
                     + "' is abstract; cannot instantiate");
     }
+    std::unordered_set<std::string> provided;
+    for (const auto& [name, value] : op.properties) {
+        (void)value;
+        if (!provided.insert(name).second) {
+            return fail("create_entity '" + op.type +
+                        "': duplicate property '" + name + "'");
+        }
+    }
+    for (const PropertyDef* required :
+         ont.requiredPropertiesOf(op.type)) {
+        if (required->identifier) continue;
+        if (!provided.count(required->name)) {
+            return fail("create_entity: missing required property '" +
+                        op.type + "." + required->name + "'");
+        }
+    }
     // Each named property must exist on the type (or an ancestor)
     // AND pass the same value-type + range checks set_property gets
     // — otherwise create_entity is a validation bypass (an LLM could
@@ -155,6 +169,10 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
         }
         const PropertyDef* def = ont.findProperty(op.type, k);
         if (!def) continue;
+        if (def->identifier) {
+            return fail("create_entity '" + op.type + "." + k +
+                        "': identifier is engine-managed");
+        }
         if (def->value_type == "entity_ref") {
             if (auto r = check_entity_ref("create_entity '" + op.type + "'",
                                           *def, v, kg, ont); !r.ok) {
@@ -197,6 +215,10 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
     // Value-type + range checks (C.3). Look up the PropertyDef
     // for the schema-declared value_type + min/max.
     const PropertyDef* def = ont.findProperty(t, op.property);
+    if (def && def->identifier) {
+        return fail("set_property '" + t + "." + op.property +
+                    "': identifier is engine-managed");
+    }
     if (def && def->value_type == "entity_ref") {
         return check_entity_ref("set_property '" + t + "'", *def, op.value,
                                 kg, ont);

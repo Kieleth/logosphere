@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <functional>
 #include <cmath>
+#include <stdexcept>
 #include <string>
 
 namespace kg {
@@ -52,6 +53,10 @@ EntityID KGCore::createEntity(const std::string& type) {
     Entity& entity = entities[id];
     entity.id = id;
     entity.type = type;
+    if (const PropertyDef* identifier =
+            registry_.identifierPropertyOf(type)) {
+        entity.properties.emplace(identifier->name, std::to_string(id));
+    }
 
     // Update indices
     addToTypeIndex(id, type);
@@ -262,6 +267,13 @@ void KGCore::setProperty(EntityID id, const std::string& key, const PropertyValu
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     Entity* entity = getEntity(id);
     if (entity) {
+        if (const PropertyDef* property =
+                registry_.findProperty(entity->type, key);
+            property && property->identifier) {
+            throw std::invalid_argument(
+                "Cannot replace engine-managed identifier '" +
+                entity->type + "." + key + "'");
+        }
         entity->properties[key] = value;
     }
 }
@@ -287,7 +299,15 @@ bool KGCore::hasProperty(EntityID id, const std::string& key) const {
 void KGCore::removeProperty(EntityID id, const std::string& key) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     Entity* entity = getEntity(id);
-    if (entity) entity->properties.erase(key);
+    if (!entity) return;
+    if (const PropertyDef* property =
+            registry_.findProperty(entity->type, key);
+        property && property->identifier) {
+        throw std::invalid_argument(
+            "Cannot remove engine-managed identifier '" + entity->type +
+            "." + key + "'");
+    }
+    entity->properties.erase(key);
 }
 
 // === Stable Particle ID System ===

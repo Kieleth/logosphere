@@ -36,15 +36,16 @@ static int tests_failed = 0;
 static kg::OntologyRegistry build_farming_ontology() {
     kg::OntologyRegistry reg;
 
-    // Plant is already in the engine ontology (abstract). Extend it with
-    // domain-specific concrete types. Note that extend() is additive, so
-    // we only need to add the *new* things.
+    // The game introduces an abstract Plant branch under the engine's
+    // LivingEntity type, then adds its domain-specific concrete types.
+    reg.addEntityType("Plant",    "LivingEntity", true);
     reg.addEntityType("Crop",     "Plant", /*is_abstract=*/false);
     reg.addEntityType("Carrot",   "Crop",  false);
     reg.addEntityType("Tomato",   "Crop",  false);
     reg.addEntityType("Soil",     "Entity", false);
 
     // Ancestors must be declared explicitly for isSubtypeOf() to work.
+    reg.addAncestors("Plant",  {"LivingEntity", "WorldEntity", "Entity"});
     reg.addAncestors("Crop",   {"Plant", "LivingEntity", "WorldEntity", "Entity"});
     reg.addAncestors("Carrot", {"Crop", "Plant", "LivingEntity", "WorldEntity", "Entity"});
     reg.addAncestors("Tomato", {"Crop", "Plant", "LivingEntity", "WorldEntity", "Entity"});
@@ -251,6 +252,91 @@ void test_conflicting_property_fails_atomically() {
            "a property conflict leaves the whole extension unapplied");
 }
 
+void test_unknown_property_ref_target_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Entity", "", true);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addRefProperty("NewType", "owner", true, "MissingType");
+
+    bool threw = false;
+    std::string reason;
+    try {
+        base.extend(extension);
+    } catch (const std::exception& error) {
+        threw = true;
+        reason = error.what();
+    }
+
+    ASSERT(threw, "a property targeting an unknown entity type throws");
+    ASSERT(reason.find("NewType.owner") != std::string::npos &&
+               reason.find("MissingType") != std::string::npos &&
+               reason.find("schema://incoming") != std::string::npos,
+           "the reference error names property, target, and source");
+    ASSERT(!base.hasEntityType("NewType"),
+           "an invalid reference leaves the whole extension unapplied");
+}
+
+void test_unknown_entity_parent_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Entity", "", true);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("Orphan", "MissingParent", false);
+
+    bool threw = false;
+    std::string reason;
+    try {
+        base.extend(extension);
+    } catch (const std::exception& error) {
+        threw = true;
+        reason = error.what();
+    }
+
+    ASSERT(threw, "an entity with an unknown parent throws");
+    ASSERT(reason.find("Orphan") != std::string::npos &&
+               reason.find("MissingParent") != std::string::npos,
+           "the parent error names the child and missing parent");
+    ASSERT(!base.hasEntityType("Orphan"),
+           "an invalid parent leaves the whole extension unapplied");
+}
+
+void test_unknown_relation_endpoint_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Entity", "", true);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addRelationType("OWNS", {"NewType"}, {"MissingType"});
+
+    bool threw = false;
+    try {
+        base.extend(extension);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+
+    ASSERT(threw, "a relation targeting an unknown entity type throws");
+    ASSERT(!base.hasEntityType("NewType") &&
+               !base.hasRelationType("OWNS"),
+           "an invalid relation leaves the whole extension unapplied");
+}
+
+void test_invalid_base_registry_is_rejected_when_used() {
+    kg::OntologyRegistry invalid("schema://invalid");
+    invalid.addEntityType("Thing", "", false);
+    invalid.addRefProperty("Thing", "owner", false, "MissingType");
+
+    bool threw = false;
+    try {
+        kg::KGModule world(invalid);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    ASSERT(threw, "KG construction rejects an invalid registry");
+}
+
 int main() {
     std::cout << "=== Ontology Extension Tests ===" << std::endl;
 
@@ -263,6 +349,10 @@ int main() {
     test_conflicting_entity_type_fails_atomically();
     test_conflicting_relation_type_fails_atomically();
     test_conflicting_property_fails_atomically();
+    test_unknown_property_ref_target_fails_atomically();
+    test_unknown_entity_parent_fails_atomically();
+    test_unknown_relation_endpoint_fails_atomically();
+    test_invalid_base_registry_is_rejected_when_used();
 
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;

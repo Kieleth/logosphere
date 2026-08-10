@@ -1,7 +1,7 @@
 # Logovger parallel-session handover
 
-_State captured 2026-08-09 after completing strict ontology registry
-composition in the dedicated hardening worktree._
+_State captured 2026-08-09 after completing required-property and
+reference-integrity hardening in the dedicated worktree._
 
 ## Read this state first
 
@@ -16,7 +16,7 @@ Current local `main`:
 Dedicated hardening work:
 
 - Branch: `codex/logovger-hardening`
-- Commit before ontology collision hardening: `c564cd8`
+- Previous committed hardening step: `a58d5f8`
 - Worktree: `/Users/luis/Projects/logosphere-logovger-hardening`
 - `main` was merged into this branch at `7ec8212`.
 - Do not edit this worktree from another session.
@@ -79,12 +79,25 @@ The hardening branch adds:
 - The vendored C++ generator now loads its vendored Jinja templates. The
   generator dependencies are pinned in `environment.yml`, and CI checks
   generator contracts plus committed-output drift.
+- Validated `create_entity` operations now reject missing required slots,
+  including inherited and entity-reference slots. Duplicate properties
+  are rejected instead of applying in vector order.
+- LinkML identifier metadata survives generation. KG creation writes the
+  numeric `EntityID` into the schema identifier, and validated or trusted
+  writes cannot replace or remove it.
+- Entity references reject values outside `EntityID` range instead of
+  wrapping onto a live `uint32_t` ID.
+- Registries validate entity parents, relation endpoints, and property
+  reference targets at generation, KG construction, and atomic extension
+  boundaries. The guard exposed and corrected a stale test ontology that
+  referenced a nonexistent core `Plant` type.
 
-Verification after ontology collision hardening:
+Verification after required-property and reference-integrity hardening:
 
 - Python generator contracts: 3 of 3 passed.
-- Focused registry tests: 31 assertions passed.
-- Focused Logovger Skills tests: 29 assertions passed.
+- Focused registry tests: 40 assertions passed.
+- Focused ontology validator tests: 27 tests passed.
+- Focused seed-verifier tests: 166 assertions passed.
 - Full headless build: passed.
 - Full run with `CI=1`: 65 of 65 CTest targets passed.
 
@@ -99,19 +112,23 @@ The focused targets were:
 
 ## Ownership boundary between sessions
 
-The hardening session has completed ontology registry composition. Do
-not modify these files until its commit is integrated or ownership is
+The hardening session owns ontology registry composition, required-slot
+validation, identifiers, and entity-reference validation. Do not modify
+these files until its current commit is integrated or ownership is
 explicitly transferred:
 
 - `include/logosphere/kg/ontology_registry.h`
-- `src/kg/kg_module.cpp` and its extension API
+- `src/kg/kg_module.cpp`, `src/kg/kg_core.cpp`, and
+  `src/kg/ontology_validator.cpp`
 - `scripts/generate_registry.py`
 - generated `*_ontology_registry.cpp` files
-- registry collision, provenance, and generation tests
+- registry collision, provenance, generation, validator, and required-slot
+  seed tests
 
-The owner selected strict atomic exceptions. That decision is now
-implemented and tested. The next owned defect is required-property and
-entity-reference validity at creation and load boundaries.
+The owner selected strict atomic exceptions. That decision and the
+required-property and entity-reference integrity step are implemented and
+tested. The next owned defect is verifier completion across values,
+citations, and semantic completeness.
 
 ## Best orthogonal implementation target
 
@@ -153,21 +170,23 @@ Likely owned files for this parallel slice:
 
 ## Remaining hardening sequence
 
-After registry collisions, the current ordered review remains:
+After registry and required-property integrity, the current ordered review
+remains:
 
-1. Enforce required ontology properties and reference validity.
-2. Complete verifier value, citation, and semantic checks.
-3. Resolve the `Character` versus physical `Actor` boundary with the
+1. Complete verifier value, citation, and semantic checks.
+2. Resolve the `Character` versus physical `Actor` boundary with the
    owner before changing inheritance.
-4. Expand the execution IR beyond the current narrow mutation set.
-5. Define persistence and derived-state boundaries.
-6. Harden packaging, clean out-of-tree use, performance, and docs.
-7. Prove one complete Logovger character-creation slice end to end.
+3. Expand the execution IR beyond the current narrow mutation set.
+4. Define persistence and derived-state boundaries.
+5. Harden packaging, clean out-of-tree use, performance, and docs.
+6. Prove one complete Logovger character-creation slice end to end.
 
 Known risks behind that sequence:
 
-- `required` schema properties are not generally enforced at entity
-  creation.
+- Requiredness is enforced when declared, but the rulebook schema still
+  declares several semantically necessary fields optional. For example,
+  `TableEntry.outcome` is optional and the current character-creation
+  fixture omits it, so those rows are cited but not executable.
 - Genuine quotes can contain several numbers, so ordinary values still
   lack field-level provenance.
 - `Character` currently inherits the engine's physical living ontology,

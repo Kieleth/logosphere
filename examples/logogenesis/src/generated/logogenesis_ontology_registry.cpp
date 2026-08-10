@@ -420,7 +420,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("HumanoidSeed", "cloth_g", "float", false, true, 0.0, true, 1.0);
     reg.addProperty("HumanoidSeed", "cloth_b", "float", false, true, 0.0, true, 1.0);
     reg.setSource("https://malleus.dev/schema");
-    reg.addProperty("Identifiable", "id", "string", true);
+    reg.addIdentifierProperty("Identifiable", "id", "string", true);
     reg.addProperty("Identifiable", "name", "string", false);
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addProperty("LightSeed", "x", "float", false);
@@ -552,6 +552,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("WorldEvent", "payload_keys", "string", false);
     reg.addProperty("WorldEvent", "payload_values", "string", false);
 
+    reg.validateReferences();
     return reg;
 }
 

@@ -221,7 +221,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("HasTissue", "tendon_health", "float", false);
     reg.addProperty("HasTissue", "bone_health", "float", false);
     reg.setSource("https://malleus.dev/schema");
-    reg.addProperty("Identifiable", "id", "string", true);
+    reg.addIdentifierProperty("Identifiable", "id", "string", true);
     reg.addProperty("Identifiable", "name", "string", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("ParticleInteractionProfile", "category_bit", "integer", false);
@@ -263,6 +263,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("WorldEvent", "payload_keys", "string", false);
     reg.addProperty("WorldEvent", "payload_values", "string", false);
 
+    reg.validateReferences();
     return reg;
 }
 

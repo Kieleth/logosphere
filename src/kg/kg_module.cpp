@@ -12,6 +12,7 @@ KGModule::KGModule(const OntologyRegistry& registry)
     : registry_(registry)
     , current_mode(KGMode::DISABLED)
     , core(nullptr) {
+    registry_.validateReferences();
 }
 
 KGModule::~KGModule() {
