@@ -3011,9 +3011,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         std::vector<float> pvx(count, 0.0f), pvy(count, 0.0f), pvz(count, 0.0f);
         for (Constraint& c : constraints) c.accumulated_pseudo_impulse = 0.0f;
 
+        // SLEEP IS NOT IMMOBILITY. Only KINEMATIC is immovable here.
+        //
+        // The velocity solve treats an at_rest body as infinite mass, and that
+        // is right: sleep is an optimisation about MOMENTUM. Position repair is
+        // geometry, and a sleeping body's overlap or stretched bond is just as
+        // real as an awake one's. CLAUDE.md states the invariant directly —
+        // "is_at_rest is a solver optimization, NOT immobility".
+        //
+        // Measured with SPLIT_DEBUG on the ratchet SLING scenario: the body
+        // fell to the world floor, slept, and the position pass fired exactly
+        // 4 times in 300 frames (each moving it the capped 0.0333 m) before
+        // inverse mass went to zero and repair stopped for good. It finished
+        // holding a 2.35 m bond error, 117x the 0.02 m wake threshold.
         auto inv_mass_of = [](const Particle& p) -> float {
-            if (p.is_at_rest || p.solver_mode == ParticleSolverMode::KINEMATIC)
-                return 0.0f;
+            if (p.solver_mode == ParticleSolverMode::KINEMATIC) return 0.0f;
             const float m = p.GetMass();
             return (m > 0.0f) ? (1.0f / m) : 0.0f;
         };
