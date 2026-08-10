@@ -29,8 +29,16 @@
 // validated write path, in file order: resolve @aliases (targets
 // AND entity_ref property values), validate_kg_op, apply, bind the
 // created id to the op's "as" alias. It fails loudly on the first
-// violation with the op index and reason - a seed file is trusted
-// content and a partial load is a bug, not a state.
+// violation with the op index and reason.
+//
+// NOT ATOMIC, by design for now: the failing op itself changes
+// nothing, but the ops before it are already applied. The verifier
+// throws its world away, so this only matters to a game loading a
+// seed at start, where the honest response to a failed load is to
+// abort rather than play on a half-built world. report.created_ids
+// and report.ops_applied say exactly how far it got. Alias
+// references must appear AFTER the create that binds them: file
+// order is the only order.
 //
 // This is the same loader step 6 (game-start loading) uses: a game
 // calls load_seed with its own KGModule. The ingestion verifier
