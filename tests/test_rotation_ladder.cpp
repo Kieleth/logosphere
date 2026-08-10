@@ -51,6 +51,7 @@
 #include <cstdlib>
 #include <memory>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -58,6 +59,12 @@ namespace {
 
 bool g_interactive = false;
 bool g_autopilot = false;
+// RCA HARNESS (env LADDER_LIGHT): first | last | far | dummy | none.
+std::string g_light_mode = "first";
+void queue_the_light(Engine& e, float x, float y, float z) {
+    e.get_particle_system().queue_light(x, y, z, 650000.0f, 50.0f,
+                                        1.0f, 0.96f, 0.9f);
+}
 ui::Label* g_label = nullptr;
 ui::Label* g_live = nullptr;   // the numbers, moving (owner: "add instrumentation")
 
@@ -266,12 +273,35 @@ Rung rung1(Engine& engine) {
         v[child].is_quat_driven = true;   // quat is orientation truth; Euler published from it
     }
 
-    // The light is a PARTICLE. Queueing it only in interactive mode gave the
-    // two modes different particle counts, hence different constraint
-    // ordering, hence DIFFERENT PHYSICS: headless proved the ladder still
-    // while the owner watched a totem pulse at 10.9 m/s. Same scene in both
-    // modes, or the headless verdict is about a world nobody is watching.
-    ps.queue_light(0.0f, -5.0f, 16.0f, 650000.0f, 50.0f, 1.0f, 0.96f, 0.9f);
+    // RCA HARNESS (env LADDER_LIGHT): the owner demands proof, not a story,
+    // for why one massless body that should interact with nothing changes
+    // the physics. Variants:
+    //   first (default) light queued BEFORE the rungs  -> shifts every index
+    //   last            light queued AFTER the rungs   -> shifts nothing
+    //   far             light queued first, 10 km away -> same indices, no
+    //                                                     spatial overlap
+    //   dummy           a massless NON-light particle first
+    //   none            no light at all
+    // If 'last' and 'far' are calm while 'first' oscillates, the cause is
+    // INDEX ORDER, not interaction. If 'far' oscillates too, order alone.
+    // If 'dummy' matches 'first', it is not about lights at all.
+    if (g_light_mode == "first") queue_the_light(engine, 0.0f, -5.0f, 16.0f);
+    else if (g_light_mode == "far") queue_the_light(engine, 10000.0f, 10000.0f, 10000.0f);
+    else if (g_light_mode == "dummy") {
+        Particle d = {};
+        d.shape = ParticleShape::BOX;
+        d.x = 0.0f; d.y = -5.0f; d.z = 16.0f;
+        d.width = d.height = d.thickness = 0.1f; d.size = 0.1f;
+        d.r = d.g = d.b = d.a = 1.0f;
+        d.SetMaterial(Materials::Type::STONE);
+        const int did = engine.add_particle(d);
+        ps.flush_pending_particles();
+        auto v = ps.lock_particles_for_write();
+        v[did].solver_mode = ParticleSolverMode::KINEMATIC;
+        v[did].owner = ParticleOwner::DYNAMICS;
+        v[did].is_at_rest = true;
+    }
+    printf("  [RCA] light mode: %s\n", g_light_mode.c_str());
 
     // Settle: child must simply stay put on the post.
     if (g_label) g_label->set_text(
@@ -1164,6 +1194,7 @@ Rung rung4(Engine& engine) {
 bool test_rotation_ladder() {
     g_interactive = std::getenv("INTERACTIVE") != nullptr;
     g_autopilot   = std::getenv("AUTOPILOT") != nullptr;
+    if (const char* lv = std::getenv("LADDER_LIGHT")) g_light_mode = lv;
     printf("\n=== THE ROTATION LADDER: bend-by-rotation, one rung at a time ===\n");
     printf("  mode: %s\n\n", g_interactive ? "INTERACTIVE (ESC quits)" : "HEADLESS");
 
@@ -1197,6 +1228,22 @@ bool test_rotation_ladder() {
         }
     }
 
+    if (g_light_mode == "last") {
+        // built AFTER every rung's particles exist, so no index shifts
+        Rung pre[] = { rung1(engine), rung2_verdict(), rung3(engine) };
+        queue_the_light(engine, 0.0f, -5.0f, 16.0f);
+        Rung r4 = rung4(engine);
+        Rung rungs_l[] = { pre[0], pre[1], pre[2], r4 };
+        bool all_l = true;
+        for (const Rung& rr : rungs_l) {
+            printf("  %-34s %s\n      %s\n", rr.name,
+                   rr.passed ? "GREEN" : "*** RED ***", rr.detail);
+            all_l = all_l && rr.passed;
+        }
+        printf("\n  %s\n", all_l ? "PASS" : "FAIL");
+        engine.shutdown();
+        return all_l;
+    }
     Rung rungs[] = { rung1(engine), rung2_verdict(), rung3(engine), rung4(engine) };
 
     bool all = true;

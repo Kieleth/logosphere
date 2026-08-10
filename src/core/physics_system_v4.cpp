@@ -2016,7 +2016,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     std::unordered_map<size_t, float> warm_started_impulses;
 
     // Track which normalized keys we've already applied this frame (avoid double-apply)
+    // RCA (owner: prove it, no guesses): this set holds HASHES, and the
+    // dedup below compares hashes, not keys. Two DIFFERENT contact pairs
+    // that collide in the hash therefore silently lose one constraint —
+    // and which pairs collide depends on particle INDICES, which is
+    // exactly what adding one unrelated body shifts. Instrumented to
+    // count true duplicates against false ones.
     std::unordered_set<size_t> applied_keys;
+    std::unordered_map<size_t, PhysicsV4::ContactKey> applied_key_of;
+    static const bool dedup_dbg = std::getenv("DEDUP_DEBUG") != nullptr;
+    size_t dup_true = 0, dup_false = 0;
 
     if (ENABLE_WARM_STARTING) {
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
@@ -2077,6 +2086,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                           << (applied_keys.count(key_hash) > 0 ? " DUP" : " FIRST") << std::endl;
             }
 
+            if (dedup_dbg && applied_keys.count(key_hash) > 0) {
+                const auto& prev = applied_key_of[key_hash];
+                const bool same = prev.particle_a == key.particle_a &&
+                                  prev.particle_b == key.particle_b &&
+                                  prev.contact_type == key.contact_type;
+                if (same) dup_true++; else dup_false++;
+            }
             if (applied_keys.count(key_hash) > 0) {
                 // CANARY_DEBUG: Log skipped due to duplicate key
                 if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
@@ -2087,6 +2103,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 continue;
             }
             applied_keys.insert(key_hash);
+            if (dedup_dbg) applied_key_of[key_hash] = key;
 
             // Look up cached impulse
             auto it = cached_impulses_.find(key);
@@ -3031,6 +3048,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                    t.rotation_q.w, t.rotation_q.x, t.rotation_q.y, t.rotation_q.z,
                    (int)t.is_quat_driven, (int)t.is_at_rest);
         }
+    }
+
+    if (dedup_dbg && (dup_true || dup_false)) {
+        static size_t tot_true = 0, tot_false = 0;
+        tot_true += dup_true; tot_false += dup_false;
+        static int dn = 0;
+        if ((dn++ % 600) == 0)
+            printf("[DEDUP] warm-start skips: %zu true duplicates, %zu FALSE "
+                   "(different pair, same hash -> constraint silently dropped)\n",
+                   tot_true, tot_false);
     }
 
     // AUTHORITY REPORT: the measurement that settles who owns orientation.
