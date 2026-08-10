@@ -19,6 +19,7 @@
 #include "ui/ui_system.h"
 
 #include "chargen/chargen.h"
+#include "sheet_screen.h"
 #include "chargen/procedure_catalog.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -56,6 +57,17 @@ public:
         if (ui) {
             ui->set_chat_theme(220, 220, 210,   // paper
                                150, 190, 255);  // cold blue accent
+            screen_.build(*ui);
+            screen_.on_answer = [this](const std::string& answer) {
+                answer_typed(answer);
+            };
+            screen_.on_new_life = [this]() { start_life(); };
+            screen_.on_inspect_key = [this](const std::string& key) {
+                if (!session_) return;
+                for (const auto& c : session_->choices())
+                    if (c.key == key)
+                        screen_.inspect_career(engine_->get_kg(), c.label);
+            };
         }
 
         std::string why;
@@ -67,16 +79,30 @@ public:
             return;
         }
 
-        say("CHARACTER CREATION -- Cepheus Engine, absorbed.");
-        say("Every number below is read from the rulebook in the "
-            "knowledge graph, and every roll is the engine's, recorded "
-            "and citable.");
-        say("");
+        screen_.say("The rulebook is in the graph: 24 careers, 48 throws, "
+                    "144 table rows, all cited.");
+        screen_.say("Click any value on the sheet to see where the book "
+                    "says it.");
+        screen_.say("");
         start_life();
     }
 
+    // One place answers arrive, whether clicked in the list or typed.
+    void answer_typed(const std::string& text) {
+        if (!session_) return;
+        if (equals_ignoring_case(text, "again") ||
+            equals_ignoring_case(text, "new")) { start_life(); return; }
+        if (session_->finished()) {
+            screen_.say("This life is finished. Type 'again' for another.");
+            return;
+        }
+        std::string error;
+        if (!session_->choose(text, error)) { screen_.say(error); return; }
+        report_progress();
+    }
+
     void update_game(float dt) override {
-        (void)dt;
+        screen_.tick(dt);          // fade the roll flashes
         if (!engine_) return;
         auto* ui = engine_->get_ui_system();
         if (!ui || !ui->has_pending_submit()) return;
@@ -99,12 +125,7 @@ public:
             return;
         }
 
-        std::string error;
-        if (!session_->choose(text, error)) {
-            say(error + ". " + options_line());
-            return;
-        }
-        report_progress();
+        answer_typed(text);
     }
 
 private:
@@ -156,6 +177,11 @@ private:
                 return false;
             }
         }
+        chapter_ = logosphere::text::SourceDocument::parse_markdown(
+            slurp(game_path("srd/cepheus/book1/character-creation.md")));
+        skills_doc_ = logosphere::text::SourceDocument::parse_markdown(
+            slurp(game_path("srd/cepheus/book1/skills.md")));
+        screen_.set_sources(&chapter_, &skills_doc_);
         rules_loaded_ = true;
         return true;
     }
@@ -175,7 +201,8 @@ private:
             session_.reset();
             return;
         }
-        say("--- a new life, seed " + std::to_string(seed_) + " ---");
+        screen_.say("--- a new life, seed " + std::to_string(seed_) +
+                    " ---");
         report_progress();
     }
 
@@ -185,20 +212,29 @@ private:
         for (const auto& e : session_->drain()) {
             std::string line = "  " + e.what;
             if (!e.detail.empty()) line += ": " + e.detail;
-            if (e.roll_id) line += "   [roll #" + std::to_string(e.roll_id) + "]";
-            say(line);
+            if (e.roll_id) line += "   [roll #" +
+                                   std::to_string(e.roll_id) + "]";
+            // Colour by what actually happened, read from the event's
+            // own words: the session says "survived" or "did not
+            // survive", and the screen shows it landing.
+            auto tone = SheetScreen::Tone::Plain;
+            if (e.what.find("did not") != std::string::npos ||
+                e.what.find("failed") != std::string::npos)
+                tone = SheetScreen::Tone::Bad;
+            else if (e.what.find("survived") != std::string::npos ||
+                     e.what.find("qualified") != std::string::npos ||
+                     e.what.find("gained") != std::string::npos)
+                tone = SheetScreen::Tone::Good;
+            else if (e.roll_id)
+                tone = SheetScreen::Tone::Roll;
+            screen_.say(line, tone);
         }
-        const auto& s = session_->sheet();
+        screen_.show(engine_->get_kg(), *session_);
         if (session_->finished()) {
-            say("");
-            say(session_->prompt());
-            say(sheet_line(s));
-            say("Type 'again' for another life.");
-            return;
+            screen_.say("");
+            screen_.say(session_->prompt());
+            screen_.say("Type 'again' for another life.");
         }
-        say("");
-        say(session_->prompt());
-        say(options_line());
     }
 
     std::string options_line() const {
@@ -244,6 +280,9 @@ private:
         return x == y;
     }
 
+    SheetScreen                        screen_;
+    logosphere::text::SourceDocument   chapter_;
+    logosphere::text::SourceDocument   skills_doc_;
     Engine*                            engine_ = nullptr;
     logosphere::dice::DiceService      dice_;
     std::unique_ptr<ChargenSession>    session_;

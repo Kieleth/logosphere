@@ -15,12 +15,14 @@ int main(int argc, char** argv) {
 
     EngineConfig config;
     config.create_display = !headless;
-    config.window_width = 1400;
-    config.window_height = 1000;
+    config.window_width = logovger::kScreenW;
+    config.window_height = logovger::kScreenH;
     config.window_title = "Logovger - character creation";
     config.show_debug_overlay = false;
     config.show_kg_inspector = false;
-    config.enable_chat_window = true;
+    // No chat box: this screen is clickable. A rulebook you can
+    // interrogate should not be a scrolling log.
+    config.enable_chat_window = false;
 
     if (engine.initialize(config) < 0) {
         std::cerr << "[logovger] engine init failed" << std::endl;
