@@ -1842,6 +1842,7 @@ set(TEST_SOURCES
     tests/test_butterfly_detonation.cpp        # issue #47: solver divergence on gram-scale bodies, ladder
     tests/test_grass_holds_together.cpp        # issue #47 fix 1: bonded grass, no detonation, bounded drift
     tests/test_plants_are_rooted.cpp          # ISSUE #47: every body in a plant reaches something immobile
+    tests/test_baumgarte_ratchet.cpp          # SOLVER: position repair must not inject momentum
     tests/test_blockers_visual.cpp             # issue #47: both merge blockers on screen, INTERACTIVE=1
     tests/test_walk_through_grass.cpp          # issue #47: a human walks through grasses, all asserted good
     tests/test_divergence_microscope.cpp       # issue #47: freeze on the crime scene, single-step ticks
