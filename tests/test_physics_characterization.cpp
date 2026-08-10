@@ -38,6 +38,15 @@
 // silence a surprise:
 //   31f8a744adc8870b  first pin, narrower scene (no gluons, position+velocity only)
 //   7b597182f47cffed  scene widened: gluon chain added, angular and rest state sampled
+//   7120ff46938a7b0d  carried through the inertia-tensor and gluon-identity
+//                     work; held bit-identical across the debug-rot deletion,
+//                     the orphan-model deletion and both material commits
+//   1b701dcda5d29d8b  SPLIT IMPULSE MADE UNIVERSAL. Position bias no longer
+//                     enters the velocity solve for ANY row; a separate
+//                     position pass repairs geometry with a pseudo-velocity
+//                     that is discarded. Solver output legitimately moved and
+//                     this pin is deliberate. Same run: gluon chain gaps
+//                     tightened from 0.5498..0.5502 to 0.5499..0.5500.
 //   16af12523829b082  effective-mass guard returns 0 for an immovable pair
 //                     instead of 1 (kit study S22): the solver now converges on
 //                     tiled floors, so its output legitimately moved

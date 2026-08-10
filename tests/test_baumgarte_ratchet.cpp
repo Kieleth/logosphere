@@ -212,6 +212,22 @@ bool test_baumgarte_ratchet() {
             dist = std::sqrt(dx*dx + dy*dy + dz*dz);
         }
         printf("      bond length at end: %.3f m (target 0.500)\n", dist);
+        {   // Why did it not arrive? Name the state instead of guessing.
+            auto v = ps.lock_particles_for_write();
+            printf("      body: z %.3f  at_rest %d  mode %d  mass %.4f kg\n",
+                   v[body].z, (int)v[body].is_at_rest,
+                   (int)v[body].solver_mode, v[body].GetMass());
+            printf("      anchor: z %.3f  mode %d\n",
+                   v[anchor].z, (int)v[anchor].solver_mode);
+        }
+        // RED for a DIFFERENT reason than the ratchet, and it is left red
+        // deliberately. The body falls to the world floor and goes to sleep
+        // holding a 2.35 m bond error (measured: z 0.153, at_rest 1). Asleep
+        // means inverse mass 0, so the position pass skips it and the error
+        // becomes permanent. The sleep law (f61b8a9) says a body may rest only
+        // while its constraints are satisfied; it does not check gluon
+        // DISTANCE error, so this body was allowed to sleep on a stretched
+        // bond. Split impulse cannot fix that and should not pretend to.
         judge("repair happened: within 10%% of target",
               std::fabs(dist - 0.5f) <= 0.05f, dist, 0.55f, "m ");
         judge("peak real speed during the 2 m repair", m.peak <= 1.0f,
@@ -262,16 +278,27 @@ bool test_baumgarte_ratchet() {
         }
 
         const Motion m = run_watching(engine, col, 240);
-        float max_rise = 0.0f;
+        float max_rise = 0.0f, worst_spacing_err = 0.0f;
         {
             auto v = ps.lock_particles_for_write();
             for (size_t i = 0; i < col.size(); ++i)
                 max_rise = std::fmax(max_rise, v[col[i]].z - z0[i]);
+            for (size_t i = 0; i + 1 < col.size(); ++i)
+                worst_spacing_err = std::fmax(worst_spacing_err,
+                    std::fabs((v[col[i+1]].z - v[col[i]].z) - TARGET));
         }
         printf("      largest rise of any segment: %.3f m\n", max_rise);
+        printf("      worst bond spacing error: %.3f m (target %.2f)\n",
+               worst_spacing_err, TARGET);
+        // NOT a cap on how far the column may rise. Four bonds each compressed
+        // by 0.40 m MUST expand by 1.6 m at the top — that rise is the repair
+        // succeeding. The first version asserted max_rise <= 0.50 and would
+        // have called a correct result a failure. What matters is that the
+        // repair lands on target and that it arrives without momentum.
+        judge("repair happened: bonds reach their target spacing",
+              worst_spacing_err <= 0.05f, worst_spacing_err, 0.05f, "m ");
         judge("peak real speed in the column", m.peak <= 1.0f, m.peak, 1.0f, "m/s");
         judge("still moving at the end", m.final_v <= 0.10f, m.final_v, 0.10f, "m/s");
-        judge("nothing launched: max rise", max_rise <= 0.50f, max_rise, 0.50f, "m ");
         engine.shutdown();
     }
 

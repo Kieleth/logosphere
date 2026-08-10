@@ -2488,9 +2488,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Position correction happens via enforce_turtle_boundary()
             // This prevents Baumgarte energy injection that causes oscillation
             // NOTE: Box contacts still use bias - no separate position correction for them yet
+            // SPLIT IMPULSE, universal. NO row carries its position bias into
+            // the velocity solve. Position error is geometry and is repaired by
+            // the position pass below, whose velocity is discarded.
+            //
+            // This used to read `&& c.is_turtle_contact`, so gluon and box rows
+            // injected their Baumgarte term straight into momentum. Measured on
+            // Eden P3946: at iteration 0 the row fired dvz=+3.90 with v_rel
+            // already at -0.01 — satisfied at the velocity level, impulsed
+            // anyway — then converged to v_rel = -4.00, which is
+            // GLUON_MAX_BIAS_VELOCITY exactly. Velocity carries across frames,
+            // so an error that cannot close adds the cap every frame forever:
+            // vz 3.73 -> 6.62 -> 12.17 -> 20.07 -> 30.98 -> 44.94 -> 60.75.
+            // Capping the bias bounds the per-frame dose, not the total.
             float effective_bias = c.bias;
-            if (ENABLE_SPLIT_IMPULSE && c.is_turtle_contact) {
-                effective_bias = 0.0f;  // No position correction in velocity solver
+            if (ENABLE_SPLIT_IMPULSE) {
+                effective_bias = 0.0f;
             }
             float impulse = -(v_rel - effective_bias) * c.effective_mass;
 
@@ -2917,12 +2930,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // pure velocity impulse (no bias component). No need to subtract.
             // Without split impulse: subtract bias to avoid caching position correction.
             // NOTE: Only turtle contacts use split impulse - box contacts still have bias
+            // Split impulse is now universal, so accumulated_impulse holds pure
+            // velocity impulse for every row and there is no bias to subtract.
             float velocity_impulse;
-            if (ENABLE_SPLIT_IMPULSE && c.is_turtle_contact) {
-                // Split impulse: accumulated is already pure velocity
+            if (ENABLE_SPLIT_IMPULSE) {
                 velocity_impulse = c.accumulated_impulse;
             } else {
-                // No split impulse: subtract bias (position correction)
                 float bias_impulse = c.bias * c.effective_mass;
                 velocity_impulse = c.accumulated_impulse - bias_impulse;
                 if (velocity_impulse < 0) velocity_impulse = 0;
@@ -2962,6 +2975,74 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
     }
 
+
+    // ========================================================================
+    // POSITION PASS (split impulse)
+    // ========================================================================
+    // The velocity solve above ran with every bias zeroed, so the bodies now
+    // carry only real momentum. The position error is still there, and this is
+    // where it is repaired: the same rows are solved again against their bias,
+    // but the resulting velocity goes into a PSEUDO velocity that moves
+    // positions and is then thrown away. Nothing here reaches p.vx/vy/vz, so a
+    // constraint that can never close its error can never accumulate energy.
+    //
+    // Turtle rows are skipped: enforce_turtle_boundary() already repairs those
+    // geometrically, and correcting them twice would double the push.
+    if (PhysicsV4::ENABLE_SPLIT_IMPULSE && !constraints.empty()) {
+        std::vector<float> pvx(count, 0.0f), pvy(count, 0.0f), pvz(count, 0.0f);
+        for (Constraint& c : constraints) c.accumulated_pseudo_impulse = 0.0f;
+
+        auto inv_mass_of = [](const Particle& p) -> float {
+            if (p.is_at_rest || p.solver_mode == ParticleSolverMode::KINEMATIC)
+                return 0.0f;
+            const float m = p.GetMass();
+            return (m > 0.0f) ? (1.0f / m) : 0.0f;
+        };
+
+        for (int iter = 0; iter < PhysicsV4::POSITION_ITERATIONS; ++iter) {
+            for (Constraint& c : constraints) {
+                if (c.is_turtle_contact) continue;
+                if (c.bias == 0.0f) continue;
+                if (c.body_a >= count || c.body_b >= count) continue;
+
+                const float inv_ma = inv_mass_of(particles[c.body_a]);
+                const float inv_mb = inv_mass_of(particles[c.body_b]);
+                if (inv_ma == 0.0f && inv_mb == 0.0f) continue;
+
+                const float pv_rel =
+                    c.jx * (pvx[c.body_a] - pvx[c.body_b]) +
+                    c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
+                    c.jz * (pvz[c.body_a] - pvz[c.body_b]);
+
+                float imp = -(pv_rel - c.bias) * c.effective_mass;
+
+                // Same clamp the velocity rows obey, so a non-penetration row
+                // still cannot pull and a bond still cannot exceed its break
+                // force while repairing.
+                const float old = c.accumulated_pseudo_impulse;
+                c.accumulated_pseudo_impulse =
+                    std::max(c.min_impulse, std::min(c.max_impulse, old + imp));
+                imp = c.accumulated_pseudo_impulse - old;
+
+                pvx[c.body_a] += c.jx * imp * inv_ma;
+                pvy[c.body_a] += c.jy * imp * inv_ma;
+                pvz[c.body_a] += c.jz * imp * inv_ma;
+                pvx[c.body_b] -= c.jx * imp * inv_mb;
+                pvy[c.body_b] -= c.jy * imp * inv_mb;
+                pvz[c.body_b] -= c.jz * imp * inv_mb;
+            }
+        }
+
+        // Spend the pseudo velocity on positions, then drop it on the floor.
+        for (size_t i = 0; i < count; ++i) {
+            if (pvx[i] == 0.0f && pvy[i] == 0.0f && pvz[i] == 0.0f) continue;
+            Particle& p = particles[i];
+            if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+            p.x += pvx[i] * dt;
+            p.y += pvy[i] * dt;
+            p.z += pvz[i] * dt;
+        }
+    }
 
     auto t_after_solver = std::chrono::high_resolution_clock::now();
 
@@ -3063,7 +3144,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 particles[gluon->particle_a], particles[gluon->particle_b]) * dt;
             auto upd = [&](float warm_old, size_t row_idx, float acc) {
                 const Constraint& rc = constraints[row_idx];
-                const float velocity_part = acc - rc.bias * rc.effective_mass;
+                // Under split impulse the row's accumulator is already pure
+                // velocity impulse; subtracting the bias term here would
+                // remove something that was never added.
+                const float velocity_part =
+                    PhysicsV4::ENABLE_SPLIT_IMPULSE
+                        ? acc
+                        : (acc - rc.bias * rc.effective_mass);
                 const float d = (warm_old * velocity_part < 0.0f) ? DECAY_REVERSED : DECAY;
                 return std::clamp(d * (warm_old + velocity_part), -cap, cap);
             };

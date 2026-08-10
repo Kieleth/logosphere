@@ -222,6 +222,11 @@ struct Constraint {
     float bias;                 // Velocity bias for position correction
 
     float accumulated_impulse;  // Total impulse applied (for clamping)
+
+    // SPLIT IMPULSE: the position pass's own accumulator. Kept separate from
+    // accumulated_impulse so position repair never enters the body's momentum
+    // and never contaminates the warm-start cache.
+    float accumulated_pseudo_impulse = 0.0f;
     float min_impulse;          // Clamp min (0 for contacts)
     float max_impulse;          // Clamp max (breaking force for gluons)
 
@@ -387,6 +392,12 @@ constexpr bool ENABLE_WARM_STARTING = true;
 // Position correction for boxes: enforce_contact_boundary() (TODO if needed)
 // ============================================================================
 constexpr bool ENABLE_SPLIT_IMPULSE = true;
+
+// Iterations of the split-impulse POSITION pass. Position repair converges far
+// faster than the velocity solve because it has no momentum to fight, so this
+// is deliberately much smaller than SOLVER_ITERATIONS (32). Raise it only with
+// a measurement showing residual overlap that more sweeps actually close.
+constexpr int POSITION_ITERATIONS = 8;
 
 /**
  * ContactKey - Unique identifier for a contact constraint
