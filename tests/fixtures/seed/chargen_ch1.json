@@ -10,10 +10,18 @@
       "TaskCheck": 1,
       "RuleConstant": 2,
       "RollableTable": 1,
-      "TableEntry": 2
+      "TableEntry": 2,
+      "LookupTable": 2,
+      "LookupEntry": 4
     },
-    "unique_name_per_type": ["DiceExpression", "RuleConstant", "TableEntry"],
-    "band_coverage": { "@mishap_table": [2, 3] }
+    "unique_name_per_type": [
+      "DiceExpression", "RuleConstant", "TableEntry", "LookupEntry"
+    ],
+    "band_coverage": {
+      "@mishap_table": [2, 3],
+      "@dm_table": [0, 5],
+      "@law_table": [0, 3]
+    }
   },
   "ops": [
     {
@@ -121,6 +129,103 @@
       "from": "@mishap_table",
       "relation": "HAS_PART",
       "to": "@mishap_row_3"
+    },
+
+    {
+      "op": "create_entity",
+      "type": "LookupTable",
+      "as": "@dm_table",
+      "properties": {
+        "name": "characteristic_modifiers",
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@dm_row_0_2",
+      "properties": {
+        "name": "dm_row_0_2",
+        "key_min": 0,
+        "key_max": 2,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| 0 through 2 | 0-2 | \\-2 |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@dm_row_3_5",
+      "properties": {
+        "name": "dm_row_3_5",
+        "key_min": 3,
+        "key_max": 5,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| 3 through 5 | 3-5 | \\-1 |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_0_2"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_3_5"
+    },
+
+    {
+      "op": "create_entity",
+      "type": "LookupTable",
+      "as": "@law_table",
+      "properties": {
+        "name": "base_difficulty_by_law_level",
+        "source_file": "book1/skills.md",
+        "source_section": "Local Law Level",
+        "source_quote": "| Law Level | Difficulty |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@law_row_0",
+      "properties": {
+        "name": "law_row_0",
+        "key_min": 0,
+        "key_max": 0,
+        "source_file": "book1/skills.md",
+        "source_section": "Local Law Level",
+        "source_quote": "| 0 | Routine (DM+2) |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@law_row_1_3",
+      "properties": {
+        "name": "law_row_1_3",
+        "key_min": 1,
+        "key_max": 3,
+        "source_file": "book1/skills.md",
+        "source_section": "Local Law Level",
+        "source_quote": "| 1-3 | Average (DM+0) |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@law_table",
+      "relation": "HAS_PART",
+      "to": "@law_row_0"
+    },
+    {
+      "op": "set_relation",
+      "from": "@law_table",
+      "relation": "HAS_PART",
+      "to": "@law_row_1_3"
     }
   ]
 }
