@@ -358,6 +358,95 @@ ranges are dependencies too.
 **A gate that runs a hardcoded list is not a gate.** CI listed 21
 tests by hand while the suite had grown past 50. It runs `ctest` now.
 
+## Finishing chapter 1 (decided 2026-08-10)
+
+**The referee is the LLM, including when the book delegates to it.**
+Cepheus gates the survival-mishap table on "the Referee's approval".
+That approval is a RULING, not narration, and the referee agent makes
+it: handed the cited rule, the character, and the failed roll as a
+fact, it approves or refuses and says why. This is the first time the
+LLM decides something rather than describing it.
+
+The guardrail is the same one that governs everything else here: the
+referee may rule only where the text delegates to a Referee, and every
+ruling is recorded citing the sentence that granted the authority. No
+delegating sentence, no ruling. A referee that can approve anything is
+not a referee, it is a random number generator with opinions.
+
+**Scope: everything except the world-dependent parts.** Basic
+training, commission and advancement with ranks, the second training
+roll, aging, the re-enlistment throw, mustering-out benefits,
+injuries and medical debt, psionic strength, noble titles and final
+details. Homeworld background skills wait for Slice 2, because the
+first two of them are chosen from a world's trade codes and law level.
+
+**Commission and Advancement are offered each term**, as the book
+writes them, not rolled automatically. Reaching for rank is the
+player's call and declining it is a fact about the character worth
+recording.
+
+**Material benefits land typed where they map and as entities where
+they do not.** Characteristic increases, cash and skill levels use the
+typed outcomes that already exist. Passages, ship shares, weapons,
+society membership and the two named vessels become Possession
+entities carrying the book's own prose and its citation.
+
+### The sequence (dependencies, not estimates)
+
+Extraction first, because every rule below needs its table.
+
+- **A1** Six table types across four career blocks: Personal
+  Development, Specialist, Adv Education, Ranks and Skills, Material
+  Benefits, Cash Benefits. One retriever pass per type per block,
+  verified against the source by locator.
+- **A2** The shared tables: Survival Mishaps, Aging, Injury.
+- **A3** The remaining checks: Commission and Advancement for the 17
+  careers that offer them, Re-enlistment for all 24.
+
+Then the rules, each blocked only on its own data.
+
+- **B1** Basic training (A1 not required; service tables exist).
+- **B2** Commission, Advancement, rank state, rank bonus skills, the
+  extra training roll (A1, A3).
+- **B3** Second training roll for careers without a commission check.
+- **B4** Aging from age 34, terms as a negative DM (A2).
+- **B5** Re-enlistment throw, natural 12 forces another term (A3).
+- **B6** Mustering out: benefit count by terms and rank, the
+  three-roll cash cap, the Gambling and rank modifiers (A1).
+- **B7** The mishap path, injuries and medical debt (A2, C1).
+
+The referee's new authority, which B7 needs.
+
+- **C1** Rulings: a delegated-decision point, the referee agent that
+  answers it, and the verifier rule that a ruling must cite a sentence
+  delegating to a Referee.
+
+Then the parts that finish a character.
+
+- **D1** Final details into the graph: name, gender, appearance,
+  personal goals. The narrator already invents a name; it lives in the
+  UI and nowhere else.
+- **D2** Psionic strength and noble titles.
+- **D3** Surface: rank, cash and possessions on the sheet, benefits in
+  the file.
+
+### Open before building
+
+1. **Rank cells carry two things.** "Squadron Leader \[Leadership-1\]"
+   is a title and a bonus skill in one cell. Proposed: a LookupTable
+   keyed by rank, each entry carrying a title and an optional
+   AdvanceSkill outcome. Needs sign-off.
+2. **Re-enlistment has no characteristic.** Every check absorbed so
+   far is "attribute target+". Re-enlistment is a flat 2D6 against a
+   number. Either TaskCheck permits an empty attribute or a second
+   check type exists. Needs sign-off.
+3. **The aging table has negative band keys** (-6 through 1+). Band
+   derivation has only been exercised on positive totals.
+4. **Psionics contradicts the setting draft.** `lore/voyager.md` says
+   a character's psionic strength is not rolled at creation; the SRD
+   has a chargen step for it. The rules and the setting disagree, and
+   the setting is the owner's. Needs a call.
+
 ## Decisions log
 
 | Date | Decision |
