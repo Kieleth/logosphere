@@ -142,6 +142,21 @@ public:
         return it == properties_.end() ? kEmpty : it->second;
     }
 
+    // The PropertyDef for prop on this type, walking ancestors.
+    // nullptr when no such property exists anywhere on the chain.
+    // Shared by the validator (value_type / range / ref checks) and
+    // the seed loader (entity_ref alias resolution).
+    const PropertyDef* findProperty(const std::string& entity_type,
+                                    const std::string& prop) const {
+        if (const PropertyDef* p = direct_property(entity_type, prop)) return p;
+        auto anc_it = ancestors_.find(entity_type);
+        if (anc_it == ancestors_.end()) return nullptr;
+        for (const auto& ancestor : anc_it->second) {
+            if (const PropertyDef* p = direct_property(ancestor, prop)) return p;
+        }
+        return nullptr;
+    }
+
     // Ancestors of a type (transitive parent chain). Empty if the
     // type is unknown or a root type.
     const std::unordered_set<std::string>& ancestorsOf(const std::string& entity_type) const {
@@ -219,12 +234,17 @@ public:
 
 private:
     bool check_property(const std::string& entity_type, const std::string& prop) const {
+        return direct_property(entity_type, prop) != nullptr;
+    }
+
+    const PropertyDef* direct_property(const std::string& entity_type,
+                                       const std::string& prop) const {
         auto it = properties_.find(entity_type);
-        if (it == properties_.end()) return false;
+        if (it == properties_.end()) return nullptr;
         for (const auto& p : it->second) {
-            if (p.name == prop) return true;
+            if (p.name == prop) return &p;
         }
-        return false;
+        return nullptr;
     }
 
     std::unordered_map<std::string, EntityTypeDef> entity_types_;

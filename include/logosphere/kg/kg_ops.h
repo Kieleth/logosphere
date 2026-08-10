@@ -25,6 +25,13 @@
 // alias ("@player_cycle"). Symbolic resolution happens host-side
 // via a SymbolicRefs-like helper; the engine vocabulary stays
 // game-agnostic.
+//
+// Seed files additionally BIND aliases: a create_entity op may
+// carry "as": "@gun_combat", which names the entity it creates so
+// later ops in the same file can reference it - as an op target or
+// as an "@alias" value in an entity_ref property slot. The seed
+// loader owns that resolution; validate_kg_op still expects fully
+// resolved numeric ids.
 
 #include "logosphere/kg/kg_types.h"
 
@@ -52,6 +59,11 @@ struct EntityRef {
 struct KGOpCreateEntity {
     std::string type;
     std::vector<std::pair<std::string, std::string>> properties;
+    // Optional symbolic binder from the wire field "as": "@alias".
+    // Stored WITHOUT the leading '@' (like EntityRef.symbolic);
+    // empty means the op binds nothing. The seed loader maps it to
+    // the created entity id so later ops can reference it.
+    std::string as;
 };
 
 struct KGOpDestroyEntity {
