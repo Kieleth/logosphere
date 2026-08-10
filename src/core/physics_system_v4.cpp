@@ -1658,6 +1658,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Angular limit (dead zone)
             c_ang.angular_limit = gluon->max_relative_rotation;
 
+            // TEMP QUATPATH_DEBUG: the lying-blade probe (peg bond 67<->68)
+            static const bool qdbg = std::getenv("QUATPATH_DEBUG") != nullptr;
+            const bool qhit = qdbg && ((body_a == 67 && body_b == 68) ||
+                                       (body_a == 68 && body_b == 67));
+            if (qhit) {
+                static int qn = 0;
+                if ((qn++ % 240) == 0)
+                    printf("[QDBG] peg bond reached: drive=%d quat=%d ang_k=%.1f "
+                           "a_rest=%d b_rest=%d\n",
+                           (int)gluon->angular_drive_enabled,
+                           (int)gluon->use_quat_target, gluon->angular_stiffness,
+                           (int)pa.is_at_rest, (int)pb.is_at_rest);
+            }
+
             // Shared Baumgarte gain for all angular bias calculations
             // (both the scalar Z path below and the 3-axis path above).
             const float ANGULAR_BETA = 0.4f;
@@ -1682,6 +1696,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Rodrigues error e = theta * axis is what each world-axis
             // constraint row tries to null out.
             if (gluon->angular_drive_enabled && gluon->use_quat_target) {
+                if (qhit) {
+                    static int qn2 = 0;
+                    if ((qn2++ % 240) == 0) printf("[QDBG] quat path entered\n");
+                }
                 namespace lm = logosphere;
                 // Parent orientation source: if the parent is itself
                 // quat-driven (nested joint), its rotation_q is kept
@@ -1727,6 +1745,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // is mid-recovery; sleep would freeze it bent (rung 3: the
                 // chain 'STAYED BENT' at 0.70 m because nothing wakes on
                 // angle error — the linear anchors were satisfied).
+                if (qhit) {
+                    static int qn3 = 0;
+                    if ((qn3++ % 240) == 0)
+                        printf("[QDBG] e_mag=%.3f rad (wake at >0.1)\n", e_mag);
+                }
                 if (e_mag > 0.1f) {
                     if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_a].is_at_rest = false;

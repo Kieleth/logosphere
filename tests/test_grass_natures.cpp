@@ -103,7 +103,10 @@ struct Nature {
 };
 const Nature NATURES[3] = {
     {"BENT",     5000.0f, 100.0f,  10.0f, 2.0f, 0.25f, 5.0f},
-    {"STRAIGHT", 5000.0f, 100.0f,  60.0f, 8.0f, 0.0f,  6.0f},
+    // Gram-scale flat blades: I ~ 1.4e-4, so k_ang must sit under
+    // ~0.5 N*m/rad or the joint oscillates above the 240 Hz substep
+    // Nyquist (sqrt(60/1.4e-4) = 667 rad/s) and averages to zero lift.
+    {"STRAIGHT", 5000.0f, 100.0f,   0.3f, 0.02f, 0.0f,  6.0f},
     {"BRITTLE",  5000.0f, 100.0f, 400.0f, 2.0f, 0.0f,  1.3f},
 };
 
@@ -347,7 +350,7 @@ bool test_grass_natures() {
     if (g_title) g_title->set_text("GRASS pt 1: bar gone — recoveries by nature");
     printf("      [ids] STRAIGHT peg=%d segs=%d,%d,%d\n",
            blades[1].peg, blades[1].seg[0], blades[1].seg[1], blades[1].seg[2]);
-    for (int f = 0; f < 400 && engine.is_running(); ++f) {
+    for (int f = 0; f < 1400 && engine.is_running(); ++f) {
         gstep(engine);
         measure(180 + f, "RECOV", true);
         // DEEP PROBE (owner: 'blades are still separating'): the bar is
