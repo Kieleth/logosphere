@@ -31,8 +31,13 @@ classes:
       Universal Persona Profile (UPP)"]. This class is the BOOK's;
       the game's character is Voyager, in the voyager layer, extending
       this one.
+    attributes:
+      strength:
+        range: integer
+        minimum_value: 0
+        maximum_value: 33
+        description: Str, position 1 of the UPP.
     slots:
-      - strength
       - dexterity
       - endurance
       - intelligence
@@ -77,11 +82,6 @@ slots:
   # is the table's, not the PC cap
   # [book1/character-creation.md "Generating Characteristic Scores",
   #  "Characteristic Modifiers"].
-  strength:
-    range: integer
-    minimum_value: 0
-    maximum_value: 33
-    description: Str, position 1 of the UPP.
   dexterity:
     range: integer
     minimum_value: 0

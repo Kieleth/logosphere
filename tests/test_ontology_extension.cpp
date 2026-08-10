@@ -12,6 +12,8 @@
 #include "generated/logosphere_ontology_registry.h"
 #include <iostream>
 #include <cassert>
+#include <exception>
+#include <unordered_set>
 
 #define ASSERT(cond, msg) do { \
     if (!(cond)) { \
@@ -158,11 +160,95 @@ void test_reextending_is_idempotent() {
 
     auto farming = build_farming_ontology();
     kg.extendOntology(farming);
+    const size_t properties_after_first =
+        kg.getRegistry().propertiesOf("Crop").size();
     kg.extendOntology(farming);  // second call, same registry
 
-    // No duplication, still works
+    ASSERT(properties_after_first == 2,
+           "the farming extension declares two Crop properties");
+    ASSERT(kg.getRegistry().propertiesOf("Crop").size() ==
+               properties_after_first,
+           "re-extension does not duplicate identical properties");
+
     auto crop = kg.createEntity("Crop");
     ASSERT(kg.exists(crop), "entity creation works after re-extension");
+}
+
+void test_conflicting_entity_type_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Thing", "Entity", false);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addEntityType("Thing", "WorldEntity", false);
+
+    bool threw = false;
+    bool provenance_is_exact = false;
+    try {
+        base.extend(extension);
+    } catch (const kg::OntologyCollision& collision) {
+        threw = true;
+        provenance_is_exact =
+            collision.kind() == "entity type" &&
+            collision.definition() == "Thing" &&
+            collision.existing_source() == "schema://base" &&
+            collision.incoming_source() == "schema://incoming";
+    }
+
+    ASSERT(threw, "a conflicting entity definition throws");
+    ASSERT(provenance_is_exact,
+           "the collision identifies both schema sources");
+    ASSERT(base.entityTypes().at("Thing").parent == "Entity",
+           "the existing entity definition survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "a conflicting extension lands no earlier definitions");
+}
+
+void test_conflicting_relation_type_fails_atomically() {
+    kg::OntologyRegistry base;
+    base.addRelationType("LINKS", {"Entity"}, {"Entity"});
+
+    kg::OntologyRegistry extension;
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addRelationType("LINKS", {"WorldEntity"}, {"Entity"});
+
+    bool threw = false;
+    try {
+        base.extend(extension);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+
+    ASSERT(threw, "a conflicting relation definition throws");
+    ASSERT(base.relationTypes().at("LINKS").valid_source_types ==
+               std::unordered_set<std::string>{"Entity"},
+           "the existing relation definition survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "a relation conflict leaves the whole extension unapplied");
+}
+
+void test_conflicting_property_fails_atomically() {
+    kg::OntologyRegistry base;
+    base.addEntityType("Thing", "Entity", false);
+    base.addProperty("Thing", "score", "integer", false);
+
+    kg::OntologyRegistry extension;
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addProperty("Thing", "score", "string", false);
+
+    bool threw = false;
+    try {
+        base.extend(extension);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+
+    ASSERT(threw, "a conflicting property definition throws");
+    ASSERT(base.propertiesOf("Thing").size() == 1 &&
+               base.propertiesOf("Thing")[0].value_type == "integer",
+           "the existing property definition survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "a property conflict leaves the whole extension unapplied");
 }
 
 int main() {
@@ -174,6 +260,9 @@ int main() {
     test_custom_relations_validated();
     test_custom_properties();
     test_reextending_is_idempotent();
+    test_conflicting_entity_type_fails_atomically();
+    test_conflicting_relation_type_fails_atomically();
+    test_conflicting_property_fails_atomically();
 
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;

@@ -2,8 +2,11 @@ name: logosphere
 channels:
   - conda-forge
 dependencies:
+  - python=3.12
   - cmake
   - ninja
   - pkg-config
-  - pyyaml
-  - linkml
+  - pip
+  - pip:
+      - linkml==1.10.0
+      - pyyaml==6.0.3

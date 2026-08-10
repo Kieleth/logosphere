@@ -1002,10 +1002,6 @@ slots:
   memory_layer:
     range: MemoryLayer
     description: Perception memory state at time of event.
-  relation_type:
-    range: string
-    description: Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-
   # --- Particle interaction ---
   category_bit:
     range: integer

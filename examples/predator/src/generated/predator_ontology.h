@@ -886,8 +886,8 @@ struct Signal : public Identifiable, public Temporal {
 
 /// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
 struct Relation : public Identifiable, public Temporal {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type;
     /// ID of the source entity.
     std::string source_id;
     /// ID of the target entity.
@@ -1301,8 +1301,8 @@ struct PerceptionEvent : public WorldEvent {
 
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type;
 };
 
 

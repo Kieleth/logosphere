@@ -1476,8 +1476,7 @@ struct FallenTree : public NaturalFormation, public HasMaterial {
 
 /// Rock or boulder.
 struct Rock : public NaturalFormation {
-    /// Rock characteristic size in meters.
-    std::optional<float> rock_size = std::nullopt;
+    std::optional<RockSize> rock_size = std::nullopt;
 };
 
 
@@ -1870,8 +1869,6 @@ struct RockSeed : public WorldEntity {
     std::optional<float> x = std::nullopt;
     /// World-y position (m). Stage center is 0.
     std::optional<float> y = std::nullopt;
-    /// Rock characteristic size in meters.
-    std::optional<float> rock_size = std::nullopt;
     /// Rock base color, red channel (0..1).
     std::optional<float> rock_r = std::nullopt;
     /// Rock base color, green channel (0..1).
@@ -1880,6 +1877,8 @@ struct RockSeed : public WorldEntity {
     std::optional<float> rock_b = std::nullopt;
     /// 0 (default) = the rock rests where placed. Positive = the rock is BORN that many meters up and FALLS — impact shoves loose ground aside on layered terrain. 20-40 reads dramatic.
     std::optional<float> drop_height = std::nullopt;
+    /// Rock characteristic size in meters.
+    std::optional<float> rock_size = std::nullopt;
 };
 
 

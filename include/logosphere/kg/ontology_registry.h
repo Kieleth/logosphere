@@ -1,12 +1,44 @@
 #pragma once
 
 #include <algorithm>
+#include <stdexcept>
 #include <string>
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace kg {
+
+class OntologyCollision : public std::runtime_error {
+public:
+    OntologyCollision(std::string kind, std::string definition,
+                      std::string existing_source,
+                      std::string incoming_source)
+        : std::runtime_error(
+              "Ontology " + kind + " collision for '" + definition +
+              "': " + existing_source + " conflicts with " +
+              incoming_source),
+          kind_(std::move(kind)),
+          definition_(std::move(definition)),
+          existing_source_(std::move(existing_source)),
+          incoming_source_(std::move(incoming_source)) {}
+
+    const std::string& kind() const { return kind_; }
+    const std::string& definition() const { return definition_; }
+    const std::string& existing_source() const {
+        return existing_source_;
+    }
+    const std::string& incoming_source() const {
+        return incoming_source_;
+    }
+
+private:
+    std::string kind_;
+    std::string definition_;
+    std::string existing_source_;
+    std::string incoming_source_;
+};
 
 struct EntityTypeDef {
     std::string name;
@@ -18,12 +50,14 @@ struct EntityTypeDef {
     // Explicit per type — no is_a inheritance (see
     // docs/KNOWLEDGE_LAYER.md).
     std::unordered_set<std::string> facets;
+    std::string source = "<runtime>";
 };
 
 struct RelationTypeDef {
     std::string name;
     std::unordered_set<std::string> valid_source_types;
     std::unordered_set<std::string> valid_target_types;
+    std::string source = "<runtime>";
 };
 
 struct PropertyDef {
@@ -44,6 +78,7 @@ struct PropertyDef {
     // referenced entity must be, or be a subtype of. Enforced on
     // the validated write path; empty means unconstrained.
     std::string ref_target;
+    std::string source = "<runtime>";
 };
 
 /// Runtime ontology registry. The KG is constructed FROM this.
@@ -54,7 +89,12 @@ struct PropertyDef {
 /// This is the TBox. The KG instances are the ABox.
 class OntologyRegistry {
 public:
-    OntologyRegistry() = default;
+    explicit OntologyRegistry(std::string source = "<runtime>")
+        : active_source_(std::move(source)) {
+        if (active_source_.empty()) {
+            throw std::invalid_argument("Ontology source cannot be empty");
+        }
+    }
 
     // --- Type queries ---
 
@@ -170,21 +210,73 @@ public:
     // --- Extension (additive only) ---
 
     void extend(const OntologyRegistry& other) {
-        for (const auto& [k, v] : other.entity_types_) entity_types_[k] = v;
-        for (const auto& [k, v] : other.relation_types_) relation_types_[k] = v;
+        // Preflight every definition. A collision must not leave an
+        // order-dependent prefix of the incoming registry installed.
+        for (const auto& [name, incoming] : other.entity_types_) {
+            auto existing = entity_types_.find(name);
+            if (existing != entity_types_.end() &&
+                !same_entity(existing->second, incoming)) {
+                throw_collision("entity type", name, existing->second.source,
+                                incoming.source);
+            }
+        }
+        for (const auto& [name, incoming] : other.relation_types_) {
+            auto existing = relation_types_.find(name);
+            if (existing != relation_types_.end() &&
+                !same_relation(existing->second, incoming)) {
+                throw_collision("relation type", name,
+                                existing->second.source, incoming.source);
+            }
+        }
+        for (const auto& [type, incoming_properties] : other.properties_) {
+            for (const auto& incoming : incoming_properties) {
+                if (const PropertyDef* existing =
+                        direct_property(type, incoming.name);
+                    existing && !same_property(*existing, incoming)) {
+                    throw_collision("property", type + "." + incoming.name,
+                                    existing->source, incoming.source);
+                }
+            }
+        }
+        for (const auto& [type, incoming] : other.ancestors_) {
+            auto existing = ancestors_.find(type);
+            if (existing != ancestors_.end() && existing->second != incoming) {
+                throw_collision("ancestor set", type,
+                                source_for_entity(type),
+                                other.source_for_entity(type));
+            }
+        }
+
+        for (const auto& [name, def] : other.entity_types_)
+            entity_types_.emplace(name, def);
+        for (const auto& [name, def] : other.relation_types_)
+            relation_types_.emplace(name, def);
         for (const auto& [k, v] : other.properties_) {
             auto& existing = properties_[k];
-            for (const auto& p : v) existing.push_back(p);
+            for (const auto& p : v) {
+                if (!direct_property(k, p.name)) existing.push_back(p);
+            }
         }
-        for (const auto& [k, v] : other.ancestors_) {
-            ancestors_[k].insert(v.begin(), v.end());
-        }
+        for (const auto& [type, ancestors] : other.ancestors_)
+            ancestors_.emplace(type, ancestors);
     }
 
     // --- Population (used by generated code) ---
 
+    void setSource(std::string source) {
+        if (source.empty()) {
+            throw std::invalid_argument("Ontology source cannot be empty");
+        }
+        active_source_ = std::move(source);
+    }
+
     void addEntityType(const std::string& name, const std::string& parent, bool is_abstract) {
-        entity_types_[name] = {name, parent, is_abstract, {}};
+        EntityTypeDef incoming{name, parent, is_abstract, {}, active_source_};
+        auto [it, inserted] = entity_types_.emplace(name, incoming);
+        if (!inserted && !same_entity(it->second, incoming)) {
+            throw_collision("entity type", name, it->second.source,
+                            incoming.source);
+        }
     }
 
     void addFacets(const std::string& type,
@@ -195,19 +287,29 @@ public:
     }
 
     void addAncestors(const std::string& type, const std::unordered_set<std::string>& ancestors) {
-        ancestors_[type] = ancestors;
+        auto [it, inserted] = ancestors_.emplace(type, ancestors);
+        if (!inserted && it->second != ancestors) {
+            throw_collision("ancestor set", type, source_for_entity(type),
+                            active_source_);
+        }
     }
 
     void addRelationType(const std::string& name,
                          const std::unordered_set<std::string>& sources,
                          const std::unordered_set<std::string>& targets) {
-        relation_types_[name] = {name, sources, targets};
+        RelationTypeDef incoming{name, sources, targets, active_source_};
+        auto [it, inserted] = relation_types_.emplace(name, incoming);
+        if (!inserted && !same_relation(it->second, incoming)) {
+            throw_collision("relation type", name, it->second.source,
+                            incoming.source);
+        }
     }
 
     void addProperty(const std::string& entity_type, const std::string& prop_name,
                      const std::string& value_type, bool required) {
-        properties_[entity_type].push_back({prop_name, value_type, required,
-                                            false, false, 0.0, 0.0});
+        add_property(entity_type,
+                     {prop_name, value_type, required, false, false,
+                      0.0, 0.0, "", active_source_});
     }
 
     // Overload with optional range annotations. Pass any combination
@@ -217,8 +319,9 @@ public:
                      const std::string& value_type, bool required,
                      bool has_min, double min_value,
                      bool has_max, double max_value) {
-        properties_[entity_type].push_back({prop_name, value_type, required,
-                                            has_min, has_max, min_value, max_value});
+        add_property(entity_type,
+                     {prop_name, value_type, required, has_min, has_max,
+                      min_value, max_value, "", active_source_});
     }
 
     // Entity-reference property (a class-ranged slot in the schema):
@@ -227,12 +330,58 @@ public:
     void addRefProperty(const std::string& entity_type, const std::string& prop_name,
                         bool required, const std::string& target_class) {
         PropertyDef def{prop_name, "entity_ref", required,
-                        false, false, 0.0, 0.0};
-        def.ref_target = target_class;
-        properties_[entity_type].push_back(def);
+                        false, false, 0.0, 0.0, target_class,
+                        active_source_};
+        add_property(entity_type, std::move(def));
     }
 
 private:
+    [[noreturn]] static void throw_collision(
+        const std::string& kind, const std::string& definition,
+        const std::string& existing_source,
+        const std::string& incoming_source) {
+        throw OntologyCollision(kind, definition, existing_source,
+                                incoming_source);
+    }
+
+    static bool same_entity(const EntityTypeDef& a,
+                            const EntityTypeDef& b) {
+        return a.name == b.name && a.parent == b.parent &&
+               a.is_abstract == b.is_abstract && a.facets == b.facets;
+    }
+
+    static bool same_relation(const RelationTypeDef& a,
+                              const RelationTypeDef& b) {
+        return a.name == b.name &&
+               a.valid_source_types == b.valid_source_types &&
+               a.valid_target_types == b.valid_target_types;
+    }
+
+    static bool same_property(const PropertyDef& a, const PropertyDef& b) {
+        return a.name == b.name && a.value_type == b.value_type &&
+               a.required == b.required && a.has_min == b.has_min &&
+               a.has_max == b.has_max && a.min_value == b.min_value &&
+               a.max_value == b.max_value && a.ref_target == b.ref_target;
+    }
+
+    std::string source_for_entity(const std::string& type) const {
+        auto it = entity_types_.find(type);
+        return it == entity_types_.end() ? active_source_ : it->second.source;
+    }
+
+    void add_property(const std::string& entity_type, PropertyDef incoming) {
+        if (const PropertyDef* existing =
+                direct_property(entity_type, incoming.name)) {
+            if (!same_property(*existing, incoming)) {
+                throw_collision("property",
+                                entity_type + "." + incoming.name,
+                                existing->source, incoming.source);
+            }
+            return;
+        }
+        properties_[entity_type].push_back(std::move(incoming));
+    }
+
     bool check_property(const std::string& entity_type, const std::string& prop) const {
         return direct_property(entity_type, prop) != nullptr;
     }
@@ -251,6 +400,7 @@ private:
     std::unordered_map<std::string, RelationTypeDef> relation_types_;
     std::unordered_map<std::string, std::vector<PropertyDef>> properties_;
     std::unordered_map<std::string, std::unordered_set<std::string>> ancestors_;
+    std::string active_source_;
 };
 
 } // namespace kg

@@ -1,7 +1,7 @@
 # Logovger parallel-session handover
 
-_State captured 2026-08-09 after synchronizing the dedicated hardening
-worktree with local `main`._
+_State captured 2026-08-09 after completing strict ontology registry
+composition in the dedicated hardening worktree._
 
 ## Read this state first
 
@@ -16,7 +16,7 @@ Current local `main`:
 Dedicated hardening work:
 
 - Branch: `codex/logovger-hardening`
-- Commit: `7ec8212a7f5fa40755f3af16504f947c1844b811`
+- Commit before ontology collision hardening: `c564cd8`
 - Worktree: `/Users/luis/Projects/logosphere-logovger-hardening`
 - `main` was merged into this branch at `7ec8212`.
 - Do not edit this worktree from another session.
@@ -62,10 +62,29 @@ The hardening branch adds:
   33-or-higher `Z` and `DM+9` row.
 - `7ec8212`: merged current `main`, retained its expanded verifier
   coverage, and reconciled its loader assumptions with atomic loading.
+- Ontology extension now preflights the whole incoming registry. Exact
+  entity, relation, property, and ancestor duplicates are idempotent.
+  Conflicting definitions throw `OntologyCollision` before any mutation.
+- Collision errors identify the definition and both schema sources.
+  Generated registries preserve each imported definition's `from_schema`
+  provenance.
+- Schema generation rejects repeated global classes, enums, or slots in
+  an import closure before writing outputs. Class-specific reuse must use
+  a class-local attribute.
+- This guard exposed and removed three real global-slot shadows:
+  Logosphere `relation_type`, Cepheus `strength`, and Logogenesis
+  `rock_size`. Imported `Relation.strength` is a float again,
+  `Character.strength` remains an integer, Earth `Rock.rock_size` remains
+  `RockSize`, and `RelationEvent.relation_type` is required.
+- The vendored C++ generator now loads its vendored Jinja templates. The
+  generator dependencies are pinned in `environment.yml`, and CI checks
+  generator contracts plus committed-output drift.
 
-Verification at `7ec8212`:
+Verification after ontology collision hardening:
 
-- Focused Logovger suite: 6 of 6 CTest targets passed.
+- Python generator contracts: 3 of 3 passed.
+- Focused registry tests: 31 assertions passed.
+- Focused Logovger Skills tests: 29 assertions passed.
 - Full headless build: passed.
 - Full run with `CI=1`: 65 of 65 CTest targets passed.
 
@@ -80,30 +99,19 @@ The focused targets were:
 
 ## Ownership boundary between sessions
 
-The hardening session currently owns ontology registry composition. Do
-not modify these files until that step lands or ownership is explicitly
-transferred:
+The hardening session has completed ontology registry composition. Do
+not modify these files until its commit is integrated or ownership is
+explicitly transferred:
 
 - `include/logosphere/kg/ontology_registry.h`
 - `src/kg/kg_module.cpp` and its extension API
 - `scripts/generate_registry.py`
 - generated `*_ontology_registry.cpp` files
-- registry collision and provenance tests
+- registry collision, provenance, and generation tests
 
-The next defect under review is factual: `OntologyRegistry::extend`
-silently overwrites entity and relation definitions, appends duplicate
-properties, and records no source provenance. Generated pack registries
-contain their imported schema closure, so identical duplicates are
-normal while conflicting duplicates must not be silent.
-
-An owner decision is still required between:
-
-1. Atomic extension that treats exact duplicates as idempotent and
-   throws on a conflicting definition, with both sources in the error.
-2. The same collision policy through a mandatory result object rather
-   than an exception.
-
-Do not implement either policy without that decision.
+The owner selected strict atomic exceptions. That decision is now
+implemented and tested. The next owned defect is required-property and
+entity-reference validity at creation and load boundaries.
 
 ## Best orthogonal implementation target
 
@@ -180,8 +188,7 @@ Known risks behind that sequence:
 - Source drift reports but does not fail verification unless the owner
   changes that decision.
 - Do not choose procedure primitives, the referee interruption model,
-  persistence format, registry collision API, or `Character` inheritance
-  without the owner.
+  persistence format, or `Character` inheritance without the owner.
 
 ## Handoff requirements
 

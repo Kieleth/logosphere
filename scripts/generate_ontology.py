@@ -17,7 +17,9 @@ import shutil
 import tempfile
 import yaml
 
-from generate_registry import generate_registry_cpp
+from linkml_runtime.utils.schemaview import SchemaView
+
+from generate_registry import generate_registry_cpp, reject_imported_redefinitions
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_DIR = ROOT / "schema"
@@ -146,6 +148,12 @@ def generate(schema: dict) -> bool:
                 target = dd / dep_src.name
                 if not target.exists() and dep_src.name != yaml_path.name:
                     shutil.copy(dep_src, target)
+
+        try:
+            reject_imported_redefinitions(SchemaView(str(staged)))
+        except ValueError as error:
+            print(f"ERROR: {error}", file=sys.stderr)
+            return False
 
         # 1. Generate type definitions header
         cmd = [

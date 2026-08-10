@@ -46,7 +46,7 @@ void test_create_relation_emits_event() {
             c.event_type = e.event_type;
             if (e.source_entity_id) c.source_entity_id = *e.source_entity_id;
             if (e.target_entity_id) c.target_entity_id = *e.target_entity_id;
-            if (e.relation_type) c.relation_type = *e.relation_type;
+            c.relation_type = e.relation_type;
             captured.push_back(c);
         });
 
@@ -80,7 +80,7 @@ void test_destroy_relation_emits_event() {
             c.event_type = e.event_type;
             if (e.source_entity_id) c.source_entity_id = *e.source_entity_id;
             if (e.target_entity_id) c.target_entity_id = *e.target_entity_id;
-            if (e.relation_type) c.relation_type = *e.relation_type;
+            c.relation_type = e.relation_type;
             captured.push_back(c);
         });
 
@@ -146,7 +146,7 @@ void test_limb_severed_simulation() {
     bus.relations().subscribe(
         [&](const logosphere::ontology::RelationEvent& e) {
             if (e.event_type == "RELATION_REMOVED" &&
-                e.relation_type && *e.relation_type == "HAS_PART") {
+                e.relation_type == "HAS_PART") {
                 limb_lost = true;
                 if (e.target_entity_id) {
                     auto id = static_cast<kg::EntityID>(std::stoul(*e.target_entity_id));

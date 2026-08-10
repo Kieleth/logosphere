@@ -4,6 +4,31 @@ on: [push, pull_request]
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Ontology generation: schema import safety, vendored generator integrity,
+  # and committed-output drift. Uses the same pinned environment developers use.
+  # ---------------------------------------------------------------------------
+  ontology-generation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up generator environment
+        uses: conda-incubator/setup-miniconda@v3
+        with: { environment-file: environment.yml }
+
+      - name: Run generator contract tests
+        run: python -m unittest scripts/test_generate_registry.py
+
+      - name: Regenerate ontology outputs
+        run: python scripts/generate_ontology.py
+
+      - name: Reject generated-output drift
+        run: git diff --exit-code
+
+  # ---------------------------------------------------------------------------
   # Linux: headless-physics profile (core + physics + dynamics + worldgen,
   # no rendering / GLFW / Metal). Builds the solver, gluons, locomotion and
   # runs the physics smoke tests on every PR — the engine's hardest-won

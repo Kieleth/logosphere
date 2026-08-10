@@ -7,6 +7,7 @@ static kg::OntologyRegistry build_registry() {
     kg::OntologyRegistry reg;
 
     // Entity types
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Abdomen", "BodyPart", false);
     reg.addEntityType("Antenna", "BodyPart", false);
     reg.addEntityType("Arm", "BodyPart", false);
@@ -14,7 +15,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("BodyPart", "WorldEntity", true);
     reg.addEntityType("Constraint", "Entity", false);
     reg.addEntityType("Creature", "LivingEntity", true);
+    reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Entity", "", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Floor", "Structure", false);
     reg.addEntityType("FloorChunk", "Floor", false);
     reg.addEntityType("FloorTile", "Floor", false);
@@ -31,7 +34,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Neck", "BodyPart", false);
     reg.addEntityType("ParticleInteractionProfile", "Entity", false);
     reg.addEntityType("PhysicsConstants", "Entity", false);
+    reg.setSource("https://logosphere.dev/predator/schema");
     reg.addEntityType("Predator", "LivingEntity", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("SceneChunk", "WorldEntity", false);
     reg.addEntityType("Segment", "BodyPart", false);
     reg.addEntityType("Shin", "BodyPart", false);
@@ -40,7 +45,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("SystemEntity", "Entity", false);
     reg.addEntityType("Thigh", "BodyPart", false);
     reg.addEntityType("Thorax", "BodyPart", false);
+    reg.setSource("https://logosphere.dev/predator/schema");
     reg.addEntityType("Thorns", "WorldEntity", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Torso", "BodyPart", false);
     reg.addEntityType("TransformationRule", "Entity", false);
     reg.addEntityType("UpperArm", "BodyPart", false);
@@ -57,7 +64,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("BodyPart", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Constraint", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("Creature", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://malleus.dev/schema");
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Floor", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("FloorChunk", {"Bondable", "Describable", "Entity", "Floor", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("FloorTile", {"Bondable", "Describable", "Entity", "Floor", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
@@ -74,7 +83,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Neck", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("ParticleInteractionProfile", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/predator/schema");
     reg.addAncestors("Predator", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("SceneChunk", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Segment", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Shin", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -83,7 +94,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("SystemEntity", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("Thigh", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Thorax", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/predator/schema");
     reg.addAncestors("Thorns", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Torso", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("TransformationRule", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("UpperArm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -98,7 +111,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("DamageEvent", "WorldEvent", false);
     reg.addEntityType("DeathEvent", "WorldEvent", false);
     reg.addEntityType("DiceRollEvent", "WorldEvent", false);
+    reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Event", "", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("PerceptionEvent", "WorldEvent", false);
     reg.addEntityType("RelationEvent", "WorldEvent", false);
     reg.addEntityType("SpawnEvent", "WorldEvent", false);
@@ -120,7 +135,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("SUPPORTS", {"Entity"}, {"Entity"});
 
     // Properties per entity type
+    reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Agent", "agent_type", "string", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("BodyPart", "body_part_name", "string", false);
     reg.addProperty("Bondable", "bond_strength", "float", false, true, 0.0, true, 1000000.0);
     reg.addProperty("CollisionEvent", "collision_force", "float", false);
@@ -142,8 +159,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ContactFilteredEvent", "profile_b", "integer", false);
     reg.addProperty("DamageEvent", "damage_type", "enum", false);
     reg.addProperty("DamageEvent", "damage_amount", "float", false);
+    reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Describable", "description", "string", false);
     reg.addProperty("Describable", "tags", "string", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Destructible", "damage_threshold", "float", false);
     reg.addProperty("Destructible", "modification_state", "enum", false);
     reg.addProperty("DiceRollEvent", "roll_id", "integer", false);
@@ -154,11 +173,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("DiceRollEvent", "roll_purpose", "string", false);
     reg.addProperty("EmitsLight", "emission_strength", "float", false);
     reg.addProperty("EmitsLight", "emission_radius", "float", false);
+    reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Event", "event_type", "string", true);
     reg.addProperty("Event", "occurred_at", "datetime", false);
     reg.addProperty("Event", "started_at", "datetime", false);
     reg.addProperty("Event", "ended_at", "datetime", false);
     reg.addProperty("Event", "caused_by", "string", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Floor", "floor_type", "enum", false);
     reg.addProperty("Floor", "terrain", "enum", false);
     reg.addProperty("Growable", "growth_iteration", "integer", false);
@@ -181,8 +202,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("HasTissue", "nerve_health", "float", false);
     reg.addProperty("HasTissue", "tendon_health", "float", false);
     reg.addProperty("HasTissue", "bone_health", "float", false);
+    reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Identifiable", "id", "string", true);
     reg.addProperty("Identifiable", "name", "string", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("ParticleInteractionProfile", "category_bit", "integer", false);
     reg.addProperty("ParticleInteractionProfile", "collides_with_mask", "integer", false);
     reg.addProperty("ParticleInteractionProfile", "drag_coefficient", "float", false);
@@ -191,14 +214,18 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ParticleInteractionProfile", "field_fy", "float", false);
     reg.addProperty("ParticleInteractionProfile", "field_fz", "float", false);
     reg.addProperty("PerceptionEvent", "memory_layer", "enum", false);
-    reg.addProperty("RelationEvent", "relation_type", "string", false);
+    reg.setSource("https://malleus.dev/schema");
+    reg.addProperty("RelationEvent", "relation_type", "string", true);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Spatial", "position_x", "float", true);
     reg.addProperty("Spatial", "position_y", "float", true);
     reg.addProperty("Spatial", "position_z", "float", true);
     reg.addProperty("Spatial", "facing_angle", "float", false);
+    reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Statusable", "status", "enum", false);
     reg.addProperty("Temporal", "created_at", "datetime", false);
     reg.addProperty("Temporal", "updated_at", "datetime", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("TransformationEvent", "rule_name", "string", false);
     reg.addProperty("TransformationRule", "trigger", "enum", false);
     reg.addProperty("TransformationRule", "condition", "string", false);

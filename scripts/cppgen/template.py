@@ -1,8 +1,9 @@
 """Template models for C++ header code generation."""
 
+from pathlib import Path
 from typing import ClassVar
 
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, FileSystemLoader
 from pydantic import BaseModel, Field, field_validator
 
 from linkml.generators.common.template import (
@@ -22,7 +23,7 @@ class CppTemplateModel(TemplateModel):
 
     template: ClassVar[str]
     _environment: ClassVar[Environment] = Environment(
-        loader=PackageLoader("linkml.generators.cppgen", "templates"),
+        loader=FileSystemLoader(Path(__file__).resolve().parent / "templates"),
         trim_blocks=True,
         lstrip_blocks=True,
     )

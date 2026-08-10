@@ -240,10 +240,15 @@ classes:
       Request for a rock at (x, y). With drop_height it becomes a
       BOULDER FALLING FROM THE SKY: born high, it plummets, and on
       LAYERED ground the impact shoves the topsoil aside.
+    attributes:
+      rock_size:
+        range: float
+        minimum_value: 0.2
+        maximum_value: 6.0
+        description: Rock characteristic size in meters.
     slots:
       - x
       - y
-      - rock_size
       - rock_r
       - rock_g
       - rock_b
@@ -718,11 +723,6 @@ slots:
     minimum_value: 0.0
     maximum_value: 1.0
     description: Blade foliage color, blue channel (0..1).
-  rock_size:
-    range: float
-    minimum_value: 0.2
-    maximum_value: 6.0
-    description: Rock characteristic size in meters.
   cloth_r:
     range: float
     minimum_value: 0.0

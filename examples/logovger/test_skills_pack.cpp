@@ -20,6 +20,7 @@
 #include "logosphere/kg/ontology_validator.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
+#include "generated/cepheus_book1_character_creation_ontology.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 
@@ -28,6 +29,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 static int tests_passed = 0;
@@ -93,6 +95,41 @@ void test_the_vocabulary_is_gated() {
     CHECK(engine_only.createEntity("SkillRating") != kg::INVALID_ENTITY,
           "but SkillRating is engine: the generic GrantSkill handler "
           "must know its shape");
+}
+
+void test_registry_preserves_schema_provenance() {
+    const auto& reg = cepheus_book1_skills::ontology::registry();
+    const auto skill = reg.entityTypes().find("Skill");
+    const auto entity = reg.entityTypes().find("Entity");
+    const auto* cascade = reg.findProperty("Skill", "is_cascade");
+
+    CHECK(skill != reg.entityTypes().end() &&
+              skill->second.source ==
+                  "https://logosphere.dev/logovger/cepheus/book1-skills",
+          "Skill records the Cepheus Skills schema as its source");
+    CHECK(entity != reg.entityTypes().end() &&
+              entity->second.source == "https://malleus.dev/schema",
+          "an imported Entity retains the Malleus schema source");
+    CHECK(cascade && cascade->source ==
+              "https://logosphere.dev/logovger/cepheus/book1-skills",
+          "is_cascade records the schema that declared the slot");
+}
+
+void test_character_slots_do_not_corrupt_imported_types() {
+    using CharacterStrength = decltype(
+        cepheus_book1_character_creation::ontology::Character{}.strength);
+    using RelationStrength = decltype(
+        cepheus_book1_character_creation::ontology::Relation{}.strength);
+    using RelationType = decltype(
+        cepheus_book1_character_creation::ontology::RelationEvent{}
+            .relation_type);
+
+    CHECK((std::is_same_v<CharacterStrength, std::optional<int32_t>>),
+          "Character strength remains the book's bounded integer");
+    CHECK((std::is_same_v<RelationStrength, std::optional<float>>),
+          "Character strength does not replace Malleus relation strength");
+    CHECK((std::is_same_v<RelationType, std::string>),
+          "RelationEvent keeps Malleus's required relation type");
 }
 
 // -------------------------------------------- the cascade tree, cited
@@ -281,6 +318,8 @@ int main() {
     std::cout << "note: [KG] REJECTED lines below are EXPECTED - they "
                  "are the contract." << std::endl;
     test_the_vocabulary_is_gated();
+    test_registry_preserves_schema_provenance();
+    test_character_slots_do_not_corrupt_imported_types();
     test_skills_and_cascades();
     test_a_character_holds_a_skill_through_the_validated_path();
     test_quotes_are_verbatim_in_the_fixed_source();

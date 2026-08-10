@@ -862,14 +862,14 @@ struct Signal : public Identifiable, public Temporal {
 
 /// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
 struct Relation : public Identifiable, public Temporal {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type;
     /// ID of the source entity.
     std::string source_id;
     /// ID of the target entity.
     std::string target_id;
-    /// Str, position 1 of the UPP.
-    std::optional<int32_t> strength = std::nullopt;
+    /// Weight or confidence of the relation (0.0 to 1.0).
+    std::optional<float> strength = std::nullopt;
 };
 
 
@@ -1277,8 +1277,8 @@ struct PerceptionEvent : public WorldEvent {
 
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type;
 };
 
 
@@ -1331,8 +1331,6 @@ struct WorldRelation : public Relation {
 
 /// The book's own word and the book's own concept: seven characteristic scores in fixed order, summarized as a UPP string [srd/cepheus book1/character-creation.md "Characteristics", "The Universal Persona Profile (UPP)"]. This class is the BOOK's; the game's character is Voyager, in the voyager layer, extending this one.
 struct Character : public LivingEntity {
-    /// Str, position 1 of the UPP.
-    std::optional<int32_t> strength = std::nullopt;
     /// Dex, position 2 of the UPP.
     std::optional<int32_t> dexterity = std::nullopt;
     /// End, position 3 of the UPP.
@@ -1353,6 +1351,8 @@ struct Character : public LivingEntity {
     std::optional<int32_t> terms_served = std::nullopt;
     /// Money, in credits, from mustering out onward.
     std::optional<int32_t> credits = std::nullopt;
+    /// Str, position 1 of the UPP.
+    std::optional<int32_t> strength = std::nullopt;
 };
 
 
