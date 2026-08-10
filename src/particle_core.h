@@ -126,13 +126,27 @@ private:
     float mass_ = 0.0f;
 
 public:
-    float material_strength = 100e6f;
+    // Tensile strength in Pa. OrganicGluon turns it into a breaking force as
+    // contact_area x strength, which is a stress criterion — so this field is
+    // the material's tensile strength and nothing else.
+    //
+    // The initialiser is oak's 100 MPa. It is a fallback for a particle that
+    // never declared a material at all, NOT a default anyone should rely on:
+    // SetMaterial overwrites it with the real figure. A stone wall that never
+    // called SetMaterial is ten times too hard to break, and it will look
+    // fine right up until someone leans on it.
+    float material_strength = Materials::GetTensileStrength(Materials::Type::WOOD_HARD);
 
     bool is_sleeping = false;
 
+    // Declaring a material sets everything the material decides: how heavy it
+    // is, and how hard it is to pull apart. Callers that want a different
+    // strength must say so AFTER this call, and the four physics generators
+    // (humanoid, organic, tree, rock) do exactly that.
     void SetMaterial(Materials::Type type) {
         material_type = type;
         material_density = Materials::GetDensity(type);
+        material_strength = Materials::GetTensileStrength(type);
     }
 
     // Friction (Coulomb, combined = min of the two contact friction values).
