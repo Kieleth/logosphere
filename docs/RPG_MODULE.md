@@ -223,7 +223,7 @@ _Last updated 2026-08-09, PR2 built._
 |---|---|---|
 | 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 30/0 (incl. xK multiplier), merged to main (584c3f5) |
 | 2 | rulebook.yaml engine meta-pack: 16 classes incl. Cited mixin, LookupTable/LookupEntry, typed Outcome subclasses, StepRoute; SPECIALIZES in core; dice xK multiplier; typed entity refs in the validator | BUILT, 34/0 (test_rulebook_pack verbatim-checks 28 ch1 instances against the vendored SRD; entity refs class-checked on the ops path) |
-| 3 | cepheus skills pack (Skill + is_cascade, cascades as nested SPECIALIZES; engine SkillRating; 68 instances come later via ops) | BUILT, 19/0 (test_skills_pack; citations verbatim vs the re-vendored fixed SRD) |
+| 3 | cepheus skills pack (Skill + is_cascade, cascades as nested SPECIALIZES; engine SkillRating; 68 instances come later via ops) | BUILT (test_skills_pack; citations verbatim vs the re-vendored fixed SRD) |
 | 4 | The three-check verifier (verbatim / schema / value / invariant) + seed-file grammar ("as" binders, envelope) + the loader that doubles as step 6 | BUILT on feat/seed-verifier (70/0), adversarial-review fixes in progress |
 | 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | pending, needs 3+4 |
 | 6 | Ops loader: seed files -> KG at game start | pending |
