@@ -1793,6 +1793,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c_axis.angular_axis_y = ey * inv_mag;
                     c_axis.angular_axis_z = ez * inv_mag;
                     c_axis.angular_axis_vec_len = 1.0f;  // unit axis
+
                     // Bias drives omega along the axis so the Rodrigues
                     // error is zeroed out after BETA/dt frames. e_mag
                     // is equivalent to theta in the small-angle regime
@@ -1897,6 +1898,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     }
 
     auto t_after_gluons = std::chrono::high_resolution_clock::now();
+    // (authority report emitted after the solve, below)
 
     if (constraints.empty()) return;
 
@@ -2305,6 +2307,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
     }
 
+    // AUTHORITY MEASUREMENT (env AUTHORITY_DEBUG=<particle id>): who owns
+    // this body's orientation? Sum the angular impulse delivered by ANGULAR
+    // DRIVE rows against the torque impulse delivered by LINEAR rows via
+    // their anchor lever arms (r x J). Same units, same substep, same body.
+    static const char* auth_env = std::getenv("AUTHORITY_DEBUG");
+    static const int auth_id = auth_env ? std::atoi(auth_env) : -1;
+    double auth_angular = 0.0, auth_linear = 0.0;
+
     bool solve_exit_recorded = false;   // which door the iteration loop took
 
     // Rows entering the solve, counted ONCE. iterations x rows is the true
@@ -2365,15 +2375,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
                 // Clamp accumulated angular impulse
                 float old_ang = c.accumulated_angular_impulse;
+                const bool auth_hit_ang = auth_id >= 0 &&
+                    ((int)c.body_a == auth_id || (int)c.body_b == auth_id);
                 c.accumulated_angular_impulse = std::max(c.min_angular_impulse,
                                         std::min(c.max_angular_impulse, old_ang + angular_impulse));
                 angular_impulse = c.accumulated_angular_impulse - old_ang;
+                if (auth_hit_ang) {
+                    const float Iq = particles[(size_t)auth_id].GetMomentOfInertia();
+                    const float sgn = ((int)c.body_a == auth_id) ? 1.0f : -1.0f;
+                    if (Iq > 0.0f) auth_angular += sgn * angular_impulse * ax_x / Iq;
+                }
                 max_impulse_this_iter = std::max(max_impulse_this_iter, std::abs(angular_impulse));
 
                 // Apply angular impulse as a vector along the axis.
                 // KINEMATIC-mode particles: external writer controls
                 // rotation, so they absorb no impulse (same principle as
                 // inv_mass=0 for KINEMATIC on the linear side).
+                // THE PIVOT LAW is DIAGNOSED but not yet shippable here: see
+                // the pivot_inertia_* comment in physics_solver.h. Applying
+                // it through independent scalar rows (this formulation) broke
+                // the cancellation but went unstable (blade tore, 99.6 m/s):
+                // the reciprocal couplings — force-at-anchor makes torque,
+                // torque-at-anchor makes motion — need ONE row carrying a
+                // full Jacobian, not two rows correcting each other.
                 float I_a = pa.GetMomentOfInertia();
                 float I_b = pb.GetMomentOfInertia();
 
@@ -2530,6 +2554,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // changes behavior.
             if (c.apply_anchor_torque && std::fabs(impulse) > 1e-12f) {
                 const float fx = c.jx * impulse, fy = c.jy * impulse, fz = c.jz * impulse;
+                if (auth_id >= 0) {
+                    const float Iq = particles[(size_t)auth_id].GetMomentOfInertia();
+                    if (Iq > 0.0f && (int)c.body_a == auth_id) {
+                        auth_linear += (c.anchor_ray * fz - c.anchor_raz * fy) / Iq;
+                    } else if (Iq > 0.0f && (int)c.body_b == auth_id) {
+                        auth_linear -= (c.anchor_rby * fz - c.anchor_rbz * fy) / Iq;
+                    }
+                }
                 // Rotation-from-physics is for PHYSICS-owNED bodies only:
                 // animation's quat-driven bones belong to FK, and torquing
                 // them spun 20 of the human's 30 particles at 10 rad/s
@@ -2978,6 +3010,33 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     }
 
     // ========================================================================
+    // STATE TRACE: omega + orientation at the two moments that matter.
+    if (auth_id >= 0 && auth_id < (int)particles.size()) {
+        static int st_n = 0;
+        if ((st_n++ % 240) == 0) {
+            const Particle& t = particles[auth_id];
+            printf("[STATE P%d post-solve]  omega(%.3f,%.3f,%.3f)  "
+                   "euler(%.2f,%.2f,%.2f)  q(%.3f,%.3f,%.3f,%.3f) qd%d rest%d\n",
+                   auth_id, t.omega_x, t.omega_y, t.omega_z,
+                   t.rotation_x, t.rotation_y, t.rotation_z,
+                   t.rotation_q.w, t.rotation_q.x, t.rotation_q.y, t.rotation_q.z,
+                   (int)t.is_quat_driven, (int)t.is_at_rest);
+        }
+    }
+
+    // AUTHORITY REPORT: the measurement that settles who owns orientation.
+    if (auth_id >= 0 && (auth_angular > 0.0 || auth_linear > 0.0)) {
+        static int auth_n = 0;
+        if ((auth_n++ % 240) == 0) {
+            const double tot = auth_angular + auth_linear;
+            printf("[AUTHORITY P%d] SIGNED d(omega_x): angular-drive %+.4f  "
+                   "linear-anchor %+.4f  NET %+.4f rad/s per solve  (I=%.2e)\n",
+                   auth_id, auth_angular, auth_linear, auth_angular + auth_linear,
+                   particles[(size_t)auth_id].GetMomentOfInertia());
+            (void)tot;
+        }
+    }
+
     // GLUON BREAKING CHECK
     // ========================================================================
     /**
@@ -3603,6 +3662,18 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         // quaternion view.
         if (p.is_quat_driven) {
             p.rotation_q.to_euler_zyx(p.rotation_x, p.rotation_y, p.rotation_z);
+        }
+
+        static const char* st_env = std::getenv("AUTHORITY_DEBUG");
+        static const int st_id = st_env ? std::atoi(st_env) : -1;
+        if ((int)i == st_id) {
+            static int sn = 0;
+            if ((sn++ % 240) == 0)
+                printf("[STATE P%d post-integ] omega(%.3f,%.3f,%.3f)  "
+                       "euler(%.2f,%.2f,%.2f)  q(%.3f,%.3f,%.3f,%.3f)\n",
+                       st_id, p.omega_x, p.omega_y, p.omega_z,
+                       p.rotation_x, p.rotation_y, p.rotation_z,
+                       p.rotation_q.w, p.rotation_q.x, p.rotation_q.y, p.rotation_q.z);
         }
     }
 }

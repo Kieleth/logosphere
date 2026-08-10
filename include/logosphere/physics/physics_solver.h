@@ -281,6 +281,19 @@ struct Constraint {
     // from linear force to rotation. Without it a pushed chain can only
     // shear: nothing in the solver converted force into spin.
     bool  apply_anchor_torque = false;
+    // THE PIVOT LAW. A body constrained at an anchor rotates ABOUT THAT
+    // ANCHOR, not about its centre. Two consequences, both encoded:
+    //   (1) the row's inertia is the anchor-axis inertia (parallel axis
+    //       theorem: I_com + m * r_perp^2), stored here per body;
+    //   (2) an angular impulse must carry dv = -(dw x r) so the anchor
+    //       point does not move (applied in the angular solve).
+    // Without (2), the drive rotated about the centre, which displaced the
+    // anchor, which the anchor rows immediately undid: measured +3.3 rad/s
+    // of drive against -3.3 rad/s of anchor correction, net 0.001, forever
+    // (the blade that would not stand up). Pure mechanics: no ownership, no
+    // material type, no gravity direction.
+    float pivot_inertia_a = 0.0f;   // 0 = no anchor, use centre inertia
+    float pivot_inertia_b = 0.0f;
     float anchor_rax = 0.0f, anchor_ray = 0.0f, anchor_raz = 0.0f;
     float anchor_rbx = 0.0f, anchor_rby = 0.0f, anchor_rbz = 0.0f;
 
