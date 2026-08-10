@@ -874,6 +874,17 @@ Rung rung4(Engine& engine) {
     int swings[4] = {0,0,0,0};
     float prev_vy[4] = {0,0,0,0};
     float mid_tip[4] = {0,0,0,0};
+    // EQUILIBRIUM WATCH (owner: 'that one keeps pulsating, never arriving to
+    // rest'). Per nature: the frame after which every segment stays quiet
+    // for a full second, and if that never happens, the residual amplitude
+    // it is still oscillating with over the final second.
+    int  eq_frame[4] = {-1,-1,-1,-1};
+    int  quiet_run[4] = {0,0,0,0};
+    float late_min[4] = {1e9f,1e9f,1e9f,1e9f};
+    float late_max[4] = {-1e9f,-1e9f,-1e9f,-1e9f};
+    float last_speed[4] = {0,0,0,0};
+    constexpr float QUIET = 0.02f;      // m/s and rad/s
+    constexpr int   QUIET_FRAMES = 60;  // one second
     for (int f = 0; f < 600 && engine.is_running(); ++f) {
         step(engine);
         auto v = ps.lock_particles_for_write();
@@ -884,6 +895,30 @@ Rung rung4(Engine& engine) {
             if (f == 150)
                 mid_tip[k] = dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
                                    xs[k], tip_y0[k], tip_z0[k]);
+
+            // quietest-of-all-segments speed for this nature
+            float worst = 0.0f;
+            for (int j = 0; j < 3; ++j) {
+                const Particle& p = v[seg[k][j]];
+                worst = std::fmax(worst, std::sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz));
+                worst = std::fmax(worst, std::sqrt(p.omega_x*p.omega_x +
+                                                   p.omega_y*p.omega_y +
+                                                   p.omega_z*p.omega_z));
+            }
+            last_speed[k] = worst;
+            if (worst < QUIET) {
+                if (++quiet_run[k] >= QUIET_FRAMES && eq_frame[k] < 0)
+                    eq_frame[k] = f - QUIET_FRAMES;
+            } else {
+                quiet_run[k] = 0;
+                if (eq_frame[k] >= 0) eq_frame[k] = -2;   // woke again: not settled
+            }
+            if (f >= 540) {   // final second: residual amplitude
+                const float td = dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
+                                       xs[k], tip_y0[k], tip_z0[k]);
+                late_min[k] = std::fmin(late_min[k], td);
+                late_max[k] = std::fmax(late_max[k], td);
+            }
         }
         if (g_live && (f % 10) == 0) {
             char buf[288];
@@ -966,6 +1001,73 @@ Rung rung4(Engine& engine) {
         for (int j = 0; j < 3; ++j) add_edges(seg[k][j]);
         alive[k] = edges.size();
     }
+    // LONG WATCH: the owner watches during the HOLD, after the measurement
+    // window closes. Anything that wakes a settled totem later shows here.
+    {
+        int woke[4] = {0,0,0,0};
+        // PER SEGMENT over time (a bent chain has different angles per
+        // segment; mixing that spread with temporal jitter measures nothing).
+        float ex_min[4][3], ex_max[4][3];
+        for (int a = 0; a < 4; ++a)
+            for (int b = 0; b < 3; ++b) { ex_min[a][b] = 1e9f; ex_max[a][b] = -1e9f; }
+        float worst_late[4] = {0,0,0,0};
+        float amp_min[4] = {1e9f,1e9f,1e9f,1e9f}, amp_max[4] = {-1e9f,-1e9f,-1e9f,-1e9f};
+        for (int f = 0; f < 1200 && engine.is_running(); ++f) {
+            step(engine);
+            auto v = ps.lock_particles_for_write();
+            for (int k = 0; k < 4; ++k) {
+                float worst = 0.0f;
+                for (int j = 0; j < 3; ++j) {
+                    const Particle& p = v[seg[k][j]];
+                    worst = std::fmax(worst, std::sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz));
+                    worst = std::fmax(worst, std::sqrt(p.omega_x*p.omega_x +
+                                                       p.omega_y*p.omega_y +
+                                                       p.omega_z*p.omega_z));
+                }
+                if (worst > 0.02f) woke[k]++;
+                // The body can be still while its RENDERED orientation
+                // flickers: quaternion-to-Euler extraction is singular at
+                // +/-90 deg of pitch, and a bent totem sits exactly there.
+                // Track Euler jitter independently of motion.
+                for (int j = 0; j < 3; ++j) {
+                    const Particle& p = v[seg[k][j]];
+                    ex_min[k][j] = std::fmin(ex_min[k][j], p.rotation_x);
+                    ex_max[k][j] = std::fmax(ex_max[k][j], p.rotation_x);
+                }
+                worst_late[k] = std::fmax(worst_late[k], worst);
+                const float td = dist3(v[seg[k][2]].x, v[seg[k][2]].y, v[seg[k][2]].z,
+                                       xs[k], tip_y0[k], tip_z0[k]);
+                amp_min[k] = std::fmin(amp_min[k], td);
+                amp_max[k] = std::fmax(amp_max[k], td);
+            }
+        }
+        printf("\n      LONG WATCH, 1200 frames after settling (the hold phase)\n");
+        printf("      %-10s %12s %14s %12s\n", "nature", "awake_frames",
+               "swing_mm", "worst_speed");
+        for (int k = 0; k < 4; ++k) {
+            float worst_jit = 0.0f;
+            for (int j = 0; j < 3; ++j)
+                worst_jit = std::fmax(worst_jit, (ex_max[k][j] - ex_min[k][j]) * 57.3f);
+            printf("      %-10s %12d %14.1f %12.3f  pose jitter %6.2f deg%s\n",
+                   specs[k].tag, woke[k], (amp_max[k] - amp_min[k]) * 1000.0f,
+                   worst_late[k], worst_jit,
+                   worst_jit > 1.0f ? "   *** RENDERED POSE FLICKERS ***" : "");
+        }
+    }
+
+    printf("\n      EQUILIBRIUM WATCH (quiet = every segment under %.2f m/s and rad/s)\n",
+           QUIET);
+    printf("      %-10s %12s %14s %12s\n", "nature", "settled_at",
+           "residual_mm", "speed_now");
+    for (int k = 0; k < 4; ++k) {
+        char when[32];
+        if (eq_frame[k] >= 0) snprintf(when, sizeof when, "f%d", eq_frame[k]);
+        else if (eq_frame[k] == -2) snprintf(when, sizeof when, "SETTLED THEN WOKE");
+        else snprintf(when, sizeof when, "*** NEVER ***");
+        printf("      %-10s %12s %14.1f %12.3f\n", specs[k].tag, when,
+               (late_max[k] - late_min[k]) * 1000.0f, last_speed[k]);
+    }
+
     printf("      nature      peak_tip  mid_tip  final_tip  swings  bonds(of 3)\n");
     for (int k = 0; k < 4; ++k)
         printf("      %-10s %8.2f %8.2f %10.2f %7d %8zu%s\n",
@@ -1005,7 +1107,47 @@ Rung rung4(Engine& engine) {
                  fin[0], fin[1], fin[2], fin[3]);
         g_label->set_text(buf);
     }
-    hold_until_close(engine);
+    // LIVE EQUILIBRIUM READOUT during the hold: the owner reports pulsing
+    // that headless cannot reproduce (0.00 deg jitter, 0.000 m/s over 1200
+    // frames after settling). So the instrument goes where the phenomenon
+    // is: on screen, while they watch. If physics is truly still, this line
+    // reads zeros and the pulsing is in the rendering, not the world.
+    if (g_interactive && !g_autopilot) {
+        float prev_x[4][3] = {};
+        bool first = true;
+        while (engine.is_running()) {
+            if (engine.get_input_system().get_input_state().keys[GLFW_KEY_ESCAPE]) break;
+            step(engine);
+            auto v = ps.lock_particles_for_write();
+            float worst_v = 0.0f, worst_jit = 0.0f;
+            const char* who_v = "-"; const char* who_j = "-";
+            for (int k = 0; k < 4; ++k)
+                for (int j = 0; j < 3; ++j) {
+                    const Particle& p = v[seg[k][j]];
+                    const float sp = std::sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+                    if (sp > worst_v) { worst_v = sp; who_v = specs[k].tag; }
+                    if (!first) {
+                        const float d = std::fabs(p.rotation_x - prev_x[k][j]) * 57.3f;
+                        if (d > worst_jit) { worst_jit = d; who_j = specs[k].tag; }
+                    }
+                    prev_x[k][j] = p.rotation_x;
+                }
+            first = false;
+            if (g_live) {
+                char buf[256];
+                snprintf(buf, sizeof buf,
+                         "EQUILIBRIUM  worst speed %.4f m/s (%s)   pose change "
+                         "%.3f deg/frame (%s)   %s",
+                         worst_v, who_v, worst_jit, who_j,
+                         (worst_v < 0.001f && worst_jit < 0.01f)
+                             ? "AT REST (any pulsing you see is rendering)"
+                             : "STILL MOVING");
+                g_live->set_text(buf);
+            }
+        }
+    } else {
+        hold_until_close(engine);
+    }
     return r;
 }
 
