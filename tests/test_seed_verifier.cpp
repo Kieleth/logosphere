@@ -517,6 +517,7 @@ void test_band_shapes_the_book_actually_prints() {
         "book1/personal-combat.md",
         R"({"op":"create_entity","type":"TableEntry","as":"@vd",
             "properties":{"name":"vd_1_3","roll_min":1,"roll_max":3,
+              "source_section":"Vehicle Damage",
               "source_quote":"| 1–3 | Single Hit |"}})");
     auto r1 = kg::verify_seed(en_dash, kSourceRoot, engine_registry());
     for (const auto& v : r1.violations)
@@ -533,6 +534,7 @@ void test_band_shapes_the_book_actually_prints() {
         R"({"op":"create_entity","type":"TableEntry","as":"@aging",
             "properties":{"name":"aging_minus_6","roll_min":-6,
               "roll_max":-6,
+              "source_section":"Aging",
               "source_quote":"| \\-6 | Reduce three physical characteristics by 2, reduce one mental characteristic by 1 |"}})");
     auto r2 = kg::verify_seed(escaped, kSourceRoot, engine_registry());
     for (const auto& v : r2.violations)
@@ -609,6 +611,30 @@ void test_per_entity_source_file_is_honored() {
     CHECK(!report.ok(), "a quote checked against the wrong file fails");
     CHECK(reason_contains(report, "verbatim", "book1/character-creation.md"),
           "and the reason names the file it was checked against");
+}
+
+void test_missing_source_section_fails_citation() {
+    kg::SeedEnvelope seed = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"RuleConstant","as":"@age",
+            "properties":{"name":"age","constant_value":18,
+              "source_quote":"All characters begin at the age of majority, typically 18."}})");
+    const auto report = kg::verify_seed(seed, kSourceRoot,
+                                        engine_registry());
+    CHECK(!report.ok(), "a cited entity without a source section fails");
+    CHECK(reason_contains(report, "verbatim", "source_section"),
+          "and the citation error names the missing source_section");
+}
+
+void test_wrong_source_section_fails_citation() {
+    kg::SeedEnvelope seed = parse_fixture();
+    CHECK(set_prop(seed, "age_of_majority", "source_section", "Survival"),
+          "mutation applied (real quote assigned to the wrong section)");
+    const auto report = kg::verify_seed(seed, kSourceRoot,
+                                        engine_registry());
+    CHECK(!report.ok(), "a real quote under the wrong heading fails");
+    CHECK(reason_contains(report, "verbatim", "nearest heading"),
+          "and the citation error explains the section mismatch");
 }
 
 // The Cited contract: a type that declares source_quote must carry
@@ -714,6 +740,7 @@ void test_value_must_equal_a_whole_number_token() {
         "book1/character-creation.md",
         R"({"op":"create_entity","type":"TaskCheck","as":"@t",
             "properties":{"name":"bogus","target_number":5,
+              "source_section":"Careers",
               "source_quote":"A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."}})");
     auto r_wrong = kg::verify_seed(wrong, kSourceRoot, engine_registry());
     CHECK(!r_wrong.ok(), "5 does not pass on a quote that only says 8");
@@ -725,6 +752,7 @@ void test_value_must_equal_a_whole_number_token() {
         "book1/character-creation.md",
         R"({"op":"create_entity","type":"TaskCheck","as":"@t",
             "properties":{"name":"real","target_number":8,
+              "source_section":"Careers",
               "source_quote":"A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."}})");
     auto r_right = kg::verify_seed(right, kSourceRoot, engine_registry());
     for (const auto& v : r_right.violations)
@@ -737,6 +765,7 @@ void test_value_must_equal_a_whole_number_token() {
         "book1/character-creation.md",
         R"({"op":"create_entity","type":"GainMoney","as":"@debt",
             "properties":{"name":"legal_debt","amount":-10000,
+              "source_section":"Survival",
               "source_quote":"| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"}})");
     auto r_comma = kg::verify_seed(comma, kSourceRoot, engine_registry());
     for (const auto& v : r_comma.violations)
@@ -745,6 +774,64 @@ void test_value_must_equal_a_whole_number_token() {
     CHECK(r_comma.ok(),
           "10000 matches the book's 'Cr10,000' - commas inside a number "
           "token are absorbed, and the sign is dropped");
+}
+
+void test_dice_fields_must_match_the_same_quoted_expression() {
+    kg::SeedEnvelope seed = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"DiceExpression","as":"@swapped",
+            "properties":{"name":"swapped_2d6","dice_count":6,
+              "dice_sides":2,
+              "source_section":"Generating Characteristic Scores",
+              "source_quote":"Roll your six characteristics using 2D6, and record them in the standard order"}})");
+    const auto report = kg::verify_seed(seed, kSourceRoot,
+                                        engine_registry());
+    CHECK(!report.ok(), "6D2 cannot pass against a quote that says 2D6");
+    CHECK(reason_contains(report, "value", "quoted dice expression"),
+          "and VALUE reports a field-bound dice mismatch");
+
+    kg::SeedEnvelope multiplied = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"DiceExpression","as":"@medical",
+            "properties":{"name":"medical_cost","dice_count":1,
+              "dice_sides":6,"dice_multiplier":10000,
+              "source_section":"Aging Crisis",
+              "source_quote":"he can pay 1D6×10,000 Credits for medical care"}})");
+    const auto multiplied_report = kg::verify_seed(
+        multiplied, kSourceRoot, engine_registry());
+    CHECK(multiplied_report.ok(),
+          "1D6x10000 matches the book's multiplied dice expression");
+
+    kg::SeedEnvelope en_dash_modifier = mini_seed(
+        "book3/environments-and-hazards.md",
+        R"({"op":"create_entity","type":"DiceExpression","as":"@duration",
+            "properties":{"name":"regina_flu_duration","dice_count":1,
+              "dice_sides":6,"dice_modifier":-2,
+              "source_section":"Diseases",
+              "source_quote":"| Regina Flu | +1 | 1D6–2 | 1D6 days |"}})");
+    const auto en_dash_report = kg::verify_seed(
+        en_dash_modifier, kSourceRoot, engine_registry());
+    CHECK(en_dash_report.ok(),
+          "1D6-2 matches the book's en-dash modifier notation");
+
+    kg::SeedEnvelope oversized = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"DiceExpression","as":"@huge",
+            "properties":{"name":"oversized_modifier","dice_count":2,
+              "dice_sides":6,"dice_modifier":2147483648,
+              "source_section":"Generating Characteristic Scores",
+              "source_quote":"Roll your six characteristics using 2D6, and record them in the standard order"}})");
+    bool threw = false;
+    kg::SeedVerifyReport oversized_report;
+    try {
+        oversized_report = kg::verify_seed(
+            oversized, kSourceRoot, engine_registry());
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    CHECK(!threw, "an oversized dice field produces a report, not an exception");
+    CHECK(!oversized_report.ok(),
+          "an oversized dice field fails verification");
 }
 
 void test_band_mismatch_fails_value() {
@@ -861,6 +948,7 @@ void test_missing_source_commit_file_has_no_opinion() {
         "book1/character-creation.md",
         R"({"op":"create_entity","type":"RuleConstant","as":"@c",
             "properties":{"name":"age","constant_value":18,
+              "source_section":"Chapter 1: Character Creation",
               "source_quote":"All characters begin at the age of majority, typically 18."}})");
     const std::string sub_root =
         std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/srd";
@@ -913,6 +1001,8 @@ int main() {
     test_quote_rewritten_by_set_property_is_still_checked();
     test_rewritten_quote_that_is_real_passes();
     test_per_entity_source_file_is_honored();
+    test_missing_source_section_fails_citation();
+    test_wrong_source_section_fails_citation();
     test_uncited_entity_of_a_cited_type_fails();
     test_type_without_the_slot_is_exempt();
     test_path_traversal_is_refused();
@@ -920,6 +1010,7 @@ int main() {
     test_wrong_class_ref_fails_schema();
     test_wrong_digits_fail_value();
     test_value_must_equal_a_whole_number_token();
+    test_dice_fields_must_match_the_same_quoted_expression();
     test_band_mismatch_fails_value();
     test_count_mismatch_fails_invariant();
     test_band_gap_fails_invariant();

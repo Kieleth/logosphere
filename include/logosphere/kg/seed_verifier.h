@@ -24,6 +24,9 @@
 //              normalization: the SRD has en dashes and
 //              multiplication signs, and byte-exact is the
 //              discipline. A hallucinated quote matches nothing.
+//              source_section is required on every cited entity and
+//              must equal the nearest Markdown heading above at least
+//              one exact occurrence of the quote.
 //              An entity whose TYPE declares source_quote (the
 //              Cited contract) but whose loaded state has none is
 //              an uncited-ingested-entity violation; types without
@@ -38,7 +41,9 @@
 //              "| 3 |", "| 3-5 |", "| 3–5 |" (en dash),
 //              "| 0 through 2 |", markdown-escaped negatives
 //              ("| \-6 |"). A hallucinated number matches nothing
-//              either.
+//              either. DiceExpression fields must jointly match one
+//              dice expression in the quote, so 6D2 cannot pass on
+//              the separate number tokens in "2D6".
 //   INVARIANT  the envelope's assertions hold: count_of_type,
 //              unique_name_per_type (every instance of a listed
 //              type carries a distinct non-empty name, read from

@@ -1,5 +1,6 @@
 #include "logosphere/kg/seed_verifier.h"
 
+#include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 
@@ -42,6 +43,51 @@ std::string preview(const std::string& s, size_t n = 48) {
     return s.size() <= n ? s : s.substr(0, n) + "...";
 }
 
+std::string nearest_markdown_heading(const std::string& text,
+                                     size_t position) {
+    std::string nearest;
+    size_t line_start = 0;
+    while (line_start <= position && line_start < text.size()) {
+        const size_t line_end = text.find('\n', line_start);
+        const size_t length =
+            (line_end == std::string::npos ? text.size() : line_end) -
+            line_start;
+        const std::string line = text.substr(line_start, length);
+        size_t hashes = 0;
+        while (hashes < line.size() && hashes < 6 &&
+               line[hashes] == '#') {
+            ++hashes;
+        }
+        if (hashes > 0 && hashes < line.size() && line[hashes] == ' ') {
+            nearest = trim(line.substr(hashes + 1));
+            const size_t closing = nearest.find_last_not_of('#');
+            if (closing != std::string::npos && closing + 1 < nearest.size() &&
+                nearest[closing] == ' ') {
+                nearest.erase(closing);
+            }
+            nearest = trim(nearest);
+        }
+        if (line_end == std::string::npos) break;
+        line_start = line_end + 1;
+    }
+    return nearest;
+}
+
+bool quote_occurs_in_section(const std::string& text,
+                             const std::string& quote,
+                             const std::string& section,
+                             std::string& actual_section) {
+    size_t position = text.find(quote);
+    while (position != std::string::npos) {
+        const std::string heading =
+            nearest_markdown_heading(text, position);
+        if (actual_section.empty()) actual_section = heading;
+        if (heading == section) return true;
+        position = text.find(quote, position + 1);
+    }
+    return false;
+}
+
 // Number tokens of a quote: maximal digit runs, with thousands-
 // commas inside a run absorbed ("10,000" tokenizes as "10000").
 // The VALUE check requires a slot's absolute digit string to EQUAL
@@ -69,6 +115,101 @@ std::vector<std::string> number_tokens(const std::string& q) {
         out.push_back(std::move(tok));
     }
     return out;
+}
+
+std::vector<logosphere::dice::DiceExpression> dice_expressions(
+    const std::string& quote) {
+    std::vector<logosphere::dice::DiceExpression> out;
+    for (size_t d = 0; d < quote.size(); ++d) {
+        if (quote[d] != 'D' && quote[d] != 'd') continue;
+
+        size_t count_start = d;
+        while (count_start > 0 &&
+               std::isdigit(static_cast<unsigned char>(
+                   quote[count_start - 1]))) {
+            --count_start;
+        }
+        if (count_start > 0 && std::isalnum(static_cast<unsigned char>(
+                                   quote[count_start - 1]))) {
+            continue;
+        }
+
+        size_t end = d + 1;
+        const size_t sides_start = end;
+        while (end < quote.size() &&
+               std::isdigit(static_cast<unsigned char>(quote[end]))) {
+            ++end;
+        }
+        if (end == sides_start) continue;
+
+        std::string expression =
+            (count_start == d ? "1" : quote.substr(count_start,
+                                                     d - count_start)) +
+            "D" + quote.substr(sides_start, end - sides_start);
+
+        char modifier_sign = '\0';
+        size_t modifier_size = 0;
+        if (end < quote.size() &&
+            (quote[end] == '+' || quote[end] == '-')) {
+            modifier_sign = quote[end];
+            modifier_size = 1;
+        } else if (quote.compare(end, 3, "\xE2\x80\x93") == 0) {
+            modifier_sign = '-';
+            modifier_size = 3;
+        }
+        if (modifier_size > 0) {
+            end += modifier_size;
+            const size_t digits_start = end;
+            while (end < quote.size() &&
+                   std::isdigit(static_cast<unsigned char>(quote[end]))) {
+                ++end;
+            }
+            if (end == digits_start) continue;
+            expression += modifier_sign;
+            expression += quote.substr(digits_start, end - digits_start);
+        }
+
+        size_t multiplier = end;
+        while (multiplier < quote.size() && quote[multiplier] == ' ') {
+            ++multiplier;
+        }
+        size_t marker_size = 0;
+        if (multiplier < quote.size() &&
+            (quote[multiplier] == 'x' || quote[multiplier] == 'X')) {
+            marker_size = 1;
+        } else if (quote.compare(multiplier, 2, "\xC3\x97") == 0) {
+            marker_size = 2;
+        }
+        if (marker_size > 0) {
+            size_t value = multiplier + marker_size;
+            while (value < quote.size() && quote[value] == ' ') ++value;
+            std::string digits;
+            while (value < quote.size()) {
+                if (std::isdigit(static_cast<unsigned char>(quote[value]))) {
+                    digits += quote[value++];
+                } else if (quote[value] == ',' && value + 1 < quote.size() &&
+                           std::isdigit(static_cast<unsigned char>(
+                               quote[value + 1]))) {
+                    ++value;
+                } else {
+                    break;
+                }
+            }
+            if (!digits.empty()) expression += "x" + digits;
+        }
+
+        logosphere::dice::DiceExpression parsed;
+        if (logosphere::dice::DiceExpression::parse(expression, parsed)) {
+            out.push_back(parsed);
+        }
+    }
+    return out;
+}
+
+std::string dice_field(const KGModule& world, EntityID id, const char* key,
+                       const char* fallback) {
+    const std::string value = world.getProperty(id, key);
+    return value.empty() ? fallback : value;
 }
 
 // Parse the leading markdown cell of a table-row quote into a band,
@@ -258,6 +399,23 @@ struct Checker {
                 violate("verbatim", static_cast<int>(i), alias,
                         "source_quote is not a byte-exact substring of " +
                         rel + ": \"" + preview(quote) + "\"");
+                continue;
+            }
+            const std::string section =
+                world.getProperty(id, "source_section");
+            if (section.empty()) {
+                violate("verbatim", static_cast<int>(i), alias,
+                        "cited entity has no source_section");
+                continue;
+            }
+            std::string actual_section;
+            if (!quote_occurs_in_section(*text, quote, section,
+                                         actual_section)) {
+                violate("verbatim", static_cast<int>(i), alias,
+                        "source_section '" + section +
+                        "' is not the nearest heading for any matching "
+                        "quote in " + rel + "; nearest heading is '" +
+                        actual_section + "'");
             }
         }
     }
@@ -297,6 +455,52 @@ struct Checker {
                             ": digits '" + digits + "' equal no number "
                             "token of the entity's quote \"" +
                             preview(quote) + "\"");
+                }
+            }
+
+            if (type == "DiceExpression" ||
+                ont.isSubtypeOf(type, "DiceExpression")) {
+                const std::string count =
+                    dice_field(world, id, "dice_count", "0");
+                const std::string sides =
+                    dice_field(world, id, "dice_sides", "0");
+                const std::string modifier =
+                    dice_field(world, id, "dice_modifier", "0");
+                const std::string multiplier =
+                    dice_field(world, id, "dice_multiplier", "1");
+                std::string stored_text = count + "D" + sides;
+                if (modifier != "0") {
+                    if (modifier[0] != '+' && modifier[0] != '-') {
+                        stored_text += "+";
+                    }
+                    stored_text += modifier;
+                }
+                if (multiplier != "1") {
+                    stored_text += "x" + multiplier;
+                }
+                logosphere::dice::DiceExpression stored;
+                if (!logosphere::dice::DiceExpression::parse(stored_text,
+                                                              stored)) {
+                    violate("value", static_cast<int>(i), alias,
+                            type + " stores invalid engine dice expression '" +
+                            stored_text + "'");
+                } else {
+                    const auto quoted = dice_expressions(quote);
+                    const bool matched = std::any_of(
+                        quoted.begin(), quoted.end(),
+                        [&](const auto& candidate) {
+                            return candidate.count == stored.count &&
+                                   candidate.sides == stored.sides &&
+                                   candidate.modifier == stored.modifier &&
+                                   candidate.multiplier == stored.multiplier;
+                        });
+                    if (!matched) {
+                        violate(
+                            "value", static_cast<int>(i), alias,
+                            type + " stores " + stored.to_string() +
+                                ", which matches no quoted dice expression "
+                                "in \"" + preview(quote) + "\"");
+                    }
                 }
             }
 

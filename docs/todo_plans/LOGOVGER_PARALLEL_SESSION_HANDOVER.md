@@ -91,13 +91,18 @@ The hardening branch adds:
   reference targets at generation, KG construction, and atomic extension
   boundaries. The guard exposed and corrected a stale test ontology that
   referenced a nonexistent core `Plant` type.
+- Cited seed entities require a `source_section`, and that section must be
+  the nearest Markdown heading above an exact occurrence of the quote.
+- `DiceExpression` fields match one quoted dice expression as a tuple.
+  Swapped `6D2` fields no longer pass against separate `2D6` number tokens;
+  the book's `1D6×10,000` and `1D6–2` forms are covered.
 
 Verification after required-property and reference-integrity hardening:
 
 - Python generator contracts: 3 of 3 passed.
 - Focused registry tests: 40 assertions passed.
 - Focused ontology validator tests: 27 tests passed.
-- Focused seed-verifier tests: 166 assertions passed.
+- Focused seed-verifier tests: 184 assertions passed.
 - Full headless build: passed.
 - Full run with `CI=1`: 65 of 65 CTest targets passed.
 
@@ -127,8 +132,9 @@ explicitly transferred:
 
 The owner selected strict atomic exceptions. That decision and the
 required-property and entity-reference integrity step are implemented and
-tested. The next owned defect is verifier completion across values,
-citations, and semantic completeness.
+tested. Citation headings and dice-field provenance are also implemented.
+The next owned defect is semantic completeness, starting with table
+outcomes. That step needs the owner decision described below.
 
 ## Best orthogonal implementation target
 
@@ -187,6 +193,10 @@ Known risks behind that sequence:
   declares several semantically necessary fields optional. For example,
   `TableEntry.outcome` is optional and the current character-creation
   fixture omits it, so those rows are cited but not executable.
+- The current row shape carries one `outcome`, while real rows can combine
+  consequences. Mishap row 3 both discharges the character and creates a
+  Cr10,000 debt. The current typed outcome vocabulary represents the debt
+  but not discharge, and has no composition shape.
 - Genuine quotes can contain several numbers, so ordinary values still
   lack field-level provenance.
 - `Character` currently inherits the engine's physical living ontology,
