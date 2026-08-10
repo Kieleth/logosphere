@@ -1,14 +1,19 @@
-// The cepheus skills pack: the book's open skill vocabulary as data.
+// The cepheus skills pack: the book's open skill vocabulary as data,
+// loaded the way the game will actually load it.
 //
 // Design under test: docs/RPG_MODULE.md step 3. The book keeps the
 // skill list open ("Referees may add other skills as needed"), so
 // Skill is a CLASS and the skills are KG instances; cascades are
 // SPECIALIZES relations forming a tree (the book nests them two
 // deep); a held level is the engine's SkillRating, attached with
-// HAS_PART and written through the validated path. Every citation
-// string-matches the vendored SRD, which on this branch is the
-// fork's FIXED text: the Slug Rifle table row and the Sciences
-// sentence are asserted as re-vendor tripwires.
+// HAS_PART and written through the validated path.
+//
+// The instances come from seeds/cepheus_book1_skills.json through
+// parse_seed_envelope -> verify_seed -> load_seed: the same pipeline
+// step 5's extraction will emit into and step 6 loads at game start.
+// Nothing here writes a Skill by hand. That is the point: a test
+// that builds its facts with trusted direct writes proves the test,
+// not the pipeline.
 //
 // Usage:
 //   ./build/test_skills_pack
@@ -18,14 +23,16 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_ops.h"
 #include "logosphere/kg/ontology_validator.h"
+#include "logosphere/kg/seed_loader.h"
+#include "logosphere/kg/seed_verifier.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 
-#include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <cstring>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,9 +51,12 @@ namespace {
 
 const char* kSkillsFile = "book1/skills.md";
 
+std::string game_path(const std::string& rel) {
+    return std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/" + rel;
+}
+std::string source_root() { return game_path("srd/cepheus"); }
 std::string srd_path(const std::string& rel) {
-    return std::string(LOGOSPHERE_SOURCE_DIR) +
-           "/examples/logovger/srd/cepheus/" + rel;
+    return source_root() + "/" + rel;
 }
 
 std::string slurp(const std::string& path) {
@@ -57,22 +67,21 @@ std::string slurp(const std::string& path) {
     return ss.str();
 }
 
-struct CitedSkill {
-    kg::EntityID id;
-    std::string name;
-    std::string quote;
-};
-std::vector<CitedSkill> skills;
+// The game's full vocabulary: engine core + the rulebook meta-pack +
+// the cepheus chapter packs. A game assembles exactly this at start.
+kg::OntologyRegistry game_registry() {
+    auto r = logosphere::ontology::registry();
+    r.extend(rulebook::ontology::registry());
+    r.extend(cepheus_book1_skills::ontology::registry());
+    r.extend(cepheus_book1_character_creation::ontology::registry());
+    return r;
+}
 
-kg::EntityID make_skill(kg::KGModule& kg, const std::string& name,
-                        bool cascade, const std::string& quote) {
-    auto id = kg.createEntity("Skill");
-    kg.setProperty(id, "name", name);
-    if (cascade) kg.setProperty(id, "is_cascade", "true");
-    kg.setProperty(id, "source_file", kSkillsFile);
-    kg.setProperty(id, "source_quote", quote);
-    skills.push_back({id, name, quote});
-    return id;
+// Find a loaded skill by the alias the seed file bound it to.
+kg::EntityID by_alias(const kg::SeedLoadReport& report,
+                      const std::string& alias) {
+    auto it = report.bindings.find(alias);
+    return it == report.bindings.end() ? kg::INVALID_ENTITY : it->second;
 }
 
 // ----------------------------------------------------------- layering
@@ -95,86 +104,92 @@ void test_the_vocabulary_is_gated() {
           "must know its shape");
 }
 
-// -------------------------------------------- the cascade tree, cited
+// ------------------------------------------- the seed, end to end
 
 kg::KGModule* world = nullptr;
+kg::SeedLoadReport load_report;
 
-void test_skills_and_cascades() {
-    static kg::KGModule kg(logosphere::ontology::registry());
-    kg.extendOntology(rulebook::ontology::registry());
-    kg.extendOntology(cepheus_book1_skills::ontology::registry());
-    kg.extendOntology(
-        cepheus_book1_character_creation::ontology::registry());
+void test_the_skills_seed_verifies_and_loads() {
+    const std::string json =
+        slurp(game_path("seeds/cepheus_book1_skills.json"));
+    CHECK(!json.empty(), "the skills seed file is readable");
+
+    auto parsed = kg::parse_seed_envelope(json);
+    CHECK(parsed.ok(), std::string("the envelope parses: ") + parsed.error);
+    if (!parsed.ok()) return;
+    CHECK(parsed.seed.layer == "cepheus" &&
+              parsed.seed.source.file == kSkillsFile,
+          "and declares its layer and source file");
+
+    // The ingestion verifier first: citations verbatim in the pinned
+    // source, schema valid, values consistent, invariants held. This
+    // is the check that would catch an extraction inventing a skill.
+    const auto v = kg::verify_seed(parsed.seed, source_root(),
+                                   game_registry());
+    for (const auto& viol : v.violations)
+        std::cout << "  [measure] violation (" << viol.check << ") "
+                  << viol.alias << ": " << viol.reason << std::endl;
+    for (const auto& w : v.warnings)
+        std::cout << "  [measure] warning: " << w << std::endl;
+    CHECK(v.ok(), "the skills seed VERIFIES");
+    CHECK(v.warnings.empty(),
+          "with no source drift: the seed's pin matches SOURCE_COMMIT");
+    std::cout << "  [measure] verified " << v.quotes_checked
+              << " quotes, " << v.ops_loaded << " ops, "
+              << v.invariants_checked << " invariants" << std::endl;
+
+    // Then load it into the real world, the same call step 6 makes.
+    static kg::KGModule kg(game_registry());
     kg.setMode(kg::KGMode::MINIMAL);
     world = &kg;
+    const bool loaded = kg::load_seed(parsed.seed, kg, load_report);
+    CHECK(loaded && load_report.ok,
+          std::string("and LOADS into a live world: ") + load_report.error);
+    CHECK(load_report.ops_applied == parsed.seed.ops.size(),
+          "every op applied");
+    CHECK(load_report.bindings.size() == 7,
+          "seven aliases bound, one per skill");
+}
 
-    auto gun_combat = make_skill(kg, "Gun Combat", true,
-                                 "### Gun Combat (Cascade Skill)");
-    auto slug_pistol = make_skill(
-        kg, "Slug Pistol", false,
-        "The character is skilled at using projectile-based pistols like "
-        "the body pistol or snub pistol.");
-    auto slug_rifle = make_skill(
-        kg, "Slug Rifle", false,
-        "The character is skilled at using projectile-based rifle weapons "
-        "such as the autorifle or gauss rifle.");
-    auto athletics = make_skill(
-        kg, "Athletics", false,
-        "This skill covers physical fitness and training, similar to that "
-        "of a trained athlete.");
-    auto vehicle = make_skill(kg, "Vehicle", true,
-                              "### Vehicle (Cascade Skill)");
-    auto aircraft = make_skill(kg, "Aircraft", true,
-                               "### Aircraft (Cascade Skill)");
-    auto winged = make_skill(
-        kg, "Winged Aircraft", false,
-        "This skill grants the ability to properly maneuver and perform "
-        "basic, routine maintenance on jets and other airplanes using a "
-        "lifting body.");
+// ------------------------------------------- the cascade tree, cited
 
-    bool all_created = true;
-    for (const auto& s : skills)
-        if (s.id == kg::INVALID_ENTITY) all_created = false;
-    CHECK(all_created && skills.size() == 7, "seven cited skills landed");
+void test_the_cascade_tree_is_in_the_graph() {
+    auto& kg = *world;
+    const auto gun_combat = by_alias(load_report, "gun_combat");
+    const auto slug_rifle = by_alias(load_report, "slug_rifle");
+    const auto athletics  = by_alias(load_report, "athletics");
+    const auto vehicle    = by_alias(load_report, "vehicle");
+    const auto aircraft   = by_alias(load_report, "aircraft");
+    const auto winged     = by_alias(load_report, "winged_aircraft");
+    CHECK(gun_combat != kg::INVALID_ENTITY &&
+              slug_rifle != kg::INVALID_ENTITY &&
+              winged != kg::INVALID_ENTITY,
+          "the seed's aliases resolve to real entities");
+
     CHECK(kg.getProperty(gun_combat, "is_cascade") == "true" &&
               kg.getProperty(athletics, "is_cascade").empty(),
-          "the book's cascade marking is explicit data");
-
-    // The cascade tree: specialization points at its group, and the
-    // book nests them (Winged Aircraft under Aircraft under Vehicle).
-    CHECK(kg.createRelation(slug_pistol, "SPECIALIZES", gun_combat) !=
-              kg::INVALID_RELATION,
-          "Slug Pistol SPECIALIZES Gun Combat");
-    kg.createRelation(slug_rifle, "SPECIALIZES", gun_combat);
-    kg.createRelation(aircraft, "SPECIALIZES", vehicle);
-    kg.createRelation(winged, "SPECIALIZES", aircraft);
+          "the book's cascade marking survived the load");
+    CHECK(kg.getProperty(slug_rifle, "name") == "Slug Rifle",
+          "and so did the names");
 
     auto gun_specs = kg.getRelatedReverse(gun_combat, "SPECIALIZES");
-    CHECK(gun_specs.size() == 2, "Gun Combat has two specializations here");
+    CHECK(gun_specs.size() == 2,
+          "Gun Combat has two specializations in the graph");
     auto step1 = kg.getRelated(winged, "SPECIALIZES");
     CHECK(step1.size() == 1 && step1[0] == aircraft,
           "Winged Aircraft specializes Aircraft...");
     auto step2 = kg.getRelated(aircraft, "SPECIALIZES");
     CHECK(step2.size() == 1 && step2[0] == vehicle,
-          "...which specializes Vehicle: the tree nests two deep");
+          "...which specializes Vehicle: the tree nests two deep, "
+          "built by the loader from aliases alone");
 }
 
 // --------------------------------------------------- ratings, validated
 
 void test_a_character_holds_a_skill_through_the_validated_path() {
     auto& kg = *world;
-    const auto reg_full = [] {
-        auto r = logosphere::ontology::registry();
-        r.extend(rulebook::ontology::registry());
-        r.extend(cepheus_book1_skills::ontology::registry());
-        r.extend(cepheus_book1_character_creation::ontology::registry());
-        return r;
-    }();
-
-    const auto slug_rifle =
-        std::find_if(skills.begin(), skills.end(),
-                     [](const CitedSkill& s) { return s.name == "Slug Rifle"; })
-            ->id;
+    const auto reg_full = game_registry();
+    const auto slug_rifle = by_alias(load_report, "slug_rifle");
 
     auto ok = kg::validate_kg_op(
         kg::KGOp{kg::KGOpCreateEntity{
@@ -207,9 +222,6 @@ void test_a_character_holds_a_skill_through_the_validated_path() {
               kg.getProperty(rating, "skill_level") == "2",
           "Slug Rifle at 2, reachable from the character");
 
-    // Read the rating's skill back through the graph and confirm it
-    // is the right skill by NAME: without this the ref could be
-    // dropped entirely and everything above still passes.
     const auto ref = kg.getProperty(rating, "skill");
     CHECK(ref == std::to_string(slug_rifle),
           "the rating's skill ref survived the write");
@@ -221,39 +233,38 @@ void test_a_character_holds_a_skill_through_the_validated_path() {
 
 // ----------------------------------------------------------- citations
 
-void test_quotes_are_verbatim_in_the_fixed_source() {
+void test_citations_are_in_the_kg_and_verbatim() {
     auto& kg = *world;
     const std::string text = slurp(srd_path(kSkillsFile));
     CHECK(!text.empty(), "the vendored skills chapter is readable");
 
-    // Read the citation back OUT OF THE KG, not out of the C++ struct
-    // that wrote it: this is what proves the Cited mixin reached the
-    // graph. A dropped source_quote slot fails here.
-    bool all = true;
+    // The verifier already proved this against the seed; prove it
+    // again from the LOADED graph, which is what the referee reads.
     size_t checked = 0;
-    for (const auto& s : skills) {
-        const std::string file = kg.getProperty(s.id, "source_file");
-        const std::string quote = kg.getProperty(s.id, "source_quote");
+    bool all = true;
+    for (const auto& [alias, id] : load_report.bindings) {
+        const std::string file  = kg.getProperty(id, "source_file");
+        const std::string quote = kg.getProperty(id, "source_quote");
         if (file != kSkillsFile || quote.empty()) {
             all = false;
-            std::cout << "  [measure] uncited in the KG: " << s.name
+            std::cout << "  [measure] uncited in the KG: " << alias
                       << std::endl;
             continue;
         }
         ++checked;
         if (text.find(quote) == std::string::npos) {
             all = false;
-            std::cout << "  [measure] NOT VERBATIM (" << s.name << ")"
+            std::cout << "  [measure] NOT VERBATIM (" << alias << ")"
                       << std::endl;
         }
     }
-    CHECK(all && checked == skills.size(),
-          "every skill carries its citation in the KG, verbatim in the "
-          "vendored SRD");
+    CHECK(all && checked == 7,
+          "every loaded skill carries its citation in the KG, verbatim "
+          "in the vendored SRD");
 
-    // Re-vendor tripwires: this branch vendors the FIXED fork text
-    // (SOURCE_COMMIT points at our fix commit until upstream merges
-    // PR #37). All three fixes must be present, or the pin drifted.
+    // Re-vendor tripwires: SOURCE_COMMIT points at our fix branch
+    // until upstream merges PR #37. All three fixes must be present,
+    // or the pin drifted.
     CHECK(text.find("| [Veterinary Medicine](#veterinary-medicine) | "
                     "[Slug Rifle](#slug-rifle) | [Mole](#mole) |") !=
               std::string::npos,
@@ -273,6 +284,73 @@ void test_quotes_are_verbatim_in_the_fixed_source() {
               << std::endl;
 }
 
+// ------------------------------------------------- the seed must bite
+
+void test_a_lying_seed_is_refused() {
+    // Every guard below runs against the REAL seed with one field
+    // changed, so a check that stopped working shows up here rather
+    // than in a hand-built toy.
+    const std::string json =
+        slurp(game_path("seeds/cepheus_book1_skills.json"));
+
+    struct Case {
+        const char* what;
+        const char* from;
+        const char* to;
+        const char* expect;  // which check must fire
+    };
+    const Case cases[] = {
+        {"a misquoted skill",
+         "similar to that of a trained athlete.",
+         "similar to that of a TRAINED athlete.", "verbatim"},
+        {"a skill with no citation",
+         "\"source_quote\": \"### Gun Combat (Cascade Skill)\"",
+         "\"source_quote\": \"\"", "verbatim"},
+        {"a cascade link to a skill that was never created",
+         "\"to\": \"@gun_combat\"", "\"to\": \"@laser_pistol\"", "schema"},
+        {"a miscounted invariant",
+         "\"Skill\": 7", "\"Skill\": 8", "invariant"},
+    };
+
+    for (const auto& c : cases) {
+        std::string mutated = json;
+        const auto at = mutated.find(c.from);
+        if (at == std::string::npos) {
+            tests_failed++;
+            std::cout << "FAIL: mutation anchor missing for " << c.what
+                      << std::endl;
+            continue;
+        }
+        mutated.replace(at, std::strlen(c.from), c.to);
+
+        auto parsed = kg::parse_seed_envelope(mutated);
+        if (!parsed.ok()) {
+            tests_failed++;
+            std::cout << "FAIL: mutated seed did not parse (" << c.what
+                      << "): " << parsed.error << std::endl;
+            continue;
+        }
+        const auto v = kg::verify_seed(parsed.seed, source_root(),
+                                       game_registry());
+        CHECK(!v.ok() && v.count(c.expect) > 0,
+              std::string(c.what) + " is refused by the " + c.expect +
+                  " check");
+    }
+
+    // A duplicate name is the Slug Pistol class of error, the one that
+    // sent us upstream in the first place.
+    std::string dup = json;
+    const auto at = dup.find("\"name\": \"Slug Rifle\"");
+    dup.replace(at, std::strlen("\"name\": \"Slug Rifle\""),
+                "\"name\": \"Slug Pistol\"");
+    auto parsed_dup = kg::parse_seed_envelope(dup);
+    const auto vd = kg::verify_seed(parsed_dup.seed, source_root(),
+                                    game_registry());
+    CHECK(!vd.ok() && vd.count("invariant") > 0,
+          "and a duplicated skill name is refused - the very defect we "
+          "reported upstream");
+}
+
 }  // namespace
 
 int main() {
@@ -281,9 +359,17 @@ int main() {
     std::cout << "note: [KG] REJECTED lines below are EXPECTED - they "
                  "are the contract." << std::endl;
     test_the_vocabulary_is_gated();
-    test_skills_and_cascades();
-    test_a_character_holds_a_skill_through_the_validated_path();
-    test_quotes_are_verbatim_in_the_fixed_source();
+    test_the_skills_seed_verifies_and_loads();
+    if (world) {
+        test_the_cascade_tree_is_in_the_graph();
+        test_a_character_holds_a_skill_through_the_validated_path();
+        test_citations_are_in_the_kg_and_verbatim();
+    } else {
+        tests_failed++;
+        std::cout << "FAIL: the seed never loaded; downstream checks "
+                     "skipped" << std::endl;
+    }
+    test_a_lying_seed_is_refused();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
