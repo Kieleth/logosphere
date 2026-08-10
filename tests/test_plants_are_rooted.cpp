@@ -157,6 +157,24 @@ Verdict probe_species(Engine& engine, const char* label, const GrassPatchSpec& s
            "UNROOTED %-4zu (of which free singletons %zu)\n",
            label, v.bodies, v.gluons, v.components, v.rooted_components,
            v.unrooted_components, v.free_singletons);
+
+    // NAME THE ADRIFT. A count says something is wrong; this says what it is.
+    // Print the first few bodies that sit alone in a component of one, with
+    // enough of their identity to trace them back to the code that made them.
+    size_t shown = 0;
+    auto w = ps.lock_particles_for_write();
+    for (size_t k = 0; k < ids.size() && shown < 4; ++k) {
+        if (ds.find(k) != k) continue;                     // not a component root
+        size_t members = 0;
+        for (size_t m = 0; m < ids.size(); ++m) if (ds.find(m) == k) members++;
+        if (members != 1 || rooted[k]) continue;
+        const Particle& p = w[ids[k]];
+        printf("        adrift P%-6zu  %.3f x %.3f x %.3f m  mass %.6f kg  "
+               "pos (%.2f, %.2f, %.2f)  light=%d  owner=%d\n",
+               ids[k], p.width, p.height, p.thickness, p.GetMass(),
+               p.x, p.y, p.z, (int)p.is_light_source, (int)p.owner);
+        shown++;
+    }
     return v;
 }
 

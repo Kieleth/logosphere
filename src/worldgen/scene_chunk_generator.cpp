@@ -6,6 +6,7 @@
 #include "optimization_flags.h"
 #include <iostream>
 #include <algorithm>
+#include <set>
 #include <string>
 
 // Set to 1 for verbose chunk loading logs
@@ -185,11 +186,54 @@ ChunkData SceneChunkGenerator::create_scene_chunk(const ChunkCoord& coord, float
     // Use EntityManager for polymorphic entity activation
     EntityManager& entity_mgr = engine_->get_entity_manager();
 
+    // MATERIALISED IN THIS PASS. The duplicate-activation guard below asks the
+    // KG whether an entity's particles already carry a render index. That is
+    // the right question at the START of a pass and the wrong one DURING it:
+    // this function only PREPARES particles, and render indices are assigned
+    // later, on the main thread, when they are actually added. So within one
+    // pass the guard never sees its own work.
+    //
+    // chunk_entities is FLAT — a grass patch and its blades are all in it. The
+    // patch activates first and its activator recursively loads every blade's
+    // particles AND bonds. The loop then reaches blade 1, asks the KG, is told
+    // "no render index yet", and prepares those same particles a second time.
+    // Bonds dedupe by particle pair and get overwritten; PARTICLES do not. The
+    // result is a duplicate body sitting exactly on top of a bonded one and
+    // bonded to nothing itself — a zero-separation contact pair the solver
+    // cannot resolve.
+    //
+    // Measured in Eden before this fix: 771 of 1583 activations were repeats,
+    // 6,792 "[GLUON_INDEX] Overwriting existing gluon" warnings, and a grass
+    // patch materialising 301 bodies where the generator built 238. This set
+    // is the pass's own memory of what it has already done. Entity-agnostic:
+    // hierarchical rocks and trees hit it identically.
+    std::set<kg::EntityID> materialised_this_pass;
+    auto remember_subtree = [&](kg::EntityID root) {
+        std::vector<kg::EntityID> stack = {root};
+        while (!stack.empty()) {
+            kg::EntityID cur = stack.back();
+            stack.pop_back();
+            if (!materialised_this_pass.insert(cur).second) continue;
+            for (kg::EntityID child : kg_->getRelated(cur, "HAS_PART"))
+                stack.push_back(child);
+        }
+    };
+    size_t duplicate_activations_prevented = 0;
+
     for (kg::EntityID entity_id : chunk_entities) {
         std::string type = kg_->getType(entity_id);
 
         // Skip scene_chunk entities (metadata, not content)
         if (type == "SceneChunk") {
+            continue;
+        }
+
+        // Already materialised by an ancestor earlier in THIS pass.
+        if (materialised_this_pass.count(entity_id)) {
+            duplicate_activations_prevented++;
+            SCENE_LOG << "[SceneChunkGenerator] Entity " << entity_id << " (" << type
+                      << ") already materialised by an ancestor this pass - skipping"
+                      << std::endl;
             continue;
         }
 
@@ -234,14 +278,19 @@ ChunkData SceneChunkGenerator::create_scene_chunk(const ChunkCoord& coord, float
                 SCENE_LOG << "[SceneChunkGenerator]   Tracked " << all_descendants.size()
                           << " descendants via has_part relationships" << std::endl;
             }
+            remember_subtree(entity_id);
             continue;
         }
 
         SCENE_LOG << "[SceneChunkGenerator] Activating entity " << entity_id
                   << " (type=" << type << ")" << std::endl;
 
-        // Use EntityManager to activate entity (polymorphic dispatch)
+        // Use EntityManager to activate entity (polymorphic dispatch).
+        // The vegetation and rock activators load their HAS_PART children
+        // recursively, so this call speaks for the whole subtree. Record that
+        // before anything else can reach a child on its own.
         ActivationResult result = entity_mgr.activate_entity(entity_id);
+        remember_subtree(entity_id);
 
         // Check if entity has children (hierarchical entity like grass_patch, tree, etc.)
         auto children = kg_->getRelated(entity_id, "HAS_PART");
@@ -330,6 +379,13 @@ ChunkData SceneChunkGenerator::create_scene_chunk(const ChunkCoord& coord, float
         SCENE_LOG << "[SceneChunkGenerator]   Prepared " << result.particles.size()
                   << " particles and " << result.gluon_requests.size()
                   << " gluons for entity " << entity_id << std::endl;
+    }
+
+    if (duplicate_activations_prevented > 0) {
+        SCENE_LOG << "[SceneChunkGenerator] Chunk (" << coord.x << "," << coord.y
+                  << "): prevented " << duplicate_activations_prevented
+                  << " duplicate activations (children already materialised by"
+                     " their parent)" << std::endl;
     }
 
     SCENE_LOG << "[SceneChunkGenerator] Chunk (" << coord.x << "," << coord.y

@@ -75,12 +75,24 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
     Vec3 trunk_top;
     auto trunk_particles = generate_trunk(world_x, world_y, world_z, spec, trunk_top);
 
-    // ROOT THE PLANT. The base segment is KINEMATIC: rooted in the ground is
-    // immobility through solver mode, which the engine invariants explicitly
-    // sanction (turtle, gluon anchors, or KINEMATIC are the three mechanisms).
-    // Without this a fully bonded plant is a free chain standing on its end,
-    // and it topples. With it, the chain hangs off a rooted base the way a
-    // real stalk hangs off its roots.
+    // ROOT THE PLANT. Rooted in the ground is immobility through solver mode,
+    // which the engine invariants explicitly sanction (turtle, gluon anchors,
+    // or KINEMATIC are the three mechanisms). Without it a fully bonded plant
+    // is a free chain standing on its end, and it leaves.
+    //
+    // The base segment is the root WHEN THERE IS ONE. generate_trunk returns
+    // an EMPTY vector below 0.05 m of trunk, and grass_blade asks for
+    // trunk_ratio 0.1, so short grass (0.15 m x 0.1 = 0.015 m) never had a
+    // trunk and therefore never had a root — the entire subject of issue #47
+    // was the one plant this never reached. Tall grass (0.8 m x 0.1 = 0.08 m)
+    // has one, until the +/-50% height jitter drops a blade under the cutoff
+    // and it silently loses its root too. Measured: 20 of 20 short blades and
+    // 2 of 15 tall blades adrift.
+    //
+    // So the root is not "the trunk base", it is THE LOWEST BODY THE PLANT
+    // HAS. That is where a plant meets the ground whether or not the
+    // generator happened to give it a trunk. The trunkless case is picked
+    // below, once the crown exists.
     if (!trunk_particles.empty()) {
         trunk_particles.front().solver_mode = ParticleSolverMode::KINEMATIC;
         trunk_particles.front().is_at_rest = true;
@@ -144,6 +156,28 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
 
     std::cout << "[OrganicGenerator] Created " << crown_particles.size()
               << " particles from skeleton" << std::endl;
+
+    // THE TRUNKLESS ROOT. No trunk means nothing above has anchored this plant,
+    // so its own lowest body becomes the root. Prefer a body nothing grows out
+    // of (a structural base); if the skeleton gave every particle a parent,
+    // take the lowest outright. Either way the plant ends up attached to the
+    // ground at the point where it touches it.
+    int crown_root = -1;
+    if (trunk_particles.empty() && !crown_particles.empty()) {
+        for (size_t i = 0; i < crown_particles.size(); ++i) {
+            if (crown_parents[i] >= 0) continue;                 // grows out of something
+            if (crown_root < 0 || crown_particles[i].z < crown_particles[crown_root].z)
+                crown_root = static_cast<int>(i);
+        }
+        if (crown_root < 0) {                                    // everything has a parent
+            crown_root = 0;
+            for (size_t i = 1; i < crown_particles.size(); ++i)
+                if (crown_particles[i].z < crown_particles[crown_root].z)
+                    crown_root = static_cast<int>(i);
+        }
+        crown_particles[crown_root].solver_mode = ParticleSolverMode::KINEMATIC;
+        crown_particles[crown_root].is_at_rest = true;
+    }
 
     // Store crown particles in KG, keeping ids for bonding.
     std::vector<kg::KGParticleID> crown_kg;
@@ -258,8 +292,18 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
                  trunk_particles.back(), crown_particles[cidx],
                  /*stem_anchors=*/true);
             gluons_stored++;
+        } else if (crown_root >= 0 && static_cast<int>(cidx) != crown_root) {
+            // Trunkless plant: parentless bodies hang off its own rooted base.
+            // Previously this branch did not exist and the comment said "the
+            // plant's own base, nothing to bond to" — true of the base itself,
+            // false of everything else that landed here, which is how a grass
+            // blade ended up as loose parts.
+            bond(crown_kg[crown_root], crown_kg[cidx],
+                 crown_particles[crown_root], crown_particles[cidx],
+                 /*stem_anchors=*/true);
+            gluons_stored++;
         }
-        // No trunk and no parent: the plant's own base, nothing to bond to.
+        // The root itself has nothing above it to hang from. That is correct.
     }
     }
     std::cout << "[OrganicGenerator] Bonded: " << gluons_stored
