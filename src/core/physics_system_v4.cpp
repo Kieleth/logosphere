@@ -1268,13 +1268,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
      * FIX A: Store constraint indices for O(1) lookup in breaking check
      */
     struct GluonConstraintIndices {
+        // IDENTITY, not position. The build loop skips gluons (both endpoints
+        // KINEMATIC, zero effective mass), so this vector COMPACTS while
+        // gluon_constraints_v2_ does not. Walking both with one counter made
+        // every gluon after the first skip get another bond's rows: torn on
+        // another bond's force, warm-loaded with another bond's memory.
+        // Measured firing thousands of times per run in exactly the two
+        // scenes that were red, and never in the one that was green.
+        size_t gluon_slot = SIZE_MAX;   // index into gluon_constraints_v2_
         size_t x_idx, y_idx, z_idx;
     };
     std::vector<GluonConstraintIndices> gluon_constraint_indices;
     gluon_constraint_indices.reserve(gluon_constraints_v2_.size());
 
     constraint_dissatisfied_.assign(particles.size(), 0);
+    size_t gluon_slot_counter = 0;
     for (const auto& gluon : gluon_constraints_v2_) {
+        const size_t this_gluon_slot = gluon_slot_counter++;
         size_t body_a = gluon->particle_a;
         size_t body_b = gluon->particle_b;
 
@@ -1634,6 +1644,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                          c.bias, c.effective_mass, c.jz);
             constraints.push_back(c);
         }
+        indices.gluon_slot = this_gluon_slot;
         gluon_constraint_indices.push_back(indices);
 
         // IMPULSE MEMORY apply: last frame's carried load, up front, so the
@@ -3103,14 +3114,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
      * FIX A: Use stored constraint indices for O(1) lookup instead of O(c) scan
      * This reduces complexity from O(g×c) to O(g)
      */
-    for (size_t gluon_idx = 0; gluon_idx < gluon_constraint_indices.size(); ++gluon_idx) {
-        // SAFETY: gluon_constraint_indices may be smaller than gluon_constraints_v2_
-        // if some gluons were skipped during constraint building
-        if (gluon_idx >= gluon_constraints_v2_.size()) break;
-        const auto& gluon = gluon_constraints_v2_[gluon_idx];
-
-        // FIX A: Direct O(1) lookup using stored indices
-        const auto& idx = gluon_constraint_indices[gluon_idx];
+    for (size_t gi_i = 0; gi_i < gluon_constraint_indices.size(); ++gi_i) {
+        const auto& idx = gluon_constraint_indices[gi_i];
+        // Look the gluon up by the slot it recorded for itself. The old code
+        // indexed gluon_constraints_v2_ by POSITION IN THIS VECTOR, which is
+        // only the same thing when nothing was ever skipped.
+        if (idx.gluon_slot >= gluon_constraints_v2_.size()) continue;
+        const auto& gluon = gluon_constraints_v2_[idx.gluon_slot];
         float impulse_x = constraints[idx.x_idx].accumulated_impulse;
         float impulse_y = constraints[idx.y_idx].accumulated_impulse;
         float impulse_z = constraints[idx.z_idx].accumulated_impulse;
