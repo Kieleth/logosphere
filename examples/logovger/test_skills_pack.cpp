@@ -80,6 +80,8 @@ kg::EntityID make_skill(kg::KGModule& kg, const std::string& name,
 void test_the_vocabulary_is_gated() {
     kg::KGModule core_only(logosphere::ontology::registry());
     core_only.setMode(kg::KGMode::MINIMAL);
+    CHECK(core_only.createEntity("Wall") != kg::INVALID_ENTITY,
+          "the core-only world is alive (control)");
     CHECK(core_only.createEntity("Skill") == kg::INVALID_ENTITY,
           "a core-only world has no Skill (expected [KG] REJECTED above)");
 
