@@ -8,6 +8,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- Two-phase rollable-table execution. `RollableTableRunner` validates a
+  complete table and every reachable dice total before consuming randomness,
+  then commits one citable selection containing the table, row, typed outcome,
+  and exact roll. Outcome application remains a separate explicit
+  `OutcomeExecutor` call, so failures and choices reuse the original
+  selection without rerolling. Logovger training now uses this engine path;
+  its handwritten dice parsing and row matching were deleted.
 - **Source locators** (`logosphere/text/source_document.h`,
   `source_locator.h`): address a piece of a source text and resolve it
   back, so captured data can be proven against the text it came from.

@@ -2,6 +2,7 @@
 #include "chargen/procedure_catalog.h"
 
 #include "logosphere/rules/outcome_executor.h"
+#include "logosphere/rules/rollable_table_runner.h"
 #include "rules/characteristics.h"
 #include "rules/ehex.h"
 
@@ -119,15 +120,15 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
 }
 
-// Roll on a career's skill table and execute the row's outcome. The
-// whole chain is graph data: career HAS_PART table, table HAS_PART
-// rows, row -> outcome -> skill. Missing or malformed rules fail the
-// term. There is no default skill level in procedure code.
-bool roll_for_skill(kg::KGModule& kg, kg::EntityID career,
-                    kg::EntityID character,
-                    logosphere::dice::DiceService& dice,
-                    uint64_t& roll_id_out, std::string& gained,
-                    std::string& error) {
+// Select a career training row, then apply its structured outcome. These are
+// separate engine operations: the recorded selection remains a fact if
+// outcome application fails. There is no default skill level in procedure
+// code.
+bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
+                               kg::EntityID character,
+                               logosphere::dice::DiceService& dice,
+                               uint64_t& roll_id_out, std::string& gained,
+                               std::string& error) {
     gained.clear();
     error.clear();
     kg::EntityID table = kg::INVALID_ENTITY;
@@ -143,131 +144,72 @@ bool roll_for_skill(kg::KGModule& kg, kg::EntityID career,
         return false;
     }
 
-    // The table names its own dice; a d6 table and a d3 table are
-    // both legal and this code does not care which it got.
-    const auto dice_ref = kg.getProperty(table, "dice");
-    if (dice_ref.empty()) {
-        error = "skills and training table has no dice reference";
+    logosphere::rules::RollableTableRunner table_runner(kg, dice);
+    const auto selected = table_runner.select(
+        table, "chargen", "skills and training");
+    if (!selected.ok()) {
+        error = "skills and training selection failed: " + selected.error;
         return false;
     }
-    kg::EntityID dice_id = kg::INVALID_ENTITY;
+    roll_id_out = selected.selection->roll().id;
+
+    const auto outcome = selected.selection->outcome();
+    const auto skill_ref = kg.getProperty(outcome, "skill");
+    if (skill_ref.empty()) {
+        error = "skills and training outcome has no skill reference";
+        return false;
+    }
+    kg::EntityID skill = kg::INVALID_ENTITY;
     try {
-        const auto parsed = std::stoull(dice_ref);
+        const auto parsed = std::stoull(skill_ref);
         if (parsed > std::numeric_limits<kg::EntityID>::max()) {
             throw std::out_of_range("entity id");
         }
-        dice_id = static_cast<kg::EntityID>(parsed);
+        skill = static_cast<kg::EntityID>(parsed);
     } catch (...) {
-        error = "skills and training table has invalid dice reference '" +
-                dice_ref + "'";
+        error = "skills and training outcome has invalid skill reference '" +
+                skill_ref + "'";
         return false;
     }
-    if (!kg.exists(dice_id) ||
-        !kg.getRegistry().isSubtypeOf(kg.getType(dice_id),
-                                      "DiceExpression")) {
-        error = "skills and training table dice reference does not point "
-                "to a DiceExpression";
+    if (!kg.exists(skill) ||
+        !kg.getRegistry().isSubtypeOf(kg.getType(skill), "Skill")) {
+        error = "skills and training outcome skill reference does not point "
+                "to a Skill";
         return false;
     }
-    logosphere::dice::DiceExpression expr;
-    bool ok = true;
-    expr.count = property_int(kg, dice_id, "dice_count", ok);
-    expr.sides = property_int(kg, dice_id, "dice_sides", ok);
-    if (!ok || !expr.is_valid()) {
-        error = "skills and training table has an invalid DiceExpression";
+    const std::string skill_name = kg.getProperty(skill, "name");
+    if (skill_name.empty()) {
+        error = "skills and training outcome points to an unnamed skill";
         return false;
     }
 
-    const auto roll = dice.roll(expr, "chargen", "skills and training");
-    if (roll.id == 0) {
-        error = "skills and training dice roll was rejected";
+    logosphere::rules::OutcomeExecutor executor(kg, dice);
+    const auto applied = executor.apply(
+        outcome, {character, "chargen", "skills and training"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        error = "skills and training outcome failed: " + applied.error;
         return false;
     }
-    roll_id_out = roll.id;
 
-    // The row whose band contains the result.
-    for (auto row : kg.getRelated(table, "HAS_PART")) {
-        bool have = true;
-        const int lo = property_int(kg, row, "roll_min", have);
-        const int hi = property_int(kg, row, "roll_max", have);
-        if (!have || roll.total < lo || roll.total > hi) continue;
-
-        const auto outcome_ref = kg.getProperty(row, "outcome");
-        if (outcome_ref.empty()) {
-            error = "matching skills and training row has no outcome";
+    int matches = 0;
+    for (auto part : kg.getRelated(character, "HAS_PART")) {
+        if (kg.getProperty(part, "skill") != skill_ref) continue;
+        ++matches;
+        const auto level = kg.getProperty(part, "skill_level");
+        if (level.empty()) {
+            error = "executed skill outcome created a rating without "
+                    "skill_level";
             return false;
         }
-        kg::EntityID outcome = kg::INVALID_ENTITY;
-        try {
-            const auto parsed = std::stoull(outcome_ref);
-            if (parsed > std::numeric_limits<kg::EntityID>::max()) {
-                throw std::out_of_range("entity id");
-            }
-            outcome = static_cast<kg::EntityID>(parsed);
-        } catch (...) {
-            error = "matching skills and training row has invalid outcome "
-                    "reference '" + outcome_ref + "'";
-            return false;
-        }
-        if (!kg.exists(outcome)) {
-            error = "matching skills and training row points to a missing "
-                    "outcome";
-            return false;
-        }
-        const auto skill_ref = kg.getProperty(outcome, "skill");
-        if (skill_ref.empty()) {
-            error = "skills and training outcome has no skill reference";
-            return false;
-        }
-
-        logosphere::rules::OutcomeExecutor executor(kg, dice);
-        const auto result = executor.apply(
-            outcome, {character, "chargen", "skills and training"});
-        if (result.status != logosphere::rules::OutcomeStatus::APPLIED) {
-            error = "skills and training outcome failed: " + result.error;
-            return false;
-        }
-
-        kg::EntityID skill = kg::INVALID_ENTITY;
-        try {
-            const auto parsed = std::stoull(skill_ref);
-            if (parsed > std::numeric_limits<kg::EntityID>::max()) {
-                throw std::out_of_range("entity id");
-            }
-            skill = static_cast<kg::EntityID>(parsed);
-        } catch (...) {
-            error = "skills and training outcome has invalid skill "
-                    "reference '" + skill_ref + "'";
-            return false;
-        }
-        const std::string skill_name = kg.getProperty(skill, "name");
-        if (skill_name.empty()) {
-            error = "skills and training outcome points to an unnamed skill";
-            return false;
-        }
-        int matches = 0;
-        for (auto part : kg.getRelated(character, "HAS_PART")) {
-            if (kg.getProperty(part, "skill") != skill_ref) continue;
-            ++matches;
-            const auto level = kg.getProperty(part, "skill_level");
-            if (level.empty()) {
-                error = "executed skill outcome created a rating without "
-                        "skill_level";
-                return false;
-            }
-            gained = skill_name + "-" + level;
-        }
-        if (matches != 1) {
-            error = "executed skill outcome left " +
-                    std::to_string(matches) +
-                    " ratings for the selected skill";
-            return false;
-        }
-        return true;
+        gained = skill_name + "-" + level;
     }
-    error = "skills and training roll " + std::to_string(roll.total) +
-            " matches no table row";
-    return false;
+    if (matches != 1) {
+        error = "executed skill outcome left " +
+                std::to_string(matches) +
+                " ratings for the selected skill";
+        return false;
+    }
+    return true;
 }
 
 std::string lowercase(std::string value) {
@@ -523,8 +465,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     uint64_t skill_roll = 0;
     std::string skill;
     std::string error;
-    if (!roll_for_skill(kg_, career_, sheet_.id, dice_, skill_roll,
-                        skill, error)) {
+    if (!select_and_apply_training(kg_, career_, sheet_.id, dice_, skill_roll,
+                                   skill, error)) {
         return PrimitiveResult::failed(error);
     }
     sheet_.skills.push_back(skill);
