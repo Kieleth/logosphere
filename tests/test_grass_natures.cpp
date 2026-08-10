@@ -29,6 +29,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <iostream>
 #include <cstdlib>
 #include <memory>
 #include <set>
@@ -350,9 +351,22 @@ bool test_grass_natures() {
     if (g_title) g_title->set_text("GRASS pt 1: bar gone — recoveries by nature");
     printf("      [ids] STRAIGHT peg=%d segs=%d,%d,%d\n",
            blades[1].peg, blades[1].seg[0], blades[1].seg[1], blades[1].seg[2]);
+    // GHOST WRITER HUNT: who moves a sleeping particle? The tracer records
+    // every instrumented write site touching these ids.
+    {
+        auto& tracer = engine.get_particle_tracer();
+        tracer.trace(blades[1].seg[0], "straight/s0");
+        tracer.trace(blades[1].seg[1], "straight/s1");
+        tracer.trace(blades[1].seg[2], "straight/s2");
+    }
     for (int f = 0; f < 1400 && engine.is_running(); ++f) {
         gstep(engine);
         measure(180 + f, "RECOV", true);
+        if (f == 700) {
+            printf("      [tracer] instrumented write sites touching the "
+                   "sleeping climber, last 30 frames:\n");
+            engine.get_particle_tracer().dump(std::cout, 30);
+        }
         // DEEP PROBE (owner: 'blades are still separating'): the bar is
         // GONE, the path is clear — per-bond endpoint state of STRAIGHT,
         // every 40 frames: who holds the gap open?

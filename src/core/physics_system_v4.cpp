@@ -1273,6 +1273,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     std::vector<GluonConstraintIndices> gluon_constraint_indices;
     gluon_constraint_indices.reserve(gluon_constraints_v2_.size());
 
+    constraint_dissatisfied_.assign(particles.size(), 0);
     for (const auto& gluon : gluon_constraints_v2_) {
         size_t body_a = gluon->particle_a;
         size_t body_b = gluon->particle_b;
@@ -1438,6 +1439,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // geometric strain wakes its bodies, whatever moved the
                 // anchor (kinematic rotation, teleport, mass change).
                 if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN) {
+                    if (body_a < constraint_dissatisfied_.size())
+                        constraint_dissatisfied_[body_a] = 1;
+                    if (body_b < constraint_dissatisfied_.size())
+                        constraint_dissatisfied_[body_b] = 1;
                     // Clearing is_at_rest alone is the hysteresis trap: the
                     // rest counter stays high, the damper crushes the first
                     // small correction, and sleep re-latches within the
@@ -1751,6 +1756,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         printf("[QDBG] e_mag=%.3f rad (wake at >0.1)\n", e_mag);
                 }
                 if (e_mag > 0.1f) {
+                    if (body_a < constraint_dissatisfied_.size())
+                        constraint_dissatisfied_[body_a] = 1;
+                    if (body_b < constraint_dissatisfied_.size())
+                        constraint_dissatisfied_[body_b] = 1;
                     if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_a].is_at_rest = false;
                         particles[body_a].low_velocity_frames = 0;
@@ -3264,6 +3273,12 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
         // RESULTS: 98% particles at rest (was 10%), max velocity 0.016 m/s (stable)
         //
         // Constants from physics_solver.h (see that file for full documentation)
+        // THE SLEEP LAW's corollary: a constraint-dissatisfied body's
+        // velocity is the correction in progress — the rest damper must
+        // not crush it.
+        if (i < constraint_dissatisfied_.size() && constraint_dissatisfied_[i]) {
+            p.low_velocity_frames = 0;
+        }
         float vel_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
 
         // Track low-velocity frames with hysteresis (V4.7)
@@ -3387,7 +3402,17 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
 
         float vel_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
 
-        if (vel_sq < REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
+        // THE SLEEP LAW: a body may rest only while its constraint set is
+        // satisfied. Low speed with screaming constraints is a body mid-
+        // correction, not a body in equilibrium (the lying blade's
+        // wake/re-sleep limit cycle recovered at 0.1 mm/frame).
+        const bool satisfied = i >= constraint_dissatisfied_.size() ||
+                               constraint_dissatisfied_[i] == 0;
+        if (!satisfied) {
+            p.frames_at_rest = 0;
+            p.is_at_rest = false;
+            p.low_velocity_frames = 0;
+        } else if (vel_sq < REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
             // Velocity below rest threshold - accumulate rest frames
             if (p.frames_at_rest < 255) p.frames_at_rest++;
             if (p.frames_at_rest >= REST_FRAMES_REQUIRED) {

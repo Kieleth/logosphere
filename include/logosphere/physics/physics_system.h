@@ -536,6 +536,14 @@ private:
     // Use deque instead of vector: deque doesn't invalidate pointers on push_back,
     // which is critical for gluon_pair_index_ (stores raw pointers to elements)
     std::deque<std::unique_ptr<GluonConstraintBase>> gluon_constraints_v2_;
+    // THE SLEEP LAW: a body may be at rest ONLY while its constraint set is
+    // satisfied. Rebuilt each solve from gluon strain and angular error;
+    // consulted by rest-entry and the rest damper. This is a derived fact,
+    // not a heuristic: it replaces per-cause wake triggers, holds in any
+    // gravity, and reads no ownership. (The lying blade was a wake/re-sleep
+    // limit cycle: woken mid-build every frame, re-captured by frame end,
+    // recovering at ~0.1 mm/frame while probes read rest=1, v=0.)
+    std::vector<uint8_t> constraint_dissatisfied_;
     size_t next_gluon_id_;  // For gluon ID assignment
     std::vector<size_t> gluons_to_remove_;  // Deferred removal (can't modify during iteration)
 
