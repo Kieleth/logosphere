@@ -24,7 +24,8 @@
       "properties": {
         "name": "basic_chargen",
         "source_section": "Character Creation Checklist",
-        "source_quote": "## Character Creation Checklist"
+        "source_quote": "Character Creation Checklist",
+        "source_kind": "heading"
       }
     },
     {
