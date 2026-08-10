@@ -8,6 +8,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Source locators** (`logosphere/text/source_document.h`,
+  `source_locator.h`): address a piece of a source text and resolve it
+  back, so captured data can be proven against the text it came from.
+  A source is normalized once into a document model (sections,
+  sentences, tables with keyed rows, list items); a locator addresses
+  that model by heading trail plus table/row/column or by sentence with
+  optional context. Closes a real hole: a value cited to a table LINE
+  could borrow a neighbouring column's number, and a claim that Scout
+  qualifies on 5+ passed verification because "5" was in the row as
+  Pirate's. A cell citation refuses it, with the source's own answer in
+  the failure. Markdown parses today; a new source format needs a
+  parser into the model and nothing else. Docs: docs/SOURCE_LOCATORS.md.
 - Typed, atomic rulebook outcome execution. `OutcomeExecutor` resolves
   ordered sequences and suspending choices, dispatches exact concrete
   outcome types, validates one complete KG-operation plan, and commits its

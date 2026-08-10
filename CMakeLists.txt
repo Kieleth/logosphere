@@ -113,6 +113,9 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/kg_ops_apply.cpp
     src/kg/kg_ops_transaction.cpp
     src/kg/ontology_validator.cpp
+    # Source locators: address a piece of a rulebook, resolve it back
+    src/text/source_document.cpp
+    src/text/source_locator.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
     # validated write path, and the ingestion verifier (verbatim /
     # schema / value / semantic / invariants). docs/RPG_MODULE.md.
@@ -376,6 +379,10 @@ add_headless_test(test_entity_type_strings)
 # This one reads the source tree, so it needs to know where that is:
 # ctest runs from the build directory, not the repo root.
 target_compile_definitions(test_entity_type_strings
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_source_locator)
+# Resolves locators against the vendored SRD in the tree.
+target_compile_definitions(test_source_locator
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_headless_test(test_rulebook_pack)
 # Verbatim-checks its citations against the vendored SRD in the tree.
