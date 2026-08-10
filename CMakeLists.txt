@@ -1826,6 +1826,7 @@ set(TEST_SOURCES
     tests/test_async_prep_equivalence.cpp      # Async GPU prep must not change a single pixel
     tests/test_shadow_lod_wall.cpp             # LOD judged on the SHADOW, not the object
     tests/test_physics_characterization.cpp    # refactor net: pins solver output on a pile
+    tests/test_humanoid_tuning_coverage.cpp   # refactor net: which declared joint values survive to frame one
     tests/test_solver_convergence_ladder.cpp   # where does the solve first give up?
     tests/test_solver_residual.cpp             # how wrong is the answer the solve stopped at?
     tests/test_constraint_order_matters.cpp    # S19 re-run: does constraint order change it?

@@ -80,6 +80,7 @@ extern bool test_gpu_occupancy_sanity();     // GPU occupancy must be a union, n
 extern bool test_async_prep_equivalence();   // Async GPU prep must be pixel-identical to sync (STANDALONE)
 extern bool test_shadow_lod_wall();          // LOD judged on the shadow it casts, not the object (STANDALONE)
 extern bool test_physics_characterization(); // Refactor net: pins apply_all_forces output (STANDALONE)
+extern bool test_humanoid_tuning_coverage();  // Refactor net: declared vs live joint tuning (STANDALONE)
 extern bool test_solver_convergence_ladder();// Diagnostic: simplest scene the solver fails to converge (STANDALONE)
 extern bool test_solver_residual();          // Is the answer good, not did the loop stop (STANDALONE)
 extern bool test_constraint_order_matters();  // S19 re-run: does order change the residual? (STANDALONE)
@@ -277,6 +278,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_async_prep_equivalence"] = [](TestContext&) { return test_async_prep_equivalence(); };  // STANDALONE: own engine
     registry["test_shadow_lod_wall"] = [](TestContext&) { return test_shadow_lod_wall(); };  // STANDALONE: own engine
     registry["test_physics_characterization"] = [](TestContext&) { return test_physics_characterization(); };  // STANDALONE: own engine
+    registry["test_humanoid_tuning_coverage"] = [](TestContext&) { return test_humanoid_tuning_coverage(); };  // STANDALONE: own engine
     registry["test_solver_convergence_ladder"] = [](TestContext&) { return test_solver_convergence_ladder(); };  // STANDALONE: own engine
     registry["test_solver_residual"] = [](TestContext&) { return test_solver_residual(); };  // STANDALONE: own engine
     registry["test_constraint_order_matters"] = [](TestContext&) { return test_constraint_order_matters(); };  // STANDALONE: own engine
@@ -700,6 +702,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_async_prep_equivalence",
         "test_shadow_lod_wall",
         "test_physics_characterization",
+        "test_humanoid_tuning_coverage",
         "test_solver_convergence_ladder",
         "test_solver_residual",
         "test_constraint_order_matters",
@@ -809,6 +812,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_async_prep_equivalence", test_async_prep_equivalence},
         {"test_shadow_lod_wall", test_shadow_lod_wall},
         {"test_physics_characterization", test_physics_characterization},
+        {"test_humanoid_tuning_coverage", test_humanoid_tuning_coverage},
         {"test_solver_convergence_ladder", test_solver_convergence_ladder},
         {"test_solver_residual", test_solver_residual},
         {"test_constraint_order_matters", test_constraint_order_matters},
