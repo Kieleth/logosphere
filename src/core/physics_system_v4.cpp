@@ -191,25 +191,6 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     // This logs diagnostic info to help find the root cause of stale indices.
     prune_invalid_gluons(particles.size());
 
-    // DEBUG: Track gluon 21,25 values on each frame
-    static int frame_track = 0;
-    frame_track++;
-    // Print physics frame every 10 frames to verify counter
-    if (frame_track % 10 == 0) {
-        std::cout << "[PHYSICS_FRAME] " << frame_track << std::endl;
-    }
-    // Detailed tracking for frame 29-31 (when corruption happens)
-    if (frame_track >= 29 && frame_track <= 32) {
-        const auto* g = get_gluon(21, 25);
-        if (g) {
-            std::cout << "[PHYS_START] frame=" << frame_track
-                      << " ptr=" << (void*)g
-                      << " offset_a=(" << g->offset_a.x << "," << g->offset_a.y << "," << g->offset_a.z << ")"
-                      << " offset_b=(" << g->offset_b.x << "," << g->offset_b.y << "," << g->offset_b.z << ")"
-                      << std::endl;
-        }
-    }
-
     // ==========================================================================
     // SAVE PRE-CONSTRAINT OMEGA_Z
     // ==========================================================================
@@ -335,18 +316,6 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                                          p.GetMass(), p.x, p.y, p.z);
         }
         ::logosphere::expdet::end_frame();
-    }
-
-    // DEBUG: Track gluon 21,25 values at END of physics update
-    if (frame_track >= 29 && frame_track <= 32) {
-        const auto* g = get_gluon(21, 25);
-        if (g) {
-            std::cout << "[PHYS_END] frame=" << frame_track
-                      << " ptr=" << (void*)g
-                      << " offset_a=(" << g->offset_a.x << "," << g->offset_a.y << "," << g->offset_a.z << ")"
-                      << " offset_b=(" << g->offset_b.x << "," << g->offset_b.y << "," << g->offset_b.z << ")"
-                      << std::endl;
-        }
     }
 }
 
@@ -1448,16 +1417,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             float current_dist = std::sqrt(sep_x*sep_x + sep_y*sep_y + sep_z*sep_z);
             float target_dist = gluon->target_distance;
 
-            // DEBUG: detailed attachment point info
-            if (phys_frame % 60 == 0) {
-                std::cout << "[GLUON_ATTACH] gluon " << gluon->id
-                          << " pa.z=" << pa.z << " pb.z=" << pb.z
-                          << " off_a.z=" << gluon->offset_a.z << " off_b.z=" << gluon->offset_b.z
-                          << " attach_a_z=" << attach_a_z << " attach_b_z=" << attach_b_z
-                          << " sep_z=" << sep_z << " dist=" << current_dist << " target=" << target_dist
-                          << std::endl;
-            }
-
             if (current_dist > 0.0001f) {  // Avoid division by zero
                 float error = current_dist - target_dist;
                 bond_err_mag = std::fabs(error);
@@ -1980,22 +1939,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
      *   v_b -= jacobian * (impulse / mass_b)
      */
 
-    // DEBUG: Enable with DEBUG_SOLVER=1
-    #ifdef DEBUG_SOLVER
-    static int solve_debug_frame = 0;
-    solve_debug_frame++;
-    bool debug_this_frame = (solve_debug_frame % 120 == 61) && count > 56;
-
-    if (debug_this_frame) {
-        std::cout << "\n[SOLVE_DEBUG F" << solve_debug_frame << "] BEFORE iterations:" << std::endl;
-        std::cout << "  beam(54) z=" << particles[54].z << " vz=" << particles[54].vz << std::endl;
-        std::cout << "  left(55) z=" << particles[55].z << " vz=" << particles[55].vz << std::endl;
-        std::cout << "  right(56) z=" << particles[56].z << " vz=" << particles[56].vz << std::endl;
-    }
-    #else
-    bool debug_this_frame = false;
-    #endif
-
     // ========================================================================
     // SMART EARLY STOPPING
     // ========================================================================
@@ -2127,13 +2070,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             // Check if we already applied this key (avoid double-apply for mirror constraints)
             size_t key_hash = PhysicsV4::ContactKeyHash{}(key);
-
-            // DEBUG: Log all contacts with hash 492 to find collision
-            if (key_hash == 492 && phys_frame == 1) {
-                std::cout << "[HASH492] P" << c.body_a << "<->P" << c.body_b
-                          << " key=(" << key.particle_a << "," << key.particle_b << "," << key.contact_type << ")"
-                          << (applied_keys.count(key_hash) > 0 ? " DUP" : " FIRST") << std::endl;
-            }
 
             if (dedup_dbg && applied_keys.count(key_hash) > 0) {
                 const auto& prev = applied_key_of[key_hash];
@@ -2585,28 +2521,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     impulse, c.effective_mass, c.bias);
             }
 
-            // PARTICLE DIAGNOSTIC: Log constraints for specific particles
-            // Enable with BOULDER_DEBUG=1 env var. Threshold targets problem particles.
-            static bool boulder_debug = std::getenv("BOULDER_DEBUG") != nullptr;
-            static int boulder_log_count = 0;
-            // Target leaves: Phase 6 (~1250-1350), Phase 7 (~4320-4350)
-            bool target_particle = (c.body_a >= 1250 && c.body_a <= 1350) ||
-                                   (c.body_b >= 1250 && c.body_b <= 1350) ||
-                                   (c.body_a >= 4320 && c.body_a <= 4350) ||
-                                   (c.body_b >= 4320 && c.body_b <= 4350);
-            if (boulder_debug && target_particle && boulder_log_count < 50) {
-                boulder_log_count++;
-                const char* ctype = c.is_turtle_contact ? "TURTLE" : (c.is_contact ? "CONTACT" : "GLUON");
-                std::cout << "[BOULDER_DIAG] p" << c.body_a << "->" << c.body_b
-                          << " " << ctype
-                          << " iter=" << iter
-                          << " v_rel=" << v_rel
-                          << " bias=" << c.bias
-                          << " imp=" << impulse
-                          << " vz_a=" << pa.vz << " vz_b=" << pb.vz
-                          << std::endl;
-            }
-
             // Apply impulse along Jacobian direction (Vec3)
             // body_a pushed in +jacobian, body_b in -jacobian
             // Turtle contacts: inv_mb = 0 (infinite mass)
@@ -3048,14 +2962,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
     }
 
-    #ifdef DEBUG_SOLVER
-    if (debug_this_frame) {
-        std::cout << "[SOLVE_DEBUG F" << solve_debug_frame << "] AFTER " << SOLVER_ITERATIONS << " iterations:" << std::endl;
-        std::cout << "  beam(54) z=" << particles[54].z << " vz=" << particles[54].vz << std::endl;
-        std::cout << "  left(55) z=" << particles[55].z << " vz=" << particles[55].vz << std::endl;
-        std::cout << "  right(56) z=" << particles[56].z << " vz=" << particles[56].vz << std::endl;
-    }
-    #endif
 
     auto t_after_solver = std::chrono::high_resolution_clock::now();
 
