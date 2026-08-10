@@ -266,6 +266,9 @@ SeedParseResult parse_seed_envelope(const std::string& json_text) {
 
 bool load_seed(const SeedEnvelope& seed, KGModule& kg,
                SeedLoadReport& report) {
+    // Fresh report per load: a reused report must not leak bindings
+    // (or partial state) from an earlier seed into this one.
+    report = SeedLoadReport{};
     const OntologyRegistry& ont = kg.getRegistry();
 
     auto fail = [&](size_t i, const std::string& reason) {
@@ -276,6 +279,12 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
     };
 
     for (size_t i = 0; i < seed.ops.size(); ++i) {
+        // A duplicate binder fails BEFORE the op touches the world -
+        // the violating op must mutate nothing.
+        const auto* ce = std::get_if<KGOpCreateEntity>(&seed.ops[i]);
+        if (ce && !ce->as.empty() && report.bindings.count(ce->as)) {
+            return fail(i, "duplicate alias binder @" + ce->as);
+        }
         KGOp op = seed.ops[i];  // copy; aliases resolve in place
         std::string err;
         if (!resolve_op(op, kg, ont, report.bindings, err)) {
@@ -289,16 +298,12 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
             return fail(i, applied.reason);
         }
         report.created_ids.push_back(applied.created_id);
-        if (const auto* ce = std::get_if<KGOpCreateEntity>(&seed.ops[i]);
-            ce && !ce->as.empty()) {
-            if (report.bindings.count(ce->as)) {
-                return fail(i, "duplicate alias binder @" + ce->as);
-            }
+        if (ce && !ce->as.empty()) {
             report.bindings.emplace(ce->as, applied.created_id);
         }
         ++report.ops_applied;
     }
-    return true;
+    return report.ok;
 }
 
 }  // namespace kg

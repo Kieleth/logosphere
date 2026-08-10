@@ -38,6 +38,14 @@ EntityRef parse_entity_ref(const json& v, std::string& warn_out) {
     if (v.is_string()) {
         std::string s = v.get<std::string>();
         if (!s.empty() && s[0] == '@') {
+            // Strict like the "as" binder: a bare "@" would
+            // otherwise decay into a ref that is neither symbolic
+            // nor numeric and slip past resolution.
+            if (s.size() < 2) {
+                warn_out = "entity ref alias must be '@alias' with a "
+                           "non-empty name";
+                return out;
+            }
             out.symbolic = s.substr(1);
             return out;
         }
