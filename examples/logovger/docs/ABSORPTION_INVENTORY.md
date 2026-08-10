@@ -89,6 +89,70 @@ the real map.
    jump, haul, survive.
 5. **Ships in full** — Chapters 8, 9, 10.
 
+## Chapter 1: what remains (measured against the source 2026-08-10)
+
+Slice 1 is playable but the chapter is not finished. This is what the
+book has and the graph does not, counted from
+`srd/cepheus/book1/character-creation.md`, not from memory.
+
+**Seeded today:** 24 Careers, 48 TaskChecks (qualification and
+survival), 24 Service Skills tables, the Draft table, 29 Skills, 144
+AdvanceSkill outcomes, 2 RuleConstants.
+
+**Tables still to extract.** The career tables are laid out in four
+blocks of six careers, each block restating its column headers per
+sub-table, so the natural unit of work is one table type across one
+block: six types times four blocks.
+
+| Table | Count | Shape |
+|---|---|---|
+| Personal Development | 24 x 6 rows | characteristic increases and skills |
+| Specialist | 24 x 6 rows | skills |
+| Adv Education | 24 x 6 rows | skills, gated on Edu 8+ |
+| Ranks and Skills | 24 x 7 rows | rank TITLE plus optional bonus skill, in one cell |
+| Material Benefits | 24 x 7 rows | mixed: characteristics, passages, ship shares, weapons, society |
+| Cash Benefits | 24 x 7 rows | credits |
+| Survival Mishaps | 1 x 6 rows | discharge outcomes, debts, injury references |
+| Aging | 1 x 8 bands | NEGATIVE band keys (-6 up to 1+), terms applied as a negative DM |
+| Injury | 1 | referenced by mishaps 1 and 6 |
+
+**Checks still to extract:** Commission and Advancement for the 17
+careers that offer them (the book names the seven that do not:
+Athlete, Barbarian, Belter, Drifter, Entertainer, Hunter, Scout), and
+Re-enlistment for all 24. Re-enlistment is a flat 2D6 target with no
+characteristic, unlike every check absorbed so far.
+
+**Checklist steps not implemented.** Numbered as the book numbers them:
+
+- **4. Basic training.** First term of a first career grants EVERY
+  service skill at level 0; a first term in a later career grants one
+  chosen service skill at level 0.
+- **5. Mishap.** Failing survival is death; the mishap table is an
+  optional rule requiring the Referee's approval, forces you out after
+  half a term, and costs the current term's benefit roll.
+- **6. Commission and Advancement.** Rank 0 to 6, an extra Skills and
+  Training roll on success, rank bonus skills, once per term each, and
+  a draftee may not attempt Commission in a first term.
+- **7.2. Second training roll** for careers with no Commission or
+  Advancement check.
+- **8.2. Aging** from age 34: at the end of the fourth term and every
+  term after, 2D6 with total terms as a negative DM.
+- **9. Re-enlistment throw.** Today the player simply chooses. The
+  book makes it a roll, and a natural 12 forces another term.
+- **10. Mustering out benefits.** One roll per term served without
+  loss, plus one at rank O4, two at O5, three at O6. At most three
+  rolls may be taken as cash. Gambling skill or retirement gives +1 on
+  cash; O5 or O6 gives +1 on material.
+- **12. Final details.** Name, gender, appearance, personal goals. The
+  narrator already invents a name; it lives in the UI and not in the
+  graph.
+
+**Deliberately out of this slice:** homeworld and background skills
+(marked Optional by the book, and the first two skills depend on a
+world's trade codes and law level, which is Slice 2 data), alien
+species, psionic strength, noble titles beyond the Soc mapping, and
+equipment purchase (Chapter 2).
+
 ## The referee's contract (applies to every R row)
 
 The LLM is handed: the relevant rule text (cited), the current KG
