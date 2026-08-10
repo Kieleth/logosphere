@@ -7,8 +7,8 @@
 // every row of that table, because the book publishes both and they
 // must agree.
 
-#ifndef LOGOVEYER_CHARACTERISTICS_H
-#define LOGOVEYER_CHARACTERISTICS_H
+#ifndef LOGOVGER_CHARACTERISTICS_H
+#define LOGOVGER_CHARACTERISTICS_H
 
 namespace logovger {
 
