@@ -38,13 +38,27 @@ GitHub](https://github.com/orffen/cepheus-srd), rendered at
 pinned by commit in `srd/cepheus/SOURCE_COMMIT`. The markdown-source
 conversion is what makes citation-grade absorption possible, and this
 project would be poorer without it.
+
+While transcribing we found three defects in the conversion (a
+duplicated skill-list entry, a description copied from the wrong
+skill, and thirteen links whose anchors do not resolve), reported
+upstream as
+[orffen/cepheus-srd#36](https://github.com/orffen/cepheus-srd/issues/36)
+with a fix in
+[PR #37](https://github.com/orffen/cepheus-srd/pull/37). Until that
+merges, `SOURCE_COMMIT` pins our fix branch
+(`Kieleth/cepheus-srd@efb8f9d`), which is upstream plus exactly those
+three commits; we re-pin to upstream when the PR lands. No rules text
+is altered.
+
 The spin draws tone from late-80s frontier sci-fi RPGs; all names,
 text and settings here are our own. No trademarked titles, universes
 or assets are used.
 
 ## Layout
 
-- `srd/` — the source texts, per license, unmodified
+- `srd/` — the source texts, per license, carrying only the upstream
+  typo fixes described above
 - `docs/ABSORPTION_INVENTORY.md` — the contract: every book section
   mapped to ontology / engine procedure / table data / referee prompt,
   with citations (the first deliverable)

@@ -206,27 +206,54 @@ void test_a_character_holds_a_skill_through_the_validated_path() {
     CHECK(held.size() == 1 && held[0] == rating &&
               kg.getProperty(rating, "skill_level") == "2",
           "Slug Rifle at 2, reachable from the character");
+
+    // Read the rating's skill back through the graph and confirm it
+    // is the right skill by NAME: without this the ref could be
+    // dropped entirely and everything above still passes.
+    const auto ref = kg.getProperty(rating, "skill");
+    CHECK(ref == std::to_string(slug_rifle),
+          "the rating's skill ref survived the write");
+    CHECK(!ref.empty() &&
+              kg.getProperty(static_cast<kg::EntityID>(std::stoul(ref)),
+                             "name") == "Slug Rifle",
+          "and following it lands on Slug Rifle itself");
 }
 
 // ----------------------------------------------------------- citations
 
 void test_quotes_are_verbatim_in_the_fixed_source() {
+    auto& kg = *world;
     const std::string text = slurp(srd_path(kSkillsFile));
     CHECK(!text.empty(), "the vendored skills chapter is readable");
 
+    // Read the citation back OUT OF THE KG, not out of the C++ struct
+    // that wrote it: this is what proves the Cited mixin reached the
+    // graph. A dropped source_quote slot fails here.
     bool all = true;
+    size_t checked = 0;
     for (const auto& s : skills) {
-        if (text.find(s.quote) == std::string::npos) {
+        const std::string file = kg.getProperty(s.id, "source_file");
+        const std::string quote = kg.getProperty(s.id, "source_quote");
+        if (file != kSkillsFile || quote.empty()) {
+            all = false;
+            std::cout << "  [measure] uncited in the KG: " << s.name
+                      << std::endl;
+            continue;
+        }
+        ++checked;
+        if (text.find(quote) == std::string::npos) {
             all = false;
             std::cout << "  [measure] NOT VERBATIM (" << s.name << ")"
                       << std::endl;
         }
     }
-    CHECK(all, "all seven skill citations string-match the vendored SRD");
+    CHECK(all && checked == skills.size(),
+          "every skill carries its citation in the KG, verbatim in the "
+          "vendored SRD");
 
     // Re-vendor tripwires: this branch vendors the FIXED fork text
     // (SOURCE_COMMIT points at our fix commit until upstream merges
-    // PR #37). Both fixes must be present, or the pin drifted.
+    // PR #37). All three fixes must be present, or the pin drifted.
     CHECK(text.find("| [Veterinary Medicine](#veterinary-medicine) | "
                     "[Slug Rifle](#slug-rifle) | [Mole](#mole) |") !=
               std::string::npos,
@@ -234,8 +261,16 @@ void test_quotes_are_verbatim_in_the_fixed_source() {
     CHECK(text.find("The various specialties of this skill cover different "
                     "fields of scientific study.") != std::string::npos,
           "and the Sciences sentence is fixed too");
-    std::cout << "  [measure] " << skills.size()
-              << " citations + 2 re-vendor tripwires verified" << std::endl;
+    const std::string chargen = slurp(srd_path("book1/character-creation.md"));
+    CHECK(chargen.find("[Gun Combat-0](skills.md#gun-combat-cascade-skill)") !=
+              std::string::npos &&
+              chargen.find("[Animals-0](skills.md#animals)") ==
+                  std::string::npos,
+          "and the cascade anchors are fixed in the chargen chapter, with "
+          "no short-anchor survivors");
+    std::cout << "  [measure] " << checked
+              << " KG citations + 3 re-vendor tripwires verified"
+              << std::endl;
 }
 
 }  // namespace

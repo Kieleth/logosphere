@@ -65,24 +65,14 @@ jobs:
       - name: Build logosphere_core + headless tests
         run: cmake --build build -j $(nproc)
 
+      # Every test registered in this profile, through ctest.
+      # Deliberately NOT a hand-maintained list: the list this replaced
+      # had gone stale, so tests added after it was written were built
+      # but never run and the gate silently checked compilation alone.
+      # A new add_headless_test() is gated the moment it exists.
       - name: Run headless test suite
-        run: |
-          set -e
-          fail=0
-          for t in \
-            test_event_log test_signal test_event_channel test_event_bus \
-            test_damage_events test_capability_system test_ontology_extension \
-            test_body_plan test_game_time test_kg_setproperty_events \
-            test_relation_events test_kg_parse_safety \
-            test_logotron_cycle test_logotron_trails test_logotron_collision \
-            test_logotron_round test_logotron_director \
-            test_particle_shapes \
-            test_interaction_ontology test_interaction_events test_interaction_profiles
-          do
-            echo "=== $t ==="
-            ./build/$t || fail=1
-          done
-          exit $fail
+        working-directory: build
+        run: ctest --output-on-failure -j $(nproc)
 
       - name: Install package to a prefix
         run: cmake --install build --prefix "$PWD/_install"

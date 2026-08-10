@@ -9,8 +9,8 @@
 // The book's worked example is the test vector: scores
 // 6,8,7,11,9,12 -> "687B9C", and with Psi 4 -> "687B9C-4".
 
-#ifndef LOGOVEYER_EHEX_H
-#define LOGOVEYER_EHEX_H
+#ifndef LOGOVGER_EHEX_H
+#define LOGOVGER_EHEX_H
 
 #include <string>
 
