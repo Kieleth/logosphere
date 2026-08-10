@@ -1,7 +1,7 @@
 # Logovger parallel-session handover
 
-_State captured 2026-08-09 after completing required-property and
-reference-integrity hardening in the dedicated worktree._
+_State captured 2026-08-09 after merging the completed Skills ingestion,
+ontology integrity, citation, and dice-verifier phases into local main._
 
 ## Read this state first
 
@@ -10,15 +10,16 @@ Repository: `/Users/luis/Projects/logosphere-public`
 Current local `main`:
 
 - Branch: `main`
-- Commit: `792c934086299865600d5f3e73ac7540ac1adcf0`
+- Commit: `3aa4115c2ff9ca411bafdf8f3e60ed28aeaf02e8`
 - Worktree: `/Users/luis/Projects/logosphere-public`
 
 Dedicated hardening work:
 
 - Branch: `codex/logovger-hardening`
-- Previous committed hardening step: `a58d5f8`
+- Commit: `3aa4115c2ff9ca411bafdf8f3e60ed28aeaf02e8`
 - Worktree: `/Users/luis/Projects/logosphere-logovger-hardening`
-- `main` was merged into this branch at `7ec8212`.
+- Current `main` was merged into this branch, tested, and main was then
+  fast-forwarded to the same commit.
 - Do not edit this worktree from another session.
 
 If this file is not present in your worktree, read the committed copy:
@@ -27,13 +28,13 @@ If this file is not present in your worktree, read the committed copy:
 git show codex/logovger-hardening:docs/todo_plans/LOGOVGER_PARALLEL_SESSION_HANDOVER.md
 ```
 
-Do not assume `main` contains the hardening commits. At the state above,
-it does not. Work on a separate branch and worktree, then report the
-commit for deliberate integration.
+Local `main` contains every completed hardening phase through `84525a2`,
+the parallel Skills seed-path work from `81be020`, and their tested merge
+at `3aa4115`. Start new work from that commit or a descendant.
 
 ## What is now integrated and green
 
-Local `main` brought in the reviewed skills and seed-verifier work:
+Local `main` contains the reviewed skills and seed-verifier work:
 
 - The corrected Cepheus source pin and stronger Skills assertions.
 - A 20-operation character-creation seed fixture.
@@ -117,62 +118,17 @@ The focused targets were:
 
 ## Ownership boundary between sessions
 
-The hardening session owns ontology registry composition, required-slot
-validation, identifiers, and entity-reference validation. Do not modify
-these files until its current commit is integrated or ownership is
-explicitly transferred:
+The completed registry, validator, verifier, and Skills seed phases are in
+main. No uncommitted work remains in either worktree. The hardening session
+is paused at the semantic-completeness decision and owns no new file edits
+until the owner selects a row-result representation.
 
-- `include/logosphere/kg/ontology_registry.h`
-- `src/kg/kg_module.cpp`, `src/kg/kg_core.cpp`, and
-  `src/kg/ontology_validator.cpp`
-- `scripts/generate_registry.py`
-- generated `*_ontology_registry.cpp` files
-- registry collision, provenance, generation, validator, and required-slot
-  seed tests
-
-The owner selected strict atomic exceptions. That decision and the
-required-property and entity-reference integrity step are implemented and
-tested. Citation headings and dice-field provenance are also implemented.
-The next owned defect is semantic completeness, starting with table
-outcomes. That step needs the owner decision described below.
-
-## Best orthogonal implementation target
-
-If your current assignment does not already name a narrower target,
-move the Skills test data onto the production ingestion path.
-
-The present `examples/logovger/test_skills_pack.cpp` still constructs
-the seven cited Skill instances with direct `createEntity`,
-`setProperty`, and `createRelation` calls. That bypasses the seed
-envelope, alias resolver, validator, atomic loader, and verifier.
-
-Use TDD to:
-
-1. Add a Cepheus Skills seed fixture containing the seven existing
-   cited instances and their `SPECIALIZES` tree.
-2. Pin it to the current vendored `SOURCE_COMMIT`.
-3. Load and verify it through `parse_seed_envelope`, `load_seed`, and
-   `verify_seed`.
-4. Make `test_skills_pack` read the resulting KG instead of rebuilding
-   the same facts through trusted direct writes.
-5. Preserve the existing checks for the Slug Rifle correction, Sciences
-   text, fixed cascade links, typed `SkillRating.skill`, and citation
-   round trips from the KG.
-6. Add a negative test proving a late invalid Skill relation leaves no
-   partial Skills graph.
-
-Keep this work out of registry and schema generation files. If the
-current ontology cannot express a required fact, stop and report the
-specific missing type, property, relation, and source citation. Do not
-invent a schema extension as a workaround.
-
-Likely owned files for this parallel slice:
-
-- A new fixture under `tests/fixtures/seed/`
-- `examples/logovger/test_skills_pack.cpp`
-- `CMakeLists.txt` only if a new test target is truly needed. Every
-  `test_*` or `at_*` target in the headless profile must have a matching
-  CTest registration.
+The parallel Skills target is complete. `81be020` introduced
+`examples/logovger/seeds/cepheus_book1_skills.json` and moved
+`test_skills_pack` onto parse, verify, and load. Merge integration added the
+seven required source headings while retaining the registry-provenance and
+generated-type guards. Do not rebuild that path through trusted direct
+writes.
 
 ## Remaining hardening sequence
 
