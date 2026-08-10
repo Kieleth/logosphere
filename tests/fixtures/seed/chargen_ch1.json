@@ -1,0 +1,231 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "DiceExpression": 2,
+      "TaskCheck": 1,
+      "RuleConstant": 2,
+      "RollableTable": 1,
+      "TableEntry": 2,
+      "LookupTable": 2,
+      "LookupEntry": 4
+    },
+    "unique_name_per_type": [
+      "DiceExpression", "RuleConstant", "TableEntry", "LookupEntry"
+    ],
+    "band_coverage": {
+      "@mishap_table": [2, 3],
+      "@dm_table": [0, 5],
+      "@law_table": [0, 3]
+    }
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d2d6",
+      "properties": {
+        "name": "2d6",
+        "dice_count": 2,
+        "dice_sides": 6,
+        "source_section": "Generating Characteristic Scores",
+        "source_quote": "Roll your six characteristics using 2D6, and record them in the standard order"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d1d6",
+      "properties": {
+        "name": "1d6",
+        "dice_count": 1,
+        "dice_sides": 6,
+        "source_section": "Survival",
+        "source_quote": "| 1D6 | Mishaps |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@int_throw",
+      "properties": {
+        "name": "int_8_plus",
+        "attribute_ref": "intelligence",
+        "target_number": 8,
+        "dice": "@d2d6",
+        "source_section": "Careers",
+        "source_quote": "A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@age_of_majority",
+      "properties": {
+        "name": "age_of_majority",
+        "constant_value": 18,
+        "source_section": "Chapter 1: Character Creation",
+        "source_quote": "All characters begin at the age of majority, typically 18."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@prior_career_dm",
+      "properties": {
+        "name": "prior_career_dm",
+        "constant_value": -2,
+        "source_section": "Qualifying and the Draft",
+        "source_quote": "You suffer a DM–2 to qualification rolls for each previous career you have entered."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@mishap_table",
+      "properties": {
+        "name": "survival_mishaps",
+        "dice": "@d1d6",
+        "source_section": "Survival",
+        "source_quote": "| 1D6 | Mishaps |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_2",
+      "properties": {
+        "name": "mishap_row_2",
+        "roll_min": 2,
+        "roll_max": 2,
+        "source_section": "Survival",
+        "source_quote": "| 2 | Honorably discharged from the service. |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_3",
+      "properties": {
+        "name": "mishap_row_3",
+        "roll_min": 3,
+        "roll_max": 3,
+        "source_section": "Survival",
+        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_2"
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_3"
+    },
+
+    {
+      "op": "create_entity",
+      "type": "LookupTable",
+      "as": "@dm_table",
+      "properties": {
+        "name": "characteristic_modifiers",
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@dm_row_0_2",
+      "properties": {
+        "name": "dm_row_0_2",
+        "key_min": 0,
+        "key_max": 2,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| 0 through 2 | 0-2 | \\-2 |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@dm_row_3_5",
+      "properties": {
+        "name": "dm_row_3_5",
+        "key_min": 3,
+        "key_max": 5,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| 3 through 5 | 3-5 | \\-1 |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_0_2"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_3_5"
+    },
+
+    {
+      "op": "create_entity",
+      "type": "LookupTable",
+      "as": "@law_table",
+      "properties": {
+        "name": "base_difficulty_by_law_level",
+        "source_file": "book1/skills.md",
+        "source_section": "Local Law Level",
+        "source_quote": "| Law Level | Difficulty |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@law_row_0",
+      "properties": {
+        "name": "law_row_0",
+        "key_min": 0,
+        "key_max": 0,
+        "source_file": "book1/skills.md",
+        "source_section": "Local Law Level",
+        "source_quote": "| 0 | Routine (DM+2) |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupEntry",
+      "as": "@law_row_1_3",
+      "properties": {
+        "name": "law_row_1_3",
+        "key_min": 1,
+        "key_max": 3,
+        "source_file": "book1/skills.md",
+        "source_section": "Local Law Level",
+        "source_quote": "| 1-3 | Average (DM+0) |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@law_table",
+      "relation": "HAS_PART",
+      "to": "@law_row_0"
+    },
+    {
+      "op": "set_relation",
+      "from": "@law_table",
+      "relation": "HAS_PART",
+      "to": "@law_row_1_3"
+    }
+  ]
+}

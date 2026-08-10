@@ -47,23 +47,6 @@ ValidationResult validate_destroy(const KGOpDestroyEntity& op,
     return resolve_type(op.target, kg, t);  // existence check is enough
 }
 
-// Locate the PropertyDef for `prop` on `type` (walking ancestors).
-// Returns nullptr if no such property exists. Used by the value /
-// range checks below.
-const PropertyDef* find_property_def(const OntologyRegistry& ont,
-                                     const std::string& type,
-                                     const std::string& prop) {
-    for (const auto& p : ont.propertiesOf(type)) {
-        if (p.name == prop) return &p;
-    }
-    for (const auto& anc : ont.ancestorsOf(type)) {
-        for (const auto& p : ont.propertiesOf(anc)) {
-            if (p.name == prop) return &p;
-        }
-    }
-    return nullptr;
-}
-
 // Entity-reference values (class-ranged slots, e.g. TableEntry.outcome
 // ranging Outcome): the value must be the id of an existing entity
 // whose type is, or is a subtype of, the schema-declared target class.
@@ -170,7 +153,7 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
             return fail("create_entity: '" + op.type
                         + "' has no property '" + k + "'");
         }
-        const PropertyDef* def = find_property_def(ont, op.type, k);
+        const PropertyDef* def = ont.findProperty(op.type, k);
         if (!def) continue;
         if (def->value_type == "entity_ref") {
             if (auto r = check_entity_ref("create_entity '" + op.type + "'",
@@ -213,7 +196,7 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
 
     // Value-type + range checks (C.3). Look up the PropertyDef
     // for the schema-declared value_type + min/max.
-    const PropertyDef* def = find_property_def(ont, t, op.property);
+    const PropertyDef* def = ont.findProperty(t, op.property);
     if (def && def->value_type == "entity_ref") {
         return check_entity_ref("set_property '" + t + "'", *def, op.value,
                                 kg, ont);

@@ -38,6 +38,14 @@ EntityRef parse_entity_ref(const json& v, std::string& warn_out) {
     if (v.is_string()) {
         std::string s = v.get<std::string>();
         if (!s.empty() && s[0] == '@') {
+            // Strict like the "as" binder: a bare "@" would
+            // otherwise decay into a ref that is neither symbolic
+            // nor numeric and slip past resolution.
+            if (s.size() < 2) {
+                warn_out = "entity ref alias must be '@alias' with a "
+                           "non-empty name";
+                return out;
+            }
             out.symbolic = s.substr(1);
             return out;
         }
@@ -80,6 +88,25 @@ bool parse_create_entity(const json& obj, KGOp& out, std::string& warn) {
         for (auto it = props.begin(); it != props.end(); ++it) {
             ce.properties.emplace_back(it.key(), scalar_to_string(it.value()));
         }
+    }
+    // Optional symbolic binder. Strict: when present it must be a
+    // string of the form "@alias" with a non-empty name - anything
+    // else is refused rather than normalized, so a seed file with a
+    // mistyped binder fails loudly instead of silently binding
+    // nothing.
+    if (obj.contains("as")) {
+        const auto& as = obj.at("as");
+        if (!as.is_string()) {
+            warn = "create_entity 'as' must be a string";
+            return false;
+        }
+        const std::string s = as.get<std::string>();
+        if (s.size() < 2 || s[0] != '@') {
+            warn = "create_entity 'as' must be '@alias' with a non-empty "
+                   "name, got '" + s + "'";
+            return false;
+        }
+        ce.as = s.substr(1);
     }
     out = std::move(ce);
     return true;
