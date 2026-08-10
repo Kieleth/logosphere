@@ -107,11 +107,14 @@ struct SeedLoadReport {
 };
 
 // Apply a parsed seed to the KG through the validated write path,
-// in file order. Stops at the first violation, and a violating op
-// mutates nothing. The report is CLEARED on entry - reusing one
-// report object across loads cannot leak bindings between seeds.
-// Validation runs against kg.getRegistry() - the registry the world
-// was built from. Returns report.ok.
+// in file order. The whole seed is atomic: any violation restores
+// entities, properties, and relations to their pre-load state, emits
+// no events, and exposes no partial bindings or created ids. Successful
+// mutation events publish only after the complete graph is committed.
+// Destruction and cinematics are not seed data and are rejected.
+// The report is cleared on entry, so reusing one report object cannot
+// leak bindings between seeds. Validation runs against kg.getRegistry(),
+// the registry the world was built from. Returns report.ok.
 bool load_seed(const SeedEnvelope& seed, KGModule& kg,
                SeedLoadReport& report);
 

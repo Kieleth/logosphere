@@ -278,6 +278,18 @@ PropertyValue KGCore::getProperty(EntityID id, const std::string& key) const {
     return "";
 }
 
+bool KGCore::hasProperty(EntityID id, const std::string& key) const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const Entity* entity = getEntity(id);
+    return entity && entity->properties.find(key) != entity->properties.end();
+}
+
+void KGCore::removeProperty(EntityID id, const std::string& key) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    Entity* entity = getEntity(id);
+    if (entity) entity->properties.erase(key);
+}
+
 // === Stable Particle ID System ===
 
 KGParticleID KGCore::createKGParticle(EntityID entity, RenderIndex initial_render_index) {

@@ -102,6 +102,12 @@ public:
     // Get a property from an entity
     PropertyValue getProperty(EntityID id, const std::string& key) const;
 
+    // Distinguish a missing property from a present empty string and
+    // remove it explicitly. Seed transactions use this to restore the
+    // exact pre-load state when a later operation fails.
+    bool hasProperty(EntityID id, const std::string& key) const;
+    void removeProperty(EntityID id, const std::string& key);
+
     // Return all (key, value) pairs on this entity where key starts with prefix.
     // Used for grouped property lookups (e.g., "rule.0.payload." scans all payload keys).
     std::vector<std::pair<std::string, PropertyValue>>

@@ -187,6 +187,26 @@ PropertyValue KGModule::getProperty(EntityID id, const std::string& key) const {
     return core->getProperty(id, key);
 }
 
+bool KGModule::hasProperty(EntityID id, const std::string& key) const {
+    return checkEnabled("hasProperty") && core->hasProperty(id, key);
+}
+
+void KGModule::removeProperty(EntityID id, const std::string& key) {
+    if (!checkEnabled("removeProperty") || !core->hasProperty(id, key)) {
+        return;
+    }
+    const std::string previous = core->getProperty(id, key);
+    core->removeProperty(id, key);
+    if (event_bus_) {
+        logosphere::ontology::WorldEvent evt;
+        evt.target_entity_id = std::to_string(id);
+        evt.event_type = "STATE_CHANGE";
+        evt.payload_keys = {"property", "value", "prev"};
+        evt.payload_values = {key, "", previous};
+        event_bus_->state_changes().emit(std::move(evt));
+    }
+}
+
 std::vector<std::pair<std::string, PropertyValue>>
 KGModule::getPropertiesWithPrefix(EntityID id, const std::string& prefix) const {
     std::vector<std::pair<std::string, PropertyValue>> result;

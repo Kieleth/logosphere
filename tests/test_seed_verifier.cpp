@@ -23,6 +23,7 @@
 
 #undef NDEBUG
 
+#include "logosphere/events/event_bus.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
@@ -49,8 +50,7 @@ static int tests_failed = 0;
 
 namespace {
 
-// The vendored SRD root - the ONE place the examples path lives, so
-// Keep the source root tied to the canonical Logovger directory.
+// The one source-root constant stays tied to the canonical directory.
 const char* kSourceRoot =
     LOGOSPHERE_SOURCE_DIR "/examples/logovger/srd/cepheus";
 const char* kFixture =
@@ -197,6 +197,146 @@ void test_loader_binds_and_resolves() {
     CHECK(world.getRelated(report.bindings.at("mishap_table"),
                            "HAS_PART").size() == 2,
           "the table owns its two rows through resolved relations");
+}
+
+void test_loader_failure_rolls_back_the_whole_seed() {
+    kg::SeedEnvelope seed = parse_fixture();
+    const kg::OntologyRegistry reg = engine_registry();
+    kg::KGModule world(reg);
+    world.setMode(kg::KGMode::MINIMAL);
+
+    const auto existing_constant = world.createEntity("RuleConstant");
+    world.setProperty(existing_constant, "constant_value", "7");
+    const auto existing_table = world.createEntity("RollableTable");
+    const auto existing_row = world.createEntity("TableEntry");
+
+    kg::KGOpSetProperty update_existing;
+    update_existing.target.id = existing_constant;
+    update_existing.property = "constant_value";
+    update_existing.value = "99";
+    seed.ops.push_back(kg::KGOp{update_existing});
+
+    kg::KGOpSetProperty add_existing;
+    add_existing.target.id = existing_constant;
+    add_existing.property = "source_section";
+    add_existing.value = "temporary";
+    seed.ops.push_back(kg::KGOp{add_existing});
+
+    kg::KGOpSetRelation relate_existing;
+    relate_existing.from.id = existing_table;
+    relate_existing.relation = "HAS_PART";
+    relate_existing.to.id = existing_row;
+    seed.ops.push_back(kg::KGOp{relate_existing});
+
+    kg::KGOpSetRelation invalid;
+    invalid.from.symbolic = "mishap_table";
+    invalid.relation = "HAS_PART";
+    invalid.to.symbolic = "missing_row";
+    seed.ops.push_back(kg::KGOp{invalid});
+
+    logosphere::EventBus events;
+    world.set_event_bus(&events);
+    const auto before = world.getStats();
+
+    kg::SeedLoadReport report;
+    const bool ok = kg::load_seed(seed, world, report);
+    const auto after = world.getStats();
+
+    CHECK(!ok, "a late dangling alias rejects the seed");
+    CHECK(after.entity_count == before.entity_count,
+          "a rejected seed leaves the entity set unchanged");
+    CHECK(after.relation_count == before.relation_count,
+          "a rejected seed leaves the relation set unchanged");
+    CHECK(world.getProperty(existing_constant, "constant_value") == "7",
+          "a rejected seed restores pre-existing property values");
+    CHECK(!world.hasProperty(existing_constant, "source_section"),
+          "a rejected seed removes properties that did not exist before");
+    CHECK(world.getRelated(existing_table, "HAS_PART").empty(),
+          "a rejected seed removes relations added to existing entities");
+    CHECK(events.get_stats().total_events == 0,
+          "a rejected seed emits no mutation events");
+    CHECK(report.ops_applied == 0 && report.bindings.empty() &&
+              report.created_ids.empty(),
+          "a rejected seed exposes no partial load state");
+}
+
+void test_loader_publishes_events_after_commit() {
+    kg::SeedEnvelope seed = parse_fixture();
+    const kg::OntologyRegistry reg = engine_registry();
+    kg::KGModule world(reg);
+    world.setMode(kg::KGMode::MINIMAL);
+    logosphere::EventBus events;
+    world.set_event_bus(&events);
+
+    bool every_callback_saw_the_complete_graph = true;
+    size_t callbacks = 0;
+    auto inspect = [&](const auto&) {
+        ++callbacks;
+        const auto tables = world.findByProperty("name", "survival_mishaps");
+        every_callback_saw_the_complete_graph =
+            every_callback_saw_the_complete_graph && tables.size() == 1 &&
+            world.getRelated(tables[0], "HAS_PART").size() == 2;
+    };
+    events.state_changes().subscribe(inspect);
+    events.relations().subscribe(inspect);
+
+    kg::SeedLoadReport report;
+    const bool ok = kg::load_seed(seed, world, report);
+
+    CHECK(ok, "the positive seed commits with an event bus attached");
+    CHECK(callbacks > 0, "a committed seed publishes mutation events");
+    CHECK(every_callback_saw_the_complete_graph,
+          "seed callbacks observe only the fully committed graph");
+    CHECK(events.relations().event_count() == 2,
+          "the committed seed publishes its two relation events once");
+}
+
+void test_loader_rejects_non_data_ops_atomically() {
+    const kg::OntologyRegistry reg = engine_registry();
+
+    {
+        kg::SeedEnvelope seed = parse_fixture();
+        kg::KGModule world(reg);
+        world.setMode(kg::KGMode::MINIMAL);
+        const auto existing = world.createEntity("RuleConstant");
+        const auto before = world.getStats();
+
+        kg::KGOpDestroyEntity destroy;
+        destroy.target.id = existing;
+        seed.ops.push_back(kg::KGOp{destroy});
+        kg::SeedLoadReport report;
+
+        CHECK(!kg::load_seed(seed, world, report),
+              "a seed rejects destroy_entity");
+        const auto after = world.getStats();
+        CHECK(world.exists(existing) &&
+                  after.entity_count == before.entity_count &&
+                  after.relation_count == before.relation_count,
+              "rejected destruction leaves the complete world unchanged");
+        CHECK(report.error.find("not allowed") != std::string::npos,
+              "rejected destruction explains the seed-layer rule");
+    }
+
+    {
+        kg::SeedEnvelope seed = parse_fixture();
+        kg::KGModule world(reg);
+        world.setMode(kg::KGMode::MINIMAL);
+        const auto before = world.getStats();
+
+        kg::KGOpPlayCinematic cinematic;
+        cinematic.name = "not_seed_data";
+        seed.ops.push_back(kg::KGOp{cinematic});
+        kg::SeedLoadReport report;
+
+        CHECK(!kg::load_seed(seed, world, report),
+              "a seed rejects play_cinematic");
+        const auto after = world.getStats();
+        CHECK(after.entity_count == before.entity_count &&
+                  after.relation_count == before.relation_count,
+              "rejected cinematic data leaves the world unchanged");
+        CHECK(report.error.find("not allowed") != std::string::npos,
+              "rejected cinematic data explains the seed-file rule");
+    }
 }
 
 // ------------------------------------------------- the positive path
@@ -367,6 +507,9 @@ int main() {
     test_envelope_parses();
     test_envelope_parser_is_loud();
     test_loader_binds_and_resolves();
+    test_loader_failure_rolls_back_the_whole_seed();
+    test_loader_publishes_events_after_commit();
+    test_loader_rejects_non_data_ops_atomically();
     test_positive_seed_verifies();
     test_misquote_fails_verbatim();
     test_dangling_ref_fails_schema();

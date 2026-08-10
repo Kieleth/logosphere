@@ -57,7 +57,10 @@ ApplyResult apply_set_relation(const KGOpSetRelation& op, KGModule& kg) {
     if (!kg.exists(op.from.id) || !kg.exists(op.to.id)) {
         return fail("set_relation: from/to entity missing");
     }
-    kg.createRelation(op.from.id, op.relation, op.to.id);
+    if (kg.createRelation(op.from.id, op.relation, op.to.id) ==
+        INVALID_RELATION) {
+        return fail("set_relation: KG rejected relation");
+    }
     return ApplyResult{};
 }
 
