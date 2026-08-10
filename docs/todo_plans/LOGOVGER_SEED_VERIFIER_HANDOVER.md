@@ -1,5 +1,9 @@
 # Logovger seed verifier handover
 
+> Historical capture of the interrupted feature branch. For the current
+> synchronized and tested state, use
+> `LOGOVGER_PARALLEL_SESSION_HANDOVER.md` in this directory.
+
 _Written 2026-08-09 after the seed-verifier session stopped mid-review.
 The work is preserved unchanged in commit `a130779`. This document
 records what exists, what was actually tested, and what remains unsafe._
