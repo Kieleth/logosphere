@@ -107,6 +107,21 @@ bool build_world(kg::KGModule& kg, std::string& why) {
     return true;
 }
 
+kg::EntityID agent_training_table(kg::KGModule& world) {
+    kg::EntityID career = kg::INVALID_ENTITY;
+    for (const auto id : world.findByType("Career")) {
+        if (world.getProperty(id, "name") == "Agent") career = id;
+    }
+    if (career == kg::INVALID_ENTITY) return kg::INVALID_ENTITY;
+    for (const auto part : world.getRelated(career, "HAS_PART")) {
+        if (world.getRegistry().isSubtypeOf(world.getType(part),
+                                            "RollableTable")) {
+            return part;
+        }
+    }
+    return kg::INVALID_ENTITY;
+}
+
 // ------------------------------------------------------- the slice
 
 void test_a_life_is_generated() {
@@ -357,6 +372,109 @@ void test_skill_outcome_parameters_drive_the_executor() {
           "missing required outcome data stops chargen loudly: " + error);
 }
 
+void test_skill_table_dice_data_drives_selection() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why),
+          "the changed-table world loads: " + why);
+    const auto table = agent_training_table(world);
+    CHECK(table != kg::INVALID_ENTITY,
+          "Agent has a skills and training RollableTable");
+    if (table == kg::INVALID_ENTITY) return;
+
+    const auto dice_ref = world.getProperty(table, "dice");
+    const auto dice_id = static_cast<kg::EntityID>(std::stoul(dice_ref));
+    world.setProperty(dice_id, "dice_modifier", "6");
+    for (const auto row : world.getRelated(table, "HAS_PART")) {
+        world.setProperty(
+            row, "roll_min",
+            std::to_string(std::stoi(world.getProperty(row, "roll_min")) + 6));
+        world.setProperty(
+            row, "roll_max",
+            std::to_string(std::stoi(world.getProperty(row, "roll_max")) + 6));
+    }
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest request{"Agent", 1, 1};
+    logovger::CharacterSheet sheet;
+    std::string error;
+    const bool ok = logovger::run_chargen(
+        request, world, dice, sheet, error);
+    const logosphere::dice::DiceRoll* training = nullptr;
+    for (const auto& roll : dice.journal()) {
+        if (roll.purpose == "skills and training") training = &roll;
+    }
+    CHECK(ok && sheet.skills.size() == 1 && training &&
+              training->expression.modifier == 6 && training->total >= 7 &&
+              training->total <= 12,
+          "changing the table's DiceExpression and bands changes selection "
+          "without procedure code changes: " + error);
+}
+
+void test_every_skill_table_row_is_validated_before_selection() {
+    kg::KGModule control(game_registry());
+    std::string why;
+    CHECK(build_world(control, why), "the table control world loads: " + why);
+    logosphere::dice::DiceService control_dice;
+    logovger::ChargenRequest request{"Agent", 1, 1};
+    logovger::CharacterSheet control_sheet;
+    std::string error;
+    CHECK(logovger::run_chargen(request, control, control_dice,
+                                control_sheet, error),
+          "the unmodified one-term control completes: " + error);
+    int selected_total = 0;
+    for (const auto& roll : control_dice.journal()) {
+        if (roll.purpose == "skills and training") {
+            selected_total = roll.total;
+        }
+    }
+    CHECK(selected_total != 0,
+          "the control identifies its skills and training roll");
+
+    kg::KGModule malformed(game_registry());
+    why.clear();
+    CHECK(build_world(malformed, why),
+          "the malformed-table world loads before mutation: " + why);
+    const auto table = agent_training_table(malformed);
+    kg::EntityID unselected = kg::INVALID_ENTITY;
+    for (const auto row : malformed.getRelated(table, "HAS_PART")) {
+        const int low = std::stoi(malformed.getProperty(row, "roll_min"));
+        const int high = std::stoi(malformed.getProperty(row, "roll_max"));
+        if (selected_total < low || selected_total > high) {
+            unselected = row;
+            break;
+        }
+    }
+    CHECK(unselected != kg::INVALID_ENTITY,
+          "the control has a row not selected by this seed");
+    if (unselected == kg::INVALID_ENTITY) return;
+    malformed.removeProperty(unselected, "outcome");
+
+    logosphere::dice::DiceService malformed_dice;
+    logovger::CharacterSheet malformed_sheet;
+    error.clear();
+    const bool ok = logovger::run_chargen(
+        request, malformed, malformed_dice, malformed_sheet, error);
+    bool training_roll = false;
+    for (const auto& roll : malformed_dice.journal()) {
+        if (roll.purpose == "skills and training") training_roll = true;
+    }
+    size_t ratings = 0;
+    if (malformed_sheet.id != kg::INVALID_ENTITY) {
+        for (const auto part : malformed.getRelated(malformed_sheet.id,
+                                                    "HAS_PART")) {
+            if (malformed.getRegistry().isSubtypeOf(
+                    malformed.getType(part), "SkillRating")) {
+                ++ratings;
+            }
+        }
+    }
+    CHECK(!ok && error.find("outcome") != std::string::npos &&
+              !training_roll && ratings == 0,
+          "a malformed unselected row blocks the table before a selection "
+          "roll or outcome mutation: " + error);
+}
+
 void test_procedure_data_drives_chargen_control_flow() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -446,6 +564,8 @@ int main() {
     test_missing_rules_fail_loudly();
     test_the_rules_are_data();
     test_skill_outcome_parameters_drive_the_executor();
+    test_skill_table_dice_data_drives_selection();
+    test_every_skill_table_row_is_validated_before_selection();
     test_procedure_data_drives_chargen_control_flow();
     test_unknown_runtime_primitive_fails_before_character_state();
 

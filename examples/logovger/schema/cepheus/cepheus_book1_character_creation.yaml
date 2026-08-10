@@ -107,6 +107,19 @@ classes:
     annotations:
       facets: rulebook
 
+  EnterCareer:
+    is_a: Outcome
+    description: >-
+      Enter a named career as the result of a roll rather than a
+      choice: the Draft table's six services
+      [book1/character-creation.md "Qualifying and the Draft"]. The
+      career is an entity reference, so a draft row cannot name a
+      career the game does not have.
+    annotations:
+      facets: rulebook
+    slots:
+      - drafted_career
+
   Currency:
     is_a: Entity
     mixins:
@@ -217,3 +230,8 @@ slots:
     range: integer
     required: true
     description: Dice modifier returned for a score in this row.
+
+  drafted_career:
+    range: Career
+    required: true
+    description: The career this result puts the character into.

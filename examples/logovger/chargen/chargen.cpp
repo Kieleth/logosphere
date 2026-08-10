@@ -2,9 +2,11 @@
 #include "chargen/procedure_catalog.h"
 
 #include "logosphere/rules/outcome_executor.h"
+#include "logosphere/rules/rollable_table_runner.h"
 #include "rules/characteristics.h"
 #include "rules/ehex.h"
 
+#include <algorithm>
 #include <cctype>
 #include <limits>
 #include <sstream>
@@ -119,15 +121,15 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
 }
 
-// Roll on a career's skill table and execute the row's outcome. The
-// whole chain is graph data: career HAS_PART table, table HAS_PART
-// rows, row -> outcome -> skill. Missing or malformed rules fail the
-// term. There is no default skill level in procedure code.
-bool roll_for_skill(kg::KGModule& kg, kg::EntityID career,
-                    kg::EntityID character,
-                    logosphere::dice::DiceService& dice,
-                    uint64_t& roll_id_out, std::string& gained,
-                    std::string& error) {
+// Select a career training row, then apply its structured outcome. These are
+// separate engine operations: the recorded selection remains a fact if
+// outcome application fails. There is no default skill level in procedure
+// code.
+bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
+                               kg::EntityID character,
+                               logosphere::dice::DiceService& dice,
+                               uint64_t& roll_id_out, std::string& gained,
+                               std::string& error) {
     gained.clear();
     error.clear();
     kg::EntityID table = kg::INVALID_ENTITY;
@@ -143,131 +145,72 @@ bool roll_for_skill(kg::KGModule& kg, kg::EntityID career,
         return false;
     }
 
-    // The table names its own dice; a d6 table and a d3 table are
-    // both legal and this code does not care which it got.
-    const auto dice_ref = kg.getProperty(table, "dice");
-    if (dice_ref.empty()) {
-        error = "skills and training table has no dice reference";
+    logosphere::rules::RollableTableRunner table_runner(kg, dice);
+    const auto selected = table_runner.select(
+        table, "chargen", "skills and training");
+    if (!selected.ok()) {
+        error = "skills and training selection failed: " + selected.error;
         return false;
     }
-    kg::EntityID dice_id = kg::INVALID_ENTITY;
+    roll_id_out = selected.selection->roll().id;
+
+    const auto outcome = selected.selection->outcome();
+    const auto skill_ref = kg.getProperty(outcome, "skill");
+    if (skill_ref.empty()) {
+        error = "skills and training outcome has no skill reference";
+        return false;
+    }
+    kg::EntityID skill = kg::INVALID_ENTITY;
     try {
-        const auto parsed = std::stoull(dice_ref);
+        const auto parsed = std::stoull(skill_ref);
         if (parsed > std::numeric_limits<kg::EntityID>::max()) {
             throw std::out_of_range("entity id");
         }
-        dice_id = static_cast<kg::EntityID>(parsed);
+        skill = static_cast<kg::EntityID>(parsed);
     } catch (...) {
-        error = "skills and training table has invalid dice reference '" +
-                dice_ref + "'";
+        error = "skills and training outcome has invalid skill reference '" +
+                skill_ref + "'";
         return false;
     }
-    if (!kg.exists(dice_id) ||
-        !kg.getRegistry().isSubtypeOf(kg.getType(dice_id),
-                                      "DiceExpression")) {
-        error = "skills and training table dice reference does not point "
-                "to a DiceExpression";
+    if (!kg.exists(skill) ||
+        !kg.getRegistry().isSubtypeOf(kg.getType(skill), "Skill")) {
+        error = "skills and training outcome skill reference does not point "
+                "to a Skill";
         return false;
     }
-    logosphere::dice::DiceExpression expr;
-    bool ok = true;
-    expr.count = property_int(kg, dice_id, "dice_count", ok);
-    expr.sides = property_int(kg, dice_id, "dice_sides", ok);
-    if (!ok || !expr.is_valid()) {
-        error = "skills and training table has an invalid DiceExpression";
+    const std::string skill_name = kg.getProperty(skill, "name");
+    if (skill_name.empty()) {
+        error = "skills and training outcome points to an unnamed skill";
         return false;
     }
 
-    const auto roll = dice.roll(expr, "chargen", "skills and training");
-    if (roll.id == 0) {
-        error = "skills and training dice roll was rejected";
+    logosphere::rules::OutcomeExecutor executor(kg, dice);
+    const auto applied = executor.apply(
+        outcome, {character, "chargen", "skills and training"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        error = "skills and training outcome failed: " + applied.error;
         return false;
     }
-    roll_id_out = roll.id;
 
-    // The row whose band contains the result.
-    for (auto row : kg.getRelated(table, "HAS_PART")) {
-        bool have = true;
-        const int lo = property_int(kg, row, "roll_min", have);
-        const int hi = property_int(kg, row, "roll_max", have);
-        if (!have || roll.total < lo || roll.total > hi) continue;
-
-        const auto outcome_ref = kg.getProperty(row, "outcome");
-        if (outcome_ref.empty()) {
-            error = "matching skills and training row has no outcome";
+    int matches = 0;
+    for (auto part : kg.getRelated(character, "HAS_PART")) {
+        if (kg.getProperty(part, "skill") != skill_ref) continue;
+        ++matches;
+        const auto level = kg.getProperty(part, "skill_level");
+        if (level.empty()) {
+            error = "executed skill outcome created a rating without "
+                    "skill_level";
             return false;
         }
-        kg::EntityID outcome = kg::INVALID_ENTITY;
-        try {
-            const auto parsed = std::stoull(outcome_ref);
-            if (parsed > std::numeric_limits<kg::EntityID>::max()) {
-                throw std::out_of_range("entity id");
-            }
-            outcome = static_cast<kg::EntityID>(parsed);
-        } catch (...) {
-            error = "matching skills and training row has invalid outcome "
-                    "reference '" + outcome_ref + "'";
-            return false;
-        }
-        if (!kg.exists(outcome)) {
-            error = "matching skills and training row points to a missing "
-                    "outcome";
-            return false;
-        }
-        const auto skill_ref = kg.getProperty(outcome, "skill");
-        if (skill_ref.empty()) {
-            error = "skills and training outcome has no skill reference";
-            return false;
-        }
-
-        logosphere::rules::OutcomeExecutor executor(kg, dice);
-        const auto result = executor.apply(
-            outcome, {character, "chargen", "skills and training"});
-        if (result.status != logosphere::rules::OutcomeStatus::APPLIED) {
-            error = "skills and training outcome failed: " + result.error;
-            return false;
-        }
-
-        kg::EntityID skill = kg::INVALID_ENTITY;
-        try {
-            const auto parsed = std::stoull(skill_ref);
-            if (parsed > std::numeric_limits<kg::EntityID>::max()) {
-                throw std::out_of_range("entity id");
-            }
-            skill = static_cast<kg::EntityID>(parsed);
-        } catch (...) {
-            error = "skills and training outcome has invalid skill "
-                    "reference '" + skill_ref + "'";
-            return false;
-        }
-        const std::string skill_name = kg.getProperty(skill, "name");
-        if (skill_name.empty()) {
-            error = "skills and training outcome points to an unnamed skill";
-            return false;
-        }
-        int matches = 0;
-        for (auto part : kg.getRelated(character, "HAS_PART")) {
-            if (kg.getProperty(part, "skill") != skill_ref) continue;
-            ++matches;
-            const auto level = kg.getProperty(part, "skill_level");
-            if (level.empty()) {
-                error = "executed skill outcome created a rating without "
-                        "skill_level";
-                return false;
-            }
-            gained = skill_name + "-" + level;
-        }
-        if (matches != 1) {
-            error = "executed skill outcome left " +
-                    std::to_string(matches) +
-                    " ratings for the selected skill";
-            return false;
-        }
-        return true;
+        gained = skill_name + "-" + level;
     }
-    error = "skills and training roll " + std::to_string(roll.total) +
-            " matches no table row";
-    return false;
+    if (matches != 1) {
+        error = "executed skill outcome left " +
+                std::to_string(matches) +
+                " ratings for the selected skill";
+        return false;
+    }
+    return true;
 }
 
 std::string lowercase(std::string value) {
@@ -319,6 +262,9 @@ void ChargenSession::bind_primitives() {
     bind("roll_qualification", [this](const PrimitiveContext& context) {
         return roll_qualification(context);
     });
+    bind("draft_or_drifter", [this](const PrimitiveContext& context) {
+        return draft_or_drifter(context);
+    });
     bind("roll_survival", [this](const PrimitiveContext& context) {
         return roll_survival(context);
     });
@@ -334,6 +280,18 @@ void ChargenSession::bind_primitives() {
     bind("finish_character", [this](const PrimitiveContext& context) {
         return finish_character(context);
     });
+}
+
+// A number the book fixes, read from the graph rather than typed here.
+// Absent means the seed is thin, and the fallback is stated out loud
+// rather than hidden.
+int ChargenSession::constant(const char* name, int fallback) const {
+    for (auto id : kg_.findByType("RuleConstant")) {
+        if (kg_.getProperty(id, "name") != name) continue;
+        const auto v = kg_.getProperty(id, "constant_value");
+        if (!v.empty()) return std::stoi(v);
+    }
+    return fallback;
 }
 
 bool ChargenSession::begin(uint64_t seed, std::string& error) {
@@ -421,6 +379,14 @@ void ChargenSession::offer_careers() {
     for (auto id : kg_.findByType("Career")) {
         const auto name = kg_.getProperty(id, "name");
         if (name.empty()) continue;
+        // "Once you leave a career you cannot return to it. The Draft
+        // and the Drifter career are exceptions - the Drifter career
+        // is always open."
+        if (name != "Drifter" &&
+            std::find(sheet_.careers_served.begin(),
+                      sheet_.careers_served.end(),
+                      name) != sheet_.careers_served.end())
+            continue;
         const auto q = read_check(kg_, kg_.getProperty(id, "qualification_check"));
         const auto v = read_check(kg_, kg_.getProperty(id, "survival_check"));
         if (!q.valid || !v.valid) continue;   // a career that cannot be
@@ -445,10 +411,33 @@ void ChargenSession::finish(const std::string& why) {
 ChargenSession::PrimitiveResult ChargenSession::choose_career(
     const PrimitiveContext& context) {
     if (!context.input) {
+        // The book grants a new career only to someone with terms
+        // left: "If you're leaving your current career and your total
+        // number of terms in character creation is less than seven,
+        // you may go to step 3 to choose a new career". At seven the
+        // permission is gone, so there is nothing to choose and the
+        // character is finished rather than being offered a list the
+        // rules will not honour.
+        const int cap = constant("max_terms", 7);
+        if (sheet_.terms_served >= cap) {
+            finish_reason_ = std::to_string(cap) +
+                             " terms served: the book allows no more.";
+            return PrimitiveResult::advance("finish");
+        }
         offer_careers();
         if (choices_.empty()) {
             return PrimitiveResult::failed(
                 "no Career in the knowledge graph; load a careers seed");
+        }
+        // "...or to step 12 if you wish to finish your character."
+        // Only once something has been lived: there is no finishing
+        // a character who has not started.
+        if (!sheet_.careers_served.empty()) {
+            choices_.push_back({"finish", "Finish the character",
+                                "stop here and keep what you have"});
+            prompt_ = "Out at age " + std::to_string(sheet_.age_years) +
+                      " after " + std::to_string(sheet_.terms_served) +
+                      " term(s). Another career, or finish?";
         }
         return PrimitiveResult::pending(prompt_, choices_);
     }
@@ -457,12 +446,22 @@ ChargenSession::PrimitiveResult ChargenSession::choose_career(
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
     }
+    if (picked->key == "finish") {
+        choices_.clear();
+        finish_reason_ =
+            "Finished at age " + std::to_string(sheet_.age_years) +
+            " after " + std::to_string(sheet_.terms_served) +
+            " term(s) across " +
+            std::to_string(sheet_.careers_served.size()) + " career(s).";
+        return PrimitiveResult::advance("finish");
+    }
     career_ = find_named(kg_, "Career", picked->label);
     if (career_ == kg::INVALID_ENTITY) {
         return PrimitiveResult::failed("no Career named '" + picked->label +
                                        "'");
     }
     sheet_.career = picked->label;
+    sheet_.careers_served.push_back(picked->label);
     choices_.clear();
     return PrimitiveResult::advance();
 }
@@ -480,18 +479,104 @@ ChargenSession::PrimitiveResult ChargenSession::roll_qualification(
             "career '" + sheet_.career +
             "' has no qualification throw in the graph");
     }
+    // "If this is not your first career, you suffer a -2 DM for every
+    // previous career in which you have served." The number is a cited
+    // RuleConstant in the graph, not a literal here; the careers
+    // already served are on the sheet.
+    auto penalised = check;
+    const int prior = static_cast<int>(sheet_.careers_served.size()) - 1;
+    if (prior > 0)
+        penalised.modifier += constant("prior_career_dm", -2) * prior;
     const auto qualification =
-        throw_check(check, sheet_, dice_, "qualification");
+        throw_check(penalised, sheet_, dice_, "qualification");
     sheet_.qualified = qualification.passed;
     sheet_.life.push_back(
         {0, qualification.passed ? "qualified" : "failed to qualify",
          qualification.detail, qualification.roll_id});
     if (qualification.passed) return PrimitiveResult::advance("passed");
 
-    finish_reason_ =
-        "Not accepted. (A life that never joined is still a life; the "
-        "book would send you to the draft, which is a later slice.)";
+    // "You must either submit to the Draft or take the Drifter career
+    // for this term." Drifter is always open, so a refusal sends you
+    // back to the list rather than ending the character. The Draft's
+    // own 1D6 table is not absorbed yet, and the line says so.
+    sheet_.life.push_back(
+        {sheet_.terms_served, "turned away by the " + sheet_.career, "",
+         0});
+    turned_away_from_ = sheet_.career;
+    career_ = kg::INVALID_ENTITY;
+    sheet_.career.clear();
+    if (!sheet_.careers_served.empty()) sheet_.careers_served.pop_back();
     return PrimitiveResult::advance("failed");
+}
+
+// "You must either submit to the Draft or take the Drifter career for
+// this term." Not the whole list again: the term is already spent, and
+// these are the two ways to spend it.
+ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
+    const PrimitiveContext& context) {
+    if (!context.input) {
+        choices_ = {
+            {"1", "Take the Drifter career",
+             "always open, whatever else has refused you"},
+            {"2", "Submit to the Draft",
+             "1D6 decides which service takes you"},
+        };
+        prompt_ = "The " + turned_away_from_ +
+                  " will not have you this term. The book gives you two "
+                  "ways to spend it.";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the options");
+    }
+    choices_.clear();
+
+    std::string career_name = "Drifter";
+    if (picked->key == "2") {
+        // The Draft is a table in the book, so it is a table in the
+        // graph: 1D6 across six services, rolled by the engine, and
+        // the row's typed outcome names the career you are taken by.
+        // You do not choose, which is the whole point of a draft.
+        const auto table = find_named(kg_, "RollableTable", "Draft Career");
+        if (table == kg::INVALID_ENTITY) {
+            return PrimitiveResult::failed(
+                "the Draft table is not in the graph; load the careers "
+                "seed");
+        }
+        logosphere::rules::RollableTableRunner runner(kg_, dice_);
+        const auto drafted = runner.select(table, "chargen", "the Draft");
+        if (!drafted.ok()) {
+            return PrimitiveResult::failed("the Draft failed: " +
+                                           drafted.error);
+        }
+        const auto ref = kg_.getProperty(drafted.selection->outcome(),
+                                         "drafted_career");
+        if (ref.empty()) {
+            return PrimitiveResult::failed(
+                "a Draft row names no career");
+        }
+        const auto drafted_career =
+            static_cast<kg::EntityID>(std::stoul(ref));
+        career_name = kg_.getProperty(drafted_career, "name");
+        sheet_.life.push_back(
+            {sheet_.terms_served, "drafted into the " + career_name,
+             "1D6 = " + std::to_string(drafted.selection->roll().total),
+             drafted.selection->roll().id});
+    }
+    career_ = find_named(kg_, "Career", career_name);
+    if (career_ == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "the Drifter career is not in the graph, and the book says "
+            "it is always open");
+    }
+    sheet_.career = career_name;
+    sheet_.careers_served.push_back(career_name);
+    if (picked->key != "2")
+        sheet_.life.push_back({sheet_.terms_served, "became a Drifter",
+                               "the career that is always open", 0});
+    return PrimitiveResult::advance("took_it");
 }
 
 ChargenSession::PrimitiveResult ChargenSession::roll_survival(
@@ -523,8 +608,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     uint64_t skill_roll = 0;
     std::string skill;
     std::string error;
-    if (!roll_for_skill(kg_, career_, sheet_.id, dice_, skill_roll,
-                        skill, error)) {
+    if (!select_and_apply_training(kg_, career_, sheet_.id, dice_, skill_roll,
+                                   skill, error)) {
         return PrimitiveResult::failed(error);
     }
     sheet_.skills.push_back(skill);
@@ -547,6 +632,20 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
 ChargenSession::PrimitiveResult ChargenSession::choose_term_end(
     const PrimitiveContext& context) {
     if (!context.input) {
+        // "The maximum number of terms spent in character creation" is
+        // seven, cited in the graph. At the cap there is nothing left
+        // to decide: the character is made.
+        const int cap = constant("max_terms", 7);
+        if (sheet_.terms_served >= cap) {
+            finish_reason_ =
+                std::to_string(cap) + " terms served. Mustered out at age " +
+                std::to_string(sheet_.age_years) + ".";
+            sheet_.life.push_back(
+                {sheet_.terms_served, "out of terms",
+                 "the book allows " + std::to_string(cap) +
+                 " and no more", 0});
+            return PrimitiveResult::advance("muster_out");
+        }
         choices_ = {{"1", "Serve another term",
                      "four more years in the " + sheet_.career},
                     {"2", "Muster out", "leave with what you have"}};
@@ -614,11 +713,27 @@ bool run_chargen(const ChargenRequest& request,
     }
     if (!session.choose(request.career_name, error)) return false;
 
-    while (!session.finished() && session.sheet().terms_served <
-                                      request.max_terms) {
+    // An auto-player takes the named career, serves out, and then
+    // stops. It must also cope with being TURNED AWAY: the book sends
+    // a refusal back to the list, so a career whose throw cannot be
+    // made would loop forever. One refusal is the answer; a human
+    // would pick Drifter or the Draft, and this player has no opinion.
+    int guard = 0;
+    while (!session.finished() &&
+           session.sheet().terms_served < request.max_terms) {
+        const auto& choices = session.choices();
+        const bool at_career_menu =
+            !choices.empty() && choices.front().label != "Serve another term";
+        if (at_career_menu) {
+            if (!session.sheet().career.empty() || ++guard > 1) break;
+            if (!session.choose(request.career_name, error)) return false;
+            continue;
+        }
         if (!session.choose("1", error)) return false;
     }
-    if (!session.finished() && !session.choose("2", error)) return false;
+    if (!session.finished() && !session.choices().empty() &&
+        session.choices().front().label == "Serve another term")
+        session.choose("2", error);
     out = session.sheet();
     return true;
 }

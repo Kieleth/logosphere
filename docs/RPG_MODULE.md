@@ -191,6 +191,20 @@ cycles at a transition limit. Unknown primitives, invented route labels,
 cross-procedure jumps, malformed suspension data, and handler exceptions fail
 loudly.
 
+`RollableTableRunner::select` is built in the engine as the first half of a
+two-phase table contract. It validates the table, its referenced
+`DiceExpression`, every attached `TableEntry`, all outcome references, band
+uniqueness, and coverage of every reachable total before consuming
+randomness. It then commits one dice transaction and returns an immutable,
+non-fabricable selection value containing the table, row, typed outcome, and
+citable `DiceRoll`. It never applies the outcome.
+
+Outcome application is an explicit second call to `OutcomeExecutor`. A failed
+or pending outcome retains the original selection and cannot silently trigger
+a reroll. Selection and consequence therefore have separate transaction
+boundaries. The engine does not recursively execute a table result, and game
+code does not interpret row bands or dice fields.
+
 The current Logovger slice registers eight game primitives:
 `generate_characteristics`, `choose_career`, `roll_qualification`,
 `roll_survival`, `roll_training`, `advance_term`, `choose_term_end`, and
@@ -205,9 +219,9 @@ keeps the atomic guarantees described above. A handler that changes arbitrary
 state before reporting its own failure cannot be rolled back by the generic
 runner, so game handlers must validate required input before mutation.
 
-The TaskCheck runner and general RollableTable selection runner remain design
-work. Dice are engine-side, seeded, journaled, and cited by roll id. Gameplay
-code requests rolls and receives facts; it cannot assert a die result.
+The TaskCheck runner remains design work. Dice are engine-side, seeded,
+journaled, and cited by roll id. Gameplay code requests rolls and receives
+facts; it cannot assert a die result.
 
 ## The referee (DESIGN)
 
@@ -297,10 +311,11 @@ Load-bearing properties:
 | 2026-08-09 | Table-result option 3: a lookup row is the typed result. LookupEntry is abstract; games declare concrete multi-column row types; LookupTable declares and verifies entry_type. Rollable rows require one typed root Outcome; NoEffect is explicit; OutcomeSequence composes ordered OutcomeSteps and will apply atomically. Choice authority remains open. Shelob is the server deployment library and has no gameplay or rule-processing role. |
 | 2026-08-10 | Outcome executor contract, owner: handlers produce plans and never mutate the KG directly; one central executor validates and commits. Exact concrete types dispatch or fail loudly. Choices are typed OutcomeChoice data with player, referee, or procedure authority and suspend before mutation. Skill acquisition separates EnsureSkillLevel from AdvanceSkill so initial and existing-skill behavior remain data. Money uses generic per-currency balance state and distinct fixed versus rolled outcomes. Sequence atomicity includes KG state, mutation events, dice streams, the dice journal, and dice events. GrantTableRoll produces a typed pending request; game-specific outcomes may produce typed procedure signals. |
 | 2026-08-10 | Procedure runner scope, owner selected option 2: build the generic engine runner and migrate the current playable chargen slice, without absorbing the full Cepheus checklist in the same phase. The current eight primitive names and their exact route labels are fixed by the game registry. Procedure order and gotos are cited KG data; primitive behavior remains game code. Complete graph validation happens before execution, choices suspend and resume the same step, and synchronous route cycles fail at a transition limit. |
+| 2026-08-10 | RollableTable execution, owner selected option 3: selection and consequence application are explicit phases. The engine validates the complete table before randomness, commits one immutable selection fact containing table, row, typed outcome, and citable roll, then stops. The caller applies the selected outcome separately through OutcomeExecutor. Failure or suspension reuses the same selection without rerolling. No hidden recursive execution and no rule consequences baked into table-runner code. |
 
 ## Build state (updated at each compaction point)
 
-_Last updated 2026-08-10, procedure execution and basic chargen migration built._
+_Last updated 2026-08-10, two-phase RollableTable selection built and used by Logovger training._
 
 | Step | What | State |
 |---|---|---|
@@ -313,7 +328,8 @@ _Last updated 2026-08-10, procedure execution and basic chargen migration built.
 | 6 | Ops loader: seed files -> KG at game start | BUILT; now delegates to the reusable atomic KG-op batch |
 | 7a | Outcome executor | BUILT with exact dispatch, atomic KG and dice execution, typed choices, generic skill and currency state, typed pending table rolls, and game procedure signals |
 | 7b | Procedure runner (outcome-label routing) + thin game primitives | BUILT for the current slice: generic engine runner plus eight registered Logovger primitives; full-checklist primitives remain part of later absorption |
-| 8 | Chargen session and rule-12 life timeline | BASIC SLICE BUILT on the seeded `basic_chargen` Procedure; skill-table consequences use the engine outcome executor; broader checklist and referee integration remain |
+| 7c | RollableTable runner | BUILT with complete preflight, one committed citable selection, and explicit separate outcome application |
+| 8 | Chargen session and rule-12 life timeline | BASIC SLICE BUILT on the seeded `basic_chargen` Procedure; skill training uses engine table selection followed explicitly by the engine outcome executor; broader checklist and referee integration remain |
 
 Working agreements in force: decisions surfaced BEFORE building; gated
 merges only (conclusion checked in the same command); background tasks

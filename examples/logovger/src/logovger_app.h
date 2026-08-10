@@ -19,14 +19,22 @@
 #include "ui/ui_system.h"
 
 #include "chargen/chargen.h"
+#include "narrator.h"
+#include "rules/characteristics.h"
+#include "sheet_screen.h"
 #include "chargen/procedure_catalog.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
+#include "generated/voyager_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
 
 #include <fstream>
+#include <cstring>
+#include <iostream>
+#include <optional>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -51,11 +59,23 @@ public:
         kg.extendOntology(cepheus_book1_skills::ontology::registry());
         kg.extendOntology(
             cepheus_book1_character_creation::ontology::registry());
+        kg.extendOntology(voyager::ontology::registry());
 
         auto* ui = engine_->get_ui_system();
         if (ui) {
             ui->set_chat_theme(220, 220, 210,   // paper
                                150, 190, 255);  // cold blue accent
+            screen_.build(*ui);
+            screen_.on_answer = [this](const std::string& answer) {
+                answer_typed(answer);
+            };
+            screen_.on_new_life = [this]() { start_life(); };
+            screen_.on_inspect_key = [this](const std::string& key) {
+                if (!session_) return;
+                for (const auto& c : session_->choices())
+                    if (c.key == key)
+                        screen_.inspect_career(engine_->get_kg(), c.label);
+            };
         }
 
         std::string why;
@@ -67,16 +87,153 @@ public:
             return;
         }
 
-        say("CHARACTER CREATION -- Cepheus Engine, absorbed.");
-        say("Every number below is read from the rulebook in the "
-            "knowledge graph, and every roll is the engine's, recorded "
-            "and citable.");
-        say("");
+        std::string narrator_error;
+        if (!narrator_.initialize(game_path("lore/voyager.md"),
+                                  narrator_error)) {
+            screen_.say("NARRATOR OFF: " + narrator_error,
+                        SheetScreen::Tone::Bad);
+        }
+        screen_.say("The rulebook is in the graph: 24 careers, 48 throws, "
+                    "144 table rows, all cited.");
+        screen_.say("Click any value on the sheet to see where the book "
+                    "says it.");
+        screen_.say("");
         start_life();
     }
 
+    // Ask for prose about what just happened, and put it on screen when
+    // it arrives. The character keeps it: every narration is written
+    // into the graph beside the facts it was written from.
+    // Reproduce a specific life. Off unless the caller asks: lives
+    // are drawn from real entropy by default.
+public:
+    void pin_seed(uint64_t seed) { pinned_seed_ = seed; }
+
+private:
+    void narrate_beat(const std::string& kind, int term,
+                      std::vector<std::string> facts,
+                      std::vector<uint64_t> rolls) {
+        if (!narrator_.ready() || !session_) return;
+        // Hold the next decision until this beat has been told.
+        screen_.set_waiting(true);
+        waiting_since_ = 0.0f;
+        Beat beat;
+        beat.kind = kind;
+        beat.term = term;
+        beat.facts = std::move(facts);
+        beat.roll_ids = std::move(rolls);
+        beat.sheet = character_for_narrator(session_->sheet());
+        const auto character = session_->sheet().id;
+        const auto seed = seed_;
+        narrator_.narrate(beat, seed,
+            [this, beat, character](const std::string& reply) {
+                // One reply, two places: the story on the left, and
+                // one clipped clause appended to the file. The file is
+                // written as the life happens, a line per interaction.
+                std::string prose, file_line;
+                Narrator::split_file_line(reply, prose, file_line);
+                screen_.say("");
+                screen_.say(prose, SheetScreen::Tone::Good);
+                screen_.add_file_line(file_line);
+                narrator_.record(engine_->get_kg(), character, beat, prose);
+                screen_.set_waiting(false);
+                if (session_) screen_.show(engine_->get_kg(), *session_);
+            });
+    }
+
+    // The file's head: a name, a birthplace, a body, and one dry line
+    // an assessor would write. Asked for once, at the start, and it
+    // does NOT hold up play: the file fills in beside the rolls.
+    void open_file() {
+        if (!narrator_.ready() || !session_) return;
+        Beat beat;
+        beat.kind = "dossier";
+        beat.sheet = character_for_narrator(session_->sheet());
+        const auto character = session_->sheet().id;
+        narrator_.narrate(beat, seed_,
+            [this, beat, character](const std::string& prose) {
+                apply_file_head(prose);
+                narrator_.record(engine_->get_kg(), character, beat, prose);
+            });
+    }
+
+    // Four labelled lines in, four fields out. A line that does not
+    // arrive stays empty rather than being invented here.
+    void apply_file_head(const std::string& prose) {
+        std::string name, born, build, note;
+        std::istringstream in(prose);
+        std::string line;
+        auto take = [&line](const char* label, std::string& into) {
+            const size_t n = std::strlen(label);
+            if (line.size() < n || line.compare(0, n, label) != 0)
+                return false;
+            into = line.substr(n);
+            while (!into.empty() && into.front() == ' ') into.erase(0, 1);
+            while (!into.empty() &&
+                   (into.back() == '\r' || into.back() == ' '))
+                into.pop_back();
+            return true;
+        };
+        while (std::getline(in, line)) {
+            if (take("NAME:", name)) continue;
+            if (take("BORN:", born)) continue;
+            if (take("BUILD:", build)) continue;
+            take("NOTE:", note);
+        }
+        character_name_ = name;
+        screen_.set_dossier(name.empty() ? "(unnamed)" : name,
+                            born, build, note);
+    }
+
+    // The file closes with someone's opinion of the life in it.
+    void close_file() {
+        if (!narrator_.ready() || !session_) return;
+        Beat beat;
+        beat.kind = "assessment";
+        beat.term = session_->sheet().terms_served;
+        for (const auto& e : session_->sheet().life)
+            beat.facts.push_back("T" + std::to_string(e.term) + " " + e.what +
+                                 (e.detail.empty() ? "" : ": " + e.detail));
+        beat.sheet = character_for_narrator(session_->sheet());
+        const auto character = session_->sheet().id;
+        screen_.set_assessment("... the file is being closed ...");
+        narrator_.narrate(beat, seed_,
+            [this, beat, character](const std::string& reply) {
+                std::string prose, file_line;
+                Narrator::split_file_line(reply, prose, file_line);
+                screen_.set_assessment(prose);
+                screen_.add_file_line(file_line);
+                narrator_.record(engine_->get_kg(), character, beat, prose);
+            });
+    }
+
+    // One place answers arrive, whether clicked in the list or typed.
+    void answer_typed(const std::string& text) {
+        if (!session_) return;
+        if (equals_ignoring_case(text, "again") ||
+            equals_ignoring_case(text, "new")) { start_life(); return; }
+        if (session_->finished()) {
+            screen_.say("This life is finished. Type 'again' for another.");
+            return;
+        }
+        std::string error;
+        if (!session_->choose(text, error)) { screen_.say(error); return; }
+        report_progress();
+    }
+
     void update_game(float dt) override {
-        (void)dt;
+        screen_.tick(dt);          // fade the roll flashes
+        narrator_.poll();          // prose arrives on the main thread
+        // A narrator that never answers must not lock the game out.
+        if (screen_.waiting()) {
+            waiting_since_ += dt;
+            if (waiting_since_ > 15.0f) {
+                screen_.say("(the narrator did not answer in time; "
+                            "carrying on)", SheetScreen::Tone::Bad);
+                screen_.set_waiting(false);
+                if (session_) screen_.show(engine_->get_kg(), *session_);
+            }
+        }
         if (!engine_) return;
         auto* ui = engine_->get_ui_system();
         if (!ui || !ui->has_pending_submit()) return;
@@ -99,12 +256,7 @@ public:
             return;
         }
 
-        std::string error;
-        if (!session_->choose(text, error)) {
-            say(error + ". " + options_line());
-            return;
-        }
-        report_progress();
+        answer_typed(text);
     }
 
 private:
@@ -156,6 +308,11 @@ private:
                 return false;
             }
         }
+        chapter_ = logosphere::text::SourceDocument::parse_markdown(
+            slurp(game_path("srd/cepheus/book1/character-creation.md")));
+        skills_doc_ = logosphere::text::SourceDocument::parse_markdown(
+            slurp(game_path("srd/cepheus/book1/skills.md")));
+        screen_.set_sources(&chapter_, &skills_doc_);
         rules_loaded_ = true;
         return true;
     }
@@ -165,18 +322,38 @@ private:
     void start_life() {
         if (!rules_loaded_) return;
         auto& kg = engine_->get_kg();
-        // A fresh stream per life, so each is its own reproducible
-        // sequence rather than a continuation of the last.
-        seed_ += 1;
+        // Real randomness by default: a life should be a life, not
+        // the same life every launch. A fixed seed is available with
+        // --seed for reproducing a specific one, and the seed of the
+        // life you are playing is printed so a good one can be asked
+        // for again.
+        seed_ = pinned_seed_ ? *pinned_seed_ + lives_ : random_seed();
+        ++lives_;
         session_ = std::make_unique<ChargenSession>(kg, dice_);
+        file_closed_ = false;
         std::string error;
         if (!session_->begin(seed_, error)) {
             say("Could not begin: " + error);
             session_.reset();
             return;
         }
-        say("--- a new life, seed " + std::to_string(seed_) + " ---");
+        screen_.say("--- a new life, seed " + std::to_string(seed_) +
+                    " ---");
+        // Also on the console, where it can be copied into --seed.
+        std::cout << "[logovger] life seed " << seed_ << std::endl;
+        // The opening rolls are the BIO's material, not a term of
+        // their own. Show them, collect nothing, and let the bio be
+        // the one thing said about a character who has done nothing.
+        screen_.clear_dossier();
+        character_name_.clear();
+        open_file();               // fills in beside the opening rolls
+        suppress_beat_ = true;
         report_progress();
+        suppress_beat_ = false;
+        beat_facts_.clear();
+        beat_rolls_.clear();
+        beat_bad_ = false;
+        narrate_beat("bio", 0, {}, {});
     }
 
     // Everything that happened since the last question, then the next
@@ -185,20 +362,45 @@ private:
         for (const auto& e : session_->drain()) {
             std::string line = "  " + e.what;
             if (!e.detail.empty()) line += ": " + e.detail;
-            if (e.roll_id) line += "   [roll #" + std::to_string(e.roll_id) + "]";
-            say(line);
+            if (e.roll_id) line += "   [roll #" +
+                                   std::to_string(e.roll_id) + "]";
+            // Colour by what actually happened, read from the event's
+            // own words: the session says "survived" or "did not
+            // survive", and the screen shows it landing.
+            auto tone = SheetScreen::Tone::Plain;
+            if (e.what.find("did not") != std::string::npos ||
+                e.what.find("failed") != std::string::npos)
+                tone = SheetScreen::Tone::Bad;
+            else if (e.what.find("survived") != std::string::npos ||
+                     e.what.find("qualified") != std::string::npos ||
+                     e.what.find("gained") != std::string::npos)
+                tone = SheetScreen::Tone::Good;
+            else if (e.roll_id)
+                tone = SheetScreen::Tone::Roll;
+            screen_.say(line, tone);
+            beat_facts_.push_back(e.what +
+                                  (e.detail.empty() ? "" : ": " + e.detail));
+            if (e.roll_id) beat_rolls_.push_back(e.roll_id);
+            if (tone == SheetScreen::Tone::Bad) beat_bad_ = true;
         }
-        const auto& s = session_->sheet();
+        // The prose is asked for AFTER the mechanics are on screen, so
+        // nothing waits on the network. It slots in when it lands.
+        if (!beat_facts_.empty() && !suppress_beat_) {
+            const auto kind = session_->finished() ? "ending"
+                            : (beat_bad_ ? "refusal" : "term");
+            narrate_beat(kind, session_->sheet().terms_served,
+                         beat_facts_, beat_rolls_);
+            beat_facts_.clear();
+            beat_rolls_.clear();
+            beat_bad_ = false;
+        }
+        screen_.show(engine_->get_kg(), *session_);
         if (session_->finished()) {
-            say("");
-            say(session_->prompt());
-            say(sheet_line(s));
-            say("Type 'again' for another life.");
-            return;
+            if (!file_closed_) { file_closed_ = true; close_file(); }
+            screen_.say("");
+            screen_.say(session_->prompt());
+            screen_.say("Type 'again' for another life.");
         }
-        say("");
-        say(session_->prompt());
-        say(options_line());
     }
 
     std::string options_line() const {
@@ -212,6 +414,39 @@ private:
         std::string s = o.str();
         if (!s.empty() && s.back() == '\n') s.pop_back();
         return s;
+    }
+
+    // What the narrator is told about the person. Spelled out, because
+    // "Dex 4" means nothing to a reader who does not know the scale:
+    // the modifier IS the book's own judgement of the number.
+    static std::string character_for_narrator(const logovger::CharacterSheet& s) {
+        auto rate = [](int v) {
+            const int dm = logovger::characteristic_dm(v);
+            if (dm <= -2) return "crippling";
+            if (dm == -1) return "poor";
+            if (dm == 0)  return "average";
+            if (dm == 1)  return "good";
+            return "exceptional";
+        };
+        std::ostringstream o;
+        o << "Str " << s.strength        << " (" << rate(s.strength) << "), "
+          << "Dex " << s.dexterity       << " (" << rate(s.dexterity) << "), "
+          << "End " << s.endurance       << " (" << rate(s.endurance) << "), "
+          << "Int " << s.intelligence    << " (" << rate(s.intelligence) << "), "
+          << "Edu " << s.education       << " (" << rate(s.education) << "), "
+          << "Soc " << s.social_standing << " (" << rate(s.social_standing) << ")"
+          << "\nUPP " << s.upp << ", age " << s.age_years
+          << ", " << s.terms_served << " term(s)";
+        if (!s.career.empty()) o << ", currently " << s.career;
+        if (!s.careers_served.empty()) {
+            o << "\nCareers so far:";
+            for (const auto& c : s.careers_served) o << " " << c;
+        }
+        if (!s.skills.empty()) {
+            o << "\nSkills:";
+            for (const auto& sk : s.skills) o << " " << sk;
+        }
+        return o.str();
     }
 
     static std::string sheet_line(const CharacterSheet& s) {
@@ -244,11 +479,32 @@ private:
         return x == y;
     }
 
+    SheetScreen                        screen_;
+    Narrator                           narrator_;
+    std::vector<std::string>           beat_facts_;
+    std::vector<uint64_t>              beat_rolls_;
+    bool                               beat_bad_ = false;
+    float                              waiting_since_ = 0.0f;
+    bool                               suppress_beat_ = false;
+    bool                               file_closed_ = false;
+    std::string                        character_name_;
+    logosphere::text::SourceDocument   chapter_;
+    logosphere::text::SourceDocument   skills_doc_;
     Engine*                            engine_ = nullptr;
     logosphere::dice::DiceService      dice_;
     std::unique_ptr<ChargenSession>    session_;
     bool                               rules_loaded_ = false;
     uint64_t                           seed_ = 0;
+    // Off by default. Set with --seed to replay a particular life.
+    std::optional<uint64_t>            pinned_seed_;
+    uint64_t                           lives_ = 0;
+
+    // Entropy from the machine, not from a counter. Two draws because
+    // random_device yields 32 bits at a time on the platforms we run.
+    static uint64_t random_seed() {
+        std::random_device rd;
+        return (static_cast<uint64_t>(rd()) << 32) ^ rd();
+    }
 };
 
 }  // namespace logovger

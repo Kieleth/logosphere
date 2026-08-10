@@ -6,6 +6,10 @@ cmake_minimum_required(VERSION 3.10)
 set(LOGOVGER_SOURCES
     src/main.cpp
     chargen/chargen.cpp
+    src/sheet_screen.cpp
+    src/career_list.cpp
+    src/narrator.cpp
+    src/generated/voyager_ontology_registry.cpp
     src/generated/cepheus_book1_skills_ontology_registry.cpp
     src/generated/cepheus_book1_character_creation_ontology_registry.cpp
 )

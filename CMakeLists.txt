@@ -123,6 +123,7 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/seed_verifier.cpp
     src/rules/outcome_executor.cpp
     src/rules/procedure_runner.cpp
+    src/rules/rollable_table_runner.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -360,6 +361,7 @@ add_headless_test(test_kg_ops_apply)
 add_headless_test(test_kg_ops_transaction)
 add_headless_test(test_outcome_executor)
 add_headless_test(test_procedure_runner)
+add_headless_test(test_rollable_table_runner)
 # test_mutation_playback links logosphere_core only (no Engine
 # dereferencing in the tests; dummy pointers in fixtures).
 add_executable(test_mutation_playback
@@ -474,6 +476,14 @@ target_include_directories(test_chargen PRIVATE examples/logovger
 target_compile_definitions(test_chargen
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(NAME test_chargen COMMAND test_chargen)
+
+# Pure arithmetic: where the panels sit. No engine, no GPU, no window.
+# It catches the failures a screenshot cannot, starting with a window
+# too wide for the display to show at all.
+add_executable(test_screen_layout examples/logovger/test_screen_layout.cpp)
+target_compile_features(test_screen_layout PRIVATE cxx_std_17)
+target_include_directories(test_screen_layout PRIVATE examples/logovger)
+add_test(NAME test_screen_layout COMMAND test_screen_layout)
 
 add_headless_test(test_dice_service)
 add_headless_test(test_capability_store)

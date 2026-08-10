@@ -1630,6 +1630,13 @@ struct EndCareer : public Outcome {
 };
 
 
+/// Enter a named career as the result of a roll rather than a choice: the Draft table's six services [book1/character-creation.md "Qualifying and the Draft"]. The career is an entity reference, so a draft row cannot name a career the game does not have.
+struct EnterCareer : public Outcome {
+    /// The career this result puts the character into.
+    Career drafted_career = {};
+};
+
+
 /// A unit of money named by the book. Credits are the first instance [book1/character-creation.md "Injury Crisis"]. GainMoney points to this vocabulary rather than baking a currency into the engine.
 struct Currency : public Entity, public Cited {
 };
@@ -1637,6 +1644,22 @@ struct Currency : public Entity, public Cited {
 
 /// The game's character: the book's Character, extended. Exists so that every deviation from the book has a place to live that is not the book's class. Empty of tweaks so far, deliberately.
 struct Voyager : public Character {
+};
+
+
+/// Prose about something that happened, written by a narrator that reads the world and never changes it. Ours, not the book's, which is why it lives in the voyager layer.
+/// Deliberately NOT Cited. A citation means "the source says this"; narration says "this is how it looked". Keeping the two apart in the schema is what stops a story being mistaken for a rule. Every narration points at the facts it was written from, so a reader can always get back to the cited numbers underneath.
+struct Narration : public Entity {
+    /// The prose itself.
+    std::string narrative_text = {};
+    /// What it is about: usually the Character, the one thing every narration in a life has in common.
+    Entity narrates = {};
+    /// Which beat this is: bio, qualification, term, draft, refusal, ending. Lets a reader assemble a life in order.
+    std::optional<std::string> narration_kind = std::nullopt;
+    /// The term it belongs to; 0 before service.
+    std::optional<int32_t> narration_term = std::nullopt;
+    /// The roll ids this beat was written from, comma separated. The thread back from the story to the dice, and through them to the rules.
+    std::optional<std::string> narration_rolls = std::nullopt;
 };
 
 
