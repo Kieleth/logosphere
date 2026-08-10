@@ -809,7 +809,7 @@ inline bool from_string(const char* str, PredatorAction& out) {
 /// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
 struct Identifiable {
     /// Globally unique identifier.
-    std::string id;
+    std::string id = {};
     /// Human-readable name.
     std::optional<std::string> name = std::nullopt;
 };
@@ -855,7 +855,7 @@ struct Entity : public Identifiable, public Temporal, public Describable {
 /// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
 struct Event : public Identifiable, public Temporal {
     /// Classification of the event. Domain projects should constrain this to an enum.
-    std::string event_type;
+    std::string event_type = {};
     /// When the event happened (instantaneous events).
     std::optional<std::string> occurred_at = std::nullopt;
     /// When a duration event began.
@@ -870,7 +870,7 @@ struct Event : public Identifiable, public Temporal {
 /// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
 struct Signal : public Identifiable, public Temporal {
     /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
-    std::string signal_type;
+    std::string signal_type = {};
     /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
     std::optional<float> value = std::nullopt;
     /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
@@ -880,18 +880,18 @@ struct Signal : public Identifiable, public Temporal {
     /// When this signal value was last computed.
     std::optional<std::string> computed_at = std::nullopt;
     /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
-    std::string bearer_id;
+    std::string bearer_id = {};
 };
 
 
 /// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
 struct Relation : public Identifiable, public Temporal {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    std::string relation_type = {};
     /// ID of the source entity.
-    std::string source_id;
+    std::string source_id = {};
     /// ID of the target entity.
-    std::string target_id;
+    std::string target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };
@@ -1181,9 +1181,9 @@ struct PhysicsConstants : public Entity {
 
 /// Physics constraint between two particles.
 struct Constraint : public Entity {
-    GluonType gluon_type;
+    GluonType gluon_type = {};
     /// Constraint stiffness in N/m.
-    float stiffness;
+    float stiffness = {};
     /// Damping coefficient in Ns/m.
     std::optional<float> damping = std::nullopt;
     /// Force threshold for constraint failure.
@@ -1302,7 +1302,7 @@ struct PerceptionEvent : public WorldEvent {
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    std::string relation_type = {};
 };
 
 

@@ -785,7 +785,7 @@ inline bool from_string(const char* str, WorldRelationType& out) {
 /// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
 struct Identifiable {
     /// Globally unique identifier.
-    std::string id;
+    std::string id = {};
     /// Human-readable name.
     std::optional<std::string> name = std::nullopt;
 };
@@ -831,7 +831,7 @@ struct Entity : public Identifiable, public Temporal, public Describable {
 /// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
 struct Event : public Identifiable, public Temporal {
     /// Classification of the event. Domain projects should constrain this to an enum.
-    std::string event_type;
+    std::string event_type = {};
     /// When the event happened (instantaneous events).
     std::optional<std::string> occurred_at = std::nullopt;
     /// When a duration event began.
@@ -846,7 +846,7 @@ struct Event : public Identifiable, public Temporal {
 /// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
 struct Signal : public Identifiable, public Temporal {
     /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
-    std::string signal_type;
+    std::string signal_type = {};
     /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
     std::optional<float> value = std::nullopt;
     /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
@@ -856,18 +856,18 @@ struct Signal : public Identifiable, public Temporal {
     /// When this signal value was last computed.
     std::optional<std::string> computed_at = std::nullopt;
     /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
-    std::string bearer_id;
+    std::string bearer_id = {};
 };
 
 
 /// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
 struct Relation : public Identifiable, public Temporal {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    std::string relation_type = {};
     /// ID of the source entity.
-    std::string source_id;
+    std::string source_id = {};
     /// ID of the target entity.
-    std::string target_id;
+    std::string target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };
@@ -1157,9 +1157,9 @@ struct PhysicsConstants : public Entity {
 
 /// Physics constraint between two particles.
 struct Constraint : public Entity {
-    GluonType gluon_type;
+    GluonType gluon_type = {};
     /// Constraint stiffness in N/m.
-    float stiffness;
+    float stiffness = {};
     /// Damping coefficient in Ns/m.
     std::optional<float> damping = std::nullopt;
     /// Force threshold for constraint failure.
@@ -1278,7 +1278,7 @@ struct PerceptionEvent : public WorldEvent {
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    std::string relation_type = {};
 };
 
 
@@ -1367,14 +1367,25 @@ struct TaskCheck : public Entity, public Cited {
 /// A table keyed by a die result: roll the dice, land in a row. Rows are TableEntry entities attached with HAS_PART; each row claims a result band, and a well-formed table covers its dice range with no gaps and no overlaps (the ingestion verifier proves that per table).
 struct RollableTable : public Entity, public Cited {
     /// The dice this check or table is rolled with.
-    std::optional<DiceExpression> dice = std::nullopt;
+    DiceExpression dice = {};
 };
 
 
-/// A table keyed by what the character already is, not by a die: characteristic modifier by score, title by social standing, rank ladder by earned rank, retirement pay by terms served. Same row shape as a RollableTable, different key: the executor reads the referenced attribute instead of rolling.
+/// A table keyed by what the character already is, not by a die: characteristic modifier by score, title by social standing, rank ladder by earned rank, retirement pay by terms served. The matching LookupEntry is itself the typed answer. entry_type names the concrete game-declared LookupEntry subtype this table contains; the verifier resolves that type and rejects mismatched rows. The executor reads attribute_ref when one is declared, or receives the lookup key directly.
 struct LookupTable : public Entity, public Cited {
     /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
     std::optional<std::string> attribute_ref = std::nullopt;
+    /// Resolved ontology name of the concrete LookupEntry subtype carried by this table. The verifier rejects unknown, abstract, non-entry, and incompatible row types.
+    std::string entry_type = {};
+};
+
+
+/// Abstract base for one row of a LookupTable. The key band selects the row (a single-key row has key_min = key_max); a concrete game-declared subtype carries the table's typed result columns. Lookup rows return information and do not carry Outcome.
+struct LookupEntry : public Entity, public Cited {
+    /// Lowest key value this row claims, inclusive.
+    int32_t key_min = {};
+    /// Highest key value this row claims, inclusive.
+    int32_t key_max = {};
 };
 
 
@@ -1383,25 +1394,33 @@ struct Outcome : public Entity, public Cited {
 };
 
 
-/// One row of a RollableTable: the band of results it claims (a single-value row has roll_min = roll_max) and the outcome it applies.
+/// One row of a RollableTable: the band of results it claims (a single-value row has roll_min = roll_max) and the outcome it applies. The outcome is one required root. A row with several consequences points to an OutcomeSequence; a row that deliberately changes nothing points to NoEffect.
 struct TableEntry : public Entity, public Cited {
     /// Lowest die result this row claims, inclusive.
-    std::optional<int32_t> roll_min = std::nullopt;
+    int32_t roll_min = {};
     /// Highest die result this row claims, inclusive.
-    std::optional<int32_t> roll_max = std::nullopt;
-    /// The outcome this row applies when it matches.
-    std::optional<Outcome> outcome = std::nullopt;
+    int32_t roll_max = {};
+    /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
+    Outcome outcome = {};
 };
 
 
-/// One row of a LookupTable: the key band it claims (a single-key row has key_min = key_max) and the outcome it applies.
-struct LookupEntry : public Entity, public Cited {
-    /// Lowest key value this row claims, inclusive.
-    std::optional<int32_t> key_min = std::nullopt;
-    /// Highest key value this row claims, inclusive.
-    std::optional<int32_t> key_max = std::nullopt;
-    /// The outcome this row applies when it matches.
-    std::optional<Outcome> outcome = std::nullopt;
+/// An explicit rule result that deliberately changes no state. It distinguishes a complete "No effect" row from a row whose outcome was never captured. First instances are Injury 6 and Aging 1+.
+struct NoEffect : public Outcome {
+};
+
+
+/// One outcome made of several ordered consequences. OutcomeStep entities attach through HAS_PART and carry explicit step_index values. The executor validates every child result before applying the complete sequence atomically. First instances are Survival Mishaps 3 and 5.
+struct OutcomeSequence : public Outcome {
+};
+
+
+/// One explicitly ordered child of an OutcomeSequence. The outcome reference is typed; insertion order is not part of the contract.
+struct OutcomeStep : public Entity, public Cited {
+    /// Explicit position in a procedure or outcome sequence. Procedure flow falls through in index order unless a route redirects it; outcome sequences apply their children in index order.
+    int32_t step_index = {};
+    /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
+    Outcome outcome = {};
 };
 
 
@@ -1466,8 +1485,8 @@ struct Procedure : public Entity, public Cited {
 
 /// One step of a Procedure. It NAMES a code primitive through primitive_ref (resolved against the executor's registry, never computed in data) and carries its routes as StepRoute parts: the book's own gotos, transcribed as routing data.
 struct ProcedureStep : public Entity, public Cited {
-    /// Position in the procedure; flow falls through in index order unless a route redirects it.
-    std::optional<int32_t> step_index = std::nullopt;
+    /// Explicit position in a procedure or outcome sequence. Procedure flow falls through in index order unless a route redirects it; outcome sequences apply their children in index order.
+    int32_t step_index = {};
     /// Name of the code primitive this step invokes, resolved against the executor's primitive registry. The step never computes; the primitive does.
     std::optional<std::string> primitive_ref = std::nullopt;
 };
@@ -1544,6 +1563,27 @@ struct ServiceTerm : public Event {
     std::optional<bool> survived = std::nullopt;
     /// Whether a commission was earned this term.
     std::optional<bool> commissioned = std::nullopt;
+};
+
+
+/// One row of the Characteristic Modifier by Score Range table [book1/character-creation.md "Characteristic Modifiers"]. The inherited key band is the score range; these fields are the two result columns printed by the book.
+struct CharacteristicModifierEntry : public LookupEntry {
+    /// First pseudohex symbol printed for the row's score band.
+    std::string pseudohex_min = {};
+    /// Last pseudohex symbol printed for the row's score band.
+    std::string pseudohex_max = {};
+    /// Dice modifier returned for a score in this row.
+    int32_t characteristic_modifier = {};
+};
+
+
+/// Leave the current career as a consequence of a Survival Mishap [book1/character-creation.md "Survival"]. Mishap rows 2 and 3 are the first instances. The executor handler is game policy; the engine only dispatches the typed Outcome.
+struct EndCareer : public Outcome {
+};
+
+
+/// A unit of money named by the book. Credits are the first instance [book1/character-creation.md "Injury Crisis"]. GainMoney points to this vocabulary rather than baking a currency into the engine.
+struct Currency : public Entity, public Cited {
 };
 
 

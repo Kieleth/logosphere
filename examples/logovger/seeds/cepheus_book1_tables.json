@@ -6,88 +6,45 @@
   "layer": "cepheus",
   "invariants": {
     "count_of_type": {
-      "DiceExpression": 2,
-      "TaskCheck": 1,
-      "RuleConstant": 2,
-      "RollableTable": 1,
-      "TableEntry": 2,
-      "LookupTable": 2,
       "CharacteristicModifierEntry": 2,
-      "DifficultyEntry": 2,
       "Currency": 1,
+      "DiceExpression": 1,
+      "DifficultyEntry": 2,
       "EndCareer": 1,
       "GainMoney": 1,
+      "LookupTable": 2,
+      "NoEffect": 1,
       "OutcomeSequence": 1,
-      "OutcomeStep": 2
+      "OutcomeStep": 2,
+      "RollableTable": 2,
+      "TableEntry": 3
     },
     "unique_name_per_type": [
-      "DiceExpression", "RuleConstant", "TableEntry",
-      "CharacteristicModifierEntry", "DifficultyEntry", "OutcomeSequence"
+      "CharacteristicModifierEntry",
+      "DifficultyEntry",
+      "LookupTable",
+      "OutcomeSequence",
+      "RollableTable",
+      "TableEntry"
     ],
     "band_coverage": {
-      "@mishap_table": [2, 3],
       "@dm_table": [0, 5],
-      "@law_table": [0, 3]
+      "@injury_table": [6, 6],
+      "@law_table": [0, 3],
+      "@mishap_table": [2, 3]
     }
   },
   "ops": [
     {
       "op": "create_entity",
       "type": "DiceExpression",
-      "as": "@d2d6",
-      "properties": {
-        "name": "2d6",
-        "dice_count": 2,
-        "dice_sides": 6,
-        "source_section": "Generating Characteristic Scores",
-        "source_quote": "Roll your six characteristics using 2D6, and record them in the standard order"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "DiceExpression",
       "as": "@d1d6",
       "properties": {
-        "name": "1d6",
+        "name": "1D6",
         "dice_count": 1,
         "dice_sides": 6,
         "source_section": "Survival",
         "source_quote": "| 1D6 | Mishaps |"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "TaskCheck",
-      "as": "@int_throw",
-      "properties": {
-        "name": "int_8_plus",
-        "attribute_ref": "intelligence",
-        "target_number": 8,
-        "dice": "@d2d6",
-        "source_section": "Careers",
-        "source_quote": "A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "RuleConstant",
-      "as": "@age_of_majority",
-      "properties": {
-        "name": "age_of_majority",
-        "constant_value": 18,
-        "source_section": "Chapter 1: Character Creation",
-        "source_quote": "All characters begin at the age of majority, typically 18."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "RuleConstant",
-      "as": "@prior_career_dm",
-      "properties": {
-        "name": "prior_career_dm",
-        "constant_value": -2,
-        "source_section": "Qualifying and the Draft",
-        "source_quote": "You suffer a DM–2 to qualification rolls for each previous career you have entered."
       }
     },
     {
@@ -170,6 +127,16 @@
     },
     {
       "op": "create_entity",
+      "type": "NoEffect",
+      "as": "@no_permanent_effect",
+      "properties": {
+        "name": "no_permanent_effect",
+        "source_section": "Injuries",
+        "source_quote": "| 6 | Lightly injured. No permanent effect. |"
+      }
+    },
+    {
+      "op": "create_entity",
       "type": "RollableTable",
       "as": "@mishap_table",
       "properties": {
@@ -217,7 +184,36 @@
       "relation": "HAS_PART",
       "to": "@mishap_row_3"
     },
-
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@injury_table",
+      "properties": {
+        "name": "injuries",
+        "dice": "@d1d6",
+        "source_section": "Injuries",
+        "source_quote": "| 1D6 | Injury |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_6",
+      "properties": {
+        "name": "injury_row_6",
+        "roll_min": 6,
+        "roll_max": 6,
+        "outcome": "@no_permanent_effect",
+        "source_section": "Injuries",
+        "source_quote": "| 6 | Lightly injured. No permanent effect. |"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_6"
+    },
     {
       "op": "create_entity",
       "type": "LookupTable",
@@ -271,7 +267,6 @@
       "relation": "HAS_PART",
       "to": "@dm_row_3_5"
     },
-
     {
       "op": "create_entity",
       "type": "LookupTable",

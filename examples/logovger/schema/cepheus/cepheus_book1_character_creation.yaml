@@ -87,6 +87,41 @@ classes:
       - survived
       - commissioned
 
+  CharacteristicModifierEntry:
+    is_a: LookupEntry
+    description: >-
+      One row of the Characteristic Modifier by Score Range table
+      [book1/character-creation.md "Characteristic Modifiers"]. The
+      inherited key band is the score range; these fields are the two
+      result columns printed by the book.
+    annotations:
+      facets: rulebook
+    slots:
+      - pseudohex_min
+      - pseudohex_max
+      - characteristic_modifier
+
+  EndCareer:
+    is_a: Outcome
+    description: >-
+      Leave the current career as a consequence of a Survival Mishap
+      [book1/character-creation.md "Survival"]. Mishap rows 2 and 3
+      are the first instances. The executor handler is game policy;
+      the engine only dispatches the typed Outcome.
+    annotations:
+      facets: rulebook
+
+  Currency:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A unit of money named by the book. Credits are the first instance
+      [book1/character-creation.md "Injury Crisis"]. GainMoney points
+      to this vocabulary rather than baking a currency into the engine.
+    annotations:
+      facets: rulebook
+
 slots:
   # Characteristic scores. 2D6 at creation, PC max "typically" 15;
   # the modifier table runs to 33+ for non-PC cases, so the slot range
@@ -175,3 +210,17 @@ slots:
   commissioned:
     range: boolean
     description: Whether a commission was earned this term.
+  pseudohex_min:
+    range: string
+    required: true
+    description: >-
+      First pseudohex symbol printed for the row's score band.
+  pseudohex_max:
+    range: string
+    required: true
+    description: >-
+      Last pseudohex symbol printed for the row's score band.
+  characteristic_modifier:
+    range: integer
+    required: true
+    description: Dice modifier returned for a score in this row.

@@ -1,8 +1,8 @@
 #ifndef LOGOSPHERE_KG_SEED_VERIFIER_H
 #define LOGOSPHERE_KG_SEED_VERIFIER_H
 
-// The ingestion verifier - the engine half of "Shelob extracts,
-// the engine verifies" (docs/RPG_MODULE.md). Runs three checks over a
+// The ingestion verifier validates extracted rule data before it can
+// enter the engine (docs/RPG_MODULE.md). Runs five checks over a
 // parsed seed file against the source text it claims to come from.
 //
 // All checks read the LOADED world (the seed applied through the
@@ -44,6 +44,10 @@
 //              either. DiceExpression fields must jointly match one
 //              dice expression in the quote, so 6D2 cannot pass on
 //              the separate number tokens in "2D6".
+//   SEMANTIC   lookup tables name one known concrete LookupEntry subtype
+//              and contain only rows of that type; rollable tables contain
+//              TableEntry rows; OutcomeSequence parts are OutcomeSteps
+//              ordered by contiguous step_index values starting at zero.
 //   INVARIANT  the envelope's assertions hold: count_of_type,
 //              unique_name_per_type (every instance of a listed
 //              type carries a distinct non-empty name, read from
@@ -87,6 +91,7 @@ struct SeedVerifyReport {
     size_t ops_loaded         = 0;
     size_t values_checked     = 0;
     size_t bands_derived      = 0;
+    size_t semantics_checked  = 0;
     size_t invariants_checked = 0;
 
     bool ok() const { return violations.empty(); }

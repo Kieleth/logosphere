@@ -432,8 +432,10 @@ struct Checker {
             const std::string alias = alias_of(seed.ops[i]);
             const std::vector<std::string> tokens = number_tokens(quote);
 
-            // Digits: every numeric slot's absolute value must equal
-            // one of the quote's number tokens.
+            // Digits: every numeric rule value's absolute value must
+            // equal one of the quote's number tokens. step_index is
+            // structural ordering introduced by the data model, not a
+            // number printed by the rulebook.
             for (const auto& [key, value] :
                  world.getPropertiesWithPrefix(id, "")) {
                 const PropertyDef* def = ont.findProperty(type, key);
@@ -441,6 +443,7 @@ struct Checker {
                              def->value_type != "float")) {
                     continue;
                 }
+                if (key == "step_index") continue;
                 ++report.values_checked;
                 std::string digits = value;
                 if (!digits.empty() &&
@@ -539,7 +542,156 @@ struct Checker {
         }
     }
 
-    // ------------------------------------------------- 4. INVARIANT
+    // -------------------------------------------------- 4. SEMANTIC
+
+    std::pair<int, std::string> origin_of(
+        EntityID id, const SeedLoadReport& load) const {
+        for (size_t i = 0; i < load.created_ids.size(); ++i) {
+            if (load.created_ids[i] == id) {
+                return {static_cast<int>(i), alias_of(seed.ops[i])};
+            }
+        }
+        return {-1, ""};
+    }
+
+    void semantic_violation(EntityID id, const SeedLoadReport& load,
+                            const std::string& reason) {
+        const auto [op_index, alias] = origin_of(id, load);
+        violate("semantic", op_index, alias, reason);
+    }
+
+    void check_lookup_table(const KGModule& world,
+                            const SeedLoadReport& load, EntityID table) {
+        ++report.semantics_checked;
+        const std::string declared = world.getProperty(table, "entry_type");
+        if (!ont.hasEntityType(declared)) {
+            semantic_violation(table, load,
+                "LookupTable has unknown entry_type '" + declared + "'");
+            return;
+        }
+        if (!ont.isSubtypeOf(declared, "LookupEntry")) {
+            semantic_violation(table, load,
+                "LookupTable entry_type '" + declared +
+                "' is not a LookupEntry subtype");
+            return;
+        }
+        if (ont.isAbstract(declared)) {
+            semantic_violation(table, load,
+                "LookupTable entry_type '" + declared +
+                "' is abstract; a table must declare a concrete row type");
+            return;
+        }
+
+        const auto rows = world.getRelated(table, "HAS_PART");
+        if (rows.empty()) {
+            semantic_violation(table, load,
+                "LookupTable with entry_type '" + declared +
+                "' has no HAS_PART rows");
+            return;
+        }
+        for (const EntityID row : rows) {
+            ++report.semantics_checked;
+            const std::string actual = world.getType(row);
+            if (!ont.isSubtypeOf(actual, declared)) {
+                semantic_violation(
+                    row, load,
+                    "LookupTable declares entry_type '" + declared +
+                    "' but contains row type '" + actual + "'");
+            }
+        }
+    }
+
+    void check_rollable_table(const KGModule& world,
+                              const SeedLoadReport& load, EntityID table) {
+        ++report.semantics_checked;
+        const auto rows = world.getRelated(table, "HAS_PART");
+        if (rows.empty()) {
+            semantic_violation(table, load,
+                               "RollableTable has no HAS_PART rows");
+            return;
+        }
+        for (const EntityID row : rows) {
+            ++report.semantics_checked;
+            const std::string actual = world.getType(row);
+            if (!ont.isSubtypeOf(actual, "TableEntry")) {
+                semantic_violation(
+                    row, load,
+                    "RollableTable contains non-TableEntry row type '" +
+                        actual + "'");
+            }
+        }
+    }
+
+    void check_outcome_sequence(const KGModule& world,
+                                const SeedLoadReport& load,
+                                EntityID sequence) {
+        ++report.semantics_checked;
+        const auto parts = world.getRelated(sequence, "HAS_PART");
+        if (parts.empty()) {
+            semantic_violation(sequence, load,
+                               "OutcomeSequence has no OutcomeStep parts");
+            return;
+        }
+
+        std::vector<long long> indices;
+        for (const EntityID part : parts) {
+            ++report.semantics_checked;
+            const std::string actual = world.getType(part);
+            if (!ont.isSubtypeOf(actual, "OutcomeStep")) {
+                semantic_violation(
+                    part, load,
+                    "OutcomeSequence contains non-OutcomeStep part type '" +
+                        actual + "'");
+                continue;
+            }
+            indices.push_back(std::strtoll(
+                world.getProperty(part, "step_index").c_str(), nullptr, 10));
+        }
+        if (indices.empty()) return;
+
+        std::sort(indices.begin(), indices.end());
+        if (indices.front() != 0) {
+            semantic_violation(
+                sequence, load,
+                "OutcomeSequence step_index values must start at 0, got " +
+                    std::to_string(indices.front()));
+            return;
+        }
+        for (size_t i = 1; i < indices.size(); ++i) {
+            if (indices[i] == indices[i - 1]) {
+                semantic_violation(
+                    sequence, load,
+                    "OutcomeSequence has duplicate step_index " +
+                        std::to_string(indices[i]));
+                return;
+            }
+            if (indices[i] != indices[i - 1] + 1) {
+                semantic_violation(
+                    sequence, load,
+                    "OutcomeSequence step_index values are not contiguous: " +
+                        std::to_string(indices[i - 1]) + " then " +
+                        std::to_string(indices[i]));
+                return;
+            }
+        }
+    }
+
+    void check_semantics(const KGModule& world,
+                         const SeedLoadReport& load) {
+        for (const EntityID id : load.created_ids) {
+            if (id == INVALID_ENTITY) continue;
+            const std::string type = world.getType(id);
+            if (ont.isSubtypeOf(type, "LookupTable")) {
+                check_lookup_table(world, load, id);
+            } else if (ont.isSubtypeOf(type, "RollableTable")) {
+                check_rollable_table(world, load, id);
+            } else if (ont.isSubtypeOf(type, "OutcomeSequence")) {
+                check_outcome_sequence(world, load, id);
+            }
+        }
+    }
+
+    // ------------------------------------------------- 5. INVARIANT
 
     void check_invariants(const KGModule& world,
                           const SeedLoadReport& load) {
@@ -689,6 +841,7 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
 
     checker.check_verbatim(world, load);
     checker.check_values(world, load);
+    checker.check_semantics(world, load);
     checker.check_invariants(world, load);
     return report;
 }

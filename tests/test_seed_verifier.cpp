@@ -1,8 +1,7 @@
-// The seed verifier: Shelob extracts, the engine verifies.
+// The seed verifier: extracted rule data enters only after verification.
 //
 // Design under test: docs/RPG_MODULE.md, step 4. A seed file (the
-// envelope + KG-ops with @alias binders) is verified by three checks
-// plus the envelope's invariants:
+// envelope + KG-ops with @alias binders) is verified by five checks:
 //
 //   VERBATIM   every source_quote is a byte-exact substring of the
 //              cited source file. No normalization.
@@ -11,6 +10,8 @@
 //              world - refs-resolve comes for free.
 //   VALUE      numeric slots have their digits in the entity's own
 //              quote; table-row bands equal the quoted leading cell.
+//   SEMANTIC   table row types and ordered outcome composition agree
+//              with the loaded ontology and graph structure.
 //   INVARIANT  count_of_type / unique_name_per_type / band_coverage.
 //
 // The positive fixture cites the vendored Cepheus SRD with quotes
@@ -28,6 +29,8 @@
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
 #include "generated/earth_ontology_registry.h"
+#include "generated/cepheus_book1_character_creation_ontology_registry.h"
+#include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/space_ontology_registry.h"
@@ -70,6 +73,28 @@ kg::OntologyRegistry engine_registry() {
     reg.extend(space::ontology::registry());
     reg.extend(earth::ontology::registry());
     reg.extend(rulebook::ontology::registry());
+    reg.extend(cepheus_book1_character_creation::ontology::registry());
+    reg.extend(cepheus_book1_skills::ontology::registry());
+    return reg;
+}
+
+// Two test-only typed outcomes keep the band-notation fixtures honest:
+// the rows still carry a consequence matching their cited text, without
+// teaching the engine what vehicle hits or aging reductions mean.
+kg::OntologyRegistry band_registry() {
+    auto reg = engine_registry();
+    kg::OntologyRegistry extension("schema://band-notation-test");
+    extension.addEntityType("SingleHitOutcome", "Outcome", false);
+    extension.addAncestors(
+        "SingleHitOutcome",
+        {"Outcome", "Cited", "Entity", "Describable", "Identifiable",
+         "Temporal"});
+    extension.addEntityType("AgingReductionOutcome", "Outcome", false);
+    extension.addAncestors(
+        "AgingReductionOutcome",
+        {"Outcome", "Cited", "Entity", "Describable", "Identifiable",
+         "Temporal"});
+    reg.extend(extension);
     return reg;
 }
 
@@ -181,12 +206,12 @@ void test_envelope_parses() {
     std::cout << "  [measure] " << seed.ops.size() << " ops, layer '"
               << seed.layer << "', source " << seed.source.file << " @ "
               << seed.source.commit.substr(0, 7) << std::endl;
-    CHECK(seed.ops.size() == 20, "twenty ops parsed");
+    CHECK(seed.ops.size() == 28, "twenty-eight ops parsed");
     CHECK(seed.layer == "cepheus", "layer round-trips");
     CHECK(seed.source.file == "book1/character-creation.md",
           "source file round-trips");
-    CHECK(seed.invariants.count_of_type.size() == 7 &&
-              seed.invariants.unique_name_per_type.size() == 4 &&
+    CHECK(seed.invariants.count_of_type.size() == 13 &&
+              seed.invariants.unique_name_per_type.size() == 6 &&
               seed.invariants.band_coverage.size() == 3,
           "all three invariant kinds parsed");
     const auto* mishap = find_coverage(seed, "mishap_table");
@@ -239,8 +264,8 @@ void test_loader_binds_and_resolves() {
     std::cout << "  [measure] " << report.ops_applied << "/"
               << seed.ops.size() << " ops applied, "
               << report.bindings.size() << " aliases bound" << std::endl;
-    CHECK(report.ops_applied == 20, "all twenty ops applied");
-    CHECK(report.bindings.size() == 14, "fourteen aliases bound");
+    CHECK(report.ops_applied == 28, "all twenty-eight ops applied");
+    CHECK(report.bindings.size() == 20, "twenty aliases bound");
 
     // Alias resolution is real: the TaskCheck's dice slot holds the
     // numeric id the @d2d6 binder was bound to.
@@ -366,8 +391,8 @@ void test_loader_publishes_events_after_commit() {
     CHECK(callbacks > 0, "a committed seed publishes mutation events");
     CHECK(every_callback_saw_the_complete_graph,
           "seed callbacks observe only the fully committed graph");
-    CHECK(events.relations().event_count() == 6,
-          "the committed seed publishes its six relation events once");
+    CHECK(events.relations().event_count() == 8,
+          "the committed seed publishes its eight relation events once");
 }
 
 // A duplicate binder must fail BEFORE the offending op writes: a
@@ -496,15 +521,19 @@ void test_positive_seed_verifies() {
               << " quotes, " << report.ops_loaded << " ops, "
               << report.values_checked << " values, "
               << report.bands_derived << " bands, "
+              << report.semantics_checked << " semantics, "
               << report.invariants_checked << " invariants" << std::endl;
     CHECK(report.ok(), "the positive fixture verifies clean");
     CHECK(report.warnings.empty(),
           "and the envelope pin matches the vendored SOURCE_COMMIT");
-    CHECK(report.quotes_checked == 14, "fourteen quotes checked");
-    CHECK(report.ops_loaded == 20, "twenty ops loaded");
-    CHECK(report.values_checked == 19, "nineteen numeric values checked");
+    CHECK(report.quotes_checked == 20, "twenty quotes checked");
+    CHECK(report.ops_loaded == 28, "twenty-eight ops loaded");
+    CHECK(report.values_checked == 24, "twenty-four numeric values checked");
     CHECK(report.bands_derived == 6, "six bands derived from quotes");
-    CHECK(report.invariants_checked == 14, "fourteen invariants checked");
+    CHECK(report.semantics_checked == 12,
+          "twelve table and outcome structures checked");
+    CHECK(report.invariants_checked == 22,
+          "twenty-two declared invariants checked");
 }
 
 // The book prints its row bands four ways; honest extraction quotes
@@ -515,11 +544,16 @@ void test_band_shapes_the_book_actually_prints() {
     // En dash (U+2013), Vehicle Damage table.
     kg::SeedEnvelope en_dash = mini_seed(
         "book1/personal-combat.md",
-        R"({"op":"create_entity","type":"TableEntry","as":"@vd",
+        R"({"op":"create_entity","type":"SingleHitOutcome","as":"@hit",
+            "properties":{"name":"single_hit",
+              "source_section":"Vehicle Damage",
+              "source_quote":"| 1–3 | Single Hit |"}},
+           {"op":"create_entity","type":"TableEntry","as":"@vd",
             "properties":{"name":"vd_1_3","roll_min":1,"roll_max":3,
+              "outcome":"@hit",
               "source_section":"Vehicle Damage",
               "source_quote":"| 1–3 | Single Hit |"}})");
-    auto r1 = kg::verify_seed(en_dash, kSourceRoot, engine_registry());
+    auto r1 = kg::verify_seed(en_dash, kSourceRoot, band_registry());
     for (const auto& v : r1.violations)
         std::cout << "  [measure] UNEXPECTED [" << v.check << "] "
                   << v.reason << std::endl;
@@ -531,12 +565,16 @@ void test_band_shapes_the_book_actually_prints() {
     // Markdown-escaped negative, Aging table.
     kg::SeedEnvelope escaped = mini_seed(
         "book1/character-creation.md",
-        R"({"op":"create_entity","type":"TableEntry","as":"@aging",
+        R"({"op":"create_entity","type":"AgingReductionOutcome","as":"@reduce",
+            "properties":{"name":"aging_reduction",
+              "source_section":"Aging",
+              "source_quote":"| \\-6 | Reduce three physical characteristics by 2, reduce one mental characteristic by 1 |"}},
+           {"op":"create_entity","type":"TableEntry","as":"@aging",
             "properties":{"name":"aging_minus_6","roll_min":-6,
-              "roll_max":-6,
+              "roll_max":-6,"outcome":"@reduce",
               "source_section":"Aging",
               "source_quote":"| \\-6 | Reduce three physical characteristics by 2, reduce one mental characteristic by 1 |"}})");
-    auto r2 = kg::verify_seed(escaped, kSourceRoot, engine_registry());
+    auto r2 = kg::verify_seed(escaped, kSourceRoot, band_registry());
     for (const auto& v : r2.violations)
         std::cout << "  [measure] UNEXPECTED [" << v.check << "] "
                   << v.reason << std::endl;
@@ -984,7 +1022,7 @@ void test_duplicate_name_fails_invariant() {
 }  // namespace
 
 int main() {
-    std::cout << "Seed verifier (Shelob extracts, the engine verifies)"
+    std::cout << "Seed verifier (extracted rule data, engine verification)"
               << std::endl;
     test_envelope_parses();
     test_envelope_parser_is_loud();

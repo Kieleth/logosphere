@@ -49,6 +49,19 @@ classes:
     slots:
       - is_cascade
 
+  DifficultyEntry:
+    is_a: LookupEntry
+    description: >-
+      One row of the Base Difficulty by Law Level table
+      [book1/skills.md "Local Law Level"]. The inherited key band is
+      the law-level range; the concrete fields are both result values
+      printed in the table's Difficulty column.
+    annotations:
+      facets: rulebook
+    slots:
+      - difficulty_name
+      - difficulty_modifier
+
 slots:
   is_cascade:
     range: boolean
@@ -59,3 +72,11 @@ slots:
       book1/character-creation.md "Cascade Skills"]. Explicit rather
       than derived from relations, because a group is a group even
       while its specializations are still loading.
+  difficulty_name:
+    range: string
+    required: true
+    description: Named difficulty returned for this law-level band.
+  difficulty_modifier:
+    range: integer
+    required: true
+    description: Dice modifier returned for this law-level band.

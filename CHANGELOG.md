@@ -8,6 +8,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- Typed rule-table results. `LookupEntry` is now an abstract selection
+  shape and games declare concrete result rows; `LookupTable.entry_type`
+  is verified against every attached row. Rollable rows require one typed
+  outcome, with `NoEffect` for intentional no-ops and ordered
+  `OutcomeSequence` / `OutcomeStep` composition for multi-effect results.
+  The seed verifier now rejects semantically incompatible tables and
+  malformed outcome sequences.
 - **`rulebook` ontology pack** (`schema/packs/rulebook.yaml`): the
   meta-ontology for tabletop-derived rulesets, what any book of rules
   is made of. `Cited` mixin (source file, section, verbatim quote on

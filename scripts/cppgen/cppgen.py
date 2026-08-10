@@ -285,6 +285,12 @@ class CppGenerator(OOCodeGenerator):
             default_value = "std::nullopt"
         elif slot.ifabsent:
             default_value = self._parse_ifabsent(slot.ifabsent)
+        else:
+            # A required field still needs deterministic C++ object state.
+            # LinkML requiredness is enforced by the runtime validator;
+            # leaving scalar members uninitialized here only introduces
+            # undefined values before that validation boundary.
+            default_value = "{}"
 
         cpp_field = CppField(
             name=field_name,

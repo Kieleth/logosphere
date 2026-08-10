@@ -113,8 +113,8 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/kg_ops_apply.cpp
     src/kg/ontology_validator.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
-    # validated write path, and the three-check ingestion verifier
-    # (verbatim / schema / value + invariants). docs/RPG_MODULE.md.
+    # validated write path, and the ingestion verifier (verbatim /
+    # schema / value / semantic / invariants). docs/RPG_MODULE.md.
     src/kg/seed_loader.cpp
     src/kg/seed_verifier.cpp
     # Generated ontology registry (pure data)
@@ -377,7 +377,15 @@ add_headless_test(test_rulebook_pack)
 # Verbatim-checks its citations against the vendored SRD in the tree.
 target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-add_headless_test(test_seed_verifier)
+add_executable(test_seed_verifier
+    tests/test_seed_verifier.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_seed_verifier PRIVATE logosphere_core)
+target_compile_features(test_seed_verifier PRIVATE cxx_std_17)
+target_include_directories(test_seed_verifier PRIVATE examples/logovger/src)
+register_headless_test(test_seed_verifier)
 # Reads its seed fixtures + the vendored SRD from the source tree.
 target_compile_definitions(test_seed_verifier
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
@@ -394,7 +402,7 @@ target_compile_features(logosphere-verify PRIVATE cxx_std_17)
 # expressed as WILL_FAIL).
 add_test(NAME logosphere_verify_positive
     COMMAND logosphere-verify
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/chargen_ch1.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/rulebook_smoke.json
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 add_test(NAME logosphere_verify_negative
     COMMAND logosphere-verify
@@ -425,6 +433,20 @@ target_include_directories(test_skills_pack PRIVATE examples/logovger
 target_compile_definitions(test_skills_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(NAME test_skills_pack COMMAND test_skills_pack)
+# Typed lookup rows and rollable outcomes: game-declared result columns,
+# verified through the same merged registry Logovger loads.
+add_executable(test_logovger_table_results
+    examples/logovger/test_table_results.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_logovger_table_results PRIVATE logosphere_core)
+target_compile_features(test_logovger_table_results PRIVATE cxx_std_17)
+target_include_directories(test_logovger_table_results PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(test_logovger_table_results
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_logovger_table_results COMMAND test_logovger_table_results)
 # The first playable slice: a life generated from seeded rules.
 add_executable(test_chargen
     examples/logovger/test_chargen.cpp

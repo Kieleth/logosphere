@@ -81,9 +81,16 @@ void test_the_generated_type_surface_compiles() {
     static_assert(std::is_base_of<rulebook::ontology::Cited,
                                   rulebook::ontology::Outcome>::value,
                   "every Outcome is Cited");
-    rulebook::ontology::TableEntry row;   // embeds optional<Outcome>
-    CHECK(!row.outcome.has_value() && !row.source_quote.has_value(),
-          "the generated structs default-construct empty");
+    static_assert(std::is_base_of<rulebook::ontology::Outcome,
+                                  rulebook::ontology::NoEffect>::value,
+                  "NoEffect is an Outcome");
+    static_assert(std::is_base_of<rulebook::ontology::Outcome,
+                                  rulebook::ontology::OutcomeSequence>::value,
+                  "OutcomeSequence is an Outcome");
+    rulebook::ontology::TableEntry row;
+    CHECK(row.roll_min == 0 && row.roll_max == 0 &&
+              !row.source_quote.has_value(),
+          "required generated fields are deterministically initialized");
 }
 
 void test_the_pack_grants_the_vocabulary() {
@@ -92,24 +99,62 @@ void test_the_pack_grants_the_vocabulary() {
 
     const char* instantiable[] = {
         "DiceExpression", "TaskCheck", "RollableTable", "TableEntry",
-        "LookupTable",    "LookupEntry", "GrantSkill", "ModifyAttribute",
-        "GainMoney",      "GrantTableRoll", "RuleConstant", "Procedure",
-        "ProcedureStep",  "StepRoute", "JudgmentPoint"};
+        "LookupTable",    "GrantSkill", "ModifyAttribute", "GainMoney",
+        "GrantTableRoll", "NoEffect", "OutcomeSequence", "OutcomeStep",
+        "RuleConstant",   "Procedure", "ProcedureStep", "StepRoute",
+        "JudgmentPoint"};
     bool all = true;
     for (const char* t : instantiable)
         if (kg.createEntity(t) == kg::INVALID_ENTITY) {
             all = false;
             std::cout << "  [measure] missing type: " << t << std::endl;
         }
-    CHECK(all, "all fifteen instantiable classes create");
+    CHECK(all, "all seventeen concrete engine classes create");
 
     CHECK(kg.createEntity("Outcome") == kg::INVALID_ENTITY,
           "abstract Outcome is rejected at creation - a consequence "
           "must say which kind it is");
+    CHECK(kg.createEntity("LookupEntry") == kg::INVALID_ENTITY,
+          "abstract LookupEntry is rejected - a game must declare the "
+          "typed result carried by the row");
     CHECK(kg.createEntity("Cited") == kg::INVALID_ENTITY,
           "the Cited mixin is a trait, not a thing");
     CHECK(kg.createEntity("Wall") != kg::INVALID_ENTITY,
           "and the core underneath is intact");
+}
+
+void test_table_results_have_one_complete_shape() {
+    const auto& reg = rulebook::ontology::registry();
+
+    const auto* table_dice = reg.findProperty("RollableTable", "dice");
+    CHECK(table_dice && table_dice->required &&
+              table_dice->value_type == "entity_ref" &&
+              table_dice->ref_target == "DiceExpression",
+          "every RollableTable requires the DiceExpression that selects it");
+
+    const auto* entry_type = reg.findProperty("LookupTable", "entry_type");
+    CHECK(entry_type && entry_type->required &&
+              entry_type->value_type == "string",
+          "every LookupTable requires the concrete LookupEntry subtype it "
+          "contains");
+    CHECK(!reg.hasProperty("LookupEntry", "outcome"),
+          "a lookup row is the typed answer, not a sparse outcome wrapper");
+
+    const auto* row_outcome = reg.findProperty("TableEntry", "outcome");
+    CHECK(row_outcome && row_outcome->required &&
+              row_outcome->value_type == "entity_ref" &&
+              row_outcome->ref_target == "Outcome",
+          "every rollable row requires one typed root Outcome");
+
+    const auto* step_index = reg.findProperty("OutcomeStep", "step_index");
+    const auto* step_outcome = reg.findProperty("OutcomeStep", "outcome");
+    CHECK(step_index && step_index->required &&
+              step_index->value_type == "integer",
+          "every OutcomeStep requires its explicit order");
+    CHECK(step_outcome && step_outcome->required &&
+              step_outcome->value_type == "entity_ref" &&
+              step_outcome->ref_target == "Outcome",
+          "every OutcomeStep requires its typed child Outcome");
 }
 
 // ------------------------------------------------- chapter 1, as data
@@ -139,6 +184,22 @@ kg::EntityID cite(kg::KGModule& kg, kg::EntityID id, const std::string& label,
 
 void test_chapter_one_instantiates() {
     static kg::KGModule kg(rulebook::ontology::registry());
+    kg::OntologyRegistry row_types("schema://rulebook-contract-rows");
+    row_types.addEntityType("CharacteristicModifierEntry", "LookupEntry",
+                            false);
+    row_types.addAncestors(
+        "CharacteristicModifierEntry",
+        {"LookupEntry", "Cited", "Entity", "Describable", "Identifiable",
+         "Temporal"});
+    row_types.addProperty("CharacteristicModifierEntry",
+                          "characteristic_modifier", "integer", true);
+    row_types.addEntityType("NobilityEntry", "LookupEntry", false);
+    row_types.addAncestors(
+        "NobilityEntry",
+        {"LookupEntry", "Cited", "Entity", "Describable", "Identifiable",
+         "Temporal"});
+    row_types.addProperty("NobilityEntry", "title", "string", true);
+    kg.extendOntology(row_types);
     kg.setMode(kg::KGMode::MINIMAL);
     world = &kg;
 
@@ -264,11 +325,13 @@ void test_chapter_one_instantiates() {
                          "Characteristic Modifiers",
                          "| Score Range | PseudoHex | Characteristic "
                          "Modifier |");
-    auto dm_row = cite(kg, kg.createEntity("LookupEntry"), "DM row 0-2",
-                       "Characteristic Modifiers",
+    kg.setProperty(dm_table, "entry_type", "CharacteristicModifierEntry");
+    auto dm_row = cite(kg, kg.createEntity("CharacteristicModifierEntry"),
+                       "DM row 0-2", "Characteristic Modifiers",
                        "| 0 through 2 | 0-2 | \\-2 |");
     kg.setProperty(dm_row, "key_min", "0");
     kg.setProperty(dm_row, "key_max", "2");
+    kg.setProperty(dm_row, "characteristic_modifier", "-2");
     CHECK(kg.createRelation(dm_table, "HAS_PART", dm_row) !=
               kg::INVALID_RELATION,
           "a lookup table owns its rows the same way");
@@ -278,11 +341,13 @@ void test_chapter_one_instantiates() {
                          "Social Standing and Noble Titles",
                          "| Social Standing | Title of Nobility |");
     kg.setProperty(nobility, "attribute_ref", "social_standing");
-    auto lord_row = cite(kg, kg.createEntity("LookupEntry"), "Soc 10 Lord",
-                         "Social Standing and Noble Titles",
+    kg.setProperty(nobility, "entry_type", "NobilityEntry");
+    auto lord_row = cite(kg, kg.createEntity("NobilityEntry"),
+                         "Soc 10 Lord", "Social Standing and Noble Titles",
                          "| 10 (A) | Lord (Lady) |");
     kg.setProperty(lord_row, "key_min", "10");
     kg.setProperty(lord_row, "key_max", "10");
+    kg.setProperty(lord_row, "title", "Lord (Lady)");
     kg.createRelation(nobility, "HAS_PART", lord_row);
 
     // GrantTableRoll: commission's reward, aimed at a career table.
@@ -534,6 +599,7 @@ int main() {
     test_core_only_world_has_no_rulebook();
     test_the_generated_type_surface_compiles();
     test_the_pack_grants_the_vocabulary();
+    test_table_results_have_one_complete_shape();
     test_chapter_one_instantiates();
     test_every_quote_is_verbatim();
     test_a_dice_entity_rolls_through_the_service();

@@ -220,7 +220,9 @@ two feature branches are integrated and green.
 ## Decisions already binding
 
 - The book is the rules specification.
-- The engine rolls and records dice; Shelob cannot invent a roll.
+- The engine rolls and records dice; consuming gameplay systems cannot
+  invent a roll. Shelob is the server deployment library, not a gameplay
+  or ingestion component.
 - Cepheus book data and Voyager deviations remain separate layers.
 - Rule instances enter through KG-ops seed files, not a second loader
   grammar.

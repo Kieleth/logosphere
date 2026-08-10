@@ -88,6 +88,42 @@ class VendoredCppGeneratorTests(unittest.TestCase):
         rendered = CppField(name="score", cpp_type="float").render()
         self.assertIn("float score", rendered)
 
+    def test_required_fields_are_value_initialized(self):
+        scripts_dir = str(Path(__file__).resolve().parent)
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+
+        from cppgen.cppgen import CppGenerator
+
+        with tempfile.TemporaryDirectory() as td:
+            schema = Path(td) / "required.yaml"
+            schema.write_text(
+                """id: schema://required
+name: required
+default_range: string
+prefixes:
+  linkml: https://w3id.org/linkml/
+imports:
+  - linkml:types
+classes:
+  RequiredRecord:
+    slots:
+      - count
+      - label
+slots:
+  count:
+    range: integer
+    required: true
+  label:
+    range: string
+    required: true
+"""
+            )
+            rendered = CppGenerator(str(schema), namespace="required").serialize()
+
+        self.assertIn("int32_t count = {};", rendered)
+        self.assertIn("std::string label = {};", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

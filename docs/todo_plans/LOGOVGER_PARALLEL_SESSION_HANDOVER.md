@@ -163,8 +163,9 @@ Known risks behind that sequence:
 ## Binding project decisions
 
 - The book is the rules specification.
-- The engine rolls and records dice. Shelob receives roll facts and
-  cannot invent results.
+- The engine rolls and records dice. A consuming gameplay system receives
+  roll facts and cannot invent results. Shelob is the server deployment
+  library and has no gameplay or rule-processing role.
 - Cepheus book data and Voyager changes remain separate layers.
 - Rule instances enter through KG-operation seed files, not a second
   loader grammar.

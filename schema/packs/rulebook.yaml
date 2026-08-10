@@ -104,6 +104,9 @@ classes:
       proves that per table).
     annotations:
       facets: rulebook
+    slot_usage:
+      dice:
+        required: true
     slots:
       - dice
 
@@ -114,7 +117,9 @@ classes:
     description: >-
       One row of a RollableTable: the band of results it claims
       (a single-value row has roll_min = roll_max) and the outcome
-      it applies.
+      it applies. The outcome is one required root. A row with several
+      consequences points to an OutcomeSequence; a row that deliberately
+      changes nothing points to NoEffect.
     annotations:
       facets: rulebook
     slots:
@@ -130,26 +135,32 @@ classes:
       A table keyed by what the character already is, not by a die:
       characteristic modifier by score, title by social standing,
       rank ladder by earned rank, retirement pay by terms served.
-      Same row shape as a RollableTable, different key: the executor
-      reads the referenced attribute instead of rolling.
+      The matching LookupEntry is itself the typed answer. entry_type
+      names the concrete game-declared LookupEntry subtype this table
+      contains; the verifier resolves that type and rejects mismatched
+      rows. The executor reads attribute_ref when one is declared, or
+      receives the lookup key directly.
     annotations:
       facets: rulebook
     slots:
       - attribute_ref
+      - entry_type
 
   LookupEntry:
     is_a: Entity
+    abstract: true
     mixins:
       - Cited
     description: >-
-      One row of a LookupTable: the key band it claims (a single-key
-      row has key_min = key_max) and the outcome it applies.
+      Abstract base for one row of a LookupTable. The key band selects
+      the row (a single-key row has key_min = key_max); a concrete
+      game-declared subtype carries the table's typed result columns.
+      Lookup rows return information and do not carry Outcome.
     annotations:
       facets: rulebook
     slots:
       - key_min
       - key_max
-      - outcome
 
   Outcome:
     is_a: Entity
@@ -164,6 +175,39 @@ classes:
       Games add outcome kinds by declaring a subclass in their own
       pack and registering a handler. New subclasses obey the rule
       of two like everything else here.
+
+  NoEffect:
+    is_a: Outcome
+    description: >-
+      An explicit rule result that deliberately changes no state. It
+      distinguishes a complete "No effect" row from a row whose outcome
+      was never captured. First instances are Injury 6 and Aging 1+.
+    annotations:
+      facets: rulebook
+
+  OutcomeSequence:
+    is_a: Outcome
+    description: >-
+      One outcome made of several ordered consequences. OutcomeStep
+      entities attach through HAS_PART and carry explicit step_index
+      values. The executor validates every child result before applying
+      the complete sequence atomically. First instances are Survival
+      Mishaps 3 and 5.
+    annotations:
+      facets: rulebook
+
+  OutcomeStep:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One explicitly ordered child of an OutcomeSequence. The outcome
+      reference is typed; insertion order is not part of the contract.
+    annotations:
+      facets: rulebook
+    slots:
+      - step_index
+      - outcome
 
   GrantSkill:
     is_a: Outcome
@@ -364,19 +408,33 @@ slots:
     description: The dice this check or table is rolled with.
   roll_min:
     range: integer
+    required: true
     description: Lowest die result this row claims, inclusive.
   roll_max:
     range: integer
+    required: true
     description: Highest die result this row claims, inclusive.
   key_min:
     range: integer
+    required: true
     description: Lowest key value this row claims, inclusive.
   key_max:
     range: integer
+    required: true
     description: Highest key value this row claims, inclusive.
+  entry_type:
+    range: string
+    required: true
+    description: >-
+      Resolved ontology name of the concrete LookupEntry subtype carried
+      by this table. The verifier rejects unknown, abstract, non-entry,
+      and incompatible row types.
   outcome:
     range: Outcome
-    description: The outcome this row applies when it matches.
+    required: true
+    description: >-
+      The typed root outcome a rollable row applies, or the typed child
+      outcome held by an OutcomeStep.
   skill:
     range: Entity
     description: >-
@@ -409,9 +467,12 @@ slots:
     description: How many extra rolls.
   step_index:
     range: integer
+    required: true
     minimum_value: 0
-    description: Position in the procedure; flow falls through in
-      index order unless a route redirects it.
+    description: >-
+      Explicit position in a procedure or outcome sequence. Procedure
+      flow falls through in index order unless a route redirects it;
+      outcome sequences apply their children in index order.
   primitive_ref:
     range: string
     description: >-
