@@ -1,4 +1,4 @@
-# Logoveyer — Agent Instructions
+# Logovger — Agent Instructions
 
 Read the README first: the discipline section is binding. Three rules
 dominate everything:

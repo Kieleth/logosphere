@@ -366,7 +366,7 @@ add_headless_test(test_rulebook_pack)
 # Verbatim-checks its citations against the vendored SRD in the tree.
 target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-# Logoveyer: absorbed rules proven against the book's own numbers.
+# Logovger: absorbed rules proven against the book's own numbers.
 # Game sources compiled into the test, engine as a library.
 add_executable(test_logovger_rules_book1
     examples/logovger/test_rules_book1.cpp
@@ -375,6 +375,20 @@ target_link_libraries(test_logovger_rules_book1 PRIVATE logosphere_core)
 target_compile_features(test_logovger_rules_book1 PRIVATE cxx_std_17)
 target_include_directories(test_logovger_rules_book1 PRIVATE examples/logovger)
 add_test(NAME test_logovger_rules_book1 COMMAND test_logovger_rules_book1)
+# Skills pack contract: game registries compiled into the test, engine
+# as a library; reads the vendored SRD for citation checks.
+add_executable(test_skills_pack
+    examples/logovger/test_skills_pack.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_skills_pack PRIVATE logosphere_core)
+target_compile_features(test_skills_pack PRIVATE cxx_std_17)
+target_include_directories(test_skills_pack PRIVATE examples/logovger
+    examples/logovger/src)
+target_compile_definitions(test_skills_pack
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_skills_pack COMMAND test_skills_pack)
 
 add_headless_test(test_dice_service)
 add_headless_test(test_capability_store)

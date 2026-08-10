@@ -1,4 +1,4 @@
-# Logoveyer
+# Logovger
 
 Traveller, absorbed whole. An LLM referees; the engine rolls the dice.
 The first real showcase of an LLM running a game: fully open, from
@@ -53,7 +53,7 @@ or assets are used.
 
 ## Why this lives in the engine repo
 
-Logoveyer is the engine's showcase: the first full demonstration of an
+Logovger is the engine's showcase: the first full demonstration of an
 LLM controlling a game for real — an open ruleset, refereed end to end,
 from character generation to the first session, all of it in the open.
 It is also the example that forces the engine's space era. Every game

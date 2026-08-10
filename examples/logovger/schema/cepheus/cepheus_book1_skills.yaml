@@ -1,0 +1,61 @@
+id: https://logosphere.dev/logovger/cepheus/book1-skills
+name: cepheus_book1_skills
+title: Cepheus layer — Book 1, Skills
+description: >-
+  The data model of srd/cepheus/book1/skills.md, transcribed
+  faithfully. LAYER RULE (100% separation): nothing in this file is
+  ours. The book's own design keeps the skill list OPEN ("Referees may
+  add other skills as needed to better fit the universe they have
+  created"), so skills are INSTANCES seeded into the KG by ops files,
+  never an enum and never classes; this pack declares only what a
+  skill IS. Cascade structure is relations, not slots: a
+  specialization SPECIALIZES its group (Slug Rifle SPECIALIZES Gun
+  Combat), and cascades nest (Winged Aircraft SPECIALIZES Aircraft
+  SPECIALIZES Vehicle), so the model is a tree, exactly what the
+  relation gives. Level semantics (untrained DM-3, Skill-0
+  competence), the cascade zero-level rule, and Jack-of-All-Trades'
+  unskilled-penalty reduction are executor logic and RuleConstants,
+  not slots here. The book deliberately assigns no characteristic to
+  a skill (the task, not the skill, names the characteristic), so
+  there is no characteristic slot: adding one would be inventing
+  data.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  cepheus: https://logosphere.dev/logovger/cepheus/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+  - rulebook
+
+classes:
+  Skill:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One entry of the book's skill vocabulary
+      [book1/skills.md "Available Skills List", "Skill Descriptions"].
+      Deliberately near-empty: a skill is a name, a citation, and its
+      place in the cascade tree via SPECIALIZES relations. A held
+      level lives on the engine's SkillRating, never here.
+    annotations:
+      facets: rulebook
+    slots:
+      - is_cascade
+
+slots:
+  is_cascade:
+    range: boolean
+    description: >-
+      True when the book marks the skill "(Cascade Skill)": a group
+      requiring an immediate specialization choice, held only through
+      its specializations [book1/skills.md cascade headings;
+      book1/character-creation.md "Cascade Skills"]. Explicit rather
+      than derived from relations, because a group is a group even
+      while its specializations are still loading.
