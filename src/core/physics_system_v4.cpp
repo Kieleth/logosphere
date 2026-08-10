@@ -2503,7 +2503,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Capping the bias bounds the per-frame dose, not the total.
             float effective_bias = c.bias;
             if (ENABLE_SPLIT_IMPULSE) {
-                effective_bias = 0.0f;
+                // NOT every bias is position repair, and the difference is the
+                // whole subtlety here.
+                //
+                // A contact row with a NEGATIVE bias is a speculative contact:
+                // the bodies have a GAP, and the bias is the approach speed
+                // they are allowed to close it at. That is a velocity
+                // constraint, not geometry, and it must stay in the velocity
+                // solve. Zeroing it turns the row into a hard stop at whatever
+                // gap it was built with — measured as an 80 mm cushion under a
+                // dropped box in test_physics_battery scenario 2, which rested
+                // at 0.680 m instead of 0.600 with PEAK pen 0.00000, never
+                // having touched anything.
+                //
+                // A contact row with a POSITIVE bias is penetration being
+                // pushed out: real position repair, and it goes to the
+                // position pass. A gluon row is position repair in either
+                // direction (a bond can be stretched or compressed), so all of
+                // it goes.
+                const bool is_approach_limit = c.is_contact && c.bias < 0.0f;
+                if (!is_approach_limit) effective_bias = 0.0f;
             }
             float impulse = -(v_rel - effective_bias) * c.effective_mass;
 
@@ -3003,6 +3022,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             for (Constraint& c : constraints) {
                 if (c.is_turtle_contact) continue;
                 if (c.bias == 0.0f) continue;
+                // Speculative approach limits stayed in the velocity solve;
+                // they are not geometry to repair. Skipping them explicitly
+                // rather than relying on the unilateral clamp to zero them.
+                if (c.is_contact && c.bias < 0.0f) continue;
                 if (c.body_a >= count || c.body_b >= count) continue;
 
                 const float inv_ma = inv_mass_of(particles[c.body_a]);
@@ -3034,6 +3057,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
 
         // Spend the pseudo velocity on positions, then drop it on the floor.
+        // SPLIT_DEBUG=1 reports what the pass actually moved, per substep:
+        // how many rows it corrected, the largest single displacement and who
+        // received it. Position repair is invisible by construction (it leaves
+        // no velocity behind), so without this there is no way to tell a pass
+        // that did nothing from one that moved a body 80 mm.
+        static const bool split_dbg = std::getenv("SPLIT_DEBUG") != nullptr;
+        size_t moved = 0; float worst_dz = 0.0f; int worst_id = -1;
         for (size_t i = 0; i < count; ++i) {
             if (pvx[i] == 0.0f && pvy[i] == 0.0f && pvz[i] == 0.0f) continue;
             Particle& p = particles[i];
@@ -3041,6 +3071,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             p.x += pvx[i] * dt;
             p.y += pvy[i] * dt;
             p.z += pvz[i] * dt;
+            if (split_dbg) {
+                moved++;
+                if (std::fabs(pvz[i] * dt) > std::fabs(worst_dz)) {
+                    worst_dz = pvz[i] * dt; worst_id = (int)i;
+                }
+            }
+        }
+        if (split_dbg && moved > 0) {
+            size_t biased_rows = 0;
+            for (const Constraint& c : constraints)
+                if (!c.is_turtle_contact && c.bias != 0.0f) biased_rows++;
+            std::cout << "[SPLIT F" << phys_frame << "] biased_rows=" << biased_rows
+                      << " moved=" << moved
+                      << " worst_dz=" << worst_dz << "m on P" << worst_id
+                      << std::endl;
         }
     }
 

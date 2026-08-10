@@ -41,6 +41,11 @@
 //   7120ff46938a7b0d  carried through the inertia-tensor and gluon-identity
 //                     work; held bit-identical across the debug-rot deletion,
 //                     the orphan-model deletion and both material commits
+//   5962bcfd9ad272b8  split impulse corrected: a speculative contact's
+//                     NEGATIVE bias is an approach-speed LIMIT, not geometry,
+//                     and stays in the velocity solve. Zeroing it made a
+//                     speculative row a hard stop and left a dropped box
+//                     resting on 80 mm of air (battery scenario 2, 0.680 m).
 //   1b701dcda5d29d8b  SPLIT IMPULSE MADE UNIVERSAL. Position bias no longer
 //                     enters the velocity solve for ANY row; a separate
 //                     position pass repairs geometry with a pseudo-velocity
