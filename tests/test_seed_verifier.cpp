@@ -469,9 +469,9 @@ void test_per_entity_source_file_is_honored() {
 
 // The Cited contract: a type that declares source_quote must carry
 // one when it ships as ingested data. Types without the slot are
-// exempt - SkillRating (skill ref + level, no Cited mixin) is the
-// canonical example once the skills pack lands; a core Wall stands
-// in for it here.
+// exempt - SkillRating is the canonical case: game STATE, not book
+// content, so it is the one rulebook class without the Cited mixin
+// and it has no quote to give.
 void test_uncited_entity_of_a_cited_type_fails() {
     kg::SeedEnvelope seed = mini_seed(
         "book1/character-creation.md",
@@ -487,8 +487,8 @@ void test_uncited_entity_of_a_cited_type_fails() {
 void test_type_without_the_slot_is_exempt() {
     kg::SeedEnvelope seed = mini_seed(
         "book1/character-creation.md",
-        R"({"op":"create_entity","type":"Wall","as":"@w",
-            "properties":{"name":"a_wall"}})");
+        R"({"op":"create_entity","type":"SkillRating","as":"@rating",
+            "properties":{"name":"slug_rifle_2","skill_level":2}})");
     const auto report = kg::verify_seed(seed, kSourceRoot,
                                         engine_registry());
     for (const auto& v : report.violations)
