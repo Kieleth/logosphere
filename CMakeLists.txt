@@ -425,6 +425,20 @@ target_include_directories(test_skills_pack PRIVATE examples/logovger
 target_compile_definitions(test_skills_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(NAME test_skills_pack COMMAND test_skills_pack)
+# The first playable slice: a life generated from seeded rules.
+add_executable(test_chargen
+    examples/logovger/test_chargen.cpp
+    examples/logovger/chargen/chargen.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_chargen PRIVATE logosphere_core)
+target_compile_features(test_chargen PRIVATE cxx_std_17)
+target_include_directories(test_chargen PRIVATE examples/logovger
+    examples/logovger/src)
+target_compile_definitions(test_chargen
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_chargen COMMAND test_chargen)
 
 add_headless_test(test_dice_service)
 add_headless_test(test_capability_store)
