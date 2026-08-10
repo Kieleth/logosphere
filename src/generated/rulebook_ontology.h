@@ -1536,16 +1536,16 @@ struct ProcedureStep : public Entity, public Cited {
     /// Explicit position in a procedure or outcome sequence. Procedure flow falls through in index order unless a route redirects it; outcome sequences apply their children in index order.
     int32_t step_index = {};
     /// Name of the code primitive this step invokes, resolved against the executor's primitive registry. The step never computes; the primitive does.
-    std::optional<std::string> primitive_ref = std::nullopt;
+    std::string primitive_ref = {};
 };
 
 
 /// One goto: when the step's primitive reports route_label, flow continues at next_step instead of falling through. "Fail survival, go to the mishap step" and the natural-12 forced reenlistment are both this.
 struct StepRoute : public Entity, public Cited {
     /// The primitive-reported outcome label this route fires on (e.g. failed, natural_12). Labels come from the primitive's declared vocabulary; the verifier rejects labels the named primitive cannot report.
-    std::optional<std::string> route_label = std::nullopt;
+    std::string route_label = {};
     /// Where flow continues when this route fires.
-    std::optional<ProcedureStep> next_step = std::nullopt;
+    ProcedureStep next_step = {};
 };
 
 

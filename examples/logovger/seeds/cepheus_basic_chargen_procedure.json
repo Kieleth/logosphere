@@ -1,0 +1,247 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "Procedure": 1,
+      "ProcedureStep": 8,
+      "StepRoute": 4
+    },
+    "unique_name_per_type": [
+      "Procedure",
+      "ProcedureStep",
+      "StepRoute"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "Procedure",
+      "as": "@basic_chargen",
+      "properties": {
+        "name": "basic_chargen",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "## Character Creation Checklist"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@generate_characteristics",
+      "properties": {
+        "name": "generate_characteristics",
+        "step_index": "0",
+        "primitive_ref": "generate_characteristics",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Roll your six characteristics using 2D6, and place them in order on your character sheet."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@choose_career",
+      "properties": {
+        "name": "choose_career",
+        "step_index": "1",
+        "primitive_ref": "choose_career",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Choose a career. You cannot choose a career you've already left except Drifter."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@roll_qualification",
+      "properties": {
+        "name": "roll_qualification",
+        "step_index": "2",
+        "primitive_ref": "roll_qualification",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Roll to qualify for that career, as indicated in the description of the career."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@roll_survival",
+      "properties": {
+        "name": "roll_survival",
+        "step_index": "3",
+        "primitive_ref": "roll_survival",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Roll for survival, as indicated in the description of the career."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@roll_training",
+      "properties": {
+        "name": "roll_training",
+        "step_index": "4",
+        "primitive_ref": "roll_training",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Choose one of the Skills and Training tables for this career and roll on it."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@advance_term",
+      "properties": {
+        "name": "advance_term",
+        "step_index": "5",
+        "primitive_ref": "advance_term",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Increase your age by 4 years."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@choose_term_end",
+      "properties": {
+        "name": "choose_term_end",
+        "step_index": "6",
+        "primitive_ref": "choose_term_end",
+        "source_section": "Reenlistment and Retirement",
+        "source_quote": "At the end of each term, the character must decide that they wish to continue on their career path or if they wish to muster out."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@finish_character",
+      "properties": {
+        "name": "finish_character",
+        "step_index": "7",
+        "primitive_ref": "finish_character",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you wish to leave this career, go to step 10."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@qualification_failed",
+      "properties": {
+        "name": "qualification_failed",
+        "route_label": "failed",
+        "next_step": "@finish_character",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you do not qualify for that career"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@survival_failed",
+      "properties": {
+        "name": "survival_failed",
+        "route_label": "failed",
+        "next_step": "@finish_character",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you did not succeed, you have died."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@continue_career",
+      "properties": {
+        "name": "continue_career",
+        "route_label": "continue",
+        "next_step": "@roll_survival",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you wish to continue in this career, go to step 5."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@muster_out",
+      "properties": {
+        "name": "muster_out",
+        "route_label": "muster_out",
+        "next_step": "@finish_character",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "If you wish to leave this career, go to step 10."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@generate_characteristics"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@choose_career"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@roll_qualification"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@roll_survival"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@roll_training"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@advance_term"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@choose_term_end"
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@finish_character"
+    },
+    {
+      "op": "set_relation",
+      "from": "@roll_qualification",
+      "relation": "HAS_PART",
+      "to": "@qualification_failed"
+    },
+    {
+      "op": "set_relation",
+      "from": "@roll_survival",
+      "relation": "HAS_PART",
+      "to": "@survival_failed"
+    },
+    {
+      "op": "set_relation",
+      "from": "@choose_term_end",
+      "relation": "HAS_PART",
+      "to": "@continue_career"
+    },
+    {
+      "op": "set_relation",
+      "from": "@choose_term_end",
+      "relation": "HAS_PART",
+      "to": "@muster_out"
+    }
+  ]
+}

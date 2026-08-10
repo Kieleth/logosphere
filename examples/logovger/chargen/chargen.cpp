@@ -1,4 +1,5 @@
 #include "chargen/chargen.h"
+#include "chargen/procedure_catalog.h"
 
 #include "logosphere/rules/outcome_executor.h"
 #include "rules/characteristics.h"
@@ -8,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
 
 namespace logovger {
 namespace {
@@ -268,16 +270,92 @@ bool roll_for_skill(kg::KGModule& kg, kg::EntityID career,
     return false;
 }
 
+std::string lowercase(std::string value) {
+    for (auto& character : value) {
+        character = static_cast<char>(
+            std::tolower(static_cast<unsigned char>(character)));
+    }
+    return value;
+}
+
+const Choice* find_choice(const std::vector<Choice>& choices,
+                          const std::string& answer) {
+    const std::string normalized = lowercase(answer);
+    for (const auto& choice : choices) {
+        if (normalized == lowercase(choice.key) ||
+            normalized == lowercase(choice.label)) {
+            return &choice;
+        }
+    }
+    return nullptr;
+}
+
 }  // namespace
 
 // --- the session: a life, one decision at a time -------------------
+
+ChargenSession::ChargenSession(kg::KGModule& kg,
+                               logosphere::dice::DiceService& dice)
+    : kg_(kg), dice_(dice),
+      primitives_(make_chargen_procedure_registry()),
+      runner_(kg_, primitives_) {
+    bind_primitives();
+}
+
+void ChargenSession::bind_primitives() {
+    std::string error;
+    const auto bind = [&](const std::string& name,
+                          logosphere::rules::ProcedurePrimitive primitive) {
+        if (!primitives_.bind_primitive(name, std::move(primitive), error)) {
+            throw std::logic_error(error);
+        }
+    };
+    bind("generate_characteristics", [this](const PrimitiveContext& context) {
+        return generate_characteristics(context);
+    });
+    bind("choose_career", [this](const PrimitiveContext& context) {
+        return choose_career(context);
+    });
+    bind("roll_qualification", [this](const PrimitiveContext& context) {
+        return roll_qualification(context);
+    });
+    bind("roll_survival", [this](const PrimitiveContext& context) {
+        return roll_survival(context);
+    });
+    bind("roll_training", [this](const PrimitiveContext& context) {
+        return roll_training(context);
+    });
+    bind("advance_term", [this](const PrimitiveContext& context) {
+        return advance_term(context);
+    });
+    bind("choose_term_end", [this](const PrimitiveContext& context) {
+        return choose_term_end(context);
+    });
+    bind("finish_character", [this](const PrimitiveContext& context) {
+        return finish_character(context);
+    });
+}
 
 bool ChargenSession::begin(uint64_t seed, std::string& error) {
     error.clear();
     sheet_ = CharacterSheet{};
     finished_ = false;
+    career_ = kg::INVALID_ENTITY;
+    procedure_ = kg::INVALID_ENTITY;
+    cursor_ = {};
+    choices_.clear();
+    prompt_.clear();
+    finish_reason_.clear();
     drained_ = 0;
     dice_.seed_stream("chargen", seed);
+
+    procedure_ = find_named(kg_, "Procedure", "basic_chargen");
+    if (procedure_ == kg::INVALID_ENTITY) {
+        error = "the world has no Procedure named 'basic_chargen'; load "
+                "the basic chargen procedure seed";
+        return false;
+    }
+    if (!runner_.validate(procedure_, error)) return false;
 
     sheet_.id = kg_.createEntity("Character");
     if (sheet_.id == kg::INVALID_ENTITY) {
@@ -285,7 +363,32 @@ bool ChargenSession::begin(uint64_t seed, std::string& error) {
                 "cepheus character-creation pack";
         return false;
     }
+    return accept(runner_.start(procedure_, sheet_.id), error);
+}
 
+bool ChargenSession::accept(logosphere::rules::ProcedureResult result,
+                            std::string& error) {
+    if (result.status == logosphere::rules::ProcedureStatus::FAILED) {
+        error = result.error;
+        return false;
+    }
+    if (result.status == logosphere::rules::ProcedureStatus::PENDING) {
+        cursor_ = result.cursor;
+        prompt_ = std::move(result.prompt);
+        choices_ = std::move(result.choices);
+        return true;
+    }
+    finished_ = true;
+    choices_.clear();
+    return true;
+}
+
+ChargenSession::PrimitiveResult ChargenSession::generate_characteristics(
+    const PrimitiveContext& context) {
+    if (context.target != sheet_.id) {
+        return PrimitiveResult::failed(
+            "generate_characteristics received the wrong target");
+    }
     // Six characteristics, 2D6 each, in the book's order.
     int* scores[] = {&sheet_.strength, &sheet_.dexterity, &sheet_.endurance,
                      &sheet_.intelligence, &sheet_.education,
@@ -306,13 +409,7 @@ bool ChargenSession::begin(uint64_t seed, std::string& error) {
                      sheet_.social_standing);
     sheet_.life.push_back({0, "UPP", sheet_.upp, 0});
     write_sheet(kg_, sheet_);
-
-    offer_careers();
-    if (choices_.empty()) {
-        error = "no Career in the knowledge graph; load a careers seed";
-        return false;
-    }
-    return true;
+    return PrimitiveResult::advance();
 }
 
 void ChargenSession::offer_careers() {
@@ -345,95 +442,149 @@ void ChargenSession::finish(const std::string& why) {
     write_sheet(kg_, sheet_);
 }
 
-bool ChargenSession::run_term(std::string& error) {
+ChargenSession::PrimitiveResult ChargenSession::choose_career(
+    const PrimitiveContext& context) {
+    if (!context.input) {
+        offer_careers();
+        if (choices_.empty()) {
+            return PrimitiveResult::failed(
+                "no Career in the knowledge graph; load a careers seed");
+        }
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the options");
+    }
+    career_ = find_named(kg_, "Career", picked->label);
+    if (career_ == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed("no Career named '" + picked->label +
+                                       "'");
+    }
+    sheet_.career = picked->label;
+    choices_.clear();
+    return PrimitiveResult::advance();
+}
+
+ChargenSession::PrimitiveResult ChargenSession::roll_qualification(
+    const PrimitiveContext&) {
+    if (career_ == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "roll_qualification has no selected career");
+    }
+    const auto check =
+        read_check(kg_, kg_.getProperty(career_, "qualification_check"));
+    if (!check.valid) {
+        return PrimitiveResult::failed(
+            "career '" + sheet_.career +
+            "' has no qualification throw in the graph");
+    }
+    const auto qualification =
+        throw_check(check, sheet_, dice_, "qualification");
+    sheet_.qualified = qualification.passed;
+    sheet_.life.push_back(
+        {0, qualification.passed ? "qualified" : "failed to qualify",
+         qualification.detail, qualification.roll_id});
+    if (qualification.passed) return PrimitiveResult::advance("passed");
+
+    finish_reason_ =
+        "Not accepted. (A life that never joined is still a life; the "
+        "book would send you to the draft, which is a later slice.)";
+    return PrimitiveResult::advance("failed");
+}
+
+ChargenSession::PrimitiveResult ChargenSession::roll_survival(
+    const PrimitiveContext&) {
     const int term = sheet_.terms_served + 1;
     const auto check = read_check(kg_,
                                   kg_.getProperty(career_, "survival_check"));
+    if (!check.valid) {
+        return PrimitiveResult::failed(
+            "career '" + sheet_.career +
+            "' has no survival throw in the graph");
+    }
     const auto s = throw_check(check, sheet_, dice_, "survival");
     sheet_.life.push_back({term, s.passed ? "survived" : "did not survive",
                            s.detail, s.roll_id});
     if (!s.passed) {
-        // "If you fail this roll, your character is dead." The mishap
-        // table is an optional rule and a later slice.
-        finish("The career ended here. (Cepheus: a failed survival roll "
-               "is death; the mishap table is an optional rule we have "
-               "not absorbed yet.)");
-        return true;
+        finish_reason_ =
+            "The career ended here. (Cepheus: a failed survival roll is "
+            "death; the mishap table is an optional rule we have not "
+            "absorbed yet.)";
+        return PrimitiveResult::advance("failed");
     }
+    return PrimitiveResult::advance("passed");
+}
 
+ChargenSession::PrimitiveResult ChargenSession::roll_training(
+    const PrimitiveContext&) {
+    const int term = sheet_.terms_served + 1;
     uint64_t skill_roll = 0;
     std::string skill;
+    std::string error;
     if (!roll_for_skill(kg_, career_, sheet_.id, dice_, skill_roll,
                         skill, error)) {
-        return false;
+        return PrimitiveResult::failed(error);
     }
     sheet_.skills.push_back(skill);
     sheet_.life.push_back({term, "gained " + skill,
                            "skills and training", skill_roll});
+    return PrimitiveResult::advance();
+}
 
+ChargenSession::PrimitiveResult ChargenSession::advance_term(
+    const PrimitiveContext&) {
+    const int term = sheet_.terms_served + 1;
     sheet_.age_years   += 4;
     sheet_.terms_served = term;
     sheet_.life.push_back({term, "term ends",
                            "age " + std::to_string(sheet_.age_years), 0});
     write_sheet(kg_, sheet_);
+    return PrimitiveResult::advance();
+}
 
-    choices_ = {{"1", "Serve another term",
-                 "four more years in the " + sheet_.career},
-                {"2", "Muster out", "leave with what you have"}};
-    prompt_ = "Term " + std::to_string(term) + " is over. What now?";
-    return true;
+ChargenSession::PrimitiveResult ChargenSession::choose_term_end(
+    const PrimitiveContext& context) {
+    if (!context.input) {
+        choices_ = {{"1", "Serve another term",
+                     "four more years in the " + sheet_.career},
+                    {"2", "Muster out", "leave with what you have"}};
+        prompt_ = "Term " + std::to_string(sheet_.terms_served) +
+                  " is over. What now?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the options");
+    }
+    const std::string key = picked->key;
+    choices_.clear();
+    if (key == "1") return PrimitiveResult::advance("continue");
+
+    finish_reason_ = "Mustered out at age " +
+                     std::to_string(sheet_.age_years) + " after " +
+                     std::to_string(sheet_.terms_served) + " term(s).";
+    return PrimitiveResult::advance("muster_out");
+}
+
+ChargenSession::PrimitiveResult ChargenSession::finish_character(
+    const PrimitiveContext&) {
+    if (finish_reason_.empty()) {
+        finish_reason_ = "Character generation completed by the procedure.";
+    }
+    finish(finish_reason_);
+    return PrimitiveResult::complete();
 }
 
 bool ChargenSession::choose(const std::string& answer, std::string& error) {
     error.clear();
-    if (finished_) { error = "this life is finished"; return false; }
-
-    std::string a = answer;
-    for (auto& ch : a) ch = static_cast<char>(std::tolower(ch));
-    const Choice* picked = nullptr;
-    for (const auto& c : choices_) {
-        std::string label = c.label;
-        for (auto& ch : label) ch = static_cast<char>(std::tolower(ch));
-        if (a == c.key || a == label) { picked = &c; break; }
-    }
-    if (!picked) {
-        error = "'" + answer + "' is not one of the options";
+    if (finished_) {
+        error = "this life is finished";
         return false;
     }
-
-    // Career chosen: qualify, then live the first term.
-    if (career_ == kg::INVALID_ENTITY) {
-        career_ = find_named(kg_, "Career", picked->label);
-        if (career_ == kg::INVALID_ENTITY) {
-            error = "no Career named '" + picked->label + "'";
-            return false;
-        }
-        sheet_.career = picked->label;
-        const auto check =
-            read_check(kg_, kg_.getProperty(career_, "qualification_check"));
-        if (!check.valid) {
-            error = "career '" + picked->label +
-                    "' has no qualification throw in the graph";
-            return false;
-        }
-        const auto q = throw_check(check, sheet_, dice_, "qualification");
-        sheet_.qualified = q.passed;
-        sheet_.life.push_back({0, q.passed ? "qualified"
-                                           : "failed to qualify",
-                               q.detail, q.roll_id});
-        if (!q.passed) {
-            finish("Not accepted. (A life that never joined is still a "
-                   "life; the book would send you to the draft, which is "
-                   "a later slice.)");
-            return true;
-        }
-        return run_term(error);
-    }
-
-    if (picked->key == "1") return run_term(error);
-    finish("Mustered out at age " + std::to_string(sheet_.age_years) +
-           " after " + std::to_string(sheet_.terms_served) + " term(s).");
-    return true;
+    return accept(runner_.resume(cursor_, answer), error);
 }
 
 std::vector<LifeEvent> ChargenSession::drain() {
@@ -467,7 +618,7 @@ bool run_chargen(const ChargenRequest& request,
                                       request.max_terms) {
         if (!session.choose("1", error)) return false;
     }
-    if (!session.finished()) session.choose("2", error);
+    if (!session.finished() && !session.choose("2", error)) return false;
     out = session.sheet();
     return true;
 }

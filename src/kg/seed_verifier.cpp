@@ -3,14 +3,17 @@
 #include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
+#include "logosphere/rules/procedure_runner.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -296,6 +299,8 @@ struct Checker {
     const std::string& source_root;
     const OntologyRegistry& ont;
     SeedVerifyReport& report;
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives;
 
     // rel path -> file content; empty string caches "unreadable".
     std::map<std::string, std::string> files;
@@ -706,6 +711,91 @@ struct Checker {
                             "OutcomeOption", "option_index");
     }
 
+    void check_procedure(const KGModule& world,
+                         const SeedLoadReport& load, EntityID procedure) {
+        check_ordered_parts(world, load, procedure, "Procedure",
+                            "ProcedureStep", "step_index");
+        const auto parts = world.getRelated(procedure, "HAS_PART");
+        std::unordered_set<EntityID> steps;
+        for (const EntityID part : parts) {
+            if (ont.isSubtypeOf(world.getType(part), "ProcedureStep")) {
+                steps.insert(part);
+            }
+        }
+        if (steps.empty()) return;
+        if (!procedure_primitives) {
+            semantic_violation(
+                procedure, load,
+                "Procedure cannot resolve primitive_ref values without a "
+                "procedure primitive registry");
+            return;
+        }
+
+        for (const EntityID step : steps) {
+            ++report.semantics_checked;
+            const std::string primitive =
+                world.getProperty(step, "primitive_ref");
+            const auto* contract =
+                procedure_primitives->contract(primitive);
+            if (!contract) {
+                semantic_violation(step, load,
+                                   "ProcedureStep names unknown primitive '" +
+                                       primitive + "'");
+                continue;
+            }
+
+            std::unordered_set<std::string> route_labels;
+            for (const EntityID route : world.getRelated(step, "HAS_PART")) {
+                ++report.semantics_checked;
+                const std::string type = world.getType(route);
+                if (!ont.isSubtypeOf(type, "StepRoute")) {
+                    semantic_violation(
+                        route, load,
+                        "ProcedureStep contains non-StepRoute part type '" +
+                            type + "'");
+                    continue;
+                }
+                const std::string label =
+                    world.getProperty(route, "route_label");
+                if (!contract->route_labels.count(label)) {
+                    semantic_violation(
+                        route, load,
+                        "StepRoute has undeclared route_label '" + label +
+                            "' for primitive '" + primitive + "'");
+                }
+                if (!route_labels.insert(label).second) {
+                    semantic_violation(
+                        route, load,
+                        "ProcedureStep has duplicate route_label '" + label +
+                            "'");
+                }
+
+                const std::string next_value =
+                    world.getProperty(route, "next_step");
+                EntityID next = INVALID_ENTITY;
+                try {
+                    size_t end = 0;
+                    const unsigned long parsed =
+                        std::stoul(next_value, &end);
+                    if (end != next_value.size() ||
+                        parsed > std::numeric_limits<EntityID>::max()) {
+                        throw std::invalid_argument("range");
+                    }
+                    next = static_cast<EntityID>(parsed);
+                } catch (...) {
+                    semantic_violation(route, load,
+                                       "StepRoute has invalid next_step");
+                    continue;
+                }
+                if (!steps.count(next)) {
+                    semantic_violation(
+                        route, load,
+                        "StepRoute next_step points outside Procedure");
+                }
+            }
+        }
+    }
+
     void check_semantics(const KGModule& world,
                          const SeedLoadReport& load) {
         for (const EntityID id : load.created_ids) {
@@ -719,6 +809,8 @@ struct Checker {
                 check_outcome_sequence(world, load, id);
             } else if (ont.isSubtypeOf(type, "OutcomeChoice")) {
                 check_outcome_choice(world, load, id);
+            } else if (ont.isSubtypeOf(type, "Procedure")) {
+                check_procedure(world, load, id);
             }
         }
     }
@@ -856,9 +948,13 @@ struct Checker {
 
 SeedVerifyReport verify_seed(const SeedEnvelope& seed,
                              const std::string& source_root,
-                             const OntologyRegistry& registry) {
+                             const OntologyRegistry& registry,
+                             const logosphere::rules::
+                                 ProcedurePrimitiveRegistry*
+                                     procedure_primitives) {
     SeedVerifyReport report;
-    Checker checker{seed, source_root, registry, report, {}};
+    Checker checker{seed, source_root, registry, report,
+                    procedure_primitives, {}};
 
     checker.check_commit_pin();
 

@@ -180,10 +180,34 @@ money, no-op, and typed pending table-roll requests. Games register their
 own concrete handlers and may return typed procedure signals. Unknown
 concrete types fail loudly.
 
-The TaskCheck runner, RollableTable selection runner, and general Procedure
-runner remain design work. Dice are engine-side, seeded, journaled, and
-cited by roll id. Gameplay code requests rolls and receives facts; it cannot
-assert a die result.
+`ProcedureRunner` is built in the engine. A game declares exact primitive
+contracts, including every route label each primitive may return, then binds
+handlers to those declarations. Before the first handler runs, the runner
+validates the complete Procedure graph: ordered steps, bound primitives,
+route labels, and route targets. It follows seeded routes, falls through to
+the next ordered step when no matching route is present, suspends on typed
+choices, resumes the same step with explicit input, and stops synchronous
+cycles at a transition limit. Unknown primitives, invented route labels,
+cross-procedure jumps, malformed suspension data, and handler exceptions fail
+loudly.
+
+The current Logovger slice registers eight game primitives:
+`generate_characteristics`, `choose_career`, `roll_qualification`,
+`roll_survival`, `roll_training`, `advance_term`, `choose_term_end`, and
+`finish_character`. Their order and qualification, survival, continue, and
+muster-out routes live in the cited `basic_chargen` seed. The primitive
+handlers contain the game behavior, not the checklist order. Retargeting only
+a seeded route changes the executed flow in the acceptance test.
+
+Procedure execution is not one transaction across player choices. Each
+primitive owns its own mutation boundary. Outcome execution inside a primitive
+keeps the atomic guarantees described above. A handler that changes arbitrary
+state before reporting its own failure cannot be rolled back by the generic
+runner, so game handlers must validate required input before mutation.
+
+The TaskCheck runner and general RollableTable selection runner remain design
+work. Dice are engine-side, seeded, journaled, and cited by roll id. Gameplay
+code requests rolls and receives facts; it cannot assert a die result.
 
 ## The referee (DESIGN)
 
@@ -272,23 +296,24 @@ Load-bearing properties:
 | 2026-08-09 | PR2 rulings, all owner: (1) DiceExpression is a CLASS, no strings-and-parse in rule data; the engine dice grammar grew the xK multiplier so the book's 1D6x10000 is representable and rollable, total = (sum + modifier) * multiplier. (2) LookupTable/LookupEntry added: state-keyed tables (char DM, nobility, rank ladders, retirement pay) are ontology + KG entities exactly like rollable ones; all tables are ingested into the KG. (3) attribute refs (the "Int" in "Int 8+") are verifier-resolved slot references: a string that must resolve against the target class's declared slots, rejected otherwise; characteristics stay slots, not entities. (4) Outcomes are TYPED SUBCLASSES (option B), op-template strings rejected. (5) Table rows are BANDS: roll_min/roll_max and key_min/key_max, single-value row = band of one; buys the coverage invariant (a 2D6 table must cover 2..12, no gaps, no overlaps). StepRoute entities carry the checklist's gotos by the same no-strings principle |
 | 2026-08-09 | Table-result option 3: a lookup row is the typed result. LookupEntry is abstract; games declare concrete multi-column row types; LookupTable declares and verifies entry_type. Rollable rows require one typed root Outcome; NoEffect is explicit; OutcomeSequence composes ordered OutcomeSteps and will apply atomically. Choice authority remains open. Shelob is the server deployment library and has no gameplay or rule-processing role. |
 | 2026-08-10 | Outcome executor contract, owner: handlers produce plans and never mutate the KG directly; one central executor validates and commits. Exact concrete types dispatch or fail loudly. Choices are typed OutcomeChoice data with player, referee, or procedure authority and suspend before mutation. Skill acquisition separates EnsureSkillLevel from AdvanceSkill so initial and existing-skill behavior remain data. Money uses generic per-currency balance state and distinct fixed versus rolled outcomes. Sequence atomicity includes KG state, mutation events, dice streams, the dice journal, and dice events. GrantTableRoll produces a typed pending request; game-specific outcomes may produce typed procedure signals. |
+| 2026-08-10 | Procedure runner scope, owner selected option 2: build the generic engine runner and migrate the current playable chargen slice, without absorbing the full Cepheus checklist in the same phase. The current eight primitive names and their exact route labels are fixed by the game registry. Procedure order and gotos are cited KG data; primitive behavior remains game code. Complete graph validation happens before execution, choices suspend and resume the same step, and synchronous route cycles fail at a transition limit. |
 
 ## Build state (updated at each compaction point)
 
-_Last updated 2026-08-10, outcome execution built._
+_Last updated 2026-08-10, procedure execution and basic chargen migration built._
 
 | Step | What | State |
 |---|---|---|
 | 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 30/0 (incl. xK multiplier), merged to main (584c3f5) |
 | 2 | rulebook.yaml engine meta-pack: 16 classes incl. Cited mixin, LookupTable/LookupEntry, typed Outcome subclasses, StepRoute; SPECIALIZES in core; dice xK multiplier; typed entity refs in the validator | BUILT, 34/0 (test_rulebook_pack verbatim-checks 28 ch1 instances against the vendored SRD; entity refs class-checked on the ops path) |
 | 3 | cepheus skills pack (Skill + is_cascade, cascades as nested SPECIALIZES; engine SkillRating; 68 instances come later via ops) | BUILT (test_skills_pack; citations verbatim vs the re-vendored fixed SRD) |
-| 4 | The verifier (schema / verbatim / value / semantic / invariant) + seed-file grammar ("as" binders, envelope) + the loader that doubles as step 6 | BUILT; semantic table and outcome checks expanded on codex/logovger-option3 |
+| 4 | The verifier (schema / verbatim / value / semantic / invariant) + seed-file grammar ("as" binders, envelope) + the loader that doubles as step 6 | BUILT; semantic checks cover table and outcome structure plus procedure primitive and route contracts |
 | 4b | Typed table-result completeness: concrete lookup row shapes, required roll outcomes, NoEffect, ordered sequences and choices, semantic verifier | BUILT on codex/logovger-outcome-executor |
 | 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | PARTIAL: skills, careers, and selected book-1 tables are production seeds |
 | 6 | Ops loader: seed files -> KG at game start | BUILT; now delegates to the reusable atomic KG-op batch |
 | 7a | Outcome executor | BUILT with exact dispatch, atomic KG and dice execution, typed choices, generic skill and currency state, typed pending table rolls, and game procedure signals |
-| 7b | Procedure runner (outcome-label routing) + ~12 thin primitives | pending owner approval of the concrete primitive list |
-| 8 | Chargen session and rule-12 life timeline | BASIC SLICE BUILT; skill-table consequences now use the engine outcome executor; broader procedure and referee integration remain |
+| 7b | Procedure runner (outcome-label routing) + thin game primitives | BUILT for the current slice: generic engine runner plus eight registered Logovger primitives; full-checklist primitives remain part of later absorption |
+| 8 | Chargen session and rule-12 life timeline | BASIC SLICE BUILT on the seeded `basic_chargen` Procedure; skill-table consequences use the engine outcome executor; broader checklist and referee integration remain |
 
 Working agreements in force: decisions surfaced BEFORE building; gated
 merges only (conclusion checked in the same command); background tasks
@@ -301,9 +326,9 @@ _Reconciled 2026-08-09 against the decisions log; former items 3, 5, 6
 (rule-text selection, dev transport, instance loading) are decided
 above and removed here._
 
-1. The concrete primitive LIST for chargen's Procedure steps. The
-   shape is decided (thin, sub-step grain, gotos as routing data);
-   the ~12 names surface for approval at step 7.
+1. Primitive names and route contracts beyond the current eight-step
+   `basic_chargen` slice. They surface for approval with each later
+   checklist expansion, not as speculative engine vocabulary.
 2. Turn cadence and interruption model for the referee loop.
 3. Escalation policy living ON the content (NPC carries tree + persona
    brief + escalation marks): leaning yes, confirm at build.
