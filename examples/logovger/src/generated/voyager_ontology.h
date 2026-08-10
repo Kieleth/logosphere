@@ -1329,6 +1329,166 @@ struct WorldRelation : public Relation {
 };
 
 
+/// Provenance back to the book. Every rule entity ingested from a source text carries the file it came from, the section heading under it, and the verbatim quote it was extracted from; the ingestion verifier string-matches the quote into the source and rejects what does not match. The slots are optional at the KG layer because referee-improvised entities have no book to cite; the rulebook verifier requires them on ingested data.
+struct Cited {
+    /// Path of the source text this was extracted from, relative to the game's vendored source root (e.g. book1/character-creation.md).
+    std::optional<std::string> source_file = std::nullopt;
+    /// The nearest heading above the quote in the source.
+    std::optional<std::string> source_section = std::nullopt;
+    /// Verbatim quote from the source, exact substring: the ingestion verifier string-matches it into source_file and rejects any value that does not match.
+    std::optional<std::string> source_quote = std::nullopt;
+};
+
+
+/// A dice expression as the book writes it: count, sides, modifier, multiplier. "2D6" is count 2 sides 6; "1D6x10000" is the Cepheus medical bill. Mirrors logosphere::dice::DiceExpression field for field, so an entity of this type can be handed to the DiceService and rolled; total = (dice sum + modifier) * multiplier.
+struct DiceExpression : public Entity, public Cited {
+    /// How many dice.
+    std::optional<int32_t> dice_count = std::nullopt;
+    /// Sides per die.
+    std::optional<int32_t> dice_sides = std::nullopt;
+    /// Signed modifier added to the dice sum.
+    std::optional<int32_t> dice_modifier = std::nullopt;
+    /// Multiplier applied to (dice sum + modifier); 1 when the book writes none.
+    std::optional<int32_t> dice_multiplier = std::nullopt;
+};
+
+
+/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check.
+struct TaskCheck : public Entity, public Cited {
+    /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
+    std::optional<std::string> attribute_ref = std::nullopt;
+    /// Succeed on this or more.
+    std::optional<int32_t> target_number = std::nullopt;
+    /// The dice this check or table is rolled with.
+    std::optional<DiceExpression> dice = std::nullopt;
+};
+
+
+/// A table keyed by a die result: roll the dice, land in a row. Rows are TableEntry entities attached with HAS_PART; each row claims a result band, and a well-formed table covers its dice range with no gaps and no overlaps (the ingestion verifier proves that per table).
+struct RollableTable : public Entity, public Cited {
+    /// The dice this check or table is rolled with.
+    std::optional<DiceExpression> dice = std::nullopt;
+};
+
+
+/// A table keyed by what the character already is, not by a die: characteristic modifier by score, title by social standing, rank ladder by earned rank, retirement pay by terms served. Same row shape as a RollableTable, different key: the executor reads the referenced attribute instead of rolling.
+struct LookupTable : public Entity, public Cited {
+    /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
+    std::optional<std::string> attribute_ref = std::nullopt;
+};
+
+
+/// The mechanical consequence a rule applies. Abstract: each kind of consequence is a concrete subclass with typed slots, and the executor pairs one registered handler per subclass; the handler performs the actual writes through the validated KG-ops path. Games add outcome kinds by declaring a subclass in their own pack and registering a handler. New subclasses obey the rule of two like everything else here.
+struct Outcome : public Entity, public Cited {
+};
+
+
+/// One row of a RollableTable: the band of results it claims (a single-value row has roll_min = roll_max) and the outcome it applies.
+struct TableEntry : public Entity, public Cited {
+    /// Lowest die result this row claims, inclusive.
+    std::optional<int32_t> roll_min = std::nullopt;
+    /// Highest die result this row claims, inclusive.
+    std::optional<int32_t> roll_max = std::nullopt;
+    /// The outcome this row applies when it matches.
+    std::optional<Outcome> outcome = std::nullopt;
+};
+
+
+/// One row of a LookupTable: the key band it claims (a single-key row has key_min = key_max) and the outcome it applies.
+struct LookupEntry : public Entity, public Cited {
+    /// Lowest key value this row claims, inclusive.
+    std::optional<int32_t> key_min = std::nullopt;
+    /// Highest key value this row claims, inclusive.
+    std::optional<int32_t> key_max = std::nullopt;
+    /// The outcome this row applies when it matches.
+    std::optional<Outcome> outcome = std::nullopt;
+};
+
+
+/// Gain a skill at a level: basic training at Level 0, a skill table result like Athletics-1. The skill is an entity reference into the game's skill vocabulary, never a name string.
+struct GrantSkill : public Outcome {
+    /// The skill granted, as an entity reference into the game's skill vocabulary (the engine does not know which skills exist).
+    std::optional<Entity> skill = std::nullopt;
+    /// The level granted.
+    std::optional<int32_t> skill_level = std::nullopt;
+};
+
+
+/// Change a numeric attribute by a delta: "+1 Int" on a skill table, "Reduce Strength or Dexterity by 2" on the injury table. The attribute is a verifier-resolved reference, the delta is signed.
+struct ModifyAttribute : public Outcome {
+    /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
+    std::optional<std::string> attribute_ref = std::nullopt;
+    /// Signed change applied to the referenced attribute.
+    std::optional<int32_t> attribute_delta = std::nullopt;
+};
+
+
+/// Money changes hands: a fixed amount (Cr20000 on a benefits table, a debt as a negative amount) or a rolled one (the 1D6x10000 medical bill), one of the two per instance. The currency is an entity reference into the game's monetary vocabulary, exactly as a skill is: credits are one currency of one game, and the engine does not know which currencies exist.
+struct GainMoney : public Outcome {
+    /// The currency the amount is denominated in, as a reference into the game's monetary vocabulary.
+    std::optional<Entity> currency = std::nullopt;
+    /// Fixed amount; negative is a debt.
+    std::optional<int32_t> amount = std::nullopt;
+    /// Rolled amount, when the book rolls for the money.
+    std::optional<DiceExpression> amount_dice = std::nullopt;
+};
+
+
+/// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables.
+struct GrantTableRoll : public Outcome {
+    /// The table the extra rolls are granted on.
+    std::optional<RollableTable> table = std::nullopt;
+    /// How many extra rolls.
+    std::optional<int32_t> roll_count = std::nullopt;
+};
+
+
+/// A number the book fixes in prose: the age of majority is 18, each prior career is DM-2 on qualification, seven terms is the cap. Captured as data so a rule can point at it and the quote can prove it; code primitives read it, never re-hardcode it.
+struct RuleConstant : public Entity, public Cited {
+    /// The value the book fixes; signed.
+    std::optional<int32_t> constant_value = std::nullopt;
+};
+
+
+/// A held skill at a level: Slug Rifle at 2. Game STATE, not book content, which is why it is the one class here without Cited (a rating has no quote; the chargen journal is its provenance). Attached to its holder with HAS_PART; the skill is an entity reference into the game's skill vocabulary. The GrantSkill handler creates and increments these through the validated write path.
+struct SkillRating : public Entity {
+    /// The skill granted, as an entity reference into the game's skill vocabulary (the engine does not know which skills exist).
+    std::optional<Entity> skill = std::nullopt;
+    /// The level granted.
+    std::optional<int32_t> skill_level = std::nullopt;
+};
+
+
+/// An ordered sequence the book walks you through: the character creation checklist, the characteristic generation steps. Steps are ProcedureStep entities attached with HAS_PART, ordered by step_index; flow falls through to the next index unless a route redirects it.
+struct Procedure : public Entity, public Cited {
+};
+
+
+/// One step of a Procedure. It NAMES a code primitive through primitive_ref (resolved against the executor's registry, never computed in data) and carries its routes as StepRoute parts: the book's own gotos, transcribed as routing data.
+struct ProcedureStep : public Entity, public Cited {
+    /// Position in the procedure; flow falls through in index order unless a route redirects it.
+    std::optional<int32_t> step_index = std::nullopt;
+    /// Name of the code primitive this step invokes, resolved against the executor's primitive registry. The step never computes; the primitive does.
+    std::optional<std::string> primitive_ref = std::nullopt;
+};
+
+
+/// One goto: when the step's primitive reports route_label, flow continues at next_step instead of falling through. "Fail survival, go to the mishap step" and the natural-12 forced reenlistment are both this.
+struct StepRoute : public Entity, public Cited {
+    /// The primitive-reported outcome label this route fires on (e.g. failed, natural_12). Labels come from the primitive's declared vocabulary; the verifier rejects labels the named primitive cannot report.
+    std::optional<std::string> route_label = std::nullopt;
+    /// Where flow continues when this route fires.
+    std::optional<ProcedureStep> next_step = std::nullopt;
+};
+
+
+/// A spot where the book hands the decision to the Referee: "the Referee may want to change the maximum number of terms", "with the Referee's approval". prompt_text is what the referee is asked to judge, in the book's own words; the LLM referee receives it as its brief for that judgment.
+struct JudgmentPoint : public Entity, public Cited {
+    /// What the referee is asked to judge, in the book's own words.
+    std::optional<std::string> prompt_text = std::nullopt;
+};
+
+
 /// The book's own word and the book's own concept: seven characteristic scores in fixed order, summarized as a UPP string [srd/cepheus book1/character-creation.md "Characteristics", "The Universal Persona Profile (UPP)"]. This class is the BOOK's; the game's character is Voyager, in the voyager layer, extending this one.
 struct Character : public LivingEntity {
     /// Dex, position 2 of the UPP.
@@ -1357,7 +1517,8 @@ struct Character : public LivingEntity {
 
 
 /// One career the book offers, with its chargen targets [book1/character-creation.md "Careers", "Qualifying and the Draft", "Survival", "Commission and Advancement"]. The per-career skill tables are table DATA (rules/), not schema.
-struct Career : public Entity {
+/// Cited because its INSTANCES are the book's: the 24 careers and their throws are printed in the career tables, and each must be able to prove its numbers against the row it came from. Character and ServiceTerm are deliberately NOT Cited, and that difference is the rule: a class carries Cited when its instances come out of the book, not when the class itself is described there. A character is a player's, not the book's.
+struct Career : public Entity, public Cited {
     /// 2D6 target to enter the career.
     std::optional<int32_t> qualification_target = std::nullopt;
     /// Which characteristic DMs the qualification roll.

@@ -349,7 +349,9 @@
         "qualification_target": "6",
         "qualification_dm_characteristic": "social_standing",
         "survival_target": "6",
-        "survival_dm_characteristic": "intelligence"
+        "survival_dm_characteristic": "intelligence",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
       }
     },
     {
@@ -564,7 +566,9 @@
         "qualification_target": "8",
         "qualification_dm_characteristic": "endurance",
         "survival_target": "5",
-        "survival_dm_characteristic": "dexterity"
+        "survival_dm_characteristic": "dexterity",
+        "source_section": "Career Tables",
+        "source_quote": "| Qualifications | End 8+ | End 5+ | Soc 6+ | End 5+ | Int 4+ | Soc 6+ |"
       }
     },
     {

@@ -20,6 +20,7 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  - rulebook
 
 classes:
   Character:
@@ -51,11 +52,21 @@ classes:
 
   Career:
     is_a: Entity
+    mixins:
+      - Cited
     description: >-
       One career the book offers, with its chargen targets
       [book1/character-creation.md "Careers", "Qualifying and the
       Draft", "Survival", "Commission and Advancement"]. The per-career
       skill tables are table DATA (rules/), not schema.
+
+      Cited because its INSTANCES are the book's: the 24 careers and
+      their throws are printed in the career tables, and each must be
+      able to prove its numbers against the row it came from. Character
+      and ServiceTerm are deliberately NOT Cited, and that difference
+      is the rule: a class carries Cited when its instances come out of
+      the book, not when the class itself is described there. A
+      character is a player's, not the book's.
     slots:
       - qualification_target
       - qualification_dm_characteristic

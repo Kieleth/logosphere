@@ -260,6 +260,16 @@ void test_the_rules_are_data() {
     for (auto id : kg.findByType("Career"))
         if (kg.getProperty(id, "name") == "Agent") career = id;
     CHECK(career != kg::INVALID_ENTITY, "the career is in the graph");
+
+    // A career's instances are the book's, so a career must be able to
+    // prove its numbers: the table row it was read from, verbatim in
+    // the chapter. This is what the Cited mixin buys.
+    const auto quote = kg.getProperty(career, "source_quote");
+    const auto chapter = slurp(game_path("srd/cepheus/book1/"
+                                         "character-creation.md"));
+    CHECK(!quote.empty() && chapter.find(quote) != std::string::npos,
+          "the career cites the career-table row it came from");
+
     kg.setProperty(career, "qualification_target", "13");
 
     logosphere::dice::DiceService dice;
