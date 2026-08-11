@@ -174,7 +174,10 @@ bool test_light_body_ringing() {
     printf("  %s\n", "------------------------------------------------------------");
 
     int failures = 0;
-    std::vector<float> ratios = {1.0f, 2.0f, 5.0f, 10.0f, 15.0f, 22.8f, 25.0f};
+    // Extended to 1044x: the tree's leaf bonds run 111.661 kg against a
+    // 0.107 kg leaf, three orders of magnitude past where this sweep
+    // originally stopped and called the problem settled.
+    std::vector<float> ratios = {1.0f, 10.0f, 25.0f, 100.0f, 250.0f, 500.0f, 1044.0f};
     if (const char* only = std::getenv("RING_RATIO")) ratios = { (float)std::atof(only) };
     for (float ratio : ratios) {
         const Ring r = run_ratio(ratio);

@@ -306,7 +306,13 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
 
     // Trunk sits on the ground surface (root plate is now below ground)
     float plate_height = 0.25f;  // Must match generate_root_system
-    float root_plate_top_z = ground_z;  // Top of root plate = ground level
+    // The plate SITS ON the turtle now (bottom at ground_z), so its top is a
+    // full plate_height above ground rather than at it. This still read
+    // ground_z, which left the trunk — and through it all four first-level
+    // branches — 0.25 m below the plate top they bond to, on bonds declaring
+    // target_distance = 0. The KG path at root_plate_top_z below already had
+    // this right; only the direct path was stale.
+    float root_plate_top_z = ground_z + plate_height;
 
     Particle trunk = create_branch_particle(
         world_x, world_y, root_plate_top_z + trunk_length * 0.5f,
@@ -869,14 +875,29 @@ int PhysicsTreeGenerator::generate_root_system(
     float plate_diameter = std::max(trunk_thickness * 4.0f, tree_height * 0.3f);
     float plate_height = 0.25f;                      // 25cm tall - thicker for visibility
     // Root plate fully below ground — top face well under floor surface
-    // THE PLATE'S TOP IS THE GROUND. It sank a FULL plate_height below
-    // ground_z, putting its top 0.125 m BELOW where the trunk's bottom is
-    // placed, so the trunk-to-plate bond was born 0.125 m stretched — with a
-    // declared target_distance of 0, i.e. "these two points must coincide".
-    // Half a height down puts the top exactly at ground level, which is what
-    // "a plate the tree stands on" means. Measured: that bond and the root
-    // bonds were 6 of the 8 strained bonds in the whole tree (issue #57).
-    float plate_center_z = ground_z - plate_height * 0.5f;
+    // NOTHING GOES BELOW THE TURTLE. TURTLE_Z = 0 is an absolute world floor,
+    // and enforce_turtle_boundary() lifts anything beneath it EVERY SUBSTEP,
+    // forever, as a raw position correction with no energy accounting.
+    //
+    // This plate was placed underground because roots are underground — first
+    // at ground_z - plate_height (bottom at -0.375), then at
+    // ground_z - plate_height*0.5 (bottom at -0.25). Both put the plate and
+    // its four radial roots permanently in violation, so the turtle lifted
+    // them every substep and gravity pulled them back, for free.
+    //
+    // Measured with the energy ledger (ENERGY_LEDGER=1), per substep:
+    //   d_solve     -19 to -194     the constraint solver dissipates
+    //   d_angular    0              neutral
+    //   d_positions -1 to -18       integration dissipates
+    //   d_turtle    +30.6 EVERY SUBSTEP, +15797 on the first
+    // Three phases lose energy, one creates it, and it was the boundary
+    // fighting geometry that could never satisfy it. That energy reached the
+    // canopy through the bonds, which is how leaves ended up at 120 m.
+    //
+    // The plate now SITS ON the turtle: bottom exactly at ground_z, so the
+    // boundary has nothing to correct. Roots being visually underground is
+    // not worth an invariant that says the world has a floor.
+    float plate_center_z = ground_z + plate_height * 0.5f;
 
     Particle root_plate = {};
     root_plate.x = world_x;

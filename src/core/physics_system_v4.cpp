@@ -113,6 +113,84 @@
 #include <chrono>
 #include <unordered_set>
 
+// ============================================================================
+// THE ENERGY LEDGER (ENERGY_LEDGER=1)
+// ============================================================================
+// Energy is conserved; it is transformed, not created. So the invariant a
+// physics engine must satisfy on an unforced system is not "kinetic energy
+// must not rise" — a released spring is SUPPOSED to raise it, and so is a
+// falling body. It is that the TOTAL may fall and never rise:
+//
+//     KE  +  gravitational PE  +  elastic strain stored in bonds
+//
+// with dissipation accounting for the fall.
+//
+// A sequential-impulse solver has no energy. It computes impulses that satisfy
+// constraints and never asks what they cost, so a gluon stores a target
+// distance and a stiffness rather than a joule. That is why every injection
+// defect this session had to be found one scene at a time, backwards, by
+// inference: nothing in the engine checked a conservation law. Four of those
+// attributions were wrong.
+//
+// This measures the buckets between phase boundaries, so a rise is attributed
+// to the phase that produced it rather than guessed at.
+struct EnergyBuckets {
+    double kinetic = 0.0, gravity = 0.0, strain = 0.0;
+    double total() const { return kinetic + gravity + strain; }
+};
+
+static EnergyBuckets measure_energy(
+        ParticleSystem::WriteView& particles,
+        const std::deque<std::unique_ptr<GluonConstraintBase>>& gluons) {
+    EnergyBuckets e;
+    constexpr double G = 9.81;
+    for (size_t i = 0; i < particles.size(); ++i) {
+        const Particle& p = particles[i];
+        const double m = p.GetMass();
+        if (m <= 0.0) continue;
+        if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+        e.kinetic += 0.5 * m * (double(p.vx)*p.vx + double(p.vy)*p.vy + double(p.vz)*p.vz);
+        e.gravity += m * G * double(p.z);
+    }
+    // Elastic strain: 1/2 k x^2, x measured where the bond actually acts —
+    // between its ATTACHMENT points, not between centres. Getting that wrong
+    // is what cost four wrong fixes on the tree (ledger entry G1c).
+    for (const auto& g : gluons) {
+        if (!g) continue;
+        if (g->particle_a >= particles.size() || g->particle_b >= particles.size()) continue;
+        const Particle& pa = particles[g->particle_a];
+        const Particle& pb = particles[g->particle_b];
+        auto attach = [](const Particle& p, const Vec3& o, bool rot,
+                         float& wx, float& wy, float& wz) {
+            if (!rot) { wx = p.x + o.x; wy = p.y + o.y; wz = p.z + o.z; return; }
+            const float cx = cosf(p.rotation_x), sx = sinf(p.rotation_x);
+            const float cy = cosf(p.rotation_y), sy = sinf(p.rotation_y);
+            const float cz = cosf(p.rotation_z), sz = sinf(p.rotation_z);
+            const float y1 = o.y * cx - o.z * sx;
+            const float z1 = o.y * sx + o.z * cx;
+            const float x2 = o.x * cy + z1 * sy;
+            const float z2 = -o.x * sy + z1 * cy;
+            wx = p.x + x2 * cz - y1 * sz;
+            wy = p.y + x2 * sz + y1 * cz;
+            wz = p.z + z2;
+        };
+        float ax, ay, az, bx, by, bz;
+        attach(pa, g->offset_a, g->rotate_offsets, ax, ay, az);
+        attach(pb, g->offset_b, g->rotate_offsets, bx, by, bz);
+        const double dx = bx - ax, dy = by - ay, dz = bz - az;
+        const double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+        const double x = dist - double(g->target_distance);
+        e.strain += 0.5 * double(g->stiffness) * x * x;
+    }
+    return e;
+}
+
+static bool energy_ledger_on() {
+    static const bool v = std::getenv("ENERGY_LEDGER") != nullptr;
+    return v;
+}
+
+
 using namespace PhysicsV4;
 
 // Forward declaration for wake propagation diagnostics
@@ -246,10 +324,15 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         ::logosphere::phystrace::set_substep(substep);
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
+        EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
+        const bool ledger = energy_ledger_on();
+        if (ledger) e_before = measure_energy(particles, gluon_constraints_v2_);
+
         {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsForces);
             apply_all_forces(particles, sub_dt);
         }
+        if (ledger) e_after_solve = measure_energy(particles, gluon_constraints_v2_);
 
         // PHASE 4.5: Integrate angular velocity → rotation
         // This MUST happen BEFORE position projection so rotation_z is current
@@ -257,6 +340,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsAngularVel);
             integrate_angular_velocities(particles, sub_dt);
         }
+        if (ledger) e_after_angular = measure_energy(particles, gluon_constraints_v2_);
 
         // PHASE 4.6: Project angular limits (hard bounds)
         // Multiple iterations to propagate through gluon chains
@@ -283,11 +367,43 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsIntegrate);
             integrate_positions(particles, sub_dt);
         }
+        EnergyBuckets e_after_positions;
+        if (ledger) e_after_positions = measure_energy(particles, gluon_constraints_v2_);
 
         // PHASE 6: Enforce turtle boundary (absolute - nothing goes below z=0)
         {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsBoundary);
             enforce_turtle_boundary(particles);
+        }
+
+        if (ledger) {
+            e_after_integrate = measure_energy(particles, gluon_constraints_v2_);
+            static int led_n = 0;
+            // Gravity does real work during integration, so that phase is
+            // EXPECTED to trade PE for KE and its total should still not rise.
+            const double d_solve = e_after_solve.total()     - e_before.total();
+            const double d_ang   = e_after_angular.total()   - e_after_solve.total();
+            // Split the integrate window: moving bodies by their velocity is
+            // one thing, and pushing them out of the floor is another. Both
+            // live between the same two probes, and only one of them can
+            // create energy without paying for it.
+            const double d_pos   = e_after_positions.total()  - e_after_angular.total();
+            const double d_turtle= e_after_integrate.total()  - e_after_positions.total();
+            const double d_int   = e_after_integrate.total() - e_after_angular.total();
+            const double d_all   = e_after_integrate.total() - e_before.total();
+            if ((led_n++ % 8) == 0 || d_all > 1.0) {
+                std::cout << "[ENERGY] sub=" << substep
+                          << " KE=" << e_after_integrate.kinetic
+                          << " PE=" << e_after_integrate.gravity
+                          << " strain=" << e_after_integrate.strain
+                          << " | d_solve=" << d_solve
+                          << " d_angular=" << d_ang
+                          << " d_positions=" << d_pos
+                          << " d_turtle=" << d_turtle
+                          << " d_TOTAL=" << d_all
+                          << (d_all > 1.0 ? "   *** ENERGY CREATED ***" : "")
+                          << std::endl;
+            }
         }
     }
 
