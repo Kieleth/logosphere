@@ -119,6 +119,7 @@ private:
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
+    PrimitiveResult basic_training(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);

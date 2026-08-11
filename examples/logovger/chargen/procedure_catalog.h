@@ -24,6 +24,7 @@ make_chargen_procedure_registry() {
     add("roll_qualification", {"passed", "failed"});
     // Turned away: the book gives exactly two ways to spend the term.
     add("draft_or_drifter", {"took_it"});
+    add("basic_training");
     add("roll_survival", {"passed", "failed"});
     // Optional, once a term, and skipped entirely by the seven
     // careers the book says have no hierarchy.

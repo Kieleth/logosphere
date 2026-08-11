@@ -200,28 +200,39 @@ void test_a_life_is_generated() {
 
     // Skills gained are SkillRatings hanging off the character, and
     // each points at a Skill that came from the seed.
+    // Ratings are no longer bounded by gains: basic training grants
+    // every service skill at level 0 on entering a first career, and
+    // those are held without ever having been rolled for. What must
+    // hold is that a skill is held ONCE, whatever raised it.
     size_t ratings = 0;
     bool refs_resolve = true;
+    bool one_rating_each = true;
+    std::vector<std::string> held;
     for (auto part : kg.getRelated(sheet.id, "HAS_PART")) {
         const auto ref = kg.getProperty(part, "skill");
         if (ref.empty()) continue;
         ++ratings;
+        if (std::find(held.begin(), held.end(), ref) != held.end()) {
+            one_rating_each = false;
+        }
+        held.push_back(ref);
         const auto skill = static_cast<kg::EntityID>(std::stoul(ref));
         if (kg.getProperty(skill, "name").empty()) refs_resolve = false;
     }
-    CHECK(ratings <= sheet.skills.size() && refs_resolve && ratings > 0,
-          "each held skill is one SkillRating pointing at a real Skill");
+    CHECK(refs_resolve && one_rating_each && ratings > 0,
+          "each held skill is exactly one SkillRating pointing at a real "
+          "Skill");
 
     // The book: gaining a skill you already have raises it instead of
-    // granting a second copy. This life gained four skills across four
-    // terms with repeats, so it must hold FEWER ratings than gains,
-    // and one of them must be above level 1.
+    // granting a second copy. This life gained a skill it already held,
+    // so some rating must stand above level 1 while each skill is still
+    // held once, which the check above proves.
     int max_level = 0;
     for (auto part : kg.getRelated(sheet.id, "HAS_PART")) {
         const auto lv = kg.getProperty(part, "skill_level");
         if (!lv.empty()) max_level = std::max(max_level, std::stoi(lv));
     }
-    CHECK(ratings < sheet.skills.size() && max_level >= 2,
+    CHECK(one_rating_each && max_level >= 2,
           "a repeated skill was RAISED, not duplicated (highest level "
               + std::to_string(max_level) + " across " +
               std::to_string(ratings) + " ratings from " +

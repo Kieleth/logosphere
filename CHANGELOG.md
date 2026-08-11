@@ -27,6 +27,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   travel together: neither, or both. `TaskCheckRunner` throws unmodified
   checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
   a pointer that is null when there was nothing to look up.
+- **Logovger basic training.** A first term in a first career grants every
+  skill on the career's service table at level 0; a first term in a later
+  career grants one of them, chosen. Both career entries route through it,
+  including the Draft.
 - **Logovger commission and advancement.** Rank 0 characters may try for a
   commission, Rank 1 and above for advancement, once each per term and only
   where the book gives the career a hierarchy. A promotion takes the new

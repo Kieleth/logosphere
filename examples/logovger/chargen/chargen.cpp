@@ -331,6 +331,9 @@ void ChargenSession::bind_primitives() {
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
     });
+    bind("basic_training", [this](const PrimitiveContext& context) {
+        return basic_training(context);
+    });
     bind("roll_commission", [this](const PrimitiveContext& context) {
         return roll_promotion(context, true);
     });
@@ -752,6 +755,125 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     // A promotion buys another roll, and so does a career with no
     // hierarchy to climb. Stay on this step until they are spent.
     if (--training_rolls_owed_ > 0) return roll_training(context);
+    return PrimitiveResult::advance();
+}
+
+// The service skills a career teaches, in table order. Only rows that
+// grant a skill count: a service table is all skills, but reading the
+// outcome rather than assuming keeps that true if a book disagrees.
+std::vector<std::pair<kg::EntityID, std::string>> service_skills(
+    const kg::KGModule& kg, kg::EntityID table) {
+    std::vector<std::pair<kg::EntityID, std::string>> out;
+    for (auto row : kg.getRelated(table, "HAS_PART")) {
+        const std::string outcome_ref = kg.getProperty(row, "outcome");
+        if (outcome_ref.empty()) continue;
+        kg::EntityID outcome = kg::INVALID_ENTITY;
+        try {
+            outcome = static_cast<kg::EntityID>(std::stoul(outcome_ref));
+        } catch (...) { continue; }
+        if (!kg.getRegistry().isSubtypeOf(kg.getType(outcome),
+                                          "AdvanceSkill")) {
+            continue;
+        }
+        const std::string skill_ref = kg.getProperty(outcome, "skill");
+        if (skill_ref.empty()) continue;
+        kg::EntityID skill = kg::INVALID_ENTITY;
+        try {
+            skill = static_cast<kg::EntityID>(std::stoul(skill_ref));
+        } catch (...) { continue; }
+        const std::string name = kg.getProperty(skill, "name");
+        if (name.empty()) continue;
+        bool seen = false;
+        for (const auto& had : out) seen = seen || had.first == skill;
+        if (!seen) out.emplace_back(skill, name);
+    }
+    return out;
+}
+
+// Give a skill at level 0 if it is not held at all. Level 0 is the
+// book's own number, and the step carries the sentence that sets it.
+bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
+                        kg::EntityID skill) {
+    for (auto part : kg.getRelated(character, "HAS_PART")) {
+        if (kg.getProperty(part, "skill") == std::to_string(skill)) {
+            return false;
+        }
+    }
+    const auto rating = kg.createEntity("SkillRating");
+    if (rating == kg::INVALID_ENTITY) return false;
+    kg.setProperty(rating, "skill", std::to_string(skill));
+    kg.setProperty(rating, "skill_level", "0");
+    kg.createRelation(character, "HAS_PART", rating);
+    return true;
+}
+
+// Step 4. "For your first term in your first career, you get every
+// skill in the service skills table at level 0. For your first term in
+// subsequent careers, you may pick any one skill from the service
+// skills table at level 0." The step runs once on entering a career,
+// which is exactly when the book applies it.
+ChargenSession::PrimitiveResult ChargenSession::basic_training(
+    const PrimitiveContext& context) {
+    std::string error;
+    const auto tables = subject_rows(kg_, context.step, career_,
+                                     "rollable_table", error);
+    if (tables.empty()) {
+        return PrimitiveResult::failed("basic training: " + error);
+    }
+    kg::EntityID service = kg::INVALID_ENTITY;
+    for (auto table : tables) {
+        const std::string name = kg_.getProperty(table, "name");
+        if (name.size() > 14 &&
+            name.compare(name.size() - 14, 14, "Service Skills") == 0) {
+            service = table;
+        }
+    }
+    if (service == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "basic training: this career offers no Service Skills table");
+    }
+    const auto skills = service_skills(kg_, service);
+    if (skills.empty()) {
+        return PrimitiveResult::failed(
+            "basic training: the service table grants no skills");
+    }
+
+    const bool first_career = sheet_.careers_served.size() <= 1;
+    if (first_career) {
+        int granted = 0;
+        for (const auto& [id, name] : skills) {
+            if (know_at_level_zero(kg_, sheet_.id, id)) ++granted;
+        }
+        sheet_.life.push_back(
+            {sheet_.terms_served, "basic training",
+             "every service skill at level 0 (" +
+                 std::to_string(granted) + " new)", 0});
+        return PrimitiveResult::advance();
+    }
+
+    if (!context.input) {
+        choices_.clear();
+        for (size_t i = 0; i < skills.size(); ++i) {
+            choices_.push_back({std::to_string(i + 1), skills[i].second,
+                                "at level 0"});
+        }
+        prompt_ = "Joining the " + sheet_.career +
+                  ": which one skill do you already know?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the skills");
+    }
+    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    choices_.clear();
+    if (index >= skills.size()) {
+        return PrimitiveResult::failed("no such skill");
+    }
+    know_at_level_zero(kg_, sheet_.id, skills[index].first);
+    sheet_.life.push_back({sheet_.terms_served, "basic training",
+                           skills[index].second + " at level 0", 0});
     return PrimitiveResult::advance();
 }
 
