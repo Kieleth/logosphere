@@ -20,6 +20,15 @@ KGModule::~KGModule() {
 
 void KGModule::extendOntology(const OntologyRegistry& extension) {
     registry_.extend(extension);
+    ontology_meta_current_ = false;
+}
+
+EntityID KGModule::findOntologyMetaEntity(
+    const std::string& canonical_key) const {
+    if (!ontology_meta_current_) return INVALID_ENTITY;
+    const auto found = ontology_meta_index_.find(canonical_key);
+    return found == ontology_meta_index_.end() ? INVALID_ENTITY
+                                               : found->second;
 }
 
 void KGModule::setMode(KGMode mode) {
@@ -32,6 +41,10 @@ void KGModule::setMode(KGMode mode) {
     if (mode == KGMode::DISABLED) {
         // Free all memory when disabled
         core.reset();
+        ontology_meta_current_ = false;
+        ontology_meta_context_ = INVALID_ENTITY;
+        ontology_meta_index_.clear();
+        ontology_meta_entities_.clear();
         std::cout << "[KG] Mode set to DISABLED - all memory freed\n";
     } else {
         if (!core) {

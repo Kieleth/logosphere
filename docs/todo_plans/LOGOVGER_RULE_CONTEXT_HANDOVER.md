@@ -17,6 +17,9 @@ Starting commit: `664a8dc69fc2b14a1cc1b5342f992e43885bf30b`
 Implementation commit:
 `62167d0` (`feat(rules): preserve rule contexts and fork safely`)
 
+Slice 3 implementation commit:
+`fb12fc8` (`feat(rules): validate typed signatures and bindings`)
+
 Main's application work was integrated at `6f775d7` by merge commit
 `3ac5b9a`, whose other parent is `0f9ac37`. The later docs-only main commit
 `0b96b2d` (`docs(rpg): what the first playable slice taught us`) and its
@@ -68,8 +71,266 @@ The owner selected these boundaries:
     is not represented by a null/default family.
 12. Integer values widen automatically for float-producing and mixed-numeric
     operators. Float values never narrow implicitly. Concrete operator classes
-    still determine their result family, and traces expose widening. Precision
-    loss and the remaining arithmetic edge cases are not yet decided.
+    still determine their result family, and traces expose widening.
+13. Widening succeeds only when converting to the engine float representation
+    and back preserves the exact integer. Inexact widening fails during pure
+    evaluation before randomness or effects.
+14. Integer overflow policy is encoded by the operator type. Checked integer
+    operators return Integer and fail on overflow. Promoting operators declare
+    a Numeric result and promote an overflowing result only when it is exactly
+    representable as float. No operator wraps, clamps, or narrows implicitly.
+15. Division accepts Numeric operands and always returns Float. Integer inputs
+    must widen exactly first. Zero denominators fail. Integer quotient,
+    remainder, and rounding behavior require separate operators.
+16. Floats use finite IEEE 754 binary64, round-to-nearest ties-to-even. NaN and
+    infinities fail as inputs or results, finite subnormals are legal, negative
+    zero is canonicalized, and caller rounding modes do not leak in. The
+    current generic float validator does not enforce this yet; implementation
+    requires mechanical guards and regression tests.
+17. The initial language is higher-order. Typed Function values may be passed,
+    returned, and applied. The first core includes typed reads and traversal,
+    lookup, comparison, Boolean and numeric operators, reusable functions,
+    map, filter, and fold. Functions remain pure graph programs and cannot
+    embed code, callbacks, mutation, or new evaluator semantics.
+18. Function application uses a bounded concrete class per broad result
+    family. The node class fixes that family, while the static verifier checks
+    the function signature, parameter bindings, and entity, collection, or
+    returned-function refinements. There is no generic executable application
+    node and no ontology class generated per signature.
+19. Function calls use immutable named signature parameters. Applications own
+    unordered bindings that point to the signature's parameter specifications.
+    Every parameter must be bound exactly once; missing, duplicate, foreign,
+    extra, and incompatible bindings fail static validation. Functions may be
+    selected dynamically under one exact shared signature. The initial
+    language has no positional meaning, defaults, optional parameters,
+    variadics, or new call-boundary coercion.
+20. Closures are explicit partial applications. `BindFunctionExpression`
+    visibly binds named source parameters, evaluates each bound expression
+    once, and returns an immutable function value whose remaining signature is
+    exactly the source signature minus those parameters. There is no lexical
+    free-variable capture or by-reference environment. Bound values are
+    traceable; an entity capture preserves identity rather than copying state.
+    Zero bindings fail. Fully bound zero-parameter functions remain open.
+21. Zero-parameter signatures are invalid. Partial application must bind at
+    least one parameter and leave at least one parameter. Supplying every
+    source parameter uses normal result-family-specific application and
+    returns the result immediately. Reusable zero-input logic is a typed
+    expression root, not a delayed function.
+22. Local bindings use eager multi-binding lexical blocks. Bindings have
+    unique diagnostic keys, direct typed references, and a statically verified
+    dependency DAG. Every binding evaluates exactly once before the body in
+    deterministic topological order, including unused bindings. Nested blocks
+    may read enclosing bindings; references cannot enter child or sibling
+    scopes or escape the owning block. Functions never capture them implicitly.
+23. Currying exists only as future authoring sugar. The stored KG and evaluator
+    accept complete application or explicit `BindFunctionExpression`, nothing
+    between. Partial-call syntax must resolve the exact signature and compile
+    into that same typed bind graph before the normal validation path. It
+    cannot leave incomplete calls or opaque text for runtime interpretation.
+24. Recursion is opt-in through `RecursiveFunctionDefinition` with a required
+    positive `max_recursion_depth`. Depth counts active calls per underlying
+    source-function identity, including the initial call, and wrappers cannot
+    reset it. Visible cycles are checked statically; dynamic higher-order calls
+    are guarded before body evaluation. The evaluator uses explicit frames.
+    Depth alone does not control total branching work, so invocation budgets
+    remain required.
+25. Evaluation uses one shared structured budget with required counters for
+    expression evaluations, function calls, collection visits, and produced
+    values. Engine configuration supplies complete defaults and absolute
+    ceilings; app configuration may change defaults and lower ceilings; caller
+    overrides must remain within the app ceiling. Invalid overrides fail, not
+    clamp. Rule roots may only request lower maxima. The evaluator receives one
+    complete resolved budget and has no fallback path. Concrete limits require
+    representative and adversarial benchmark fixtures.
+26. The initial evaluator has no result cache. Reaching a shared expression
+    node twice evaluates, charges, and traces it twice. Explicit local binding
+    blocks are the only evaluate-once reuse mechanism. No derived result is
+    cached across invocations, sessions, users, or KG learning layers. Future
+    caching requires profiling and must preserve cold-evaluation budget and
+    failure semantics.
+27. Portable references use canonical paths for meta classes, declaring-class
+    properties, relations, and addressable content. Path segments use strict
+    UTF-8 percent encoding. Content identity is the unique tuple of typed
+    KnowledgeContext, exact concrete type, and immutable entity key; display
+    names are not identity. File-local aliases remain, while `@@Type:Name` is
+    deleted after migration and tested dead.
+28. The meta-graph reflects all runtime-semantic fields retained by the
+    registry: class inheritance, abstractness and facets; property type,
+    declaring class, mutability and bounds; relation domains and ranges; and
+    diagnostic provenance. Facets and value kinds are canonical typed meta
+    entities, not opaque author strings. Absence is explicit. Materialization
+    is sorted, complete, atomic, engine-owned, and sealed. Source-schema
+    descriptions and presentation metadata remain outside it.
+29. Audit finding: generated registries use `enum` and `datetime`, while the
+    generic validator passes those and every unknown kind through without
+    validation. The earlier registry-complete value-family claim was false.
+    Strict remediation and an unknown-kind regression test are required before
+    rule-language slice 1.
+30. Enum and datetime are distinct first-class scalar and collection families,
+    never String refinements. The registry and generator must preserve exact
+    enum identity, members, and provenance, use a closed value-kind
+    discriminant, and carry typed enum and temporal values through the
+    validated KG path. Unknown kinds fail and the permissive legacy path is
+    deleted. This family decision did not itself define exact enum
+    compatibility or temporal semantics.
+31. Enum compatibility is nominal and closed. A value carries exact enum and
+    declared member identity. Shared spelling and identical member sets create
+    no compatibility. Cross-enum use is a static error. Enum definitions and
+    members are canonical meta entities, have no implicit order or scalar
+    conversion, and change only through versioned ontology composition. Open
+    vocabularies use typed KG entities instead.
+32. The temporal language starts with four first-class sibling families:
+    instant, calendar date, local datetime, and zoned datetime. Each has
+    matching scalar, collection, property-read, binding, signature, and
+    application types. There are no implicit cross-family or String
+    conversions. The registry uses four closed discriminants, and the generic
+    datetime marker is deleted after explicit schema migration. Calendar,
+    zone, precision, representation, leap-second, and operator semantics remain
+    open.
+33. Calendars are nominal, immutable, addressable KG definition graphs under
+    an ontology-declared contract, not engine-coded calendar classes. Every
+    calendar-bearing value and type refinement names one exact published
+    definition. Structural equality creates no compatibility; conversion is
+    explicit. Definitions and their reachable rule graphs are sealed, and
+    changes create a new version or fork. The engine supplies generic
+    validation and evaluation, not name-dispatched calendar logic. This
+    decision did not yet define the declarative rule bootstrap.
+34. Each calendar combines a recurring phase-zero typed function kernel with
+    finite typed exception entities. The kernel reuses the rule language under
+    a stricter verifier and cannot depend on temporal nodes, world queries,
+    randomness, Outcomes, mutation, external calls, or invocation context.
+    Kernel and exceptions are budgeted, validated, and sealed together.
+    Signatures, the phase-zero allowlist and recursion, exception precedence,
+    and inverse mapping remain open.
+35. Scope correction: executable enum values and items 32 through 34 are
+    accepted roadmap architecture, not prerequisites for the active
+    rule-language phase. The active phase keeps enum and legacy datetime values
+    KG-only and rejects them as unsupported rule families. It implements
+    unknown-kind rejection, nominal enum registry identity and member
+    validation, immutable ontology reflection, canonical references, and the
+    rule families required by current Logovger consumers. Typed enum storage,
+    temporal and calendar validation, migration, zones, and operators are in
+    `docs/todo_plans/RULE_LANGUAGE_ROADMAP.md`.
+36. Slice 0 is implemented. The registry now uses a closed
+    `PropertyValueKind`, preserves nominal enum definitions, exact members,
+    source provenance, and property refinements, and composes identical enum
+    definitions idempotently while rejecting conflicts atomically. The schema
+    generator rejects unknown ranges instead of silently emitting String.
+    Validated create and set operations accept only members of the property's
+    exact enum. KG scalar persistence remains unchanged, and executable enum
+    values remain deferred.
+37. Slice 1 is implemented on `codex/logovger-task-check-runner`. The generic
+    `rule_language` pack now owns contexts, portable `Addressable` identity,
+    and the immutable ontology meta vocabulary. Seeds derive identity from
+    their source-document context and required create alias. Rule forks
+    require an explicit new key in the destination context. Cross-seed paths
+    use strict canonical `@@entity/<context>/<exact-type>/<entity-key>`
+    references. The old name and `source_aliases` resolver was deleted, and
+    all 935 production references in `cepheus_careers.json` and
+    `cepheus_book1_career_tables.json` were migrated. The career-table
+    extractor emits canonical paths, so regeneration cannot restore the old
+    grammar. `materialize_ontology_meta_graph` now publishes complete sorted
+    class, direct-property, relation, facet, value-kind, enum, and enum-member
+    reflection under `@@meta/...`. The graph is engine-owned and immutable;
+    registry extension invalidates it until an atomic rebuild succeeds. The
+    full registered headless profile passes 78 of 78 tests.
+38. Slice 2 is implemented at the approved abstract-family boundary. The
+    ontology declares Boolean, Numeric, Integer, Float, String, Entity,
+    scalar-collection, EntityCollection, Function, and OutcomePlan expression
+    families. They are all abstract; no literal, read, or operator shape was
+    invented. The read-only static service classifies concrete application
+    subclasses, validates required root families, and infers property-read
+    types from canonical property meta entities. Typed references preserve
+    exact class refinements. Enum and legacy datetime properties fail as
+    unsupported executable families and never become String. Validated float
+    writes reject NaN, infinities, and overflow, parse under binary64
+    round-to-nearest ties-to-even regardless of caller mode, restore that mode,
+    and canonicalize signed zero before storage and events.
+39. Normal non-call operators use direct required typed operand slots. Generic
+    operand-binding entities are not used for arithmetic, comparison,
+    property access, traversal, lookup, or Boolean composition. Binding
+    entities remain reserved for named function calls, explicit partial
+    application, and eager lexical blocks, where the binding has independent
+    language meaning. Future genuinely variadic non-call operators require an
+    explicit typed shape and cannot infer order from an unordered relation
+    set.
+40. Stored function types use one reusable `ValueTypeDescriptor` hierarchy.
+    Concrete descriptor subclasses fix the active broad family. Entity and
+    EntityCollection descriptors require canonical ontology-class
+    refinements, and Function descriptors require an exact signature. Both
+    parameter specifications and signature results reference this same type
+    grammar. Open family strings and duplicated parameter/result type
+    hierarchies are excluded.
+41. Value-type descriptors are addressable content owned by an explicit
+    `KnowledgeContext`, with no global interning. Compatibility is structural:
+    concrete descriptor class, plus exact ontology-class refinement for
+    Entity and EntityCollection, or exact signature identity for Function.
+    Descriptor entity identity does not distinguish equivalent non-function
+    types. Cyclic higher-order comparisons must fail boundedly. Sealed source
+    contexts already make their descriptors immutable. Runtime-context
+    descriptors remain drafts until an atomic publication mechanism seals
+    them with a signature or executable program; static validity alone does
+    not publish them. The runtime publication mechanism remains undecided.
+42. Runtime publication is deferred to the context-owned discovery phase.
+    Slice 3 may build and statically inspect runtime signatures and programs as
+    drafts, but they cannot execute. Sealed source-context programs are the
+    only executable path until publication validates and seals a complete
+    runtime program atomically with activation. Static validity alone never
+    publishes a draft.
+43. Mutable drafts use layered validity. Every write enforces required direct
+    properties, exact entity-reference ranges, closed value kinds, immutable
+    metadata, and no unsupported-family fallback. Explicit static validation
+    enforces cross-entity completeness, unique keys, type compatibility,
+    complete calls, lexical scope, and acyclic dependencies before execution
+    or publication. Drafts may be temporarily incomplete across entities, but
+    validation fails loudly and supplies no defaults.
+44. Slice 3 is implemented through static validation. The ontology contains
+    the closed addressable value-type descriptor hierarchy, named non-empty
+    signatures and parameter specs, unordered argument bindings,
+    result-family-specific parameter and local reads, and eager typed let
+    blocks. Static validation rejects duplicate and cyclic signatures,
+    incomplete, duplicate, foreign, or incompatible calls, multiple local
+    ownership, duplicate keys, invalid scope, and dependency cycles. Valid let
+    blocks expose deterministic eager topological order including unused
+    bindings. Nested blocks may read enclosing bindings. Validation is
+    read-only. The mutation guard now follows addressable `identity_context` as
+    well as cited `origin_context`, mechanically sealing source-owned type
+    graphs and rejecting runtime attempts to claim source identity. Runtime
+    drafts remain non-executable. Generator tests pass 9 of 9 and the complete
+    registered headless profile passes 81 of 81 tests.
+45. Main commit `8c7bc78` was integrated after slice 3. Its per-career table
+    ownership and optional TaskCheck modifier behavior are preserved. Every
+    cross-seed career, service-skill table, procedure lookup table, and dice
+    link now uses canonical addressable identity. The career-table extractor
+    reads canonical Career and RollableTable identities from their owning
+    seed, refuses missing identities, and rejects obsolete qualified-reference
+    syntax before writing. A repository-level regression test scans every
+    Logovger seed for the same obsolete-reference class. Chargen's missing-data
+    test now identifies the exact canonical table key.
+
+## Slice 1 integration rules for parallel work
+
+Parallel Logovger work must preserve these new contracts:
+
+- Every seed-created `Addressable` entity needs a non-empty `as` alias. The
+  loader owns `identity_context` and `entity_key`; seed JSON must not set them.
+- A cross-seed link must use the owning seed's source-document context, exact
+  concrete type, and create alias. Display `name` and `source_aliases` do not
+  resolve and must not be restored as fallbacks.
+- `RuleForkRequest` now requires `entity_key`. A fork receives both
+  `identity_context` and that key in its destination `RuntimeContext`; it must
+  not copy either identity field from the source.
+- Ontology composition must finish before meta materialization. Any later
+  `extendOntology` call makes `@@meta/...` resolution fail until
+  `materialize_ontology_meta_graph` rebuilds the full graph.
+- Meta entities and `OntologyMetaContext` are internal. Seed ingestion and
+  ordinary runtime mutation cannot create or alter them.
+
+The implementation red gates were the absent qualified-reference API, the
+old transaction resolver accepting `@@Parent:Admin`, missing portable seed
+identity, the old fork request shape, the absent meta-graph API, and a
+generator that ignored pack-owned relation vocabularies. Final verification:
+9 of 9 Python generator tests and 78 of 78 registered headless CTest targets.
 
 The owner selected explicit KG context entities over fixed layer fields or
 private engine metadata.
@@ -165,10 +426,17 @@ Observed red gates:
 - seeds failed the new required-origin contract;
 - the fork test could not configure because the service did not exist;
 - seed content could manufacture engine-owned source contexts.
+- the registry generator erased enum identity and members to the generic
+  `enum` marker;
+- unknown LinkML ranges silently became String;
+- the registry had no nominal enum API, and the validator still depended on
+  the deleted open `value_type` string path.
 
 Final gates:
 
-- ontology generator tests: 5 passed;
+- ontology generator tests: 7 passed;
+- ontology extension contract: 53 passed;
+- ontology validator contract: 31 passed;
 - rulebook pack contract: 70 passed;
 - seed verifier: 217 passed;
 - rule fork tests: 3 passed;
@@ -232,13 +500,20 @@ The selected architecture is recorded in `docs/RULE_LANGUAGE.md`: immutable
 registry-backed ontology reflection, context-owned rules, graph-predicate
 applicability, pure typed expressions, and explicit Outcome-plan actions.
 
-The next owner-facing design choice is the initial operator vocabulary. It
-must remain small enough to validate mechanically while expressing both
-current consumers without game code: characteristic lookup and the scaled
-prior-career qualification penalty. Career service must also move from the C++
-`careers_served` vector into structured KG facts before the second rule can
-execute. Numeric conversion, string operations, and collection semantics are
-not implied merely because their value families exist. Apart from the selected
-integer-to-float widening, other numeric conversions remain open. Before
-numeric operators are fixed, the owner must decide whether widening may lose
-precision or must fail when the value is not exactly representable.
+Registry value kinds, nominal enum metadata and validation, canonical
+references, the immutable ontology meta-graph, abstract expression-family
+typing, descriptors, signatures, named bindings, and eager lexical blocks are
+complete through slice 3.
+Non-call operator storage is decided: normal operators use direct typed slots,
+while language-level binding entities remain limited to calls, partial
+application, and lexical blocks. The exact initial operator vocabulary and any
+genuinely variadic shape remain owner-facing boundaries. Temporal and calendar
+work is explicitly deferred. The enum
+compatibility evidence and owner decision are recorded in
+`docs/todo_plans/ENUM_COMPATIBILITY_SPIKE.md`; deferred work is in
+`docs/todo_plans/RULE_LANGUAGE_ROADMAP.md`.
+
+The operator core must express both current consumers without game code:
+characteristic lookup and the scaled prior-career qualification penalty.
+Career service must also move from the C++ `careers_served` vector into
+structured KG facts before the second rule can execute.

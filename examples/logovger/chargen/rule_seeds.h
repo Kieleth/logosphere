@@ -9,7 +9,7 @@
 //
 // ORDER MATTERS and it is dependency order, not preference. The
 // vocabulary seed OWNS every Skill; everything after it references
-// those by name with "@@Skill:Name" instead of creating its own copy.
+// those by canonical source-document, exact type, and seed alias.
 // Load a referencing seed first and it fails loudly, which is the
 // intended behaviour, not a reason to reorder by hand.
 

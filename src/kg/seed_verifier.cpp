@@ -533,8 +533,9 @@ struct Checker {
             for (const auto& [key, value] :
                  world.getPropertiesWithPrefix(id, "")) {
                 const PropertyDef* def = ont.findProperty(type, key);
-                if (!def || (def->value_type != "integer" &&
-                             def->value_type != "float")) {
+                if (!def ||
+                    (def->value_kind != PropertyValueKind::Integer &&
+                     def->value_kind != PropertyValueKind::Float)) {
                     continue;
                 }
                 if (key == "step_index" || key == "option_index") continue;
@@ -787,7 +788,7 @@ struct Checker {
                     entry_type + "'");
             return;
         }
-        if (definition->value_type != "integer") {
+        if (definition->value_kind != PropertyValueKind::Integer) {
             semantic_violation(
                 check, load,
                 "TaskCheck modifier_property '" + modifier_property +
@@ -1040,8 +1041,9 @@ struct Checker {
                             ": '" + name + "' exists " +
                             std::to_string(counts[name]) +
                             " times in the loaded world (another seed "
-                            "may already create it; reference it with "
-                            "@@" + type + ":" + name + " instead)");
+                            "may already create it; reference its canonical "
+                            "@@entity/<context-key>/<exact-type>/<entity-key> "
+                            "path instead)");
                 }
             }
         }
@@ -1167,7 +1169,7 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
     world.setMode(KGMode::MINIMAL);
 
     // What this seed depends on, loaded first and in order, so its
-    // "@@Type:Name" references resolve against the same world the game
+    // Canonical @@entity references resolve against the same world the game
     // will give them. A prerequisite that will not load is reported
     // against this seed, because from here it is the reason this one
     // cannot be checked at all.

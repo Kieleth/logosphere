@@ -36,6 +36,7 @@ import json
 import os
 import re
 import sys
+from urllib.parse import quote
 
 SECTION = "Career Tables"
 CHAPTER = "book1/character-creation.md"
@@ -198,21 +199,82 @@ def read_tables(path):
     return out
 
 
-def load_skill_names(vocabulary_path):
-    """Canonical skill names, plus the aliases the source itself uses."""
+def qualified_ref(context_key, type_name, entity_key):
+    """Build the engine's canonical, percent-encoded entity reference."""
+    safe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~-"
+    parts = (context_key, type_name, entity_key)
+    if any(not part or part in (".", "..") for part in parts):
+        raise ValueError("qualified reference segments must be non-empty")
+    return "@@entity/" + "/".join(quote(part, safe=safe) for part in parts)
+
+
+def seed_context_key(seed):
+    source = seed["source"]
+    return (f"source-document:{seed['layer']}:"
+            f"{source['file']}@{source['commit']}")
+
+
+def load_skill_references(vocabulary_path):
+    """Canonical skill references, indexed by every source-proven name."""
     seed = json.load(open(vocabulary_path, encoding="utf-8"))
+    context_key = seed_context_key(seed)
     names = {}
     for op in seed["ops"]:
         props = op["properties"]
-        names[props["name"]] = props["name"]
+        entity_key = op.get("as", "").removeprefix("@")
+        reference = qualified_ref(context_key, op["type"], entity_key)
+        names[props["name"]] = reference
         for alias in filter(None, props.get("source_aliases", "").split("; ")):
-            names[alias] = props["name"]
+            names[alias] = reference
     return names
 
 
+def load_career_seed_references(vocabulary_path):
+    """Canonical Career-seed references indexed by type and exact name."""
+    career_path = os.path.join(
+        os.path.dirname(vocabulary_path), "cepheus_careers.json")
+    with open(career_path, encoding="utf-8") as source:
+        seed = json.load(source)
+    context_key = seed_context_key(seed)
+    references = {"Career": {}, "RollableTable": {}}
+    for op in seed["ops"]:
+        type_name = op.get("type")
+        if op.get("op") != "create_entity" or type_name not in references:
+            continue
+        entity_key = op.get("as", "").removeprefix("@")
+        if not entity_key:
+            raise ValueError(
+                f"Career seed {type_name} is missing its create alias")
+        name = op["properties"]["name"]
+        if name in references[type_name]:
+            raise ValueError(
+                f"Career seed has duplicate {type_name} name {name!r}")
+        references[type_name][name] = qualified_ref(
+            context_key, type_name, entity_key)
+    return references
+
+
+def assert_canonical_references(value, path="seed"):
+    """Refuse obsolete typed references before a generated seed is written."""
+    if isinstance(value, dict):
+        for key, child in value.items():
+            assert_canonical_references(child, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            assert_canonical_references(child, f"{path}[{index}]")
+    elif isinstance(value, str) and value.startswith("@@") and not value.startswith(
+            ("@@entity/", "@@meta/")):
+        raise ValueError(
+            f"{path}: obsolete qualified reference {value!r}; expected "
+            "@@entity/... or @@meta/...")
+
+
 class Builder:
-    def __init__(self, skills):
+    def __init__(self, skills, careers, service_tables, context_key):
         self.skills = skills
+        self.careers = careers
+        self.service_tables = service_tables
+        self.context_key = context_key
         self.ops = []
         self.unresolved = []
         self.possessions = {}
@@ -228,6 +290,17 @@ class Builder:
                 "source_kind": "cell", "source_table": table,
                 "source_row": row, "source_column": column,
                 "source_quote": quote}
+
+    def ref(self, type_name, entity_key):
+        return qualified_ref(self.context_key, type_name, entity_key)
+
+    def service_table(self, career):
+        name = f"{career} Service Skills"
+        try:
+            return self.service_tables[name]
+        except KeyError:
+            raise ValueError(
+                f"Career seed has no RollableTable named {name!r}") from None
 
     def possession(self, name):
         if name not in self.possessions:
@@ -246,7 +319,7 @@ class Builder:
         if re.fullmatch(r"\d+", value):
             return self.add("GainFixedMoney", f"@{tag}_cash", dict(
                 name=f"{tag}: Cr{value}", amount=value,
-                currency="@@Currency:Credits", **citation))
+                currency=self.ref("Currency", "credits"), **citation))
 
         modifier = re.fullmatch(r"\+(\d+) (\w+)", value)
         if modifier and modifier.group(2) in ATTRIBUTES:
@@ -260,8 +333,9 @@ class Builder:
             return self.add("GainPossession", f"@{tag}_poss", dict(
                 name=f"{tag}: {value}",
                 possession=self.possession(rolled.group(3)),
-                possession_count_dice="@@DiceExpression:"
-                                      f"{rolled.group(1)}D{rolled.group(2)}",
+                possession_count_dice=self.ref(
+                    "DiceExpression",
+                    "d" + rolled.group(1) + "d" + rolled.group(2)),
                 **citation))
 
         if value in POSSESSIONS:
@@ -275,7 +349,7 @@ class Builder:
         if value in self.skills:
             return self.add("AdvanceSkill", f"@{tag}_skill", dict(
                 name=f"{tag}: {value}",
-                skill="@@Skill:" + self.skills[value],
+                skill=self.skills[value],
                 initial_skill_level="1", existing_skill_delta="1",
                 source_file=CHAPTER, source_section=SKILL_LEVEL_SECTION,
                 source_kind="sentence", source_quote=SKILL_LEVEL_QUOTE))
@@ -291,7 +365,12 @@ def main():
                   encoding="utf-8").read().strip()
 
     tables = read_tables(chapter)
-    builder = Builder(load_skill_names(vocabulary_path))
+    context_key = (
+        f"source-document:cepheus:{CHAPTER}@{commit}")
+    career_seed = load_career_seed_references(vocabulary_path)
+    builder = Builder(load_skill_references(vocabulary_path),
+                      career_seed["Career"], career_seed["RollableTable"],
+                      context_key)
     # The Draft table is ALSO titled "Career", with columns "Roll of
     # 4+" and friends. A block header is identified by what it
     # contains, not by its title: only a career block has a
@@ -341,7 +420,7 @@ def main():
                 section, quote = TABLE_CITATIONS[family]
                 builder.add("RollableTable", f"@{tag}", dict(
                     name=f"{canonical[career]} {title}",
-                    dice="@@DiceExpression:1D6",
+                    dice=builder.ref("DiceExpression", "d1d6"),
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote))
                 # The training rule owns which tables a career offers,
@@ -352,7 +431,7 @@ def main():
                     bsection, bquote = TABLE_CITATIONS["benefit"]
                     builder.add("CareerTableEntry", brow, dict(
                         name=f"{title} for {canonical[career]}",
-                        subject=f"@@Career:{canonical[career]}",
+                        subject=builder.careers[canonical[career]],
                         rollable_table=f"@{tag}",
                         source_file=CHAPTER, source_section=bsection,
                         source_kind="sentence", source_quote=bquote))
@@ -363,7 +442,7 @@ def main():
                     row = f"@training_opt_{slug(canonical[career])}_{slug(title)}"
                     builder.add("CareerTableEntry", row, dict(
                         name=f"{title} for {canonical[career]}",
-                        subject=f"@@Career:{canonical[career]}",
+                        subject=builder.careers[canonical[career]],
                         rollable_table=f"@{tag}",
                         source_file=CHAPTER, source_section=section,
                         source_kind="sentence", source_quote=quote))
@@ -418,7 +497,7 @@ def main():
                             grant = builder.add(
                                 "AdvanceSkill", f"@{tag}_{key}_grant", dict(
                                     name=f"{career} rank {key}: {skill_text}",
-                                    skill="@@Skill:" + builder.skills[name],
+                                    skill=builder.skills[name],
                                     initial_skill_level=level,
                                     existing_skill_delta="1",
                                     **builder.cite(title, key, career, value),
@@ -446,7 +525,7 @@ def main():
                 track_row = f"@rank_track_{slug(canonical[career])}"
                 builder.add("CareerTrackEntry", track_row, dict(
                     name=f"ranks for {canonical[career]}",
-                    subject=f"@@Career:{canonical[career]}",
+                    subject=builder.careers[canonical[career]],
                     track=f"@{tag}",
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote))
@@ -468,15 +547,15 @@ def main():
                         continue
                     props = dict(
                         name=f"{career} {kind}",
-                        dice="@@DiceExpression:2D6",
+                        dice=builder.ref("DiceExpression", "d2d6"),
                         **builder.cite(title, row[0], career, value))
                     throw = re.fullmatch(r"(\w+) (\d+)\+", value)
                     flat = re.fullmatch(r"(\d+)\+", value)
                     if throw and throw.group(1) in ATTRIBUTES:
                         props["attribute_ref"] = ATTRIBUTES[throw.group(1)]
                         props["target_number"] = throw.group(2)
-                        props["modifier_table"] = \
-                            "@@LookupTable:characteristic_modifiers"
+                        props["modifier_table"] = builder.ref(
+                            "LookupTable", "dm_table")
                         props["modifier_property"] = "characteristic_modifier"
                     elif flat:
                         # Re-enlistment is printed as a bare "6+": a
@@ -496,7 +575,7 @@ def main():
                     throw_row = f"@{kind}_row_{slug(career)}"
                     props_row = dict(
                         name=f"{kind} throw for {career}",
-                        subject=f"@@Career:{career}",
+                        subject=builder.careers[career],
                         throw_check=alias,
                         **builder.cite(title, row_label, career, value))
                     if kind in ("commission", "advancement"):
@@ -525,8 +604,8 @@ def main():
         section, quote = TABLE_CITATIONS["skill"]
         builder.add("CareerTableEntry", row, dict(
             name=f"Service Skills for {career}",
-            subject=f"@@Career:{career}",
-            rollable_table=f"@@RollableTable:{career} Service Skills",
+            subject=builder.careers[career],
+            rollable_table=builder.service_table(career),
             source_file=CHAPTER, source_section=section,
             source_kind="sentence", source_quote=quote))
         builder.ops.append({"op": "set_relation", "from": "@training_tables",
@@ -607,6 +686,7 @@ def main():
                                                 "Possession"]},
         "ops": builder.ops,
     }
+    assert_canonical_references(seed)
     json.dump(seed, open(out_path, "w"), indent=1)
     open(out_path, "a").write("\n")
 

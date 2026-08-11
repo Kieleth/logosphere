@@ -38,7 +38,8 @@ kg::OntologyRegistry registry() {
     game.addEntityType("TestCharacter", "Entity", false);
     game.addAncestors("TestCharacter", {"Entity", "Describable",
                                           "Identifiable", "Temporal"});
-    game.addProperty("TestCharacter", "strength", "integer", false);
+    game.addProperty("TestCharacter", "strength",
+                     kg::PropertyValueKind::Integer, false);
     game.addEntityType("TestSkill", "Entity", false);
     game.addAncestors("TestSkill", {"Entity", "Describable",
                                      "Identifiable", "Temporal"});

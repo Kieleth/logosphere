@@ -41,15 +41,18 @@ kg::OntologyRegistry registry() {
     game.addAncestors(
         "TestCharacter", {"Describable", "Entity", "Identifiable",
                           "Temporal"});
-    game.addProperty("TestCharacter", "ability", "integer", true);
+    game.addProperty("TestCharacter", "ability",
+                     kg::PropertyValueKind::Integer, true);
     game.addEntityType("TestModifierEntry", "LookupEntry", false);
     game.addAncestors(
         "TestModifierEntry",
         {"Cited", "Describable", "Entity", "Identifiable", "LookupEntry",
          "Temporal"});
-    game.addProperty("TestModifierEntry", "modifier_value", "integer",
+    game.addProperty("TestModifierEntry", "modifier_value",
+                     kg::PropertyValueKind::Integer,
                      true);
-    game.addProperty("TestModifierEntry", "label", "string", true);
+    game.addProperty("TestModifierEntry", "label",
+                     kg::PropertyValueKind::String, true);
     game.addEntityType("OtherModifierEntry", "LookupEntry", false);
     game.addAncestors(
         "OtherModifierEntry",

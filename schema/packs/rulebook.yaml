@@ -35,77 +35,17 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  - rule_language
 
 # -------------------------------------------------------------------
 # Classes
 # -------------------------------------------------------------------
 
 classes:
-  KnowledgeContext:
-    is_a: Entity
-    abstract: true
-    description: >-
-      An explicit KG scope in which knowledge originates or grows.
-      Contexts are entities, not an enum ladder: source documents,
-      sessions, campaigns, users, groups, and later scopes can be linked
-      and queried without teaching the evaluator new executable logic.
-    slot_usage:
-      context_key:
-        required: true
-    slots:
-      - context_key
-
-  SourceLayerContext:
-    is_a: KnowledgeContext
-    description: >-
-      One immutable authored layer named by a seed envelope, such as
-      cepheus or voyager. Seed ingestion owns creation of these contexts.
-    annotations:
-      facets: sealed-origin, seed-owned
-    slot_usage:
-      source_layer:
-        required: true
-    slots:
-      - source_layer
-
-  SourceDocumentContext:
-    is_a: KnowledgeContext
-    description: >-
-      The exact source document and revision from which a seed was
-      extracted. Every cited entity loaded from that seed points here;
-      the document context points to its SourceLayerContext.
-    annotations:
-      facets: sealed-origin, seed-owned
-    slot_usage:
-      source_layer:
-        required: true
-      source_file:
-        required: true
-      source_commit:
-        required: true
-      source_layer_context:
-        required: true
-    slots:
-      - source_layer
-      - source_file
-      - source_commit
-      - source_layer_context
-
-  RuntimeContext:
-    is_a: KnowledgeContext
-    description: >-
-      A mutable context created while playing or administering a game.
-      context_kind is data, not an engine enum: session, campaign, user,
-      group, and global are initial uses, and game ontologies may add
-      narrower RuntimeContext subclasses.
-    slot_usage:
-      context_kind:
-        required: true
-    slots:
-      - context_kind
-
   Cited:
     mixin: true
+    mixins:
+      - Addressable
     description: >-
       Provenance back to the book. Every rule entity ingested from a
       source text carries the file it came from, the section heading
@@ -771,27 +711,6 @@ classes:
 # -------------------------------------------------------------------
 
 slots:
-  context_key:
-    range: string
-    description: >-
-      Stable host-defined identity within the context catalog. Required
-      and never inferred from a display name.
-  context_kind:
-    range: string
-    description: >-
-      Runtime scope vocabulary supplied by the game ontology or host,
-      such as session, campaign, user, group, or global.
-  source_layer:
-    range: string
-    description: Authored layer declared by the seed envelope.
-  source_commit:
-    range: string
-    description: Exact revision of the source document loaded by the seed.
-  source_layer_context:
-    range: SourceLayerContext
-    annotations:
-      create_only: true
-    description: Immutable parent source layer of a document context.
   origin_context:
     range: KnowledgeContext
     annotations:
@@ -805,12 +724,6 @@ slots:
     annotations:
       create_only: true
     description: Immediate source entity copied to create this rule fork.
-  source_file:
-    range: string
-    description: >-
-      Path of the source text this was extracted from, relative to
-      the game's vendored source root (e.g.
-      book1/character-creation.md).
   source_section:
     range: string
     description: The nearest heading above the quote in the source.

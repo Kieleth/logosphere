@@ -73,7 +73,8 @@ std::string serialize_ontology_slice(
             first_prop = false;
             detail::emit_json_string(os, prop.name);
             os << ":{\"type\":";
-            detail::emit_json_string(os, prop.value_type);
+            detail::emit_json_string(
+                os, property_value_kind_name(prop.value_kind));
             if (prop.required) os << ",\"required\":true";
             // The validator enforces these; a spec sheet that omits
             // them invites out-of-range ops (the redwood-45 lesson).

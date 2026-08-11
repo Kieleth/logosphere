@@ -81,6 +81,152 @@ classes:
 
 
 class VendoredCppGeneratorTests(unittest.TestCase):
+    def test_mixins_remain_abstract_types_with_owned_properties(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "mixins.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(
+                """id: schema://mixins
+name: mixins
+default_range: string
+classes:
+  Entity: {}
+  Addressable:
+    mixin: true
+    slots:
+      - entity_key
+  Record:
+    is_a: Entity
+    mixins:
+      - Addressable
+slots:
+  entity_key:
+    range: string
+    required: true
+"""
+            )
+
+            generate_registry_cpp(
+                str(schema), "mixins::ontology", str(output)
+            )
+            rendered = output.read_text()
+
+        self.assertIn(
+            'reg.addEntityType("Addressable", "", true);', rendered
+        )
+        self.assertIn(
+            'reg.addAncestors("Record", {"Addressable", "Entity"});',
+            rendered,
+        )
+        self.assertIn(
+            'reg.addProperty("Addressable", "entity_key", '
+            'kg::PropertyValueKind::String, true);',
+            rendered,
+        )
+
+    def test_pack_owned_relation_enum_emits_typed_relations(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "relations.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(
+                """id: schema://relations
+name: relations
+classes:
+  Entity: {}
+  Left:
+    is_a: Entity
+  Right:
+    is_a: Entity
+enums:
+  PackRelationType:
+    annotations:
+      relation_type_enum: true
+    permissible_values:
+      LINKS:
+        annotations:
+          valid_source_types: Left
+          valid_target_types: Right
+"""
+            )
+
+            generate_registry_cpp(
+                str(schema), "relations::ontology", str(output)
+            )
+            rendered = output.read_text()
+
+        self.assertIn(
+            'reg.addRelationType("LINKS", {"Left"}, {"Right"});',
+            rendered,
+        )
+
+    def test_enum_identity_and_members_reach_registry_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "enums.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(
+                """id: schema://enums
+name: enums
+default_range: string
+classes:
+  Entity: {}
+  Character:
+    is_a: Entity
+    slots:
+      - mood
+slots:
+  mood:
+    range: Mood
+enums:
+  Mood:
+    permissible_values:
+      CALM: {}
+      ANGRY: {}
+"""
+            )
+
+            generate_registry_cpp(str(schema), "enums::ontology", str(output))
+            rendered = output.read_text()
+
+        self.assertIn(
+            'reg.addEnumType("Mood", {"ANGRY", "CALM"});', rendered
+        )
+        self.assertIn(
+            'reg.addEnumProperty("Character", "mood", "Mood", false);',
+            rendered,
+        )
+        self.assertNotIn('"enum"', rendered)
+
+    def test_unknown_range_is_rejected_instead_of_becoming_string(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "unknown_range.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(
+                """id: schema://unknown-range
+name: unknown_range
+default_range: string
+classes:
+  Entity: {}
+  Character:
+    is_a: Entity
+    slots:
+      - mystery
+slots:
+  mystery:
+    range: MissingType
+"""
+            )
+
+            with self.assertRaisesRegex(
+                ValueError, "Unknown LinkML range 'MissingType'"
+            ):
+                generate_registry_cpp(
+                    str(schema), "unknown::ontology", str(output)
+                )
+
     def test_create_only_annotation_reaches_registry_output(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

@@ -2,7 +2,7 @@
 // stable, compact JSON for a slice of the ontology. Catches
 // regressions in:
 //   * unknown types not silently corrupting JSON shape
-//   * properties losing their value_type or required flag
+//   * properties losing their value kind or required flag
 //   * string escaping leaking quotes/backslashes through
 //   * abstract / concrete flag round-trip
 
@@ -46,9 +46,12 @@ static bool contains(const std::string& haystack, const std::string& needle) {
 void emits_basic_type_with_properties() {
     kg::OntologyRegistry r;
     r.addEntityType("Cycle", "PhysicsEntity", /*abstract=*/false);
-    r.addProperty("Cycle", "max_speed", "float", /*required=*/false);
-    r.addProperty("Cycle", "x",         "float", /*required=*/true);
-    r.addProperty("Cycle", "name",      "string", /*required=*/false);
+    r.addProperty("Cycle", "max_speed", kg::PropertyValueKind::Float,
+                  /*required=*/false);
+    r.addProperty("Cycle", "x", kg::PropertyValueKind::Float,
+                  /*required=*/true);
+    r.addProperty("Cycle", "name", kg::PropertyValueKind::String,
+                  /*required=*/false);
 
     std::string out = kg::serialize_ontology_slice(r, {"Cycle"});
 
@@ -129,7 +132,8 @@ void empty_type_list_yields_empty_object() {
 void string_escaping_handles_quotes_and_backslashes() {
     kg::OntologyRegistry r;
     r.addEntityType("Weird", "", false);
-    r.addProperty("Weird", "name\"with\\quote", "string", false);
+    r.addProperty("Weird", "name\"with\\quote",
+                  kg::PropertyValueKind::String, false);
 
     std::string out = kg::serialize_ontology_slice(r, {"Weird"});
     ASSERT_TRUE(contains(out, "name\\\"with\\\\quote"),

@@ -86,7 +86,7 @@
     "primitive_ref": "roll_training",
     "source_section": "Character Creation Checklist",
     "source_quote": "Choose one of the Skills and Training tables for this career and roll on it.",
-    "subject_table": "@@SubjectLookupTable:training table by career"
+    "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/training_tables"
    }
   },
   {
@@ -147,7 +147,7 @@
     "name": "basic_training",
     "step_index": "3",
     "primitive_ref": "basic_training",
-    "subject_table": "@@SubjectLookupTable:training table by career",
+    "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/training_tables",
     "source_file": "book1/character-creation.md",
     "source_section": "Character Creation Checklist",
     "source_kind": "sentence",
@@ -168,7 +168,7 @@
     "name": "muster_out",
     "step_index": "11",
     "primitive_ref": "muster_out",
-    "subject_table": "@@SubjectLookupTable:benefit table by career",
+    "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/benefit_tables",
     "source_file": "book1/character-creation.md",
     "source_section": "Mustering Out Benefits",
     "source_kind": "sentence",
@@ -359,7 +359,7 @@
     "name": "roll_reenlistment",
     "step_index": "9",
     "primitive_ref": "roll_reenlistment",
-    "subject_table": "@@SubjectLookupTable:reenlistment throw by career",
+    "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/reenlistment_table",
     "source_file": "book1/character-creation.md",
     "source_section": "Reenlistment and Retirement",
     "source_kind": "sentence",
@@ -440,7 +440,7 @@
     "name": "roll_commission",
     "step_index": "5",
     "primitive_ref": "roll_commission",
-    "subject_table": "@@SubjectLookupTable:commission throw by career",
+    "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/commission_table",
     "source_file": "book1/character-creation.md",
     "source_section": "Character Creation Checklist",
     "source_kind": "sentence",
@@ -461,7 +461,7 @@
     "name": "roll_advancement",
     "step_index": "6",
     "primitive_ref": "roll_advancement",
-    "subject_table": "@@SubjectLookupTable:advancement throw by career",
+    "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/advancement_table",
     "source_file": "book1/character-creation.md",
     "source_section": "Character Creation Checklist",
     "source_kind": "sentence",

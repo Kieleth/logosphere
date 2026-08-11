@@ -45,7 +45,8 @@ kg::OntologyRegistry registry() {
         "TestLookupEntry",
         {"LookupEntry", "Cited", "Entity", "Describable", "Identifiable",
          "Temporal"});
-    rows.addProperty("TestLookupEntry", "result_value", "integer", true);
+    rows.addProperty("TestLookupEntry", "result_value",
+                     kg::PropertyValueKind::Integer, true);
     rows.addEntityType("OtherLookupEntry", "LookupEntry", false);
     rows.addAncestors(
         "OtherLookupEntry",

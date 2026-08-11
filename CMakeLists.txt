@@ -112,6 +112,9 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/kg_ops_parse.cpp
     src/kg/kg_ops_apply.cpp
     src/kg/kg_ops_transaction.cpp
+    src/kg/finite_float.cpp
+    src/kg/qualified_reference.cpp
+    src/kg/ontology_meta_graph.cpp
     src/kg/ontology_validator.cpp
     # Source locators: address a piece of a rulebook, resolve it back
     src/text/source_document.cpp
@@ -127,6 +130,8 @@ set(LOGOSPHERE_CORE_SOURCES
     src/rules/lookup_table_selector.cpp
     src/rules/task_check_runner.cpp
     src/rules/rule_fork.cpp
+    src/rules/rule_static_type.cpp
+    src/rules/rule_program_validator.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -134,6 +139,7 @@ set(LOGOSPHERE_CORE_SOURCES
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
     src/generated/earth_ontology_registry.cpp
+    src/generated/rule_language_ontology_registry.cpp
     src/generated/rulebook_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
@@ -362,6 +368,10 @@ add_headless_test(test_kg_ops_parse)
 add_headless_test(test_ontology_validator)
 add_headless_test(test_kg_ops_apply)
 add_headless_test(test_kg_ops_transaction)
+add_headless_test(test_qualified_reference)
+add_headless_test(test_ontology_meta_graph)
+add_headless_test(test_rule_static_type)
+add_headless_test(test_rule_bindings)
 add_headless_test(test_outcome_executor)
 add_headless_test(test_procedure_runner)
 add_headless_test(test_rollable_table_runner)

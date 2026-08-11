@@ -45,6 +45,7 @@ struct ValidationResult {
 enum class MutationAuthority {
     Runtime,
     SeedIngestion,
+    OntologyMaterialization,
 };
 
 struct ValidationOptions {
