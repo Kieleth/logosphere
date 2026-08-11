@@ -28,6 +28,12 @@ struct ProcedureChoice {
     std::string key;
     std::string label;
     std::string detail;
+    // What this option IS, when it is a thing in the graph: the table
+    // it would roll on, the career it would join. A player should be
+    // able to read an option before taking it, and a UI cannot do that
+    // from a label alone. Absent when the option refers to nothing,
+    // such as "Do not try".
+    kg::EntityID subject = kg::INVALID_ENTITY;
 };
 
 enum class ProcedurePrimitiveStatus {

@@ -72,9 +72,16 @@ public:
             screen_.on_new_life = [this]() { start_life(); };
             screen_.on_inspect_key = [this](const std::string& key) {
                 if (!session_) return;
-                for (const auto& c : session_->choices())
-                    if (c.key == key)
+                for (const auto& c : session_->choices()) {
+                    if (c.key != key) continue;
+                    // An option that knows what it is gets read
+                    // properly; the rest are careers, named.
+                    if (c.subject != kg::INVALID_ENTITY) {
+                        screen_.inspect_entity(engine_->get_kg(), c.subject);
+                    } else {
                         screen_.inspect_career(engine_->get_kg(), c.label);
+                    }
+                }
             };
         }
 

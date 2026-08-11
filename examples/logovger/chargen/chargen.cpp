@@ -728,7 +728,7 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
             choices_.push_back(
                 {std::to_string(i + 1),
                  kg_.getProperty(options[i], "name"),
-                 "roll 1D6 on it"});
+                 "roll 1D6 on it", options[i]});
         }
         prompt_ = "Term " + std::to_string(term) +
                   ": which table do you train on?";
@@ -763,7 +763,7 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
         for (size_t i = 0; i < options.size(); ++i) {
             choices_.push_back({std::to_string(i + 1),
                                 kg_.getProperty(options[i], "name"),
-                                "roll 1D6 on it"});
+                                "roll 1D6 on it", options[i]});
         }
         prompt_ = "Term " + std::to_string(term) + ": " +
                   std::to_string(training_rolls_owed_) +
@@ -870,7 +870,7 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
         choices_.clear();
         for (size_t i = 0; i < skills.size(); ++i) {
             choices_.push_back({std::to_string(i + 1), skills[i].second,
-                                "at level 0"});
+                                "at level 0", skills[i].first});
         }
         prompt_ = "Joining the " + sheet_.career +
                   ": which one skill do you already know?";
@@ -936,7 +936,8 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                 {std::to_string(i + 1), kg_.getProperty(tables[i], "name"),
                  is_cash(tables[i])
                      ? std::to_string(cash_rolls_left_) + " cash rolls left"
-                     : "goods, passages, ship shares"});
+                     : "goods, passages, ship shares",
+                 tables[i]});
         }
         prompt_ = std::to_string(benefit_rolls_owed_) +
                   " benefit roll(s) left: which table?";
@@ -986,7 +987,8 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                 {std::to_string(i + 1), kg_.getProperty(tables[i], "name"),
                  is_cash(tables[i])
                      ? std::to_string(cash_rolls_left_) + " cash rolls left"
-                     : "goods, passages, ship shares"});
+                     : "goods, passages, ship shares",
+                 tables[i]});
         }
         prompt_ = std::to_string(benefit_rolls_owed_) +
                   " benefit roll(s) left: which table?";

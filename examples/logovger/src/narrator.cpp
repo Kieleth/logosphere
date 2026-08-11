@@ -81,10 +81,20 @@ bool Narrator::initialize(const std::string& lore_path, std::string& error) {
         "setting below.\n"
         "- Never say what happens next. You narrate what has happened.\n"
         "- NEVER name a game mechanic. No dice, no rolls, no numbers, "
-        "no 'Dex 9', no modifiers, no targets, no snake eyes, no "
-        "tables. The reader is looking at the numbers already; your "
-        "job is the part the numbers cannot say. Write as if the "
-        "rulebook does not exist.\n"
+        "no modifiers, no targets, no tables. NEVER name a "
+        "characteristic, in full or abbreviated: not Strength, not "
+        "Str, not Dex, not Endurance, not Int, not Edu, not Soc, not "
+        "'high Soc, high Edu'. Say what a strong or clumsy or "
+        "well-connected person is LIKE, never which score says so. "
+        "The reader is looking at the numbers already; your job is "
+        "the part the numbers cannot say. Write as if the rulebook "
+        "does not exist.\n"
+        "- THE TRADE SHAPES THE SCENE. A smuggler is not promoted by a "
+        "recruiter with paperwork; someone stops calling them the new "
+        "one. A naval officer is not handed a chit in a yard. Belters, "
+        "nobles, physicians and pirates rise in ways that belong to "
+        "them, and a scene that would fit any career equally fits "
+        "none. Read the career before you write the moment.\n"
         "- Be specific and invent freely WITHIN the setting: a name "
         "for the station, the shift supervisor who noticed something, "
         "the smell of the compartment, what they did with the money. "
@@ -92,7 +102,14 @@ bool Narrator::initialize(const std::string& lore_path, std::string& error) {
         "Never invent a world, faction or history that contradicts "
         "the setting, and never invent an outcome the facts do not "
         "support.\n"
-        "- Two or three sentences. Plain, concrete, unsentimental.\n\n"
+        "- SHORT. Two sentences, sixty words at the outside. You are "
+        "writing the moment, not the biography. Cut every clause that "
+        "explains rather than shows.\n"
+        "- Do not retell what has already been said. The reader has "
+        "the earlier entries. A promotion is not the place to "
+        "reintroduce someone's schooling or their age.\n"
+        "- Four years pass in a term. Say what those years DID to "
+        "them, not what they are like in general.\n\n"
         "THE SETTING:\n") + lore_;
     llm_->set_narrative_system_prompt(voice);
     // The cache is keyed by everything that shapes the words, the
@@ -180,10 +197,12 @@ std::string Narrator::build_prompt(const Beat& beat) const {
          "beat:\n\n";
     for (const auto& f : beat.facts) o << "  " << f << "\n";
     o << "\nThe character as they now stand:\n" << beat.sheet << "\n\n"
-      << "Narrate it in two or three sentences. Use the numbers to "
-         "decide WHAT happened and how narrowly, then write the scene "
-         "without ever mentioning them: where they were, who else was "
-         "there, what it cost. Invent the small concrete details.";
+      << "Write TWO SENTENCES, no more. Use the numbers to decide what "
+         "happened and how narrowly, then write it without mentioning "
+         "them: what these four years did to this person, in a scene "
+         "that could only happen in THIS trade. End on where it leaves "
+         "them, so the reader feels the next decision coming without "
+         "being told what it is.";
     if (beat.kind == "refusal")
         o << " They were turned away. Do not soften it.";
     if (beat.kind == "death")

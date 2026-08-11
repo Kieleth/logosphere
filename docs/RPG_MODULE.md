@@ -644,6 +644,9 @@ above and removed here._
 
 ## Pointers
 
+- Voyager divergences (deliberate, not corrections):
+  examples/logovger/docs/VOYAGER_EXPANSION.md
+
 - Reusable ontology-native rule-language contract: docs/RULE_LANGUAGE.md
 - Absorption contract: examples/logovger/docs/ABSORPTION_INVENTORY.md
 - The mission and binding rules: examples/logovger/README.md, CLAUDE.md
