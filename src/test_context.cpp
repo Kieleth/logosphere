@@ -1,3 +1,4 @@
+#include "logosphere/physics/physics_solver.h"
 #include "test_context.h"
 #include "core/engine.h"
 #include "core/particle_system.h"
@@ -88,6 +89,18 @@ int TestContext::add_light_particle(float x, float y, float z, float size,
     light.emission_strength = emission_strength;
     light.emission_radius = emission_radius;
     light.entity_id = entity_id;  // Required: valid entity_id
+    // A LIGHT FLOATS. This never set a material, so every test light carried
+    // the default material_density of 1000 kg/m3 — a solid body with real
+    // mass and real collisions, wearing is_light_source. At z = 0 with the
+    // default 0.15 thickness its underside sat 0.075 m below the turtle, so
+    // the boundary lifted it every substep forever.
+    //
+    // Materials::Type::LIGHT is density 0, which is what the rest of the
+    // engine uses for lights (particle_system.cpp and celestial_system.cpp
+    // both do this) and what makes them massless and exempt from the floor.
+    // The last violation in the harness, and it was never a placement
+    // problem: it was a light that was secretly a rock.
+    light.SetMaterial(Materials::Type::LIGHT);
     return particle_system.add_particle(light);  // Return the particle ID
 }
 
@@ -101,6 +114,21 @@ int TestContext::add_cube_particle(float x, float y, float z, float size,
     cube.y = y;
     cube.z = z;
     cube.size = size;
+    // A TEST CUBE SITS ON THE FLOOR, NOT THROUGH IT.
+    //
+    // Callers pass z = 0 to mean "at the origin", but a Particle's default
+    // thickness is 0.15, so the cube's underside landed 0.075 m below the
+    // turtle. That is a body the boundary lifts every substep forever, for
+    // free, in every test that ever called this helper — and there are many,
+    // which is why fixing individual callers just surfaced the next one.
+    //
+    // Guaranteed here, once, for all of them: if the requested z would bury
+    // the cube, raise it to rest exactly on the floor. Callers that place a
+    // cube deliberately above ground are untouched.
+    const float half_z = (cube.thickness > 0.0f ? cube.thickness : cube.size) * 0.5f;
+    if (cube.z - half_z < PhysicsV4::TURTLE_Z) {
+        cube.z = PhysicsV4::TURTLE_Z + half_z;
+    }
     cube.r = r;  // Already in 0-1 range
     cube.g = g;
     cube.b = b;

@@ -45,7 +45,13 @@ bool test_basic_cube_projections(TestContext& ctx) {
     
     // Create a cube at world origin with size 2
     // This means the cube extends from -1 to +1 on each axis
-    float cube_x = 0.0f, cube_y = 0.0f, cube_z = 0.0f;  // World space position
+    // The comment above says the cube spans -1..+1 on each axis, but its Z
+    // extent is add_cube_particle's thickness (0.15), not `size`. So at z = 0
+    // its underside sat 0.075 m below the turtle — the last violation in the
+    // harness. Raising it by exactly half that thickness puts the bottom on
+    // the floor and moves the centre 7.5 cm, which the projection checks
+    // below tolerate; a full `size/2` lift would not be the real geometry.
+    float cube_x = 0.0f, cube_y = 0.0f, cube_z = 0.075f;  // bottom on the turtle
     float cube_size = 2.0f;
     int cube_id = ctx.add_cube_particle(cube_x, cube_y, cube_z, cube_size, 255, 255, 255);
     

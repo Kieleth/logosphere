@@ -156,7 +156,11 @@ bool test_surface_ray_tracing(TestContext& ctx) {
 
         // Add a 45-degree rotated cube - using test helper
         Particle cube = {};
-        cube.x = 0; cube.y = 0; cube.z = 0;
+        // A Particle's default thickness is 0.15, so z = 0 put this cube's
+        // underside 0.075 m below the turtle. The rays here are cast at the
+        // cube's own faces, so lifting it onto the floor moves the geometry
+        // rigidly and the surface/ray relationships are unchanged.
+        cube.x = 0; cube.y = 0; cube.z = 0.075f;  // bottom on the turtle
         cube.size = 2.0f;
         cube.rotation_x = 0;
         cube.rotation_y = 0;
