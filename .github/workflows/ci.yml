@@ -1,6 +1,20 @@
 name: CI
 
-on: [push, pull_request]
+# Pull requests are the gate, so the matrix runs on the PR ref. Pushes are
+# only watched on main, which keeps the release branch guarded without
+# firing a second identical matrix for every branch push behind a PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One live run per PR (or per main push). A force-push supersedes its own
+# earlier run instead of leaving it to burn a runner to completion. main is
+# exempt from cancellation: every commit that lands there keeps its own
+# verdict.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -120,17 +134,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with: { environment-file: environment.yml }
-
+      # No conda here. setup-miniconda only puts condabin on PATH for
+      # non-login shells, so the pinned env was never active for the build:
+      # cmake came from the runner image and no build step runs python.
+      # The ontology-generation lane (which does use the env, via a login
+      # shell) still covers the generator contract.
       - name: Install system libraries
         run: brew install glfw
 
       - name: CMake configure & build
         run: |
-          cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64"
-          cmake --build build --config Release
+          cmake -S . -B build \
+            -DCMAKE_OSX_ARCHITECTURES="arm64" \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j $(sysctl -n hw.ncpu)
 
       - name: Run unit tests
         timeout-minutes: 1
