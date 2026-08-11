@@ -93,7 +93,13 @@ std::string check_detail(
     return detail.str();
 }
 
-void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
+// The six characteristics are written ONCE, when they are rolled.
+// After that the graph owns them: Personal Development raises them,
+// aging will lower them, and every one of those changes goes through
+// the outcome executor and lands on the entity. Writing the session's
+// cached copies back afterwards silently undid all of it, so a "+1
+// Str" was applied and then overwritten at the end of the term.
+void write_characteristics(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "strength",        std::to_string(s.strength));
     kg.setProperty(s.id, "dexterity",       std::to_string(s.dexterity));
     kg.setProperty(s.id, "endurance",       std::to_string(s.endurance));
@@ -101,8 +107,33 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "education",       std::to_string(s.education));
     kg.setProperty(s.id, "social_standing", std::to_string(s.social_standing));
     kg.setProperty(s.id, "upp",             s.upp);
+}
+
+// What the SESSION owns: how long this has taken.
+void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "age_years",       std::to_string(s.age_years));
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
+}
+
+// Read the characteristics back out of the graph, where they may have
+// been changed by an outcome, and recompute the UPP from them. Call it
+// after anything that could have touched them.
+void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
+    const auto value = [&](const char* slot, int& into) {
+        const std::string text = kg.getProperty(s.id, slot);
+        if (!text.empty()) into = std::stoi(text);
+    };
+    value("strength", s.strength);
+    value("dexterity", s.dexterity);
+    value("endurance", s.endurance);
+    value("intelligence", s.intelligence);
+    value("education", s.education);
+    value("social_standing", s.social_standing);
+    s.upp = upp(s.strength, s.dexterity, s.endurance, s.intelligence,
+                s.education, s.social_standing);
+    kg.getProperty(s.id, "upp") == s.upp
+        ? void()
+        : const_cast<kg::KGModule&>(kg).setProperty(s.id, "upp", s.upp);
 }
 
 // A step consults a table the SCHEMA names, and that table's rows say
@@ -197,7 +228,7 @@ bool apply_training_table(kg::KGModule& kg, kg::EntityID table,
                           kg::EntityID character,
                           logosphere::dice::DiceService& dice,
                           uint64_t& roll_id_out, std::string& gained,
-                          std::string& error) {
+                          std::string& error, bool* was_skill = nullptr) {
     gained.clear();
     error.clear();
 
@@ -218,6 +249,7 @@ bool apply_training_table(kg::KGModule& kg, kg::EntityID table,
     const auto outcome = selected.selection->outcome();
     const bool grants_skill =
         kg.getRegistry().isSubtypeOf(kg.getType(outcome), "AdvanceSkill");
+    if (was_skill) *was_skill = grants_skill;
     kg::EntityID skill = kg::INVALID_ENTITY;
     std::string skill_ref;
     std::string skill_name;
@@ -456,6 +488,7 @@ ChargenSession::PrimitiveResult ChargenSession::generate_characteristics(
                      sheet_.intelligence, sheet_.education,
                      sheet_.social_standing);
     sheet_.life.push_back({0, "UPP", sheet_.upp, 0});
+    write_characteristics(kg_, sheet_);
     write_sheet(kg_, sheet_);
     return PrimitiveResult::advance();
 }
@@ -749,11 +782,15 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     uint64_t skill_roll = 0;
     std::string skill;
     std::string error;
+    bool granted_a_skill = true;
     if (!apply_training_table(kg_, chosen, sheet_.id, dice_, skill_roll,
-                              skill, error)) {
+                              skill, error, &granted_a_skill)) {
         return PrimitiveResult::failed(error);
     }
-    sheet_.skills.push_back(skill);
+    // A characteristic gain lands on the entity, not on the skill
+    // list, so the sheet has to read it back or it never shows.
+    if (granted_a_skill) sheet_.skills.push_back(skill);
+    else read_characteristics(kg_, sheet_);
     sheet_.life.push_back({term, "gained " + skill,
                            kg_.getProperty(chosen, "name"), skill_roll});
     // A promotion buys another roll, and so does a career with no
@@ -925,7 +962,7 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         if (benefit_rolls_owed_ <= 0) {
             sheet_.life.push_back({sheet_.terms_served, "no benefits",
                                    "no term served in this career", 0});
-            return PrimitiveResult::advance();
+            return PrimitiveResult::advance("continue");
         }
     }
 
@@ -999,7 +1036,9 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
     }
 
     // What the character walks away with, read back from the graph
-    // rather than accumulated alongside it.
+    // rather than accumulated alongside it. Benefits can raise a
+    // characteristic too, so those come back as well.
+    read_characteristics(kg_, sheet_);
     sheet_.credits = 0;
     sheet_.possessions.clear();
     for (auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
@@ -1018,7 +1057,10 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                 count.empty() || count == "1" ? name : count + "x " + name);
         }
     }
-    return PrimitiveResult::advance();
+    // Explicitly routed. Falling through by index from here lands on
+    // finish_character, which ended a character who had only left one
+    // career and still had terms in front of them.
+    return PrimitiveResult::advance("continue");
 }
 
 // Step 6. Commission takes a Rank 0 character into the officer ranks;
@@ -1103,6 +1145,7 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
         return PrimitiveResult::advance();
     }
 
+    read_characteristics(kg_, sheet_);
     sheet_.rank = commission ? 1 : sheet_.rank + 1;
     // "You also get any benefits listed for your new rank", and an
     // extra roll on any Skills and Training table.

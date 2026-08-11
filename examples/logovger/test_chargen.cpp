@@ -321,6 +321,50 @@ void test_missing_rules_fail_loudly() {
           "name, not silently substituted");
 }
 
+// Leaving a career is not leaving the trade. Mustering out routed by
+// falling through to the next step index, which was finish_character,
+// so a character with five terms behind them and two still available
+// was retired the moment they left their first career. The step routes
+// explicitly now, and this is the case that says so.
+void test_leaving_a_career_offers_another_one() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the career-change world loads: " + why);
+    if (!why.empty()) return;
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    std::string error;
+    CHECK(session.begin(28, error), "a life begins: " + error);
+
+    // Serve, then LEAVE. That is the case in question: a character
+    // with terms still available who is finished with one career.
+    // Taking the first option every time would serve to the cap and
+    // never exercise it.
+    bool offered_another_career = false;
+    for (int step = 0; step < 400 && !session.finished(); ++step) {
+        const auto& choices = session.choices();
+        if (choices.empty()) break;
+        // Careers are offered by name, and Drifter is always there.
+        for (const auto& choice : choices) {
+            if (choice.label == "Drifter" && session.sheet().terms_served > 0) {
+                offered_another_career = true;
+            }
+        }
+        if (offered_another_career) break;
+
+        std::string take = choices.front().key;
+        for (const auto& choice : choices) {
+            if (choice.label == "Muster out") take = choice.key;
+        }
+        if (!session.choose(take, error)) break;
+    }
+    CHECK(offered_another_career,
+          "after a career ends, another one is offered rather than the "
+          "character being retired: " +
+              std::string(session.finished() ? "session finished" : error));
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -769,6 +813,7 @@ int main() {
     test_a_life_is_generated();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
+    test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();
