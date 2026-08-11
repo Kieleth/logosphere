@@ -40,6 +40,31 @@
 #include <map>
 #include <vector>
 
+namespace {
+// |R_a*offset_a - R_b*offset_b|: the centre separation at which this bond is
+// satisfied, with each offset rotated by the body that owns it. Same Euler
+// composition the solver uses to build attachment points.
+float rest_in_bond_frame(const Particle& pa, const Particle& pb,
+                         const GluonConstraintBase& g) {
+    auto rot = [](const Particle& p, const Vec3& o, float& wx, float& wy, float& wz) {
+        const float cx = cosf(p.rotation_x), sx = sinf(p.rotation_x);
+        const float cy = cosf(p.rotation_y), sy = sinf(p.rotation_y);
+        const float cz = cosf(p.rotation_z), sz = sinf(p.rotation_z);
+        const float y1 = o.y * cx - o.z * sx;
+        const float z1 = o.y * sx + o.z * cx;
+        const float x2 = o.x * cy + z1 * sy;
+        const float z2 = -o.x * sy + z1 * cy;
+        wx = x2 * cz - y1 * sz;  wy = x2 * sz + y1 * cz;  wz = z2;
+    };
+    if (!g.rotate_offsets) return g.get_segment_length();
+    float ax, ay, az, bx, by, bz;
+    rot(pa, g.offset_a, ax, ay, az);
+    rot(pb, g.offset_b, bx, by, bz);
+    const float dx = ax - bx, dy = ay - by, dz = az - bz;
+    return std::sqrt(dx*dx + dy*dy + dz*dz);
+}
+} // namespace
+
 bool test_tree_bonds_born_at_rest() {
     printf("\n=== A TREE IS BORN AT REST (issue #38) ===\n\n");
 
@@ -90,11 +115,26 @@ bool test_tree_bonds_born_at_rest() {
                 const float dx = v[b].x - v[a].x, dy = v[b].y - v[a].y,
                             dz = v[b].z - v[a].z;
                 const float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
-                // The SAME rest the tear law uses. If this test and the tear
-                // law disagree the test is worthless, so it must not invent
-                // its own definition.
+                // REST, MEASURED IN THE BOND'S OWN FRAME.
+                //
+                // This used get_segment_length() — the naive |offset_a -
+                // offset_b| — on the reasoning that a test must not invent its
+                // own definition and should ask the same question the tear law
+                // asks. That was the wrong instinct: the tear law's formula was
+                // the thing under suspicion, so deferring to it meant measuring
+                // its opinion rather than the geometry.
+                //
+                // The placement ladder settled it. For a parent half-length 1.0
+                // and child half-length 0.5, unrotated rest is a flat 1.5 at
+                // every angle, while the bond's actual rest — the separation at
+                // which centre_b - centre_a == R_a*off_a - R_b*off_b — is
+                // 1.1180 at 0 deg rising to 1.5000 at 90 deg, where the two
+                // segments finally are collinear and the naive sum is correct.
+                // Predicted strains 0.7454 / 0.8189 / 0.8819 / 0.9326 matched
+                // the measured ones to four decimals.
                 const float rest = std::max({g->target_distance,
-                                             g->get_segment_length(), 0.01f});
+                                             rest_in_bond_frame(v[a], v[b], *g),
+                                             0.01f});
                 const float ratio = dist / rest;
 
                 counted++;

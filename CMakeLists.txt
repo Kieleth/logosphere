@@ -1845,6 +1845,7 @@ set(TEST_SOURCES
     tests/test_grass_bends_not_tears.cpp     # ISSUE #47: a pass must bend grass, not sever it
     tests/test_light_body_ringing.cpp        # SOLVER: a bond between unequal masses must not amplify
     tests/test_tree_bonds_born_at_rest.cpp   # ISSUE #38: a structure must be born at rest
+    tests/test_branch_placement_ladder.cpp  # ISSUE #57: branch placement vs bond rest, rung by rung
     tests/test_baumgarte_ratchet.cpp          # SOLVER: position repair must not inject momentum
     tests/test_blockers_visual.cpp             # issue #47: both merge blockers on screen, INTERACTIVE=1
     tests/test_walk_through_grass.cpp          # issue #47: a human walks through grasses, all asserted good

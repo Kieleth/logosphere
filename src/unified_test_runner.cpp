@@ -100,6 +100,7 @@ extern bool test_plants_are_rooted();         // ISSUE #47: plants must be attac
 extern bool test_grass_bends_not_tears();    // ISSUE #47: grass bends, it does not mow (STANDALONE)
 extern bool test_light_body_ringing();       // SOLVER: light-body ringing (STANDALONE)
 extern bool test_tree_bonds_born_at_rest(); // ISSUE #38: tree bonds vs placed geometry (STANDALONE)
+extern bool test_branch_placement_ladder();  // ISSUE #57: placement ladder (STANDALONE)
 extern bool test_baumgarte_ratchet();        // SOLVER: Baumgarte bias must not become momentum (STANDALONE)
 extern bool test_blockers_visual();           // issue #47: the two merge blockers, visible, INTERACTIVE=1 (STANDALONE)
 extern bool test_walk_through_grass();        // issue #47: Eva crosses 3 grass patches, all must stay good (STANDALONE)
@@ -303,6 +304,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_grass_bends_not_tears"] = [](TestContext&) { return test_grass_bends_not_tears(); };  // STANDALONE
     registry["test_light_body_ringing"] = [](TestContext&) { return test_light_body_ringing(); };  // STANDALONE
     registry["test_tree_bonds_born_at_rest"] = [](TestContext&) { return test_tree_bonds_born_at_rest(); };  // STANDALONE
+    registry["test_branch_placement_ladder"] = [](TestContext&) { return test_branch_placement_ladder(); };  // STANDALONE
     registry["test_baumgarte_ratchet"] = [](TestContext&) { return test_baumgarte_ratchet(); };  // STANDALONE: own engine
     registry["test_blockers_visual"] = [](TestContext&) { return test_blockers_visual(); };  // STANDALONE: own engine
     registry["test_walk_through_grass"] = [](TestContext&) { return test_walk_through_grass(); };  // STANDALONE: own engine
@@ -732,6 +734,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_grass_bends_not_tears",
         "test_light_body_ringing",
         "test_tree_bonds_born_at_rest",
+        "test_branch_placement_ladder",
         "test_baumgarte_ratchet",
         "test_blockers_visual",
         "test_walk_through_grass",
@@ -847,6 +850,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_grass_bends_not_tears", test_grass_bends_not_tears},
         {"test_light_body_ringing", test_light_body_ringing},
         {"test_tree_bonds_born_at_rest", test_tree_bonds_born_at_rest},
+        {"test_branch_placement_ladder", test_branch_placement_ladder},
         {"test_baumgarte_ratchet", test_baumgarte_ratchet},
         {"test_blockers_visual", test_blockers_visual},
         {"test_walk_through_grass", test_walk_through_grass},
