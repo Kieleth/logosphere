@@ -14,6 +14,52 @@ written when the idea arrived so the reasoning is not lost.
 
 ---
 
+## Aging is calibrated for 1977, and the book knows it
+
+_Owner, 2026-08-11, at the point of ingesting the aging table._
+
+**The observation.** Physical decline starting at 34 is an assumption
+from when this rules family was written, not a fact about a setting
+with jump drives. Life expectancy has moved a long way since the
+eighties alone. The table is absorbed faithfully because that is the
+job, but the calibration is expected to be wrong for Voyager and will
+be tuned.
+
+**What the absorbed table actually does.** Aging is 2D6 minus total
+terms served, and any total of 0 or less takes characteristics away
+permanently:
+
+| terms | age | chance of permanent loss that term |
+|---|---|---|
+| 4 | 34 | 16.7% |
+| 5 | 38 | 27.8% |
+| 6 | 42 | 41.7% |
+| 7 | 46 | **58.3%** |
+
+Reaching the seven-term cap with **no** aging loss at all happens
+14.6% of the time. So a 46-year-old is more likely than not to lose
+something permanent in a given four years, and a career soldier who
+serves out is very probably diminished by the end. That reads as a
+statement about 1977 rather than about a spacefaring century.
+
+**The dial is already in the book.** Cepheus has anagathics: "While
+using anagathic drugs, the character effectively does not age - add
+the number of terms since the character started taking anagathics as a
+positive Dice Modifier to rolls on the aging table." That modifier
+cancels the term count exactly, which means the rules already contain
+a clean, cited way to move the curve without inventing a mechanism.
+
+So the Voyager question is not "how do we rewrite aging". It is **how
+available anagathics are**, which is a setting decision: who can get
+them, what they cost, what stopping does to you, and whether the
+frontier sees them at all. The lore already leans that way, with the
+core comfortable and watchful and the Reach scarce in everything.
+
+**Open:** whether Voyager tunes the curve directly, or leaves the
+table untouched and expresses the change entirely through anagathic
+availability. The second keeps the Cepheus layer a true reading of the
+book and puts the divergence where it belongs, in the setting.
+
 ## Six independent rolls make some people good at everything
 
 _Owner, 2026-08-11, watching lives generate._
