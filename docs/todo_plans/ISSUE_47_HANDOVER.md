@@ -384,3 +384,69 @@ the next mole; it removes the need to hunt them.
 real measurement of a corrected world; the old 79% came from a world with
 phantom duplicates and unrooted grass. Revisit once the ringing is fixed,
 and set the threshold from that number rather than this one.
+
+---
+
+## 10. RESOLVED — the integral's authority is a momentum (`f5a3a22`)
+
+**§6 is closed and the walk gate is GREEN.** Supersedes the three options
+in §6: none of them was taken, because the measurement in §9 showed
+retiring the term costs 41% more tears, and the real defect turned out to
+be the cap's *units*.
+
+The impulse-memory cap was `breaking_force * dt` — how hard the bond is
+to SNAP, which says nothing about what the bodies it joins can absorb.
+An accumulated impulse IS momentum, so:
+
+```cpp
+cap = min(m_a, m_b) * GLUON_MAX_BIAS_VELOCITY
+```
+
+2 g blade → 0.0095 N·s (at most 4 m/s imparted); 5 kg arm → 20 N·s. One
+law, no mass-ratio branch — momentum carries the scaling itself.
+
+| walk gate | session start | after §4 | **now** |
+|---|---|---|---|
+| worst blade drift | 6.75 m | 2.56 m | **1.01 m** (gate 2.0) |
+| worst body speed | — | 25.1 m/s | **1.3 m/s** |
+| bonds torn / pass | — | 17 | **5** |
+| verdict | RED | RED | **GREEN** |
+
+`test_light_body_ringing` 4-of-7-fail → **0 of 7**, every ratio to 25x,
+no peak above 1.222 against the 1.2 m/s push. Battery 7/7,
+`test_baumgarte_ratchet` 0 violations.
+
+### The one remaining piece
+
+`test_physics_drive_two_joints` — shoulder final_err **0.0728** vs 0.0314
+budget, **unchanged** by the momentum bound (a 5 kg arm's cap is ample
+either way). Attribution PROVEN: with `ENABLE_SPLIT_IMPULSE=false` it
+passes 4 of 4 at **0.0035**, a 21x difference.
+
+Split impulse removed the bias component from what the integral
+accumulates:
+
+```cpp
+velocity_part = ENABLE_SPLIT_IMPULSE ? acc : (acc - rc.bias * rc.effective_mass);
+```
+
+That line keeps the arithmetic self-consistent but silently changed a
+control gain. The shoulder leaned on the old magnitude to reach zero
+standing error.
+
+**So the integral had TWO faults, not one:**
+1. unbounded where the bodies are light → fixed by the momentum cap
+2. under-powered where the drive is real → **OPEN**
+
+Scope for (2): one accumulator, one known-good target (0.0035), and a
+flag flip that reproduces the good behaviour on demand for A/B. Do not
+re-derive the attribution; it is proven above.
+
+### Still open beyond that
+
+Eden's residual 2 events (pre-bonding baseline was 1), `arm_chain`,
+`tuning_coverage` (red by design), the `P92<->P93` rest-length mismatch,
+CHANGELOG entries for all of this, and the derivation campaign Phases C
+and D. The energy ledger of §9 remains the right instrument and is still
+unbuilt — it was not needed for this fix, but it is what turns the next
+one from inference into a reading.
