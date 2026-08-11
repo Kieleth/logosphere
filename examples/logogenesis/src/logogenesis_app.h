@@ -869,7 +869,9 @@ private:
                 Particle p{};
                 p.shape = ParticleShape::BOX;
                 p.x = x; p.y = y;
-                p.z = -0.06f + 0.02f * static_cast<float>(grounds_made_);
+                // A 0.1-thick slab centred at -0.06 has its underside at -0.11. Stack
+        // slabs UPWARD from the turtle instead of downward through it.
+        p.z = 0.05f + 0.02f * static_cast<float>(grounds_made_);
                 p.width = w; p.height = d; p.thickness = 0.1f;
                 p.r = r; p.g = g; p.b = b; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::STONE);
@@ -940,7 +942,11 @@ private:
                 p.shape = ParticleShape::SPHERE;
                 p.x = std::sin(polar) * std::cos(azim) * d;
                 p.y = std::sin(polar) * std::sin(azim) * d;
-                p.z = std::cos(polar) * d + 6.0f;
+                // The polar draw reaches cos(polar) = -0.35, which at d~75
+                // put the lowest ~18% of a 260-star field down to z = -20.
+                // These are real massive SPHEREs, so the turtle lifted every
+                // one of them every substep. A sky sits above the horizon.
+                p.z = std::fabs(std::cos(polar)) * d + 6.0f;
                 // Magnitude distribution. The first cut gave every star
                 // the same brightness and a narrow linear size band,
                 // which reads as a pegboard: a real sky is mostly

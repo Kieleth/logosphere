@@ -57,7 +57,10 @@ namespace {
 
 constexpr float kPadHalf      = 4.0f;                    // smaller pad so it's not the whole frame
 constexpr float kPadThickness = 0.10f;
-constexpr float kPadCenterZ   = -kPadThickness * 0.5f;   // top at z = 0 exactly
+// The pad SITS ON the turtle, it does not hang from it. This read
+// -kPadThickness*0.5 with a comment saying the top was at z=0, which put
+// the ENTIRE pad under the world floor (bottom -0.10).
+constexpr float kPadCenterZ   = kPadThickness * 0.5f;   // bottom at z = 0 exactly
 // Bike-body aspect ratio: very flat along Z (thickness 0.32), long along Y
 // (length 1.80), medium along X (width 0.55). This is the exact shape the
 // Logotron motorcycle body uses.

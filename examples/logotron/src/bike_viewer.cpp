@@ -34,7 +34,10 @@ namespace {
 
 constexpr float kPadHalf        = 6.0f;
 constexpr float kPadThickness   = 0.10f;
-constexpr float kPadCenterZ     = -kPadThickness * 0.5f;   // pad TOP at z = 0 exactly
+// The pad SITS ON the turtle, it does not hang from it. This read
+// -kPadThickness*0.5 with a comment that the top was at z=0, which put the
+// entire pad under the world floor (bottom -0.10).
+constexpr float kPadCenterZ     = kPadThickness * 0.5f;   // pad TOP at z = 0 exactly
 constexpr float kBikeLookZ      = 2.50f;  // outside body's vertical range
                                            // (body extends z=[0.26, 0.58]).
                                            // A camera inside the body's

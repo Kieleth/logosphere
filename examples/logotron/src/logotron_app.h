@@ -1165,7 +1165,9 @@ public:
         // the brighter trails and wall glow.
         const float grid_step = 5.0f;
         const float grid_thickness = 0.05f;
-        const float grid_z = 0.02f;
+        // Grid lines are 0.05 thick, so a centre at 0.02 leaves them 5 mm under
+    // the floor. Half their own thickness sits them exactly on it.
+    const float grid_z = 0.025f;
         for (float ax = -half_w; ax <= half_w + 0.01f; ax += grid_step) {
             auto e = kg.createEntity("ArenaWall");
             kg.setProperty(e, "grid_x", "-999");
@@ -1203,7 +1205,9 @@ public:
         auto floor = kg.createEntity("Arena");
         Particle p = {};
         p.shape = ParticleShape::BOX;
-        p.x = 0.0f; p.y = 0.0f; p.z = 0.0f;
+        // A 0.1-thick floor centred on zero has its underside at -0.05.
+        // The arena rests ON the turtle; half its own thickness does that.
+        p.x = 0.0f; p.y = 0.0f; p.z = 0.05f;
         p.width  = kArenaW;
         p.height = kArenaH;
         p.thickness = 0.1f;

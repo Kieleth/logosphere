@@ -129,7 +129,7 @@ int main() {
             for (int gy = -2; gy <= 2; ++gy) {
                 Particle p{};
                 p.shape = ParticleShape::BOX;
-                p.x = gx * 8.0f; p.y = gy * 8.0f; p.z = -0.4f;
+                p.x = gx * 8.0f; p.y = gy * 8.0f; p.z = 0.4f;   // tile is 0.8 thick: sit ON the turtle, not under it
                 p.width = p.height = 8.0f; p.thickness = 0.8f;
                 p.size = 8.0f;
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;

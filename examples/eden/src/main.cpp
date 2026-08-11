@@ -1757,8 +1757,13 @@ public:
                     block.shape = ParticleShape::BOX;
                     block.x = wall_cx - 3.0f + i * 1.0f;
                     block.y = wall_cy + 2.0f;
-                    block.z = 0.5f + (i % 2) * 0.1f;
-                    block.width = 0.4f; block.height = 0.3f; block.thickness = 1.0f + (i % 3) * 0.2f;
+                    // Height and thickness varied INDEPENDENTLY, so the taller
+                    // blocks reached below the floor: i=2 at -0.20, i=4 and
+                    // i=5 at -0.10. Sit each block on its own half-thickness
+                    // and let the stagger ride on top of that.
+                    block.thickness = 1.0f + (i % 3) * 0.2f;
+                    block.z = block.thickness * 0.5f + (i % 2) * 0.1f;
+                    block.width = 0.4f; block.height = 0.3f;
                     block.r = 0.55f; block.g = 0.5f; block.b = 0.45f; block.a = 1.0f;
                     block.SetMaterial(Materials::Type::STONE);
                     block.owner = ParticleOwner::STATIC;
