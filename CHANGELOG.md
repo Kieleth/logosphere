@@ -8,6 +8,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Cross-seed entity references.** A seed can now address an entity another
+  seed created, written `@@Type:Name` in any `entity_ref` property or op
+  target. Aliases remain file-local; this is the one way across that
+  boundary and it is deliberately narrow, requiring exactly one match.
+  Nothing found, or more than one, fails the load with an error naming what
+  it looked for. This is what lets one seed own a vocabulary (skills,
+  careers, constants) while others reference it instead of re-creating it.
 - **Logovger character creation is playable end to end**, with the sheet,
   the personnel file, and the book's own citations on one screen. Careers
   are a scrollable list you can read before you join; every value on the

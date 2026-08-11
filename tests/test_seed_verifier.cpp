@@ -294,6 +294,36 @@ void test_loader_binds_and_resolves() {
           "the table owns its two rows through resolved relations");
 }
 
+// The failure this is written from: cepheus_book1_skills.json and
+// cepheus_careers.json each created "Gun Combat", and nothing
+// complained, because uniqueness was only ever checked inside one
+// file. Seeds share a world; the promise has to be checked there.
+void test_a_second_seed_cannot_recreate_a_name() {
+    auto reg = engine_registry();
+    kg::KGModule world(reg);
+    world.setMode(kg::KGMode::MINIMAL);
+
+    const char* skill_op =
+        "{\"op\":\"create_entity\",\"type\":\"Skill\","
+        "\"as\":\"@gun\",\"properties\":{\"name\":\"Gun Combat\"}}";
+
+    auto first = mini_seed("book1/skills.md", skill_op);
+    first.invariants.unique_name_per_type = {"Skill"};
+    kg::SeedLoadReport a;
+    CHECK(kg::load_seed(first, world, a), "the first seed loads: " + a.error);
+
+    auto second = mini_seed("book1/character-creation.md", skill_op);
+    second.invariants.unique_name_per_type = {"Skill"};
+    kg::SeedLoadReport b;
+    CHECK(!kg::load_seed(second, world, b),
+          "a second seed must not recreate a name already loaded");
+    CHECK(b.error.find("@@Skill:Gun Combat") != std::string::npos,
+          "the error must say how to reference it instead: " + b.error);
+    CHECK(world.findByType("Skill").size() == 1,
+          "the refused seed must leave nothing behind");
+    std::cout << "  [measure] " << b.error << std::endl;
+}
+
 void test_loader_materializes_seed_origin_contexts() {
     kg::SeedEnvelope seed = parse_fixture();
     kg::KGModule world(engine_registry());
@@ -1238,11 +1268,13 @@ void test_duplicate_name_fails_invariant() {
     bool names_dup = false;
     for (const auto& v : report.violations) {
         if (v.check == "invariant" &&
-            v.reason.find("duplicate name") != std::string::npos) {
+            v.reason.find("age_of_majority") != std::string::npos &&
+            v.reason.find("2 times") != std::string::npos) {
             names_dup = true;
         }
     }
-    CHECK(names_dup, "the reason names the duplicate");
+    CHECK(names_dup,
+          "the reason names the duplicate and how many there are");
 }
 
 }  // namespace
@@ -1254,6 +1286,7 @@ int main() {
     test_unbounded_band_coverage_parses_explicit_null();
     test_envelope_parser_is_loud();
     test_loader_binds_and_resolves();
+    test_a_second_seed_cannot_recreate_a_name();
     test_loader_materializes_seed_origin_contexts();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();

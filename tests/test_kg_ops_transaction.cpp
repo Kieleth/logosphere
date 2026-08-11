@@ -34,6 +34,8 @@ kg::OntologyRegistry registry() {
     out.addProperty("Parent", "value", "integer", false);
     out.addProperty("Child", "label", "string", true);
     out.addRelationType("HAS_PART", {"Parent"}, {"Child"});
+    // A reference to something a different seed created.
+    out.addRefProperty("Child", "points_at", false, "Parent");
     return out;
 }
 
@@ -126,6 +128,60 @@ void unsupported_destructive_ops_fail_before_mutation() {
             "the destructive operation must touch nothing");
 }
 
+// An alias is file-local. "@@Type:Name" is the one way across that
+// boundary, and it must be narrow enough to be trustworthy.
+void a_world_reference_finds_an_entity_another_batch_created() {
+    Fixture f;
+    f.world.setProperty(f.parent, "name", "Admin");
+    std::vector<kg::KGOp> ops;
+    kg::KGOpCreateEntity child;
+    child.type = "Child";
+    child.as = "c";
+    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Admin"}};
+    ops.push_back(child);
+    kg::KGOpBatchReport report;
+    REQUIRE(kg::apply_kg_ops_atomically(ops, f.world, report),
+            "a world reference to a loaded entity must resolve");
+    const auto made = report.bindings.at("c");
+    REQUIRE(f.world.getProperty(made, "points_at") ==
+                std::to_string(f.parent),
+            "it must bind to the entity that already exists");
+}
+
+void a_world_reference_to_nothing_fails_loudly() {
+    Fixture f;
+    f.world.setProperty(f.parent, "name", "Admin");
+    std::vector<kg::KGOp> ops;
+    kg::KGOpCreateEntity child;
+    child.type = "Child";
+    child.as = "c";
+    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Nope"}};
+    ops.push_back(child);
+    kg::KGOpBatchReport report;
+    REQUIRE(!kg::apply_kg_ops_atomically(ops, f.world, report),
+            "a reference to a name nobody loaded must fail");
+    REQUIRE(report.error.find("Nope") != std::string::npos,
+            "the error must name what could not be found: " + report.error);
+}
+
+void an_ambiguous_world_reference_fails_rather_than_picking() {
+    Fixture f;
+    f.world.setProperty(f.parent, "name", "Admin");
+    const auto twin = f.world.createEntity("Parent");
+    f.world.setProperty(twin, "name", "Admin");
+    std::vector<kg::KGOp> ops;
+    kg::KGOpCreateEntity child;
+    child.type = "Child";
+    child.as = "c";
+    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Admin"}};
+    ops.push_back(child);
+    kg::KGOpBatchReport report;
+    REQUIRE(!kg::apply_kg_ops_atomically(ops, f.world, report),
+            "two entities of that name must not silently bind to one");
+    REQUIRE(report.error.find("ambiguous") != std::string::npos,
+            "the error must say why: " + report.error);
+}
+
 }  // namespace
 
 int main() {
@@ -133,6 +189,9 @@ int main() {
     TEST(a_late_failure_restores_everything_and_emits_nothing);
     TEST(a_success_commits_once_and_publishes_afterward);
     TEST(unsupported_destructive_ops_fail_before_mutation);
+    TEST(a_world_reference_finds_an_entity_another_batch_created);
+    TEST(a_world_reference_to_nothing_fails_loudly);
+    TEST(an_ambiguous_world_reference_fails_rather_than_picking);
     std::cout << tests_passed << " passed, " << tests_failed << " failed\n";
     return tests_failed == 0 ? 0 : 1;
 }

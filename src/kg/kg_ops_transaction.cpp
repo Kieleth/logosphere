@@ -61,9 +61,53 @@ void buffer_relation_event(std::vector<BufferedEvent>& events,
     events.emplace_back(std::move(event));
 }
 
-bool resolve_ref(EntityRef& ref, const SymbolTable& symbols,
-                 std::string& error) {
+// "@@Type:Name" addresses an entity another seed created. An alias is
+// file-local by design; this is the one way across that boundary, and
+// it is deliberately narrow: exactly one entity of that type with that
+// name must exist. Zero is a broken reference and many is an ambiguous
+// one, and both fail loudly rather than binding to whichever came
+// first. The parser strips one '@', so a world reference arrives here
+// still carrying the second.
+bool resolve_world_ref(const KGModule& kg, const std::string& spec,
+                       EntityID& out, std::string& error) {
+    const auto colon = spec.find(':');
+    if (colon == std::string::npos || colon == 1 ||
+        colon + 1 >= spec.size()) {
+        error = "world reference '@" + spec +
+                "': expected '@@Type:Name'";
+        return false;
+    }
+    const std::string type = spec.substr(1, colon - 1);
+    const std::string name = spec.substr(colon + 1);
+    std::vector<EntityID> hits;
+    for (EntityID id : kg.findByType(type)) {
+        if (kg.getProperty(id, "name") == name) hits.push_back(id);
+    }
+    if (hits.empty()) {
+        error = "world reference '@@" + type + ":" + name +
+                "': no " + type + " with that name is loaded";
+        return false;
+    }
+    if (hits.size() > 1) {
+        error = "world reference '@@" + type + ":" + name + "': " +
+                std::to_string(hits.size()) + " of them are loaded, so " +
+                "the reference is ambiguous";
+        return false;
+    }
+    out = hits.front();
+    return true;
+}
+
+bool resolve_ref(EntityRef& ref, const KGModule& kg,
+                 const SymbolTable& symbols, std::string& error) {
     if (!ref.is_symbolic()) return true;
+    if (!ref.symbolic.empty() && ref.symbolic.front() == '@') {
+        EntityID id = INVALID_ENTITY;
+        if (!resolve_world_ref(kg, ref.symbolic, id, error)) return false;
+        ref.id = id;
+        ref.symbolic.clear();
+        return true;
+    }
     const auto found = symbols.find(ref.symbolic);
     if (found == symbols.end()) {
         error = "unresolved alias @" + ref.symbolic;
@@ -74,13 +118,22 @@ bool resolve_ref(EntityRef& ref, const SymbolTable& symbols,
     return true;
 }
 
-bool resolve_ref_value(const OntologyRegistry& ontology,
+bool resolve_ref_value(const OntologyRegistry& ontology, const KGModule& kg,
                        const std::string& type, const std::string& property,
                        std::string& value, const SymbolTable& symbols,
                        std::string& error) {
     if (value.size() < 2 || value.front() != '@') return true;
     const PropertyDef* definition = ontology.findProperty(type, property);
     if (!definition || definition->value_type != "entity_ref") return true;
+    if (value.size() > 2 && value[1] == '@') {
+        EntityID id = INVALID_ENTITY;
+        if (!resolve_world_ref(kg, value.substr(1), id, error)) {
+            error = "property '" + property + "': " + error;
+            return false;
+        }
+        value = std::to_string(id);
+        return true;
+    }
     const auto found = symbols.find(value.substr(1));
     if (found == symbols.end()) {
         error = "property '" + property + "': unresolved alias " + value;
@@ -95,29 +148,30 @@ bool resolve_op(KGOp& op, const KGModule& kg,
                 const SymbolTable& symbols, std::string& error) {
     if (auto* create = std::get_if<KGOpCreateEntity>(&op)) {
         for (auto& [property, value] : create->properties) {
-            if (!resolve_ref_value(ontology, create->type, property, value,
-                                   symbols, error)) {
+            if (!resolve_ref_value(ontology, kg, create->type, property,
+                                   value, symbols, error)) {
                 return false;
             }
         }
         return true;
     }
     if (auto* destroy = std::get_if<KGOpDestroyEntity>(&op)) {
-        return resolve_ref(destroy->target, symbols, error);
+        return resolve_ref(destroy->target, kg, symbols, error);
     }
     if (auto* set = std::get_if<KGOpSetProperty>(&op)) {
-        if (!resolve_ref(set->target, symbols, error)) return false;
+        if (!resolve_ref(set->target, kg, symbols, error)) return false;
         const std::string type = kg.getType(set->target.id);
         return type.empty() ||
-               resolve_ref_value(ontology, type, set->property, set->value,
+               resolve_ref_value(ontology, kg, type, set->property,
+                                 set->value,
                                  symbols, error);
     }
     if (auto* relation = std::get_if<KGOpSetRelation>(&op)) {
-        return resolve_ref(relation->from, symbols, error) &&
-               resolve_ref(relation->to, symbols, error);
+        return resolve_ref(relation->from, kg, symbols, error) &&
+               resolve_ref(relation->to, kg, symbols, error);
     }
     if (auto* cinematic = std::get_if<KGOpPlayCinematic>(&op)) {
-        return resolve_ref(cinematic->target, symbols, error);
+        return resolve_ref(cinematic->target, kg, symbols, error);
     }
     error = "unknown op variant";
     return false;

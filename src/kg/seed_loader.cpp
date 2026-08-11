@@ -314,10 +314,51 @@ SeedParseResult parse_seed_envelope(const std::string& json_text) {
     return result;
 }
 
+// A seed declaring unique_name_per_type is promising that a name of
+// that type identifies one thing. Seeds are loaded into a SHARED
+// world, so that promise can only be checked here, against everything
+// already loaded. Checking inside one file let two seeds each create
+// a "Gun Combat" and both pass.
+//
+// This runs BEFORE anything is applied, so a collision costs nothing
+// to refuse and there is no half-loaded world to unwind.
+bool refuse_names_already_loaded(const SeedEnvelope& seed, const KGModule& kg,
+                                 int& failed_op, std::string& error) {
+    if (seed.invariants.unique_name_per_type.empty()) return true;
+    for (size_t i = 0; i < seed.ops.size(); ++i) {
+        const auto* create = std::get_if<KGOpCreateEntity>(&seed.ops[i]);
+        if (!create) continue;
+        const auto& types = seed.invariants.unique_name_per_type;
+        if (std::find(types.begin(), types.end(), create->type) ==
+            types.end()) {
+            continue;
+        }
+        std::string name;
+        for (const auto& [k, v] : create->properties)
+            if (k == "name") name = v;
+        if (name.empty()) continue;
+        for (EntityID id : kg.findByType(create->type)) {
+            if (kg.getProperty(id, "name") != name) continue;
+            failed_op = static_cast<int>(i);
+            error = "unique_name_per_type " + create->type + ": '" + name +
+                    "' is already loaded from another seed. Reference it "
+                    "with @@" + create->type + ":" + name +
+                    " instead of creating it again.";
+            return false;
+        }
+    }
+    return true;
+}
+
 bool load_seed(const SeedEnvelope& seed, KGModule& kg,
                SeedLoadReport& report) {
     report = SeedLoadReport{};
     int invalid_op = -1;
+    if (!refuse_names_already_loaded(seed, kg, invalid_op, report.error)) {
+        report.ok = false;
+        report.failed_op = invalid_op;
+        return false;
+    }
     if (!validate_loader_owned_ops(seed, kg, invalid_op, report.error)) {
         report.ok = false;
         report.failed_op = invalid_op;
