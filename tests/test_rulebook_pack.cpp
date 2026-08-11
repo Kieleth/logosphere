@@ -241,11 +241,19 @@ void test_table_results_have_one_complete_shape() {
               required("ModifyAttribute", "attribute_delta",
                        kg::PropertyValueKind::Integer),
           "ModifyAttribute cannot reach execution without both operands");
+    // roll_count is deliberately NOT required. Cepheus writes "Roll on
+    // the Injury table" with no number at all, so the seed stores no
+    // number; a 1 there would be a figure the source never printed.
+    // Absent means one, and the executor is what honours that. What a
+    // table-roll cannot do without is the table.
+    const auto* roll_count = reg.findProperty("GrantTableRoll",
+                                              "roll_count");
     CHECK(required("GrantTableRoll", "table",
                    kg::PropertyValueKind::EntityRef) &&
-              required("GrantTableRoll", "roll_count",
-                       kg::PropertyValueKind::Integer),
-          "a table-roll request names its table and count");
+              roll_count && !roll_count->required &&
+              roll_count->value_kind == kg::PropertyValueKind::Integer,
+          "a table-roll names its table; its count is optional, for the "
+          "bare instructions the book prints with no number");
 
     CHECK(required("OutcomeChoice", "choice_authority",
                    kg::PropertyValueKind::String),

@@ -641,11 +641,17 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
                               "RollableTable", table, error)) {
                 return false;
             }
-            int64_t count = 0;
-            if (!parse_integer(context.kg.getProperty(context.outcome,
-                                                      "roll_count"),
-                               "roll_count", count, error) ||
-                count < 1 || count > std::numeric_limits<int>::max()) {
+            // An absent roll_count means one. The book writes a bare
+            // "Roll on the Injury table" with no number, so the seed
+            // stores no number: a 1 there would be a figure the source
+            // never printed. A roll_count that IS present is still held
+            // to being a positive integer.
+            const std::string raw =
+                context.kg.getProperty(context.outcome, "roll_count");
+            int64_t count = 1;
+            if (!raw.empty() &&
+                (!parse_integer(raw, "roll_count", count, error) ||
+                 count < 1 || count > std::numeric_limits<int>::max())) {
                 if (error.empty()) error = "roll_count must be positive";
                 return false;
             }
