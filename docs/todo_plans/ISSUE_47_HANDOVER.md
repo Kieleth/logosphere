@@ -282,3 +282,105 @@ Phase A and B landed. C and D never started.
 - **A lever is worth more than an argument.** Three of four suspects in
   §6 were eliminated in a single command because they already had env
   gates. The fourth stayed a hypothesis purely because it did not.
+
+---
+
+## 9. THE REFRAME — why this was whack-a-mole, and what replaces it
+
+_Added after the owner asked: "we're building a physics engine, and in
+physics energy is not lost, we transform it, right?" That question
+corrected a flaw in the instrument proposed one message earlier, and the
+correction is the most useful thing in this document._
+
+### The flaw
+
+The first proposal was a ledger of "net KINETIC energy added", failing
+any unforced system where it rose. **That is wrong physics.** A
+compressed bond releasing is supposed to add kinetic energy. A falling
+body is supposed to gain it. That instrument would have flagged correct
+behaviour as violations and sent a session chasing them.
+
+### The correct invariant
+
+```
+KE  +  gravitational PE  +  elastic strain stored in bonds  +  dissipated
+```
+
+may only go DOWN in the absence of a driver. Kinetic energy may rise
+freely as long as another bucket falls by the same amount.
+
+### Why every defect in this document is one defect
+
+**A sequential-impulse solver has no energy.** It is a velocity-level
+projection: it computes impulses that satisfy constraints and never asks
+what they cost. A gluon stores a `target_distance` and a stiffness, not a
+joule. There is no strain-energy state variable anywhere in the engine.
+
+So every bug found here is the same sentence seen from a different angle:
+**the solver adds velocity that was not derived from a force.**
+
+- **Baumgarte bias** invents velocity to fix a position error. No source.
+  That is what split impulse fixed (§4.3), and it bought 10.4x.
+- **Impulse memory** re-applies a remembered impulse every frame. No
+  source. That is §6.
+- Both are legitimate numerical techniques that happen to violate
+  conservation, which is precisely why they need BOUNDING and not
+  deleting — see the measurement below.
+
+Nothing in the engine checks a conservation law, so these can only ever
+be found one scene at a time, backwards, by inference. That is the
+whack-a-mole, and it has a 3-of-3 wrong-attribution record in this
+document to prove the method does not work.
+
+### The measurement that forced this conclusion
+
+Retiring impulse memory was chosen, then measured before deleting:
+
+| | with memory | without |
+|---|---|---|
+| walk gate worst drift | 2.56 m | **6.19 m** |
+| bonds torn per pass | 17 | **24** |
+| 3-body ringing sweep | 4 of 7 fail | 0 of 7 fail |
+
+It **amplifies** an isolated light-heavy chain and **damps** real grass.
+Two true facts that look like a contradiction only because there was no
+single quantity in which both could be expressed. In an energy ledger
+they are two signed numbers in the same table.
+
+Nothing was deleted. The decision was re-opened on these numbers.
+
+### The instrument to build
+
+Every term already exists in the data:
+
+| bucket | source |
+|---|---|
+| kinetic | ½mv² — mass and velocity are on the particle |
+| gravitational | mgh — mass and z are on the particle |
+| elastic strain | ½k·x² — x is the bond's distance error, k its stiffness, both on the gluon |
+| dissipated | damping impulse × relative velocity, per row |
+
+Report per frame, **broken down by row type**: contact, gluon axis,
+angular, impulse memory, position pass. The test is then a physical law
+rather than a proxy: **total may fall, never rise.** When it rises, the
+ledger names the row type that did it, in every scene at once, with no
+reduction that might be unfaithful.
+
+This is the "go one level deeper" the charter asks for. It does not swat
+the next mole; it removes the need to hunt them.
+
+### Order of work
+
+1. **`test_physics_drive_two_joints`** — passed this morning, fails now,
+   fails with AND without the impulse-memory lever. It is one of this
+   session's 19 commits, most likely split impulse. Mine, fresh,
+   bisectable in minutes. Fix before anything else.
+2. **The energy ledger.**
+3. Let it speak to §6 and to the walk gate, instead of guessing again.
+
+### Standing ruling
+
+`test_grass_yields` stays RED for now (owner, 2026-08-10). The 66% is a
+real measurement of a corrected world; the old 79% came from a world with
+phantom duplicates and unrooted grass. Revisit once the ringing is fixed,
+and set the threshold from that number rather than this one.
