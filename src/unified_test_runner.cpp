@@ -98,6 +98,7 @@ extern bool test_butterfly_detonation();      // issue #47: gram-scale bodies vs
 extern bool test_grass_holds_together();      // issue #47 fix 1: grass is bonded and does not detonate (STANDALONE)
 extern bool test_plants_are_rooted();         // ISSUE #47: plants must be attached to the ground (STANDALONE)
 extern bool test_grass_bends_not_tears();    // ISSUE #47: grass bends, it does not mow (STANDALONE)
+extern bool test_light_body_ringing();       // SOLVER: light-body ringing (STANDALONE)
 extern bool test_baumgarte_ratchet();        // SOLVER: Baumgarte bias must not become momentum (STANDALONE)
 extern bool test_blockers_visual();           // issue #47: the two merge blockers, visible, INTERACTIVE=1 (STANDALONE)
 extern bool test_walk_through_grass();        // issue #47: Eva crosses 3 grass patches, all must stay good (STANDALONE)
@@ -299,6 +300,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_grass_holds_together"] = [](TestContext&) { return test_grass_holds_together(); };  // STANDALONE: own engine
     registry["test_plants_are_rooted"] = [](TestContext&) { return test_plants_are_rooted(); };  // STANDALONE: own engine
     registry["test_grass_bends_not_tears"] = [](TestContext&) { return test_grass_bends_not_tears(); };  // STANDALONE
+    registry["test_light_body_ringing"] = [](TestContext&) { return test_light_body_ringing(); };  // STANDALONE
     registry["test_baumgarte_ratchet"] = [](TestContext&) { return test_baumgarte_ratchet(); };  // STANDALONE: own engine
     registry["test_blockers_visual"] = [](TestContext&) { return test_blockers_visual(); };  // STANDALONE: own engine
     registry["test_walk_through_grass"] = [](TestContext&) { return test_walk_through_grass(); };  // STANDALONE: own engine
@@ -726,6 +728,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_grass_holds_together",
         "test_plants_are_rooted",
         "test_grass_bends_not_tears",
+        "test_light_body_ringing",
         "test_baumgarte_ratchet",
         "test_blockers_visual",
         "test_walk_through_grass",
@@ -839,6 +842,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_grass_holds_together", test_grass_holds_together},
         {"test_plants_are_rooted", test_plants_are_rooted},
         {"test_grass_bends_not_tears", test_grass_bends_not_tears},
+        {"test_light_body_ringing", test_light_body_ringing},
         {"test_baumgarte_ratchet", test_baumgarte_ratchet},
         {"test_blockers_visual", test_blockers_visual},
         {"test_walk_through_grass", test_walk_through_grass},
