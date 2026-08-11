@@ -216,6 +216,7 @@ class Builder:
         self.ops = []
         self.unresolved = []
         self.possessions = {}
+        self.pending_rows = []
 
     def add(self, type_name, alias, props):
         self.ops.append({"op": "create_entity", "type": type_name,
@@ -375,10 +376,16 @@ def main():
 
         elif title in RANK_TABLES:
             for index, career in enumerate(columns):
-                tag = slug(f"{career} ranks")
+                # Keyed by the career's full name, because the
+                # promotion rows in the block header use that and both
+                # must name the same ladder.
+                tag = slug(f"{canonical[career]} ranks")
                 section, quote = TABLE_CITATIONS["rank"]
+                # The promotion rules need to find a career's ladder,
+                # and a career cannot be written to, so the mapping is
+                # owned by the rule like every other one here.
                 builder.add("ProgressionTrack", f"@{tag}", dict(
-                    name=f"{career} ranks",
+                    name=f"{canonical[career]} ranks",
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote))
                 for row in table["rows"]:
@@ -421,6 +428,20 @@ def main():
                                         "from": f"@{tag}",
                                         "relation": "HAS_PART",
                                         "to": f"@{tag}_s{key}"})
+                # The promotion rules need to find a career's ladder,
+                # and a career cannot be written to, so the mapping is
+                # owned by the rule like every other one here.
+                track_row = f"@rank_track_{slug(canonical[career])}"
+                builder.add("CareerTrackEntry", track_row, dict(
+                    name=f"ranks for {canonical[career]}",
+                    subject=f"@@Career:{canonical[career]}",
+                    track=f"@{tag}",
+                    source_file=CHAPTER, source_section=section,
+                    source_kind="sentence", source_quote=quote))
+                builder.ops.append({"op": "set_relation",
+                                    "from": "@rank_tracks",
+                                    "relation": "HAS_PART",
+                                    "to": track_row})
                 counts["rank"] += 1
 
         elif is_block_header(table):
@@ -461,16 +482,22 @@ def main():
                     # an earlier seed, and a seed may point at what
                     # another owns but never write onto it.
                     throw_row = f"@{kind}_row_{slug(career)}"
-                    builder.add("CareerThrowEntry", throw_row, dict(
+                    props_row = dict(
                         name=f"{kind} throw for {career}",
                         subject=f"@@Career:{career}",
                         throw_check=alias,
-                        **builder.cite(title, row_label, career, value)))
-                    builder.ops.append({"op": "set_relation",
-                                        "from": f"@{kind}_table",
-                                        "relation": "HAS_PART",
-                                        "to": throw_row})
+                        **builder.cite(title, row_label, career, value))
+                    if kind in ("commission", "advancement"):
+                        props_row["track"] = f"@{slug(career)}_ranks"
+                    builder.pending_rows.append((kind, throw_row, props_row))
                     counts["check"] += 1
+
+    # Emitted here, after every rank ladder exists, because a promotion
+    # row names the ladder it moves you along.
+    for kind, alias, props in builder.pending_rows:
+        builder.add("CareerThrowEntry", alias, props)
+        builder.ops.append({"op": "set_relation", "from": f"@{kind}_table",
+                            "relation": "HAS_PART", "to": alias})
 
     # One table per rule, created before its rows reference it.
     # A rule-owned table cites the rule that owns it. Addressing the
@@ -492,6 +519,15 @@ def main():
             source_kind="sentence", source_quote=quote))
         builder.ops.append({"op": "set_relation", "from": "@training_tables",
                             "relation": "HAS_PART", "to": row})
+
+    section, quote = TABLE_CITATIONS["rank"]
+    builder.ops.insert(0, {
+        "op": "create_entity", "type": "SubjectLookupTable",
+        "as": "@rank_tracks",
+        "properties": dict(
+            name="rank track by career",
+            source_file=CHAPTER, source_section=section,
+            source_kind="sentence", source_quote=quote)})
 
     section, quote = TABLE_CITATIONS["skill"]
     builder.ops.insert(0, {
@@ -539,7 +575,8 @@ def main():
         "invariants": {"count_of_type": {
                            "CareerThrowEntry": counts["check"],
                            "CareerTableEntry": counts["skill_table"] + 24,
-                           "SubjectLookupTable": 4,
+                           "CareerTrackEntry": counts["rank"],
+                           "SubjectLookupTable": 5,
                            "ProgressionTrack": counts["rank"]},
                        "unique_name_per_type": ["RollableTable", "TaskCheck",
                                                 "ProgressionTrack",

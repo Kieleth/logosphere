@@ -23,6 +23,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Career", "Entity", false);
     reg.addEntityType("CareerTableEntry", "SubjectLookupEntry", false);
     reg.addEntityType("CareerThrowEntry", "SubjectLookupEntry", false);
+    reg.addEntityType("CareerTrackEntry", "SubjectLookupEntry", false);
     reg.addEntityType("Character", "LivingEntity", false);
     reg.addEntityType("CharacteristicModifierEntry", "LookupEntry", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -141,6 +142,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Career", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("CareerTableEntry", {"Cited", "Describable", "Entity", "Identifiable", "SubjectLookupEntry", "Temporal"});
     reg.addAncestors("CareerThrowEntry", {"Cited", "Describable", "Entity", "Identifiable", "SubjectLookupEntry", "Temporal"});
+    reg.addAncestors("CareerTrackEntry", {"Cited", "Describable", "Entity", "Identifiable", "SubjectLookupEntry", "Temporal"});
     reg.addAncestors("Character", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("CharacteristicModifierEntry", {"Cited", "Describable", "Entity", "Identifiable", "LookupEntry", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -250,6 +252,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addFacets("CareerTableEntry", {"rulebook"});
     reg.addFacets("CareerThrowEntry", {"rulebook"});
+    reg.addFacets("CareerTrackEntry", {"rulebook"});
     reg.addFacets("CharacteristicModifierEntry", {"rulebook"});
     reg.addFacets("Currency", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -345,6 +348,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("Career", "survival_check", false, "TaskCheck");
     reg.addRefProperty("CareerTableEntry", "rollable_table", true, "RollableTable");
     reg.addRefProperty("CareerThrowEntry", "throw_check", true, "TaskCheck");
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addRefProperty("CareerThrowEntry", "track", false, "Entity");
+    reg.addRefProperty("CareerTrackEntry", "track", true, "Entity");
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addProperty("Character", "dexterity", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "endurance", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "intelligence", "integer", false, true, 0.0, true, 33.0);

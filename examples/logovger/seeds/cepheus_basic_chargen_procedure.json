@@ -7,7 +7,7 @@
  "invariants": {
   "count_of_type": {
    "Procedure": 1,
-   "ProcedureStep": 10,
+   "ProcedureStep": 12,
    "StepRoute": 9
   },
   "unique_name_per_type": [
@@ -82,7 +82,7 @@
    "as": "@roll_training",
    "properties": {
     "name": "roll_training",
-    "step_index": "4",
+    "step_index": "6",
     "primitive_ref": "roll_training",
     "source_section": "Character Creation Checklist",
     "source_quote": "Choose one of the Skills and Training tables for this career and roll on it.",
@@ -95,7 +95,7 @@
    "as": "@advance_term",
    "properties": {
     "name": "advance_term",
-    "step_index": "5",
+    "step_index": "7",
     "primitive_ref": "advance_term",
     "source_section": "Character Creation Checklist",
     "source_quote": "Increase your age by 4 years."
@@ -107,7 +107,7 @@
    "as": "@choose_term_end",
    "properties": {
     "name": "choose_term_end",
-    "step_index": "7",
+    "step_index": "9",
     "primitive_ref": "choose_term_end",
     "source_section": "Reenlistment and Retirement",
     "source_quote": "At the end of each term, the character must decide that they wish to continue on their career path or if they wish to muster out."
@@ -119,7 +119,7 @@
    "as": "@finish_character",
    "properties": {
     "name": "finish_character",
-    "step_index": "8",
+    "step_index": "10",
     "primitive_ref": "finish_character",
     "source_section": "Character Creation Checklist",
     "source_quote": "If you wish to leave this career, go to step 10."
@@ -131,7 +131,7 @@
    "as": "@draft_or_drifter",
    "properties": {
     "name": "draft or drifter",
-    "step_index": "9",
+    "step_index": "11",
     "primitive_ref": "draft_or_drifter",
     "source_file": "book1/character-creation.md",
     "source_section": "Qualifying and the Draft",
@@ -315,7 +315,7 @@
    "as": "@roll_reenlistment",
    "properties": {
     "name": "roll_reenlistment",
-    "step_index": "6",
+    "step_index": "8",
     "primitive_ref": "roll_reenlistment",
     "subject_table": "@@SubjectLookupTable:reenlistment throw by career",
     "source_file": "book1/character-creation.md",
@@ -389,6 +389,48 @@
    "from": "@roll_reenlistment",
    "relation": "HAS_PART",
    "to": "@reenlist_allowed"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_commission",
+   "properties": {
+    "name": "roll_commission",
+    "step_index": "4",
+    "primitive_ref": "roll_commission",
+    "subject_table": "@@SubjectLookupTable:commission throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "If your career offers a Commission check and you are Rank 0, you can choose to roll for Commission."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_commission"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_advancement",
+   "properties": {
+    "name": "roll_advancement",
+    "step_index": "5",
+    "primitive_ref": "roll_advancement",
+    "subject_table": "@@SubjectLookupTable:advancement throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "If your career offers an Advancement check and you are Rank 1 or higher, you can choose to roll for Advancement."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_advancement"
   }
  ]
 }

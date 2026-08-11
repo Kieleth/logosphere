@@ -25,6 +25,10 @@ make_chargen_procedure_registry() {
     // Turned away: the book gives exactly two ways to spend the term.
     add("draft_or_drifter", {"took_it"});
     add("roll_survival", {"passed", "failed"});
+    // Optional, once a term, and skipped entirely by the seven
+    // careers the book says have no hierarchy.
+    add("roll_commission");
+    add("roll_advancement");
     add("roll_training");
     add("advance_term");
     // Two of the three outcomes are not the player's to choose.

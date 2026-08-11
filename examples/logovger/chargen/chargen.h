@@ -117,6 +117,8 @@ private:
     PrimitiveResult roll_survival(const PrimitiveContext& context);
     PrimitiveResult roll_training(const PrimitiveContext& context);
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
+    PrimitiveResult roll_promotion(const PrimitiveContext& context,
+                                   bool commission);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
@@ -133,6 +135,10 @@ private:
     kg::EntityID                     procedure_ = kg::INVALID_ENTITY;
     logosphere::rules::ProcedureCursor cursor_;
     std::string                      finish_reason_;
+    // Training rolls the character has coming. One a term, plus one
+    // for each promotion, plus one more when the career offers no
+    // promotion at all. The book counts them; this is that count.
+    int                              training_rolls_owed_ = 0;
     size_t                           drained_ = 0;
     std::string                      turned_away_from_;
 };

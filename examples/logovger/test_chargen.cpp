@@ -143,11 +143,12 @@ void test_a_life_is_generated() {
     logosphere::dice::DiceService dice;
     logovger::ChargenRequest req;
     req.career_name = "Agent";
-    // Seed 3, not 1. Re-enlistment is a throw now, not a decision, so
-    // most lives end when the book says they end rather than when the
-    // player is finished; seed 1 is refused after one term. This one
-    // still runs the full path, which is what the case is for.
-    req.seed        = 3;
+    // Seed 28, not 1. Re-enlistment is a throw now rather than a
+    // decision, so most lives end when the book ends them and seed 1
+    // is refused after a single term. This one runs the full path:
+    // four terms, four gains, and one skill reached twice, which the
+    // repeat assertion below needs.
+    req.seed        = 28;
     req.max_terms   = 4;
 
     logovger::CharacterSheet sheet;
@@ -515,10 +516,11 @@ void test_skill_outcome_parameters_drive_the_executor() {
     }
 
     logosphere::dice::DiceService changed_dice;
-    // Seed 3: a life long enough to gain the same skill twice, which
-    // is what this case measures. Re-enlistment is a throw now, and
-    // seed 1 is refused after one term.
-    logovger::ChargenRequest request{"Agent", 3, 4};
+    // Seed 28: four terms, four gains, three ratings, one of them at
+    // level 2. That repeat is what this case measures, and it takes a
+    // specific life to produce now that promotions buy extra training
+    // rolls and each roll may land on a different skill.
+    logovger::ChargenRequest request{"Agent", 28, 4};
     logovger::CharacterSheet changed_sheet;
     std::string error;
     const bool changed_ok = logovger::run_chargen(
@@ -688,10 +690,11 @@ void test_procedure_data_drives_chargen_control_flow() {
     CHECK(redirected, "the term decision carries a continue route in data");
 
     logosphere::dice::DiceService dice;
-    // Seed 3: a life long enough to gain the same skill twice, which
-    // is what this case measures. Re-enlistment is a throw now, and
-    // seed 1 is refused after one term.
-    logovger::ChargenRequest request{"Agent", 3, 4};
+    // Seed 28: four terms, four gains, three ratings, one of them at
+    // level 2. That repeat is what this case measures, and it takes a
+    // specific life to produce now that promotions buy extra training
+    // rolls and each roll may land on a different skill.
+    logovger::ChargenRequest request{"Agent", 28, 4};
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(
@@ -722,10 +725,11 @@ void test_unknown_runtime_primitive_fails_before_character_state() {
     const auto characters_before = world.findByType("Character").size();
 
     logosphere::dice::DiceService dice;
-    // Seed 3: a life long enough to gain the same skill twice, which
-    // is what this case measures. Re-enlistment is a throw now, and
-    // seed 1 is refused after one term.
-    logovger::ChargenRequest request{"Agent", 3, 4};
+    // Seed 28: four terms, four gains, three ratings, one of them at
+    // level 2. That repeat is what this case measures, and it takes a
+    // specific life to produce now that promotions buy extra training
+    // rolls and each roll may land on a different skill.
+    logovger::ChargenRequest request{"Agent", 28, 4};
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(

@@ -331,6 +331,12 @@ void ChargenSession::bind_primitives() {
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
     });
+    bind("roll_commission", [this](const PrimitiveContext& context) {
+        return roll_promotion(context, true);
+    });
+    bind("roll_advancement", [this](const PrimitiveContext& context) {
+        return roll_promotion(context, false);
+    });
     bind("roll_reenlistment", [this](const PrimitiveContext& context) {
         return roll_reenlistment(context);
     });
@@ -703,6 +709,7 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     const PrimitiveContext& context) {
     const int term = sheet_.terms_served + 1;
     std::string table_error;
+    if (training_rolls_owed_ <= 0) training_rolls_owed_ = 1;
     const auto options = subject_rows(kg_, context.step, career_,
                                       "rollable_table", table_error);
     if (options.empty()) {
@@ -742,6 +749,95 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     sheet_.skills.push_back(skill);
     sheet_.life.push_back({term, "gained " + skill,
                            kg_.getProperty(chosen, "name"), skill_roll});
+    // A promotion buys another roll, and so does a career with no
+    // hierarchy to climb. Stay on this step until they are spent.
+    if (--training_rolls_owed_ > 0) return roll_training(context);
+    return PrimitiveResult::advance();
+}
+
+// Step 6. Commission takes a Rank 0 character into the officer ranks;
+// Advancement moves a Rank 1 or higher character up one. Both are
+// optional and both are once per term, and a career that offers
+// neither gives a second training roll instead, which is why the
+// count of rolls owed lives on the session rather than in the step.
+ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
+    const PrimitiveContext& context, bool commission) {
+    const char* what = commission ? "commission" : "advancement";
+    const int term = sheet_.terms_served + 1;
+    std::string error;
+    const auto check = subject_row(kg_, context.step, career_,
+                                   "throw_check", error);
+    // No row means this career does not offer the throw at all, which
+    // the book states for seven of them. Not an error: a skip.
+    if (check == kg::INVALID_ENTITY) return PrimitiveResult::advance();
+    const bool eligible = commission ? sheet_.rank == 0 : sheet_.rank >= 1;
+    if (!eligible) return PrimitiveResult::advance();
+
+    if (!context.input) {
+        choices_ = {{"1", std::string("Try for ") + what,
+                     "a throw you may take once this term"},
+                    {"2", "Do not try", "stay where you are"}};
+        prompt_ = std::string("Term ") + std::to_string(term) + ": try for " +
+                  what + "?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the options");
+    }
+    const bool attempt = picked->key == "1";
+    choices_.clear();
+    if (!attempt) {
+        sheet_.life.push_back({term, std::string("declined ") + what,
+                               "reaching for rank is optional", 0});
+        return PrimitiveResult::advance();
+    }
+
+    logosphere::rules::TaskCheckRunner runner(kg_, dice_);
+    const auto thrown = runner.run(check, sheet_.id, "chargen", what);
+    if (!thrown.ok()) return PrimitiveResult::failed(thrown.error);
+    const auto& execution = *thrown.execution;
+    if (!execution.passed()) {
+        sheet_.life.push_back({term, std::string("no ") + what,
+                               check_detail(execution),
+                               execution.roll().id});
+        return PrimitiveResult::advance();
+    }
+
+    sheet_.rank = commission ? 1 : sheet_.rank + 1;
+    // "You also get any benefits listed for your new rank", and an
+    // extra roll on any Skills and Training table.
+    ++training_rolls_owed_;
+    std::string rank_error;
+    const auto track = subject_row(kg_, context.step, career_, "track",
+                                   rank_error);
+    if (track != kg::INVALID_ENTITY) {
+        for (auto rung : kg_.getRelated(track, "HAS_PART")) {
+            if (kg_.getProperty(rung, "step_index") !=
+                std::to_string(sheet_.rank)) {
+                continue;
+            }
+            sheet_.rank_title = kg_.getProperty(rung, "step_title");
+            const std::string grant = kg_.getProperty(rung, "grants");
+            if (grant.empty()) break;
+            logosphere::rules::OutcomeExecutor executor(kg_, dice_);
+            const auto applied = executor.apply(
+                static_cast<kg::EntityID>(std::stoul(grant)),
+                {sheet_.id, "chargen", "rank benefit"});
+            if (applied.status !=
+                logosphere::rules::OutcomeStatus::APPLIED) {
+                return PrimitiveResult::failed("rank benefit: " +
+                                               applied.error);
+            }
+            break;
+        }
+    }
+    sheet_.life.push_back(
+        {term,
+         std::string(commission ? "commissioned" : "promoted") +
+             (sheet_.rank_title.empty() ? "" : ": " + sheet_.rank_title),
+         check_detail(execution), execution.roll().id});
     return PrimitiveResult::advance();
 }
 
@@ -915,6 +1011,16 @@ bool run_chargen(const ChargenRequest& request,
         // term, and an auto-player has no taste. It takes Service
         // Skills, which is the table this harness rolled before the
         // choice existed, so what it measures is unchanged.
+        // Reaching for rank costs nothing but the throw, so the
+        // auto-player always tries. A human decides; this one has no
+        // reason not to.
+        if (session.prompt().find("try for commission") !=
+                std::string::npos ||
+            session.prompt().find("try for advancement") !=
+                std::string::npos) {
+            if (!session.choose("1", error)) return false;
+            continue;
+        }
         if (session.prompt().find("which table do you train on") !=
             std::string::npos) {
             const auto service = std::find_if(

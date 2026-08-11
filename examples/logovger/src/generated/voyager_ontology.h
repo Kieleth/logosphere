@@ -1764,9 +1764,12 @@ struct CharacteristicModifierEntry : public LookupEntry {
 
 
 /// One row of a per-career throw table: which career, and the throw it makes [book1/character-creation.md "Career Tables"]. The Commission, Advancement and Re-enlistment rows of the career tables are exactly this, one table per rule.
+/// A promotion row also carries the rank ladder it moves you along, because succeeding at the throw and taking the new rank's benefits are one rule, and a step consults one table.
 struct CareerThrowEntry : public SubjectLookupEntry {
     /// The throw this row supplies for its career [book1/character-creation.md "Career Tables"].
     TaskCheck throw_check = {};
+    /// The ProgressionTrack this standing is on.
+    std::optional<Entity> track = std::nullopt;
 };
 
 
@@ -1774,6 +1777,13 @@ struct CareerThrowEntry : public SubjectLookupEntry {
 struct CareerTableEntry : public SubjectLookupEntry {
     /// The table this row supplies for its career [book1/character-creation.md "Career Tables"].
     RollableTable rollable_table = {};
+};
+
+
+/// One row of the rank-track mapping: which career, and the ladder of ranks it has [book1/character-creation.md "Career Tables" Ranks and Skills].
+struct CareerTrackEntry : public SubjectLookupEntry {
+    /// The ProgressionTrack this standing is on.
+    Entity track = {};
 };
 
 

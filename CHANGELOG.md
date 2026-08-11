@@ -27,6 +27,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   travel together: neither, or both. `TaskCheckRunner` throws unmodified
   checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
   a pointer that is null when there was nothing to look up.
+- **Logovger commission and advancement.** Rank 0 characters may try for a
+  commission, Rank 1 and above for advancement, once each per term and only
+  where the book gives the career a hierarchy. A promotion takes the new
+  rank's title and bonus skill and buys an extra training roll.
 - **Logovger training is a choice, not an automatic roll.** The book says
   "choose one of the Skills and Training tables for this career and roll on
   it", and offers four: Personal Development, Service Skills, Specialist and
