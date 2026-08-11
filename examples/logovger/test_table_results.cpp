@@ -66,6 +66,23 @@ kg::SeedEnvelope parse_table_seed() {
     return parsed.seed;
 }
 
+// The careers seed references the skills the vocabulary seed owns, so
+// every verification of it needs that prerequisite loaded first. Parsed
+// once: it is the same file on every call.
+const std::vector<const kg::SeedEnvelope*>& skill_vocabulary() {
+    static kg::SeedEnvelope owned = [] {
+        auto parsed = kg::parse_seed_envelope(
+            slurp(game_path("seeds/cepheus_book1_skill_vocabulary.json")));
+        if (!parsed.ok()) {
+            std::cout << "  [setup] the skill vocabulary does not parse: "
+                      << parsed.error << std::endl;
+        }
+        return parsed.seed;
+    }();
+    static std::vector<const kg::SeedEnvelope*> as_prerequisite{&owned};
+    return as_prerequisite;
+}
+
 kg::SeedEnvelope parse_career_seed() {
     const auto parsed = kg::parse_seed_envelope(
         slurp(game_path("seeds/cepheus_careers.json")));
@@ -278,13 +295,22 @@ void test_cited_tables_load_with_typed_results() {
           "the verified table seed loads: " + loaded.error);
     if (!loaded.error.empty()) return;
 
+    // The careers seed references the skills the vocabulary seed owns,
+    // so verification needs the same prerequisite the game loads first.
+    const auto vocabulary = kg::parse_seed_envelope(
+        slurp(game_path("seeds/cepheus_book1_skill_vocabulary.json")));
+    CHECK(vocabulary.ok(),
+          "the skill vocabulary parses: " + vocabulary.error);
+    if (!vocabulary.ok()) return;
+
     const auto careers = kg::parse_seed_envelope(
         slurp(game_path("seeds/cepheus_careers.json")));
     CHECK(careers.ok(), "the careers seed containing the modifier table "
                         "parses: " + careers.error);
     if (!careers.ok()) return;
     const auto careers_verified = kg::verify_seed(
-        careers.seed, game_path("srd/cepheus"), reg);
+        careers.seed, game_path("srd/cepheus"), reg, nullptr,
+        {&vocabulary.seed});
     if (!careers_verified.ok()) {
         for (const auto& violation : careers_verified.violations)
             std::cout << "  [measure] careers " << violation.check << ": "
@@ -293,6 +319,9 @@ void test_cited_tables_load_with_typed_results() {
     CHECK(careers_verified.ok(),
           "the careers seed and colocated modifier table verify");
     if (!careers_verified.ok()) return;
+    kg::SeedLoadReport vocabulary_loaded;
+    CHECK(kg::load_seed(vocabulary.seed, world, vocabulary_loaded),
+          "the vocabulary loads first: " + vocabulary_loaded.error);
     kg::SeedLoadReport careers_loaded;
     CHECK(kg::load_seed(careers.seed, world, careers_loaded),
           "the verified careers seed loads: " + careers_loaded.error);
@@ -372,7 +401,8 @@ void test_lookup_table_rejects_an_unknown_entry_type() {
     CHECK(set_property(seed, "dm_table", "entry_type", "MissingEntry"),
           "the lookup type mutation was applied");
     const auto report = kg::verify_seed(
-        seed, game_path("srd/cepheus"), game_registry());
+        seed, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(!report.ok(), "an unknown lookup entry type fails verification");
     CHECK(semantic_reason_contains(report, "unknown entry_type"),
           "the semantic error names the unresolved ontology type");
@@ -383,7 +413,8 @@ void test_lookup_table_rejects_rows_of_another_declared_shape() {
     CHECK(set_property(seed, "dm_table", "entry_type", "DifficultyEntry"),
           "the incompatible lookup type mutation was applied");
     const auto report = kg::verify_seed(
-        seed, game_path("srd/cepheus"), game_registry());
+        seed, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(!report.ok(), "rows that contradict their table type fail");
     CHECK(semantic_reason_contains(report,
                                    "CharacteristicModifierEntry") &&
@@ -396,7 +427,8 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     CHECK(set_property(abstract, "dm_table", "entry_type", "LookupEntry"),
           "the abstract lookup type mutation was applied");
     const auto abstract_report = kg::verify_seed(
-        abstract, game_path("srd/cepheus"), game_registry());
+        abstract, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(abstract_report, "is abstract"),
           "a table cannot declare the abstract base as its result shape");
 
@@ -404,7 +436,8 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     CHECK(set_property(unrelated, "dm_table", "entry_type", "EndCareer"),
           "the unrelated lookup type mutation was applied");
     const auto unrelated_report = kg::verify_seed(
-        unrelated, game_path("srd/cepheus"), game_registry());
+        unrelated, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(unrelated_report,
                                    "is not a LookupEntry subtype"),
           "a table cannot declare an unrelated ontology type");
@@ -413,7 +446,8 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     CHECK(remove_relations_from(empty, "dm_table"),
           "both characteristic row relations were removed");
     const auto empty_report = kg::verify_seed(
-        empty, game_path("srd/cepheus"), game_registry());
+        empty, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(empty_report, "has no HAS_PART rows"),
           "a lookup table without rows fails semantic verification");
 }
@@ -423,7 +457,8 @@ void test_lookup_rows_require_one_explicit_bound_mode_per_side() {
     CHECK(remove_property(missing, "dm_row_0_2", "key_max"),
           "the finite upper lookup bound was removed");
     const auto missing_report = kg::verify_seed(
-        missing, game_path("srd/cepheus"), game_registry());
+        missing, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(missing_report, "key_max"),
           "an omitted lookup maximum without an unbounded flag fails");
 
@@ -432,7 +467,8 @@ void test_lookup_rows_require_one_explicit_bound_mode_per_side() {
                        "true"),
           "the contradictory upper-unbounded flag was added");
     const auto ambiguous_report = kg::verify_seed(
-        ambiguous, game_path("srd/cepheus"), game_registry());
+        ambiguous, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(ambiguous_report, "both key_max"),
           "a finite and unbounded maximum cannot coexist");
 }
@@ -443,7 +479,8 @@ void test_task_check_requires_an_integer_modifier_result() {
                        "modifier_property", "pseudohex_min"),
           "the non-integer TaskCheck modifier column mutation was applied");
     const auto wrong_type_report = kg::verify_seed(
-        wrong_type, game_path("srd/cepheus"), game_registry());
+        wrong_type, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(!wrong_type_report.ok(),
           "a TaskCheck modifier column with the wrong type fails verification");
     CHECK(semantic_reason_contains(wrong_type_report,
@@ -456,7 +493,8 @@ void test_task_check_requires_an_integer_modifier_result() {
                        "modifier_property", "missing_modifier"),
           "the missing TaskCheck modifier column mutation was applied");
     const auto missing_report = kg::verify_seed(
-        missing, game_path("srd/cepheus"), game_registry());
+        missing, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(!missing_report.ok(),
           "an unknown TaskCheck modifier column fails verification");
     CHECK(semantic_reason_contains(missing_report,
@@ -470,7 +508,8 @@ void test_outcome_sequence_rejects_duplicate_order() {
     CHECK(set_property(seed, "mishap_3_step_1", "step_index", "0"),
           "the duplicate step mutation was applied");
     const auto report = kg::verify_seed(
-        seed, game_path("srd/cepheus"), game_registry());
+        seed, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(!report.ok(), "duplicate outcome step order fails verification");
     CHECK(semantic_reason_contains(report, "duplicate step_index 0"),
           "the semantic error names the duplicate sequence index");
@@ -481,7 +520,8 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
     CHECK(remove_relations_from(empty, "mishap_3_sequence"),
           "both sequence-step relations were removed");
     const auto empty_report = kg::verify_seed(
-        empty, game_path("srd/cepheus"), game_registry());
+        empty, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(empty_report,
                                    "has no OutcomeStep parts"),
           "an empty composite outcome fails semantic verification");
@@ -491,7 +531,8 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
                             "mishap_3_step_1", "end_career"),
           "a sequence relation was retargeted to a non-step outcome");
     const auto wrong_part_report = kg::verify_seed(
-        wrong_part, game_path("srd/cepheus"), game_registry());
+        wrong_part, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(wrong_part_report,
                                    "non-OutcomeStep part type 'EndCareer'"),
           "a sequence rejects parts that are not OutcomeStep entities");
@@ -500,7 +541,8 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
     CHECK(set_property(gap, "mishap_3_step_1", "step_index", "2"),
           "the sequence gap mutation was applied");
     const auto gap_report = kg::verify_seed(
-        gap, game_path("srd/cepheus"), game_registry());
+        gap, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(gap_report, "are not contiguous"),
           "a sequence rejects gaps in its explicit order");
 }
@@ -508,7 +550,8 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
 void test_outcome_choice_requires_authority_options_and_order() {
     auto complete = seed_with_complete_choice();
     const auto complete_report = kg::verify_seed(
-        complete, game_path("srd/cepheus"), game_registry());
+        complete, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     if (!complete_report.ok()) {
         for (const auto& violation : complete_report.violations) {
             std::cout << "  [measure] " << violation.check << ": "
@@ -523,7 +566,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
                        "nobody"),
           "the invalid choice authority mutation was applied");
     const auto authority_report = kg::verify_seed(
-        authority, game_path("srd/cepheus"), game_registry());
+        authority, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(authority_report,
                                    "unknown choice_authority 'nobody'"),
           "a choice rejects authority outside player, referee, procedure");
@@ -532,7 +576,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
     CHECK(remove_relations_from(empty, "injury_choice"),
           "both choice-option relations were removed");
     const auto empty_report = kg::verify_seed(
-        empty, game_path("srd/cepheus"), game_registry());
+        empty, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(empty_report,
                                    "has no OutcomeOption parts"),
           "a choice without alternatives fails semantic verification");
@@ -542,7 +587,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
                             "injury_choice_strength", "end_career"),
           "a choice relation was retargeted to a non-option outcome");
     const auto wrong_part_report = kg::verify_seed(
-        wrong_part, game_path("srd/cepheus"), game_registry());
+        wrong_part, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(
               wrong_part_report,
               "non-OutcomeOption part type 'EndCareer'"),
@@ -553,7 +599,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
                        "option_index", "0"),
           "the duplicate option index mutation was applied");
     const auto duplicate_report = kg::verify_seed(
-        duplicate, game_path("srd/cepheus"), game_registry());
+        duplicate, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(duplicate_report,
                                    "duplicate option_index 0"),
           "a choice rejects duplicate option order");
@@ -562,7 +609,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
     CHECK(set_property(gap, "injury_choice_dexterity", "option_index", "2"),
           "the option gap mutation was applied");
     const auto gap_report = kg::verify_seed(
-        gap, game_path("srd/cepheus"), game_registry());
+        gap, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(gap_report, "are not contiguous"),
           "a choice rejects gaps in option order");
 
@@ -571,7 +619,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
                        "option_label", ""),
           "the empty option label mutation was applied");
     const auto empty_label_report = kg::verify_seed(
-        empty_label, game_path("srd/cepheus"), game_registry());
+        empty_label, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(empty_label_report,
                                    "has empty option_label"),
           "a choice rejects an unlabeled alternative");
@@ -583,7 +632,8 @@ void test_rollable_table_rejects_non_rows() {
                             "end_career"),
           "a rollable-table relation was retargeted to an Outcome");
     const auto report = kg::verify_seed(
-        seed, game_path("srd/cepheus"), game_registry());
+        seed, game_path("srd/cepheus"), game_registry(), nullptr,
+        skill_vocabulary());
     CHECK(semantic_reason_contains(report,
                                    "non-TableEntry row type 'EndCareer'"),
           "a rollable table rejects attached entities that are not rows");
