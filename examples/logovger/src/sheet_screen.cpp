@@ -163,7 +163,7 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
     sy += kPad;
     auto* skills_title = make_label(right_, kPad, sy, right_w - 2 * kPad,
                                     200, 190, 150);
-    skills_title->set_text("SKILLS   (click one to read it)");
+    skills_title->set_text("SKILLS AND HOLDINGS   (click a skill)");
     sy += kLine + 2;
 
     // A seven-term life can learn more skills than any fixed run of
@@ -503,6 +503,16 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
     } else {
         set_stat(i++, "survives on", "-", kg::INVALID_ENTITY);
     }
+    // Rank, and what the years paid. Promotions and mustering out
+    // happen in the log; without these they scroll past and are gone.
+    set_stat(i++, "Rank",
+             s.rank_title.empty()
+                 ? std::to_string(s.rank)
+                 : std::to_string(s.rank) + "  " + s.rank_title,
+             kg::INVALID_ENTITY);
+    set_stat(i++, "Credits",
+             s.credits == 0 ? "-" : "Cr" + std::to_string(s.credits),
+             kg::INVALID_ENTITY);
     set_stat(i++, "Age", std::to_string(s.age_years), kg::INVALID_ENTITY);
     set_stat(i++, "Terms", std::to_string(s.terms_served), kg::INVALID_ENTITY);
 
@@ -518,6 +528,11 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
         const auto level = kg.getProperty(part, "skill_level");
         skill_rows.push_back({name, name, "-" + (level.empty() ? "1" : level)});
     }
+    // What they own sits with what they know: both are things the
+    // character walks around with. A holding carries no key, so
+    // clicking it asks the book nothing rather than asking wrongly.
+    for (const auto& held : s.possessions)
+        skill_rows.push_back({"", held, "held"});
     if (skill_rows.empty())
         skill_rows.push_back({"", "(none yet)", ""});
     if (skills_list_) skills_list_->set_rows(std::move(skill_rows));

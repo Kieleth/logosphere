@@ -1443,6 +1443,19 @@ bool format_character_facts(const CharacterSheet& s,
         summary << "\nSkills:";
         for (const auto& skill : s.skills) summary << " " << skill;
     }
+    // Rank, money and belongings are facts about the person, and the
+    // narrator writes from facts. Without them a commissioned officer
+    // reads the same as a rating, and mustering out changes nothing
+    // about how the character is described.
+    if (s.rank > 0) {
+        summary << "\nRank " << s.rank;
+        if (!s.rank_title.empty()) summary << ", " << s.rank_title;
+    }
+    if (s.credits != 0) summary << "\nCredits: " << s.credits;
+    if (!s.possessions.empty()) {
+        summary << "\nHolds:";
+        for (const auto& held : s.possessions) summary << " " << held << ";";
+    }
     out = summary.str();
     return true;
 }

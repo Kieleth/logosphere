@@ -21,7 +21,8 @@ namespace logovger {
 // A dark table with a lamp on it.
 constexpr int kPad = 12;
 constexpr int kLine = 18;
-constexpr int kStatRows = 12;         // six characteristics, career, age...
+constexpr int kStatRows = 14;         // six characteristics, career, rank,
+                                      // money, age, terms, the throws
 constexpr int kNarrationLines = 14;
 constexpr int kProvLines = 6;
 constexpr int kDossierLines = 7;      // where they are from, how they look
