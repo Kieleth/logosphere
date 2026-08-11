@@ -41,6 +41,12 @@
 //   7120ff46938a7b0d  carried through the inertia-tensor and gluon-identity
 //                     work; held bit-identical across the debug-rot deletion,
 //                     the orphan-model deletion and both material commits
+//   41d9cb760d6eed9d  the split-impulse POSITION pass got a SLOP tolerance.
+//                     It corrected any non-zero error, so below ~1 um it was
+//                     chasing float residue: 1955 lifts of 290 nm on a scene
+//                     AT REST, each doing unpaid work against gravity. With
+//                     the tolerance, test_settling_wiggle reads d_TOTAL = 0
+//                     exactly — the engine's first energy-neutral scene.
 //   db2d1f7ad9d245bf  position repair reaches sleeping bodies (only KINEMATIC
 //                     is immovable to it). Should have been pinned with that
 //                     commit and was not; recorded here on discovery.
