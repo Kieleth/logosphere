@@ -731,7 +731,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
                  "roll 1D6 on it", options[i]});
         }
         prompt_ = "Term " + std::to_string(term) +
-                  ": which table do you train on?";
+                  ": which table do you train on? (click one to read "
+                  "what it can give you)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
     const Choice* picked = find_choice(choices_, *context.input);
@@ -940,7 +941,8 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                  tables[i]});
         }
         prompt_ = std::to_string(benefit_rolls_owed_) +
-                  " benefit roll(s) left: which table?";
+                  " benefit roll(s) left: which table? (click one to "
+                  "read what is on it)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
     const Choice* picked = find_choice(choices_, *context.input);
@@ -991,7 +993,8 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                  tables[i]});
         }
         prompt_ = std::to_string(benefit_rolls_owed_) +
-                  " benefit roll(s) left: which table?";
+                  " benefit roll(s) left: which table? (click one to "
+                  "read what is on it)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
 
@@ -1037,11 +1040,43 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
     if (!eligible) return PrimitiveResult::advance();
 
     if (!context.input) {
+        // Say what is being risked and what is being reached for. A
+        // player asked to gamble should be told the odds, the prize
+        // and the cost, and the cost here is nothing, which is worth
+        // knowing too.
+        const std::string throw_text =
+            kg_.getProperty(check, "attribute_ref") + " " +
+            kg_.getProperty(check, "target_number") + "+";
+        const int next_rank = commission ? 1 : sheet_.rank + 1;
+        std::string prize = "rank " + std::to_string(next_rank);
+        std::string rung_error;
+        const auto track = subject_row(kg_, context.step, career_, "track",
+                                       rung_error);
+        if (track != kg::INVALID_ENTITY) {
+            for (auto rung : kg_.getRelated(track, "HAS_PART")) {
+                if (kg_.getProperty(rung, "step_index") !=
+                    std::to_string(next_rank)) {
+                    continue;
+                }
+                const std::string title =
+                    kg_.getProperty(rung, "step_title");
+                if (!title.empty()) prize = title;
+                if (!kg_.getProperty(rung, "grants").empty()) {
+                    prize += " and its skill";
+                }
+                break;
+            }
+        }
         choices_ = {{"1", std::string("Try for ") + what,
-                     "a throw you may take once this term"},
-                    {"2", "Do not try", "stay where you are"}};
+                     "throw " + throw_text + " -> " + prize +
+                         ", plus a training roll. Fail and nothing "
+                         "changes.",
+                     check},
+                    {"2", "Do not try",
+                     "stay rank " + std::to_string(sheet_.rank) +
+                         " and keep this term's single training roll"}};
         prompt_ = std::string("Term ") + std::to_string(term) + ": try for " +
-                  what + "?";
+                  what + "? (click it to read the throw)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
     const Choice* picked = find_choice(choices_, *context.input);

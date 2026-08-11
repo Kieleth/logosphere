@@ -575,6 +575,33 @@ void SheetScreen::inspect_entity(kg::KGModule& kg, kg::EntityID id) {
         show_skill(kg, kg.getProperty(id, "name"));
         return;
     }
+    if (kg.getRegistry().isSubtypeOf(type, "TaskCheck")) {
+        for (auto* b : teaches_buttons_) b->set_visible(false);
+        refresh_back();
+        size_t at = 0;
+        auto say = [&](const std::string& text, uint8_t r, uint8_t g,
+                       uint8_t b) { write_prov(at, text, r, g, b); };
+        const std::string attribute = kg.getProperty(id, "attribute_ref");
+        say(kg.getProperty(id, "name") + " -- the throw", 235, 235, 210);
+        say("  " + (attribute.empty()
+                        ? std::string("no characteristic modifies this")
+                        : attribute) +
+                " " + kg.getProperty(id, "target_number") + "+ on " +
+                kg.getProperty(
+                    static_cast<kg::EntityID>(std::stoul(
+                        kg.getProperty(id, "dice"))), "name"),
+            200, 230, 210);
+        const auto cited = provenance_of(kg, id, kg.getProperty(id, "name"));
+        if (!cited.address.empty())
+            say("  source:  " + cited.address, 150, 200, 170);
+        if (!cited.detail.empty())
+            say("  address: " + cited.detail, 150, 200, 170);
+        if (cited.resolved)
+            say("  the book says:  \"" + cited.says + "\"", 190, 240, 200);
+        while (at < provenance_lines_.size())
+            provenance_lines_[at++]->set_text("");
+        return;
+    }
     if (!kg.getRegistry().isSubtypeOf(type, "RollableTable")) return;
 
     // A table you are about to roll on: show every result it can give,
