@@ -239,15 +239,26 @@ bool Narrator::narrate(const Beat& beat, uint64_t seed,
                                void* user_data) {
             auto* cb = static_cast<std::function<void(const std::string&)>*>(
                 user_data);
-            if (!response.empty()) {
+            // A failure comes back as text like "[ERROR: ...]", which
+            // is not prose and must never be cached: a cached failure
+            // replays forever, for that beat, across restarts, and
+            // reads on screen as though the narrator said it. Drop it
+            // and let the caller carry on without a story.
+            if (!response.empty() && !is_failure(response)) {
                 const_cast<Narrator*>(this)->cache_put(cache_key_copy,
                                                        response);
                 (*cb)(response);
+            } else {
+                (*cb)(std::string());
             }
             delete cb;
         },
         pending);
     return true;
+}
+
+bool Narrator::is_failure(const std::string& response) {
+    return response.compare(0, 7, "[ERROR:") == 0;
 }
 
 void Narrator::split_file_line(const std::string& reply, std::string& prose,

@@ -53,9 +53,18 @@ public:
 
     bool ready() const { return llm_ != nullptr; }
 
+    // Did the transport hand back a failure rather than a story? The
+    // LLM system reports errors as text, and text is what this class
+    // deals in, so the two must be told apart before either is shown
+    // or cached.
+    static bool is_failure(const std::string& response);
+
     // Fire a beat. `on_prose` runs later, on the main thread, when the
     // response arrives - or immediately, if this beat is already
-    // cached. Returns false only when the narrator is not ready.
+    // cached. It is called with an EMPTY string when the request
+    // failed, so the caller releases whatever it was holding rather
+    // than waiting forever. Returns false only when the narrator is
+    // not ready.
     bool narrate(const Beat& beat, uint64_t seed,
                  std::function<void(const std::string&)> on_prose);
 

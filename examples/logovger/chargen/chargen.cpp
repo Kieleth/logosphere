@@ -907,11 +907,26 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
     if (!context.input) {
         choices_.clear();
         for (size_t i = 0; i < skills.size(); ++i) {
+            // A skill already held gains nothing at level 0, and the
+            // book still allows picking it, so say so rather than
+            // hiding the option or letting it look like a real one.
+            std::string held;
+            for (auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
+                if (kg_.getProperty(part, "skill") !=
+                    std::to_string(skills[i].first)) {
+                    continue;
+                }
+                const std::string level = kg_.getProperty(part, "skill_level");
+                held = "you already have this at level " +
+                       (level.empty() ? "0" : level) + ", so it gains nothing";
+            }
             choices_.push_back({std::to_string(i + 1), skills[i].second,
-                                "at level 0", skills[i].first});
+                                held.empty() ? "learn it at level 0" : held,
+                                skills[i].first});
         }
         prompt_ = "Joining the " + sheet_.career +
-                  ": which one skill do you already know?";
+                  ": which service skill do they start you on? (one, at "
+                  "level 0)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
     const Choice* picked = find_choice(choices_, *context.input);

@@ -133,7 +133,23 @@ private:
         const auto character = session_->sheet().id;
         const auto seed = seed_;
         narrator_.narrate(beat, seed,
-            [this, beat, character](const std::string& reply) {
+            [this, beat, character, seed](const std::string& reply) {
+                // A reply that outlived its life belongs to nobody.
+                // Starting a new character while one is in flight used
+                // to print the old character's story into the new
+                // one's page, which is where the two contradictory
+                // bios came from.
+                if (seed != seed_) return;
+                // An empty reply means the request failed. Say so
+                // plainly and let play continue; a missing story is
+                // not a reason to hold up a decision.
+                if (reply.empty()) {
+                    screen_.say("(the narrator had nothing to say about "
+                                "that one)", SheetScreen::Tone::Plain);
+                    screen_.set_waiting(false);
+                    if (session_) screen_.show(engine_->get_kg(), *session_);
+                    return;
+                }
                 // One reply, two places: the story on the left, and
                 // one clipped clause appended to the file. The file is
                 // written as the life happens, a line per interaction.
@@ -157,8 +173,13 @@ private:
         beat.kind = "dossier";
         if (!character_for_narrator(session_->sheet(), beat.sheet)) return;
         const auto character = session_->sheet().id;
-        narrator_.narrate(beat, seed_,
-            [this, beat, character](const std::string& prose) {
+        const auto seed = seed_;
+        narrator_.narrate(beat, seed,
+            [this, beat, character, seed](const std::string& prose) {
+                // Same rule as every other beat: a file opened for a
+                // character who has been replaced is not this
+                // character's file.
+                if (seed != seed_ || prose.empty()) return;
                 apply_file_head(prose);
                 narrator_.record(engine_->get_kg(), character, beat, prose);
             });
@@ -204,8 +225,14 @@ private:
         if (!character_for_narrator(session_->sheet(), beat.sheet)) return;
         const auto character = session_->sheet().id;
         screen_.set_assessment("... the file is being closed ...");
-        narrator_.narrate(beat, seed_,
-            [this, beat, character](const std::string& reply) {
+        const auto seed = seed_;
+        narrator_.narrate(beat, seed,
+            [this, beat, character, seed](const std::string& reply) {
+                if (seed != seed_) return;   // a closed file, not this one
+                if (reply.empty()) {
+                    screen_.set_assessment("(no assessment was written)");
+                    return;
+                }
                 std::string prose, file_line;
                 Narrator::split_file_line(reply, prose, file_line);
                 screen_.set_assessment(prose);
