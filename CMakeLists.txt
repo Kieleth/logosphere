@@ -124,6 +124,9 @@ set(LOGOSPHERE_CORE_SOURCES
     src/rules/outcome_executor.cpp
     src/rules/procedure_runner.cpp
     src/rules/rollable_table_runner.cpp
+    src/rules/lookup_table_selector.cpp
+    src/rules/task_check_runner.cpp
+    src/rules/rule_fork.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -362,6 +365,8 @@ add_headless_test(test_kg_ops_transaction)
 add_headless_test(test_outcome_executor)
 add_headless_test(test_procedure_runner)
 add_headless_test(test_rollable_table_runner)
+add_headless_test(test_lookup_table_selector)
+add_headless_test(test_task_check_runner)
 # test_mutation_playback links logosphere_core only (no Engine
 # dereferencing in the tests; dummy pointers in fixtures).
 add_executable(test_mutation_playback
@@ -389,6 +394,7 @@ add_headless_test(test_source_locator)
 target_compile_definitions(test_source_locator
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_headless_test(test_rulebook_pack)
+add_headless_test(test_rule_fork)
 # Verbatim-checks its citations against the vendored SRD in the tree.
 target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

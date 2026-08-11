@@ -12,6 +12,8 @@
       "RollableTable": 25,
       "TableEntry": 150,
       "AdvanceSkill": 144,
+      "CharacteristicModifierEntry": 12,
+      "LookupTable": 1,
       "RuleConstant": 2,
       "EnterCareer": 6
     },
@@ -22,6 +24,8 @@
       "RollableTable",
       "TableEntry",
       "AdvanceSkill",
+      "CharacteristicModifierEntry",
+      "LookupTable",
       "RuleConstant",
       "EnterCareer"
     ],
@@ -122,6 +126,10 @@
         1,
         6
       ],
+      "@dm_table": [
+        0,
+        null
+      ],
       "@draft_table": [
         1,
         6
@@ -182,6 +190,319 @@
         "source_kind": "sentence",
         "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
       }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupTable",
+      "as": "@dm_table",
+      "properties": {
+        "name": "characteristic_modifiers",
+        "entry_type": "CharacteristicModifierEntry",
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |",
+        "source_kind": "table",
+        "source_table": "Score Range"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_0_2",
+      "properties": {
+        "name": "dm_row_0_2",
+        "key_min": 0,
+        "key_max": 2,
+        "pseudohex_min": "0",
+        "pseudohex_max": "2",
+        "characteristic_modifier": -2,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "\\-2",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "0 through 2",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_3_5",
+      "properties": {
+        "name": "dm_row_3_5",
+        "key_min": 3,
+        "key_max": 5,
+        "pseudohex_min": "3",
+        "pseudohex_max": "5",
+        "characteristic_modifier": -1,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "\\-1",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "3 through 5",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_6_8",
+      "properties": {
+        "name": "dm_row_6_8",
+        "key_min": 6,
+        "key_max": 8,
+        "pseudohex_min": "6",
+        "pseudohex_max": "8",
+        "characteristic_modifier": 0,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+0",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "6 through 8",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_9_11",
+      "properties": {
+        "name": "dm_row_9_11",
+        "key_min": 9,
+        "key_max": 11,
+        "pseudohex_min": "9",
+        "pseudohex_max": "B",
+        "characteristic_modifier": 1,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+1",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "9 through 11",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_12_14",
+      "properties": {
+        "name": "dm_row_12_14",
+        "key_min": 12,
+        "key_max": 14,
+        "pseudohex_min": "C",
+        "pseudohex_max": "E",
+        "characteristic_modifier": 2,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+2",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "12 through 14",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_15_17",
+      "properties": {
+        "name": "dm_row_15_17",
+        "key_min": 15,
+        "key_max": 17,
+        "pseudohex_min": "F",
+        "pseudohex_max": "H",
+        "characteristic_modifier": 3,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+3",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "15 through 17",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_18_20",
+      "properties": {
+        "name": "dm_row_18_20",
+        "key_min": 18,
+        "key_max": 20,
+        "pseudohex_min": "J",
+        "pseudohex_max": "L",
+        "characteristic_modifier": 4,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+4",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "18 through 20",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_21_23",
+      "properties": {
+        "name": "dm_row_21_23",
+        "key_min": 21,
+        "key_max": 23,
+        "pseudohex_min": "M",
+        "pseudohex_max": "P",
+        "characteristic_modifier": 5,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+5",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "21 through 23",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_24_26",
+      "properties": {
+        "name": "dm_row_24_26",
+        "key_min": 24,
+        "key_max": 26,
+        "pseudohex_min": "Q",
+        "pseudohex_max": "S",
+        "characteristic_modifier": 6,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+6",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "24 through 26",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_27_29",
+      "properties": {
+        "name": "dm_row_27_29",
+        "key_min": 27,
+        "key_max": 29,
+        "pseudohex_min": "T",
+        "pseudohex_max": "V",
+        "characteristic_modifier": 7,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+7",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "27 through 29",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_30_32",
+      "properties": {
+        "name": "dm_row_30_32",
+        "key_min": 30,
+        "key_max": 32,
+        "pseudohex_min": "W",
+        "pseudohex_max": "Y",
+        "characteristic_modifier": 8,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+8",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "30 through 32",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_row_33_plus",
+      "properties": {
+        "name": "dm_row_33_plus",
+        "key_min": 33,
+        "key_max_unbounded": true,
+        "pseudohex_min": "Z",
+        "pseudohex_max": "Z",
+        "characteristic_modifier": 9,
+        "source_section": "Characteristic Modifiers",
+        "source_quote": "+9",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "33 or higher",
+        "source_column": "Characteristic Modifier"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_0_2"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_3_5"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_6_8"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_9_11"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_12_14"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_15_17"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_18_20"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_21_23"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_24_26"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_27_29"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_30_32"
+    },
+    {
+      "op": "set_relation",
+      "from": "@dm_table",
+      "relation": "HAS_PART",
+      "to": "@dm_row_33_plus"
     },
     {
       "op": "create_entity",
@@ -557,7 +878,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Aerospace Defense",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -575,7 +898,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Aerospace Defense",
-        "source_quote": "Dex 5+"
+        "source_quote": "Dex 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -863,7 +1188,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Agent",
-        "source_quote": "Soc 6+"
+        "source_quote": "Soc 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -881,7 +1208,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Agent",
-        "source_quote": "Int 6+"
+        "source_quote": "Int 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -1169,7 +1498,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Athlete",
-        "source_quote": "End 8+"
+        "source_quote": "End 8+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -1187,7 +1518,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Athlete",
-        "source_quote": "Dex 5+"
+        "source_quote": "Dex 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -1475,7 +1808,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Barbarian",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -1493,7 +1828,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Barbarian",
-        "source_quote": "Str 6+"
+        "source_quote": "Str 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -1781,7 +2118,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Belter",
-        "source_quote": "Int 4+"
+        "source_quote": "Int 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -1799,7 +2138,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Belter",
-        "source_quote": "Dex 7+"
+        "source_quote": "Dex 7+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -2087,7 +2428,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Bureaucrat",
-        "source_quote": "Soc 6+"
+        "source_quote": "Soc 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -2105,7 +2448,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Bureaucrat",
-        "source_quote": "Edu 4+"
+        "source_quote": "Edu 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -2393,7 +2738,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Colonist",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -2411,7 +2758,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Colonist",
-        "source_quote": "End 6+"
+        "source_quote": "End 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -2699,7 +3048,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Diplomat",
-        "source_quote": "Soc 6+"
+        "source_quote": "Soc 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -2717,7 +3068,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Diplomat",
-        "source_quote": "Edu 5+"
+        "source_quote": "Edu 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3005,7 +3358,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Drifter",
-        "source_quote": "Dex 5+"
+        "source_quote": "Dex 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3023,7 +3378,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Drifter",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3311,7 +3668,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Entertainer",
-        "source_quote": "Soc 8+"
+        "source_quote": "Soc 8+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3329,7 +3688,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Entertainer",
-        "source_quote": "Int 4+"
+        "source_quote": "Int 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3617,7 +3978,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Hunter",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3635,7 +3998,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Hunter",
-        "source_quote": "Str 8+"
+        "source_quote": "Str 8+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3923,7 +4288,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Marine",
-        "source_quote": "Int 6+"
+        "source_quote": "Int 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -3941,7 +4308,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Marine",
-        "source_quote": "End 6+"
+        "source_quote": "End 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -4229,7 +4598,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Maritime Defense",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -4247,7 +4618,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Maritime Defense",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -4535,7 +4908,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Mercenary",
-        "source_quote": "Int 4+"
+        "source_quote": "Int 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -4553,7 +4928,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Mercenary",
-        "source_quote": "End 6+"
+        "source_quote": "End 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -4841,7 +5218,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Merchant",
-        "source_quote": "Int 4+"
+        "source_quote": "Int 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -4859,7 +5238,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Merchant",
-        "source_quote": "Int 5+"
+        "source_quote": "Int 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -5147,7 +5528,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Navy",
-        "source_quote": "Int 6+"
+        "source_quote": "Int 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -5165,7 +5548,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Navy",
-        "source_quote": "Int 5+"
+        "source_quote": "Int 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -5453,7 +5838,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Noble",
-        "source_quote": "Soc 8+"
+        "source_quote": "Soc 8+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -5471,7 +5858,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Noble",
-        "source_quote": "Soc 4+"
+        "source_quote": "Soc 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -5759,7 +6148,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Physician",
-        "source_quote": "Edu 6+"
+        "source_quote": "Edu 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -5777,7 +6168,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Physician",
-        "source_quote": "Int 4+"
+        "source_quote": "Int 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6065,7 +6458,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Pirate",
-        "source_quote": "Dex 5+"
+        "source_quote": "Dex 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6083,7 +6478,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Pirate",
-        "source_quote": "Dex 6+"
+        "source_quote": "Dex 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6371,7 +6768,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Rogue",
-        "source_quote": "Dex 5+"
+        "source_quote": "Dex 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6389,7 +6788,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Rogue",
-        "source_quote": "Dex 4+"
+        "source_quote": "Dex 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6677,7 +7078,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Scientist",
-        "source_quote": "Edu 6+"
+        "source_quote": "Edu 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6695,7 +7098,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Scientist",
-        "source_quote": "Edu 5+"
+        "source_quote": "Edu 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -6983,7 +7388,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Scout",
-        "source_quote": "Int 6+"
+        "source_quote": "Int 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -7001,7 +7408,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Scout",
-        "source_quote": "End 7+"
+        "source_quote": "End 7+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -7289,7 +7698,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Surface Defense",
-        "source_quote": "End 5+"
+        "source_quote": "End 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -7307,7 +7718,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Surface Defense",
-        "source_quote": "Edu 5+"
+        "source_quote": "Edu 5+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -7595,7 +8008,9 @@
         "source_table": "Career",
         "source_row": "Qualifications",
         "source_column": "Technician",
-        "source_quote": "Edu 6+"
+        "source_quote": "Edu 6+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {
@@ -7613,7 +8028,9 @@
         "source_table": "Career",
         "source_row": "Survival",
         "source_column": "Technician",
-        "source_quote": "Dex 4+"
+        "source_quote": "Dex 4+",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier"
       }
     },
     {

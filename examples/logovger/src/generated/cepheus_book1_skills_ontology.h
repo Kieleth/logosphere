@@ -1329,8 +1329,46 @@ struct WorldRelation : public Relation {
 };
 
 
-/// Provenance back to the book. Every rule entity ingested from a source text carries the file it came from, the section heading under it, and the verbatim quote it was extracted from; the ingestion verifier string-matches the quote into the source and rejects what does not match. The slots are optional at the KG layer because referee-improvised entities have no book to cite; the rulebook verifier requires them on ingested data.
+/// An explicit KG scope in which knowledge originates or grows. Contexts are entities, not an enum ladder: source documents, sessions, campaigns, users, groups, and later scopes can be linked and queried without teaching the evaluator new executable logic.
+struct KnowledgeContext : public Entity {
+    /// Stable host-defined identity within the context catalog. Required and never inferred from a display name.
+    std::string context_key = {};
+};
+
+
+/// One immutable authored layer named by a seed envelope, such as cepheus or voyager. Seed ingestion owns creation of these contexts.
+struct SourceLayerContext : public KnowledgeContext {
+    /// Authored layer declared by the seed envelope.
+    std::string source_layer = {};
+};
+
+
+/// The exact source document and revision from which a seed was extracted. Every cited entity loaded from that seed points here; the document context points to its SourceLayerContext.
+struct SourceDocumentContext : public KnowledgeContext {
+    /// Authored layer declared by the seed envelope.
+    std::string source_layer = {};
+    /// Path of the source text this was extracted from, relative to the game's vendored source root (e.g. book1/character-creation.md).
+    std::string source_file = {};
+    /// Exact revision of the source document loaded by the seed.
+    std::string source_commit = {};
+    /// Immutable parent source layer of a document context.
+    SourceLayerContext source_layer_context = {};
+};
+
+
+/// A mutable context created while playing or administering a game. context_kind is data, not an engine enum: session, campaign, user, group, and global are initial uses, and game ontologies may add narrower RuntimeContext subclasses.
+struct RuntimeContext : public KnowledgeContext {
+    /// Runtime scope vocabulary supplied by the game ontology or host, such as session, campaign, user, group, or global.
+    std::string context_kind = {};
+};
+
+
+/// Provenance back to the book. Every rule entity ingested from a source text carries the file it came from, the section heading under it, and the verbatim quote it was extracted from; the ingestion verifier string-matches the quote into the source and rejects what does not match. The slots are optional at the KG layer because referee-improvised entities have no book to cite; the rulebook verifier requires them on ingested data. Every cited entity has an origin context even when it has no book citation: a runtime-authored rule points to the RuntimeContext where it arose.
 struct Cited {
+    /// Context in which this rule entity was created. Seed ingestion and runtime rule creation set it once; moving an entity between contexts requires a fork.
+    KnowledgeContext origin_context = {};
+    /// Immediate source entity copied to create this rule fork.
+    std::optional<Entity> fork_of = std::nullopt;
     /// Path of the source text this was extracted from, relative to the game's vendored source root (e.g. book1/character-creation.md).
     std::optional<std::string> source_file = std::nullopt;
     /// The nearest heading above the quote in the source.
@@ -1361,17 +1399,6 @@ struct DiceExpression : public Entity, public Cited {
 };
 
 
-/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check.
-struct TaskCheck : public Entity, public Cited {
-    /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
-    std::optional<std::string> attribute_ref = std::nullopt;
-    /// Succeed on this or more.
-    std::optional<int32_t> target_number = std::nullopt;
-    /// The dice this check or table is rolled with.
-    std::optional<DiceExpression> dice = std::nullopt;
-};
-
-
 /// A table keyed by a die result: roll the dice, land in a row. Rows are TableEntry entities attached with HAS_PART; each row claims a result band, and a well-formed table covers its dice range with no gaps and no overlaps (the ingestion verifier proves that per table).
 struct RollableTable : public Entity, public Cited {
     /// The dice this check or table is rolled with.
@@ -1388,12 +1415,31 @@ struct LookupTable : public Entity, public Cited {
 };
 
 
+/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check. modifier_table names the typed lookup that maps the current attribute value to a row; modifier_property names the integer result column on that table's declared entry type. The runner resolves both through the ontology before rolling.
+struct TaskCheck : public Entity, public Cited {
+    /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
+    std::string attribute_ref = {};
+    /// Succeed on this or more.
+    int32_t target_number = {};
+    /// The dice this check or table is rolled with.
+    DiceExpression dice = {};
+    /// Typed lookup table that maps the TaskCheck target's named attribute value to the row containing its modifier.
+    LookupTable modifier_table = {};
+    /// Required integer property on modifier_table's declared entry_type. The runner reads this column from the selected typed row.
+    std::string modifier_property = {};
+};
+
+
 /// Abstract base for one row of a LookupTable. The key band selects the row (a single-key row has key_min = key_max); a concrete game-declared subtype carries the table's typed result columns. Lookup rows return information and do not carry Outcome.
 struct LookupEntry : public Entity, public Cited {
     /// Lowest key value this row claims, inclusive.
-    int32_t key_min = {};
+    std::optional<int32_t> key_min = std::nullopt;
     /// Highest key value this row claims, inclusive.
-    int32_t key_max = {};
+    std::optional<int32_t> key_max = std::nullopt;
+    /// True only when this row has no lower key bound. Exactly one of key_min and key_min_unbounded=true must describe the lower side.
+    std::optional<bool> key_min_unbounded = std::nullopt;
+    /// True only when this row has no upper key bound. Exactly one of key_max and key_max_unbounded=true must describe the upper side.
+    std::optional<bool> key_max_unbounded = std::nullopt;
 };
 
 

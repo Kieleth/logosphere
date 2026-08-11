@@ -37,10 +37,18 @@
 // (seed_verifier.h) runs it against a throwaway world as its
 // schema check.
 //
+// When the registry includes the rulebook pack and a seed creates Cited
+// content, the loader also owns provenance materialization. In the same
+// atomic batch it creates or reuses SourceLayerContext and
+// SourceDocumentContext entities, then injects the document context as each
+// cited entity's required origin_context. Seed ops cannot forge those
+// engine-owned contexts or choose their own origin.
+//
 // Engine-side helper. Generic - no game knowledge.
 
 #include "logosphere/kg/kg_ops.h"
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -64,11 +72,12 @@ struct SeedInvariants {
     // Among creates of this type, no two share a "name" property.
     std::vector<std::string> unique_name_per_type;
     // The table bound to this alias must have HAS_PART rows whose
-    // bands tile [lo, hi] inclusive - no gaps, no overlaps.
+    // bands tile [lo, hi] inclusive, where an explicit null endpoint is
+    // unbounded. There are no gaps or overlaps.
     struct BandCoverage {
         std::string alias;  // stored without the leading '@'
-        long long   lo = 0;
-        long long   hi = 0;
+        std::optional<long long> lo;
+        std::optional<long long> hi;
     };
     std::vector<BandCoverage> band_coverage;
 };
@@ -104,6 +113,11 @@ struct SeedLoadReport {
     std::unordered_map<std::string, EntityID> bindings;
     // Per op: the entity it created (INVALID_ENTITY for non-creates).
     std::vector<EntityID> created_ids;
+
+    // Engine-owned provenance contexts. INVALID_ENTITY when this seed has no
+    // Cited creates and therefore needs no rulebook origin context.
+    EntityID source_layer_context = INVALID_ENTITY;
+    EntityID source_document_context = INVALID_ENTITY;
 };
 
 // Apply a parsed seed to the KG through the validated write path,
@@ -112,6 +126,7 @@ struct SeedLoadReport {
 // no events, and exposes no partial bindings or created ids. Successful
 // mutation events publish only after the complete graph is committed.
 // Destruction and cinematics are not seed data and are rejected.
+// Source context creation and Cited.origin_context are loader-owned.
 // The report is cleared on entry, so reusing one report object cannot
 // leak bindings between seeds. Validation runs against kg.getRegistry(),
 // the registry the world was built from. Returns report.ok.

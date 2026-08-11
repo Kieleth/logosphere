@@ -6,13 +6,12 @@
   "layer": "cepheus",
   "invariants": {
     "count_of_type": {
-      "CharacteristicModifierEntry": 2,
       "Currency": 1,
       "DiceExpression": 1,
       "DifficultyEntry": 2,
       "EndCareer": 1,
       "GainFixedMoney": 1,
-      "LookupTable": 2,
+      "LookupTable": 1,
       "NoEffect": 1,
       "OutcomeSequence": 1,
       "OutcomeStep": 2,
@@ -20,7 +19,6 @@
       "TableEntry": 3
     },
     "unique_name_per_type": [
-      "CharacteristicModifierEntry",
       "DifficultyEntry",
       "LookupTable",
       "OutcomeSequence",
@@ -28,10 +26,6 @@
       "TableEntry"
     ],
     "band_coverage": {
-      "@dm_table": [
-        0,
-        5
-      ],
       "@injury_table": [
         6,
         6
@@ -255,69 +249,6 @@
       "from": "@injury_table",
       "relation": "HAS_PART",
       "to": "@injury_row_6"
-    },
-    {
-      "op": "create_entity",
-      "type": "LookupTable",
-      "as": "@dm_table",
-      "properties": {
-        "name": "characteristic_modifiers",
-        "entry_type": "CharacteristicModifierEntry",
-        "source_section": "Characteristic Modifiers",
-        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |",
-        "source_kind": "table",
-        "source_table": "Score Range"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "CharacteristicModifierEntry",
-      "as": "@dm_row_0_2",
-      "properties": {
-        "name": "dm_row_0_2",
-        "key_min": 0,
-        "key_max": 2,
-        "pseudohex_min": "0",
-        "pseudohex_max": "2",
-        "characteristic_modifier": -2,
-        "source_section": "Characteristic Modifiers",
-        "source_quote": "\\-2",
-        "source_kind": "cell",
-        "source_table": "Score Range",
-        "source_row": "0 through 2",
-        "source_column": "Characteristic Modifier"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "CharacteristicModifierEntry",
-      "as": "@dm_row_3_5",
-      "properties": {
-        "name": "dm_row_3_5",
-        "key_min": 3,
-        "key_max": 5,
-        "pseudohex_min": "3",
-        "pseudohex_max": "5",
-        "characteristic_modifier": -1,
-        "source_section": "Characteristic Modifiers",
-        "source_quote": "\\-1",
-        "source_kind": "cell",
-        "source_table": "Score Range",
-        "source_row": "3 through 5",
-        "source_column": "Characteristic Modifier"
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@dm_table",
-      "relation": "HAS_PART",
-      "to": "@dm_row_0_2"
-    },
-    {
-      "op": "set_relation",
-      "from": "@dm_table",
-      "relation": "HAS_PART",
-      "to": "@dm_row_3_5"
     },
     {
       "op": "create_entity",

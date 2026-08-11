@@ -2,15 +2,15 @@
 //
 // Absorption discipline (docs/ABSORPTION_INVENTORY.md): a rule is DONE
 // only when a test proves it against the book's published examples and
-// tables. These are the Introduction/Chapter-1 rules everything else
-// stands on: ehex digits, the UPP, the characteristic DM.
+// tables. These are the Introduction/Chapter-1 encoding rules everything
+// else stands on: ehex digits and the UPP. Characteristic modifiers are
+// verified and selected from cepheus_book1_tables.json.
 //
 // Usage:
 //   ./build/test_logovger_rules_book1
 
 #undef NDEBUG
 
-#include "rules/characteristics.h"
 #include "rules/ehex.h"
 
 #include <iostream>
@@ -53,29 +53,6 @@ int main() {
     for (int v = 0; v <= 33; ++v)
         if (from_ehex(to_ehex(v)) != v) rt = false;
     check(rt, "0..33 round-trips through ehex");
-
-    // The DM formula against EVERY row of the published table
-    // [character-creation.md "Characteristic Modifiers"]. The book
-    // gives both the formula and the table; they must agree.
-    struct Row { int lo, hi, dm; };
-    const Row table[] = {{0,2,-2},{3,5,-1},{6,8,0},{9,11,1},{12,14,2},
-                         {15,17,3},{18,20,4},{21,23,5},{24,26,6},
-                         {27,29,7},{30,32,8},{33,33,9}};
-    bool all = true;
-    for (const Row& r : table)
-        for (int v = r.lo; v <= r.hi; ++v)
-            if (characteristic_dm(v) != r.dm) {
-                all = false;
-                std::cout << "  [measure] dm(" << v << ") = "
-                          << characteristic_dm(v) << ", table says " << r.dm
-                          << std::endl;
-            }
-    check(all, "the formula matches all 12 rows of the published table");
-    check(characteristic_dm(7) == 0,
-          "and the book's stated anchor: average 7 has DM+0");
-    check(characteristic_dm(33) == 9 && characteristic_dm(36) == 9 &&
-              characteristic_dm(1000) == 9,
-          "the book's 33-or-higher row remains DM+9");
 
     check(upp(34, 8, 7, 11, 9, 12) == "Z87B9C",
           "UPP uses Z for a characteristic above 33");

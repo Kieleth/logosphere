@@ -126,13 +126,16 @@ bool resolve_op(KGOp& op, const KGModule& kg,
 }  // namespace
 
 bool apply_kg_ops_atomically(const std::vector<KGOp>& ops, KGModule& kg,
-                             KGOpBatchReport& report) {
+                             KGOpBatchReport& report,
+                             MutationAuthority authority) {
     report = KGOpBatchReport{};
     const OntologyRegistry& ontology = kg.getRegistry();
     logosphere::EventBus* event_bus = kg.get_event_bus();
     std::vector<Undo> undo;
     std::vector<BufferedEvent> buffered_events;
     kg.set_event_bus(nullptr);
+    ValidationOptions validation;
+    validation.authority = authority;
 
     auto fail = [&](size_t index, const std::string& reason) {
         for (auto it = undo.rbegin(); it != undo.rend(); ++it) {
@@ -184,7 +187,8 @@ bool apply_kg_ops_atomically(const std::vector<KGOp>& ops, KGModule& kg,
         if (!resolve_op(op, kg, ontology, report.bindings, error)) {
             return fail(index, error);
         }
-        if (const auto validated = validate_kg_op(op, kg, ontology);
+        if (const auto validated =
+                validate_kg_op(op, kg, ontology, validation);
             !validated.ok) {
             return fail(index, validated.reason);
         }
@@ -212,6 +216,7 @@ bool apply_kg_ops_atomically(const std::vector<KGOp>& ops, KGModule& kg,
 
         if (const auto* create = std::get_if<KGOpCreateEntity>(&op)) {
             undo.emplace_back(UndoCreatedEntity{applied.created_id});
+            validation.constructing.insert(applied.created_id);
             for (const auto& [key, value] : create->properties) {
                 buffer_property_event(buffered_events, applied.created_id,
                                       key, value, "");

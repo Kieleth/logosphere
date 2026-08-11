@@ -54,6 +54,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Humanoid", "LivingEntity", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("JudgmentPoint", "Entity", false);
+    reg.addEntityType("KnowledgeContext", "Entity", true);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Leg", "BodyPart", false);
     reg.addEntityType("LightSource", "WorldEntity", false);
@@ -80,6 +81,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("ProcedureStep", "Entity", false);
     reg.addEntityType("RollableTable", "Entity", false);
     reg.addEntityType("RuleConstant", "Entity", false);
+    reg.addEntityType("RuntimeContext", "KnowledgeContext", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("SceneChunk", "WorldEntity", false);
     reg.addEntityType("Segment", "BodyPart", false);
@@ -87,6 +89,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Shoulder", "BodyPart", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("SkillRating", "Entity", false);
+    reg.addEntityType("SourceDocumentContext", "KnowledgeContext", false);
+    reg.addEntityType("SourceLayerContext", "KnowledgeContext", false);
     reg.addEntityType("StepRoute", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Structure", "WorldEntity", true);
@@ -152,6 +156,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Humanoid", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("JudgmentPoint", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("KnowledgeContext", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Leg", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("LightSource", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -178,6 +183,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("ProcedureStep", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("RollableTable", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("RuleConstant", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("RuntimeContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("SceneChunk", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Segment", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -185,6 +191,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Shoulder", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("SkillRating", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("SourceDocumentContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
+    reg.addAncestors("SourceLayerContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("StepRoute", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Structure", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -237,6 +245,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("RollableTable", {"rulebook"});
     reg.addFacets("RuleConstant", {"rulebook"});
     reg.addFacets("SkillRating", {"rulebook"});
+    reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
+    reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("StepRoute", {"rulebook"});
     reg.addFacets("TableEntry", {"rulebook"});
     reg.addFacets("TaskCheck", {"rulebook"});
@@ -302,6 +312,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("CharacteristicModifierEntry", "pseudohex_max", "string", true);
     reg.addProperty("CharacteristicModifierEntry", "characteristic_modifier", "integer", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addRefProperty("Cited", "origin_context", true, "KnowledgeContext", true);
+    reg.addRefProperty("Cited", "fork_of", false, "Entity", true);
     reg.addProperty("Cited", "source_file", "string", false);
     reg.addProperty("Cited", "source_section", "string", false);
     reg.addProperty("Cited", "source_quote", "string", false);
@@ -399,8 +411,11 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Identifiable", "name", "string", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("JudgmentPoint", "prompt_text", "string", false);
-    reg.addProperty("LookupEntry", "key_min", "integer", true);
-    reg.addProperty("LookupEntry", "key_max", "integer", true);
+    reg.addProperty("KnowledgeContext", "context_key", "string", true);
+    reg.addProperty("LookupEntry", "key_min", "integer", false);
+    reg.addProperty("LookupEntry", "key_max", "integer", false);
+    reg.addProperty("LookupEntry", "key_min_unbounded", "boolean", false);
+    reg.addProperty("LookupEntry", "key_max_unbounded", "boolean", false);
     reg.addProperty("LookupTable", "attribute_ref", "string", false);
     reg.addProperty("LookupTable", "entry_type", "string", true);
     reg.addProperty("ModifyAttribute", "attribute_ref", "string", true);
@@ -428,6 +443,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addRefProperty("RollableTable", "dice", true, "DiceExpression");
     reg.addProperty("RuleConstant", "constant_value", "integer", false);
+    reg.addProperty("RuntimeContext", "context_kind", "string", true);
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addProperty("ServiceTerm", "term_number", "integer", false);
     reg.addProperty("ServiceTerm", "term_career", "string", false);
@@ -436,6 +452,11 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addRefProperty("SkillRating", "skill", true, "Entity");
     reg.addProperty("SkillRating", "skill_level", "integer", true, true, 0.0, false, 0.0);
+    reg.addProperty("SourceDocumentContext", "source_layer", "string", true);
+    reg.addProperty("SourceDocumentContext", "source_file", "string", true);
+    reg.addProperty("SourceDocumentContext", "source_commit", "string", true);
+    reg.addRefProperty("SourceDocumentContext", "source_layer_context", true, "SourceLayerContext", true);
+    reg.addProperty("SourceLayerContext", "source_layer", "string", true);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Spatial", "position_x", "float", false);
     reg.addProperty("Spatial", "position_y", "float", false);
@@ -449,9 +470,11 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("TableEntry", "roll_min", "integer", true);
     reg.addProperty("TableEntry", "roll_max", "integer", true);
     reg.addRefProperty("TableEntry", "outcome", true, "Outcome");
-    reg.addProperty("TaskCheck", "attribute_ref", "string", false);
-    reg.addProperty("TaskCheck", "target_number", "integer", false);
-    reg.addRefProperty("TaskCheck", "dice", false, "DiceExpression");
+    reg.addProperty("TaskCheck", "attribute_ref", "string", true);
+    reg.addProperty("TaskCheck", "target_number", "integer", true);
+    reg.addRefProperty("TaskCheck", "dice", true, "DiceExpression");
+    reg.addRefProperty("TaskCheck", "modifier_table", true, "LookupTable");
+    reg.addProperty("TaskCheck", "modifier_property", "string", true);
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Temporal", "created_at", "datetime", false);
     reg.addProperty("Temporal", "updated_at", "datetime", false);

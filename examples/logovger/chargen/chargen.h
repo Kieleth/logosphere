@@ -102,8 +102,8 @@ private:
     void bind_primitives();
     bool accept(logosphere::rules::ProcedureResult result,
                 std::string& error);
-    void offer_careers();
-    int  constant(const char* name, int fallback) const;
+    bool offer_careers(std::string& error);
+    bool constant(const char* name, int& value, std::string& error) const;
     void finish(const std::string& why);
 
     PrimitiveResult generate_characteristics(const PrimitiveContext& context);
@@ -148,6 +148,13 @@ bool run_chargen(const ChargenRequest& request,
 
 // The life as a timeline, one line per event, with roll citations.
 std::string format_life(const CharacterSheet& sheet);
+
+// Mechanical facts for narration. Characteristic modifiers are selected
+// from the same KG table as TaskCheckRunner, never recomputed by game code.
+bool format_character_facts(const CharacterSheet& sheet,
+                            const kg::KGModule& kg,
+                            std::string& out,
+                            std::string& error);
 
 }  // namespace logovger
 

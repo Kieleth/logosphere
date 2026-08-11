@@ -5,7 +5,10 @@ import sys
 
 from linkml_runtime.utils.schemaview import SchemaView
 
-from scripts.generate_registry import reject_imported_redefinitions
+from scripts.generate_registry import (
+    generate_registry_cpp,
+    reject_imported_redefinitions,
+)
 
 
 class ImportedRedefinitionTests(unittest.TestCase):
@@ -78,6 +81,41 @@ classes:
 
 
 class VendoredCppGeneratorTests(unittest.TestCase):
+    def test_create_only_annotation_reaches_registry_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "create_only.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(
+                """id: schema://create-only
+name: create_only
+default_range: string
+classes:
+  Entity: {}
+  Context:
+    is_a: Entity
+  Rule:
+    is_a: Entity
+    slots:
+      - origin
+slots:
+  origin:
+    range: Context
+    annotations:
+      create_only: true
+"""
+            )
+
+            generate_registry_cpp(
+                str(schema), "create_only::ontology", str(output)
+            )
+            rendered = output.read_text()
+
+        self.assertIn(
+            'addRefProperty("Rule", "origin", false, "Context", true)',
+            rendered,
+        )
+
     def test_vendored_generator_loads_its_vendored_templates(self):
         scripts_dir = str(Path(__file__).resolve().parent)
         if scripts_dir not in sys.path:

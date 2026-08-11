@@ -7,6 +7,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/rules/procedure_runner.h"
+#include "logosphere/rules/lookup_table_selector.h"
 
 #include <algorithm>
 #include <cctype>
@@ -14,6 +15,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -225,10 +227,23 @@ std::string dice_field(const KGModule& world, EntityID id, const char* key,
 //   "| 3-5 |"          -> [3, 5]   (ASCII hyphen)
 //   "| 3\xE2\x80\x93""5 |" -> [3, 5]  (en dash, U+2013)
 //   "| 0 through 2 |"  -> [0, 2]
+//   "| 33 or higher |" -> [33, unbounded]
+//   "| 0 or lower |"   -> [unbounded, 0]
 //   "| \-6 |"          -> [-6, -6] (markdown-escaped negative)
 // Returns false when the quote does not begin with a band-shaped
 // cell.
-bool parse_band_cell(const std::string& q, long long& lo, long long& hi) {
+struct Band {
+    std::optional<long long> lo;
+    std::optional<long long> hi;
+};
+
+std::string format_band(const Band& band) {
+    return "[" + (band.lo ? std::to_string(*band.lo) : "unbounded") +
+           ", " + (band.hi ? std::to_string(*band.hi) : "unbounded") +
+           "]";
+}
+
+bool parse_band_cell(const std::string& q, Band& band) {
     size_t i = 0;
     auto skip_spaces = [&] { while (i < q.size() && q[i] == ' ') ++i; };
     auto parse_num = [&](long long& out) {
@@ -251,7 +266,8 @@ bool parse_band_cell(const std::string& q, long long& lo, long long& hi) {
     if (q.empty() || q[0] != '|') return false;
     i = 1;
     skip_spaces();
-    if (!parse_num(lo)) return false;
+    long long first = 0;
+    if (!parse_num(first)) return false;
     const size_t after_lo = i;
     skip_spaces();
     bool has_range = false;
@@ -267,10 +283,22 @@ bool parse_band_cell(const std::string& q, long long& lo, long long& hi) {
     }
     if (has_range) {
         skip_spaces();
-        if (!parse_num(hi)) return false;
+        long long last = 0;
+        if (!parse_num(last)) return false;
+        band.lo = first;
+        band.hi = last;
+    } else if (q.compare(i, 9, "or higher") == 0) {
+        i += 9;
+        band.lo = first;
+        band.hi.reset();
+    } else if (q.compare(i, 8, "or lower") == 0) {
+        i += 8;
+        band.lo.reset();
+        band.hi = first;
     } else {
         i = after_lo;
-        hi = lo;
+        band.lo = first;
+        band.hi = first;
     }
     skip_spaces();
     return i < q.size() && q[i] == '|';
@@ -279,22 +307,45 @@ bool parse_band_cell(const std::string& q, long long& lo, long long& hi) {
 // A stored band property, parsed. The schema already validated these
 // as integers; a parse failure here means the property is absent.
 bool read_band(const KGModule& kg, EntityID id, const char* min_key,
-               const char* max_key, long long& lo, long long& hi) {
+               const char* max_key, Band& band) {
     const std::string lo_s = kg.getProperty(id, min_key);
     const std::string hi_s = kg.getProperty(id, max_key);
     if (lo_s.empty() || hi_s.empty()) return false;
-    lo = std::strtoll(lo_s.c_str(), nullptr, 10);
-    hi = std::strtoll(hi_s.c_str(), nullptr, 10);
+    band.lo = std::strtoll(lo_s.c_str(), nullptr, 10);
+    band.hi = std::strtoll(hi_s.c_str(), nullptr, 10);
+    return true;
+}
+
+bool read_lookup_band(const KGModule& kg, EntityID id, Band& band) {
+    const std::string lo_s = kg.getProperty(id, "key_min");
+    const std::string hi_s = kg.getProperty(id, "key_max");
+    const std::string lo_flag =
+        kg.getProperty(id, "key_min_unbounded");
+    const std::string hi_flag =
+        kg.getProperty(id, "key_max_unbounded");
+    const bool lo_unbounded = lo_flag == "true" || lo_flag == "1";
+    const bool hi_unbounded = hi_flag == "true" || hi_flag == "1";
+    if ((lo_s.empty() != lo_unbounded) ||
+        (hi_s.empty() != hi_unbounded)) {
+        return false;
+    }
+    band.lo = lo_unbounded
+                  ? std::optional<long long>{}
+                  : std::optional<long long>{
+                        std::strtoll(lo_s.c_str(), nullptr, 10)};
+    band.hi = hi_unbounded
+                  ? std::optional<long long>{}
+                  : std::optional<long long>{
+                        std::strtoll(hi_s.c_str(), nullptr, 10)};
     return true;
 }
 
 // The band slots for a row entity: roll_min/roll_max on TableEntry,
 // key_min/key_max on LookupEntry. Returns false if the type has
 // neither pair set.
-bool read_row_band(const KGModule& kg, EntityID id, long long& lo,
-                   long long& hi) {
-    return read_band(kg, id, "roll_min", "roll_max", lo, hi) ||
-           read_band(kg, id, "key_min", "key_max", lo, hi);
+bool read_row_band(const KGModule& kg, EntityID id, Band& band) {
+    return read_band(kg, id, "roll_min", "roll_max", band) ||
+           read_lookup_band(kg, id, band);
 }
 
 struct Checker {
@@ -592,31 +643,31 @@ struct Checker {
                 world.getProperty(id, "source_row");
             const std::string band_text =
                 addressed_row.empty() ? quote : ("| " + addressed_row + " |");
-            long long cell_lo = 0, cell_hi = 0;
-            if (!parse_band_cell(band_text, cell_lo, cell_hi)) {
+            Band cell_band;
+            if (!parse_band_cell(band_text, cell_band)) {
                 violate("value", static_cast<int>(i), alias,
                         type + ": cannot derive a band from the quoted "
                         "leading cell (the book's notations: '| N |', "
-                        "'| N-M |', en dash, '| N through M |'): \"" +
+                        "'| N-M |', en dash, '| N through M |', "
+                        "'| N or higher |'): \"" +
                         preview(band_text) + "\"");
                 continue;
             }
             ++report.bands_derived;
-            long long row_lo = 0, row_hi = 0;
-            if (!read_row_band(world, id, row_lo, row_hi)) {
+            Band row_band;
+            if (!read_row_band(world, id, row_band)) {
                 violate("value", static_cast<int>(i), alias,
-                        type + ": quote declares band [" +
-                        std::to_string(cell_lo) + ", " +
-                        std::to_string(cell_hi) + "] but the row has no "
+                        type + ": quote declares band " +
+                        format_band(cell_band) + " but the row has no valid "
                         "band slots set");
                 continue;
             }
-            if (row_lo != cell_lo || row_hi != cell_hi) {
+            if (row_band.lo != cell_band.lo ||
+                row_band.hi != cell_band.hi) {
                 violate("value", static_cast<int>(i), alias,
-                        type + ": band [" + std::to_string(row_lo) + ", " +
-                        std::to_string(row_hi) + "] does not equal the "
-                        "quoted cell's [" + std::to_string(cell_lo) + ", " +
-                        std::to_string(cell_hi) + "]");
+                        type + ": band " + format_band(row_band) +
+                        " does not equal the quoted cell's " +
+                        format_band(cell_band));
             }
         }
     }
@@ -642,32 +693,14 @@ struct Checker {
     void check_lookup_table(const KGModule& world,
                             const SeedLoadReport& load, EntityID table) {
         ++report.semantics_checked;
+        const std::string selector_error =
+            logosphere::rules::LookupTableSelector(world).validate(table);
+        if (!selector_error.empty()) {
+            semantic_violation(table, load, selector_error);
+            return;
+        }
         const std::string declared = world.getProperty(table, "entry_type");
-        if (!ont.hasEntityType(declared)) {
-            semantic_violation(table, load,
-                "LookupTable has unknown entry_type '" + declared + "'");
-            return;
-        }
-        if (!ont.isSubtypeOf(declared, "LookupEntry")) {
-            semantic_violation(table, load,
-                "LookupTable entry_type '" + declared +
-                "' is not a LookupEntry subtype");
-            return;
-        }
-        if (ont.isAbstract(declared)) {
-            semantic_violation(table, load,
-                "LookupTable entry_type '" + declared +
-                "' is abstract; a table must declare a concrete row type");
-            return;
-        }
-
         const auto rows = world.getRelated(table, "HAS_PART");
-        if (rows.empty()) {
-            semantic_violation(table, load,
-                "LookupTable with entry_type '" + declared +
-                "' has no HAS_PART rows");
-            return;
-        }
         for (const EntityID row : rows) {
             ++report.semantics_checked;
             const std::string actual = world.getType(row);
@@ -698,6 +731,50 @@ struct Checker {
                     "RollableTable contains non-TableEntry row type '" +
                         actual + "'");
             }
+        }
+    }
+
+    void check_task_check(const KGModule& world,
+                          const SeedLoadReport& load, EntityID check) {
+        ++report.semantics_checked;
+        const std::string table_value =
+            world.getProperty(check, "modifier_table");
+        EntityID table = INVALID_ENTITY;
+        try {
+            size_t end = 0;
+            const unsigned long parsed = std::stoul(table_value, &end);
+            if (end != table_value.size() ||
+                parsed > std::numeric_limits<EntityID>::max()) {
+                throw std::invalid_argument("range");
+            }
+            table = static_cast<EntityID>(parsed);
+        } catch (...) {
+            semantic_violation(
+                check, load,
+                "TaskCheck has invalid modifier_table entity reference");
+            return;
+        }
+
+        const std::string entry_type =
+            world.getProperty(table, "entry_type");
+        const std::string modifier_property =
+            world.getProperty(check, "modifier_property");
+        const PropertyDef* definition =
+            ont.findProperty(entry_type, modifier_property);
+        if (!definition) {
+            semantic_violation(
+                check, load,
+                "TaskCheck has unknown modifier_property '" +
+                    modifier_property + "' for lookup entry type '" +
+                    entry_type + "'");
+            return;
+        }
+        if (definition->value_type != "integer") {
+            semantic_violation(
+                check, load,
+                "TaskCheck modifier_property '" + modifier_property +
+                    "' for lookup entry type '" + entry_type +
+                    "' is not integer");
         }
     }
 
@@ -879,6 +956,8 @@ struct Checker {
                 check_lookup_table(world, load, id);
             } else if (ont.isSubtypeOf(type, "RollableTable")) {
                 check_rollable_table(world, load, id);
+            } else if (ont.isSubtypeOf(type, "TaskCheck")) {
+                check_task_check(world, load, id);
             } else if (ont.isSubtypeOf(type, "OutcomeSequence")) {
                 check_outcome_sequence(world, load, id);
             } else if (ont.isSubtypeOf(type, "OutcomeChoice")) {
@@ -955,65 +1034,87 @@ struct Checker {
                     ": alias is not bound by any create op");
             return;
         }
-        struct Band { long long lo, hi; };
         std::vector<Band> bands;
         for (EntityID row : world.getRelated(it->second, "HAS_PART")) {
-            long long lo = 0, hi = 0;
-            if (!read_row_band(world, row, lo, hi)) {
+            Band band;
+            if (!read_row_band(world, row, band)) {
                 violate("invariant", -1, cov.alias,
                         "band_coverage @" + cov.alias + ": row entity " +
-                        std::to_string(row) + " has no band slots set");
+                        std::to_string(row) +
+                        " has no valid band slots set");
                 return;
             }
-            if (hi < lo) {
+            if (band.lo && band.hi && *band.hi < *band.lo) {
                 violate("invariant", -1, cov.alias,
-                        "band_coverage @" + cov.alias + ": malformed band ["
-                        + std::to_string(lo) + ", " + std::to_string(hi) +
-                        "]");
+                        "band_coverage @" + cov.alias +
+                        ": malformed band " + format_band(band));
                 return;
             }
-            if (lo < cov.lo || hi > cov.hi) {
+            if ((cov.lo && (!band.lo || *band.lo < *cov.lo)) ||
+                (cov.hi && (!band.hi || *band.hi > *cov.hi))) {
+                const Band declared{cov.lo, cov.hi};
                 violate("invariant", -1, cov.alias,
-                        "band_coverage @" + cov.alias + ": row band [" +
-                        std::to_string(lo) + ", " + std::to_string(hi) +
-                        "] outside declared range [" +
-                        std::to_string(cov.lo) + ", " +
-                        std::to_string(cov.hi) + "]");
+                        "band_coverage @" + cov.alias + ": row band " +
+                        format_band(band) + " outside declared range " +
+                        format_band(declared));
                 return;
             }
-            bands.push_back({lo, hi});
+            bands.push_back(std::move(band));
         }
         if (bands.empty()) {
+            const Band declared{cov.lo, cov.hi};
             violate("invariant", -1, cov.alias,
                     "band_coverage @" + cov.alias +
-                    ": no HAS_PART rows to cover [" +
-                    std::to_string(cov.lo) + ", " + std::to_string(cov.hi) +
-                    "]");
+                    ": no HAS_PART rows to cover " +
+                    format_band(declared));
             return;
         }
         std::sort(bands.begin(), bands.end(),
-                  [](const Band& a, const Band& b) { return a.lo < b.lo; });
-        long long cursor = cov.lo;  // next value that must be claimed
-        for (const Band& b : bands) {
-            if (b.lo > cursor) {
-                violate("invariant", -1, cov.alias,
-                        "band_coverage @" + cov.alias + ": gap - value " +
-                        std::to_string(cursor) + " is claimed by no row");
-                return;
-            }
-            if (b.lo < cursor) {
+                  [](const Band& a, const Band& b) {
+                      if (a.lo.has_value() != b.lo.has_value())
+                          return !a.lo.has_value();
+                      if (a.lo != b.lo) return a.lo < b.lo;
+                      if (a.hi.has_value() != b.hi.has_value())
+                          return a.hi.has_value();
+                      return a.hi < b.hi;
+                  });
+        if (bands.front().lo != cov.lo) {
+            const std::string missing = cov.lo
+                ? std::to_string(*cov.lo) : "the unbounded lower range";
+            violate("invariant", -1, cov.alias,
+                    "band_coverage @" + cov.alias + ": gap - value " +
+                    missing + " is claimed by no row");
+            return;
+        }
+        for (size_t i = 1; i < bands.size(); ++i) {
+            const Band& previous = bands[i - 1];
+            const Band& current = bands[i];
+            if (!previous.hi || !current.lo ||
+                *previous.hi == std::numeric_limits<long long>::max() ||
+                *current.lo <= *previous.hi) {
                 violate("invariant", -1, cov.alias,
                         "band_coverage @" + cov.alias + ": overlap at " +
-                        std::to_string(b.lo));
+                        (current.lo ? std::to_string(*current.lo)
+                                    : "unbounded lower range"));
                 return;
             }
-            cursor = b.hi + 1;
+            const long long expected = *previous.hi + 1;
+            if (*current.lo != expected) {
+                violate("invariant", -1, cov.alias,
+                        "band_coverage @" + cov.alias + ": gap - value " +
+                        std::to_string(expected) +
+                        " is claimed by no row");
+                return;
+            }
         }
-        if (cursor != cov.hi + 1) {
+        if (bands.back().hi != cov.hi) {
             violate("invariant", -1, cov.alias,
                     "band_coverage @" + cov.alias + ": gap - rows end at " +
-                    std::to_string(cursor - 1) + ", declared range ends at "
-                    + std::to_string(cov.hi));
+                    (bands.back().hi ? std::to_string(*bands.back().hi)
+                                     : "the unbounded upper range") +
+                    ", declared range ends at " +
+                    (cov.hi ? std::to_string(*cov.hi)
+                            : "the unbounded upper range"));
         }
     }
 };

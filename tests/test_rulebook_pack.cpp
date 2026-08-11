@@ -164,6 +164,21 @@ void test_table_results_have_one_complete_shape() {
           "contains");
     CHECK(!reg.hasProperty("LookupEntry", "outcome"),
           "a lookup row is the typed answer, not a sparse outcome wrapper");
+    const auto* key_min = reg.findProperty("LookupEntry", "key_min");
+    const auto* key_max = reg.findProperty("LookupEntry", "key_max");
+    const auto* min_unbounded =
+        reg.findProperty("LookupEntry", "key_min_unbounded");
+    const auto* max_unbounded =
+        reg.findProperty("LookupEntry", "key_max_unbounded");
+    CHECK(key_min && !key_min->required &&
+              key_min->value_type == "integer" &&
+              key_max && !key_max->required &&
+              key_max->value_type == "integer" &&
+              min_unbounded && !min_unbounded->required &&
+              min_unbounded->value_type == "boolean" &&
+              max_unbounded && !max_unbounded->required &&
+              max_unbounded->value_type == "boolean",
+          "lookup bounds are optional only through explicit unbounded flags");
 
     const auto* row_outcome = reg.findProperty("TableEntry", "outcome");
     CHECK(row_outcome && row_outcome->required &&
@@ -225,6 +240,155 @@ void test_table_results_have_one_complete_shape() {
     CHECK(required("StepRoute", "route_label", "string") &&
               required("StepRoute", "next_step", "entity_ref"),
           "every procedure route names its label and destination");
+}
+
+void test_task_checks_declare_the_complete_mechanic() {
+    const auto reg = rulebook::ontology::registry();
+    const auto required = [&](const std::string& property,
+                              const std::string& type) {
+        const auto* def = reg.findProperty("TaskCheck", property);
+        return def && def->required && def->value_type == type;
+    };
+    CHECK(required("attribute_ref", "string") &&
+              required("target_number", "integer") &&
+              required("dice", "entity_ref") &&
+              required("modifier_table", "entity_ref") &&
+              required("modifier_property", "string"),
+          "TaskCheck requires its target attribute, dice, modifier lookup, "
+          "result column, and threshold");
+    const auto* table = reg.findProperty("TaskCheck", "modifier_table");
+    CHECK(table && table->ref_target == "LookupTable",
+          "TaskCheck.modifier_table is a typed LookupTable reference");
+}
+
+void test_rule_contexts_are_explicit_kg_entities() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.hasEntityType("KnowledgeContext") &&
+              reg.isAbstract("KnowledgeContext"),
+          "KnowledgeContext is an abstract ontology concept");
+    CHECK(reg.isSubtypeOf("SourceLayerContext", "KnowledgeContext") &&
+              reg.isSubtypeOf("SourceDocumentContext", "KnowledgeContext") &&
+              reg.isSubtypeOf("RuntimeContext", "KnowledgeContext"),
+          "source layers, source documents, and runtime growth scopes are "
+          "explicit context entities");
+
+    const auto* context_key =
+        reg.findProperty("KnowledgeContext", "context_key");
+    const auto* source_layer =
+        reg.findProperty("SourceLayerContext", "source_layer");
+    const auto* source_commit =
+        reg.findProperty("SourceDocumentContext", "source_commit");
+    const auto* source_layer_context =
+        reg.findProperty("SourceDocumentContext", "source_layer_context");
+    const auto* runtime_kind =
+        reg.findProperty("RuntimeContext", "context_kind");
+    CHECK(context_key && context_key->required &&
+              source_layer && source_layer->required &&
+              source_commit && source_commit->required &&
+              source_layer_context && source_layer_context->required &&
+              source_layer_context->value_type == "entity_ref" &&
+              source_layer_context->ref_target == "SourceLayerContext" &&
+              runtime_kind && runtime_kind->required,
+          "contexts carry complete identity, source lineage, and runtime "
+          "scope kind data");
+
+    const auto* origin = reg.findProperty("TaskCheck", "origin_context");
+    const auto* fork = reg.findProperty("TaskCheck", "fork_of");
+    CHECK(origin && origin->required &&
+              origin->value_type == "entity_ref" &&
+              origin->ref_target == "KnowledgeContext",
+          "every cited rule requires an explicit origin context");
+    CHECK(fork && !fork->required &&
+              fork->value_type == "entity_ref" &&
+              fork->ref_target == "Entity",
+          "a rule fork records its source as typed KG lineage");
+}
+
+void test_rule_origin_and_published_content_are_immutable() {
+    kg::KGModule kg(rulebook::ontology::registry());
+    kg.setMode(kg::KGMode::MINIMAL);
+
+    const auto source_layer = kg.createEntity("SourceLayerContext");
+    kg.setProperty(source_layer, "context_key", "source-layer:cepheus");
+    kg.setProperty(source_layer, "source_layer", "cepheus");
+    const auto source_document = kg.createEntity("SourceDocumentContext");
+    kg.setProperty(source_document, "context_key", "source-document:test");
+    kg.setProperty(source_document, "source_layer", "cepheus");
+    kg.setProperty(source_document, "source_file", "book.md");
+    kg.setProperty(source_document, "source_commit", "abc123");
+    kg.setProperty(source_document, "source_layer_context",
+                   std::to_string(source_layer));
+
+    const auto runtime = kg.createEntity("RuntimeContext");
+    kg.setProperty(runtime, "context_key", "session:one");
+    kg.setProperty(runtime, "context_kind", "session");
+
+    const auto published = kg.createEntity("RuleConstant");
+    kg.setProperty(published, "origin_context",
+                   std::to_string(source_document));
+    kg.setProperty(published, "constant_value", "18");
+    const auto improvised = kg.createEntity("RuleConstant");
+    kg.setProperty(improvised, "origin_context", std::to_string(runtime));
+    kg.setProperty(improvised, "constant_value", "1");
+
+    const auto rewrite_origin = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpSetProperty{{improvised, ""}, "origin_context",
+                                     std::to_string(source_document)}},
+        kg, kg.getRegistry());
+    CHECK(!rewrite_origin.ok &&
+              rewrite_origin.reason.find("creation-only") !=
+                  std::string::npos,
+          "origin_context cannot be rewritten after entity creation");
+
+    const auto rewrite_published = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpSetProperty{{published, ""}, "constant_value",
+                                     "21"}},
+        kg, kg.getRegistry());
+    CHECK(!rewrite_published.ok &&
+              rewrite_published.reason.find("sealed origin") !=
+                  std::string::npos,
+          "content from a published source context rejects mutation");
+
+    const auto rewrite_runtime = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpSetProperty{{improvised, ""}, "constant_value",
+                                     "2"}},
+        kg, kg.getRegistry());
+    CHECK(rewrite_runtime.ok,
+          "runtime-context content remains mutable through validated ops");
+
+    const auto relate_published = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpSetRelation{{published, ""}, "SPECIALIZES",
+                                     {improvised, ""}}},
+        kg, kg.getRegistry());
+    CHECK(!relate_published.ok &&
+              relate_published.reason.find("sealed origin") !=
+                  std::string::npos,
+          "published rule composition is immutable with its properties");
+
+    const auto forge_source_context = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpCreateEntity{
+            "SourceLayerContext",
+            {{"context_key", "source-layer:forged"},
+             {"source_layer", "forged"}},
+            ""}},
+        kg, kg.getRegistry());
+    CHECK(!forge_source_context.ok &&
+              forge_source_context.reason.find("trusted seed ingestion") !=
+                  std::string::npos,
+          "runtime operations cannot manufacture source contexts");
+
+    const auto claim_source_origin = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpCreateEntity{
+            "RuleConstant",
+            {{"origin_context", std::to_string(source_document)},
+             {"constant_value", "21"}},
+            ""}},
+        kg, kg.getRegistry());
+    CHECK(!claim_source_origin.ok &&
+              claim_source_origin.reason.find("cannot claim") !=
+                  std::string::npos,
+          "runtime content cannot claim provenance from a sealed source");
 }
 
 // ------------------------------------------------- chapter 1, as data
@@ -387,11 +551,9 @@ void test_chapter_one_instantiates() {
     kg.setProperty(injury_row, "roll_max", "3");
     kg.setProperty(injury_row, "outcome", std::to_string(injury_out));
 
-    // LookupTable + rows: keyed by what the character already is.
-    // The characteristic-DM table's VALUES are already a tested code
-    // primitive (logovger rules/characteristics.h); the table itself
-    // is still citable data, and the step-4 invariant check will hold
-    // code and table to each other.
+    // LookupTable + rows: keyed by what the character already is. The
+    // concrete game row carries the characteristic modifier as typed data;
+    // the engine only validates and selects that row.
     auto dm_table = cite(kg, kg.createEntity("LookupTable"),
                          "char modifier table",
                          "Characteristic Modifiers",
@@ -672,6 +834,9 @@ int main() {
     test_the_generated_type_surface_compiles();
     test_the_pack_grants_the_vocabulary();
     test_table_results_have_one_complete_shape();
+    test_task_checks_declare_the_complete_mechanic();
+    test_rule_contexts_are_explicit_kg_entities();
+    test_rule_origin_and_published_content_are_immutable();
     test_chapter_one_instantiates();
     test_every_quote_is_verbatim();
     test_a_dice_entity_rolls_through_the_service();

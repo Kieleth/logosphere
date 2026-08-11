@@ -41,6 +41,69 @@ imports:
 # -------------------------------------------------------------------
 
 classes:
+  KnowledgeContext:
+    is_a: Entity
+    abstract: true
+    description: >-
+      An explicit KG scope in which knowledge originates or grows.
+      Contexts are entities, not an enum ladder: source documents,
+      sessions, campaigns, users, groups, and later scopes can be linked
+      and queried without teaching the evaluator new executable logic.
+    slot_usage:
+      context_key:
+        required: true
+    slots:
+      - context_key
+
+  SourceLayerContext:
+    is_a: KnowledgeContext
+    description: >-
+      One immutable authored layer named by a seed envelope, such as
+      cepheus or voyager. Seed ingestion owns creation of these contexts.
+    annotations:
+      facets: sealed-origin, seed-owned
+    slot_usage:
+      source_layer:
+        required: true
+    slots:
+      - source_layer
+
+  SourceDocumentContext:
+    is_a: KnowledgeContext
+    description: >-
+      The exact source document and revision from which a seed was
+      extracted. Every cited entity loaded from that seed points here;
+      the document context points to its SourceLayerContext.
+    annotations:
+      facets: sealed-origin, seed-owned
+    slot_usage:
+      source_layer:
+        required: true
+      source_file:
+        required: true
+      source_commit:
+        required: true
+      source_layer_context:
+        required: true
+    slots:
+      - source_layer
+      - source_file
+      - source_commit
+      - source_layer_context
+
+  RuntimeContext:
+    is_a: KnowledgeContext
+    description: >-
+      A mutable context created while playing or administering a game.
+      context_kind is data, not an engine enum: session, campaign, user,
+      group, and global are initial uses, and game ontologies may add
+      narrower RuntimeContext subclasses.
+    slot_usage:
+      context_kind:
+        required: true
+    slots:
+      - context_kind
+
   Cited:
     mixin: true
     description: >-
@@ -50,8 +113,15 @@ classes:
       ingestion verifier string-matches the quote into the source and
       rejects what does not match. The slots are optional at the KG
       layer because referee-improvised entities have no book to cite;
-      the rulebook verifier requires them on ingested data.
+      the rulebook verifier requires them on ingested data. Every cited
+      entity has an origin context even when it has no book citation: a
+      runtime-authored rule points to the RuntimeContext where it arose.
+    slot_usage:
+      origin_context:
+        required: true
     slots:
+      - origin_context
+      - fork_of
       - source_file
       - source_section
       - source_quote
@@ -88,13 +158,25 @@ classes:
       from the named attribute, succeed on target or more. The book's
       "Int 8+". The attribute is a reference resolved against the
       target class's declared slots, never a bare label the graph
-      cannot check.
+      cannot check. modifier_table names the typed lookup that maps the
+      current attribute value to a row; modifier_property names the integer
+      result column on that table's declared entry type. The runner resolves
+      both through the ontology before rolling.
     annotations:
       facets: rulebook
+    slot_usage:
+      attribute_ref:
+        required: true
+      target_number:
+        required: true
+      dice:
+        required: true
     slots:
       - attribute_ref
       - target_number
       - dice
+      - modifier_table
+      - modifier_property
 
   RollableTable:
     is_a: Entity
@@ -165,6 +247,8 @@ classes:
     slots:
       - key_min
       - key_max
+      - key_min_unbounded
+      - key_max_unbounded
 
   Outcome:
     is_a: Entity
@@ -494,6 +578,40 @@ classes:
 # -------------------------------------------------------------------
 
 slots:
+  context_key:
+    range: string
+    description: >-
+      Stable host-defined identity within the context catalog. Required
+      and never inferred from a display name.
+  context_kind:
+    range: string
+    description: >-
+      Runtime scope vocabulary supplied by the game ontology or host,
+      such as session, campaign, user, group, or global.
+  source_layer:
+    range: string
+    description: Authored layer declared by the seed envelope.
+  source_commit:
+    range: string
+    description: Exact revision of the source document loaded by the seed.
+  source_layer_context:
+    range: SourceLayerContext
+    annotations:
+      create_only: true
+    description: Immutable parent source layer of a document context.
+  origin_context:
+    range: KnowledgeContext
+    annotations:
+      create_only: true
+    description: >-
+      Context in which this rule entity was created. Seed ingestion and
+      runtime rule creation set it once; moving an entity between contexts
+      requires a fork.
+  fork_of:
+    range: Entity
+    annotations:
+      create_only: true
+    description: Immediate source entity copied to create this rule fork.
   source_file:
     range: string
     description: >-
@@ -565,6 +683,18 @@ slots:
   target_number:
     range: integer
     description: Succeed on this or more.
+  modifier_table:
+    range: LookupTable
+    required: true
+    description: >-
+      Typed lookup table that maps the TaskCheck target's named attribute
+      value to the row containing its modifier.
+  modifier_property:
+    range: string
+    required: true
+    description: >-
+      Required integer property on modifier_table's declared entry_type.
+      The runner reads this column from the selected typed row.
   dice:
     range: DiceExpression
     description: The dice this check or table is rolled with.
@@ -578,12 +708,20 @@ slots:
     description: Highest die result this row claims, inclusive.
   key_min:
     range: integer
-    required: true
     description: Lowest key value this row claims, inclusive.
   key_max:
     range: integer
-    required: true
     description: Highest key value this row claims, inclusive.
+  key_min_unbounded:
+    range: boolean
+    description: >-
+      True only when this row has no lower key bound. Exactly one of
+      key_min and key_min_unbounded=true must describe the lower side.
+  key_max_unbounded:
+    range: boolean
+    description: >-
+      True only when this row has no upper key bound. Exactly one of
+      key_max and key_max_unbounded=true must describe the upper side.
   entry_type:
     range: string
     required: true

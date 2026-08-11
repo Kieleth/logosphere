@@ -11,6 +11,7 @@
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
+#include "logosphere/rules/lookup_table_selector.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
@@ -19,6 +20,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <variant>
@@ -64,6 +66,14 @@ kg::SeedEnvelope parse_table_seed() {
     return parsed.seed;
 }
 
+kg::SeedEnvelope parse_career_seed() {
+    const auto parsed = kg::parse_seed_envelope(
+        slurp(game_path("seeds/cepheus_careers.json")));
+    CHECK(parsed.ok(), "the careers seed parses for a semantic mutation: " +
+                           parsed.error);
+    return parsed.seed;
+}
+
 kg::KGOpCreateEntity* find_create(kg::SeedEnvelope& seed,
                                   const std::string& alias) {
     for (auto& op : seed.ops) {
@@ -84,6 +94,32 @@ bool set_property(kg::SeedEnvelope& seed, const std::string& alias,
         }
     }
     return false;
+}
+
+bool add_property(kg::SeedEnvelope& seed, const std::string& alias,
+                  const std::string& property, const std::string& value) {
+    auto* create = find_create(seed, alias);
+    if (!create) return false;
+    for (const auto& [key, stored] : create->properties) {
+        (void)stored;
+        if (key == property) return false;
+    }
+    create->properties.emplace_back(property, value);
+    return true;
+}
+
+bool remove_property(kg::SeedEnvelope& seed, const std::string& alias,
+                     const std::string& property) {
+    auto* create = find_create(seed, alias);
+    if (!create) return false;
+    const auto before = create->properties.size();
+    create->properties.erase(
+        std::remove_if(create->properties.begin(), create->properties.end(),
+                       [&](const auto& item) {
+                           return item.first == property;
+                       }),
+        create->properties.end());
+    return create->properties.size() != before;
 }
 
 bool remove_relations_from(kg::SeedEnvelope& seed,
@@ -242,11 +278,31 @@ void test_cited_tables_load_with_typed_results() {
           "the verified table seed loads: " + loaded.error);
     if (!loaded.error.empty()) return;
 
-    const auto dm_table = loaded.bindings.at("dm_table");
+    const auto careers = kg::parse_seed_envelope(
+        slurp(game_path("seeds/cepheus_careers.json")));
+    CHECK(careers.ok(), "the careers seed containing the modifier table "
+                        "parses: " + careers.error);
+    if (!careers.ok()) return;
+    const auto careers_verified = kg::verify_seed(
+        careers.seed, game_path("srd/cepheus"), reg);
+    if (!careers_verified.ok()) {
+        for (const auto& violation : careers_verified.violations)
+            std::cout << "  [measure] careers " << violation.check << ": "
+                      << violation.reason << std::endl;
+    }
+    CHECK(careers_verified.ok(),
+          "the careers seed and colocated modifier table verify");
+    if (!careers_verified.ok()) return;
+    kg::SeedLoadReport careers_loaded;
+    CHECK(kg::load_seed(careers.seed, world, careers_loaded),
+          "the verified careers seed loads: " + careers_loaded.error);
+    if (!careers_loaded.error.empty()) return;
+
+    const auto dm_table = careers_loaded.bindings.at("dm_table");
     const auto dm_rows = world.getRelated(dm_table, "HAS_PART");
     CHECK(world.getProperty(dm_table, "entry_type") ==
               "CharacteristicModifierEntry" &&
-              dm_rows.size() == 2,
+              dm_rows.size() == 12,
           "the characteristic table declares and contains its typed rows");
     bool complete_dm_rows = true;
     for (const auto row : dm_rows) {
@@ -258,6 +314,28 @@ void test_cited_tables_load_with_typed_results() {
     }
     CHECK(complete_dm_rows,
           "every characteristic row carries every printed result column");
+    const logosphere::rules::LookupTableSelector selector(world);
+    bool every_score_has_the_book_modifier = true;
+    for (int score = 0; score <= 35; ++score) {
+        const auto selected = selector.select(dm_table, score);
+        const int expected = score >= 33 ? 9 : score / 3 - 2;
+        every_score_has_the_book_modifier =
+            every_score_has_the_book_modifier && selected.ok() &&
+            std::stoi(world.getProperty(selected.selection->row(),
+                                        "characteristic_modifier")) ==
+                expected;
+    }
+    const auto at_integer_limit = selector.select(
+        dm_table, std::numeric_limits<int64_t>::max());
+    CHECK(every_score_has_the_book_modifier && at_integer_limit.ok() &&
+              world.getProperty(at_integer_limit.selection->row(),
+                                "characteristic_modifier") == "9" &&
+              world.getProperty(at_integer_limit.selection->row(),
+                                "key_max").empty() &&
+              world.getProperty(at_integer_limit.selection->row(),
+                                "key_max_unbounded") == "true",
+          "all twelve cited bands select correctly and 33+ is explicitly "
+          "unbounded");
 
     const auto law_table = loaded.bindings.at("law_table");
     const auto law_rows = world.getRelated(law_table, "HAS_PART");
@@ -290,7 +368,7 @@ void test_cited_tables_load_with_typed_results() {
 }
 
 void test_lookup_table_rejects_an_unknown_entry_type() {
-    auto seed = parse_table_seed();
+    auto seed = parse_career_seed();
     CHECK(set_property(seed, "dm_table", "entry_type", "MissingEntry"),
           "the lookup type mutation was applied");
     const auto report = kg::verify_seed(
@@ -301,7 +379,7 @@ void test_lookup_table_rejects_an_unknown_entry_type() {
 }
 
 void test_lookup_table_rejects_rows_of_another_declared_shape() {
-    auto seed = parse_table_seed();
+    auto seed = parse_career_seed();
     CHECK(set_property(seed, "dm_table", "entry_type", "DifficultyEntry"),
           "the incompatible lookup type mutation was applied");
     const auto report = kg::verify_seed(
@@ -314,7 +392,7 @@ void test_lookup_table_rejects_rows_of_another_declared_shape() {
 }
 
 void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
-    auto abstract = parse_table_seed();
+    auto abstract = parse_career_seed();
     CHECK(set_property(abstract, "dm_table", "entry_type", "LookupEntry"),
           "the abstract lookup type mutation was applied");
     const auto abstract_report = kg::verify_seed(
@@ -322,7 +400,7 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     CHECK(semantic_reason_contains(abstract_report, "is abstract"),
           "a table cannot declare the abstract base as its result shape");
 
-    auto unrelated = parse_table_seed();
+    auto unrelated = parse_career_seed();
     CHECK(set_property(unrelated, "dm_table", "entry_type", "EndCareer"),
           "the unrelated lookup type mutation was applied");
     const auto unrelated_report = kg::verify_seed(
@@ -331,13 +409,60 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
                                    "is not a LookupEntry subtype"),
           "a table cannot declare an unrelated ontology type");
 
-    auto empty = parse_table_seed();
+    auto empty = parse_career_seed();
     CHECK(remove_relations_from(empty, "dm_table"),
           "both characteristic row relations were removed");
     const auto empty_report = kg::verify_seed(
         empty, game_path("srd/cepheus"), game_registry());
     CHECK(semantic_reason_contains(empty_report, "has no HAS_PART rows"),
           "a lookup table without rows fails semantic verification");
+}
+
+void test_lookup_rows_require_one_explicit_bound_mode_per_side() {
+    auto missing = parse_career_seed();
+    CHECK(remove_property(missing, "dm_row_0_2", "key_max"),
+          "the finite upper lookup bound was removed");
+    const auto missing_report = kg::verify_seed(
+        missing, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(missing_report, "key_max"),
+          "an omitted lookup maximum without an unbounded flag fails");
+
+    auto ambiguous = parse_career_seed();
+    CHECK(add_property(ambiguous, "dm_row_0_2", "key_max_unbounded",
+                       "true"),
+          "the contradictory upper-unbounded flag was added");
+    const auto ambiguous_report = kg::verify_seed(
+        ambiguous, game_path("srd/cepheus"), game_registry());
+    CHECK(semantic_reason_contains(ambiguous_report, "both key_max"),
+          "a finite and unbounded maximum cannot coexist");
+}
+
+void test_task_check_requires_an_integer_modifier_result() {
+    auto wrong_type = parse_career_seed();
+    CHECK(set_property(wrong_type, "aerospace_defense_qual",
+                       "modifier_property", "pseudohex_min"),
+          "the non-integer TaskCheck modifier column mutation was applied");
+    const auto wrong_type_report = kg::verify_seed(
+        wrong_type, game_path("srd/cepheus"), game_registry());
+    CHECK(!wrong_type_report.ok(),
+          "a TaskCheck modifier column with the wrong type fails verification");
+    CHECK(semantic_reason_contains(wrong_type_report,
+                                   "modifier_property 'pseudohex_min'") &&
+              semantic_reason_contains(wrong_type_report, "not integer"),
+          "the semantic error names the TaskCheck column and required type");
+
+    auto missing = parse_career_seed();
+    CHECK(set_property(missing, "aerospace_defense_qual",
+                       "modifier_property", "missing_modifier"),
+          "the missing TaskCheck modifier column mutation was applied");
+    const auto missing_report = kg::verify_seed(
+        missing, game_path("srd/cepheus"), game_registry());
+    CHECK(!missing_report.ok(),
+          "an unknown TaskCheck modifier column fails verification");
+    CHECK(semantic_reason_contains(missing_report,
+                                   "unknown modifier_property "
+                                   "'missing_modifier'"),
+          "the semantic error names the unknown TaskCheck column");
 }
 
 void test_outcome_sequence_rejects_duplicate_order() {
@@ -473,6 +598,8 @@ int main() {
     test_lookup_table_rejects_an_unknown_entry_type();
     test_lookup_table_rejects_rows_of_another_declared_shape();
     test_lookup_table_requires_a_concrete_entry_subtype_and_rows();
+    test_lookup_rows_require_one_explicit_bound_mode_per_side();
+    test_task_check_requires_an_integer_modifier_result();
     test_outcome_sequence_rejects_duplicate_order();
     test_outcome_sequence_requires_steps_and_contiguous_order();
     test_outcome_choice_requires_authority_options_and_order();
