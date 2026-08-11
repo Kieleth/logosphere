@@ -4,6 +4,7 @@
 #include "platform_system.h"
 #include <GLFW/glfw3.h>
 #include <atomic>  // For std::atomic thread-safe flag
+#include <chrono>
 
 namespace Platform {
 
@@ -66,8 +67,19 @@ public:
     
     // Native pixel format - Metal prefers BGRA
     PixelFormat get_native_pixel_format() const override { return PixelFormat::BGRA_8888; }
-    
+
+    // Has GLFW (and therefore NSApplication, and therefore this
+    // process's connection to the window server) been brought up?
+    // False for the whole life of a headless run. Public so an
+    // acceptance test can assert the headless engine never touches
+    // the window server; see tests/test_headless_no_window_server.cpp.
+    bool is_window_system_live() const { return glfw_ready_; }
+
 private:
+    // Bring GLFW up on demand. Called only from create_window(): a
+    // headless engine has no window and must never reach this.
+    bool ensure_glfw();
+
     // GLFW callbacks (static methods that forward to instance methods)
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void char_callback(GLFWwindow* window, unsigned int codepoint);
@@ -87,6 +99,12 @@ private:
     // Member variables
     GLFWwindow* window_ = nullptr;
     IInputCallbacks* callbacks_ = nullptr;
+    bool glfw_ready_ = false;
+    // get_time() used to be glfwGetTime(), which forced GLFW up just
+    // to read a clock. Same semantics without the dependency:
+    // monotonic seconds since this platform was created.
+    std::chrono::steady_clock::time_point created_at_ =
+        std::chrono::steady_clock::now();
     float dpi_scale_x_ = 1.0f;
     float dpi_scale_y_ = 1.0f;
 
