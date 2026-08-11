@@ -3294,8 +3294,55 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // carry it in the attachment offsets with target_distance 0.
             // Take the larger, floored at 1 cm, or a nail's centers read
             // as a torn fiber and scenario 8 of the battery loses its box.
+            // REST GEOMETRY MUST BE MEASURED IN THE SAME FRAME THE BOND IS.
+            //
+            // get_segment_length() subtracts offset_a and offset_b as raw
+            // vectors, which silently assumes both bodies share an
+            // orientation. They rarely do: a branch hangs off a trunk at an
+            // angle, a grass blade leans. The offsets are stored in each
+            // body's OWN local frame, so subtracting them unrotated measures
+            // a quantity that exists in no frame at all.
+            //
+            // Measured on test_foliage_stays_attached, the very first tear:
+            //   off_a=(0,0,1.29965)  thick_a=2.59929  -> exactly thick_a/2, correct
+            //   off_b=(0.093,-0.799,-0.069) thick_b=1.61406 -> |off_b| = 0.80704,
+            //                                exactly thick_b/2, also correct
+            //   get_segment_length() = 1.587   true centre separation = 3.177
+            // Both offsets are right. The subtraction is wrong, by a factor of
+            // 2.0017, which lands a bond sitting exactly where it was built a
+            // hair over the 2.0x tear ratio. 51 bonds tore that way with both
+            // bodies stationary, and the canopy left: mean drift 27.5 m.
+            //
+            // Rotate each offset by its OWN body before differencing, the same
+            // composition the solver uses to build attachment points a few
+            // hundred lines up. Rest is then a function of current orientation,
+            // which is correct: as a branch swings, the centre-to-centre
+            // distance at zero strain genuinely changes.
+            auto rot_local = [](const Particle& p, const Vec3& o,
+                                float& wx, float& wy, float& wz) {
+                const float cx = cosf(p.rotation_x), sx = sinf(p.rotation_x);
+                const float cy = cosf(p.rotation_y), sy = sinf(p.rotation_y);
+                const float cz = cosf(p.rotation_z), sz = sinf(p.rotation_z);
+                const float y1 = o.y * cx - o.z * sx;
+                const float z1 = o.y * sx + o.z * cx;
+                const float x2 = o.x * cy + z1 * sy;
+                const float z2 = -o.x * sy + z1 * cy;
+                wx = x2 * cz - y1 * sz;
+                wy = x2 * sz + y1 * cz;
+                wz = z2;
+            };
+            float seg_len;
+            if (gluon->rotate_offsets) {
+                float ax, ay, az, bx, by, bz;
+                rot_local(pa, gluon->offset_a, ax, ay, az);
+                rot_local(pb, gluon->offset_b, bx, by, bz);
+                const float sx = ax - bx, sy2 = ay - by, sz2 = az - bz;
+                seg_len = std::sqrt(sx*sx + sy2*sy2 + sz2*sz2);
+            } else {
+                seg_len = gluon->get_segment_length();   // already world-space
+            }
             const float rest = std::max({gluon->target_distance,
-                                         gluon->get_segment_length(), 0.01f});
+                                         seg_len, 0.01f});
             if (dist > max_strain * rest) {
                 // TEAR_DEBUG=1: name every bond that snaps and the state that
                 // snapped it. A tear is silent by construction — the bond is
@@ -3308,6 +3355,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << " dist=" << dist << " rest=" << rest
                               << " strain=" << (dist / rest) << "x (limit "
                               << max_strain << "x)"
+                              // The rest for an offset-anchored bond is
+                              // |offset_a - offset_b|, which SHOULD equal the
+                              // centre-to-centre distance at rest. When it does
+                              // not, the bond was born strained and the tear is
+                              // a generation bug, not a dynamics one. Print both
+                              // offsets and the bodies' Z extents so the
+                              // arithmetic can be checked against the geometry.
+                              << " | off_a=(" << gluon->offset_a.x << ","
+                              << gluon->offset_a.y << "," << gluon->offset_a.z << ")"
+                              << " off_b=(" << gluon->offset_b.x << ","
+                              << gluon->offset_b.y << "," << gluon->offset_b.z << ")"
+                              << " seglen=" << gluon->get_segment_length()
+                              << " tgt=" << gluon->target_distance
+                              << " thick_a=" << pa.thickness
+                              << " thick_b=" << pb.thickness
                               << " | a: pos=(" << pa.x << "," << pa.y << "," << pa.z
                               << ") vel=(" << pa.vx << "," << pa.vy << "," << pa.vz
                               << ") m=" << pa.GetMass() << " mode=" << (int)pa.solver_mode
