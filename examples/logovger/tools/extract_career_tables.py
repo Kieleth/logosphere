@@ -291,6 +291,18 @@ def main():
 
     tables = read_tables(chapter)
     builder = Builder(load_skill_names(vocabulary_path))
+    # The Draft table is ALSO titled "Career", with columns "Roll of
+    # 4+" and friends. A block header is identified by what it
+    # contains, not by its title: only a career block has a
+    # Qualifications row.
+    def is_block_header(table):
+        return (table["title"] == "Career" and
+                any(row[0] == "Qualifications" for row in table["rows"]))
+
+    ALL_CAREERS = []
+    for table in tables:
+        if is_block_header(table):
+            ALL_CAREERS.extend(table["columns"])
 
     counts = {"skill_table": 0, "cash": 0, "material": 0, "rank": 0,
               "check": 0}
@@ -304,7 +316,7 @@ def main():
 
     for table in tables:
         title, columns = table["title"], table["columns"]
-        if title == "Career":
+        if is_block_header(table):
             block_careers = list(columns)
         canonical = {printed: (block_careers[i] if i < len(block_careers)
                                else printed)
@@ -327,7 +339,7 @@ def main():
                 family = "skill" if title in SKILL_TABLES else "benefit"
                 section, quote = TABLE_CITATIONS[family]
                 builder.add("RollableTable", f"@{tag}", dict(
-                    name=f"{career} {title}",
+                    name=f"{canonical[career]} {title}",
                     dice="@@DiceExpression:1D6",
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote))
@@ -335,21 +347,20 @@ def main():
                 # for the same reason the throw rules do: a career is
                 # created by an earlier seed and cannot be written to.
                 if title in SKILL_TABLES:
-                    kind = slug(title)
-                    row = f"@{kind}_tbl_{slug(career)}"
+                    row = f"@training_opt_{slug(canonical[career])}_{slug(title)}"
                     builder.add("CareerTableEntry", row, dict(
-                        name=f"{title} table for {canonical[career]}",
+                        name=f"{title} for {canonical[career]}",
                         subject=f"@@Career:{canonical[career]}",
                         rollable_table=f"@{tag}",
                         source_file=CHAPTER, source_section=section,
                         source_kind="sentence", source_quote=quote))
                     builder.ops.append({"op": "set_relation",
-                                        "from": f"@{kind}_tables",
+                                        "from": "@training_tables",
                                         "relation": "HAS_PART",
                                         "to": row})
                 for key, outcome, value in entries:
                     builder.add("TableEntry", f"@{tag}_e{key}", dict(
-                        name=f"{career} {title} {key}",
+                        name=f"{canonical[career]} {title} {key}",
                         roll_min=key, roll_max=key, outcome=outcome,
                         **builder.cite(title, key, career, value)))
                     # A row belongs to its table. Creating the entries
@@ -412,7 +423,7 @@ def main():
                                         "to": f"@{tag}_s{key}"})
                 counts["rank"] += 1
 
-        elif title == "Career":
+        elif is_block_header(table):
             for row in table["rows"]:
                 row_label = row[0]
                 kind = CHECK_ROWS.get(row[0])
@@ -467,15 +478,29 @@ def main():
     # chapter prints one Career table per block of six careers, and
     # each has that row. The ROWS below carry the unambiguous cell
     # addresses, column included.
-    for title in SKILL_TABLES:
+    # The Service Skills tables belong to the careers seed, so they are
+    # referenced by name rather than re-created; the other three are
+    # created above. All four are options on the same rule.
+    for career in ALL_CAREERS:
+        row = f"@training_opt_{slug(career)}_service_skills"
         section, quote = TABLE_CITATIONS["skill"]
-        builder.ops.insert(0, {
-            "op": "create_entity", "type": "SubjectLookupTable",
-            "as": f"@{slug(title)}_tables",
-            "properties": dict(
-                name=f"{title} table by career",
-                source_file=CHAPTER, source_section=section,
-                source_kind="sentence", source_quote=quote)})
+        builder.add("CareerTableEntry", row, dict(
+            name=f"Service Skills for {career}",
+            subject=f"@@Career:{career}",
+            rollable_table=f"@@RollableTable:{career} Service Skills",
+            source_file=CHAPTER, source_section=section,
+            source_kind="sentence", source_quote=quote))
+        builder.ops.append({"op": "set_relation", "from": "@training_tables",
+                            "relation": "HAS_PART", "to": row})
+
+    section, quote = TABLE_CITATIONS["skill"]
+    builder.ops.insert(0, {
+        "op": "create_entity", "type": "SubjectLookupTable",
+        "as": "@training_tables",
+        "properties": dict(
+            name="training table by career",
+            source_file=CHAPTER, source_section=section,
+            source_kind="sentence", source_quote=quote)})
 
     for kind, (section, quote) in RULE_CITATIONS.items():
         builder.ops.insert(0, {
@@ -513,8 +538,8 @@ def main():
         # is what turns that silence into a failure.
         "invariants": {"count_of_type": {
                            "CareerThrowEntry": counts["check"],
-                           "CareerTableEntry": counts["skill_table"],
-                           "SubjectLookupTable": 6,
+                           "CareerTableEntry": counts["skill_table"] + 24,
+                           "SubjectLookupTable": 4,
                            "ProgressionTrack": counts["rank"]},
                        "unique_name_per_type": ["RollableTable", "TaskCheck",
                                                 "ProgressionTrack",

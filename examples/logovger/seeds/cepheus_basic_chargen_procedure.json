@@ -85,7 +85,8 @@
     "step_index": "4",
     "primitive_ref": "roll_training",
     "source_section": "Character Creation Checklist",
-    "source_quote": "Choose one of the Skills and Training tables for this career and roll on it."
+    "source_quote": "Choose one of the Skills and Training tables for this career and roll on it.",
+    "subject_table": "@@SubjectLookupTable:training table by career"
    }
   },
   {

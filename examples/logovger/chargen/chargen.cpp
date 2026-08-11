@@ -147,29 +147,59 @@ kg::EntityID subject_row(const kg::KGModule& kg, kg::EntityID step,
     return kg::INVALID_ENTITY;
 }
 
+// Every row of the step's table that is about this subject. The
+// training rule offers four tables per career, so one subject has
+// several rows, unlike the throw rules where it has exactly one.
+std::vector<kg::EntityID> subject_rows(const kg::KGModule& kg,
+                                       kg::EntityID step,
+                                       kg::EntityID subject,
+                                       const char* result_slot,
+                                       std::string& error) {
+    std::vector<kg::EntityID> out;
+    const std::string table_ref = kg.getProperty(step, "subject_table");
+    if (table_ref.empty()) {
+        error = "this step names no subject_table";
+        return out;
+    }
+    kg::EntityID table = kg::INVALID_ENTITY;
+    try {
+        table = static_cast<kg::EntityID>(std::stoul(table_ref));
+    } catch (...) {
+        error = "step's subject_table is not an entity reference";
+        return out;
+    }
+    for (auto row : kg.getRelated(table, "HAS_PART")) {
+        if (kg.getProperty(row, "subject") != std::to_string(subject)) {
+            continue;
+        }
+        const std::string result = kg.getProperty(row, result_slot);
+        if (result.empty()) continue;
+        try {
+            out.push_back(static_cast<kg::EntityID>(std::stoul(result)));
+        } catch (...) {
+            error = "a row's " + std::string(result_slot) +
+                    " is not an entity reference";
+            return {};
+        }
+    }
+    if (out.empty()) {
+        error = "no row in this step's table is about " +
+                kg.getProperty(subject, "name");
+    }
+    return out;
+}
+
 // Select a career training row, then apply its structured outcome. These are
 // separate engine operations: the recorded selection remains a fact if
 // outcome application fails. There is no default skill level in procedure
 // code.
-bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
-                               kg::EntityID character,
-                               logosphere::dice::DiceService& dice,
-                               uint64_t& roll_id_out, std::string& gained,
-                               std::string& error) {
+bool apply_training_table(kg::KGModule& kg, kg::EntityID table,
+                          kg::EntityID character,
+                          logosphere::dice::DiceService& dice,
+                          uint64_t& roll_id_out, std::string& gained,
+                          std::string& error) {
     gained.clear();
     error.clear();
-    kg::EntityID table = kg::INVALID_ENTITY;
-    for (auto part : kg.getRelated(career, "HAS_PART")) {
-        if (kg.getRegistry().isSubtypeOf(kg.getType(part),
-                                         "RollableTable")) {
-            table = part;
-        }
-        if (table != kg::INVALID_ENTITY) break;
-    }
-    if (table == kg::INVALID_ENTITY) {
-        error = "career has no RollableTable for skills and training";
-        return false;
-    }
 
     logosphere::rules::RollableTableRunner table_runner(kg, dice);
     const auto selected = table_runner.select(
@@ -180,17 +210,28 @@ bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
     }
     roll_id_out = selected.selection->roll().id;
 
+    // A training row is not always a skill. Personal Development
+    // grants characteristics ("+1 Dex"), and the executor applies
+    // whatever the row carries; only the REPORT differs, because a
+    // skill is worth naming with its new level and a characteristic
+    // is not.
     const auto outcome = selected.selection->outcome();
+    const bool grants_skill =
+        kg.getRegistry().isSubtypeOf(kg.getType(outcome), "AdvanceSkill");
     kg::EntityID skill = kg::INVALID_ENTITY;
-    if (!entity_reference(kg, outcome, "skill", "Skill", skill, error)) {
-        error = "skills and training outcome: " + error;
-        return false;
-    }
-    const auto skill_ref = kg.getProperty(outcome, "skill");
-    const std::string skill_name = kg.getProperty(skill, "name");
-    if (skill_name.empty()) {
-        error = "skills and training outcome points to an unnamed skill";
-        return false;
+    std::string skill_ref;
+    std::string skill_name;
+    if (grants_skill) {
+        if (!entity_reference(kg, outcome, "skill", "Skill", skill, error)) {
+            error = "skills and training outcome: " + error;
+            return false;
+        }
+        skill_ref = kg.getProperty(outcome, "skill");
+        skill_name = kg.getProperty(skill, "name");
+        if (skill_name.empty()) {
+            error = "skills and training outcome points to an unnamed skill";
+            return false;
+        }
     }
 
     logosphere::rules::OutcomeExecutor executor(kg, dice);
@@ -199,6 +240,13 @@ bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
     if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
         error = "skills and training outcome failed: " + applied.error;
         return false;
+    }
+
+    if (!grants_skill) {
+        gained = kg.getProperty(outcome, "name");
+        const auto cut = gained.rfind(": ");
+        if (cut != std::string::npos) gained = gained.substr(cut + 2);
+        return true;
     }
 
     int matches = 0;
@@ -646,19 +694,54 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
     return PrimitiveResult::advance("passed");
 }
 
+// Step 7. "Choose one of the Skills and Training tables for this
+// career and roll on it." The choice is the player's and the book
+// gives four: Personal Development, Service Skills, Specialist and
+// Adv Education. Rolling the service table automatically, as this did
+// before, skipped a decision the book makes every single term.
 ChargenSession::PrimitiveResult ChargenSession::roll_training(
-    const PrimitiveContext&) {
+    const PrimitiveContext& context) {
     const int term = sheet_.terms_served + 1;
+    std::string table_error;
+    const auto options = subject_rows(kg_, context.step, career_,
+                                      "rollable_table", table_error);
+    if (options.empty()) {
+        return PrimitiveResult::failed("skills and training: " +
+                                       table_error);
+    }
+    if (!context.input) {
+        choices_.clear();
+        for (size_t i = 0; i < options.size(); ++i) {
+            choices_.push_back(
+                {std::to_string(i + 1),
+                 kg_.getProperty(options[i], "name"),
+                 "roll 1D6 on it"});
+        }
+        prompt_ = "Term " + std::to_string(term) +
+                  ": which table do you train on?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the tables");
+    }
+    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    if (index >= options.size()) {
+        return PrimitiveResult::failed("no such training table");
+    }
+    const kg::EntityID chosen = options[index];
+    choices_.clear();
     uint64_t skill_roll = 0;
     std::string skill;
     std::string error;
-    if (!select_and_apply_training(kg_, career_, sheet_.id, dice_, skill_roll,
-                                   skill, error)) {
+    if (!apply_training_table(kg_, chosen, sheet_.id, dice_, skill_roll,
+                              skill, error)) {
         return PrimitiveResult::failed(error);
     }
     sheet_.skills.push_back(skill);
     sheet_.life.push_back({term, "gained " + skill,
-                           "skills and training", skill_roll});
+                           kg_.getProperty(chosen, "name"), skill_roll});
     return PrimitiveResult::advance();
 }
 
@@ -826,6 +909,25 @@ bool run_chargen(const ChargenRequest& request,
         if (!choices.empty() &&
             choices.front().label == "Serve another term") {
             if (!session.choose("1", error)) return false;
+            continue;
+        }
+        // Which table to train on is a real choice the book gives every
+        // term, and an auto-player has no taste. It takes Service
+        // Skills, which is the table this harness rolled before the
+        // choice existed, so what it measures is unchanged.
+        if (session.prompt().find("which table do you train on") !=
+            std::string::npos) {
+            const auto service = std::find_if(
+                choices.begin(), choices.end(), [](const Choice& choice) {
+                    return choice.label.size() > 14 &&
+                           choice.label.compare(choice.label.size() - 14, 14,
+                                                "Service Skills") == 0;
+                });
+            if (service == choices.end()) {
+                error = "no Service Skills table offered for this career";
+                return false;
+            }
+            if (!session.choose(service->key, error)) return false;
             continue;
         }
         break;

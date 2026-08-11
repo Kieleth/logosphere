@@ -27,6 +27,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   travel together: neither, or both. `TaskCheckRunner` throws unmodified
   checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
   a pointer that is null when there was nothing to look up.
+- **Logovger training is a choice, not an automatic roll.** The book says
+  "choose one of the Skills and Training tables for this career and roll on
+  it", and offers four: Personal Development, Service Skills, Specialist and
+  Adv Education. Training also stopped assuming every row grants a skill,
+  since Personal Development grants characteristics.
 - **Logovger re-enlistment is a throw, not a decision.** At the end of a term
   the book rolls first and honours the player's wish only if the roll allows
   it: a failure forces them out of the career, and a natural 12 forces them

@@ -7,8 +7,8 @@
  "invariants": {
   "count_of_type": {
    "CareerThrowEntry": 58,
-   "CareerTableEntry": 72,
-   "SubjectLookupTable": 6,
+   "CareerTableEntry": 96,
+   "SubjectLookupTable": 4,
    "ProgressionTrack": 24
   },
   "unique_name_per_type": [
@@ -155,33 +155,9 @@
   {
    "op": "create_entity",
    "type": "SubjectLookupTable",
-   "as": "@adv_education_tables",
+   "as": "@training_tables",
    "properties": {
-    "name": "Adv Education table by career",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Skills and Training",
-    "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "SubjectLookupTable",
-   "as": "@specialist_tables",
-   "properties": {
-    "name": "Specialist table by career",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Skills and Training",
-    "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "SubjectLookupTable",
-   "as": "@personal_development_tables",
-   "properties": {
-    "name": "Personal Development table by career",
+    "name": "training table by career",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -1890,7 +1866,7 @@
    "type": "RollableTable",
    "as": "@aerospace_material_benefits",
    "properties": {
-    "name": "Aerospace Material Benefits",
+    "name": "Aerospace Defense Material Benefits",
     "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Mustering Out Benefits",
@@ -1903,7 +1879,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e1",
    "properties": {
-    "name": "Aerospace Material Benefits 1",
+    "name": "Aerospace Defense Material Benefits 1",
     "roll_min": "1",
     "roll_max": "1",
     "outcome": "@aerospace_material_benefits_1_poss",
@@ -1927,7 +1903,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e2",
    "properties": {
-    "name": "Aerospace Material Benefits 2",
+    "name": "Aerospace Defense Material Benefits 2",
     "roll_min": "2",
     "roll_max": "2",
     "outcome": "@aerospace_material_benefits_2_attr",
@@ -1951,7 +1927,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e3",
    "properties": {
-    "name": "Aerospace Material Benefits 3",
+    "name": "Aerospace Defense Material Benefits 3",
     "roll_min": "3",
     "roll_max": "3",
     "outcome": "@aerospace_material_benefits_3_poss",
@@ -1975,7 +1951,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e4",
    "properties": {
-    "name": "Aerospace Material Benefits 4",
+    "name": "Aerospace Defense Material Benefits 4",
     "roll_min": "4",
     "roll_max": "4",
     "outcome": "@aerospace_material_benefits_4_poss",
@@ -1999,7 +1975,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e5",
    "properties": {
-    "name": "Aerospace Material Benefits 5",
+    "name": "Aerospace Defense Material Benefits 5",
     "roll_min": "5",
     "roll_max": "5",
     "outcome": "@aerospace_material_benefits_5_poss",
@@ -2023,7 +1999,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e6",
    "properties": {
-    "name": "Aerospace Material Benefits 6",
+    "name": "Aerospace Defense Material Benefits 6",
     "roll_min": "6",
     "roll_max": "6",
     "outcome": "@aerospace_material_benefits_6_poss",
@@ -2047,7 +2023,7 @@
    "type": "TableEntry",
    "as": "@aerospace_material_benefits_e7",
    "properties": {
-    "name": "Aerospace Material Benefits 7",
+    "name": "Aerospace Defense Material Benefits 7",
     "roll_min": "7",
     "roll_max": "7",
     "outcome": "@aerospace_material_benefits_7_attr",
@@ -3669,7 +3645,7 @@
    "type": "RollableTable",
    "as": "@aerospace_cash_benefits",
    "properties": {
-    "name": "Aerospace Cash Benefits",
+    "name": "Aerospace Defense Cash Benefits",
     "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Mustering Out Benefits",
@@ -3682,7 +3658,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e1",
    "properties": {
-    "name": "Aerospace Cash Benefits 1",
+    "name": "Aerospace Defense Cash Benefits 1",
     "roll_min": "1",
     "roll_max": "1",
     "outcome": "@aerospace_cash_benefits_1_cash",
@@ -3706,7 +3682,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e2",
    "properties": {
-    "name": "Aerospace Cash Benefits 2",
+    "name": "Aerospace Defense Cash Benefits 2",
     "roll_min": "2",
     "roll_max": "2",
     "outcome": "@aerospace_cash_benefits_2_cash",
@@ -3730,7 +3706,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e3",
    "properties": {
-    "name": "Aerospace Cash Benefits 3",
+    "name": "Aerospace Defense Cash Benefits 3",
     "roll_min": "3",
     "roll_max": "3",
     "outcome": "@aerospace_cash_benefits_3_cash",
@@ -3754,7 +3730,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e4",
    "properties": {
-    "name": "Aerospace Cash Benefits 4",
+    "name": "Aerospace Defense Cash Benefits 4",
     "roll_min": "4",
     "roll_max": "4",
     "outcome": "@aerospace_cash_benefits_4_cash",
@@ -3778,7 +3754,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e5",
    "properties": {
-    "name": "Aerospace Cash Benefits 5",
+    "name": "Aerospace Defense Cash Benefits 5",
     "roll_min": "5",
     "roll_max": "5",
     "outcome": "@aerospace_cash_benefits_5_cash",
@@ -3802,7 +3778,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e6",
    "properties": {
-    "name": "Aerospace Cash Benefits 6",
+    "name": "Aerospace Defense Cash Benefits 6",
     "roll_min": "6",
     "roll_max": "6",
     "outcome": "@aerospace_cash_benefits_6_cash",
@@ -3826,7 +3802,7 @@
    "type": "TableEntry",
    "as": "@aerospace_cash_benefits_e7",
    "properties": {
-    "name": "Aerospace Cash Benefits 7",
+    "name": "Aerospace Defense Cash Benefits 7",
     "roll_min": "7",
     "roll_max": "7",
     "outcome": "@aerospace_cash_benefits_7_cash",
@@ -5159,9 +5135,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_athlete",
+   "as": "@training_opt_athlete_personal_development",
    "properties": {
-    "name": "Personal Development table for Athlete",
+    "name": "Personal Development for Athlete",
     "subject": "@@Career:Athlete",
     "rollable_table": "@athlete_personal_development",
     "source_file": "book1/character-creation.md",
@@ -5172,9 +5148,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_athlete"
+   "to": "@training_opt_athlete_personal_development"
   },
   {
    "op": "create_entity",
@@ -5421,7 +5397,7 @@
    "type": "RollableTable",
    "as": "@aerospace_personal_development",
    "properties": {
-    "name": "Aerospace Personal Development",
+    "name": "Aerospace Defense Personal Development",
     "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
@@ -5432,9 +5408,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_aerospace",
+   "as": "@training_opt_aerospace_defense_personal_development",
    "properties": {
-    "name": "Personal Development table for Aerospace Defense",
+    "name": "Personal Development for Aerospace Defense",
     "subject": "@@Career:Aerospace Defense",
     "rollable_table": "@aerospace_personal_development",
     "source_file": "book1/character-creation.md",
@@ -5445,16 +5421,16 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_aerospace"
+   "to": "@training_opt_aerospace_defense_personal_development"
   },
   {
    "op": "create_entity",
    "type": "TableEntry",
    "as": "@aerospace_personal_development_e1",
    "properties": {
-    "name": "Aerospace Personal Development 1",
+    "name": "Aerospace Defense Personal Development 1",
     "roll_min": "1",
     "roll_max": "1",
     "outcome": "@aerospace_personal_development_1_attr",
@@ -5478,7 +5454,7 @@
    "type": "TableEntry",
    "as": "@aerospace_personal_development_e2",
    "properties": {
-    "name": "Aerospace Personal Development 2",
+    "name": "Aerospace Defense Personal Development 2",
     "roll_min": "2",
     "roll_max": "2",
     "outcome": "@aerospace_personal_development_2_attr",
@@ -5502,7 +5478,7 @@
    "type": "TableEntry",
    "as": "@aerospace_personal_development_e3",
    "properties": {
-    "name": "Aerospace Personal Development 3",
+    "name": "Aerospace Defense Personal Development 3",
     "roll_min": "3",
     "roll_max": "3",
     "outcome": "@aerospace_personal_development_3_attr",
@@ -5526,7 +5502,7 @@
    "type": "TableEntry",
    "as": "@aerospace_personal_development_e4",
    "properties": {
-    "name": "Aerospace Personal Development 4",
+    "name": "Aerospace Defense Personal Development 4",
     "roll_min": "4",
     "roll_max": "4",
     "outcome": "@aerospace_personal_development_4_skill",
@@ -5550,7 +5526,7 @@
    "type": "TableEntry",
    "as": "@aerospace_personal_development_e5",
    "properties": {
-    "name": "Aerospace Personal Development 5",
+    "name": "Aerospace Defense Personal Development 5",
     "roll_min": "5",
     "roll_max": "5",
     "outcome": "@aerospace_personal_development_5_skill",
@@ -5574,7 +5550,7 @@
    "type": "TableEntry",
    "as": "@aerospace_personal_development_e6",
    "properties": {
-    "name": "Aerospace Personal Development 6",
+    "name": "Aerospace Defense Personal Development 6",
     "roll_min": "6",
     "roll_max": "6",
     "outcome": "@aerospace_personal_development_6_skill",
@@ -5707,9 +5683,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_agent",
+   "as": "@training_opt_agent_personal_development",
    "properties": {
-    "name": "Personal Development table for Agent",
+    "name": "Personal Development for Agent",
     "subject": "@@Career:Agent",
     "rollable_table": "@agent_personal_development",
     "source_file": "book1/character-creation.md",
@@ -5720,9 +5696,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_agent"
+   "to": "@training_opt_agent_personal_development"
   },
   {
    "op": "create_entity",
@@ -5982,9 +5958,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_barbarian",
+   "as": "@training_opt_barbarian_personal_development",
    "properties": {
-    "name": "Personal Development table for Barbarian",
+    "name": "Personal Development for Barbarian",
     "subject": "@@Career:Barbarian",
     "rollable_table": "@barbarian_personal_development",
     "source_file": "book1/character-creation.md",
@@ -5995,9 +5971,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_barbarian"
+   "to": "@training_opt_barbarian_personal_development"
   },
   {
    "op": "create_entity",
@@ -6255,9 +6231,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_belter",
+   "as": "@training_opt_belter_personal_development",
    "properties": {
-    "name": "Personal Development table for Belter",
+    "name": "Personal Development for Belter",
     "subject": "@@Career:Belter",
     "rollable_table": "@belter_personal_development",
     "source_file": "book1/character-creation.md",
@@ -6268,9 +6244,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_belter"
+   "to": "@training_opt_belter_personal_development"
   },
   {
    "op": "create_entity",
@@ -6530,9 +6506,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_bureaucrat",
+   "as": "@training_opt_bureaucrat_personal_development",
    "properties": {
-    "name": "Personal Development table for Bureaucrat",
+    "name": "Personal Development for Bureaucrat",
     "subject": "@@Career:Bureaucrat",
     "rollable_table": "@bureaucrat_personal_development",
     "source_file": "book1/character-creation.md",
@@ -6543,9 +6519,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_bureaucrat"
+   "to": "@training_opt_bureaucrat_personal_development"
   },
   {
    "op": "create_entity",
@@ -6797,9 +6773,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_athlete",
+   "as": "@training_opt_athlete_specialist",
    "properties": {
-    "name": "Specialist table for Athlete",
+    "name": "Specialist for Athlete",
     "subject": "@@Career:Athlete",
     "rollable_table": "@athlete_specialist",
     "source_file": "book1/character-creation.md",
@@ -6810,9 +6786,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_athlete"
+   "to": "@training_opt_athlete_specialist"
   },
   {
    "op": "create_entity",
@@ -7053,7 +7029,7 @@
    "type": "RollableTable",
    "as": "@aerospace_specialist",
    "properties": {
-    "name": "Aerospace Specialist",
+    "name": "Aerospace Defense Specialist",
     "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
@@ -7064,9 +7040,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_aerospace",
+   "as": "@training_opt_aerospace_defense_specialist",
    "properties": {
-    "name": "Specialist table for Aerospace Defense",
+    "name": "Specialist for Aerospace Defense",
     "subject": "@@Career:Aerospace Defense",
     "rollable_table": "@aerospace_specialist",
     "source_file": "book1/character-creation.md",
@@ -7077,16 +7053,16 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_aerospace"
+   "to": "@training_opt_aerospace_defense_specialist"
   },
   {
    "op": "create_entity",
    "type": "TableEntry",
    "as": "@aerospace_specialist_e1",
    "properties": {
-    "name": "Aerospace Specialist 1",
+    "name": "Aerospace Defense Specialist 1",
     "roll_min": "1",
     "roll_max": "1",
     "outcome": "@aerospace_specialist_1_skill",
@@ -7110,7 +7086,7 @@
    "type": "TableEntry",
    "as": "@aerospace_specialist_e2",
    "properties": {
-    "name": "Aerospace Specialist 2",
+    "name": "Aerospace Defense Specialist 2",
     "roll_min": "2",
     "roll_max": "2",
     "outcome": "@aerospace_specialist_2_skill",
@@ -7134,7 +7110,7 @@
    "type": "TableEntry",
    "as": "@aerospace_specialist_e3",
    "properties": {
-    "name": "Aerospace Specialist 3",
+    "name": "Aerospace Defense Specialist 3",
     "roll_min": "3",
     "roll_max": "3",
     "outcome": "@aerospace_specialist_3_skill",
@@ -7158,7 +7134,7 @@
    "type": "TableEntry",
    "as": "@aerospace_specialist_e4",
    "properties": {
-    "name": "Aerospace Specialist 4",
+    "name": "Aerospace Defense Specialist 4",
     "roll_min": "4",
     "roll_max": "4",
     "outcome": "@aerospace_specialist_4_skill",
@@ -7182,7 +7158,7 @@
    "type": "TableEntry",
    "as": "@aerospace_specialist_e5",
    "properties": {
-    "name": "Aerospace Specialist 5",
+    "name": "Aerospace Defense Specialist 5",
     "roll_min": "5",
     "roll_max": "5",
     "outcome": "@aerospace_specialist_5_skill",
@@ -7206,7 +7182,7 @@
    "type": "TableEntry",
    "as": "@aerospace_specialist_e6",
    "properties": {
-    "name": "Aerospace Specialist 6",
+    "name": "Aerospace Defense Specialist 6",
     "roll_min": "6",
     "roll_max": "6",
     "outcome": "@aerospace_specialist_6_skill",
@@ -7331,9 +7307,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_agent",
+   "as": "@training_opt_agent_specialist",
    "properties": {
-    "name": "Specialist table for Agent",
+    "name": "Specialist for Agent",
     "subject": "@@Career:Agent",
     "rollable_table": "@agent_specialist",
     "source_file": "book1/character-creation.md",
@@ -7344,9 +7320,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_agent"
+   "to": "@training_opt_agent_specialist"
   },
   {
    "op": "create_entity",
@@ -7598,9 +7574,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_barbarian",
+   "as": "@training_opt_barbarian_specialist",
    "properties": {
-    "name": "Specialist table for Barbarian",
+    "name": "Specialist for Barbarian",
     "subject": "@@Career:Barbarian",
     "rollable_table": "@barbarian_specialist",
     "source_file": "book1/character-creation.md",
@@ -7611,9 +7587,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_barbarian"
+   "to": "@training_opt_barbarian_specialist"
   },
   {
    "op": "create_entity",
@@ -7865,9 +7841,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_belter",
+   "as": "@training_opt_belter_specialist",
    "properties": {
-    "name": "Specialist table for Belter",
+    "name": "Specialist for Belter",
     "subject": "@@Career:Belter",
     "rollable_table": "@belter_specialist",
     "source_file": "book1/character-creation.md",
@@ -7878,9 +7854,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_belter"
+   "to": "@training_opt_belter_specialist"
   },
   {
    "op": "create_entity",
@@ -8132,9 +8108,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_bureaucrat",
+   "as": "@training_opt_bureaucrat_specialist",
    "properties": {
-    "name": "Specialist table for Bureaucrat",
+    "name": "Specialist for Bureaucrat",
     "subject": "@@Career:Bureaucrat",
     "rollable_table": "@bureaucrat_specialist",
     "source_file": "book1/character-creation.md",
@@ -8145,9 +8121,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_bureaucrat"
+   "to": "@training_opt_bureaucrat_specialist"
   },
   {
    "op": "create_entity",
@@ -8399,9 +8375,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_athlete",
+   "as": "@training_opt_athlete_adv_education",
    "properties": {
-    "name": "Adv Education table for Athlete",
+    "name": "Adv Education for Athlete",
     "subject": "@@Career:Athlete",
     "rollable_table": "@athlete_adv_education",
     "source_file": "book1/character-creation.md",
@@ -8412,9 +8388,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_athlete"
+   "to": "@training_opt_athlete_adv_education"
   },
   {
    "op": "create_entity",
@@ -8655,7 +8631,7 @@
    "type": "RollableTable",
    "as": "@aerospace_adv_education",
    "properties": {
-    "name": "Aerospace Adv Education",
+    "name": "Aerospace Defense Adv Education",
     "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
@@ -8666,9 +8642,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_aerospace",
+   "as": "@training_opt_aerospace_defense_adv_education",
    "properties": {
-    "name": "Adv Education table for Aerospace Defense",
+    "name": "Adv Education for Aerospace Defense",
     "subject": "@@Career:Aerospace Defense",
     "rollable_table": "@aerospace_adv_education",
     "source_file": "book1/character-creation.md",
@@ -8679,16 +8655,16 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_aerospace"
+   "to": "@training_opt_aerospace_defense_adv_education"
   },
   {
    "op": "create_entity",
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e1",
    "properties": {
-    "name": "Aerospace Adv Education 1",
+    "name": "Aerospace Defense Adv Education 1",
     "roll_min": "1",
     "roll_max": "1",
     "outcome": "@aerospace_adv_education_1_skill",
@@ -8712,7 +8688,7 @@
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e2",
    "properties": {
-    "name": "Aerospace Adv Education 2",
+    "name": "Aerospace Defense Adv Education 2",
     "roll_min": "2",
     "roll_max": "2",
     "outcome": "@aerospace_adv_education_2_skill",
@@ -8736,7 +8712,7 @@
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e3",
    "properties": {
-    "name": "Aerospace Adv Education 3",
+    "name": "Aerospace Defense Adv Education 3",
     "roll_min": "3",
     "roll_max": "3",
     "outcome": "@aerospace_adv_education_3_skill",
@@ -8760,7 +8736,7 @@
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e4",
    "properties": {
-    "name": "Aerospace Adv Education 4",
+    "name": "Aerospace Defense Adv Education 4",
     "roll_min": "4",
     "roll_max": "4",
     "outcome": "@aerospace_adv_education_4_skill",
@@ -8784,7 +8760,7 @@
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e5",
    "properties": {
-    "name": "Aerospace Adv Education 5",
+    "name": "Aerospace Defense Adv Education 5",
     "roll_min": "5",
     "roll_max": "5",
     "outcome": "@aerospace_adv_education_5_skill",
@@ -8808,7 +8784,7 @@
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e6",
    "properties": {
-    "name": "Aerospace Adv Education 6",
+    "name": "Aerospace Defense Adv Education 6",
     "roll_min": "6",
     "roll_max": "6",
     "outcome": "@aerospace_adv_education_6_skill",
@@ -8933,9 +8909,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_agent",
+   "as": "@training_opt_agent_adv_education",
    "properties": {
-    "name": "Adv Education table for Agent",
+    "name": "Adv Education for Agent",
     "subject": "@@Career:Agent",
     "rollable_table": "@agent_adv_education",
     "source_file": "book1/character-creation.md",
@@ -8946,9 +8922,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_agent"
+   "to": "@training_opt_agent_adv_education"
   },
   {
    "op": "create_entity",
@@ -9200,9 +9176,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_barbarian",
+   "as": "@training_opt_barbarian_adv_education",
    "properties": {
-    "name": "Adv Education table for Barbarian",
+    "name": "Adv Education for Barbarian",
     "subject": "@@Career:Barbarian",
     "rollable_table": "@barbarian_adv_education",
     "source_file": "book1/character-creation.md",
@@ -9213,9 +9189,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_barbarian"
+   "to": "@training_opt_barbarian_adv_education"
   },
   {
    "op": "create_entity",
@@ -9467,9 +9443,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_belter",
+   "as": "@training_opt_belter_adv_education",
    "properties": {
-    "name": "Adv Education table for Belter",
+    "name": "Adv Education for Belter",
     "subject": "@@Career:Belter",
     "rollable_table": "@belter_adv_education",
     "source_file": "book1/character-creation.md",
@@ -9480,9 +9456,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_belter"
+   "to": "@training_opt_belter_adv_education"
   },
   {
    "op": "create_entity",
@@ -9734,9 +9710,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_bureaucrat",
+   "as": "@training_opt_bureaucrat_adv_education",
    "properties": {
-    "name": "Adv Education table for Bureaucrat",
+    "name": "Adv Education for Bureaucrat",
     "subject": "@@Career:Bureaucrat",
     "rollable_table": "@bureaucrat_adv_education",
     "source_file": "book1/character-creation.md",
@@ -9747,9 +9723,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_bureaucrat"
+   "to": "@training_opt_bureaucrat_adv_education"
   },
   {
    "op": "create_entity",
@@ -14826,9 +14802,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_colonist",
+   "as": "@training_opt_colonist_personal_development",
    "properties": {
-    "name": "Personal Development table for Colonist",
+    "name": "Personal Development for Colonist",
     "subject": "@@Career:Colonist",
     "rollable_table": "@colonist_personal_development",
     "source_file": "book1/character-creation.md",
@@ -14839,9 +14815,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_colonist"
+   "to": "@training_opt_colonist_personal_development"
   },
   {
    "op": "create_entity",
@@ -15101,9 +15077,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_diplomat",
+   "as": "@training_opt_diplomat_personal_development",
    "properties": {
-    "name": "Personal Development table for Diplomat",
+    "name": "Personal Development for Diplomat",
     "subject": "@@Career:Diplomat",
     "rollable_table": "@diplomat_personal_development",
     "source_file": "book1/character-creation.md",
@@ -15114,9 +15090,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_diplomat"
+   "to": "@training_opt_diplomat_personal_development"
   },
   {
    "op": "create_entity",
@@ -15374,9 +15350,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_drifter",
+   "as": "@training_opt_drifter_personal_development",
    "properties": {
-    "name": "Personal Development table for Drifter",
+    "name": "Personal Development for Drifter",
     "subject": "@@Career:Drifter",
     "rollable_table": "@drifter_personal_development",
     "source_file": "book1/character-creation.md",
@@ -15387,9 +15363,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_drifter"
+   "to": "@training_opt_drifter_personal_development"
   },
   {
    "op": "create_entity",
@@ -15649,9 +15625,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_entertainer",
+   "as": "@training_opt_entertainer_personal_development",
    "properties": {
-    "name": "Personal Development table for Entertainer",
+    "name": "Personal Development for Entertainer",
     "subject": "@@Career:Entertainer",
     "rollable_table": "@entertainer_personal_development",
     "source_file": "book1/character-creation.md",
@@ -15662,9 +15638,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_entertainer"
+   "to": "@training_opt_entertainer_personal_development"
   },
   {
    "op": "create_entity",
@@ -15924,9 +15900,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_hunter",
+   "as": "@training_opt_hunter_personal_development",
    "properties": {
-    "name": "Personal Development table for Hunter",
+    "name": "Personal Development for Hunter",
     "subject": "@@Career:Hunter",
     "rollable_table": "@hunter_personal_development",
     "source_file": "book1/character-creation.md",
@@ -15937,9 +15913,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_hunter"
+   "to": "@training_opt_hunter_personal_development"
   },
   {
    "op": "create_entity",
@@ -16201,9 +16177,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_marine",
+   "as": "@training_opt_marine_personal_development",
    "properties": {
-    "name": "Personal Development table for Marine",
+    "name": "Personal Development for Marine",
     "subject": "@@Career:Marine",
     "rollable_table": "@marine_personal_development",
     "source_file": "book1/character-creation.md",
@@ -16214,9 +16190,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_marine"
+   "to": "@training_opt_marine_personal_development"
   },
   {
    "op": "create_entity",
@@ -16468,9 +16444,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_colonist",
+   "as": "@training_opt_colonist_specialist",
    "properties": {
-    "name": "Specialist table for Colonist",
+    "name": "Specialist for Colonist",
     "subject": "@@Career:Colonist",
     "rollable_table": "@colonist_specialist",
     "source_file": "book1/character-creation.md",
@@ -16481,9 +16457,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_colonist"
+   "to": "@training_opt_colonist_specialist"
   },
   {
    "op": "create_entity",
@@ -16735,9 +16711,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_diplomat",
+   "as": "@training_opt_diplomat_specialist",
    "properties": {
-    "name": "Specialist table for Diplomat",
+    "name": "Specialist for Diplomat",
     "subject": "@@Career:Diplomat",
     "rollable_table": "@diplomat_specialist",
     "source_file": "book1/character-creation.md",
@@ -16748,9 +16724,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_diplomat"
+   "to": "@training_opt_diplomat_specialist"
   },
   {
    "op": "create_entity",
@@ -17002,9 +16978,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_drifter",
+   "as": "@training_opt_drifter_specialist",
    "properties": {
-    "name": "Specialist table for Drifter",
+    "name": "Specialist for Drifter",
     "subject": "@@Career:Drifter",
     "rollable_table": "@drifter_specialist",
     "source_file": "book1/character-creation.md",
@@ -17015,9 +16991,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_drifter"
+   "to": "@training_opt_drifter_specialist"
   },
   {
    "op": "create_entity",
@@ -17269,9 +17245,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_entertainer",
+   "as": "@training_opt_entertainer_specialist",
    "properties": {
-    "name": "Specialist table for Entertainer",
+    "name": "Specialist for Entertainer",
     "subject": "@@Career:Entertainer",
     "rollable_table": "@entertainer_specialist",
     "source_file": "book1/character-creation.md",
@@ -17282,9 +17258,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_entertainer"
+   "to": "@training_opt_entertainer_specialist"
   },
   {
    "op": "create_entity",
@@ -17536,9 +17512,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_hunter",
+   "as": "@training_opt_hunter_specialist",
    "properties": {
-    "name": "Specialist table for Hunter",
+    "name": "Specialist for Hunter",
     "subject": "@@Career:Hunter",
     "rollable_table": "@hunter_specialist",
     "source_file": "book1/character-creation.md",
@@ -17549,9 +17525,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_hunter"
+   "to": "@training_opt_hunter_specialist"
   },
   {
    "op": "create_entity",
@@ -17803,9 +17779,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_marine",
+   "as": "@training_opt_marine_specialist",
    "properties": {
-    "name": "Specialist table for Marine",
+    "name": "Specialist for Marine",
     "subject": "@@Career:Marine",
     "rollable_table": "@marine_specialist",
     "source_file": "book1/character-creation.md",
@@ -17816,9 +17792,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_marine"
+   "to": "@training_opt_marine_specialist"
   },
   {
    "op": "create_entity",
@@ -18070,9 +18046,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_colonist",
+   "as": "@training_opt_colonist_adv_education",
    "properties": {
-    "name": "Adv Education table for Colonist",
+    "name": "Adv Education for Colonist",
     "subject": "@@Career:Colonist",
     "rollable_table": "@colonist_adv_education",
     "source_file": "book1/character-creation.md",
@@ -18083,9 +18059,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_colonist"
+   "to": "@training_opt_colonist_adv_education"
   },
   {
    "op": "create_entity",
@@ -18337,9 +18313,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_diplomat",
+   "as": "@training_opt_diplomat_adv_education",
    "properties": {
-    "name": "Adv Education table for Diplomat",
+    "name": "Adv Education for Diplomat",
     "subject": "@@Career:Diplomat",
     "rollable_table": "@diplomat_adv_education",
     "source_file": "book1/character-creation.md",
@@ -18350,9 +18326,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_diplomat"
+   "to": "@training_opt_diplomat_adv_education"
   },
   {
    "op": "create_entity",
@@ -18604,9 +18580,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_drifter",
+   "as": "@training_opt_drifter_adv_education",
    "properties": {
-    "name": "Adv Education table for Drifter",
+    "name": "Adv Education for Drifter",
     "subject": "@@Career:Drifter",
     "rollable_table": "@drifter_adv_education",
     "source_file": "book1/character-creation.md",
@@ -18617,9 +18593,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_drifter"
+   "to": "@training_opt_drifter_adv_education"
   },
   {
    "op": "create_entity",
@@ -18871,9 +18847,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_entertainer",
+   "as": "@training_opt_entertainer_adv_education",
    "properties": {
-    "name": "Adv Education table for Entertainer",
+    "name": "Adv Education for Entertainer",
     "subject": "@@Career:Entertainer",
     "rollable_table": "@entertainer_adv_education",
     "source_file": "book1/character-creation.md",
@@ -18884,9 +18860,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_entertainer"
+   "to": "@training_opt_entertainer_adv_education"
   },
   {
    "op": "create_entity",
@@ -19138,9 +19114,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_hunter",
+   "as": "@training_opt_hunter_adv_education",
    "properties": {
-    "name": "Adv Education table for Hunter",
+    "name": "Adv Education for Hunter",
     "subject": "@@Career:Hunter",
     "rollable_table": "@hunter_adv_education",
     "source_file": "book1/character-creation.md",
@@ -19151,9 +19127,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_hunter"
+   "to": "@training_opt_hunter_adv_education"
   },
   {
    "op": "create_entity",
@@ -19405,9 +19381,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_marine",
+   "as": "@training_opt_marine_adv_education",
    "properties": {
-    "name": "Adv Education table for Marine",
+    "name": "Adv Education for Marine",
     "subject": "@@Career:Marine",
     "rollable_table": "@marine_adv_education",
     "source_file": "book1/character-creation.md",
@@ -19418,9 +19394,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_marine"
+   "to": "@training_opt_marine_adv_education"
   },
   {
    "op": "create_entity",
@@ -25275,9 +25251,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_maritime_defense",
+   "as": "@training_opt_maritime_defense_personal_development",
    "properties": {
-    "name": "Personal Development table for Maritime Defense",
+    "name": "Personal Development for Maritime Defense",
     "subject": "@@Career:Maritime Defense",
     "rollable_table": "@maritime_defense_personal_development",
     "source_file": "book1/character-creation.md",
@@ -25288,9 +25264,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_maritime_defense"
+   "to": "@training_opt_maritime_defense_personal_development"
   },
   {
    "op": "create_entity",
@@ -25548,9 +25524,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_mercenary",
+   "as": "@training_opt_mercenary_personal_development",
    "properties": {
-    "name": "Personal Development table for Mercenary",
+    "name": "Personal Development for Mercenary",
     "subject": "@@Career:Mercenary",
     "rollable_table": "@mercenary_personal_development",
     "source_file": "book1/character-creation.md",
@@ -25561,9 +25537,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_mercenary"
+   "to": "@training_opt_mercenary_personal_development"
   },
   {
    "op": "create_entity",
@@ -25821,9 +25797,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_merchant",
+   "as": "@training_opt_merchant_personal_development",
    "properties": {
-    "name": "Personal Development table for Merchant",
+    "name": "Personal Development for Merchant",
     "subject": "@@Career:Merchant",
     "rollable_table": "@merchant_personal_development",
     "source_file": "book1/character-creation.md",
@@ -25834,9 +25810,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_merchant"
+   "to": "@training_opt_merchant_personal_development"
   },
   {
    "op": "create_entity",
@@ -26098,9 +26074,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_navy",
+   "as": "@training_opt_navy_personal_development",
    "properties": {
-    "name": "Personal Development table for Navy",
+    "name": "Personal Development for Navy",
     "subject": "@@Career:Navy",
     "rollable_table": "@navy_personal_development",
     "source_file": "book1/character-creation.md",
@@ -26111,9 +26087,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_navy"
+   "to": "@training_opt_navy_personal_development"
   },
   {
    "op": "create_entity",
@@ -26373,9 +26349,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_noble",
+   "as": "@training_opt_noble_personal_development",
    "properties": {
-    "name": "Personal Development table for Noble",
+    "name": "Personal Development for Noble",
     "subject": "@@Career:Noble",
     "rollable_table": "@noble_personal_development",
     "source_file": "book1/character-creation.md",
@@ -26386,9 +26362,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_noble"
+   "to": "@training_opt_noble_personal_development"
   },
   {
    "op": "create_entity",
@@ -26650,9 +26626,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_physician",
+   "as": "@training_opt_physician_personal_development",
    "properties": {
-    "name": "Personal Development table for Physician",
+    "name": "Personal Development for Physician",
     "subject": "@@Career:Physician",
     "rollable_table": "@physician_personal_development",
     "source_file": "book1/character-creation.md",
@@ -26663,9 +26639,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_physician"
+   "to": "@training_opt_physician_personal_development"
   },
   {
    "op": "create_entity",
@@ -26917,9 +26893,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_maritime_defense",
+   "as": "@training_opt_maritime_defense_specialist",
    "properties": {
-    "name": "Specialist table for Maritime Defense",
+    "name": "Specialist for Maritime Defense",
     "subject": "@@Career:Maritime Defense",
     "rollable_table": "@maritime_defense_specialist",
     "source_file": "book1/character-creation.md",
@@ -26930,9 +26906,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_maritime_defense"
+   "to": "@training_opt_maritime_defense_specialist"
   },
   {
    "op": "create_entity",
@@ -27184,9 +27160,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_mercenary",
+   "as": "@training_opt_mercenary_specialist",
    "properties": {
-    "name": "Specialist table for Mercenary",
+    "name": "Specialist for Mercenary",
     "subject": "@@Career:Mercenary",
     "rollable_table": "@mercenary_specialist",
     "source_file": "book1/character-creation.md",
@@ -27197,9 +27173,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_mercenary"
+   "to": "@training_opt_mercenary_specialist"
   },
   {
    "op": "create_entity",
@@ -27451,9 +27427,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_merchant",
+   "as": "@training_opt_merchant_specialist",
    "properties": {
-    "name": "Specialist table for Merchant",
+    "name": "Specialist for Merchant",
     "subject": "@@Career:Merchant",
     "rollable_table": "@merchant_specialist",
     "source_file": "book1/character-creation.md",
@@ -27464,9 +27440,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_merchant"
+   "to": "@training_opt_merchant_specialist"
   },
   {
    "op": "create_entity",
@@ -27718,9 +27694,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_navy",
+   "as": "@training_opt_navy_specialist",
    "properties": {
-    "name": "Specialist table for Navy",
+    "name": "Specialist for Navy",
     "subject": "@@Career:Navy",
     "rollable_table": "@navy_specialist",
     "source_file": "book1/character-creation.md",
@@ -27731,9 +27707,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_navy"
+   "to": "@training_opt_navy_specialist"
   },
   {
    "op": "create_entity",
@@ -27985,9 +27961,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_noble",
+   "as": "@training_opt_noble_specialist",
    "properties": {
-    "name": "Specialist table for Noble",
+    "name": "Specialist for Noble",
     "subject": "@@Career:Noble",
     "rollable_table": "@noble_specialist",
     "source_file": "book1/character-creation.md",
@@ -27998,9 +27974,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_noble"
+   "to": "@training_opt_noble_specialist"
   },
   {
    "op": "create_entity",
@@ -28252,9 +28228,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_physician",
+   "as": "@training_opt_physician_specialist",
    "properties": {
-    "name": "Specialist table for Physician",
+    "name": "Specialist for Physician",
     "subject": "@@Career:Physician",
     "rollable_table": "@physician_specialist",
     "source_file": "book1/character-creation.md",
@@ -28265,9 +28241,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_physician"
+   "to": "@training_opt_physician_specialist"
   },
   {
    "op": "create_entity",
@@ -28519,9 +28495,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_maritime_defense",
+   "as": "@training_opt_maritime_defense_adv_education",
    "properties": {
-    "name": "Adv Education table for Maritime Defense",
+    "name": "Adv Education for Maritime Defense",
     "subject": "@@Career:Maritime Defense",
     "rollable_table": "@maritime_defense_adv_education",
     "source_file": "book1/character-creation.md",
@@ -28532,9 +28508,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_maritime_defense"
+   "to": "@training_opt_maritime_defense_adv_education"
   },
   {
    "op": "create_entity",
@@ -28786,9 +28762,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_mercenary",
+   "as": "@training_opt_mercenary_adv_education",
    "properties": {
-    "name": "Adv Education table for Mercenary",
+    "name": "Adv Education for Mercenary",
     "subject": "@@Career:Mercenary",
     "rollable_table": "@mercenary_adv_education",
     "source_file": "book1/character-creation.md",
@@ -28799,9 +28775,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_mercenary"
+   "to": "@training_opt_mercenary_adv_education"
   },
   {
    "op": "create_entity",
@@ -29053,9 +29029,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_merchant",
+   "as": "@training_opt_merchant_adv_education",
    "properties": {
-    "name": "Adv Education table for Merchant",
+    "name": "Adv Education for Merchant",
     "subject": "@@Career:Merchant",
     "rollable_table": "@merchant_adv_education",
     "source_file": "book1/character-creation.md",
@@ -29066,9 +29042,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_merchant"
+   "to": "@training_opt_merchant_adv_education"
   },
   {
    "op": "create_entity",
@@ -29320,9 +29296,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_navy",
+   "as": "@training_opt_navy_adv_education",
    "properties": {
-    "name": "Adv Education table for Navy",
+    "name": "Adv Education for Navy",
     "subject": "@@Career:Navy",
     "rollable_table": "@navy_adv_education",
     "source_file": "book1/character-creation.md",
@@ -29333,9 +29309,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_navy"
+   "to": "@training_opt_navy_adv_education"
   },
   {
    "op": "create_entity",
@@ -29587,9 +29563,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_noble",
+   "as": "@training_opt_noble_adv_education",
    "properties": {
-    "name": "Adv Education table for Noble",
+    "name": "Adv Education for Noble",
     "subject": "@@Career:Noble",
     "rollable_table": "@noble_adv_education",
     "source_file": "book1/character-creation.md",
@@ -29600,9 +29576,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_noble"
+   "to": "@training_opt_noble_adv_education"
   },
   {
    "op": "create_entity",
@@ -29854,9 +29830,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_physician",
+   "as": "@training_opt_physician_adv_education",
    "properties": {
-    "name": "Adv Education table for Physician",
+    "name": "Adv Education for Physician",
     "subject": "@@Career:Physician",
     "rollable_table": "@physician_adv_education",
     "source_file": "book1/character-creation.md",
@@ -29867,9 +29843,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_physician"
+   "to": "@training_opt_physician_adv_education"
   },
   {
    "op": "create_entity",
@@ -35480,9 +35456,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_pirate",
+   "as": "@training_opt_pirate_personal_development",
    "properties": {
-    "name": "Personal Development table for Pirate",
+    "name": "Personal Development for Pirate",
     "subject": "@@Career:Pirate",
     "rollable_table": "@pirate_personal_development",
     "source_file": "book1/character-creation.md",
@@ -35493,9 +35469,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_pirate"
+   "to": "@training_opt_pirate_personal_development"
   },
   {
    "op": "create_entity",
@@ -35753,9 +35729,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_rogue",
+   "as": "@training_opt_rogue_personal_development",
    "properties": {
-    "name": "Personal Development table for Rogue",
+    "name": "Personal Development for Rogue",
     "subject": "@@Career:Rogue",
     "rollable_table": "@rogue_personal_development",
     "source_file": "book1/character-creation.md",
@@ -35766,9 +35742,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_rogue"
+   "to": "@training_opt_rogue_personal_development"
   },
   {
    "op": "create_entity",
@@ -36030,9 +36006,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_scientist",
+   "as": "@training_opt_scientist_personal_development",
    "properties": {
-    "name": "Personal Development table for Scientist",
+    "name": "Personal Development for Scientist",
     "subject": "@@Career:Scientist",
     "rollable_table": "@scientist_personal_development",
     "source_file": "book1/character-creation.md",
@@ -36043,9 +36019,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_scientist"
+   "to": "@training_opt_scientist_personal_development"
   },
   {
    "op": "create_entity",
@@ -36305,9 +36281,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_scout",
+   "as": "@training_opt_scout_personal_development",
    "properties": {
-    "name": "Personal Development table for Scout",
+    "name": "Personal Development for Scout",
     "subject": "@@Career:Scout",
     "rollable_table": "@scout_personal_development",
     "source_file": "book1/character-creation.md",
@@ -36318,9 +36294,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_scout"
+   "to": "@training_opt_scout_personal_development"
   },
   {
    "op": "create_entity",
@@ -36578,9 +36554,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_surface_defense",
+   "as": "@training_opt_surface_defense_personal_development",
    "properties": {
-    "name": "Personal Development table for Surface Defense",
+    "name": "Personal Development for Surface Defense",
     "subject": "@@Career:Surface Defense",
     "rollable_table": "@surface_defense_personal_development",
     "source_file": "book1/character-creation.md",
@@ -36591,9 +36567,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_surface_defense"
+   "to": "@training_opt_surface_defense_personal_development"
   },
   {
    "op": "create_entity",
@@ -36855,9 +36831,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@personal_development_tbl_technician",
+   "as": "@training_opt_technician_personal_development",
    "properties": {
-    "name": "Personal Development table for Technician",
+    "name": "Personal Development for Technician",
     "subject": "@@Career:Technician",
     "rollable_table": "@technician_personal_development",
     "source_file": "book1/character-creation.md",
@@ -36868,9 +36844,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@personal_development_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@personal_development_tbl_technician"
+   "to": "@training_opt_technician_personal_development"
   },
   {
    "op": "create_entity",
@@ -37122,9 +37098,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_pirate",
+   "as": "@training_opt_pirate_specialist",
    "properties": {
-    "name": "Specialist table for Pirate",
+    "name": "Specialist for Pirate",
     "subject": "@@Career:Pirate",
     "rollable_table": "@pirate_specialist",
     "source_file": "book1/character-creation.md",
@@ -37135,9 +37111,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_pirate"
+   "to": "@training_opt_pirate_specialist"
   },
   {
    "op": "create_entity",
@@ -37389,9 +37365,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_rogue",
+   "as": "@training_opt_rogue_specialist",
    "properties": {
-    "name": "Specialist table for Rogue",
+    "name": "Specialist for Rogue",
     "subject": "@@Career:Rogue",
     "rollable_table": "@rogue_specialist",
     "source_file": "book1/character-creation.md",
@@ -37402,9 +37378,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_rogue"
+   "to": "@training_opt_rogue_specialist"
   },
   {
    "op": "create_entity",
@@ -37656,9 +37632,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_scientist",
+   "as": "@training_opt_scientist_specialist",
    "properties": {
-    "name": "Specialist table for Scientist",
+    "name": "Specialist for Scientist",
     "subject": "@@Career:Scientist",
     "rollable_table": "@scientist_specialist",
     "source_file": "book1/character-creation.md",
@@ -37669,9 +37645,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_scientist"
+   "to": "@training_opt_scientist_specialist"
   },
   {
    "op": "create_entity",
@@ -37923,9 +37899,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_scout",
+   "as": "@training_opt_scout_specialist",
    "properties": {
-    "name": "Specialist table for Scout",
+    "name": "Specialist for Scout",
     "subject": "@@Career:Scout",
     "rollable_table": "@scout_specialist",
     "source_file": "book1/character-creation.md",
@@ -37936,9 +37912,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_scout"
+   "to": "@training_opt_scout_specialist"
   },
   {
    "op": "create_entity",
@@ -38190,9 +38166,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_surface_defense",
+   "as": "@training_opt_surface_defense_specialist",
    "properties": {
-    "name": "Specialist table for Surface Defense",
+    "name": "Specialist for Surface Defense",
     "subject": "@@Career:Surface Defense",
     "rollable_table": "@surface_defense_specialist",
     "source_file": "book1/character-creation.md",
@@ -38203,9 +38179,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_surface_defense"
+   "to": "@training_opt_surface_defense_specialist"
   },
   {
    "op": "create_entity",
@@ -38457,9 +38433,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@specialist_tbl_technician",
+   "as": "@training_opt_technician_specialist",
    "properties": {
-    "name": "Specialist table for Technician",
+    "name": "Specialist for Technician",
     "subject": "@@Career:Technician",
     "rollable_table": "@technician_specialist",
     "source_file": "book1/character-creation.md",
@@ -38470,9 +38446,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@specialist_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@specialist_tbl_technician"
+   "to": "@training_opt_technician_specialist"
   },
   {
    "op": "create_entity",
@@ -38724,9 +38700,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_pirate",
+   "as": "@training_opt_pirate_adv_education",
    "properties": {
-    "name": "Adv Education table for Pirate",
+    "name": "Adv Education for Pirate",
     "subject": "@@Career:Pirate",
     "rollable_table": "@pirate_adv_education",
     "source_file": "book1/character-creation.md",
@@ -38737,9 +38713,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_pirate"
+   "to": "@training_opt_pirate_adv_education"
   },
   {
    "op": "create_entity",
@@ -38991,9 +38967,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_rogue",
+   "as": "@training_opt_rogue_adv_education",
    "properties": {
-    "name": "Adv Education table for Rogue",
+    "name": "Adv Education for Rogue",
     "subject": "@@Career:Rogue",
     "rollable_table": "@rogue_adv_education",
     "source_file": "book1/character-creation.md",
@@ -39004,9 +38980,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_rogue"
+   "to": "@training_opt_rogue_adv_education"
   },
   {
    "op": "create_entity",
@@ -39258,9 +39234,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_scientist",
+   "as": "@training_opt_scientist_adv_education",
    "properties": {
-    "name": "Adv Education table for Scientist",
+    "name": "Adv Education for Scientist",
     "subject": "@@Career:Scientist",
     "rollable_table": "@scientist_adv_education",
     "source_file": "book1/character-creation.md",
@@ -39271,9 +39247,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_scientist"
+   "to": "@training_opt_scientist_adv_education"
   },
   {
    "op": "create_entity",
@@ -39525,9 +39501,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_scout",
+   "as": "@training_opt_scout_adv_education",
    "properties": {
-    "name": "Adv Education table for Scout",
+    "name": "Adv Education for Scout",
     "subject": "@@Career:Scout",
     "rollable_table": "@scout_adv_education",
     "source_file": "book1/character-creation.md",
@@ -39538,9 +39514,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_scout"
+   "to": "@training_opt_scout_adv_education"
   },
   {
    "op": "create_entity",
@@ -39792,9 +39768,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_surface_defense",
+   "as": "@training_opt_surface_defense_adv_education",
    "properties": {
-    "name": "Adv Education table for Surface Defense",
+    "name": "Adv Education for Surface Defense",
     "subject": "@@Career:Surface Defense",
     "rollable_table": "@surface_defense_adv_education",
     "source_file": "book1/character-creation.md",
@@ -39805,9 +39781,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_surface_defense"
+   "to": "@training_opt_surface_defense_adv_education"
   },
   {
    "op": "create_entity",
@@ -40059,9 +40035,9 @@
   {
    "op": "create_entity",
    "type": "CareerTableEntry",
-   "as": "@adv_education_tbl_technician",
+   "as": "@training_opt_technician_adv_education",
    "properties": {
-    "name": "Adv Education table for Technician",
+    "name": "Adv Education for Technician",
     "subject": "@@Career:Technician",
     "rollable_table": "@technician_adv_education",
     "source_file": "book1/character-creation.md",
@@ -40072,9 +40048,9 @@
   },
   {
    "op": "set_relation",
-   "from": "@adv_education_tables",
+   "from": "@training_tables",
    "relation": "HAS_PART",
-   "to": "@adv_education_tbl_technician"
+   "to": "@training_opt_technician_adv_education"
   },
   {
    "op": "create_entity",
@@ -40219,6 +40195,486 @@
    "from": "@technician_adv_education",
    "relation": "HAS_PART",
    "to": "@technician_adv_education_e6"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_athlete_service_skills",
+   "properties": {
+    "name": "Service Skills for Athlete",
+    "subject": "@@Career:Athlete",
+    "rollable_table": "@@RollableTable:Athlete Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_athlete_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_aerospace_defense_service_skills",
+   "properties": {
+    "name": "Service Skills for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "rollable_table": "@@RollableTable:Aerospace Defense Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_aerospace_defense_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_agent_service_skills",
+   "properties": {
+    "name": "Service Skills for Agent",
+    "subject": "@@Career:Agent",
+    "rollable_table": "@@RollableTable:Agent Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_agent_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_barbarian_service_skills",
+   "properties": {
+    "name": "Service Skills for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "rollable_table": "@@RollableTable:Barbarian Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_barbarian_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_belter_service_skills",
+   "properties": {
+    "name": "Service Skills for Belter",
+    "subject": "@@Career:Belter",
+    "rollable_table": "@@RollableTable:Belter Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_belter_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_bureaucrat_service_skills",
+   "properties": {
+    "name": "Service Skills for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "rollable_table": "@@RollableTable:Bureaucrat Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_bureaucrat_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_colonist_service_skills",
+   "properties": {
+    "name": "Service Skills for Colonist",
+    "subject": "@@Career:Colonist",
+    "rollable_table": "@@RollableTable:Colonist Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_colonist_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_diplomat_service_skills",
+   "properties": {
+    "name": "Service Skills for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "rollable_table": "@@RollableTable:Diplomat Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_diplomat_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_drifter_service_skills",
+   "properties": {
+    "name": "Service Skills for Drifter",
+    "subject": "@@Career:Drifter",
+    "rollable_table": "@@RollableTable:Drifter Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_drifter_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_entertainer_service_skills",
+   "properties": {
+    "name": "Service Skills for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "rollable_table": "@@RollableTable:Entertainer Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_entertainer_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_hunter_service_skills",
+   "properties": {
+    "name": "Service Skills for Hunter",
+    "subject": "@@Career:Hunter",
+    "rollable_table": "@@RollableTable:Hunter Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_hunter_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_marine_service_skills",
+   "properties": {
+    "name": "Service Skills for Marine",
+    "subject": "@@Career:Marine",
+    "rollable_table": "@@RollableTable:Marine Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_marine_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_maritime_defense_service_skills",
+   "properties": {
+    "name": "Service Skills for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "rollable_table": "@@RollableTable:Maritime Defense Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_maritime_defense_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_mercenary_service_skills",
+   "properties": {
+    "name": "Service Skills for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "rollable_table": "@@RollableTable:Mercenary Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_mercenary_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_merchant_service_skills",
+   "properties": {
+    "name": "Service Skills for Merchant",
+    "subject": "@@Career:Merchant",
+    "rollable_table": "@@RollableTable:Merchant Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_merchant_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_navy_service_skills",
+   "properties": {
+    "name": "Service Skills for Navy",
+    "subject": "@@Career:Navy",
+    "rollable_table": "@@RollableTable:Navy Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_navy_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_noble_service_skills",
+   "properties": {
+    "name": "Service Skills for Noble",
+    "subject": "@@Career:Noble",
+    "rollable_table": "@@RollableTable:Noble Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_noble_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_physician_service_skills",
+   "properties": {
+    "name": "Service Skills for Physician",
+    "subject": "@@Career:Physician",
+    "rollable_table": "@@RollableTable:Physician Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_physician_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_pirate_service_skills",
+   "properties": {
+    "name": "Service Skills for Pirate",
+    "subject": "@@Career:Pirate",
+    "rollable_table": "@@RollableTable:Pirate Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_pirate_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_rogue_service_skills",
+   "properties": {
+    "name": "Service Skills for Rogue",
+    "subject": "@@Career:Rogue",
+    "rollable_table": "@@RollableTable:Rogue Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_rogue_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_scientist_service_skills",
+   "properties": {
+    "name": "Service Skills for Scientist",
+    "subject": "@@Career:Scientist",
+    "rollable_table": "@@RollableTable:Scientist Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_scientist_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_scout_service_skills",
+   "properties": {
+    "name": "Service Skills for Scout",
+    "subject": "@@Career:Scout",
+    "rollable_table": "@@RollableTable:Scout Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_scout_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_surface_defense_service_skills",
+   "properties": {
+    "name": "Service Skills for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "rollable_table": "@@RollableTable:Surface Defense Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_surface_defense_service_skills"
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@training_opt_technician_service_skills",
+   "properties": {
+    "name": "Service Skills for Technician",
+    "subject": "@@Career:Technician",
+    "rollable_table": "@@RollableTable:Technician Service Skills",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@training_tables",
+   "relation": "HAS_PART",
+   "to": "@training_opt_technician_service_skills"
   }
  ]
 }

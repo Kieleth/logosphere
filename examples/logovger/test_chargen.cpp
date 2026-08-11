@@ -293,8 +293,7 @@ void test_missing_rules_fail_loudly() {
         procedure_seed.ok() &&
         kg::load_seed(procedure_seed.seed, empty, procedure_load);
     CHECK(!loaded_alone &&
-              procedure_load.error.find("reenlistment throw by career") !=
-                  std::string::npos,
+              procedure_load.error.find("by career") != std::string::npos,
           "the procedure refuses to load without the career data it "
           "consults, and names it: " + procedure_load.error);
     CHECK(empty.findByType("Character").empty(),
