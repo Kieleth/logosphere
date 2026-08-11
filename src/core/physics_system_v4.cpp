@@ -369,6 +369,16 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
     solve_contacts_v3(particles, dt);
 }
 
+// IMPULSE_MEMORY_OFF=1 disables the bond integral term (warm_ix/iy/iz) at both
+// its apply and its store-back. The other two suspects in the light-body
+// ringing hunt (anchor torque, sleep law) already had env levers and both
+// measured identical to baseline; this one had none, which is the only reason
+// it stayed a hypothesis instead of an answer. Diagnostic only, default OFF.
+static bool impulse_memory_off() {
+    static const bool v = std::getenv("IMPULSE_MEMORY_OFF") != nullptr;
+    return v;
+}
+
 // ============================================================================
 // PHASE 2-4: CONTACT DETECTION AND CONSTRAINT SOLVING
 // ============================================================================
@@ -1612,7 +1622,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // humanoid drive gluons fought the commanded pose drive (shoulder
         // held a 0.64 rad standing error, never converging) and fed the
         // spawn-time arm spikes (walk gate 21 -> 2 events with this gate).
-        if (gluon->force_bounded()) {
+        if (gluon->force_bounded() && !impulse_memory_off()) {
             Particle& wa = particles[body_a];
             Particle& wb = particles[body_b];
             const float winv_a = (wa.is_at_rest ||
@@ -3190,7 +3200,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         float impulse_z = constraints[idx.z_idx].accumulated_impulse;
 
         // IMPULSE MEMORY store-back (organic only, matching the apply).
-        if (gluon->force_bounded()) {
+        if (gluon->force_bounded() && !impulse_memory_off()) {
             const float DECAY = 0.98f;
             // Anti-windup (owner QA: the chain rang 5-8 swings): when the
             // solver's fresh impulse OPPOSES the carried load, the spring
