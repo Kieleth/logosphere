@@ -592,6 +592,7 @@ ChargenSession::PrimitiveResult ChargenSession::choose_career(
     }
     sheet_.career = picked->label;
     sheet_.careers_served.push_back(picked->label);
+    enter_career();
     choices_.clear();
     return PrimitiveResult::advance();
 }
@@ -705,6 +706,7 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
     career_ = selected_career;
     sheet_.career = career_name;
     sheet_.careers_served.push_back(career_name);
+    enter_career();
     if (picked->key != "2")
         sheet_.life.push_back({sheet_.terms_served, "became a Drifter",
                                "the career that is always open", 0});
@@ -969,7 +971,12 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
     };
 
     if (benefit_rolls_owed_ == 0) {
-        benefit_rolls_owed_ = sheet_.terms_served;
+        // "A character gets one Benefit Roll for every full term
+        // served IN THAT CAREER." Counting every term of the whole
+        // life instead paid a third career for the years spent in the
+        // first two, so seven terms across three careers paid seven
+        // rolls on leaving each of them.
+        benefit_rolls_owed_ = sheet_.terms_in_career;
         if (sheet_.rank >= 6)      benefit_rolls_owed_ += 3;
         else if (sheet_.rank == 5) benefit_rolls_owed_ += 2;
         else if (sheet_.rank == 4) benefit_rolls_owed_ += 1;
@@ -1239,11 +1246,26 @@ ChargenSession::PrimitiveResult ChargenSession::roll_reenlistment(
     return PrimitiveResult::advance("may_choose");
 }
 
+// "You begin as a Rank 0 character", every time you begin. Rank, its
+// title and the terms served belong to the career, not to the person:
+// carrying them into the next one gave a Drifter a Navy commission and
+// paid them for years served somewhere else.
+void ChargenSession::enter_career() {
+    sheet_.rank = 0;
+    sheet_.rank_title.clear();
+    sheet_.terms_in_career = 0;
+    benefit_rolls_owed_ = 0;
+    cash_rolls_left_ = 0;
+}
+
 ChargenSession::PrimitiveResult ChargenSession::advance_term(
     const PrimitiveContext&) {
     const int term = sheet_.terms_served + 1;
     sheet_.age_years   += 4;
     sheet_.terms_served = term;
+    // Benefits and the seven-term cap count different things: one
+    // counts this career, the other counts the whole life.
+    sheet_.terms_in_career += 1;
     sheet_.life.push_back({term, "term ends",
                            "age " + std::to_string(sheet_.age_years), 0});
     write_sheet(kg_, sheet_);

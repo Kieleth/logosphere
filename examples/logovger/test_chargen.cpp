@@ -326,6 +326,81 @@ void test_missing_rules_fail_loudly() {
 // so a character with five terms behind them and two still available
 // was retired the moment they left their first career. The step routes
 // explicitly now, and this is the case that says so.
+// "A character gets one Benefit Roll for every full term served in
+// THAT career", and rank is the rank you reached in it. Both were
+// being counted across the whole life, so a third career paid for
+// years spent in the first two and a Drifter kept a commission earned
+// in the Navy.
+void test_a_career_pays_only_for_its_own_years() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the benefits world loads: " + why);
+    if (!why.empty()) return;
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    std::string error;
+    CHECK(session.begin(28, error), "a life begins: " + error);
+
+    int careers_entered = 0;
+    int terms_at_last_entry = 0;
+    bool rank_carried_over = false;
+    int benefit_rolls_offered = 0;
+    int terms_in_that_career = 0;
+
+    for (int step = 0; step < 500 && !session.finished(); ++step) {
+        const auto& choices = session.choices();
+        if (choices.empty()) break;
+        const auto& sheet = session.sheet();
+
+        // Entering a career: rank must be back to nothing.
+        if (static_cast<int>(sheet.careers_served.size()) > careers_entered) {
+            careers_entered = static_cast<int>(sheet.careers_served.size());
+            terms_at_last_entry = sheet.terms_served;
+            if (careers_entered > 1 && sheet.rank != 0) {
+                rank_carried_over = true;
+            }
+        }
+        // Benefits: count the offers, and the terms this career ran.
+        if (session.prompt().find("benefit roll(s) left") !=
+            std::string::npos) {
+            if (benefit_rolls_offered == 0) {
+                terms_in_that_career =
+                    sheet.terms_served - terms_at_last_entry;
+            }
+            ++benefit_rolls_offered;
+        }
+
+        std::string take = choices.front().key;
+        for (const auto& choice : choices) {
+            if (choice.label == "Muster out") take = choice.key;
+        }
+        if (!session.choose(take, error)) break;
+        if (benefit_rolls_offered > 0 &&
+            session.prompt().find("benefit roll(s) left") ==
+                std::string::npos) {
+            break;                      // that payout is done
+        }
+    }
+
+    CHECK(!rank_carried_over,
+          "rank starts again at 0 in a new career rather than carrying "
+          "the last one's commission over");
+    CHECK(benefit_rolls_offered > 0,
+          "a career that ended paid something: " +
+              std::to_string(benefit_rolls_offered) + " roll(s)");
+    // Rank bonuses can only ADD, so the payout is never fewer rolls
+    // than the terms served in that career, and never the whole life's
+    // terms when the career was shorter than the life.
+    CHECK(benefit_rolls_offered >= terms_in_that_career,
+          "at least one roll per term served in that career (" +
+              std::to_string(benefit_rolls_offered) + " for " +
+              std::to_string(terms_in_that_career) + " term(s))");
+    std::cout << "  [measure] paid " << benefit_rolls_offered
+              << " benefit roll(s) for " << terms_in_that_career
+              << " term(s) in that career\n";
+}
+
 void test_leaving_a_career_offers_another_one() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -813,6 +888,7 @@ int main() {
     test_a_life_is_generated();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
+    test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
     test_character_facts_use_the_modifier_table();

@@ -51,6 +51,10 @@ struct CharacterSheet {
     int          intelligence = 0, education = 0, social_standing = 0;
     int          age_years = 18;
     int          terms_served = 0;
+    // Terms in the CURRENT career only. Benefits are paid per term
+    // served in that career, while the seven-term cap counts a whole
+    // life, so the two cannot share a counter.
+    int          terms_in_career = 0;
     std::string  career;
     bool         qualified = false;
     std::vector<std::string> skills;   // as gained, "Admin-1", "Admin-2"
@@ -106,6 +110,10 @@ private:
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
 
     void bind_primitives();
+    // Everything that belongs to a career rather than to a life:
+    // rank, its title, and the terms served in it. "You begin as a
+    // Rank 0 character", each time.
+    void enter_career();
     bool accept(logosphere::rules::ProcedureResult result,
                 std::string& error);
     bool offer_careers(std::string& error);
