@@ -1,0 +1,876 @@
+{
+ "source": {
+  "file": "book1/skills.md",
+  "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+ },
+ "layer": "cepheus",
+ "invariants": {
+  "count_of_type": {
+   "Skill": 70
+  },
+  "unique_name_per_type": [
+   "Skill"
+  ]
+ },
+ "ops": [
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_admin",
+   "properties": {
+    "name": "Admin",
+    "source_file": "book1/skills.md",
+    "source_section": "Admin",
+    "source_kind": "heading",
+    "source_quote": "Admin"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_advocate",
+   "properties": {
+    "name": "Advocate",
+    "source_file": "book1/skills.md",
+    "source_section": "Advocate",
+    "source_kind": "heading",
+    "source_quote": "Advocate"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_aircraft",
+   "properties": {
+    "name": "Aircraft",
+    "source_file": "book1/skills.md",
+    "source_section": "Aircraft (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Aircraft (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_animals",
+   "properties": {
+    "name": "Animals",
+    "source_file": "book1/skills.md",
+    "source_section": "Animals (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Animals (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_archery",
+   "properties": {
+    "name": "Archery",
+    "source_file": "book1/skills.md",
+    "source_section": "Archery",
+    "source_kind": "heading",
+    "source_quote": "Archery"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_athletics",
+   "properties": {
+    "name": "Athletics",
+    "source_file": "book1/skills.md",
+    "source_section": "Athletics",
+    "source_kind": "heading",
+    "source_quote": "Athletics"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_battle_dress",
+   "properties": {
+    "name": "Battle Dress",
+    "source_file": "book1/skills.md",
+    "source_section": "Battle Dress",
+    "source_kind": "heading",
+    "source_quote": "Battle Dress"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_bay_weapons",
+   "properties": {
+    "name": "Bay Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Bay Weapons",
+    "source_kind": "heading",
+    "source_quote": "Bay Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_bludgeoning_weapons",
+   "properties": {
+    "name": "Bludgeoning Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Bludgeoning Weapons",
+    "source_kind": "heading",
+    "source_quote": "Bludgeoning Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_bribery",
+   "properties": {
+    "name": "Bribery",
+    "source_file": "book1/skills.md",
+    "source_section": "Bribery",
+    "source_kind": "heading",
+    "source_quote": "Bribery"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_broker",
+   "properties": {
+    "name": "Broker",
+    "source_file": "book1/skills.md",
+    "source_section": "Broker",
+    "source_kind": "heading",
+    "source_quote": "Broker"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_carousing",
+   "properties": {
+    "name": "Carousing",
+    "source_file": "book1/skills.md",
+    "source_section": "Carousing",
+    "source_kind": "heading",
+    "source_quote": "Carousing"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_comms",
+   "properties": {
+    "name": "Comms",
+    "source_file": "book1/skills.md",
+    "source_section": "Comms",
+    "source_kind": "heading",
+    "source_quote": "Comms"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_computer",
+   "properties": {
+    "name": "Computer",
+    "source_file": "book1/skills.md",
+    "source_section": "Computer",
+    "source_kind": "heading",
+    "source_quote": "Computer"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_demolitions",
+   "properties": {
+    "name": "Demolitions",
+    "source_file": "book1/skills.md",
+    "source_section": "Demolitions",
+    "source_kind": "heading",
+    "source_quote": "Demolitions"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_electronics",
+   "properties": {
+    "name": "Electronics",
+    "source_file": "book1/skills.md",
+    "source_section": "Electronics",
+    "source_kind": "heading",
+    "source_quote": "Electronics"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_energy_pistol",
+   "properties": {
+    "name": "Energy Pistol",
+    "source_file": "book1/skills.md",
+    "source_section": "Energy Pistol",
+    "source_kind": "heading",
+    "source_quote": "Energy Pistol"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_energy_rifle",
+   "properties": {
+    "name": "Energy Rifle",
+    "source_file": "book1/skills.md",
+    "source_section": "Energy Rifle",
+    "source_kind": "heading",
+    "source_quote": "Energy Rifle"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_engineering",
+   "properties": {
+    "name": "Engineering",
+    "source_file": "book1/skills.md",
+    "source_section": "Engineering",
+    "source_kind": "heading",
+    "source_quote": "Engineering"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_farming",
+   "properties": {
+    "name": "Farming",
+    "source_file": "book1/skills.md",
+    "source_section": "Farming",
+    "source_kind": "heading",
+    "source_quote": "Farming"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_gambling",
+   "properties": {
+    "name": "Gambling",
+    "source_file": "book1/skills.md",
+    "source_section": "Gambling",
+    "source_kind": "heading",
+    "source_quote": "Gambling"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_grav_vehicle",
+   "properties": {
+    "name": "Grav Vehicle",
+    "source_file": "book1/skills.md",
+    "source_section": "Grav Vehicle",
+    "source_kind": "heading",
+    "source_quote": "Grav Vehicle"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_gravitics",
+   "properties": {
+    "name": "Gravitics",
+    "source_file": "book1/skills.md",
+    "source_section": "Gravitics",
+    "source_kind": "heading",
+    "source_quote": "Gravitics"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_gun_combat",
+   "properties": {
+    "name": "Gun Combat",
+    "source_file": "book1/skills.md",
+    "source_section": "Gun Combat (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Gun Combat (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_gunnery",
+   "properties": {
+    "name": "Gunnery",
+    "source_file": "book1/skills.md",
+    "source_section": "Gunnery (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Gunnery (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_heavy_weapons",
+   "properties": {
+    "name": "Heavy Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Heavy Weapons",
+    "source_kind": "heading",
+    "source_quote": "Heavy Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_jack_of_all_trades",
+   "properties": {
+    "name": "Jack-of-All-Trades",
+    "source_file": "book1/skills.md",
+    "source_section": "Jack-of-All-Trades (Jack o' Trades or JoT)",
+    "source_kind": "heading",
+    "source_quote": "Jack-of-All-Trades (Jack o' Trades or JoT)",
+    "source_aliases": "Jack o' Trades; JoT"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_leadership",
+   "properties": {
+    "name": "Leadership",
+    "source_file": "book1/skills.md",
+    "source_section": "Leadership",
+    "source_kind": "heading",
+    "source_quote": "Leadership"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_linguistics",
+   "properties": {
+    "name": "Linguistics",
+    "source_file": "book1/skills.md",
+    "source_section": "Linguistics",
+    "source_kind": "heading",
+    "source_quote": "Linguistics"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_liaison",
+   "properties": {
+    "name": "Liaison",
+    "source_file": "book1/skills.md",
+    "source_section": "Liaison",
+    "source_kind": "heading",
+    "source_quote": "Liaison"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_life_sciences",
+   "properties": {
+    "name": "Life Sciences",
+    "source_file": "book1/skills.md",
+    "source_section": "Life Sciences",
+    "source_kind": "heading",
+    "source_quote": "Life Sciences"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_mechanics",
+   "properties": {
+    "name": "Mechanics",
+    "source_file": "book1/skills.md",
+    "source_section": "Mechanics",
+    "source_kind": "heading",
+    "source_quote": "Mechanics"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_medicine",
+   "properties": {
+    "name": "Medicine",
+    "source_file": "book1/skills.md",
+    "source_section": "Medicine",
+    "source_kind": "heading",
+    "source_quote": "Medicine"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_melee_combat",
+   "properties": {
+    "name": "Melee Combat",
+    "source_file": "book1/skills.md",
+    "source_section": "Melee Combat (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Melee Combat (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_mole",
+   "properties": {
+    "name": "Mole",
+    "source_file": "book1/skills.md",
+    "source_section": "Mole",
+    "source_kind": "heading",
+    "source_quote": "Mole"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_motorboats",
+   "properties": {
+    "name": "Motorboats",
+    "source_file": "book1/skills.md",
+    "source_section": "Motorboats",
+    "source_kind": "heading",
+    "source_quote": "Motorboats"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_natural_weapons",
+   "properties": {
+    "name": "Natural Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Natural Weapons",
+    "source_kind": "heading",
+    "source_quote": "Natural Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_navigation",
+   "properties": {
+    "name": "Navigation",
+    "source_file": "book1/skills.md",
+    "source_section": "Navigation",
+    "source_kind": "heading",
+    "source_quote": "Navigation"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_ocean_ships",
+   "properties": {
+    "name": "Ocean Ships",
+    "source_file": "book1/skills.md",
+    "source_section": "Ocean Ships",
+    "source_kind": "heading",
+    "source_quote": "Ocean Ships"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_physical_sciences",
+   "properties": {
+    "name": "Physical Sciences",
+    "source_file": "book1/skills.md",
+    "source_section": "Physical Sciences",
+    "source_kind": "heading",
+    "source_quote": "Physical Sciences"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_piercing_weapons",
+   "properties": {
+    "name": "Piercing Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Piercing Weapons",
+    "source_kind": "heading",
+    "source_quote": "Piercing Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_piloting",
+   "properties": {
+    "name": "Piloting",
+    "source_file": "book1/skills.md",
+    "source_section": "Piloting",
+    "source_kind": "heading",
+    "source_quote": "Piloting"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_recon",
+   "properties": {
+    "name": "Recon",
+    "source_file": "book1/skills.md",
+    "source_section": "Recon",
+    "source_kind": "heading",
+    "source_quote": "Recon"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_riding",
+   "properties": {
+    "name": "Riding",
+    "source_file": "book1/skills.md",
+    "source_section": "Riding",
+    "source_kind": "heading",
+    "source_quote": "Riding"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_rotor_aircraft",
+   "properties": {
+    "name": "Rotor Aircraft",
+    "source_file": "book1/skills.md",
+    "source_section": "Rotor Aircraft",
+    "source_kind": "heading",
+    "source_quote": "Rotor Aircraft"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_sciences",
+   "properties": {
+    "name": "Sciences",
+    "source_file": "book1/skills.md",
+    "source_section": "Sciences (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Sciences (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_sailing_ships",
+   "properties": {
+    "name": "Sailing Ships",
+    "source_file": "book1/skills.md",
+    "source_section": "Sailing Ships",
+    "source_kind": "heading",
+    "source_quote": "Sailing Ships"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_screens",
+   "properties": {
+    "name": "Screens",
+    "source_file": "book1/skills.md",
+    "source_section": "Screens",
+    "source_kind": "heading",
+    "source_quote": "Screens"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_shotgun",
+   "properties": {
+    "name": "Shotgun",
+    "source_file": "book1/skills.md",
+    "source_section": "Shotgun",
+    "source_kind": "heading",
+    "source_quote": "Shotgun"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_slashing_weapons",
+   "properties": {
+    "name": "Slashing Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Slashing Weapons",
+    "source_kind": "heading",
+    "source_quote": "Slashing Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_slug_pistol",
+   "properties": {
+    "name": "Slug Pistol",
+    "source_file": "book1/skills.md",
+    "source_section": "Slug Pistol",
+    "source_kind": "heading",
+    "source_quote": "Slug Pistol"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_slug_rifle",
+   "properties": {
+    "name": "Slug Rifle",
+    "source_file": "book1/skills.md",
+    "source_section": "Slug Rifle",
+    "source_kind": "heading",
+    "source_quote": "Slug Rifle"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_social_sciences",
+   "properties": {
+    "name": "Social Sciences",
+    "source_file": "book1/skills.md",
+    "source_section": "Social Sciences",
+    "source_kind": "heading",
+    "source_quote": "Social Sciences"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_space_sciences",
+   "properties": {
+    "name": "Space Sciences",
+    "source_file": "book1/skills.md",
+    "source_section": "Space Sciences",
+    "source_kind": "heading",
+    "source_quote": "Space Sciences"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_spinal_mounts",
+   "properties": {
+    "name": "Spinal Mounts",
+    "source_file": "book1/skills.md",
+    "source_section": "Spinal Mounts",
+    "source_kind": "heading",
+    "source_quote": "Spinal Mounts"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_steward",
+   "properties": {
+    "name": "Steward",
+    "source_file": "book1/skills.md",
+    "source_section": "Steward",
+    "source_kind": "heading",
+    "source_quote": "Steward"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_streetwise",
+   "properties": {
+    "name": "Streetwise",
+    "source_file": "book1/skills.md",
+    "source_section": "Streetwise",
+    "source_kind": "heading",
+    "source_quote": "Streetwise"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_submarine",
+   "properties": {
+    "name": "Submarine",
+    "source_file": "book1/skills.md",
+    "source_section": "Submarine",
+    "source_kind": "heading",
+    "source_quote": "Submarine"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_survival",
+   "properties": {
+    "name": "Survival",
+    "source_file": "book1/skills.md",
+    "source_section": "Survival",
+    "source_kind": "heading",
+    "source_quote": "Survival"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_tactics",
+   "properties": {
+    "name": "Tactics",
+    "source_file": "book1/skills.md",
+    "source_section": "Tactics",
+    "source_kind": "heading",
+    "source_quote": "Tactics"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_tracked_vehicle",
+   "properties": {
+    "name": "Tracked Vehicle",
+    "source_file": "book1/skills.md",
+    "source_section": "Tracked Vehicle",
+    "source_kind": "heading",
+    "source_quote": "Tracked Vehicle"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_turret_weapons",
+   "properties": {
+    "name": "Turret Weapons",
+    "source_file": "book1/skills.md",
+    "source_section": "Turret Weapons",
+    "source_kind": "heading",
+    "source_quote": "Turret Weapons"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_vehicle",
+   "properties": {
+    "name": "Vehicle",
+    "source_file": "book1/skills.md",
+    "source_section": "Vehicle (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Vehicle (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_veterinary_medicine",
+   "properties": {
+    "name": "Veterinary Medicine",
+    "source_file": "book1/skills.md",
+    "source_section": "Veterinary Medicine",
+    "source_kind": "heading",
+    "source_quote": "Veterinary Medicine"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_watercraft",
+   "properties": {
+    "name": "Watercraft",
+    "source_file": "book1/skills.md",
+    "source_section": "Watercraft (Cascade Skill)",
+    "source_kind": "heading",
+    "source_quote": "Watercraft (Cascade Skill)",
+    "is_cascade": "true"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_wheeled_vehicle",
+   "properties": {
+    "name": "Wheeled Vehicle",
+    "source_file": "book1/skills.md",
+    "source_section": "Wheeled Vehicle",
+    "source_kind": "heading",
+    "source_quote": "Wheeled Vehicle"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_winged_aircraft",
+   "properties": {
+    "name": "Winged Aircraft",
+    "source_file": "book1/skills.md",
+    "source_section": "Winged Aircraft",
+    "source_kind": "heading",
+    "source_quote": "Winged Aircraft"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_zero_g",
+   "properties": {
+    "name": "Zero-G",
+    "source_file": "book1/skills.md",
+    "source_section": "Zero-G",
+    "source_kind": "heading",
+    "source_quote": "Zero-G"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_perception",
+   "properties": {
+    "name": "Perception",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Specialist",
+    "source_row": "3",
+    "source_column": "Bureaucrat",
+    "source_quote": "Perception",
+    "source_defect": "Granted by the Bureaucrat Specialist table but defined nowhere: 'Perception' occurs exactly once in the SRD, in this cell, and has no entry in book1/skills.md nor a line in the Available Skills List.",
+    "suggested_reading": "Recon is the only defined skill that covers observing and noticing, and it fills the equivalent slot in the Aerospace Defense, Agent and Barbarian columns. A guess, not a reading the text proves, so nothing acts on it."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Skill",
+   "as": "@sk_prospecting",
+   "properties": {
+    "name": "Prospecting",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Service Skills",
+    "source_row": "5",
+    "source_column": "Belter",
+    "source_quote": "Prospecting",
+    "source_defect": "Granted by the Belter Service Skills and Belter Specialist tables but defined nowhere: 'Prospecting' occurs exactly twice in the SRD, both in career tables, and has no entry in book1/skills.md nor a line in the Available Skills List.",
+    "suggested_reading": "No defined skill covers finding and assessing ore. Unlike Perception, there is no near neighbour to name: the Belter career is built around this skill, so the likely reading is that the entry is missing from the chapter rather than that the cell is a typo for something else."
+   }
+  }
+ ]
+}

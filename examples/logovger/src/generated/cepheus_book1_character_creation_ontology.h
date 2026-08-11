@@ -1383,6 +1383,12 @@ struct Cited {
     std::optional<std::string> source_row = std::nullopt;
     /// The column's header ("Scout"). Required for a cell; optional on a row, where it serves only to say which of several like-labelled tables is meant.
     std::optional<std::string> source_column = std::nullopt;
+    /// Other names the source itself uses for this thing, separated by "; ". The skills chapter defines "Jack-of-All-Trades (Jack o' Trades or JoT)" while the career tables write "Jack o' Trades", and both name one skill. Aliases are the source's own words, not convenience synonyms we invented, so a reference through an alias is still a reference the book can prove.
+    std::optional<std::string> source_aliases = std::nullopt;
+    /// What is wrong with the source at this citation, in plain words. Absorbing a book finds holes in it: the Cepheus career tables grant a "Perception" skill that appears once in the entire SRD and is defined nowhere. Such an entity enters the graph as the book writes it, marked, rather than being silently corrected or silently dropped. Empty means the citation is sound.
+    std::optional<std::string> source_defect = std::nullopt;
+    /// A human's best guess at what a defective citation was meant to say, recorded so the reasoning is not lost, and deliberately consumed by nothing. Rules read the book; they never read a guess. If the guess were safe to act on it would be a fix in the source, not a suggestion here.
+    std::optional<std::string> suggested_reading = std::nullopt;
 };
 
 

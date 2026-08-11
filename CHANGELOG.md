@@ -8,6 +8,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **`source_aliases`, `source_defect` and `suggested_reading` on the `Cited`
+  mixin.** Absorbing a book finds holes in it, and every absorbed book will
+  have some. A defective entity now enters the graph as the source writes
+  it, marked, with the reasoning recorded in a slot that nothing consumes:
+  rules read the book, never a guess. Aliases are the source's own alternate
+  names, so `@@Type:Name` resolves through them, exact names first.
+- **Verification follows dependency order.** `verify_seed` accepts the seeds
+  a seed depends on and loads them into the same scratch world, because a
+  seed that references what another owns cannot be verified alone.
 - **Cross-seed entity references.** A seed can now address an entity another
   seed created, written `@@Type:Name` in any `entity_ref` property or op
   target. Aliases remain file-local; this is the one way across that

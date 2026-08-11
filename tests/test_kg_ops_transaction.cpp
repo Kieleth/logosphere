@@ -148,6 +148,49 @@ void a_world_reference_finds_an_entity_another_batch_created() {
             "it must bind to the entity that already exists");
 }
 
+// The career tables print "Jack o' Trades"; the skills chapter defines
+// "Jack-of-All-Trades (Jack o' Trades or JoT)". One skill, two names,
+// both the book's own.
+void a_world_reference_resolves_through_a_source_alias() {
+    Fixture f;
+    f.world.setProperty(f.parent, "name", "Jack-of-All-Trades");
+    f.world.setProperty(f.parent, "source_aliases", "Jack o' Trades; JoT");
+    std::vector<kg::KGOp> ops;
+    kg::KGOpCreateEntity child;
+    child.type = "Child";
+    child.as = "c";
+    child.properties = {{"label", "x"}, {"points_at", "@@Parent:JoT"}};
+    ops.push_back(child);
+    kg::KGOpBatchReport report;
+    REQUIRE(kg::apply_kg_ops_atomically(ops, f.world, report),
+            "an alias the source itself uses must resolve: " + report.error);
+    REQUIRE(f.world.getProperty(report.bindings.at("c"), "points_at") ==
+                std::to_string(f.parent),
+            "and it must reach the entity that carries the alias");
+}
+
+// An alias must never beat a real name, or a seed could be silently
+// redirected by someone else's nickname.
+void an_exact_name_wins_over_someone_elses_alias() {
+    Fixture f;
+    f.world.setProperty(f.parent, "name", "Recon");
+    const auto other = f.world.createEntity("Parent");
+    f.world.setProperty(other, "name", "Perception");
+    f.world.setProperty(other, "source_aliases", "Recon");
+    std::vector<kg::KGOp> ops;
+    kg::KGOpCreateEntity child;
+    child.type = "Child";
+    child.as = "c";
+    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Recon"}};
+    ops.push_back(child);
+    kg::KGOpBatchReport report;
+    REQUIRE(kg::apply_kg_ops_atomically(ops, f.world, report),
+            "the exact name must resolve: " + report.error);
+    REQUIRE(f.world.getProperty(report.bindings.at("c"), "points_at") ==
+                std::to_string(f.parent),
+            "to the entity NAMED Recon, not the one aliased Recon");
+}
+
 void a_world_reference_to_nothing_fails_loudly() {
     Fixture f;
     f.world.setProperty(f.parent, "name", "Admin");
@@ -190,6 +233,8 @@ int main() {
     TEST(a_success_commits_once_and_publishes_afterward);
     TEST(unsupported_destructive_ops_fail_before_mutation);
     TEST(a_world_reference_finds_an_entity_another_batch_created);
+    TEST(a_world_reference_resolves_through_a_source_alias);
+    TEST(an_exact_name_wins_over_someone_elses_alias);
     TEST(a_world_reference_to_nothing_fails_loudly);
     TEST(an_ambiguous_world_reference_fails_rather_than_picking);
     std::cout << tests_passed << " passed, " << tests_failed << " failed\n";

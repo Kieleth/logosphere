@@ -21,6 +21,7 @@
 #undef NDEBUG
 
 #include "chargen/chargen.h"
+#include "chargen/rule_seeds.h"
 #include "chargen/procedure_catalog.h"
 
 #include "logosphere/kg/seed_loader.h"
@@ -77,9 +78,13 @@ kg::OntologyRegistry game_registry() {
 bool build_world(kg::KGModule& kg, std::string& why) {
     kg.setMode(kg::KGMode::MINIMAL);
     const auto procedures = logovger::make_chargen_procedure_registry();
-    const char* seeds[] = {"seeds/cepheus_book1_tables.json",
-                           "seeds/cepheus_careers.json",
-                           "seeds/cepheus_basic_chargen_procedure.json"};
+    // The same list the game loads. See chargen/rule_seeds.h.
+    const auto& seeds = logovger::kRuleSeeds;
+    // A seed may reference what an earlier one owns, so verification
+    // sees the same growing world the game does.
+    std::vector<kg::SeedEnvelope> kept;
+    kept.reserve(logovger::kRuleSeedCount);
+    std::vector<const kg::SeedEnvelope*> loaded_before;
     for (const char* seed : seeds) {
         const std::string json = slurp(game_path(seed));
         if (json.empty()) { why = std::string(seed) + " unreadable"; return false; }
@@ -89,7 +94,8 @@ bool build_world(kg::KGModule& kg, std::string& why) {
 
         const auto v = kg::verify_seed(parsed.seed,
                                        game_path("srd/cepheus"),
-                                       game_registry(), &procedures);
+                                       game_registry(), &procedures,
+                                       loaded_before);
         if (!v.ok()) {
             std::ostringstream o;
             for (const auto& viol : v.violations)
@@ -104,6 +110,8 @@ bool build_world(kg::KGModule& kg, std::string& why) {
             why = "load: " + report.error;
             return false;
         }
+        kept.push_back(std::move(parsed.seed));
+        loaded_before.push_back(&kept.back());
     }
     return true;
 }
@@ -365,7 +373,7 @@ void test_character_facts_use_the_modifier_table() {
 void test_the_rules_are_data() {
     kg::KGModule kg(game_registry());
     std::string why;
-    build_world(kg, why);
+    if (!build_world(kg, why)) std::cout << "  [build_world] " << why << "\n";
 
     // Find the Agent career and make qualification impossible.
     kg::EntityID career = kg::INVALID_ENTITY;

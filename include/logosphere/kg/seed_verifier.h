@@ -110,12 +110,21 @@ struct SeedVerifyReport {
     }
 };
 
+// Verification loads the seed into a scratch world, so a seed that
+// references entities another seed owns (with "@@Type:Name") cannot be
+// verified alone: its references resolve against nothing. Pass the
+// seeds it depends on, in load order, and they are loaded into the
+// same scratch world first. Their own violations are NOT reported
+// here; verify each of them in turn, which is what an ordered manifest
+// gives you for free.
 SeedVerifyReport verify_seed(const SeedEnvelope& seed,
                              const std::string& source_root,
                              const OntologyRegistry& registry,
                              const logosphere::rules::
                                  ProcedurePrimitiveRegistry*
-                                     procedure_primitives = nullptr);
+                                     procedure_primitives = nullptr,
+                             const std::vector<const SeedEnvelope*>&
+                                 prerequisites = {});
 
 }  // namespace kg
 

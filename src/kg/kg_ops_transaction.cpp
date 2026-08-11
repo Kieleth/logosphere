@@ -84,6 +84,30 @@ bool resolve_world_ref(const KGModule& kg, const std::string& spec,
         if (kg.getProperty(id, "name") == name) hits.push_back(id);
     }
     if (hits.empty()) {
+        // Nothing by that name. Before giving up, try the names the
+        // SOURCE itself uses: the skills chapter defines
+        // "Jack-of-All-Trades (Jack o' Trades or JoT)" while the career
+        // tables print "Jack o' Trades", and both name one skill. An
+        // alias is the book's own word, so resolving through one is
+        // still resolving to something the book can prove. Aliases are
+        // tried only after exact names, so a real name never loses to
+        // someone else's alias.
+        for (EntityID id : kg.findByType(type)) {
+            const std::string aliases = kg.getProperty(id, "source_aliases");
+            if (aliases.empty()) continue;
+            size_t at = 0;
+            while (at <= aliases.size()) {
+                size_t end = aliases.find("; ", at);
+                if (end == std::string::npos) end = aliases.size();
+                if (aliases.compare(at, end - at, name) == 0) {
+                    hits.push_back(id);
+                    break;
+                }
+                at = end + 2;
+            }
+        }
+    }
+    if (hits.empty()) {
         error = "world reference '@@" + type + ":" + name +
                 "': no " + type + " with that name is loaded";
         return false;

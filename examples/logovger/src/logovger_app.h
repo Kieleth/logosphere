@@ -19,6 +19,7 @@
 #include "ui/ui_system.h"
 
 #include "chargen/chargen.h"
+#include "chargen/rule_seeds.h"
 #include "narrator.h"
 #include "sheet_screen.h"
 #include "chargen/procedure_catalog.h"
@@ -278,11 +279,12 @@ private:
     // cannot prove its citations never reaches the table.
     bool load_rules(kg::KGModule& kg, std::string& why) {
         const auto procedures = make_chargen_procedure_registry();
-        const char* seeds[] = {
-            "seeds/cepheus_book1_tables.json",
-            "seeds/cepheus_careers.json",
-            "seeds/cepheus_basic_chargen_procedure.json"};
-        for (const char* seed : seeds) {
+        // A seed may reference what an earlier one owns, so
+        // verification sees the same growing world the game does.
+        std::vector<kg::SeedEnvelope> kept;
+        kept.reserve(kRuleSeedCount);
+        std::vector<const kg::SeedEnvelope*> loaded_before;
+        for (const char* seed : kRuleSeeds) {
             const std::string json = slurp(game_path(seed));
             if (json.empty()) {
                 why = std::string(seed) + " is unreadable";
@@ -294,7 +296,7 @@ private:
 
             const auto v = kg::verify_seed(
                 parsed.seed, game_path("srd/cepheus"), kg.getRegistry(),
-                &procedures);
+                &procedures, loaded_before);
             if (!v.ok()) {
                 std::ostringstream o;
                 for (const auto& viol : v.violations)
@@ -307,6 +309,8 @@ private:
                 why = report.error;
                 return false;
             }
+            kept.push_back(std::move(parsed.seed));
+            loaded_before.push_back(&kept.back());
         }
         chapter_ = logosphere::text::SourceDocument::parse_markdown(
             slurp(game_path("srd/cepheus/book1/character-creation.md")));

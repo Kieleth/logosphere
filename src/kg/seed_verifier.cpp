@@ -1136,7 +1136,9 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
                              const OntologyRegistry& registry,
                              const logosphere::rules::
                                  ProcedurePrimitiveRegistry*
-                                     procedure_primitives) {
+                                     procedure_primitives,
+                             const std::vector<const SeedEnvelope*>&
+                                 prerequisites) {
     SeedVerifyReport report;
     Checker checker{seed, source_root, registry, report,
                     procedure_primitives, {}};
@@ -1145,6 +1147,25 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
 
     KGModule world(registry);
     world.setMode(KGMode::MINIMAL);
+
+    // What this seed depends on, loaded first and in order, so its
+    // "@@Type:Name" references resolve against the same world the game
+    // will give them. A prerequisite that will not load is reported
+    // against this seed, because from here it is the reason this one
+    // cannot be checked at all.
+    for (const SeedEnvelope* prerequisite : prerequisites) {
+        if (!prerequisite) continue;
+        SeedLoadReport prior;
+        if (!load_seed(*prerequisite, world, prior)) {
+            report.violations.push_back(
+                {"schema", prior.failed_op, "",
+                 "prerequisite seed '" + prerequisite->source.file +
+                     "' does not load, so this one cannot be verified: " +
+                     prior.error});
+            return report;
+        }
+    }
+
     SeedLoadReport load;
     if (!checker.check_schema(world, load)) {
         // Every other check certifies the loaded state; without one
