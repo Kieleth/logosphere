@@ -2060,12 +2060,12 @@ struct GainRolledMoney : public GainMoney {
 };
 
 
-/// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables.
+/// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables. An ABSENT roll_count means one, because the book writes a bare instruction for a single roll: "Roll on the Injury table" states no number, and putting a 1 there would be a figure the source never printed.
 struct GrantTableRoll : public Outcome {
     /// The table the extra rolls are granted on.
     RollableTable table = {};
     /// How many extra rolls.
-    int32_t roll_count = {};
+    std::optional<int32_t> roll_count = std::nullopt;
 };
 
 

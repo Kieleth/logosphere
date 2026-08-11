@@ -18,6 +18,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - **`unmodelled` on the `Cited` mixin**: the part of a rule the graph does not
   yet express, in plain words. Absorption is sometimes partial, and a partial
   rule that admits it is honest where one that looks whole is not.
+- **Aging, mishaps and injuries are absorbed.** Twenty rows across three
+  tables, each addressed to the cell it came from: the aging table with its
+  signed bands and its open-ended top, the survival-mishap table the Referee
+  may allow instead of death, and the injury table mishaps send you to. Two
+  clauses exceed what the outcome vocabulary can say and carry `unmodelled`
+  saying which and why.
 - `attribute_delta_dice` for rolled reductions ("reduce one physical
   characteristic by 1D6") and `ForfeitBenefits` for "lose all benefits".
 - **Subject-keyed lookups** (`SubjectLookupTable`, `SubjectLookupEntry`).

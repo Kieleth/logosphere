@@ -393,6 +393,19 @@ bool read_lookup_band(const KGModule& kg, EntityID id, Band& band) {
 // key_min/key_max on LookupEntry. Returns false if the type has
 // neither pair set.
 bool read_row_band(const KGModule& kg, EntityID id, Band& band) {
+    // A row may be open at the top, which is how the book writes its
+    // last row: "| 1+ |". The flag and the number are exclusive, the
+    // same contract key_max_unbounded has on a lookup row.
+    const std::string top_flag = kg.getProperty(id, "roll_max_unbounded");
+    if (top_flag == "true" || top_flag == "1") {
+        const std::string lo = kg.getProperty(id, "roll_min");
+        if (lo.empty() || !kg.getProperty(id, "roll_max").empty()) {
+            return false;
+        }
+        band.lo = std::strtoll(lo.c_str(), nullptr, 10);
+        band.hi.reset();
+        return true;
+    }
     return read_band(kg, id, "roll_min", "roll_max", band) ||
            read_lookup_band(kg, id, band);
 }

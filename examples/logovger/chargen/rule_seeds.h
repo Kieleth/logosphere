@@ -23,6 +23,9 @@ namespace logovger {
 inline constexpr const char* kRuleSeeds[] = {
     "seeds/cepheus_book1_skill_vocabulary.json",
     "seeds/cepheus_book1_tables.json",
+    // Aging, mishaps and injuries: the tables no career owns. After
+    // the dice and currency it references, before anything else.
+    "seeds/cepheus_book1_shared_tables.json",
     "seeds/cepheus_careers.json",
     // Last of the rule data: it references the Skills the vocabulary
     // owns, the Currency and dice the earlier seeds create, and the

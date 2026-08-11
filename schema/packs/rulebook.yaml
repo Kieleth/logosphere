@@ -396,12 +396,14 @@ classes:
     description: >-
       Gain extra rolls on a named table: a successful commission or
       advancement grants an extra roll on the career's skill tables.
+      An ABSENT roll_count means one, because the book writes a bare
+      instruction for a single roll: "Roll on the Injury table" states
+      no number, and putting a 1 there would be a figure the source
+      never printed.
     annotations:
       facets: rulebook
     slot_usage:
       table:
-        required: true
-      roll_count:
         required: true
     slots:
       - table

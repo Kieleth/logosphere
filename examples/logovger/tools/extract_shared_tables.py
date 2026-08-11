@@ -67,6 +67,8 @@ GROUP_QUOTE = (
 # top says "1+" and the bottom says "-6" with no "or less", so a total
 # of -7 lands on nothing. That asymmetry is the book's, not ours.
 AGING_SECTION = "Aging"
+AGING_TABLE = "2D6"
+AGING_COLUMN = "Effects of Aging"
 AGING_ROWS = {
     "-6": [("physical", 3, -2), ("mental", 1, -1)],
     "-5": [("physical", 3, -2)],
@@ -79,6 +81,8 @@ AGING_ROWS = {
 }
 
 INJURY_SECTION = "Injuries"
+INJURY_TABLE = "1D6"
+INJURY_COLUMN = "Injury"
 # roll -> (clauses, unmodelled). A clause is one of:
 #   ("group", group, count, delta)          fixed reduction
 #   ("group_dice", group, count, "1D6")     rolled reduction
@@ -98,6 +102,8 @@ INJURY_ROWS = {
 }
 
 MISHAP_SECTION = "Survival"
+MISHAP_TABLE = "1D6"
+MISHAP_COLUMN = "Mishaps"
 # roll -> (clauses, unmodelled). Clauses here are outcome kinds.
 MISHAP_ROWS = {
     "1": ([("table_roll", "Injury")],
@@ -138,11 +144,21 @@ def cells(line):
     return [c.strip() for c in line.rstrip("\n").split("|")[1:-1]]
 
 
-def read_table(lines, header_first_cell):
-    """The rows of the one table whose header starts with this cell."""
+def read_table(lines, header_first_cell, header_second_cell=None):
+    """The rows of the table with this header.
+
+    The mishap and injury tables are BOTH headed "| 1D6 | ... |", so
+    the first cell alone selects whichever comes first in the file.
+    That is how the injury rows ended up carrying mishap text. The
+    second cell is what tells them apart, and it is also the column a
+    cell citation has to name.
+    """
     for i, line in enumerate(lines):
         row = cells(line)
         if not row or row[0] != header_first_cell:
+            continue
+        if header_second_cell and (len(row) < 2 or
+                                   row[1] != header_second_cell):
             continue
         out = []
         for j in range(i + 1, len(lines)):
@@ -170,13 +186,15 @@ class Builder:
         self.ops.append({"op": "set_relation", "from": parent,
                          "relation": "HAS_PART", "to": child})
 
-    def cite(self, section, table, row, quote, kind="cell"):
+    def cite(self, section, table, row, quote, kind="cell", column=None):
         out = {"source_file": CHAPTER, "source_section": section,
                "source_kind": kind, "source_quote": quote}
         if table:
             out["source_table"] = table
         if row:
             out["source_row"] = row
+        if column:
+            out["source_column"] = column
         return out
 
 
@@ -202,7 +220,8 @@ def main():
                      attribute_group=f"@group_{group}",
                      affected_count=str(count), **citation)
         if dice:
-            props["attribute_delta_dice"] = "@d" + dice.lower()
+            props["attribute_delta_dice"] = qualified(
+                "d" + dice.lower(), "DiceExpression", COMMIT)
         else:
             props["attribute_delta"] = str(delta)
         if unmodelled:
@@ -226,11 +245,15 @@ def main():
     counts = {"aging": 0, "injury": 0, "mishap": 0}
 
     # ---- aging ----------------------------------------------------
-    aging_rows = read_table(lines, "2D6")
+    aging_rows = read_table(lines, AGING_TABLE, AGING_COLUMN)
+    # The page escapes negative keys ("| \\-6 |"), and a locator
+    # addresses the row as printed, so keep both forms: the clean one
+    # to look the row up, the printed one to cite it.
     printed = {r[0].replace("\\", ""): r[1] for r in aging_rows}
+    as_printed = {r[0].replace("\\", ""): r[0] for r in aging_rows}
     b.add("RollableTable", "@aging_table", dict(
         name="Effects of Aging",
-        dice="@d2d6",
+        dice=qualified("d2d6", "DiceExpression", COMMIT),
         **b.cite(AGING_SECTION, None, None,
                  "At the end of the fourth term, and at the end of every "
                  "term thereafter, the character must roll 2D6 on the "
@@ -241,7 +264,9 @@ def main():
             print(f"REFUSED: the aging table has no row {band!r}; the "
                   f"source prints {sorted(printed)}")
             return 1
-        citation = b.cite(AGING_SECTION, "2D6", band, quote)
+        citation = b.cite(AGING_SECTION, AGING_TABLE,
+                          as_printed.get(band, band), quote,
+                          column=AGING_COLUMN)
         parts = []
         for index, (group, count, delta) in enumerate(clauses):
             parts.append(group_clause(
@@ -264,9 +289,10 @@ def main():
         counts["aging"] += 1
 
     # ---- injuries -------------------------------------------------
-    injury_rows = {r[0]: r[1] for r in read_table(lines, "1D6")}
+    injury_rows = {r[0]: r[1]
+                   for r in read_table(lines, INJURY_TABLE, INJURY_COLUMN)}
     b.add("RollableTable", "@injury_table", dict(
-        name="Injury", dice="@d1d6",
+        name="Injury", dice=qualified("d1d6", "DiceExpression", COMMIT),
         **b.cite(INJURY_SECTION, None, None,
                  "Characters that are wounded in combat or accidents "
                  "during character creation must roll on the Injury "
@@ -275,7 +301,8 @@ def main():
         quote = injury_rows.get(roll)
         if quote is None or "njur" not in quote and roll != "6":
             pass
-        citation = b.cite(INJURY_SECTION, "Injury", roll, quote or "")
+        citation = b.cite(INJURY_SECTION, INJURY_TABLE, roll, quote or "",
+                          column=INJURY_COLUMN)
         parts = []
         for index, clause in enumerate(clauses):
             alias = f"@injury_{roll}_c{index}"
@@ -318,18 +345,17 @@ def main():
     # ---- mishaps --------------------------------------------------
     b.add("RollableTable", "@mishap_table", dict(
         name="Survival Mishaps",
-        dice="@d1d6",
+        dice=qualified("d1d6", "DiceExpression", COMMIT),
         **b.cite(MISHAP_SECTION, None, None,
                  "With the Referee's approval, you can keep the character "
                  "that fails a survival roll and roll on the Survival "
                  "Mishaps table instead.", "sentence")))
-    mishap_rows = {}
-    for row in read_table(lines, "1D6"):
-        if "ischarged" in row[1] or "Injured in action" in row[1]:
-            mishap_rows[row[0]] = row[1]
+    mishap_rows = {r[0]: r[1]
+                   for r in read_table(lines, MISHAP_TABLE, MISHAP_COLUMN)}
     for roll, (clauses, unmodelled) in MISHAP_ROWS.items():
         quote = mishap_rows.get(roll, "")
-        citation = b.cite(MISHAP_SECTION, "Mishaps", roll, quote)
+        citation = b.cite(MISHAP_SECTION, MISHAP_TABLE, roll, quote,
+                          column=MISHAP_COLUMN)
         parts = []
         for index, clause in enumerate(clauses):
             alias = f"@mishap_{roll}_c{index}"
@@ -342,7 +368,8 @@ def main():
                 parts.append(b.add("ForfeitBenefits", alias, props))
             elif clause[0] == "money":
                 props.update(amount=str(clause[1]),
-                             currency="@credits")
+                             currency=qualified("credits", "Currency",
+                                                COMMIT))
                 parts.append(b.add("GainFixedMoney", alias, props))
             elif clause[0] == "age":
                 props.update(attribute_ref="age_years",
@@ -350,7 +377,6 @@ def main():
                 parts.append(b.add("ModifyAttribute", alias, props))
             elif clause[0] == "table_roll":
                 props["table"] = "@injury_table"
-                props["roll_count"] = "1"
                 parts.append(b.add("GrantTableRoll", alias, props))
         outcome = sequence(f"@mishap_{roll}", parts, citation)
         entry = f"@mishap_row_{roll}"
@@ -360,28 +386,10 @@ def main():
         b.relate("@mishap_table", entry)
         counts["mishap"] += 1
 
-    # Merge into the seed that already owns the mishap and injury
-    # tables. Existing ops are untouched: their aliases are referenced
-    # from other seeds, and a stable alias is the whole basis of a
-    # qualified reference.
-    seed = json.load(open(out_path, encoding="utf-8"))
-    have = {op.get("as") for op in seed["ops"] if op.get("as")}
-    existing_relations = {
-        (op.get("from"), op.get("to")) for op in seed["ops"]
-        if op.get("op") == "set_relation"}
-    added = 0
-    for op in b.ops:
-        if op.get("op") == "create_entity":
-            if op["as"] in have:
-                continue          # the sampler already wrote this row
-            have.add(op["as"])
-        elif (op.get("from"), op.get("to")) in existing_relations:
-            continue
-        # A relation whose target was skipped would dangle.
-        if op.get("op") == "set_relation" and op.get("to") not in have:
-            continue
-        seed["ops"].append(op)
-        added += 1
+    seed = {"source": {"file": CHAPTER, "commit": COMMIT},
+            "layer": "cepheus", "invariants": {}, "ops": []}
+    seed["ops"] = b.ops
+    added = len(b.ops)
 
     counts_by_type = {}
     for op in seed["ops"]:
@@ -399,7 +407,7 @@ def main():
     unique.sort()
     json.dump(seed, open(out_path, "w"), indent=1)
     open(out_path, "a").write("\n")
-    print(f"appended {added} op(s) into the seed that owns these tables")
+    print(f"this seed owns {added} op(s)")
 
     partial = sum(1 for op in b.ops
                   if op.get("properties", {}).get("unmodelled"))
