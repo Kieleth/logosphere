@@ -100,9 +100,13 @@ void test_the_generated_type_surface_compiles() {
                                   rulebook::ontology::OutcomeChoice>::value,
                   "OutcomeChoice is an Outcome");
     rulebook::ontology::TableEntry row;
-    CHECK(row.roll_min == 0 && row.roll_max == 0 &&
+    // roll_max is optional now: a row may be open at the top, which
+    // the aging table's "1+" band needs, so an unset one must come up
+    // ABSENT rather than as a zero that reads like a real ceiling.
+    CHECK(row.roll_min == 0 && !row.roll_max.has_value() &&
               !row.source_quote.has_value(),
-          "required generated fields are deterministically initialized");
+          "required generated fields are deterministically initialized, "
+          "and optional ones are absent rather than zero");
 }
 
 void test_the_pack_grants_the_vocabulary() {

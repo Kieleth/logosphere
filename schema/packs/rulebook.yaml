@@ -72,6 +72,7 @@ classes:
       - source_aliases
       - source_defect
       - suggested_reading
+      - unmodelled
 
   DiceExpression:
     is_a: Entity
@@ -153,9 +154,13 @@ classes:
       changes nothing points to NoEffect.
     annotations:
       facets: rulebook
+    slot_usage:
+      roll_min:
+        required: true
     slots:
       - roll_min
       - roll_max
+      - roll_max_unbounded
       - outcome
 
   LookupTable:
@@ -635,12 +640,22 @@ classes:
         required: true
       affected_count:
         required: true
-      attribute_delta:
-        required: true
     slots:
       - attribute_group
       - affected_count
       - attribute_delta
+      - attribute_delta_dice
+
+  ForfeitBenefits:
+    is_a: Outcome
+    description: >-
+      Everything this career would have paid is lost. Cepheus:
+      "Dishonorably discharged from the service. Lose all benefits."
+      It is not a debt and not a reduction; it cancels a payout that
+      has not happened yet, which no other outcome can say.
+    annotations:
+      facets: rulebook
+    slots: []
 
   Possession:
     is_a: Entity
@@ -836,8 +851,16 @@ slots:
     description: Lowest die result this row claims, inclusive.
   roll_max:
     range: integer
-    required: true
-    description: Highest die result this row claims, inclusive.
+    description: >-
+      Highest die result this row claims, inclusive. Absent only when
+      roll_max_unbounded says the row has no top.
+  roll_max_unbounded:
+    range: boolean
+    description: >-
+      This row claims everything at or above roll_min. The aging table
+      ends at "1+", and writing a number there would put a figure in
+      the graph that the book does not print. The same need already
+      exists one class over, as key_max_unbounded on LookupEntry.
   key_min:
     range: integer
     description: Lowest key value this row claims, inclusive.
@@ -975,6 +998,22 @@ slots:
     range: DiceExpression
     description: >-
       Rolled count, when the book rolls for it: "1D6 Ship Shares".
+  attribute_delta_dice:
+    range: DiceExpression
+    description: >-
+      Rolled change, when the book rolls for how much: the injury
+      table's "reduce one physical characteristic by 1D6". The fixed
+      case is attribute_delta; a rule uses one or the other.
+  unmodelled:
+    range: string
+    description: >-
+      The part of this rule the graph does not yet express, in plain
+      words. Absorption is sometimes partial: a clause may depend on a
+      choice made earlier in the same outcome ("reduce both OTHER
+      physical characteristics"), or offer a re-roll policy the
+      outcome vocabulary cannot say. Recording the gap keeps a partial
+      rule honest, because the alternative is a rule that looks whole
+      and quietly is not. Empty means fully expressed.
   possession_text:
     range: string
     description: >-
