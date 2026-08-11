@@ -5,6 +5,12 @@
  },
  "layer": "cepheus",
  "invariants": {
+  "count_of_type": {
+   "CareerThrowEntry": 58,
+   "CareerTableEntry": 72,
+   "SubjectLookupTable": 6,
+   "ProgressionTrack": 24
+  },
   "unique_name_per_type": [
    "RollableTable",
    "TaskCheck",
@@ -148,6 +154,42 @@
   },
   {
    "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@adv_education_tables",
+   "properties": {
+    "name": "Adv Education table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@specialist_tables",
+   "properties": {
+    "name": "Specialist table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@personal_development_tables",
+   "properties": {
+    "name": "Personal Development table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@aerospace_defense_commission",
    "properties": {
@@ -165,6 +207,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_aerospace_defense",
+   "properties": {
+    "name": "commission throw for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "throw_check": "@aerospace_defense_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Aerospace Defense",
+    "source_quote": "Edu 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_aerospace_defense"
   },
   {
    "op": "create_entity",
@@ -188,6 +253,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_agent",
+   "properties": {
+    "name": "commission throw for Agent",
+    "subject": "@@Career:Agent",
+    "throw_check": "@agent_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Agent",
+    "source_quote": "Edu 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_agent"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@bureaucrat_commission",
    "properties": {
@@ -205,6 +293,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_bureaucrat",
+   "properties": {
+    "name": "commission throw for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "throw_check": "@bureaucrat_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Bureaucrat",
+    "source_quote": "Soc 5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_bureaucrat"
   },
   {
    "op": "create_entity",
@@ -228,6 +339,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_aerospace_defense",
+   "properties": {
+    "name": "advancement throw for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "throw_check": "@aerospace_defense_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Aerospace Defense",
+    "source_quote": "Edu 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_aerospace_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@agent_advancement",
    "properties": {
@@ -245,6 +379,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_agent",
+   "properties": {
+    "name": "advancement throw for Agent",
+    "subject": "@@Career:Agent",
+    "throw_check": "@agent_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Agent",
+    "source_quote": "Edu 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_agent"
   },
   {
    "op": "create_entity",
@@ -268,6 +425,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_bureaucrat",
+   "properties": {
+    "name": "advancement throw for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "throw_check": "@bureaucrat_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Bureaucrat",
+    "source_quote": "Int 8+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_bureaucrat"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@athlete_reenlistment",
    "properties": {
@@ -282,6 +462,29 @@
     "source_quote": "6+",
     "target_number": "6"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_athlete",
+   "properties": {
+    "name": "reenlistment throw for Athlete",
+    "subject": "@@Career:Athlete",
+    "throw_check": "@athlete_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Athlete",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_athlete"
   },
   {
    "op": "create_entity",
@@ -302,6 +505,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_aerospace_defense",
+   "properties": {
+    "name": "reenlistment throw for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "throw_check": "@aerospace_defense_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Aerospace Defense",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_aerospace_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@agent_reenlistment",
    "properties": {
@@ -316,6 +542,29 @@
     "source_quote": "6+",
     "target_number": "6"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_agent",
+   "properties": {
+    "name": "reenlistment throw for Agent",
+    "subject": "@@Career:Agent",
+    "throw_check": "@agent_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Agent",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_agent"
   },
   {
    "op": "create_entity",
@@ -336,6 +585,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_barbarian",
+   "properties": {
+    "name": "reenlistment throw for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "throw_check": "@barbarian_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Barbarian",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_barbarian"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@belter_reenlistment",
    "properties": {
@@ -353,6 +625,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_belter",
+   "properties": {
+    "name": "reenlistment throw for Belter",
+    "subject": "@@Career:Belter",
+    "throw_check": "@belter_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Belter",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_belter"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@bureaucrat_reenlistment",
    "properties": {
@@ -367,6 +662,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_bureaucrat",
+   "properties": {
+    "name": "reenlistment throw for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "throw_check": "@bureaucrat_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Bureaucrat",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_bureaucrat"
   },
   {
    "op": "create_entity",
@@ -4840,6 +5158,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_athlete",
+   "properties": {
+    "name": "Personal Development table for Athlete",
+    "subject": "@@Career:Athlete",
+    "rollable_table": "@athlete_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_athlete"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@athlete_personal_development_e1",
    "properties": {
@@ -5090,6 +5428,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_aerospace",
+   "properties": {
+    "name": "Personal Development table for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "rollable_table": "@aerospace_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_aerospace"
   },
   {
    "op": "create_entity",
@@ -5348,6 +5706,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_agent",
+   "properties": {
+    "name": "Personal Development table for Agent",
+    "subject": "@@Career:Agent",
+    "rollable_table": "@agent_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_agent"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@agent_personal_development_e1",
    "properties": {
@@ -5603,6 +5981,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_barbarian",
+   "properties": {
+    "name": "Personal Development table for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "rollable_table": "@barbarian_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_barbarian"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@barbarian_personal_development_e1",
    "properties": {
@@ -5853,6 +6251,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_belter",
+   "properties": {
+    "name": "Personal Development table for Belter",
+    "subject": "@@Career:Belter",
+    "rollable_table": "@belter_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_belter"
   },
   {
    "op": "create_entity",
@@ -6111,6 +6529,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_bureaucrat",
+   "properties": {
+    "name": "Personal Development table for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "rollable_table": "@bureaucrat_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_bureaucrat"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@bureaucrat_personal_development_e1",
    "properties": {
@@ -6355,6 +6793,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_athlete",
+   "properties": {
+    "name": "Specialist table for Athlete",
+    "subject": "@@Career:Athlete",
+    "rollable_table": "@athlete_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_athlete"
   },
   {
    "op": "create_entity",
@@ -6605,6 +7063,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_aerospace",
+   "properties": {
+    "name": "Specialist table for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "rollable_table": "@aerospace_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_aerospace"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@aerospace_specialist_e1",
    "properties": {
@@ -6849,6 +7327,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_agent",
+   "properties": {
+    "name": "Specialist table for Agent",
+    "subject": "@@Career:Agent",
+    "rollable_table": "@agent_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_agent"
   },
   {
    "op": "create_entity",
@@ -7099,6 +7597,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_barbarian",
+   "properties": {
+    "name": "Specialist table for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "rollable_table": "@barbarian_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_barbarian"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@barbarian_specialist_e1",
    "properties": {
@@ -7343,6 +7861,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_belter",
+   "properties": {
+    "name": "Specialist table for Belter",
+    "subject": "@@Career:Belter",
+    "rollable_table": "@belter_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_belter"
   },
   {
    "op": "create_entity",
@@ -7593,6 +8131,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_bureaucrat",
+   "properties": {
+    "name": "Specialist table for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "rollable_table": "@bureaucrat_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_bureaucrat"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@bureaucrat_specialist_e1",
    "properties": {
@@ -7837,6 +8395,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_athlete",
+   "properties": {
+    "name": "Adv Education table for Athlete",
+    "subject": "@@Career:Athlete",
+    "rollable_table": "@athlete_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_athlete"
   },
   {
    "op": "create_entity",
@@ -8087,6 +8665,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_aerospace",
+   "properties": {
+    "name": "Adv Education table for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "rollable_table": "@aerospace_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_aerospace"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@aerospace_adv_education_e1",
    "properties": {
@@ -8331,6 +8929,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_agent",
+   "properties": {
+    "name": "Adv Education table for Agent",
+    "subject": "@@Career:Agent",
+    "rollable_table": "@agent_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_agent"
   },
   {
    "op": "create_entity",
@@ -8581,6 +9199,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_barbarian",
+   "properties": {
+    "name": "Adv Education table for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "rollable_table": "@barbarian_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_barbarian"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@barbarian_adv_education_e1",
    "properties": {
@@ -8825,6 +9463,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_belter",
+   "properties": {
+    "name": "Adv Education table for Belter",
+    "subject": "@@Career:Belter",
+    "rollable_table": "@belter_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_belter"
   },
   {
    "op": "create_entity",
@@ -9075,6 +9733,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_bureaucrat",
+   "properties": {
+    "name": "Adv Education table for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "rollable_table": "@bureaucrat_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_bureaucrat"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@bureaucrat_adv_education_e1",
    "properties": {
@@ -9239,6 +9917,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_colonist",
+   "properties": {
+    "name": "commission throw for Colonist",
+    "subject": "@@Career:Colonist",
+    "throw_check": "@colonist_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Colonist",
+    "source_quote": "Int 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_colonist"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@diplomat_commission",
    "properties": {
@@ -9256,6 +9957,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_diplomat",
+   "properties": {
+    "name": "commission throw for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "throw_check": "@diplomat_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Diplomat",
+    "source_quote": "Int 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_diplomat"
   },
   {
    "op": "create_entity",
@@ -9279,6 +10003,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_marine",
+   "properties": {
+    "name": "commission throw for Marine",
+    "subject": "@@Career:Marine",
+    "throw_check": "@marine_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Marine",
+    "source_quote": "Edu 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_marine"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@colonist_advancement",
    "properties": {
@@ -9296,6 +10043,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_colonist",
+   "properties": {
+    "name": "advancement throw for Colonist",
+    "subject": "@@Career:Colonist",
+    "throw_check": "@colonist_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Colonist",
+    "source_quote": "Edu 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_colonist"
   },
   {
    "op": "create_entity",
@@ -9319,6 +10089,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_diplomat",
+   "properties": {
+    "name": "advancement throw for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "throw_check": "@diplomat_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Diplomat",
+    "source_quote": "Soc 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_diplomat"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@marine_advancement",
    "properties": {
@@ -9339,6 +10132,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_marine",
+   "properties": {
+    "name": "advancement throw for Marine",
+    "subject": "@@Career:Marine",
+    "throw_check": "@marine_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Marine",
+    "source_quote": "Soc 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_marine"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@colonist_reenlistment",
    "properties": {
@@ -9353,6 +10169,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_colonist",
+   "properties": {
+    "name": "reenlistment throw for Colonist",
+    "subject": "@@Career:Colonist",
+    "throw_check": "@colonist_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Colonist",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_colonist"
   },
   {
    "op": "create_entity",
@@ -9373,6 +10212,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_diplomat",
+   "properties": {
+    "name": "reenlistment throw for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "throw_check": "@diplomat_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Diplomat",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_diplomat"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@drifter_reenlistment",
    "properties": {
@@ -9387,6 +10249,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_drifter",
+   "properties": {
+    "name": "reenlistment throw for Drifter",
+    "subject": "@@Career:Drifter",
+    "throw_check": "@drifter_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Drifter",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_drifter"
   },
   {
    "op": "create_entity",
@@ -9407,6 +10292,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_entertainer",
+   "properties": {
+    "name": "reenlistment throw for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "throw_check": "@entertainer_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Entertainer",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_entertainer"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@hunter_reenlistment",
    "properties": {
@@ -9424,6 +10332,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_hunter",
+   "properties": {
+    "name": "reenlistment throw for Hunter",
+    "subject": "@@Career:Hunter",
+    "throw_check": "@hunter_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Hunter",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_hunter"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@marine_reenlistment",
    "properties": {
@@ -9438,6 +10369,29 @@
     "source_quote": "6+",
     "target_number": "6"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_marine",
+   "properties": {
+    "name": "reenlistment throw for Marine",
+    "subject": "@@Career:Marine",
+    "throw_check": "@marine_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Marine",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_marine"
   },
   {
    "op": "create_entity",
@@ -13871,6 +14825,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_colonist",
+   "properties": {
+    "name": "Personal Development table for Colonist",
+    "subject": "@@Career:Colonist",
+    "rollable_table": "@colonist_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_colonist"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@colonist_personal_development_e1",
    "properties": {
@@ -14126,6 +15100,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_diplomat",
+   "properties": {
+    "name": "Personal Development table for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "rollable_table": "@diplomat_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_diplomat"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@diplomat_personal_development_e1",
    "properties": {
@@ -14376,6 +15370,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_drifter",
+   "properties": {
+    "name": "Personal Development table for Drifter",
+    "subject": "@@Career:Drifter",
+    "rollable_table": "@drifter_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_drifter"
   },
   {
    "op": "create_entity",
@@ -14634,6 +15648,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_entertainer",
+   "properties": {
+    "name": "Personal Development table for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "rollable_table": "@entertainer_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_entertainer"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@entertainer_personal_development_e1",
    "properties": {
@@ -14886,6 +15920,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_hunter",
+   "properties": {
+    "name": "Personal Development table for Hunter",
+    "subject": "@@Career:Hunter",
+    "rollable_table": "@hunter_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_hunter"
   },
   {
    "op": "create_entity",
@@ -15146,6 +16200,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_marine",
+   "properties": {
+    "name": "Personal Development table for Marine",
+    "subject": "@@Career:Marine",
+    "rollable_table": "@marine_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_marine"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@marine_personal_development_e1",
    "properties": {
@@ -15390,6 +16464,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_colonist",
+   "properties": {
+    "name": "Specialist table for Colonist",
+    "subject": "@@Career:Colonist",
+    "rollable_table": "@colonist_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_colonist"
   },
   {
    "op": "create_entity",
@@ -15640,6 +16734,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_diplomat",
+   "properties": {
+    "name": "Specialist table for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "rollable_table": "@diplomat_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_diplomat"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@diplomat_specialist_e1",
    "properties": {
@@ -15884,6 +16998,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_drifter",
+   "properties": {
+    "name": "Specialist table for Drifter",
+    "subject": "@@Career:Drifter",
+    "rollable_table": "@drifter_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_drifter"
   },
   {
    "op": "create_entity",
@@ -16134,6 +17268,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_entertainer",
+   "properties": {
+    "name": "Specialist table for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "rollable_table": "@entertainer_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_entertainer"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@entertainer_specialist_e1",
    "properties": {
@@ -16378,6 +17532,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_hunter",
+   "properties": {
+    "name": "Specialist table for Hunter",
+    "subject": "@@Career:Hunter",
+    "rollable_table": "@hunter_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_hunter"
   },
   {
    "op": "create_entity",
@@ -16628,6 +17802,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_marine",
+   "properties": {
+    "name": "Specialist table for Marine",
+    "subject": "@@Career:Marine",
+    "rollable_table": "@marine_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_marine"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@marine_specialist_e1",
    "properties": {
@@ -16872,6 +18066,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_colonist",
+   "properties": {
+    "name": "Adv Education table for Colonist",
+    "subject": "@@Career:Colonist",
+    "rollable_table": "@colonist_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_colonist"
   },
   {
    "op": "create_entity",
@@ -17122,6 +18336,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_diplomat",
+   "properties": {
+    "name": "Adv Education table for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "rollable_table": "@diplomat_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_diplomat"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@diplomat_adv_education_e1",
    "properties": {
@@ -17366,6 +18600,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_drifter",
+   "properties": {
+    "name": "Adv Education table for Drifter",
+    "subject": "@@Career:Drifter",
+    "rollable_table": "@drifter_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_drifter"
   },
   {
    "op": "create_entity",
@@ -17616,6 +18870,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_entertainer",
+   "properties": {
+    "name": "Adv Education table for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "rollable_table": "@entertainer_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_entertainer"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@entertainer_adv_education_e1",
    "properties": {
@@ -17860,6 +19134,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_hunter",
+   "properties": {
+    "name": "Adv Education table for Hunter",
+    "subject": "@@Career:Hunter",
+    "rollable_table": "@hunter_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_hunter"
   },
   {
    "op": "create_entity",
@@ -18110,6 +19404,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_marine",
+   "properties": {
+    "name": "Adv Education table for Marine",
+    "subject": "@@Career:Marine",
+    "rollable_table": "@marine_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_marine"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@marine_adv_education_e1",
    "properties": {
@@ -18274,6 +19588,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_maritime_defense",
+   "properties": {
+    "name": "commission throw for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "throw_check": "@maritime_defense_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Maritime Defense",
+    "source_quote": "Int 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_maritime_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@mercenary_commission",
    "properties": {
@@ -18291,6 +19628,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_mercenary",
+   "properties": {
+    "name": "commission throw for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "throw_check": "@mercenary_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Mercenary",
+    "source_quote": "Int 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_mercenary"
   },
   {
    "op": "create_entity",
@@ -18314,6 +19674,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_merchant",
+   "properties": {
+    "name": "commission throw for Merchant",
+    "subject": "@@Career:Merchant",
+    "throw_check": "@merchant_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Merchant",
+    "source_quote": "Int 5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_merchant"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@navy_commission",
    "properties": {
@@ -18331,6 +19714,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_navy",
+   "properties": {
+    "name": "commission throw for Navy",
+    "subject": "@@Career:Navy",
+    "throw_check": "@navy_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Navy",
+    "source_quote": "Soc 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_navy"
   },
   {
    "op": "create_entity",
@@ -18354,6 +19760,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_noble",
+   "properties": {
+    "name": "commission throw for Noble",
+    "subject": "@@Career:Noble",
+    "throw_check": "@noble_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Noble",
+    "source_quote": "Edu 5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_noble"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@physician_commission",
    "properties": {
@@ -18371,6 +19800,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_physician",
+   "properties": {
+    "name": "commission throw for Physician",
+    "subject": "@@Career:Physician",
+    "throw_check": "@physician_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Physician",
+    "source_quote": "Int 5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_physician"
   },
   {
    "op": "create_entity",
@@ -18394,6 +19846,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_maritime_defense",
+   "properties": {
+    "name": "advancement throw for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "throw_check": "@maritime_defense_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Maritime Defense",
+    "source_quote": "Edu 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_maritime_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@mercenary_advancement",
    "properties": {
@@ -18411,6 +19886,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_mercenary",
+   "properties": {
+    "name": "advancement throw for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "throw_check": "@mercenary_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Mercenary",
+    "source_quote": "Int 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_mercenary"
   },
   {
    "op": "create_entity",
@@ -18434,6 +19932,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_merchant",
+   "properties": {
+    "name": "advancement throw for Merchant",
+    "subject": "@@Career:Merchant",
+    "throw_check": "@merchant_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Merchant",
+    "source_quote": "Edu 8+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_merchant"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@navy_advancement",
    "properties": {
@@ -18451,6 +19972,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_navy",
+   "properties": {
+    "name": "advancement throw for Navy",
+    "subject": "@@Career:Navy",
+    "throw_check": "@navy_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Navy",
+    "source_quote": "Edu 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_navy"
   },
   {
    "op": "create_entity",
@@ -18474,6 +20018,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_noble",
+   "properties": {
+    "name": "advancement throw for Noble",
+    "subject": "@@Career:Noble",
+    "throw_check": "@noble_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Noble",
+    "source_quote": "Int 8+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_noble"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@physician_advancement",
    "properties": {
@@ -18494,6 +20061,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_physician",
+   "properties": {
+    "name": "advancement throw for Physician",
+    "subject": "@@Career:Physician",
+    "throw_check": "@physician_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Physician",
+    "source_quote": "Edu 8+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_physician"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@maritime_defense_reenlistment",
    "properties": {
@@ -18508,6 +20098,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_maritime_defense",
+   "properties": {
+    "name": "reenlistment throw for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "throw_check": "@maritime_defense_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Maritime Defense",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_maritime_defense"
   },
   {
    "op": "create_entity",
@@ -18528,6 +20141,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_mercenary",
+   "properties": {
+    "name": "reenlistment throw for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "throw_check": "@mercenary_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Mercenary",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_mercenary"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@merchant_reenlistment",
    "properties": {
@@ -18542,6 +20178,29 @@
     "source_quote": "4+",
     "target_number": "4"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_merchant",
+   "properties": {
+    "name": "reenlistment throw for Merchant",
+    "subject": "@@Career:Merchant",
+    "throw_check": "@merchant_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Merchant",
+    "source_quote": "4+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_merchant"
   },
   {
    "op": "create_entity",
@@ -18562,6 +20221,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_navy",
+   "properties": {
+    "name": "reenlistment throw for Navy",
+    "subject": "@@Career:Navy",
+    "throw_check": "@navy_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Navy",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_navy"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@noble_reenlistment",
    "properties": {
@@ -18579,6 +20261,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_noble",
+   "properties": {
+    "name": "reenlistment throw for Noble",
+    "subject": "@@Career:Noble",
+    "throw_check": "@noble_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Noble",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_noble"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@physician_reenlistment",
    "properties": {
@@ -18593,6 +20298,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_physician",
+   "properties": {
+    "name": "reenlistment throw for Physician",
+    "subject": "@@Career:Physician",
+    "throw_check": "@physician_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Physician",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_physician"
   },
   {
    "op": "create_entity",
@@ -23546,6 +25274,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_maritime_defense",
+   "properties": {
+    "name": "Personal Development table for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "rollable_table": "@maritime_defense_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_maritime_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@maritime_defense_personal_development_e1",
    "properties": {
@@ -23799,6 +25547,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_mercenary",
+   "properties": {
+    "name": "Personal Development table for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "rollable_table": "@mercenary_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_mercenary"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@mercenary_personal_development_e1",
    "properties": {
@@ -24049,6 +25817,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_merchant",
+   "properties": {
+    "name": "Personal Development table for Merchant",
+    "subject": "@@Career:Merchant",
+    "rollable_table": "@merchant_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_merchant"
   },
   {
    "op": "create_entity",
@@ -24309,6 +26097,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_navy",
+   "properties": {
+    "name": "Personal Development table for Navy",
+    "subject": "@@Career:Navy",
+    "rollable_table": "@navy_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_navy"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@navy_personal_development_e1",
    "properties": {
@@ -24561,6 +26369,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_noble",
+   "properties": {
+    "name": "Personal Development table for Noble",
+    "subject": "@@Career:Noble",
+    "rollable_table": "@noble_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_noble"
   },
   {
    "op": "create_entity",
@@ -24821,6 +26649,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_physician",
+   "properties": {
+    "name": "Personal Development table for Physician",
+    "subject": "@@Career:Physician",
+    "rollable_table": "@physician_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_physician"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@physician_personal_development_e1",
    "properties": {
@@ -25065,6 +26913,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_maritime_defense",
+   "properties": {
+    "name": "Specialist table for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "rollable_table": "@maritime_defense_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_maritime_defense"
   },
   {
    "op": "create_entity",
@@ -25315,6 +27183,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_mercenary",
+   "properties": {
+    "name": "Specialist table for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "rollable_table": "@mercenary_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_mercenary"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@mercenary_specialist_e1",
    "properties": {
@@ -25559,6 +27447,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_merchant",
+   "properties": {
+    "name": "Specialist table for Merchant",
+    "subject": "@@Career:Merchant",
+    "rollable_table": "@merchant_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_merchant"
   },
   {
    "op": "create_entity",
@@ -25809,6 +27717,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_navy",
+   "properties": {
+    "name": "Specialist table for Navy",
+    "subject": "@@Career:Navy",
+    "rollable_table": "@navy_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_navy"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@navy_specialist_e1",
    "properties": {
@@ -26053,6 +27981,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_noble",
+   "properties": {
+    "name": "Specialist table for Noble",
+    "subject": "@@Career:Noble",
+    "rollable_table": "@noble_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_noble"
   },
   {
    "op": "create_entity",
@@ -26303,6 +28251,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_physician",
+   "properties": {
+    "name": "Specialist table for Physician",
+    "subject": "@@Career:Physician",
+    "rollable_table": "@physician_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_physician"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@physician_specialist_e1",
    "properties": {
@@ -26547,6 +28515,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_maritime_defense",
+   "properties": {
+    "name": "Adv Education table for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "rollable_table": "@maritime_defense_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_maritime_defense"
   },
   {
    "op": "create_entity",
@@ -26797,6 +28785,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_mercenary",
+   "properties": {
+    "name": "Adv Education table for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "rollable_table": "@mercenary_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_mercenary"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@mercenary_adv_education_e1",
    "properties": {
@@ -27041,6 +29049,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_merchant",
+   "properties": {
+    "name": "Adv Education table for Merchant",
+    "subject": "@@Career:Merchant",
+    "rollable_table": "@merchant_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_merchant"
   },
   {
    "op": "create_entity",
@@ -27291,6 +29319,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_navy",
+   "properties": {
+    "name": "Adv Education table for Navy",
+    "subject": "@@Career:Navy",
+    "rollable_table": "@navy_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_navy"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@navy_adv_education_e1",
    "properties": {
@@ -27535,6 +29583,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_noble",
+   "properties": {
+    "name": "Adv Education table for Noble",
+    "subject": "@@Career:Noble",
+    "rollable_table": "@noble_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_noble"
   },
   {
    "op": "create_entity",
@@ -27785,6 +29853,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_physician",
+   "properties": {
+    "name": "Adv Education table for Physician",
+    "subject": "@@Career:Physician",
+    "rollable_table": "@physician_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_physician"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@physician_adv_education_e1",
    "properties": {
@@ -27949,6 +30037,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_pirate",
+   "properties": {
+    "name": "commission throw for Pirate",
+    "subject": "@@Career:Pirate",
+    "throw_check": "@pirate_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Pirate",
+    "source_quote": "Str 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_pirate"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@rogue_commission",
    "properties": {
@@ -27966,6 +30077,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_rogue",
+   "properties": {
+    "name": "commission throw for Rogue",
+    "subject": "@@Career:Rogue",
+    "throw_check": "@rogue_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Rogue",
+    "source_quote": "Str 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_rogue"
   },
   {
    "op": "create_entity",
@@ -27989,6 +30123,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_scientist",
+   "properties": {
+    "name": "commission throw for Scientist",
+    "subject": "@@Career:Scientist",
+    "throw_check": "@scientist_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Scientist",
+    "source_quote": "Int 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_scientist"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@surface_defense_commission",
    "properties": {
@@ -28006,6 +30163,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_surface_defense",
+   "properties": {
+    "name": "commission throw for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "throw_check": "@surface_defense_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Surface Defense",
+    "source_quote": "End 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_surface_defense"
   },
   {
    "op": "create_entity",
@@ -28029,6 +30209,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@commission_row_technician",
+   "properties": {
+    "name": "commission throw for Technician",
+    "subject": "@@Career:Technician",
+    "throw_check": "@technician_commission",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Commission",
+    "source_column": "Technician",
+    "source_quote": "Edu 5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@commission_table",
+   "relation": "HAS_PART",
+   "to": "@commission_row_technician"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@pirate_advancement",
    "properties": {
@@ -28046,6 +30249,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_pirate",
+   "properties": {
+    "name": "advancement throw for Pirate",
+    "subject": "@@Career:Pirate",
+    "throw_check": "@pirate_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Pirate",
+    "source_quote": "Int 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_pirate"
   },
   {
    "op": "create_entity",
@@ -28069,6 +30295,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_rogue",
+   "properties": {
+    "name": "advancement throw for Rogue",
+    "subject": "@@Career:Rogue",
+    "throw_check": "@rogue_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Rogue",
+    "source_quote": "Int 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_rogue"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@scientist_advancement",
    "properties": {
@@ -28086,6 +30335,29 @@
     "modifier_table": "@@LookupTable:characteristic_modifiers",
     "modifier_property": "characteristic_modifier"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_scientist",
+   "properties": {
+    "name": "advancement throw for Scientist",
+    "subject": "@@Career:Scientist",
+    "throw_check": "@scientist_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Scientist",
+    "source_quote": "Int 6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_scientist"
   },
   {
    "op": "create_entity",
@@ -28109,6 +30381,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_surface_defense",
+   "properties": {
+    "name": "advancement throw for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "throw_check": "@surface_defense_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Surface Defense",
+    "source_quote": "Edu 7+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_surface_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@technician_advancement",
    "properties": {
@@ -28129,6 +30424,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@advancement_row_technician",
+   "properties": {
+    "name": "advancement throw for Technician",
+    "subject": "@@Career:Technician",
+    "throw_check": "@technician_advancement",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Advancement",
+    "source_column": "Technician",
+    "source_quote": "Int 8+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@advancement_table",
+   "relation": "HAS_PART",
+   "to": "@advancement_row_technician"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@pirate_reenlistment",
    "properties": {
@@ -28143,6 +30461,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_pirate",
+   "properties": {
+    "name": "reenlistment throw for Pirate",
+    "subject": "@@Career:Pirate",
+    "throw_check": "@pirate_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Pirate",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_pirate"
   },
   {
    "op": "create_entity",
@@ -28163,6 +30504,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_rogue",
+   "properties": {
+    "name": "reenlistment throw for Rogue",
+    "subject": "@@Career:Rogue",
+    "throw_check": "@rogue_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Rogue",
+    "source_quote": "4+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_rogue"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@scientist_reenlistment",
    "properties": {
@@ -28177,6 +30541,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_scientist",
+   "properties": {
+    "name": "reenlistment throw for Scientist",
+    "subject": "@@Career:Scientist",
+    "throw_check": "@scientist_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Scientist",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_scientist"
   },
   {
    "op": "create_entity",
@@ -28197,6 +30584,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_scout",
+   "properties": {
+    "name": "reenlistment throw for Scout",
+    "subject": "@@Career:Scout",
+    "throw_check": "@scout_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Scout",
+    "source_quote": "6+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_scout"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@surface_defense_reenlistment",
    "properties": {
@@ -28214,6 +30624,29 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_surface_defense",
+   "properties": {
+    "name": "reenlistment throw for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "throw_check": "@surface_defense_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Surface Defense",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_surface_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TaskCheck",
    "as": "@technician_reenlistment",
    "properties": {
@@ -28228,6 +30661,29 @@
     "source_quote": "5+",
     "target_number": "5"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerThrowEntry",
+   "as": "@reenlistment_row_technician",
+   "properties": {
+    "name": "reenlistment throw for Technician",
+    "subject": "@@Career:Technician",
+    "throw_check": "@technician_reenlistment",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Career Tables",
+    "source_kind": "cell",
+    "source_table": "Career",
+    "source_row": "Re-enlistment",
+    "source_column": "Technician",
+    "source_quote": "5+"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@reenlistment_table",
+   "relation": "HAS_PART",
+   "to": "@reenlistment_row_technician"
   },
   {
    "op": "create_entity",
@@ -33023,6 +35479,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_pirate",
+   "properties": {
+    "name": "Personal Development table for Pirate",
+    "subject": "@@Career:Pirate",
+    "rollable_table": "@pirate_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_pirate"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@pirate_personal_development_e1",
    "properties": {
@@ -33273,6 +35749,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_rogue",
+   "properties": {
+    "name": "Personal Development table for Rogue",
+    "subject": "@@Career:Rogue",
+    "rollable_table": "@rogue_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_rogue"
   },
   {
    "op": "create_entity",
@@ -33533,6 +36029,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_scientist",
+   "properties": {
+    "name": "Personal Development table for Scientist",
+    "subject": "@@Career:Scientist",
+    "rollable_table": "@scientist_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_scientist"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@scientist_personal_development_e1",
    "properties": {
@@ -33788,6 +36304,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_scout",
+   "properties": {
+    "name": "Personal Development table for Scout",
+    "subject": "@@Career:Scout",
+    "rollable_table": "@scout_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_scout"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@scout_personal_development_e1",
    "properties": {
@@ -34038,6 +36574,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_surface_defense",
+   "properties": {
+    "name": "Personal Development table for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "rollable_table": "@surface_defense_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_surface_defense"
   },
   {
    "op": "create_entity",
@@ -34298,6 +36854,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@personal_development_tbl_technician",
+   "properties": {
+    "name": "Personal Development table for Technician",
+    "subject": "@@Career:Technician",
+    "rollable_table": "@technician_personal_development",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@personal_development_tables",
+   "relation": "HAS_PART",
+   "to": "@personal_development_tbl_technician"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@technician_personal_development_e1",
    "properties": {
@@ -34542,6 +37118,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_pirate",
+   "properties": {
+    "name": "Specialist table for Pirate",
+    "subject": "@@Career:Pirate",
+    "rollable_table": "@pirate_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_pirate"
   },
   {
    "op": "create_entity",
@@ -34792,6 +37388,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_rogue",
+   "properties": {
+    "name": "Specialist table for Rogue",
+    "subject": "@@Career:Rogue",
+    "rollable_table": "@rogue_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_rogue"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@rogue_specialist_e1",
    "properties": {
@@ -35036,6 +37652,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_scientist",
+   "properties": {
+    "name": "Specialist table for Scientist",
+    "subject": "@@Career:Scientist",
+    "rollable_table": "@scientist_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_scientist"
   },
   {
    "op": "create_entity",
@@ -35286,6 +37922,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_scout",
+   "properties": {
+    "name": "Specialist table for Scout",
+    "subject": "@@Career:Scout",
+    "rollable_table": "@scout_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_scout"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@scout_specialist_e1",
    "properties": {
@@ -35530,6 +38186,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_surface_defense",
+   "properties": {
+    "name": "Specialist table for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "rollable_table": "@surface_defense_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_surface_defense"
   },
   {
    "op": "create_entity",
@@ -35780,6 +38456,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@specialist_tbl_technician",
+   "properties": {
+    "name": "Specialist table for Technician",
+    "subject": "@@Career:Technician",
+    "rollable_table": "@technician_specialist",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@specialist_tables",
+   "relation": "HAS_PART",
+   "to": "@specialist_tbl_technician"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@technician_specialist_e1",
    "properties": {
@@ -36024,6 +38720,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_pirate",
+   "properties": {
+    "name": "Adv Education table for Pirate",
+    "subject": "@@Career:Pirate",
+    "rollable_table": "@pirate_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_pirate"
   },
   {
    "op": "create_entity",
@@ -36274,6 +38990,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_rogue",
+   "properties": {
+    "name": "Adv Education table for Rogue",
+    "subject": "@@Career:Rogue",
+    "rollable_table": "@rogue_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_rogue"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@rogue_adv_education_e1",
    "properties": {
@@ -36518,6 +39254,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_scientist",
+   "properties": {
+    "name": "Adv Education table for Scientist",
+    "subject": "@@Career:Scientist",
+    "rollable_table": "@scientist_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_scientist"
   },
   {
    "op": "create_entity",
@@ -36768,6 +39524,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_scout",
+   "properties": {
+    "name": "Adv Education table for Scout",
+    "subject": "@@Career:Scout",
+    "rollable_table": "@scout_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_scout"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@scout_adv_education_e1",
    "properties": {
@@ -37015,6 +39791,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_surface_defense",
+   "properties": {
+    "name": "Adv Education table for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "rollable_table": "@surface_defense_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_surface_defense"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@surface_defense_adv_education_e1",
    "properties": {
@@ -37259,6 +40055,26 @@
     "source_kind": "sentence",
     "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@adv_education_tbl_technician",
+   "properties": {
+    "name": "Adv Education table for Technician",
+    "subject": "@@Career:Technician",
+    "rollable_table": "@technician_adv_education",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Skills and Training",
+    "source_kind": "sentence",
+    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@adv_education_tables",
+   "relation": "HAS_PART",
+   "to": "@adv_education_tbl_technician"
   },
   {
    "op": "create_entity",

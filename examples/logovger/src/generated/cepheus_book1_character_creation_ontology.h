@@ -1770,6 +1770,13 @@ struct CareerThrowEntry : public SubjectLookupEntry {
 };
 
 
+/// One row of a per-career table mapping: which career, and the table it rolls on for that kind of training [book1/character-creation.md "Skills and Training"]. The book prints Personal Development, Service Skills, Specialist and Adv Education per career; the character picks one each term.
+struct CareerTableEntry : public SubjectLookupEntry {
+    /// The table this row supplies for its career [book1/character-creation.md "Career Tables"].
+    RollableTable rollable_table = {};
+};
+
+
 /// Leave the current career as a consequence of a Survival Mishap [book1/character-creation.md "Survival"]. Mishap rows 2 and 3 are the first instances. The executor handler is game policy; the engine only dispatches the typed Outcome.
 struct EndCareer : public Outcome {
 };

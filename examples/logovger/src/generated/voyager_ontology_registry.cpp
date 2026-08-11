@@ -21,6 +21,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("BodyPart", "WorldEntity", true);
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addEntityType("Career", "Entity", false);
+    reg.addEntityType("CareerTableEntry", "SubjectLookupEntry", false);
     reg.addEntityType("CareerThrowEntry", "SubjectLookupEntry", false);
     reg.addEntityType("Character", "LivingEntity", false);
     reg.addEntityType("CharacteristicModifierEntry", "LookupEntry", false);
@@ -143,6 +144,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("BodyPart", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addAncestors("Career", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("CareerTableEntry", {"Cited", "Describable", "Entity", "Identifiable", "SubjectLookupEntry", "Temporal"});
     reg.addAncestors("CareerThrowEntry", {"Cited", "Describable", "Entity", "Identifiable", "SubjectLookupEntry", "Temporal"});
     reg.addAncestors("Character", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("CharacteristicModifierEntry", {"Cited", "Describable", "Entity", "Identifiable", "LookupEntry", "Temporal"});
@@ -256,6 +258,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("AdvanceSkill", {"rulebook"});
     reg.addFacets("AttributeGroup", {"rulebook"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addFacets("CareerTableEntry", {"rulebook"});
     reg.addFacets("CareerThrowEntry", {"rulebook"});
     reg.addFacets("CharacteristicModifierEntry", {"rulebook"});
     reg.addFacets("Currency", {"rulebook"});
@@ -350,6 +353,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addRefProperty("Career", "qualification_check", false, "TaskCheck");
     reg.addRefProperty("Career", "survival_check", false, "TaskCheck");
+    reg.addRefProperty("CareerTableEntry", "rollable_table", true, "RollableTable");
     reg.addRefProperty("CareerThrowEntry", "throw_check", true, "TaskCheck");
     reg.addProperty("Character", "dexterity", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "endurance", "integer", false, true, 0.0, true, 33.0);

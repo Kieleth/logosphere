@@ -295,8 +295,20 @@ def main():
     counts = {"skill_table": 0, "cash": 0, "material": 0, "rank": 0,
               "check": 0}
 
+    # A block's own header names careers in full ("Aerospace
+    # Defense"); its sub-tables abbreviate ("Aerospace"). The columns
+    # line up by position, so the header is what says WHICH career a
+    # sub-table column is, while citations keep quoting the short form
+    # the page actually prints.
+    block_careers = []
+
     for table in tables:
         title, columns = table["title"], table["columns"]
+        if title == "Career":
+            block_careers = list(columns)
+        canonical = {printed: (block_careers[i] if i < len(block_careers)
+                               else printed)
+                     for i, printed in enumerate(columns)}
 
         if title in SKILL_TABLES or title in CASH_TABLES or \
                 title in MATERIAL_TABLES:
@@ -319,6 +331,22 @@ def main():
                     dice="@@DiceExpression:1D6",
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote))
+                # The training rule owns which tables a career offers,
+                # for the same reason the throw rules do: a career is
+                # created by an earlier seed and cannot be written to.
+                if title in SKILL_TABLES:
+                    kind = slug(title)
+                    row = f"@{kind}_tbl_{slug(career)}"
+                    builder.add("CareerTableEntry", row, dict(
+                        name=f"{title} table for {canonical[career]}",
+                        subject=f"@@Career:{canonical[career]}",
+                        rollable_table=f"@{tag}",
+                        source_file=CHAPTER, source_section=section,
+                        source_kind="sentence", source_quote=quote))
+                    builder.ops.append({"op": "set_relation",
+                                        "from": f"@{kind}_tables",
+                                        "relation": "HAS_PART",
+                                        "to": row})
                 for key, outcome, value in entries:
                     builder.add("TableEntry", f"@{tag}_e{key}", dict(
                         name=f"{career} {title} {key}",
@@ -414,8 +442,23 @@ def main():
                         builder.unresolved.append((value, title, row[0],
                                                    career))
                         continue
-                    builder.add("TaskCheck",
-                                f"@{slug(career)}_{kind}", props)
+                    alias = builder.add(
+                        "TaskCheck", f"@{slug(career)}_{kind}", props)
+                    # The RULE owns the mapping. A career carries no
+                    # pointer to its throw: the rule's table names the
+                    # career and the throw it makes. Careers come from
+                    # an earlier seed, and a seed may point at what
+                    # another owns but never write onto it.
+                    throw_row = f"@{kind}_row_{slug(career)}"
+                    builder.add("CareerThrowEntry", throw_row, dict(
+                        name=f"{kind} throw for {career}",
+                        subject=f"@@Career:{career}",
+                        throw_check=alias,
+                        **builder.cite(title, row_label, career, value)))
+                    builder.ops.append({"op": "set_relation",
+                                        "from": f"@{kind}_table",
+                                        "relation": "HAS_PART",
+                                        "to": throw_row})
                     counts["check"] += 1
 
     # One table per rule, created before its rows reference it.
@@ -424,6 +467,16 @@ def main():
     # chapter prints one Career table per block of six careers, and
     # each has that row. The ROWS below carry the unambiguous cell
     # addresses, column included.
+    for title in SKILL_TABLES:
+        section, quote = TABLE_CITATIONS["skill"]
+        builder.ops.insert(0, {
+            "op": "create_entity", "type": "SubjectLookupTable",
+            "as": f"@{slug(title)}_tables",
+            "properties": dict(
+                name=f"{title} table by career",
+                source_file=CHAPTER, source_section=section,
+                source_kind="sentence", source_quote=quote)})
+
     for kind, (section, quote) in RULE_CITATIONS.items():
         builder.ops.insert(0, {
             "op": "create_entity", "type": "SubjectLookupTable",
@@ -454,7 +507,16 @@ def main():
     seed = {
         "source": {"file": CHAPTER, "commit": commit},
         "layer": "cepheus",
-        "invariants": {"unique_name_per_type": ["RollableTable", "TaskCheck",
+        # Counts, asserted. A str.replace that matched nothing once
+        # left all three rule tables with zero rows, and everything
+        # still verified: empty tables break no citation. The invariant
+        # is what turns that silence into a failure.
+        "invariants": {"count_of_type": {
+                           "CareerThrowEntry": counts["check"],
+                           "CareerTableEntry": counts["skill_table"],
+                           "SubjectLookupTable": 6,
+                           "ProgressionTrack": counts["rank"]},
+                       "unique_name_per_type": ["RollableTable", "TaskCheck",
                                                 "ProgressionTrack",
                                                 "SubjectLookupTable",
                                                 "Possession"]},
