@@ -477,12 +477,29 @@ int PhysicsTreeGenerator::generate_branch(
     // Parent attachment: top of parent segment
     gluon->offset_a = Vec3(0.0f, 0.0f, parent_half_length);
 
-    // Child attachment: bottom of this branch (in local coordinates)
-    // The branch is rotated, so "bottom" depends on direction
-    // For simplicity, use the end closest to parent
-    gluon->offset_b = Vec3(-dir_x * length * 0.5f,
-                           -dir_y * length * 0.5f,
-                           -dir_z * length * 0.5f);
+    // Child attachment: bottom of this branch, IN THE BRANCH'S OWN FRAME.
+    //
+    // This used to be built from dir_*, the branch's WORLD growth direction,
+    // under a comment claiming local coordinates. offset_a above is genuinely
+    // local (+Z is the parent's own axis), so one gluon carried two different
+    // frames and every consumer that differences them read a quantity existing
+    // in neither.
+    //
+    // Measured, test_foliage_stays_attached first tear, both bodies stationary:
+    //   off_a=(0,0,1.94975)  = thick_a/2 exactly, correct and local
+    //   off_b=(0.306,-1.084,-0.154), |off_b| = thick_b/2 exactly — right
+    //     LENGTH, wrong FRAME; its x and y matched the world vector exactly,
+    //     which is what gave it away
+    // get_segment_length() then read 2.387 where the true rest separation was
+    // 1.968, and rotating the offsets instead read 0.931 (commit 1fc74be, a
+    // failed experiment kept for its numbers). Neither can be right while the
+    // two offsets live in different frames.
+    //
+    // A segment's local +Z runs along its grown direction — the convention
+    // direction_to_euler establishes and the solver's rotate_full relies on —
+    // so the end nearest the parent is simply -length/2 along local Z. The
+    // rotation carries the direction; the offset must not carry it too.
+    gluon->offset_b = Vec3(0.0f, 0.0f, -length * 0.5f);
 
     gluon->target_distance = 0.0f;
     gluon->contact_area = calculate_contact_area(thickness);
@@ -1347,9 +1364,15 @@ void PhysicsTreeGenerator::collect_branch(
     gs.data.offset_a_x = 0.0f;
     gs.data.offset_a_y = 0.0f;
     gs.data.offset_a_z = parent_half_length;
-    gs.data.offset_b_x = -dir_x * length * 0.5f;
-    gs.data.offset_b_y = -dir_y * length * 0.5f;
-    gs.data.offset_b_z = -dir_z * length * 0.5f;
+    // Same frame bug as the direct path in generate_branch, and the same fix:
+    // a segment's local +Z runs along its grown direction, so the end nearest
+    // the parent is -length/2 along local Z. Building it from the WORLD
+    // direction dir_* put this offset in a different frame from offset_a,
+    // which is local. Two sites, one defect; fixing only one leaves trees
+    // stored through the KG path still broken.
+    gs.data.offset_b_x = 0.0f;
+    gs.data.offset_b_y = 0.0f;
+    gs.data.offset_b_z = -length * 0.5f;
     gs.data.target_distance = 0.0f;
     gs.data.contact_area = calculate_contact_area(thickness);
     gs.data.stiffness = 30000.0f;
