@@ -1299,7 +1299,11 @@ void PhysicsTreeGenerator::collect_tree_specs(
     // PRIMARY ROOTS - Connected to root plate
     // ========================================================================
     float root_length = varied_spec.height * 0.25f;
-    float root_thickness = varied_spec.trunk_diameter * 0.4f;
+    // SECOND COPY of the root-thickness bug, in the KG/permaworld path. The
+    // fix at generate_root_system did not reach here, so every STREAMED tree
+    // still buried its roots. A root cannot be thicker than the plate socket
+    // it grows out of.
+    float root_thickness = std::min(varied_spec.trunk_diameter * 0.4f, plate_height);
     const float cardinal_angles[4] = {0.0f, 90.0f, 180.0f, 270.0f};
 
     for (int i = 0; i < 4; ++i) {

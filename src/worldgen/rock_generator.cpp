@@ -375,7 +375,10 @@ kg::EntityID RockGenerator::generate_complex_rock(float x, float y, float z, con
     float b_core = random_variance(spec.base_b, spec.color_variance);
 
     kg::KGParticleID core_id = create_rock_box(
-        x, y, z + core_h * 0.5f,
+        // core_h is the Y extent; create_rock_box sets thickness = depth, so
+        // the Z half-extent is core_d. Offsetting by core_h put every boulder
+        // core under the floor (core_h < core_d always).
+        x, y, z + core_d * 0.5f,
         core_w, core_h, core_d,
         random_range(-0.15f, 0.15f),
         random_range(-0.15f, 0.15f),
@@ -410,7 +413,10 @@ kg::EntityID RockGenerator::generate_complex_rock(float x, float y, float z, con
         float b = random_variance(spec.base_b, spec.color_variance * 0.5f);
 
         kg::KGParticleID box_id = create_rock_box(
-            px, py, z + bh * 0.5f + height_offset,
+            // Same axis mix-up as the core, plus height_offset can be
+            // negative. Offset by the Z extent and never let the box's
+            // underside drop below the boulder's own base.
+            px, py, z + std::max(bd * 0.5f, bd * 0.5f + height_offset),
             bw, bh, bd,
             random_range(-0.25f, 0.25f),
             random_range(-0.25f, 0.25f),

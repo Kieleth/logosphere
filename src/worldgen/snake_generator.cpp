@@ -173,7 +173,10 @@ kg::EntityID SnakeGenerator::generate_snake(float world_x, float world_y, float 
     // HEAD - At start position
     float head_x = world_x;
     float head_y = world_y;
-    float head_z = world_z + segment_height / 2.0f;  // Bottom touches ground
+    // The head's Z extent is head_size * 0.8 (see create_head), not the body's
+    // segment_height. Deriving its z from the BODY buried every preset's head:
+    // python -0.018, garden_snake -0.010.
+    float head_z = world_z + (spec.head_size * 0.8f) / 2.0f;  // Bottom touches ground
 
     unsigned int head_particle = create_head(head_x, head_y, head_z, spec, snake_entity);
     all_particles.push_back(head_particle);

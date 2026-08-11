@@ -270,7 +270,9 @@ PhysicsRockResult PhysicsRockGenerator::generate_rock_on_floor(
         float b1 = random_variance(spec.b, spec.color_variance);
 
         result.core_id = create_rock_box(
-            world_x, world_y, world_z + center_h * 0.5f,
+            // center_h is the Y extent; thickness comes from center_d. Offsetting
+        // by center_h left every pebble 0.125*half_size under the floor.
+        world_x, world_y, world_z + center_d * 0.5f,
             center_w, center_h, center_d,
             random_range(-0.1f, 0.1f),
             random_range(-0.1f, 0.1f),
@@ -524,7 +526,9 @@ kg::EntityID PhysicsRockGenerator::store_rock_entity(
         float center_d = half_size;
 
         Particle core = build_rock_box_particle(
-            world_x, world_y, world_z + center_h * 0.5f,
+            // center_h is the Y extent; thickness comes from center_d. Offsetting
+        // by center_h left every pebble 0.125*half_size under the floor.
+        world_x, world_y, world_z + center_d * 0.5f,
             center_w, center_h, center_d,
             random_range(-0.1f, 0.1f),
             random_range(-0.1f, 0.1f),

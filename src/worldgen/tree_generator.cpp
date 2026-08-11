@@ -428,10 +428,22 @@ std::vector<Particle> TreeGenerator::create_branch_particles(
         // TRUNK / MAIN BRANCHES: Single long BOX with rotation
         // This gives massive particle savings for thick structural branches
 
+        // A BOX IS CENTRED, SO PLACE IT AT THE BRANCH'S MIDPOINT.
+        // This sat the box on the branch's START point while giving it the
+        // whole branch length as its Z extent, so half the length hung below
+        // the start. For the trunk (generate_branch at world_z with
+        // trunk_length = height*0.15) that put ancient_oak 1.875 m and oak
+        // 0.90 m underground — the largest violation in the sweep.
+        const float br_rad_h = angle_h * (float)M_PI / 180.0f;
+        const float br_rad_v = angle_v * (float)M_PI / 180.0f;
+        const float br_mid_x = x + std::cos(br_rad_h) * std::cos(br_rad_v) * length * 0.5f;
+        const float br_mid_y = y + std::sin(br_rad_h) * std::cos(br_rad_v) * length * 0.5f;
+        const float br_mid_z = z + std::sin(br_rad_v) * length * 0.5f;
+
         Particle branch;
-        branch.x = x;
-        branch.y = y;
-        branch.z = z;
+        branch.x = br_mid_x;
+        branch.y = br_mid_y;
+        branch.z = br_mid_z;
         branch.vx = 0.0f;
         branch.vy = 0.0f;
         branch.vz = 0.0f;
@@ -728,10 +740,17 @@ kg::EntityID TreeGenerator::generate_tree_space_colonization(
         float seg_center_y = world_y + seg_dir_y * trunk_height * t_mid;
         float seg_center_z = world_z + seg_dir_z * trunk_height * t_mid;
 
+        // The 1.1 overlap extends a BOX about its centre, so half of the extra
+        // 10% hung below the segment — and below the floor for the bottom one.
+        // Shift the centre up its own axis by half the extra so the underside
+        // stays put and the overlap lands at the seam above. Same fix
+        // organic_generator got; this copy was missed.
+        const float tseg_shift = segment_length * 0.05f;
+
         Particle trunk_seg;
-        trunk_seg.x = seg_center_x;
-        trunk_seg.y = seg_center_y;
-        trunk_seg.z = seg_center_z;
+        trunk_seg.x = seg_center_x + seg_dir_x * tseg_shift;
+        trunk_seg.y = seg_center_y + seg_dir_y * tseg_shift;
+        trunk_seg.z = seg_center_z + seg_dir_z * tseg_shift;
         trunk_seg.shape = ParticleShape::BOX;
         trunk_seg.width = diameter_at_segment;
         trunk_seg.height = diameter_at_segment;
