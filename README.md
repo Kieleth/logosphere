@@ -150,6 +150,36 @@ remote providers (OpenAI, Anthropic) or a local server.
 
 [`examples/logotron/LOGOTRON.md`](examples/logotron/LOGOTRON.md)
 
+### Logovger, a Rulebook Read Into the Graph
+
+A published tabletop RPG rulebook, ingested until it is playable. The
+Cepheus Engine SRD goes in as markdown; what comes out is a character
+generator you sit at, where every value on the sheet can be clicked
+and the book answers with the table cell it came from.
+
+None of the rules are written in C++. Careers, throws, skill tables,
+rank ladders and mustering-out benefits are entities in the knowledge
+graph, loaded from seed files that must prove themselves first: an
+ingestion verifier resolves every citation back into the source text
+and refuses the seed when a quote, a number or a table address does
+not match. Dice are engine-side, seeded and journalled, so a life
+replays exactly and every result cites the roll that made it.
+
+That discipline is not decoration. Reading three thousand rule
+entities out of one chapter surfaced four defects in the published
+book, including a skill that two career tables grant and the rules
+never define. Each was reported upstream rather than quietly
+corrected, and the ones the book's own text proves wrong are fixed at
+source with the divergence recorded.
+
+An LLM narrates what the dice already decided and cannot contradict
+them, because it is handed facts and asked only for prose. It runs
+against a hosted model or a local one; same rules, same character,
+either way.
+
+[`examples/logovger/README.md`](examples/logovger/README.md) ·
+[`docs/RPG_MODULE.md`](docs/RPG_MODULE.md)
+
 ## Platform
 
 Three build profiles, selected with `-DLOGOSPHERE_PROFILE=<full|physics|core>`:
@@ -182,6 +212,7 @@ cmake --build build --config Release
 ./build/eden/eden                    # the knowledge-garden example
 ./build/logotron/logotron            # the light-cycle example
 ./build/logogenesis/logogenesis      # conversational world creation
+./build/logovger/logovger            # character creation from a rulebook
 ./build/logosphere-tests --no-head   # the combined test harness
 ```
 
@@ -225,6 +256,8 @@ and `headless-linux` jobs).
 | `eden` | `build/eden/` | full | Eden example game |
 | `logotron` | `build/logotron/` | full | Logotron example game |
 | `logogenesis` | `build/logogenesis/` | full | Logogenesis example game |
+| `logovger` | `build/logovger/` | full | Logovger, character creation from an ingested rulebook |
+| `logovger-bench-narrator` | `build/examples/logovger/` | full | Measures the wait between a decision and its narration |
 | Standalone headless tests | `build/test_*` | both | 46 standalone executables (KG, capability, damage, events, ontology, physics guards) |
 | Other standalone tests | `build/test_*` | full | Physics, rendering, animation, etc. |
 

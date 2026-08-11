@@ -51,3 +51,19 @@ set_target_properties(logovger PROPERTIES
 )
 
 target_compile_features(logovger PRIVATE cxx_std_17)
+
+# How long a player waits between a decision and the story about it.
+# Headless, so it can be run against a local model or the API without
+# a window, and compared.
+add_executable(logovger-bench-narrator
+    bench_narrator.cpp
+    src/narrator.cpp
+)
+target_include_directories(logovger-bench-narrator PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_compile_definitions(logovger-bench-narrator PRIVATE
+    LOGOSPHERE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+target_compile_features(logovger-bench-narrator PRIVATE cxx_std_17)
+target_link_libraries(logovger-bench-narrator PRIVATE logosphere)

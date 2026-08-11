@@ -8,6 +8,78 @@ A Logosphere game: the classic 2D6 science-fiction RPG adapted
 faithfully from its open rule texts, merged with a psionics-forward
 frontier sensibility. No invented mechanics. The book is the spec.
 
+## What plays today
+
+Character creation, end to end, from rules that were read out of the
+book rather than written into the program.
+
+```bash
+cmake --build build --target logovger
+export ANTHROPIC_API_KEY=...          # the narrator; no key, no play
+./build/logovger/logovger             # a random life each launch
+./build/logovger/logovger --seed 28   # or replay a particular one
+```
+
+You pick a career and throw to qualify. Refused, you take the Draft or
+become a Drifter. On joining you already know the trade: a first
+career grants every skill on its service table at level 0, a later one
+grants a chosen one. Each term you survive, decide whether to reach
+for rank, and choose which of four tables you train on. At the end of
+a term the book throws for re-enlistment rather than asking you, and a
+natural 12 keeps you in even past the seven-term limit. Leaving pays:
+one benefit roll per term served in that career, more for rank, at
+most three taken as cash.
+
+**Every value on the sheet is a button.** Click one and the panel
+below answers with the address in the book, the text at that address,
+and the line number, resolved against the vendored source at that
+moment rather than trusted from a stored quote. Options are readable
+before they are taken: a training table shows all six results, a
+promotion throw shows its characteristic, target and dice.
+
+A local model can narrate instead of a hosted one:
+
+```bash
+LOGOVGER_LLM=mlx LOGOVGER_LLM_URL=http://localhost:8081 \
+LOGOVGER_LLM_MODEL=mlx-community/Qwen2.5-14B-Instruct-4bit \
+    ./build/logovger/logovger
+```
+
+`logovger-bench-narrator` measures what that choice costs: the pause
+between a decision and being allowed the next one.
+
+Not yet absorbed: aging, the survival-mishap table, and injuries. A
+failed survival roll still ends the character outright.
+
+## What this demonstrates about the engine
+
+It is the ingestion pipeline end to end, on a real published book
+rather than a toy:
+
+1. **A source is addressable.** `SourceDocument` and `SourceLocator`
+   address a heading, sentence, table, row or cell, so a rule can cite
+   the exact place it came from instead of a page number.
+2. **Ingestion is verified, not trusted.** Seeds are refused unless
+   every citation resolves in the source and every number appears in
+   the text it quotes. A line citation cannot prove a table cell.
+3. **Meaning is judged, and the judgement is audited.** Transcription
+   is mechanical, because a model that retypes a number is wrong in a
+   way that still reads well. What a cell MEANS is classified, and a
+   second model audits that classification; a test fails if the audit
+   has never seen a value the seed ships.
+4. **Rules are data all the way down.** Procedures, steps, routes,
+   throws, tables and outcomes are entities. Changing what a career
+   teaches is editing a seed, not a rebuild of game code.
+5. **Dice belong to the engine.** Seeded streams, journalled rolls,
+   every result citable by id, so a life replays exactly.
+6. **The LLM cannot cheat.** It receives resolved facts and returns
+   prose. It has no path to a die, a skill or a characteristic.
+
+Absorbing one chapter this way surfaced four defects in the published
+book: a skill granted by two tables and defined nowhere, another that
+occurs once in the whole SRD, and two misspellings the book's own text
+proves. All were reported upstream rather than silently corrected.
+
 ## The discipline
 
 - **Ontology = the book's data model.** A UWP world profile is a KG

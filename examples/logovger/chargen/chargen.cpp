@@ -93,7 +93,13 @@ std::string check_detail(
     return detail.str();
 }
 
-void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
+// The six characteristics are written ONCE, when they are rolled.
+// After that the graph owns them: Personal Development raises them,
+// aging will lower them, and every one of those changes goes through
+// the outcome executor and lands on the entity. Writing the session's
+// cached copies back afterwards silently undid all of it, so a "+1
+// Str" was applied and then overwritten at the end of the term.
+void write_characteristics(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "strength",        std::to_string(s.strength));
     kg.setProperty(s.id, "dexterity",       std::to_string(s.dexterity));
     kg.setProperty(s.id, "endurance",       std::to_string(s.endurance));
@@ -101,33 +107,130 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "education",       std::to_string(s.education));
     kg.setProperty(s.id, "social_standing", std::to_string(s.social_standing));
     kg.setProperty(s.id, "upp",             s.upp);
+}
+
+// What the SESSION owns: how long this has taken.
+void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "age_years",       std::to_string(s.age_years));
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
+}
+
+// Read the characteristics back out of the graph, where they may have
+// been changed by an outcome, and recompute the UPP from them. Call it
+// after anything that could have touched them.
+void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
+    const auto value = [&](const char* slot, int& into) {
+        const std::string text = kg.getProperty(s.id, slot);
+        if (!text.empty()) into = std::stoi(text);
+    };
+    value("strength", s.strength);
+    value("dexterity", s.dexterity);
+    value("endurance", s.endurance);
+    value("intelligence", s.intelligence);
+    value("education", s.education);
+    value("social_standing", s.social_standing);
+    s.upp = upp(s.strength, s.dexterity, s.endurance, s.intelligence,
+                s.education, s.social_standing);
+    kg.getProperty(s.id, "upp") == s.upp
+        ? void()
+        : const_cast<kg::KGModule&>(kg).setProperty(s.id, "upp", s.upp);
+}
+
+// A step consults a table the SCHEMA names, and that table's rows say
+// which subject each is about. Nothing here matches a table by name:
+// the step carries subject_table, the row carries subject, and this
+// walks from one to the other.
+kg::EntityID subject_row(const kg::KGModule& kg, kg::EntityID step,
+                         kg::EntityID subject, const char* result_slot,
+                         std::string& error) {
+    const std::string table_ref = kg.getProperty(step, "subject_table");
+    if (table_ref.empty()) {
+        error = "this step names no subject_table";
+        return kg::INVALID_ENTITY;
+    }
+    kg::EntityID table = kg::INVALID_ENTITY;
+    try {
+        table = static_cast<kg::EntityID>(std::stoul(table_ref));
+    } catch (...) {
+        error = "step's subject_table is not an entity reference";
+        return kg::INVALID_ENTITY;
+    }
+    for (auto row : kg.getRelated(table, "HAS_PART")) {
+        if (kg.getProperty(row, "subject") != std::to_string(subject)) {
+            continue;
+        }
+        const std::string result = kg.getProperty(row, result_slot);
+        if (result.empty()) {
+            error = "the row for this subject carries no " +
+                    std::string(result_slot);
+            return kg::INVALID_ENTITY;
+        }
+        try {
+            return static_cast<kg::EntityID>(std::stoul(result));
+        } catch (...) {
+            error = "the row's " + std::string(result_slot) +
+                    " is not an entity reference";
+            return kg::INVALID_ENTITY;
+        }
+    }
+    error = "no row in this step's table is about " +
+            kg.getProperty(subject, "name");
+    return kg::INVALID_ENTITY;
+}
+
+// Every row of the step's table that is about this subject. The
+// training rule offers four tables per career, so one subject has
+// several rows, unlike the throw rules where it has exactly one.
+std::vector<kg::EntityID> subject_rows(const kg::KGModule& kg,
+                                       kg::EntityID step,
+                                       kg::EntityID subject,
+                                       const char* result_slot,
+                                       std::string& error) {
+    std::vector<kg::EntityID> out;
+    const std::string table_ref = kg.getProperty(step, "subject_table");
+    if (table_ref.empty()) {
+        error = "this step names no subject_table";
+        return out;
+    }
+    kg::EntityID table = kg::INVALID_ENTITY;
+    try {
+        table = static_cast<kg::EntityID>(std::stoul(table_ref));
+    } catch (...) {
+        error = "step's subject_table is not an entity reference";
+        return out;
+    }
+    for (auto row : kg.getRelated(table, "HAS_PART")) {
+        if (kg.getProperty(row, "subject") != std::to_string(subject)) {
+            continue;
+        }
+        const std::string result = kg.getProperty(row, result_slot);
+        if (result.empty()) continue;
+        try {
+            out.push_back(static_cast<kg::EntityID>(std::stoul(result)));
+        } catch (...) {
+            error = "a row's " + std::string(result_slot) +
+                    " is not an entity reference";
+            return {};
+        }
+    }
+    if (out.empty()) {
+        error = "no row in this step's table is about " +
+                kg.getProperty(subject, "name");
+    }
+    return out;
 }
 
 // Select a career training row, then apply its structured outcome. These are
 // separate engine operations: the recorded selection remains a fact if
 // outcome application fails. There is no default skill level in procedure
 // code.
-bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
-                               kg::EntityID character,
-                               logosphere::dice::DiceService& dice,
-                               uint64_t& roll_id_out, std::string& gained,
-                               std::string& error) {
+bool apply_training_table(kg::KGModule& kg, kg::EntityID table,
+                          kg::EntityID character,
+                          logosphere::dice::DiceService& dice,
+                          uint64_t& roll_id_out, std::string& gained,
+                          std::string& error, bool* was_skill = nullptr) {
     gained.clear();
     error.clear();
-    kg::EntityID table = kg::INVALID_ENTITY;
-    for (auto part : kg.getRelated(career, "HAS_PART")) {
-        if (kg.getRegistry().isSubtypeOf(kg.getType(part),
-                                         "RollableTable")) {
-            table = part;
-        }
-        if (table != kg::INVALID_ENTITY) break;
-    }
-    if (table == kg::INVALID_ENTITY) {
-        error = "career has no RollableTable for skills and training";
-        return false;
-    }
 
     logosphere::rules::RollableTableRunner table_runner(kg, dice);
     const auto selected = table_runner.select(
@@ -138,17 +241,29 @@ bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
     }
     roll_id_out = selected.selection->roll().id;
 
+    // A training row is not always a skill. Personal Development
+    // grants characteristics ("+1 Dex"), and the executor applies
+    // whatever the row carries; only the REPORT differs, because a
+    // skill is worth naming with its new level and a characteristic
+    // is not.
     const auto outcome = selected.selection->outcome();
+    const bool grants_skill =
+        kg.getRegistry().isSubtypeOf(kg.getType(outcome), "AdvanceSkill");
+    if (was_skill) *was_skill = grants_skill;
     kg::EntityID skill = kg::INVALID_ENTITY;
-    if (!entity_reference(kg, outcome, "skill", "Skill", skill, error)) {
-        error = "skills and training outcome: " + error;
-        return false;
-    }
-    const auto skill_ref = kg.getProperty(outcome, "skill");
-    const std::string skill_name = kg.getProperty(skill, "name");
-    if (skill_name.empty()) {
-        error = "skills and training outcome points to an unnamed skill";
-        return false;
+    std::string skill_ref;
+    std::string skill_name;
+    if (grants_skill) {
+        if (!entity_reference(kg, outcome, "skill", "Skill", skill, error)) {
+            error = "skills and training outcome: " + error;
+            return false;
+        }
+        skill_ref = kg.getProperty(outcome, "skill");
+        skill_name = kg.getProperty(skill, "name");
+        if (skill_name.empty()) {
+            error = "skills and training outcome points to an unnamed skill";
+            return false;
+        }
     }
 
     logosphere::rules::OutcomeExecutor executor(kg, dice);
@@ -157,6 +272,13 @@ bool select_and_apply_training(kg::KGModule& kg, kg::EntityID career,
     if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
         error = "skills and training outcome failed: " + applied.error;
         return false;
+    }
+
+    if (!grants_skill) {
+        gained = kg.getProperty(outcome, "name");
+        const auto cut = gained.rfind(": ");
+        if (cut != std::string::npos) gained = gained.substr(cut + 2);
+        return true;
     }
 
     int matches = 0;
@@ -240,6 +362,21 @@ void ChargenSession::bind_primitives() {
     });
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
+    });
+    bind("muster_out", [this](const PrimitiveContext& context) {
+        return muster_out(context);
+    });
+    bind("basic_training", [this](const PrimitiveContext& context) {
+        return basic_training(context);
+    });
+    bind("roll_commission", [this](const PrimitiveContext& context) {
+        return roll_promotion(context, true);
+    });
+    bind("roll_advancement", [this](const PrimitiveContext& context) {
+        return roll_promotion(context, false);
+    });
+    bind("roll_reenlistment", [this](const PrimitiveContext& context) {
+        return roll_reenlistment(context);
     });
     bind("choose_term_end", [this](const PrimitiveContext& context) {
         return choose_term_end(context);
@@ -351,6 +488,7 @@ ChargenSession::PrimitiveResult ChargenSession::generate_characteristics(
                      sheet_.intelligence, sheet_.education,
                      sheet_.social_standing);
     sheet_.life.push_back({0, "UPP", sheet_.upp, 0});
+    write_characteristics(kg_, sheet_);
     write_sheet(kg_, sheet_);
     return PrimitiveResult::advance();
 }
@@ -454,6 +592,7 @@ ChargenSession::PrimitiveResult ChargenSession::choose_career(
     }
     sheet_.career = picked->label;
     sheet_.careers_served.push_back(picked->label);
+    enter_career();
     choices_.clear();
     return PrimitiveResult::advance();
 }
@@ -567,6 +706,7 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
     career_ = selected_career;
     sheet_.career = career_name;
     sheet_.careers_served.push_back(career_name);
+    enter_career();
     if (picked->key != "2")
         sheet_.life.push_back({sheet_.terms_served, "became a Drifter",
                                "the career that is always open", 0});
@@ -601,20 +741,521 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
     return PrimitiveResult::advance("passed");
 }
 
+// Step 7. "Choose one of the Skills and Training tables for this
+// career and roll on it." The choice is the player's and the book
+// gives four: Personal Development, Service Skills, Specialist and
+// Adv Education. Rolling the service table automatically, as this did
+// before, skipped a decision the book makes every single term.
 ChargenSession::PrimitiveResult ChargenSession::roll_training(
-    const PrimitiveContext&) {
+    const PrimitiveContext& context) {
     const int term = sheet_.terms_served + 1;
+    std::string table_error;
+    if (training_rolls_owed_ <= 0) training_rolls_owed_ = 1;
+    const auto options = subject_rows(kg_, context.step, career_,
+                                      "rollable_table", table_error);
+    if (options.empty()) {
+        return PrimitiveResult::failed("skills and training: " +
+                                       table_error);
+    }
+    if (!context.input) {
+        choices_.clear();
+        for (size_t i = 0; i < options.size(); ++i) {
+            choices_.push_back(
+                {std::to_string(i + 1),
+                 kg_.getProperty(options[i], "name"),
+                 "roll 1D6 on it", options[i]});
+        }
+        prompt_ = "Term " + std::to_string(term) +
+                  ": which table do you train on? (click one to read "
+                  "what it can give you)";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the tables");
+    }
+    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    if (index >= options.size()) {
+        return PrimitiveResult::failed("no such training table");
+    }
+    const kg::EntityID chosen = options[index];
+    choices_.clear();
     uint64_t skill_roll = 0;
     std::string skill;
     std::string error;
-    if (!select_and_apply_training(kg_, career_, sheet_.id, dice_, skill_roll,
-                                   skill, error)) {
+    bool granted_a_skill = true;
+    if (!apply_training_table(kg_, chosen, sheet_.id, dice_, skill_roll,
+                              skill, error, &granted_a_skill)) {
         return PrimitiveResult::failed(error);
     }
-    sheet_.skills.push_back(skill);
+    // A characteristic gain lands on the entity, not on the skill
+    // list, so the sheet has to read it back or it never shows.
+    if (granted_a_skill) sheet_.skills.push_back(skill);
+    else read_characteristics(kg_, sheet_);
     sheet_.life.push_back({term, "gained " + skill,
-                           "skills and training", skill_roll});
+                           kg_.getProperty(chosen, "name"), skill_roll});
+    // A promotion buys another roll, and so does a career with no
+    // hierarchy to climb. Stay on this step until they are spent, and
+    // ASK again rather than re-reading the answer already given.
+    if (--training_rolls_owed_ > 0) {
+        choices_.clear();
+        for (size_t i = 0; i < options.size(); ++i) {
+            choices_.push_back({std::to_string(i + 1),
+                                kg_.getProperty(options[i], "name"),
+                                "roll 1D6 on it", options[i]});
+        }
+        prompt_ = "Term " + std::to_string(term) + ": " +
+                  std::to_string(training_rolls_owed_) +
+                  " more training roll(s). Which table?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
     return PrimitiveResult::advance();
+}
+
+// The service skills a career teaches, in table order. Only rows that
+// grant a skill count: a service table is all skills, but reading the
+// outcome rather than assuming keeps that true if a book disagrees.
+std::vector<std::pair<kg::EntityID, std::string>> service_skills(
+    const kg::KGModule& kg, kg::EntityID table) {
+    std::vector<std::pair<kg::EntityID, std::string>> out;
+    for (auto row : kg.getRelated(table, "HAS_PART")) {
+        const std::string outcome_ref = kg.getProperty(row, "outcome");
+        if (outcome_ref.empty()) continue;
+        kg::EntityID outcome = kg::INVALID_ENTITY;
+        try {
+            outcome = static_cast<kg::EntityID>(std::stoul(outcome_ref));
+        } catch (...) { continue; }
+        if (!kg.getRegistry().isSubtypeOf(kg.getType(outcome),
+                                          "AdvanceSkill")) {
+            continue;
+        }
+        const std::string skill_ref = kg.getProperty(outcome, "skill");
+        if (skill_ref.empty()) continue;
+        kg::EntityID skill = kg::INVALID_ENTITY;
+        try {
+            skill = static_cast<kg::EntityID>(std::stoul(skill_ref));
+        } catch (...) { continue; }
+        const std::string name = kg.getProperty(skill, "name");
+        if (name.empty()) continue;
+        bool seen = false;
+        for (const auto& had : out) seen = seen || had.first == skill;
+        if (!seen) out.emplace_back(skill, name);
+    }
+    return out;
+}
+
+// Give a skill at level 0 if it is not held at all. Level 0 is the
+// book's own number, and the step carries the sentence that sets it.
+bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
+                        kg::EntityID skill) {
+    for (auto part : kg.getRelated(character, "HAS_PART")) {
+        if (kg.getProperty(part, "skill") == std::to_string(skill)) {
+            return false;
+        }
+    }
+    const auto rating = kg.createEntity("SkillRating");
+    if (rating == kg::INVALID_ENTITY) return false;
+    kg.setProperty(rating, "skill", std::to_string(skill));
+    kg.setProperty(rating, "skill_level", "0");
+    kg.createRelation(character, "HAS_PART", rating);
+    return true;
+}
+
+// Step 4. "For your first term in your first career, you get every
+// skill in the service skills table at level 0. For your first term in
+// subsequent careers, you may pick any one skill from the service
+// skills table at level 0." The step runs once on entering a career,
+// which is exactly when the book applies it.
+ChargenSession::PrimitiveResult ChargenSession::basic_training(
+    const PrimitiveContext& context) {
+    std::string error;
+    const auto tables = subject_rows(kg_, context.step, career_,
+                                     "rollable_table", error);
+    if (tables.empty()) {
+        return PrimitiveResult::failed("basic training: " + error);
+    }
+    kg::EntityID service = kg::INVALID_ENTITY;
+    for (auto table : tables) {
+        const std::string name = kg_.getProperty(table, "name");
+        if (name.size() > 14 &&
+            name.compare(name.size() - 14, 14, "Service Skills") == 0) {
+            service = table;
+        }
+    }
+    if (service == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "basic training: this career offers no Service Skills table");
+    }
+    const auto skills = service_skills(kg_, service);
+    if (skills.empty()) {
+        return PrimitiveResult::failed(
+            "basic training: the service table grants no skills");
+    }
+
+    const bool first_career = sheet_.careers_served.size() <= 1;
+    if (first_career) {
+        int granted = 0;
+        for (const auto& [id, name] : skills) {
+            if (know_at_level_zero(kg_, sheet_.id, id)) ++granted;
+        }
+        sheet_.life.push_back(
+            {sheet_.terms_served, "basic training",
+             "every service skill at level 0 (" +
+                 std::to_string(granted) + " new)", 0});
+        return PrimitiveResult::advance();
+    }
+
+    if (!context.input) {
+        choices_.clear();
+        for (size_t i = 0; i < skills.size(); ++i) {
+            // A skill already held gains nothing at level 0, and the
+            // book still allows picking it, so say so rather than
+            // hiding the option or letting it look like a real one.
+            std::string held;
+            for (auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
+                if (kg_.getProperty(part, "skill") !=
+                    std::to_string(skills[i].first)) {
+                    continue;
+                }
+                const std::string level = kg_.getProperty(part, "skill_level");
+                held = "you already have this at level " +
+                       (level.empty() ? "0" : level) + ", so it gains nothing";
+            }
+            choices_.push_back({std::to_string(i + 1), skills[i].second,
+                                held.empty() ? "learn it at level 0" : held,
+                                skills[i].first});
+        }
+        prompt_ = "Joining the " + sheet_.career +
+                  ": which service skill do they start you on? (one, at "
+                  "level 0)";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the skills");
+    }
+    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    choices_.clear();
+    if (index >= skills.size()) {
+        return PrimitiveResult::failed("no such skill");
+    }
+    know_at_level_zero(kg_, sheet_.id, skills[index].first);
+    sheet_.life.push_back({sheet_.terms_served, "basic training",
+                           skills[index].second + " at level 0", 0});
+    return PrimitiveResult::advance();
+}
+
+// Step 10. "Characters who end their careers receive one benefit per
+// term served in which they did not lose benefits. An additional
+// benefit is gained if the character held rank O4, and two for rank
+// O5. A character with rank O6 gains three extra benefits." And: "Up
+// to 3 benefit rolls can be taken on the Cash table. All others must
+// be taken in material benefits."
+ChargenSession::PrimitiveResult ChargenSession::muster_out(
+    const PrimitiveContext& context) {
+    std::string error;
+    const auto tables = subject_rows(kg_, context.step, career_,
+                                     "rollable_table", error);
+    if (tables.empty()) {
+        return PrimitiveResult::failed("benefits: " + error);
+    }
+    // Which of the two is the cash table is read from its name. That
+    // is weaker than a typed slot and worth replacing if a third kind
+    // of benefit table ever appears; today the book prints two.
+    const auto is_cash = [this](kg::EntityID table) {
+        const std::string name = kg_.getProperty(table, "name");
+        return name.find("Cash Benefits") != std::string::npos ||
+               name.find("Cost Benefits") != std::string::npos;
+    };
+
+    if (benefit_rolls_owed_ == 0) {
+        // "A character gets one Benefit Roll for every full term
+        // served IN THAT CAREER." Counting every term of the whole
+        // life instead paid a third career for the years spent in the
+        // first two, so seven terms across three careers paid seven
+        // rolls on leaving each of them.
+        benefit_rolls_owed_ = sheet_.terms_in_career;
+        if (sheet_.rank >= 6)      benefit_rolls_owed_ += 3;
+        else if (sheet_.rank == 5) benefit_rolls_owed_ += 2;
+        else if (sheet_.rank == 4) benefit_rolls_owed_ += 1;
+        cash_rolls_left_ = 3;
+        if (benefit_rolls_owed_ <= 0) {
+            sheet_.life.push_back({sheet_.terms_served, "no benefits",
+                                   "no term served in this career", 0});
+            return PrimitiveResult::advance("continue");
+        }
+    }
+
+    if (!context.input) {
+        choices_.clear();
+        for (size_t i = 0; i < tables.size(); ++i) {
+            if (is_cash(tables[i]) && cash_rolls_left_ <= 0) continue;
+            choices_.push_back(
+                {std::to_string(i + 1), kg_.getProperty(tables[i], "name"),
+                 is_cash(tables[i])
+                     ? std::to_string(cash_rolls_left_) + " cash rolls left"
+                     : "goods, passages, ship shares",
+                 tables[i]});
+        }
+        prompt_ = std::to_string(benefit_rolls_owed_) +
+                  " benefit roll(s) left: which table? (click one to "
+                  "read what is on it)";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the tables");
+    }
+    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    choices_.clear();
+    if (index >= tables.size()) {
+        return PrimitiveResult::failed("no such benefit table");
+    }
+    const kg::EntityID chosen = tables[index];
+    if (is_cash(chosen) && cash_rolls_left_ <= 0) {
+        return PrimitiveResult::failed(
+            "the book allows at most three cash benefit rolls");
+    }
+
+    logosphere::rules::RollableTableRunner runner(kg_, dice_);
+    const auto selected = runner.select(chosen, "chargen", "benefits");
+    if (!selected.ok()) {
+        return PrimitiveResult::failed("benefit selection failed: " +
+                                       selected.error);
+    }
+    const auto outcome = selected.selection->outcome();
+    logosphere::rules::OutcomeExecutor executor(kg_, dice_);
+    const auto applied = executor.apply(
+        outcome, {sheet_.id, "chargen", "benefits"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        return PrimitiveResult::failed("benefit failed: " + applied.error);
+    }
+    std::string got = kg_.getProperty(outcome, "name");
+    const auto cut = got.rfind(": ");
+    if (cut != std::string::npos) got = got.substr(cut + 2);
+    sheet_.life.push_back({sheet_.terms_served, "mustering out: " + got,
+                           kg_.getProperty(chosen, "name"),
+                           selected.selection->roll().id});
+    if (is_cash(chosen)) --cash_rolls_left_;
+    if (--benefit_rolls_owed_ > 0) {
+        choices_.clear();
+        for (size_t i = 0; i < tables.size(); ++i) {
+            if (is_cash(tables[i]) && cash_rolls_left_ <= 0) continue;
+            choices_.push_back(
+                {std::to_string(i + 1), kg_.getProperty(tables[i], "name"),
+                 is_cash(tables[i])
+                     ? std::to_string(cash_rolls_left_) + " cash rolls left"
+                     : "goods, passages, ship shares",
+                 tables[i]});
+        }
+        prompt_ = std::to_string(benefit_rolls_owed_) +
+                  " benefit roll(s) left: which table? (click one to "
+                  "read what is on it)";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+
+    // What the character walks away with, read back from the graph
+    // rather than accumulated alongside it. Benefits can raise a
+    // characteristic too, so those come back as well.
+    read_characteristics(kg_, sheet_);
+    sheet_.credits = 0;
+    sheet_.possessions.clear();
+    for (auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
+        const std::string type = kg_.getType(part);
+        if (type == "CurrencyBalance") {
+            const auto amount = kg_.getProperty(part, "balance_amount");
+            if (!amount.empty()) sheet_.credits += std::stoll(amount);
+        } else if (type == "PossessionHolding") {
+            const auto ref = kg_.getProperty(part, "possession");
+            const auto count = kg_.getProperty(part, "possession_count");
+            if (ref.empty()) continue;
+            const auto name = kg_.getProperty(
+                static_cast<kg::EntityID>(std::stoul(ref)), "name");
+            if (name.empty()) continue;
+            sheet_.possessions.push_back(
+                count.empty() || count == "1" ? name : count + "x " + name);
+        }
+    }
+    // Explicitly routed. Falling through by index from here lands on
+    // finish_character, which ended a character who had only left one
+    // career and still had terms in front of them.
+    return PrimitiveResult::advance("continue");
+}
+
+// Step 6. Commission takes a Rank 0 character into the officer ranks;
+// Advancement moves a Rank 1 or higher character up one. Both are
+// optional and both are once per term, and a career that offers
+// neither gives a second training roll instead, which is why the
+// count of rolls owed lives on the session rather than in the step.
+ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
+    const PrimitiveContext& context, bool commission) {
+    const char* what = commission ? "commission" : "advancement";
+    const int term = sheet_.terms_served + 1;
+    std::string error;
+    const auto check = subject_row(kg_, context.step, career_,
+                                   "throw_check", error);
+    // No row means this career does not offer the throw at all, which
+    // the book states for seven of them. Not an error: a skip.
+    if (check == kg::INVALID_ENTITY) return PrimitiveResult::advance();
+    const bool eligible = commission ? sheet_.rank == 0 : sheet_.rank >= 1;
+    if (!eligible) return PrimitiveResult::advance();
+
+    if (!context.input) {
+        // Say what is being risked and what is being reached for. A
+        // player asked to gamble should be told the odds, the prize
+        // and the cost, and the cost here is nothing, which is worth
+        // knowing too.
+        const std::string throw_text =
+            kg_.getProperty(check, "attribute_ref") + " " +
+            kg_.getProperty(check, "target_number") + "+";
+        const int next_rank = commission ? 1 : sheet_.rank + 1;
+        std::string prize = "rank " + std::to_string(next_rank);
+        std::string rung_error;
+        const auto track = subject_row(kg_, context.step, career_, "track",
+                                       rung_error);
+        if (track != kg::INVALID_ENTITY) {
+            for (auto rung : kg_.getRelated(track, "HAS_PART")) {
+                if (kg_.getProperty(rung, "step_index") !=
+                    std::to_string(next_rank)) {
+                    continue;
+                }
+                const std::string title =
+                    kg_.getProperty(rung, "step_title");
+                if (!title.empty()) prize = title;
+                if (!kg_.getProperty(rung, "grants").empty()) {
+                    prize += " and its skill";
+                }
+                break;
+            }
+        }
+        choices_ = {{"1", std::string("Try for ") + what,
+                     "throw " + throw_text + " -> " + prize +
+                         ", plus a training roll. Fail and nothing "
+                         "changes.",
+                     check},
+                    {"2", "Do not try",
+                     "stay rank " + std::to_string(sheet_.rank) +
+                         " and keep this term's single training roll"}};
+        prompt_ = std::string("Term ") + std::to_string(term) + ": try for " +
+                  what + "? (click it to read the throw)";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the options");
+    }
+    const bool attempt = picked->key == "1";
+    choices_.clear();
+    if (!attempt) {
+        sheet_.life.push_back({term, std::string("declined ") + what,
+                               "reaching for rank is optional", 0});
+        return PrimitiveResult::advance();
+    }
+
+    logosphere::rules::TaskCheckRunner runner(kg_, dice_);
+    const auto thrown = runner.run(check, sheet_.id, "chargen", what);
+    if (!thrown.ok()) return PrimitiveResult::failed(thrown.error);
+    const auto& execution = *thrown.execution;
+    if (!execution.passed()) {
+        sheet_.life.push_back({term, std::string("no ") + what,
+                               check_detail(execution),
+                               execution.roll().id});
+        return PrimitiveResult::advance();
+    }
+
+    read_characteristics(kg_, sheet_);
+    sheet_.rank = commission ? 1 : sheet_.rank + 1;
+    // "You also get any benefits listed for your new rank", and an
+    // extra roll on any Skills and Training table.
+    ++training_rolls_owed_;
+    std::string rank_error;
+    const auto track = subject_row(kg_, context.step, career_, "track",
+                                   rank_error);
+    if (track != kg::INVALID_ENTITY) {
+        for (auto rung : kg_.getRelated(track, "HAS_PART")) {
+            if (kg_.getProperty(rung, "step_index") !=
+                std::to_string(sheet_.rank)) {
+                continue;
+            }
+            sheet_.rank_title = kg_.getProperty(rung, "step_title");
+            const std::string grant = kg_.getProperty(rung, "grants");
+            if (grant.empty()) break;
+            logosphere::rules::OutcomeExecutor executor(kg_, dice_);
+            const auto applied = executor.apply(
+                static_cast<kg::EntityID>(std::stoul(grant)),
+                {sheet_.id, "chargen", "rank benefit"});
+            if (applied.status !=
+                logosphere::rules::OutcomeStatus::APPLIED) {
+                return PrimitiveResult::failed("rank benefit: " +
+                                               applied.error);
+            }
+            break;
+        }
+    }
+    sheet_.life.push_back(
+        {term,
+         std::string(commission ? "commissioned" : "promoted") +
+             (sheet_.rank_title.empty() ? "" : ": " + sheet_.rank_title),
+         check_detail(execution), execution.roll().id});
+    return PrimitiveResult::advance();
+}
+
+// Step 9. The book does not let you simply decide to stay: "If
+// continuation is desired, the character must make a successful
+// Reenlistment check as listed for their current profession or
+// service." Two results are not the player's to choose. A natural 12
+// means "they cannot leave their current career and must continue for
+// another term", and it outranks the seven-term cap, which the book
+// says explicitly: a character at seven or more "must retire and
+// cannot undertake any more prior experience, unless they roll a
+// natural 12 during Reenlistment and must serve another term".
+ChargenSession::PrimitiveResult ChargenSession::roll_reenlistment(
+    const PrimitiveContext& context) {
+    const int term = sheet_.terms_served;
+    std::string error;
+    const auto check = subject_row(kg_, context.step, career_,
+                                   "throw_check", error);
+    if (check == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed("re-enlistment: " + error);
+    }
+    logosphere::rules::TaskCheckRunner runner(kg_, dice_);
+    const auto thrown = runner.run(check, sheet_.id, "chargen",
+                                   "re-enlistment");
+    if (!thrown.ok()) return PrimitiveResult::failed(thrown.error);
+    const auto& execution = *thrown.execution;
+
+    const auto& roll = execution.roll();
+    const bool natural_twelve = roll.total == 12;
+    if (natural_twelve) {
+        sheet_.life.push_back(
+            {term, "cannot leave", "natural 12 on re-enlistment",
+             roll.id});
+        return PrimitiveResult::advance("forced");
+    }
+    if (!execution.passed()) {
+        sheet_.life.push_back({term, "not permitted to re-enlist",
+                               check_detail(execution), roll.id});
+        return PrimitiveResult::advance("must_leave");
+    }
+    sheet_.life.push_back({term, "may re-enlist",
+                           check_detail(execution), roll.id});
+    return PrimitiveResult::advance("may_choose");
+}
+
+// "You begin as a Rank 0 character", every time you begin. Rank, its
+// title and the terms served belong to the career, not to the person:
+// carrying them into the next one gave a Drifter a Navy commission and
+// paid them for years served somewhere else.
+void ChargenSession::enter_career() {
+    sheet_.rank = 0;
+    sheet_.rank_title.clear();
+    sheet_.terms_in_career = 0;
+    benefit_rolls_owed_ = 0;
+    cash_rolls_left_ = 0;
 }
 
 ChargenSession::PrimitiveResult ChargenSession::advance_term(
@@ -622,6 +1263,9 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
     const int term = sheet_.terms_served + 1;
     sheet_.age_years   += 4;
     sheet_.terms_served = term;
+    // Benefits and the seven-term cap count different things: one
+    // counts this career, the other counts the whole life.
+    sheet_.terms_in_career += 1;
     sheet_.life.push_back({term, "term ends",
                            "age " + std::to_string(sheet_.age_years), 0});
     write_sheet(kg_, sheet_);
@@ -741,11 +1385,59 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose("1", error)) return false;
             continue;
         }
+        // Which table to train on is a real choice the book gives every
+        // term, and an auto-player has no taste. It takes Service
+        // Skills, which is the table this harness rolled before the
+        // choice existed, so what it measures is unchanged.
+        // Benefits: the auto-player takes cash while the book allows
+        // it, then goods. A human weighs a weapon against money; this
+        // one just needs to be deterministic and to spend them all.
+        if (session.prompt().find("benefit roll(s) left") !=
+            std::string::npos) {
+            if (!session.choose(choices.front().key, error)) return false;
+            continue;
+        }
+        // Reaching for rank costs nothing but the throw, so the
+        // auto-player always tries. A human decides; this one has no
+        // reason not to.
+        if (session.prompt().find("try for commission") !=
+                std::string::npos ||
+            session.prompt().find("try for advancement") !=
+                std::string::npos) {
+            if (!session.choose("1", error)) return false;
+            continue;
+        }
+        if (session.prompt().find("which table do you train on") !=
+            std::string::npos) {
+            const auto service = std::find_if(
+                choices.begin(), choices.end(), [](const Choice& choice) {
+                    return choice.label.size() > 14 &&
+                           choice.label.compare(choice.label.size() - 14, 14,
+                                                "Service Skills") == 0;
+                });
+            if (service == choices.end()) {
+                error = "no Service Skills table offered for this career";
+                return false;
+            }
+            if (!session.choose(service->key, error)) return false;
+            continue;
+        }
         break;
     }
     if (!session.finished() && !session.choices().empty() &&
         session.choices().front().label == "Serve another term") {
         if (!session.choose("2", error)) return false;
+    }
+    // Leaving a career pays out, and that happens after the term loop
+    // has stopped counting terms. Spend every roll the book grants.
+    int benefit_guard = 0;
+    while (!session.finished() && !session.choices().empty() &&
+           session.prompt().find("benefit roll(s) left") !=
+               std::string::npos) {
+        if (++benefit_guard > 32) break;
+        if (!session.choose(session.choices().front().key, error)) {
+            return false;
+        }
     }
     if (!session.finished()) {
         const bool finish_offered = std::any_of(
@@ -867,6 +1559,19 @@ bool format_character_facts(const CharacterSheet& s,
     if (!s.skills.empty()) {
         summary << "\nSkills:";
         for (const auto& skill : s.skills) summary << " " << skill;
+    }
+    // Rank, money and belongings are facts about the person, and the
+    // narrator writes from facts. Without them a commissioned officer
+    // reads the same as a rating, and mustering out changes nothing
+    // about how the character is described.
+    if (s.rank > 0) {
+        summary << "\nRank " << s.rank;
+        if (!s.rank_title.empty()) summary << ", " << s.rank_title;
+    }
+    if (s.credits != 0) summary << "\nCredits: " << s.credits;
+    if (!s.possessions.empty()) {
+        summary << "\nHolds:";
+        for (const auto& held : s.possessions) summary << " " << held << ";";
     }
     out = summary.str();
     return true;

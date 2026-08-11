@@ -8,6 +8,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Subject-keyed lookups** (`SubjectLookupTable`, `SubjectLookupEntry`).
+  `LookupTable` answers "score 12 gives +2"; this answers "the Navy row".
+  Rules that vary by career, class, species or faction all have that shape.
+  A `ProcedureStep` names the table it consults through a schema slot, so a
+  step reaches its data without matching a name in code.
 - **Progression, attribute groups and possessions in the rulebook meta-pack.**
   `ProgressionTrack` / `ProgressionStep` / `ProgressionStanding` model a ladder
   of standing within a profession and where a character stands on it;
@@ -19,7 +24,31 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ### Changed
 - `TaskCheck`'s attribute and its modifier lookup are now optional, and
-  travel together: neither, or both. Cepheus prints re-enlistment as a
+  travel together: neither, or both. `TaskCheckRunner` throws unmodified
+  checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
+  a pointer that is null when there was nothing to look up.
+- **Logovger mustering out.** Leaving a career pays: one benefit roll per
+  term served, plus one at rank 4, two at 5 and three at 6, with at most
+  three taken as cash. `GainPossession` is now an outcome the executor
+  applies, so passages, weapons and ship shares are held in the graph with
+  their counts.
+- **Logovger basic training.** A first term in a first career grants every
+  skill on the career's service table at level 0; a first term in a later
+  career grants one of them, chosen. Both career entries route through it,
+  including the Draft.
+- **Logovger commission and advancement.** Rank 0 characters may try for a
+  commission, Rank 1 and above for advancement, once each per term and only
+  where the book gives the career a hierarchy. A promotion takes the new
+  rank's title and bonus skill and buys an extra training roll.
+- **Logovger training is a choice, not an automatic roll.** The book says
+  "choose one of the Skills and Training tables for this career and roll on
+  it", and offers four: Personal Development, Service Skills, Specialist and
+  Adv Education. Training also stopped assuming every row grants a skill,
+  since Personal Development grants characteristics.
+- **Logovger re-enlistment is a throw, not a decision.** At the end of a term
+  the book rolls first and honours the player's wish only if the roll allows
+  it: a failure forces them out of the career, and a natural 12 forces them
+  to stay, outranking the seven-term cap exactly as the book states. Cepheus prints re-enlistment as a
   bare "6+", a throw no characteristic modifies, and a check without a
   modifier source is still a check. Dice and a target remain required.
 - **`source_aliases`, `source_defect` and `suggested_reading` on the `Cited`

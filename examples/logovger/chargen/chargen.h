@@ -51,6 +51,10 @@ struct CharacterSheet {
     int          intelligence = 0, education = 0, social_standing = 0;
     int          age_years = 18;
     int          terms_served = 0;
+    // Terms in the CURRENT career only. Benefits are paid per term
+    // served in that career, while the seven-term cap counts a whole
+    // life, so the two cannot share a counter.
+    int          terms_in_career = 0;
     std::string  career;
     bool         qualified = false;
     std::vector<std::string> skills;   // as gained, "Admin-1", "Admin-2"
@@ -58,6 +62,12 @@ struct CharacterSheet {
     // try another, at a price, and forbids going back.
     std::vector<std::string> careers_served;
     std::vector<LifeEvent>   life;
+    // Rank within the CURRENT career. The book starts everyone at 0
+    // and only commissioned characters ever leave it.
+    int          rank = 0;
+    std::string  rank_title;
+    long long    credits = 0;
+    std::vector<std::string> possessions;
 };
 
 // One option at a decision point. `key` is what the player types.
@@ -95,11 +105,23 @@ public:
     // Events since the last drain, for incremental display.
     std::vector<LifeEvent> drain();
 
+    // Is a step still part-way through itself? Training and mustering
+    // out ask several times before they are done, and each answer
+    // produces events. A caller that reacts to every drain reacts four
+    // times to one payout; this says "not yet".
+    bool mid_sequence() const {
+        return training_rolls_owed_ > 0 || benefit_rolls_owed_ > 0;
+    }
+
 private:
     using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
 
     void bind_primitives();
+    // Everything that belongs to a career rather than to a life:
+    // rank, its title, and the terms served in it. "You begin as a
+    // Rank 0 character", each time.
+    void enter_career();
     bool accept(logosphere::rules::ProcedureResult result,
                 std::string& error);
     bool offer_careers(std::string& error);
@@ -112,6 +134,11 @@ private:
     PrimitiveResult draft_or_drifter(const PrimitiveContext& context);
     PrimitiveResult roll_survival(const PrimitiveContext& context);
     PrimitiveResult roll_training(const PrimitiveContext& context);
+    PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
+    PrimitiveResult roll_promotion(const PrimitiveContext& context,
+                                   bool commission);
+    PrimitiveResult basic_training(const PrimitiveContext& context);
+    PrimitiveResult muster_out(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
@@ -128,6 +155,14 @@ private:
     kg::EntityID                     procedure_ = kg::INVALID_ENTITY;
     logosphere::rules::ProcedureCursor cursor_;
     std::string                      finish_reason_;
+    // Training rolls the character has coming. One a term, plus one
+    // for each promotion, plus one more when the career offers no
+    // promotion at all. The book counts them; this is that count.
+    int                              training_rolls_owed_ = 0;
+    // Benefit rolls still to take on leaving a career, and how many of
+    // them may still be taken as cash.
+    int                              benefit_rolls_owed_ = 0;
+    int                              cash_rolls_left_ = 0;
     size_t                           drained_ = 0;
     std::string                      turned_away_from_;
 };

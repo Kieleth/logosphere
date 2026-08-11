@@ -28,7 +28,12 @@ public:
     kg::EntityID target() const { return target_; }
     const std::string& attribute() const { return attribute_; }
     int64_t attribute_value() const { return attribute_value_; }
-    const LookupTableSelection& lookup() const { return lookup_; }
+    // Null when the throw had no characteristic to modify it, which
+    // the book does print: Cepheus re-enlistment is a bare "6+".
+    const LookupTableSelection* lookup() const {
+        return lookup_ ? &*lookup_ : nullptr;
+    }
+    bool modified() const { return lookup_.has_value(); }
     const std::string& modifier_property() const {
         return modifier_property_;
     }
@@ -43,7 +48,7 @@ private:
     TaskCheckExecution(kg::EntityID executed_check,
                        kg::EntityID executed_target,
                        std::string attribute, int64_t attribute_value,
-                       LookupTableSelection lookup,
+                       std::optional<LookupTableSelection> lookup,
                        std::string modifier_property, int64_t modifier,
                        int64_t target_number,
                        logosphere::dice::DiceRoll roll, int64_t total)
@@ -63,7 +68,7 @@ private:
     kg::EntityID target_ = kg::INVALID_ENTITY;
     std::string attribute_;
     int64_t attribute_value_ = 0;
-    LookupTableSelection lookup_;
+    std::optional<LookupTableSelection> lookup_;
     std::string modifier_property_;
     int64_t modifier_ = 0;
     int64_t target_number_ = 0;

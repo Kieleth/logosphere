@@ -53,9 +53,18 @@ public:
 
     bool ready() const { return llm_ != nullptr; }
 
+    // Did the transport hand back a failure rather than a story? The
+    // LLM system reports errors as text, and text is what this class
+    // deals in, so the two must be told apart before either is shown
+    // or cached.
+    static bool is_failure(const std::string& response);
+
     // Fire a beat. `on_prose` runs later, on the main thread, when the
     // response arrives - or immediately, if this beat is already
-    // cached. Returns false only when the narrator is not ready.
+    // cached. It is called with an EMPTY string when the request
+    // failed, so the caller releases whatever it was holding rather
+    // than waiting forever. Returns false only when the narrator is
+    // not ready.
     bool narrate(const Beat& beat, uint64_t seed,
                  std::function<void(const std::string&)> on_prose);
 
@@ -74,6 +83,8 @@ public:
                         const Beat& beat, const std::string& prose);
 
     const std::string& lore() const { return lore_; }
+    const std::string& backend() const { return backend_; }
+    const std::string& model() const { return model_; }
 
 private:
     std::string cache_key(const Beat& beat, uint64_t seed) const;
@@ -86,6 +97,11 @@ private:
     // Hash of the whole system prompt, lore included: the identity of
     // the voice. It is part of every cache key.
     std::string                    voice_version_;
+    // Which model wrote this, and where it ran. Part of the cache key,
+    // and worth reporting: prose that arrives in 300ms and prose that
+    // arrives in three seconds are different features.
+    std::string                    backend_;
+    std::string                    model_;
     std::string                    cache_dir_;
 };
 

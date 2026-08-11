@@ -97,6 +97,56 @@ classes:
       - pseudohex_max
       - characteristic_modifier
 
+  CareerThrowEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of a per-career throw table: which career, and the throw
+      it makes [book1/character-creation.md "Career Tables"]. The
+      Commission, Advancement and Re-enlistment rows of the career
+      tables are exactly this, one table per rule.
+
+      A promotion row also carries the rank ladder it moves you along,
+      because succeeding at the throw and taking the new rank's
+      benefits are one rule, and a step consults one table.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      throw_check:
+        required: true
+    slots:
+      - throw_check
+      - track
+
+  CareerTableEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of a per-career table mapping: which career, and the
+      table it rolls on for that kind of training
+      [book1/character-creation.md "Skills and Training"]. The book
+      prints Personal Development, Service Skills, Specialist and Adv
+      Education per career; the character picks one each term.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      rollable_table:
+        required: true
+    slots:
+      - rollable_table
+
+  CareerTrackEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of the rank-track mapping: which career, and the ladder
+      of ranks it has [book1/character-creation.md "Career Tables"
+      Ranks and Skills].
+    annotations:
+      facets: rulebook
+    slot_usage:
+      track:
+        required: true
+    slots:
+      - track
+
   EndCareer:
     is_a: Outcome
     description: >-
@@ -216,6 +266,16 @@ slots:
     description: >-
       The throw to survive a term in it
       [book1/character-creation.md "Career Tables" Survival row].
+  rollable_table:
+    range: RollableTable
+    description: >-
+      The table this row supplies for its career
+      [book1/character-creation.md "Career Tables"].
+  throw_check:
+    range: TaskCheck
+    description: >-
+      The throw this row supplies for its career
+      [book1/character-creation.md "Career Tables"].
   pseudohex_min:
     range: string
     required: true

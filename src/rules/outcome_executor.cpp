@@ -141,9 +141,10 @@ std::vector<kg::EntityRef> matching_parts(
 
 bool read_dice(const kg::KGModule& world, EntityID outcome,
                logosphere::dice::DiceExpression& expression,
-               std::string& error) {
+               std::string& error,
+               const char* slot = "amount_dice") {
     EntityID dice_id = kg::INVALID_ENTITY;
-    if (!parse_entity(world, outcome, "amount_dice", "DiceExpression",
+    if (!parse_entity(world, outcome, slot, "DiceExpression",
                       dice_id, error)) {
         return false;
     }
@@ -323,6 +324,78 @@ bool plan_money(const OutcomeHandlerContext& context, OutcomePlan& plan,
     }
     plan.ops.emplace_back(kg::KGOpSetProperty{
         balances.front(), "balance_amount", std::to_string(next)});
+    return true;
+}
+
+// What a book hands out that is neither money nor a skill: a passage,
+// a weapon, ship shares. Held in a count, because "1D6 Ship Shares" is
+// a thing the material benefits tables actually print, and an absent
+// count means one.
+bool plan_possession(const OutcomeHandlerContext& context, OutcomePlan& plan,
+                     std::string& error) {
+    EntityID possession = kg::INVALID_ENTITY;
+    if (!parse_entity(context.kg, context.outcome, "possession", "Entity",
+                      possession, error)) {
+        return false;
+    }
+    int64_t count = 1;
+    const std::string dice_ref =
+        context.kg.getProperty(context.outcome, "possession_count_dice");
+    const std::string fixed =
+        context.kg.getProperty(context.outcome, "possession_count");
+    if (!dice_ref.empty()) {
+        logosphere::dice::DiceExpression expression;
+        if (!read_dice(context.kg, context.outcome, expression, error,
+                       "possession_count_dice")) {
+            return false;
+        }
+        const auto result = context.dice.roll(expression, context.dice_stream,
+                                              context.purpose);
+        if (result.id == 0) {
+            error = "DiceService rejected the outcome DiceExpression";
+            return false;
+        }
+        count = result.total;
+        plan.roll_ids.push_back(result.id);
+    } else if (!fixed.empty() &&
+               !parse_integer(fixed, "possession_count", count, error)) {
+        return false;
+    }
+
+    const auto holdings = matching_parts(context.kg, plan, context.target,
+                                         "PossessionHolding", "possession",
+                                         possession);
+    if (holdings.size() > 1) {
+        error = "target has duplicate PossessionHolding entities for "
+                "possession " + std::to_string(possession);
+        return false;
+    }
+    if (holdings.empty()) {
+        const std::string alias =
+            "outcome_possession_" + std::to_string(context.outcome);
+        plan.ops.emplace_back(kg::KGOpCreateEntity{
+            "PossessionHolding",
+            {{"possession", std::to_string(possession)},
+             {"possession_count", std::to_string(count)}},
+            alias});
+        plan.ops.emplace_back(kg::KGOpSetRelation{
+            {context.target, ""}, "HAS_PART", {kg::INVALID_ENTITY, alias}});
+        return true;
+    }
+    int64_t current = 0;
+    if (!parse_integer(planned_property(context.kg, plan, holdings.front(),
+                                        "possession_count"),
+                       "PossessionHolding.possession_count", current,
+                       error)) {
+        return false;
+    }
+    int64_t next = 0;
+    if (!checked_add(current, count, next)) {
+        error = "possession count arithmetic overflow";
+        return false;
+    }
+    plan.ops.emplace_back(kg::KGOpSetProperty{
+        holdings.front(), "possession_count", std::to_string(next)});
     return true;
 }
 
@@ -551,6 +624,12 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
             return plan_money(context, plan, true, error);
+        }, error);
+    register_handler(
+        "GainPossession",
+        [](const OutcomeHandlerContext& context, OutcomePlan& plan,
+           std::string& error) {
+            return plan_possession(context, plan, error);
         }, error);
     register_handler(
         "GrantTableRoll",

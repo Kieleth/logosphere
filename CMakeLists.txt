@@ -491,6 +491,17 @@ target_compile_features(test_screen_layout PRIVATE cxx_std_17)
 target_include_directories(test_screen_layout PRIVATE examples/logovger)
 add_test(NAME test_screen_layout COMMAND test_screen_layout)
 
+# The classification audit cannot be quietly skipped: this compares the
+# shipped seed against the shipped audit and fails when extraction has
+# moved and the audit has not been re-run. No network; it reads two
+# files that are both in the repository.
+add_executable(test_classification_audit
+    examples/logovger/test_classification_audit.cpp)
+target_compile_features(test_classification_audit PRIVATE cxx_std_17)
+target_compile_definitions(test_classification_audit
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_classification_audit COMMAND test_classification_audit)
+
 add_headless_test(test_dice_service)
 add_headless_test(test_capability_store)
 add_headless_test(test_kg_reverse_relations)

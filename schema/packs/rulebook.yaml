@@ -255,6 +255,46 @@ classes:
       - key_min_unbounded
       - key_max_unbounded
 
+  SubjectLookupTable:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A table whose row is chosen by WHICH subject the rule concerns,
+      not by a die roll or a score. LookupTable answers "score 12 gives
+      +2"; this answers "the Navy row". Rules that vary by career,
+      class, species or faction all have this shape, which is why it
+      lives here rather than in a game pack.
+
+      The rule owns the table. A career does not carry a pointer to its
+      re-enlistment throw; the re-enlistment RULE carries a table that
+      maps each career to its throw. That direction matters: a seed may
+      point at book content another seed created, but may never write
+      onto it, and the careers are created before their throws.
+
+      Rows hang off it by HAS_PART, each a SubjectLookupEntry subtype
+      declared by the game with the result columns it needs.
+    annotations:
+      facets: rulebook
+    slots: []
+
+  SubjectLookupEntry:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Cited
+    description: >-
+      Abstract base for one row of a SubjectLookupTable, keyed by the
+      entity the row is about. A concrete game-declared subtype carries
+      the result columns.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      subject:
+        required: true
+    slots:
+      - subject
+
   Outcome:
     is_a: Entity
     abstract: true
@@ -542,6 +582,7 @@ classes:
     slots:
       - step_index
       - primitive_ref
+      - subject_table
 
   StepRoute:
     is_a: Entity
@@ -965,6 +1006,17 @@ slots:
   option_label:
     range: string
     description: Cited label presented for this alternative.
+  subject:
+    range: Entity
+    description: >-
+      The entity this row is about: the career, class or species whose
+      values the row carries.
+  subject_table:
+    range: SubjectLookupTable
+    description: >-
+      A table this step consults, keyed by the subject in play. Named
+      here so the step reaches its data through the schema rather than
+      by matching a name in code.
   step_title:
     range: string
     description: >-

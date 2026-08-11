@@ -1,312 +1,498 @@
 {
-  "source": {
-    "file": "book1/character-creation.md",
-    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+ "source": {
+  "file": "book1/character-creation.md",
+  "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+ },
+ "layer": "cepheus",
+ "invariants": {
+  "count_of_type": {
+   "Procedure": 1,
+   "ProcedureStep": 14,
+   "StepRoute": 10
   },
-  "layer": "cepheus",
-  "invariants": {
-    "count_of_type": {
-      "Procedure": 1,
-      "ProcedureStep": 9,
-      "StepRoute": 6
-    },
-    "unique_name_per_type": [
-      "Procedure",
-      "ProcedureStep",
-      "StepRoute"
-    ]
-  },
-  "ops": [
-    {
-      "op": "create_entity",
-      "type": "Procedure",
-      "as": "@basic_chargen",
-      "properties": {
-        "name": "basic_chargen",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Character Creation Checklist",
-        "source_kind": "heading"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@generate_characteristics",
-      "properties": {
-        "name": "generate_characteristics",
-        "step_index": "0",
-        "primitive_ref": "generate_characteristics",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Roll your six characteristics using 2D6, and place them in order on your character sheet."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@choose_career",
-      "properties": {
-        "name": "choose_career",
-        "step_index": "1",
-        "primitive_ref": "choose_career",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Choose a career. You cannot choose a career you've already left except Drifter."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@roll_qualification",
-      "properties": {
-        "name": "roll_qualification",
-        "step_index": "2",
-        "primitive_ref": "roll_qualification",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Roll to qualify for that career, as indicated in the description of the career."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@roll_survival",
-      "properties": {
-        "name": "roll_survival",
-        "step_index": "3",
-        "primitive_ref": "roll_survival",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Roll for survival, as indicated in the description of the career."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@roll_training",
-      "properties": {
-        "name": "roll_training",
-        "step_index": "4",
-        "primitive_ref": "roll_training",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Choose one of the Skills and Training tables for this career and roll on it."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@advance_term",
-      "properties": {
-        "name": "advance_term",
-        "step_index": "5",
-        "primitive_ref": "advance_term",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "Increase your age by 4 years."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@choose_term_end",
-      "properties": {
-        "name": "choose_term_end",
-        "step_index": "6",
-        "primitive_ref": "choose_term_end",
-        "source_section": "Reenlistment and Retirement",
-        "source_quote": "At the end of each term, the character must decide that they wish to continue on their career path or if they wish to muster out."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@finish_character",
-      "properties": {
-        "name": "finish_character",
-        "step_index": "7",
-        "primitive_ref": "finish_character",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "If you wish to leave this career, go to step 10."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "ProcedureStep",
-      "as": "@draft_or_drifter",
-      "properties": {
-        "name": "draft or drifter",
-        "step_index": "8",
-        "primitive_ref": "draft_or_drifter",
-        "source_file": "book1/character-creation.md",
-        "source_section": "Qualifying and the Draft",
-        "source_kind": "sentence",
-        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "StepRoute",
-      "as": "@qualification_failed",
-      "properties": {
-        "name": "qualification_failed",
-        "route_label": "failed",
-        "next_step": "@draft_or_drifter",
-        "source_section": "Qualifying and the Draft",
-        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term.",
-        "source_file": "book1/character-creation.md",
-        "source_kind": "sentence"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "StepRoute",
-      "as": "@survival_failed",
-      "properties": {
-        "name": "survival_failed",
-        "route_label": "failed",
-        "next_step": "@finish_character",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "If you did not succeed, you have died."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "StepRoute",
-      "as": "@continue_career",
-      "properties": {
-        "name": "continue_career",
-        "route_label": "continue",
-        "next_step": "@roll_survival",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "If you wish to continue in this career, go to step 5."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "StepRoute",
-      "as": "@muster_out",
-      "properties": {
-        "name": "muster_out",
-        "route_label": "muster_out",
-        "next_step": "@choose_career",
-        "source_section": "Character Creation Checklist",
-        "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character.",
-        "source_kind": "sentence",
-        "source_file": "book1/character-creation.md"
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@generate_characteristics"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@choose_career"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@roll_qualification"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@draft_or_drifter"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@roll_survival"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@roll_training"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@advance_term"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@choose_term_end"
-    },
-    {
-      "op": "set_relation",
-      "from": "@basic_chargen",
-      "relation": "HAS_PART",
-      "to": "@finish_character"
-    },
-    {
-      "op": "set_relation",
-      "from": "@roll_qualification",
-      "relation": "HAS_PART",
-      "to": "@qualification_failed"
-    },
-    {
-      "op": "set_relation",
-      "from": "@roll_survival",
-      "relation": "HAS_PART",
-      "to": "@survival_failed"
-    },
-    {
-      "op": "set_relation",
-      "from": "@choose_term_end",
-      "relation": "HAS_PART",
-      "to": "@continue_career"
-    },
-    {
-      "op": "set_relation",
-      "from": "@choose_term_end",
-      "relation": "HAS_PART",
-      "to": "@muster_out"
-    },
-    {
-      "op": "create_entity",
-      "type": "StepRoute",
-      "as": "@took_the_term",
-      "properties": {
-        "name": "took the term",
-        "route_label": "took_it",
-        "next_step": "@roll_survival",
-        "source_file": "book1/character-creation.md",
-        "source_section": "Qualifying and the Draft",
-        "source_kind": "sentence",
-        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@draft_or_drifter",
-      "relation": "HAS_PART",
-      "to": "@took_the_term"
-    },
-    {
-      "op": "create_entity",
-      "type": "StepRoute",
-      "as": "@chose_to_finish",
-      "properties": {
-        "name": "chose to finish",
-        "route_label": "finish",
-        "next_step": "@finish_character",
-        "source_file": "book1/character-creation.md",
-        "source_section": "Character Creation Checklist",
-        "source_kind": "sentence",
-        "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character."
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@choose_career",
-      "relation": "HAS_PART",
-      "to": "@chose_to_finish"
-    }
+  "unique_name_per_type": [
+   "Procedure",
+   "ProcedureStep",
+   "StepRoute"
   ]
+ },
+ "ops": [
+  {
+   "op": "create_entity",
+   "type": "Procedure",
+   "as": "@basic_chargen",
+   "properties": {
+    "name": "basic_chargen",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Character Creation Checklist",
+    "source_kind": "heading"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@generate_characteristics",
+   "properties": {
+    "name": "generate_characteristics",
+    "step_index": "0",
+    "primitive_ref": "generate_characteristics",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Roll your six characteristics using 2D6, and place them in order on your character sheet."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@choose_career",
+   "properties": {
+    "name": "choose_career",
+    "step_index": "1",
+    "primitive_ref": "choose_career",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Choose a career. You cannot choose a career you've already left except Drifter."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_qualification",
+   "properties": {
+    "name": "roll_qualification",
+    "step_index": "2",
+    "primitive_ref": "roll_qualification",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Roll to qualify for that career, as indicated in the description of the career."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_survival",
+   "properties": {
+    "name": "roll_survival",
+    "step_index": "4",
+    "primitive_ref": "roll_survival",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Roll for survival, as indicated in the description of the career."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_training",
+   "properties": {
+    "name": "roll_training",
+    "step_index": "7",
+    "primitive_ref": "roll_training",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Choose one of the Skills and Training tables for this career and roll on it.",
+    "subject_table": "@@SubjectLookupTable:training table by career"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@advance_term",
+   "properties": {
+    "name": "advance_term",
+    "step_index": "8",
+    "primitive_ref": "advance_term",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "Increase your age by 4 years."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@choose_term_end",
+   "properties": {
+    "name": "choose_term_end",
+    "step_index": "10",
+    "primitive_ref": "choose_term_end",
+    "source_section": "Reenlistment and Retirement",
+    "source_quote": "At the end of each term, the character must decide that they wish to continue on their career path or if they wish to muster out."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@finish_character",
+   "properties": {
+    "name": "finish_character",
+    "step_index": "12",
+    "primitive_ref": "finish_character",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "If you wish to leave this career, go to step 10."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@draft_or_drifter",
+   "properties": {
+    "name": "draft or drifter",
+    "step_index": "13",
+    "primitive_ref": "draft_or_drifter",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Qualifying and the Draft",
+    "source_kind": "sentence",
+    "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@basic_training",
+   "properties": {
+    "name": "basic_training",
+    "step_index": "3",
+    "primitive_ref": "basic_training",
+    "subject_table": "@@SubjectLookupTable:training table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "For your first term in your first career, you get every skill in the service skills table at level 0."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@basic_training"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_benefits",
+   "properties": {
+    "name": "muster_out",
+    "step_index": "11",
+    "primitive_ref": "muster_out",
+    "subject_table": "@@SubjectLookupTable:benefit table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_benefits"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@qualification_failed",
+   "properties": {
+    "name": "qualification_failed",
+    "route_label": "failed",
+    "next_step": "@draft_or_drifter",
+    "source_section": "Qualifying and the Draft",
+    "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term.",
+    "source_file": "book1/character-creation.md",
+    "source_kind": "sentence"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@survival_failed",
+   "properties": {
+    "name": "survival_failed",
+    "route_label": "failed",
+    "next_step": "@finish_character",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "If you did not succeed, you have died."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@continue_career",
+   "properties": {
+    "name": "continue_career",
+    "route_label": "continue",
+    "next_step": "@roll_survival",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "If you wish to continue in this career, go to step 5."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@muster_out",
+   "properties": {
+    "name": "muster_out",
+    "route_label": "muster_out",
+    "next_step": "@roll_benefits",
+    "source_section": "Character Creation Checklist",
+    "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character.",
+    "source_kind": "sentence",
+    "source_file": "book1/character-creation.md"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@generate_characteristics"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@choose_career"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_qualification"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@draft_or_drifter"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_survival"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_training"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@advance_term"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@choose_term_end"
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@finish_character"
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_qualification",
+   "relation": "HAS_PART",
+   "to": "@qualification_failed"
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_survival",
+   "relation": "HAS_PART",
+   "to": "@survival_failed"
+  },
+  {
+   "op": "set_relation",
+   "from": "@choose_term_end",
+   "relation": "HAS_PART",
+   "to": "@continue_career"
+  },
+  {
+   "op": "set_relation",
+   "from": "@choose_term_end",
+   "relation": "HAS_PART",
+   "to": "@muster_out"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@took_the_term",
+   "properties": {
+    "name": "took the term",
+    "route_label": "took_it",
+    "next_step": "@basic_training",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Qualifying and the Draft",
+    "source_kind": "sentence",
+    "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@draft_or_drifter",
+   "relation": "HAS_PART",
+   "to": "@took_the_term"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@chose_to_finish",
+   "properties": {
+    "name": "chose to finish",
+    "route_label": "finish",
+    "next_step": "@finish_character",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@choose_career",
+   "relation": "HAS_PART",
+   "to": "@chose_to_finish"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_reenlistment",
+   "properties": {
+    "name": "roll_reenlistment",
+    "step_index": "9",
+    "primitive_ref": "roll_reenlistment",
+    "subject_table": "@@SubjectLookupTable:reenlistment throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "If continuation is desired, the character must make a successful Reenlistment check as listed for their current profession or service."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_reenlistment"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@reenlist_forced",
+   "properties": {
+    "name": "forced to serve another term",
+    "route_label": "forced",
+    "next_step": "@roll_survival",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "If the character rolls a natural 12, they cannot leave their current career and must continue for another term."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_reenlistment",
+   "relation": "HAS_PART",
+   "to": "@reenlist_forced"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@reenlist_refused",
+   "properties": {
+    "name": "refused re-enlistment",
+    "route_label": "must_leave",
+    "next_step": "@roll_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "If the check is not successful, then they cannot reenlist and the character must leave their current career."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_reenlistment",
+   "relation": "HAS_PART",
+   "to": "@reenlist_refused"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@reenlist_allowed",
+   "properties": {
+    "name": "free to choose",
+    "route_label": "may_choose",
+    "next_step": "@choose_term_end",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "If continuation is desired, the character must make a successful Reenlistment check as listed for their current profession or service."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_reenlistment",
+   "relation": "HAS_PART",
+   "to": "@reenlist_allowed"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_commission",
+   "properties": {
+    "name": "roll_commission",
+    "step_index": "5",
+    "primitive_ref": "roll_commission",
+    "subject_table": "@@SubjectLookupTable:commission throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "If your career offers a Commission check and you are Rank 0, you can choose to roll for Commission."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_commission"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_advancement",
+   "properties": {
+    "name": "roll_advancement",
+    "step_index": "6",
+    "primitive_ref": "roll_advancement",
+    "subject_table": "@@SubjectLookupTable:advancement throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "If your career offers an Advancement check and you are Rank 1 or higher, you can choose to roll for Advancement."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_advancement"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@after_benefits",
+   "properties": {
+    "name": "benefits taken",
+    "route_label": "continue",
+    "next_step": "@choose_career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_benefits",
+   "relation": "HAS_PART",
+   "to": "@after_benefits"
+  }
+ ]
 }

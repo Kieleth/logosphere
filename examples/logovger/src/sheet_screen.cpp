@@ -1,6 +1,7 @@
 #include "sheet_screen.h"
 
 #include <algorithm>
+#include <map>
 #include <cstring>
 #include <sstream>
 
@@ -163,7 +164,7 @@ void SheetScreen::build(UISystem& ui, int screen_w, int screen_h) {
     sy += kPad;
     auto* skills_title = make_label(right_, kPad, sy, right_w - 2 * kPad,
                                     200, 190, 150);
-    skills_title->set_text("SKILLS   (click one to read it)");
+    skills_title->set_text("SKILLS AND HOLDINGS   (click a skill)");
     sy += kLine + 2;
 
     // A seven-term life can learn more skills than any fixed run of
@@ -503,6 +504,16 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
     } else {
         set_stat(i++, "survives on", "-", kg::INVALID_ENTITY);
     }
+    // Rank, and what the years paid. Promotions and mustering out
+    // happen in the log; without these they scroll past and are gone.
+    set_stat(i++, "Rank",
+             s.rank_title.empty()
+                 ? std::to_string(s.rank)
+                 : std::to_string(s.rank) + "  " + s.rank_title,
+             kg::INVALID_ENTITY);
+    set_stat(i++, "Credits",
+             s.credits == 0 ? "-" : "Cr" + std::to_string(s.credits),
+             kg::INVALID_ENTITY);
     set_stat(i++, "Age", std::to_string(s.age_years), kg::INVALID_ENTITY);
     set_stat(i++, "Terms", std::to_string(s.terms_served), kg::INVALID_ENTITY);
 
@@ -516,8 +527,18 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
         const auto name = kg.getProperty(skill, "name");
         if (name.empty()) continue;
         const auto level = kg.getProperty(part, "skill_level");
-        skill_rows.push_back({name, name, "-" + (level.empty() ? "1" : level)});
+        // "Admin-1" is how the book writes a skill and its level: one
+        // token. Splitting it across the two columns left a bare "-1"
+        // sitting in the second, which reads as a minus sign rather
+        // than as part of the name.
+        skill_rows.push_back(
+            {name, name + "-" + (level.empty() ? "0" : level), ""});
     }
+    // What they own sits with what they know: both are things the
+    // character walks around with. A holding carries no key, so
+    // clicking it asks the book nothing rather than asking wrongly.
+    for (const auto& held : s.possessions)
+        skill_rows.push_back({"", held, "held"});
     if (skill_rows.empty())
         skill_rows.push_back({"", "(none yet)", ""});
     if (skills_list_) skills_list_->set_rows(std::move(skill_rows));
@@ -545,6 +566,84 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
     for (const auto& c : session.choices())
         rows.push_back({c.key, renderable(c.label), renderable(c.detail)});
     choices_->set_rows(std::move(rows));
+}
+
+void SheetScreen::inspect_entity(kg::KGModule& kg, kg::EntityID id) {
+    kg_ = &kg;
+    if (id == kg::INVALID_ENTITY) return;
+    const std::string type = kg.getType(id);
+    if (kg.getRegistry().isSubtypeOf(type, "Career")) {
+        inspect_career(kg, kg.getProperty(id, "name"));
+        return;
+    }
+    if (kg.getRegistry().isSubtypeOf(type, "Skill")) {
+        show_skill(kg, kg.getProperty(id, "name"));
+        return;
+    }
+    if (kg.getRegistry().isSubtypeOf(type, "TaskCheck")) {
+        for (auto* b : teaches_buttons_) b->set_visible(false);
+        refresh_back();
+        size_t at = 0;
+        auto say = [&](const std::string& text, uint8_t r, uint8_t g,
+                       uint8_t b) { write_prov(at, text, r, g, b); };
+        const std::string attribute = kg.getProperty(id, "attribute_ref");
+        say(kg.getProperty(id, "name") + " -- the throw", 235, 235, 210);
+        say("  " + (attribute.empty()
+                        ? std::string("no characteristic modifies this")
+                        : attribute) +
+                " " + kg.getProperty(id, "target_number") + "+ on " +
+                kg.getProperty(
+                    static_cast<kg::EntityID>(std::stoul(
+                        kg.getProperty(id, "dice"))), "name"),
+            200, 230, 210);
+        const auto cited = provenance_of(kg, id, kg.getProperty(id, "name"));
+        if (!cited.address.empty())
+            say("  source:  " + cited.address, 150, 200, 170);
+        if (!cited.detail.empty())
+            say("  address: " + cited.detail, 150, 200, 170);
+        if (cited.resolved)
+            say("  the book says:  \"" + cited.says + "\"", 190, 240, 200);
+        while (at < provenance_lines_.size())
+            provenance_lines_[at++]->set_text("");
+        return;
+    }
+    if (!kg.getRegistry().isSubtypeOf(type, "RollableTable")) return;
+
+    // A table you are about to roll on: show every result it can give,
+    // in roll order, so choosing is reading rather than guessing.
+    for (auto* b : teaches_buttons_) b->set_visible(false);
+    refresh_back();
+    size_t i = 0;
+    auto line = [&](const std::string& text, uint8_t r, uint8_t g,
+                    uint8_t b) { write_prov(i, text, r, g, b); };
+
+    line(kg.getProperty(id, "name") + " -- what it can give you",
+         235, 235, 210);
+    std::map<int, std::string> rows;
+    for (auto row : kg.getRelated(id, "HAS_PART")) {
+        const std::string at = kg.getProperty(row, "roll_min");
+        const std::string outcome_ref = kg.getProperty(row, "outcome");
+        if (at.empty() || outcome_ref.empty()) continue;
+        std::string what = kg.getProperty(
+            static_cast<kg::EntityID>(std::stoul(outcome_ref)), "name");
+        const auto cut = what.rfind(": ");
+        if (cut != std::string::npos) what = what.substr(cut + 2);
+        rows[std::stoi(at)] = what.empty() ? std::string("nothing") : what;
+    }
+    std::string listed;
+    for (const auto& [roll, what] : rows) {
+        listed += (listed.empty() ? "" : "    ") + std::to_string(roll) +
+                  "  " + what;
+    }
+    line("  " + listed, 200, 230, 210);
+
+    const auto provenance = provenance_of(kg, id, kg.getProperty(id, "name"));
+    if (!provenance.address.empty())
+        line("  source:  " + provenance.address, 150, 200, 170);
+    if (provenance.resolved) {
+        line("  the book says:  \"" + provenance.says + "\"", 190, 240, 200);
+    }
+    while (i < provenance_lines_.size()) provenance_lines_[i++]->set_text("");
 }
 
 void SheetScreen::inspect_career(kg::KGModule& kg, const std::string& name) {

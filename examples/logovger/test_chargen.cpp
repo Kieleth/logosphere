@@ -143,7 +143,12 @@ void test_a_life_is_generated() {
     logosphere::dice::DiceService dice;
     logovger::ChargenRequest req;
     req.career_name = "Agent";
-    req.seed        = 1;     // a life that qualifies and serves out
+    // Seed 28, not 1. Re-enlistment is a throw now rather than a
+    // decision, so most lives end when the book ends them and seed 1
+    // is refused after a single term. This one runs the full path:
+    // four terms, four gains, and one skill reached twice, which the
+    // repeat assertion below needs.
+    req.seed        = 28;
     req.max_terms   = 4;
 
     logovger::CharacterSheet sheet;
@@ -195,28 +200,39 @@ void test_a_life_is_generated() {
 
     // Skills gained are SkillRatings hanging off the character, and
     // each points at a Skill that came from the seed.
+    // Ratings are no longer bounded by gains: basic training grants
+    // every service skill at level 0 on entering a first career, and
+    // those are held without ever having been rolled for. What must
+    // hold is that a skill is held ONCE, whatever raised it.
     size_t ratings = 0;
     bool refs_resolve = true;
+    bool one_rating_each = true;
+    std::vector<std::string> held;
     for (auto part : kg.getRelated(sheet.id, "HAS_PART")) {
         const auto ref = kg.getProperty(part, "skill");
         if (ref.empty()) continue;
         ++ratings;
+        if (std::find(held.begin(), held.end(), ref) != held.end()) {
+            one_rating_each = false;
+        }
+        held.push_back(ref);
         const auto skill = static_cast<kg::EntityID>(std::stoul(ref));
         if (kg.getProperty(skill, "name").empty()) refs_resolve = false;
     }
-    CHECK(ratings <= sheet.skills.size() && refs_resolve && ratings > 0,
-          "each held skill is one SkillRating pointing at a real Skill");
+    CHECK(refs_resolve && one_rating_each && ratings > 0,
+          "each held skill is exactly one SkillRating pointing at a real "
+          "Skill");
 
     // The book: gaining a skill you already have raises it instead of
-    // granting a second copy. This life gained four skills across four
-    // terms with repeats, so it must hold FEWER ratings than gains,
-    // and one of them must be above level 1.
+    // granting a second copy. This life gained a skill it already held,
+    // so some rating must stand above level 1 while each skill is still
+    // held once, which the check above proves.
     int max_level = 0;
     for (auto part : kg.getRelated(sheet.id, "HAS_PART")) {
         const auto lv = kg.getProperty(part, "skill_level");
         if (!lv.empty()) max_level = std::max(max_level, std::stoi(lv));
     }
-    CHECK(ratings < sheet.skills.size() && max_level >= 2,
+    CHECK(one_rating_each && max_level >= 2,
           "a repeated skill was RAISED, not duplicated (highest level "
               + std::to_string(max_level) + " across " +
               std::to_string(ratings) + " ratings from " +
@@ -274,22 +290,26 @@ void test_missing_rules_fail_loudly() {
           "a world with no procedure refuses before creating state: "
               + error);
 
+    // The procedure can no longer be loaded on its own: its
+    // re-enlistment step names the table that maps each career to its
+    // throw, and that table lives with the career data. So the
+    // "procedure but no careers" world is not merely useless now, it
+    // is unbuildable, and the refusal arrives at LOAD time naming
+    // exactly what is missing rather than at play time. That is a
+    // stronger guarantee than the one this case used to make.
     const std::string procedure_json = slurp(
         game_path("seeds/cepheus_basic_chargen_procedure.json"));
     auto procedure_seed = kg::parse_seed_envelope(procedure_json);
     kg::SeedLoadReport procedure_load;
-    CHECK(procedure_seed.ok() &&
-              kg::load_seed(procedure_seed.seed, empty, procedure_load),
-          "the missing-career control loads only the procedure");
-    const auto max_terms = empty.createEntity("RuleConstant");
-    empty.setProperty(max_terms, "name", "max_terms");
-    empty.setProperty(max_terms, "constant_value", "7");
-    error.clear();
-    const bool no_careers =
-        logovger::run_chargen(req, empty, dice, sheet, error);
-    CHECK(!no_careers && error.find("no Career") != std::string::npos,
-          "a world with the procedure but no careers fails explicitly: " +
-              error);
+    const bool loaded_alone =
+        procedure_seed.ok() &&
+        kg::load_seed(procedure_seed.seed, empty, procedure_load);
+    CHECK(!loaded_alone &&
+              procedure_load.error.find("by career") != std::string::npos,
+          "the procedure refuses to load without the career data it "
+          "consults, and names it: " + procedure_load.error);
+    CHECK(empty.findByType("Character").empty(),
+          "and the refused load leaves nothing behind");
 
     kg::KGModule world(game_registry());
     std::string why;
@@ -299,6 +319,125 @@ void test_missing_rules_fail_loudly() {
     CHECK(!ok2 && error.find("Xenolinguist") != std::string::npos,
           "and a career that is not in the book at all is refused by "
           "name, not silently substituted");
+}
+
+// Leaving a career is not leaving the trade. Mustering out routed by
+// falling through to the next step index, which was finish_character,
+// so a character with five terms behind them and two still available
+// was retired the moment they left their first career. The step routes
+// explicitly now, and this is the case that says so.
+// "A character gets one Benefit Roll for every full term served in
+// THAT career", and rank is the rank you reached in it. Both were
+// being counted across the whole life, so a third career paid for
+// years spent in the first two and a Drifter kept a commission earned
+// in the Navy.
+void test_a_career_pays_only_for_its_own_years() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the benefits world loads: " + why);
+    if (!why.empty()) return;
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    std::string error;
+    CHECK(session.begin(28, error), "a life begins: " + error);
+
+    int careers_entered = 0;
+    int terms_at_last_entry = 0;
+    bool rank_carried_over = false;
+    int benefit_rolls_offered = 0;
+    int terms_in_that_career = 0;
+
+    for (int step = 0; step < 500 && !session.finished(); ++step) {
+        const auto& choices = session.choices();
+        if (choices.empty()) break;
+        const auto& sheet = session.sheet();
+
+        // Entering a career: rank must be back to nothing.
+        if (static_cast<int>(sheet.careers_served.size()) > careers_entered) {
+            careers_entered = static_cast<int>(sheet.careers_served.size());
+            terms_at_last_entry = sheet.terms_served;
+            if (careers_entered > 1 && sheet.rank != 0) {
+                rank_carried_over = true;
+            }
+        }
+        // Benefits: count the offers, and the terms this career ran.
+        if (session.prompt().find("benefit roll(s) left") !=
+            std::string::npos) {
+            if (benefit_rolls_offered == 0) {
+                terms_in_that_career =
+                    sheet.terms_served - terms_at_last_entry;
+            }
+            ++benefit_rolls_offered;
+        }
+
+        std::string take = choices.front().key;
+        for (const auto& choice : choices) {
+            if (choice.label == "Muster out") take = choice.key;
+        }
+        if (!session.choose(take, error)) break;
+        if (benefit_rolls_offered > 0 &&
+            session.prompt().find("benefit roll(s) left") ==
+                std::string::npos) {
+            break;                      // that payout is done
+        }
+    }
+
+    CHECK(!rank_carried_over,
+          "rank starts again at 0 in a new career rather than carrying "
+          "the last one's commission over");
+    CHECK(benefit_rolls_offered > 0,
+          "a career that ended paid something: " +
+              std::to_string(benefit_rolls_offered) + " roll(s)");
+    // Rank bonuses can only ADD, so the payout is never fewer rolls
+    // than the terms served in that career, and never the whole life's
+    // terms when the career was shorter than the life.
+    CHECK(benefit_rolls_offered >= terms_in_that_career,
+          "at least one roll per term served in that career (" +
+              std::to_string(benefit_rolls_offered) + " for " +
+              std::to_string(terms_in_that_career) + " term(s))");
+    std::cout << "  [measure] paid " << benefit_rolls_offered
+              << " benefit roll(s) for " << terms_in_that_career
+              << " term(s) in that career\n";
+}
+
+void test_leaving_a_career_offers_another_one() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the career-change world loads: " + why);
+    if (!why.empty()) return;
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    std::string error;
+    CHECK(session.begin(28, error), "a life begins: " + error);
+
+    // Serve, then LEAVE. That is the case in question: a character
+    // with terms still available who is finished with one career.
+    // Taking the first option every time would serve to the cap and
+    // never exercise it.
+    bool offered_another_career = false;
+    for (int step = 0; step < 400 && !session.finished(); ++step) {
+        const auto& choices = session.choices();
+        if (choices.empty()) break;
+        // Careers are offered by name, and Drifter is always there.
+        for (const auto& choice : choices) {
+            if (choice.label == "Drifter" && session.sheet().terms_served > 0) {
+                offered_another_career = true;
+            }
+        }
+        if (offered_another_career) break;
+
+        std::string take = choices.front().key;
+        for (const auto& choice : choices) {
+            if (choice.label == "Muster out") take = choice.key;
+        }
+        if (!session.choose(take, error)) break;
+    }
+    CHECK(offered_another_career,
+          "after a career ends, another one is offered rather than the "
+          "character being retired: " +
+              std::string(session.finished() ? "session finished" : error));
 }
 
 void test_missing_rule_constant_never_falls_back() {
@@ -507,7 +646,11 @@ void test_skill_outcome_parameters_drive_the_executor() {
     }
 
     logosphere::dice::DiceService changed_dice;
-    logovger::ChargenRequest request{"Agent", 1, 4};
+    // Seed 28: four terms, four gains, three ratings, one of them at
+    // level 2. That repeat is what this case measures, and it takes a
+    // specific life to produce now that promotions buy extra training
+    // rolls and each roll may land on a different skill.
+    logovger::ChargenRequest request{"Agent", 28, 4};
     logovger::CharacterSheet changed_sheet;
     std::string error;
     const bool changed_ok = logovger::run_chargen(
@@ -548,9 +691,18 @@ void test_skill_table_dice_data_drives_selection() {
           "Agent has a skills and training RollableTable");
     if (table == kg::INVALID_ENTITY) return;
 
-    const auto dice_ref = world.getProperty(table, "dice");
-    const auto dice_id = static_cast<kg::EntityID>(std::stoul(dice_ref));
-    world.setProperty(dice_id, "dice_modifier", "6");
+    // Point this table at DIFFERENT dice rather than editing the ones
+    // it shares. One seed owns "1D6" and every table in the book
+    // references it, so mutating that entity changes the benefit
+    // tables too and they stop covering their own rows. Swapping the
+    // reference is also the truer test: it proves the table's dice
+    // slot drives selection.
+    const auto shifted = world.createEntity("DiceExpression");
+    world.setProperty(shifted, "name", "1D6+6 (test)");
+    world.setProperty(shifted, "dice_count", "1");
+    world.setProperty(shifted, "dice_sides", "6");
+    world.setProperty(shifted, "dice_modifier", "6");
+    world.setProperty(table, "dice", std::to_string(shifted));
     for (const auto row : world.getRelated(table, "HAS_PART")) {
         world.setProperty(
             row, "roll_min",
@@ -677,7 +829,11 @@ void test_procedure_data_drives_chargen_control_flow() {
     CHECK(redirected, "the term decision carries a continue route in data");
 
     logosphere::dice::DiceService dice;
-    logovger::ChargenRequest request{"Agent", 1, 4};
+    // Seed 28: four terms, four gains, three ratings, one of them at
+    // level 2. That repeat is what this case measures, and it takes a
+    // specific life to produce now that promotions buy extra training
+    // rolls and each roll may land on a different skill.
+    logovger::ChargenRequest request{"Agent", 28, 4};
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(
@@ -708,7 +864,11 @@ void test_unknown_runtime_primitive_fails_before_character_state() {
     const auto characters_before = world.findByType("Character").size();
 
     logosphere::dice::DiceService dice;
-    logovger::ChargenRequest request{"Agent", 1, 4};
+    // Seed 28: four terms, four gains, three ratings, one of them at
+    // level 2. That repeat is what this case measures, and it takes a
+    // specific life to produce now that promotions buy extra training
+    // rolls and each roll may land on a different skill.
+    logovger::ChargenRequest request{"Agent", 28, 4};
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(
@@ -728,6 +888,8 @@ int main() {
     test_a_life_is_generated();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
+    test_a_career_pays_only_for_its_own_years();
+    test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();

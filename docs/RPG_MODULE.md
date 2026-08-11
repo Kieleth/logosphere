@@ -521,6 +521,40 @@ Then the parts that finish a character.
    has a chargen step for it. The rules and the setting disagree, and
    the setting is the owner's. Needs a call.
 
+## Ingestion: who reads, who judges, who checks (decided 2026-08-11)
+
+**Transcription is mechanical. Meaning is judged. Judgement is
+audited.** All three, or the pipeline is not what it claims to be.
+
+The extractor reads the source by splitting tables and copying bytes,
+because a model that retypes a number produces a rule that is wrong
+while the prose still reads fine, and byte-exact citations only work
+if the bytes were copied. It classifies each cell by form, and refuses
+anything that does not resolve rather than guessing. That refusal is
+what found four defects in the SRD.
+
+But a classification checked only by the regexes that produced it is
+not checked. So `tools/audit_classifications.py` has a model classify
+the same values independently, without seeing the extractor's answer,
+and disagreement fails the run. A disagreement may be settled by a
+person, in writing, with the reason recorded in the tool; it may not
+be waved away, because the point is that a difference of reading
+reaches a human once.
+
+**And the audit cannot be forgotten**, which is the part that matters.
+A tool nobody runs is worse than no tool, because its existence reads
+as a guarantee. `test_classification_audit` compares the shipped seed
+against the shipped audit and fails when a cell value has never been
+audited, when a value is classified two ways, or when the audit was
+taken against a different revision of the source. It needs no network.
+Change extraction, skip the audit, and the suite goes red.
+
+The first run found one disagreement: the Barbarian's first Cash
+Benefits row prints `0`, which the audit reads as nothing and the
+extractor as money. Kept as money, because the cell is a cash result
+whose amount is zero and a benefit roll was spent to get it. That
+reasoning is in the tool, and any new disagreement still fails.
+
 ## Decisions log
 
 | Date | Decision |
@@ -609,6 +643,9 @@ above and removed here._
    upgrade only on evidence it falls short.
 
 ## Pointers
+
+- Voyager divergences (deliberate, not corrections):
+  examples/logovger/docs/VOYAGER_EXPANSION.md
 
 - Reusable ontology-native rule-language contract: docs/RULE_LANGUAGE.md
 - Absorption contract: examples/logovger/docs/ABSORPTION_INVENTORY.md

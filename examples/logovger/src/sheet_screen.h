@@ -112,6 +112,11 @@ public:
     // walk back out the way you came.
     void go_back();
 
+    // Read whatever an option refers to before taking it: a table's
+    // six results, a career's terms, a skill's entry. Dispatches on
+    // what the thing actually is.
+    void inspect_entity(kg::KGModule& kg, kg::EntityID id);
+
     // What a career asks of you and what it will teach you, read out
     // of the graph: its two throws with their citations, and the six
     // skills its service table can grant.

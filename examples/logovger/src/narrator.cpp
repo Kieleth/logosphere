@@ -12,6 +12,29 @@
 namespace logovger {
 namespace {
 
+// Haiku by default. A beat is one or two sentences written from facts
+// that are already decided, which is work a small fast model does
+// well, and the whole point is that prose arrives while the dice are
+// still on screen.
+constexpr const char* kModel = "claude-haiku-4-5-20251001";
+
+// A local model instead, for latency and for control over when the
+// voice changes under you:
+//
+//   LOGOVGER_LLM=mlx  LOGOVGER_LLM_MODEL=qwen2.5-7b-instruct \
+//   LOGOVGER_LLM_URL=http://localhost:8080
+//
+// Anything else, or unset, uses the API. The choice and the model both
+// go into the cache key, so switching rewrites the prose rather than
+// serving what the other one wrote.
+constexpr const char* kLocalUrl = "http://localhost:8080";
+constexpr const char* kLocalModel = "qwen2.5-7b-instruct";
+
+std::string env_or(const char* name, const char* fallback) {
+    const char* value = std::getenv(name);
+    return (value && *value) ? std::string(value) : std::string(fallback);
+}
+
 std::string slurp(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return "";
@@ -55,7 +78,18 @@ bool Narrator::initialize(const std::string& lore_path, std::string& error) {
     }
 
     llm_ = std::make_unique<Logosphere::LLMSystemHTTP>();
-    if (!llm_->initialize_anthropic(key, "claude-sonnet-5")) {
+    const bool local = env_or("LOGOVGER_LLM", "") == "mlx";
+    backend_ = local ? "mlx" : "anthropic";
+    model_ = env_or("LOGOVGER_LLM_MODEL", local ? kLocalModel : kModel);
+    if (local) {
+        const std::string url = env_or("LOGOVGER_LLM_URL", kLocalUrl);
+        if (!llm_->initialize_mlx(url, model_)) {
+            error = "no local model answered at " + url +
+                    ". Start one (mlx_lm.server) or unset LOGOVGER_LLM.";
+            llm_.reset();
+            return false;
+        }
+    } else if (!llm_->initialize_anthropic(key, model_)) {
         error = "could not reach the Anthropic API";
         llm_.reset();
         return false;
@@ -81,10 +115,20 @@ bool Narrator::initialize(const std::string& lore_path, std::string& error) {
         "setting below.\n"
         "- Never say what happens next. You narrate what has happened.\n"
         "- NEVER name a game mechanic. No dice, no rolls, no numbers, "
-        "no 'Dex 9', no modifiers, no targets, no snake eyes, no "
-        "tables. The reader is looking at the numbers already; your "
-        "job is the part the numbers cannot say. Write as if the "
-        "rulebook does not exist.\n"
+        "no modifiers, no targets, no tables. NEVER name a "
+        "characteristic, in full or abbreviated: not Strength, not "
+        "Str, not Dex, not Endurance, not Int, not Edu, not Soc, not "
+        "'high Soc, high Edu'. Say what a strong or clumsy or "
+        "well-connected person is LIKE, never which score says so. "
+        "The reader is looking at the numbers already; your job is "
+        "the part the numbers cannot say. Write as if the rulebook "
+        "does not exist.\n"
+        "- THE TRADE SHAPES THE SCENE. A smuggler is not promoted by a "
+        "recruiter with paperwork; someone stops calling them the new "
+        "one. A naval officer is not handed a chit in a yard. Belters, "
+        "nobles, physicians and pirates rise in ways that belong to "
+        "them, and a scene that would fit any career equally fits "
+        "none. Read the career before you write the moment.\n"
         "- Be specific and invent freely WITHIN the setting: a name "
         "for the station, the shift supervisor who noticed something, "
         "the smell of the compartment, what they did with the money. "
@@ -92,15 +136,30 @@ bool Narrator::initialize(const std::string& lore_path, std::string& error) {
         "Never invent a world, faction or history that contradicts "
         "the setting, and never invent an outcome the facts do not "
         "support.\n"
-        "- Two or three sentences. Plain, concrete, unsentimental.\n\n"
+        "- LEAN. One sentence is often right, two is the ceiling, "
+        "forty words is the ceiling. You are writing the moment, not "
+        "the biography. Cut every clause that explains rather than "
+        "shows, every adjective doing no work, and every 'the kind of "
+        "man who' construction. If a sentence has three commas it is "
+        "two sentences or it is padded.\n"
+        "- Do not retell what has already been said. The reader has "
+        "the earlier entries. A promotion is not the place to "
+        "reintroduce someone's schooling or their age.\n"
+        "- Four years pass in a term. Say what those years DID to "
+        "them, not what they are like in general.\n\n"
         "THE SETTING:\n") + lore_;
     llm_->set_narrative_system_prompt(voice);
-    // The cache is keyed by everything that shapes the words, the
-    // voice included. Change a rule in the prompt and every story is
-    // written again instead of being served from a stale file.
-    voice_version_ = hex16(voice);
+    // The cache is keyed by everything that shapes the words: the
+    // voice AND the model writing in it. Change either and every story
+    // is written again rather than served from a file the change would
+    // have altered.
+    voice_version_ = hex16(voice + "\n@" + backend_ + "/" + model_);
 
-    cache_dir_ = "/tmp/logovger-narration";
+    // Overridable so a benchmark, which writes hundreds of stories no
+    // life will ever ask for, does not fill the cache a play session
+    // reads from.
+    cache_dir_ = env_or("LOGOVGER_NARRATION_CACHE",
+                        "/tmp/logovger-narration");
     ::mkdir(cache_dir_.c_str(), 0755);
     return true;
 }
@@ -131,16 +190,16 @@ std::string Narrator::build_prompt(const Beat& beat) const {
         o << "A new character has been rolled up. They are 18 and have "
              "done nothing yet.\n\n"
           << beat.sheet << "\n\n"
-          << "Write who this person is, in two or three sentences. Their "
+          << "Write who this person is, in two sentences at most. Their "
              "numbers are their whole history so far, so read them: a "
              "high Endurance and a low Education is a different life from "
              "the reverse. Do not give them a career; they have none yet.";
     o << "\n\nThen, on one final line by itself, write:\n"
          "FILE: a single clause of at most 55 characters for the "
-         "personnel file, drawn from what you just wrote. Clipped, "
-         "no full stop, the register of someone keeping a record on "
-         "this person: \"passed over twice, said nothing\", \"good "
-         "hands, no patience for rank\". It is a line in a dossier, "
+         "personnel file, drawn from WHAT YOU JUST WROTE and nothing "
+         "else. Clipped, no full stop, the register of an assessor "
+         "keeping a record: one observation about this person at this "
+         "moment, not a summary of their career. A line in a dossier, "
          "not a sentence of prose.";
         return o.str();
     }
@@ -168,7 +227,7 @@ std::string Narrator::build_prompt(const Beat& beat) const {
         o << "This life is over. The whole record:\n\n";
         for (const auto& f : beat.facts) o << "  " << f << "\n";
         o << "\n" << beat.sheet << "\n\n"
-          << "Close the file in at most 280 characters, the assessor's "
+          << "Close the file in at most 200 characters, the assessor's "
              "own words: what this person turned out to be, and what "
              "the service made of them. Never mention a number, a "
              "characteristic name, a die or a rule.";
@@ -180,20 +239,23 @@ std::string Narrator::build_prompt(const Beat& beat) const {
          "beat:\n\n";
     for (const auto& f : beat.facts) o << "  " << f << "\n";
     o << "\nThe character as they now stand:\n" << beat.sheet << "\n\n"
-      << "Narrate it in two or three sentences. Use the numbers to "
-         "decide WHAT happened and how narrowly, then write the scene "
-         "without ever mentioning them: where they were, who else was "
-         "there, what it cost. Invent the small concrete details.";
+      << "Write ONE sentence, or two if the second earns its place. "
+         "Forty words is the ceiling. Use the numbers to decide what "
+         "happened and how narrowly, then write it without mentioning "
+         "them: what these four years did to this person, in a scene "
+         "that could only happen in THIS trade. End on where it leaves "
+         "them, so the reader feels the next decision coming without "
+         "being told what it is.";
     if (beat.kind == "refusal")
         o << " They were turned away. Do not soften it.";
     if (beat.kind == "death")
         o << " They died. State it plainly and stop.";
     o << "\n\nThen, on one final line by itself, write:\n"
          "FILE: a single clause of at most 55 characters for the "
-         "personnel file, drawn from what you just wrote. Clipped, "
-         "no full stop, the register of someone keeping a record on "
-         "this person: \"passed over twice, said nothing\", \"good "
-         "hands, no patience for rank\". It is a line in a dossier, "
+         "personnel file, drawn from WHAT YOU JUST WROTE and nothing "
+         "else. Clipped, no full stop, the register of an assessor "
+         "keeping a record: one observation about this person at this "
+         "moment, not a summary of their career. A line in a dossier, "
          "not a sentence of prose.";
     return o.str();
 }
@@ -220,15 +282,26 @@ bool Narrator::narrate(const Beat& beat, uint64_t seed,
                                void* user_data) {
             auto* cb = static_cast<std::function<void(const std::string&)>*>(
                 user_data);
-            if (!response.empty()) {
+            // A failure comes back as text like "[ERROR: ...]", which
+            // is not prose and must never be cached: a cached failure
+            // replays forever, for that beat, across restarts, and
+            // reads on screen as though the narrator said it. Drop it
+            // and let the caller carry on without a story.
+            if (!response.empty() && !is_failure(response)) {
                 const_cast<Narrator*>(this)->cache_put(cache_key_copy,
                                                        response);
                 (*cb)(response);
+            } else {
+                (*cb)(std::string());
             }
             delete cb;
         },
         pending);
     return true;
+}
+
+bool Narrator::is_failure(const std::string& response) {
+    return response.compare(0, 7, "[ERROR:") == 0;
 }
 
 void Narrator::split_file_line(const std::string& reply, std::string& prose,
