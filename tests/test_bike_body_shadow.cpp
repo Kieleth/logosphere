@@ -69,7 +69,7 @@ static std::vector<Particle> build_bike_scene() {
     // [0] pad — gray BOX, top at z=0
     {
         Particle p{}; p.shape = ParticleShape::BOX;
-        p.x = 0; p.y = 0; p.z = -0.05f;
+        p.x = 0; p.y = 0; p.z = 0.05f;  // sit ON the turtle
         p.width = 12.0f; p.height = 12.0f; p.thickness = 0.10f;
         p.r = 0.55f; p.g = 0.57f; p.b = 0.62f; p.a = 1.0f;
         ps.push_back(p);

@@ -32,9 +32,9 @@ static void setup_case0_scene(Engine& engine) {
 
     // Floor: 50x50 at z=0
     Particle floor = {};
-    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.0f;
+    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.0375f;  // sit ON the turtle
     floor.shape = ParticleShape::BOX;
-    floor.width = 50.0f; floor.height = 50.0f; floor.thickness = 0.15f;
+    floor.width = 50.0f; floor.height = 50.0f; floor.thickness = 0.075f;
     floor.size = 50.0f;
     floor.r = 0.8f; floor.g = 0.8f; floor.b = 0.8f; floor.a = 1.0f;
     floor.is_at_rest = true;

@@ -45,10 +45,10 @@ bool test_falling_cube() {
     floor.shape = ParticleShape::BOX;
     floor.x = 0.0f;
     floor.y = 0.0f;
-    floor.z = 0.0f;  // Floor surface at z = 0 + thickness/2 = 0.05
+    floor.z = 0.025f;  // bottom on the turtle, top unchanged at 0.05  // Floor surface at z = 0 + thickness/2 = 0.05
     floor.width = 50.0f;   // 50m x 50m floor
     floor.height = 50.0f;
-    floor.thickness = 0.1f;  // 10cm thick
+    floor.thickness = 0.05f;  // 10cm thick
     floor.r = 0.4f;
     floor.g = 0.3f;
     floor.b = 0.2f;

@@ -344,11 +344,11 @@ bool run_interaction_test_case(Engine& engine, bool is_interactive) {
     Particle kinematic = {};
     kinematic.x = 0.0f;
     kinematic.y = 0.0f;
-    kinematic.z = 0.0f;  // Ground level
+    kinematic.z = 0.125f;  // sit ON the turtle  // Ground level
     kinematic.shape = ParticleShape::BOX;
     kinematic.width = 0.5f;
     kinematic.height = 0.5f;
-    kinematic.thickness = 0.5f;
+    kinematic.thickness = 0.25f;
     kinematic.r = 1.0f;  // Yellow
     kinematic.g = 1.0f;
     kinematic.b = 0.0f;
@@ -478,11 +478,11 @@ bool run_floor_collision_test(Engine& engine, bool is_interactive) {
     Particle floor_p = {};
     floor_p.x = 0.0f;
     floor_p.y = 0.0f;
-    floor_p.z = 0.0f;  // Center at z=0, top at z=0.25
+    floor_p.z = 0.125f;  // sit ON the turtle  // Center at z=0, top at z=0.25
     floor_p.shape = ParticleShape::BOX;
     floor_p.width = 4.0f;
     floor_p.height = 4.0f;
-    floor_p.thickness = 0.5f;
+    floor_p.thickness = 0.25f;
     floor_p.r = 1.0f; floor_p.g = 1.0f; floor_p.b = 0.0f;  // Yellow
     floor_p.SetMaterial(Materials::Type::HEAVY_STATIC);  // Heavy - effectively immovable
     floor_p.material_density = 1000.0f;

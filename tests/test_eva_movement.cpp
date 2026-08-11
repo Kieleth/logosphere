@@ -394,7 +394,7 @@ bool test_eva_movement(TestContext& /* ctx */) {
 
     // Create a LARGE world floor (static reference for movement)
     Particle world_floor = {};
-    world_floor.x = 0.0f; world_floor.y = 0.0f; world_floor.z = -0.15f;
+    world_floor.x = 0.0f; world_floor.y = 0.0f; world_floor.z = 0.05f;  // sit ON the turtle
     world_floor.shape = ParticleShape::BOX;
     world_floor.width = 50.0f;    // Large floor
     world_floor.height = 50.0f;

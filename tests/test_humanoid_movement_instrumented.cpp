@@ -48,8 +48,8 @@ bool test_humanoid_movement_instrumented(TestContext& /* ctx */) {
     // Large floor (no tile boundaries to isolate movement issues)
     Particle floor = {};
     floor.shape = ParticleShape::BOX;
-    floor.x = 0; floor.y = 0; floor.z = 0.0f;
-    floor.width = 50; floor.height = 50; floor.thickness = 0.1f;
+    floor.x = 0; floor.y = 0; floor.z = 0.025f;  // bottom on the turtle, top unchanged at 0.05
+    floor.width = 50; floor.height = 50; floor.thickness = 0.05f;
     floor.r = 0.3f; floor.g = 0.5f; floor.b = 0.2f; floor.a = 1.0f;
     floor.SetMaterial(Materials::Type::HEAVY_STATIC);
     floor.is_at_rest = true;

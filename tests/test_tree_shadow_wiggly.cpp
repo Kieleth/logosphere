@@ -80,11 +80,11 @@ bool test_tree_shadow_wiggly() {
             Particle floor_tile = {};
             floor_tile.x = x;
             floor_tile.y = y;
-            floor_tile.z = 0.0f;
+            floor_tile.z = 0.025f;  // bottom on the turtle, top unchanged at 0.05
             floor_tile.size = tile_size;
             floor_tile.width = tile_size;       // X dimension
             floor_tile.height = tile_size;      // Y dimension
-            floor_tile.thickness = 0.1f;        // Z dimension (thin floor)
+            floor_tile.thickness = 0.05f;        // Z dimension (thin floor)
             floor_tile.SetMaterial(Materials::Type::HEAVY_STATIC);  // Heavy - effectively immovable
             // Earth tone color
             floor_tile.r = 0.35f;

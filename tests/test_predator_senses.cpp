@@ -639,7 +639,7 @@ void show_the_scenes() {
         for (float y = -45.0f; y <= 45.0f; y += 4.0f) {
             Particle p{};
             p.shape = ParticleShape::BOX;
-            p.x = x; p.y = y; p.z = -0.25f;
+            p.x = x; p.y = y; p.z = 0.25f;  // sit ON the turtle
             p.width = p.height = 4.0f; p.thickness = 0.5f; p.size = 4.0f;
             p.r = 0.38f; p.g = 0.36f; p.b = 0.33f; p.a = 1.0f;
             p.SetMaterial(Materials::Type::STONE);

@@ -699,7 +699,7 @@ bool test_humanoid_impact() {
 
     // Floor
     Particle floor = {};
-    floor.x = 0.0f; floor.y = 0.0f; floor.z = -0.15f;
+    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.05f;  // sit ON the turtle
     floor.shape = ParticleShape::BOX;
     floor.width = 20.0f; floor.height = 20.0f; floor.thickness = 0.1f;
     floor.r = 0.3f; floor.g = 0.4f; floor.b = 0.3f; floor.a = 1.0f;

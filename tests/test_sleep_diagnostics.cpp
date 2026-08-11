@@ -44,11 +44,11 @@ bool test_sleep_diagnostics() {
     Particle floor = {};
     floor.x = 0.0f;
     floor.y = 0.0f;
-    floor.z = 0.0f;
+    floor.z = 0.05f;  // sit ON the turtle
     floor.shape = ParticleShape::BOX;
     floor.width = 50.0f;
     floor.height = 50.0f;
-    floor.thickness = 0.2f;
+    floor.thickness = 0.1f;
     floor.r = 0.35f;
     floor.g = 0.25f;
     floor.b = 0.15f;

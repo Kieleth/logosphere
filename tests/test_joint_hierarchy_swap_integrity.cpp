@@ -89,8 +89,8 @@ bool test_joint_hierarchy_swap_integrity() {
     // Ground: a big box under Eva so she has something to stand on.
     Particle floor = {};
     floor.shape = ParticleShape::BOX;
-    floor.x = 0; floor.y = 0; floor.z = 0.0f;
-    floor.width = 200; floor.height = 200; floor.thickness = 0.1f;
+    floor.x = 0; floor.y = 0; floor.z = 0.025f;  // bottom on the turtle, top unchanged at 0.05
+    floor.width = 200; floor.height = 200; floor.thickness = 0.05f;
     floor.r = 0.3f; floor.g = 0.5f; floor.b = 0.2f; floor.a = 1.0f;
     floor.SetMaterial(Materials::Type::STONE);
     floor.is_at_rest = true;

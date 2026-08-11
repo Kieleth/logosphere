@@ -646,7 +646,7 @@ bool test_hunter_rotation(TestContext& /* ctx */) {
 
     // Floor
     Particle floor = {};
-    floor.x = 0.0f; floor.y = 0.0f; floor.z = -0.15f;
+    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.05f;  // sit ON the turtle
     floor.shape = ParticleShape::BOX;
     floor.width = 10.0f;
     floor.height = 10.0f;

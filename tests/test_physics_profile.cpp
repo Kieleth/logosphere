@@ -22,9 +22,9 @@
 // Create floor
 static int create_floor(Engine& engine, float size = 50.0f) {
     Particle floor = {};
-    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.0f;
+    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.025f;  // bottom on the turtle, top unchanged at 0.05
     floor.shape = ParticleShape::BOX;
-    floor.width = size; floor.height = size; floor.thickness = 0.1f;
+    floor.width = size; floor.height = size; floor.thickness = 0.05f;
     floor.SetMaterial(Materials::Type::HEAVY_STATIC);  // Heavy - effectively immovable
     floor.r = 0.3f; floor.g = 0.3f; floor.b = 0.3f; floor.a = 1.0f;
     return engine.add_particle(floor);

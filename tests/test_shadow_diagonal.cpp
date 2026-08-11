@@ -110,7 +110,7 @@ bool test_shadow_diagonal(TestContext& /* ctx */) {
     // FLOOR
     // ========================================
     Particle floor = {};
-    floor.x = 0.0f; floor.y = 0.0f; floor.z = -0.05f;
+    floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.05f;  // sit ON the turtle
     floor.shape = ParticleShape::BOX;
     floor.width = 40.0f; floor.height = 40.0f; floor.thickness = 0.1f;
     floor.r = 0.4f; floor.g = 0.35f; floor.b = 0.3f; floor.a = 1.0f;

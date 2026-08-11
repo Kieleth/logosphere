@@ -166,7 +166,7 @@ struct Scene {
             for (int gy = -3; gy <= 3; ++gy) {
                 Particle p{};
                 p.shape = ParticleShape::BOX;
-                p.x = gx * 8.0f; p.y = gy * 8.0f; p.z = -0.4f;
+                p.x = gx * 8.0f; p.y = gy * 8.0f; p.z = 0.4f;  // sit ON the turtle
                 p.width = p.height = 8.0f; p.thickness = 0.8f;
                 p.size = 8.0f;
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;

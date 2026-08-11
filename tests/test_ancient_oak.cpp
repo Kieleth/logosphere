@@ -34,11 +34,11 @@ bool test_ancient_oak() {
     Particle floor = {};
     floor.x = 0.0f;
     floor.y = 0.0f;
-    floor.z = 0.0f;  // Floor surface at z=0
+    floor.z = 0.05f;  // sit ON the turtle  // Floor surface at z=0
     floor.shape = ParticleShape::BOX;
     floor.width = 4.0f;
     floor.height = 4.0f;
-    floor.thickness = 0.2f;
+    floor.thickness = 0.1f;
     floor.r = 0.35f;
     floor.g = 0.25f;
     floor.b = 0.15f;
