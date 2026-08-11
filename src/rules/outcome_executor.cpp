@@ -570,7 +570,8 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
             const std::string target_type = context.kg.getType(context.target);
             const kg::PropertyDef* definition =
                 context.kg.getRegistry().findProperty(target_type, property);
-            if (!definition || definition->value_type != "integer") {
+            if (!definition ||
+                definition->value_kind != kg::PropertyValueKind::Integer) {
                 error = "target type '" + target_type +
                         "' has no integer property '" + property + "'";
                 return false;

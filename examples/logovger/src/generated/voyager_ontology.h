@@ -782,6 +782,77 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
+/// Typed links inside the immutable ontology meta-graph.
+enum class OntologyMetaRelationType {
+    ONTOLOGY_META_CONTAINS,
+    ONTOLOGY_CLASS_DIRECT_PARENT,
+    ONTOLOGY_CLASS_HAS_FACET,
+    ONTOLOGY_PROPERTY_DECLARING_CLASS,
+    ONTOLOGY_PROPERTY_VALUE_KIND,
+    ONTOLOGY_PROPERTY_REFERENCE_TARGET,
+    ONTOLOGY_PROPERTY_ENUM_TYPE,
+    ONTOLOGY_RELATION_VALID_SOURCE,
+    ONTOLOGY_RELATION_VALID_TARGET,
+    ONTOLOGY_ENUM_HAS_MEMBER,
+    ONTOLOGY_ENUM_MEMBER_OWNER
+};
+
+/// Convert OntologyMetaRelationType to its string representation.
+inline const char* to_string(OntologyMetaRelationType value) {
+    switch (value) {
+        case OntologyMetaRelationType::ONTOLOGY_META_CONTAINS: return "ONTOLOGY_META_CONTAINS";
+        case OntologyMetaRelationType::ONTOLOGY_CLASS_DIRECT_PARENT: return "ONTOLOGY_CLASS_DIRECT_PARENT";
+        case OntologyMetaRelationType::ONTOLOGY_CLASS_HAS_FACET: return "ONTOLOGY_CLASS_HAS_FACET";
+        case OntologyMetaRelationType::ONTOLOGY_PROPERTY_DECLARING_CLASS: return "ONTOLOGY_PROPERTY_DECLARING_CLASS";
+        case OntologyMetaRelationType::ONTOLOGY_PROPERTY_VALUE_KIND: return "ONTOLOGY_PROPERTY_VALUE_KIND";
+        case OntologyMetaRelationType::ONTOLOGY_PROPERTY_REFERENCE_TARGET: return "ONTOLOGY_PROPERTY_REFERENCE_TARGET";
+        case OntologyMetaRelationType::ONTOLOGY_PROPERTY_ENUM_TYPE: return "ONTOLOGY_PROPERTY_ENUM_TYPE";
+        case OntologyMetaRelationType::ONTOLOGY_RELATION_VALID_SOURCE: return "ONTOLOGY_RELATION_VALID_SOURCE";
+        case OntologyMetaRelationType::ONTOLOGY_RELATION_VALID_TARGET: return "ONTOLOGY_RELATION_VALID_TARGET";
+        case OntologyMetaRelationType::ONTOLOGY_ENUM_HAS_MEMBER: return "ONTOLOGY_ENUM_HAS_MEMBER";
+        case OntologyMetaRelationType::ONTOLOGY_ENUM_MEMBER_OWNER: return "ONTOLOGY_ENUM_MEMBER_OWNER";
+    }
+    return "unknown";
+}
+
+/// Parse a string into OntologyMetaRelationType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, OntologyMetaRelationType& out) {
+    if (std::strcmp(str, "ONTOLOGY_META_CONTAINS") == 0) { out = OntologyMetaRelationType::ONTOLOGY_META_CONTAINS; return true; }
+    if (std::strcmp(str, "ONTOLOGY_CLASS_DIRECT_PARENT") == 0) { out = OntologyMetaRelationType::ONTOLOGY_CLASS_DIRECT_PARENT; return true; }
+    if (std::strcmp(str, "ONTOLOGY_CLASS_HAS_FACET") == 0) { out = OntologyMetaRelationType::ONTOLOGY_CLASS_HAS_FACET; return true; }
+    if (std::strcmp(str, "ONTOLOGY_PROPERTY_DECLARING_CLASS") == 0) { out = OntologyMetaRelationType::ONTOLOGY_PROPERTY_DECLARING_CLASS; return true; }
+    if (std::strcmp(str, "ONTOLOGY_PROPERTY_VALUE_KIND") == 0) { out = OntologyMetaRelationType::ONTOLOGY_PROPERTY_VALUE_KIND; return true; }
+    if (std::strcmp(str, "ONTOLOGY_PROPERTY_REFERENCE_TARGET") == 0) { out = OntologyMetaRelationType::ONTOLOGY_PROPERTY_REFERENCE_TARGET; return true; }
+    if (std::strcmp(str, "ONTOLOGY_PROPERTY_ENUM_TYPE") == 0) { out = OntologyMetaRelationType::ONTOLOGY_PROPERTY_ENUM_TYPE; return true; }
+    if (std::strcmp(str, "ONTOLOGY_RELATION_VALID_SOURCE") == 0) { out = OntologyMetaRelationType::ONTOLOGY_RELATION_VALID_SOURCE; return true; }
+    if (std::strcmp(str, "ONTOLOGY_RELATION_VALID_TARGET") == 0) { out = OntologyMetaRelationType::ONTOLOGY_RELATION_VALID_TARGET; return true; }
+    if (std::strcmp(str, "ONTOLOGY_ENUM_HAS_MEMBER") == 0) { out = OntologyMetaRelationType::ONTOLOGY_ENUM_HAS_MEMBER; return true; }
+    if (std::strcmp(str, "ONTOLOGY_ENUM_MEMBER_OWNER") == 0) { out = OntologyMetaRelationType::ONTOLOGY_ENUM_MEMBER_OWNER; return true; }
+    return false;
+}
+
+/// Closed ownership links inside stored rule programs.
+enum class RuleLanguageRelationType {
+    FUNCTION_SIGNATURE_HAS_PARAMETER,
+    LET_EXPRESSION_HAS_BINDING
+};
+
+/// Convert RuleLanguageRelationType to its string representation.
+inline const char* to_string(RuleLanguageRelationType value) {
+    switch (value) {
+        case RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER: return "FUNCTION_SIGNATURE_HAS_PARAMETER";
+        case RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING: return "LET_EXPRESSION_HAS_BINDING";
+    }
+    return "unknown";
+}
+
+/// Parse a string into RuleLanguageRelationType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, RuleLanguageRelationType& out) {
+    if (std::strcmp(str, "FUNCTION_SIGNATURE_HAS_PARAMETER") == 0) { out = RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER; return true; }
+    if (std::strcmp(str, "LET_EXPRESSION_HAS_BINDING") == 0) { out = RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING; return true; }
+    return false;
+}
+
 /// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
 struct Identifiable {
     /// Globally unique identifier.
@@ -1329,47 +1400,484 @@ struct WorldRelation : public Relation {
 };
 
 
-/// An explicit KG scope in which knowledge originates or grows. Contexts are entities, not an enum ladder: source documents, sessions, campaigns, users, groups, and later scopes can be linked and queried without teaching the evaluator new executable logic.
+/// Explicit scope in which knowledge originates or grows.
 struct KnowledgeContext : public Entity {
-    /// Stable host-defined identity within the context catalog. Required and never inferred from a display name.
+    /// Globally unique immutable identity of a KnowledgeContext.
     std::string context_key = {};
 };
 
 
-/// One immutable authored layer named by a seed envelope, such as cepheus or voyager. Seed ingestion owns creation of these contexts.
+/// Immutable authored layer owned by seed ingestion.
 struct SourceLayerContext : public KnowledgeContext {
-    /// Authored layer declared by the seed envelope.
+    /// Authored layer declared by a seed envelope.
     std::string source_layer = {};
 };
 
 
-/// The exact source document and revision from which a seed was extracted. Every cited entity loaded from that seed points here; the document context points to its SourceLayerContext.
+/// Exact source document and revision represented by a seed.
 struct SourceDocumentContext : public KnowledgeContext {
-    /// Authored layer declared by the seed envelope.
+    /// Authored layer declared by a seed envelope.
     std::string source_layer = {};
-    /// Path of the source text this was extracted from, relative to the game's vendored source root (e.g. book1/character-creation.md).
+    /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Exact revision of the source document loaded by the seed.
+    /// Exact revision of the source document.
     std::string source_commit = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
 };
 
 
-/// A mutable context created while playing or administering a game. context_kind is data, not an engine enum: session, campaign, user, group, and global are initial uses, and game ontologies may add narrower RuntimeContext subclasses.
+/// Mutable host-defined knowledge scope.
 struct RuntimeContext : public KnowledgeContext {
-    /// Runtime scope vocabulary supplied by the game ontology or host, such as session, campaign, user, group, or global.
+    /// Host-defined runtime scope vocabulary.
     std::string context_kind = {};
 };
 
 
+/// Portable immutable identity for content entities. Identity is the tuple of context, exact concrete type, and machine key. Display names and source aliases never participate in resolution.
+struct Addressable {
+    /// Immutable context component of portable entity identity.
+    KnowledgeContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+};
+
+
+/// Engine-owned scope containing one active ontology reflection.
+struct OntologyMetaContext : public KnowledgeContext {
+};
+
+
+/// One canonical definition retained by OntologyRegistry.
+struct OntologyMetaEntity : public Entity {
+    /// Canonical qualified reference of a reflected definition.
+    std::string qualified_key = {};
+    /// Exact registry name of a reflected definition.
+    std::string ontology_name = {};
+};
+
+
+/// Ontology definition that retains diagnostic source provenance.
+struct OntologySourcedMeta {
+    /// Diagnostic source provenance retained by the registry.
+    std::string definition_source = {};
+};
+
+
+struct OntologyClassMeta : public OntologyMetaEntity, public OntologySourcedMeta {
+    bool class_abstract = {};
+    bool has_direct_parent = {};
+};
+
+
+struct OntologyPropertyMeta : public OntologyMetaEntity, public OntologySourcedMeta {
+    bool property_required = {};
+    bool property_identifier = {};
+    bool property_create_only = {};
+    bool has_minimum = {};
+    std::optional<float> minimum_value = std::nullopt;
+    bool has_maximum = {};
+    std::optional<float> maximum_value = std::nullopt;
+    bool has_reference_target = {};
+    bool has_enum_type = {};
+};
+
+
+struct OntologyRelationMeta : public OntologyMetaEntity, public OntologySourcedMeta {
+};
+
+
+struct OntologyFacetMeta : public OntologyMetaEntity {
+};
+
+
+struct OntologyValueKindMeta : public OntologyMetaEntity {
+};
+
+
+struct OntologyEnumMeta : public OntologyMetaEntity, public OntologySourcedMeta {
+};
+
+
+struct OntologyEnumMemberMeta : public OntologyMetaEntity, public OntologySourcedMeta {
+};
+
+
+/// Abstract root of pure rule-language value expressions.
+struct Expression : public Entity {
+};
+
+
+struct ScalarExpression : public Expression {
+};
+
+
+struct BooleanExpression : public ScalarExpression {
+};
+
+
+/// Numeric result that may be an integer or finite float.
+struct NumericExpression : public ScalarExpression {
+};
+
+
+struct IntegerExpression : public NumericExpression {
+};
+
+
+struct FloatExpression : public NumericExpression {
+};
+
+
+struct StringExpression : public ScalarExpression {
+};
+
+
+/// Entity-valued expression refined by an ontology class.
+struct EntityExpression : public Expression {
+};
+
+
+struct CollectionExpression : public Expression {
+};
+
+
+struct BooleanCollectionExpression : public CollectionExpression {
+};
+
+
+struct IntegerCollectionExpression : public CollectionExpression {
+};
+
+
+struct FloatCollectionExpression : public CollectionExpression {
+};
+
+
+struct StringCollectionExpression : public CollectionExpression {
+};
+
+
+/// Entity collection refined by one ontology element class.
+struct EntityCollectionExpression : public CollectionExpression {
+};
+
+
+/// Function value refined by a typed signature.
+struct FunctionExpression : public Expression {
+};
+
+
+/// Pure expression producing a typed Outcome plan.
+struct OutcomePlanExpression : public Expression {
+};
+
+
+/// Closed reusable static type owned by one KnowledgeContext.
+struct ValueTypeDescriptor : public Entity, public Addressable {
+};
+
+
+struct BooleanTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct NumericTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct IntegerTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct FloatTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct StringTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct EntityTypeDescriptor : public ValueTypeDescriptor {
+    /// Exact canonical class refinement for an Entity value.
+    OntologyClassMeta descriptor_entity_class = {};
+};
+
+
+struct BooleanCollectionTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct IntegerCollectionTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct FloatCollectionTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct StringCollectionTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+struct EntityCollectionTypeDescriptor : public ValueTypeDescriptor {
+    /// Exact canonical element refinement for an Entity collection.
+    OntologyClassMeta descriptor_element_class = {};
+};
+
+
+struct OutcomePlanTypeDescriptor : public ValueTypeDescriptor {
+};
+
+
+/// Named non-empty parameter set and one result type.
+struct FunctionSignature : public Entity, public Addressable {
+    /// Reusable static type returned by a FunctionSignature.
+    ValueTypeDescriptor signature_result_type = {};
+};
+
+
+struct FunctionTypeDescriptor : public ValueTypeDescriptor {
+    /// Exact signature refinement for a Function value.
+    FunctionSignature descriptor_function_signature = {};
+};
+
+
+/// One uniquely named parameter in a FunctionSignature.
+struct FunctionParameterSpec : public Entity, public Addressable {
+    /// Non-empty diagnostic and authoring key unique per signature.
+    std::string parameter_key = {};
+    /// Reusable static type required by this named parameter.
+    ValueTypeDescriptor parameter_type = {};
+};
+
+
+/// Unordered named argument bound directly to a parameter spec.
+struct ArgumentBinding : public Entity {
+    /// Exact signature parameter supplied by an argument binding.
+    FunctionParameterSpec binding_parameter = {};
+    /// Pure expression supplying the named argument value.
+    Expression binding_argument = {};
+};
+
+
+/// Typed read of one invocation parameter specification.
+struct ParameterReadExpression {
+    /// Exact signature parameter read by this typed expression.
+    FunctionParameterSpec parameter_spec = {};
+};
+
+
+struct ReadParameterBooleanExpression : public BooleanExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterNumericExpression : public NumericExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterIntegerExpression : public IntegerExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterFloatExpression : public FloatExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterStringExpression : public StringExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterEntityExpression : public EntityExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterBooleanCollectionExpression : public BooleanCollectionExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterIntegerCollectionExpression : public IntegerCollectionExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterFloatCollectionExpression : public FloatCollectionExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterStringCollectionExpression : public StringCollectionExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterEntityCollectionExpression : public EntityCollectionExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterFunctionExpression : public FunctionExpression, public ParameterReadExpression {
+};
+
+
+struct ReadParameterOutcomePlanExpression : public OutcomePlanExpression, public ParameterReadExpression {
+};
+
+
+/// Eager lexical binding with direct identity and typed value.
+struct LocalBinding : public Entity {
+    /// Non-empty diagnostic key unique within one let block.
+    std::string binding_key = {};
+    /// Pure expression evaluated once for this local binding.
+    Expression binding_value = {};
+};
+
+
+/// Typed direct reference to one LocalBinding entity.
+struct LocalReadExpression {
+    /// Direct lexical binding identity, never a string lookup.
+    LocalBinding local_binding = {};
+};
+
+
+struct ReadLocalBooleanExpression : public BooleanExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalNumericExpression : public NumericExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalIntegerExpression : public IntegerExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalFloatExpression : public FloatExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalStringExpression : public StringExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalEntityExpression : public EntityExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalBooleanCollectionExpression : public BooleanCollectionExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalIntegerCollectionExpression : public IntegerCollectionExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalFloatCollectionExpression : public FloatCollectionExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalStringCollectionExpression : public StringCollectionExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalEntityCollectionExpression : public EntityCollectionExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalFunctionExpression : public FunctionExpression, public LocalReadExpression {
+};
+
+
+struct ReadLocalOutcomePlanExpression : public OutcomePlanExpression, public LocalReadExpression {
+};
+
+
+/// Eager non-empty multi-binding lexical block marker.
+struct LetExpression {
+};
+
+
+struct LetBooleanExpression : public BooleanExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    BooleanExpression let_body = {};
+};
+
+
+struct LetNumericExpression : public NumericExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    NumericExpression let_body = {};
+};
+
+
+struct LetIntegerExpression : public IntegerExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    IntegerExpression let_body = {};
+};
+
+
+struct LetFloatExpression : public FloatExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    FloatExpression let_body = {};
+};
+
+
+struct LetStringExpression : public StringExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    StringExpression let_body = {};
+};
+
+
+struct LetEntityExpression : public EntityExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    EntityExpression let_body = {};
+};
+
+
+struct LetBooleanCollectionExpression : public BooleanCollectionExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    BooleanCollectionExpression let_body = {};
+};
+
+
+struct LetIntegerCollectionExpression : public IntegerCollectionExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    IntegerCollectionExpression let_body = {};
+};
+
+
+struct LetFloatCollectionExpression : public FloatCollectionExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    FloatCollectionExpression let_body = {};
+};
+
+
+struct LetStringCollectionExpression : public StringCollectionExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    StringCollectionExpression let_body = {};
+};
+
+
+struct LetEntityCollectionExpression : public EntityCollectionExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    EntityCollectionExpression let_body = {};
+};
+
+
+struct LetFunctionExpression : public FunctionExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    FunctionExpression let_body = {};
+};
+
+
+struct LetOutcomePlanExpression : public OutcomePlanExpression, public LetExpression {
+    /// Typed body evaluated after every eager local binding.
+    OutcomePlanExpression let_body = {};
+};
+
+
 /// Provenance back to the book. Every rule entity ingested from a source text carries the file it came from, the section heading under it, and the verbatim quote it was extracted from; the ingestion verifier string-matches the quote into the source and rejects what does not match. The slots are optional at the KG layer because referee-improvised entities have no book to cite; the rulebook verifier requires them on ingested data. Every cited entity has an origin context even when it has no book citation: a runtime-authored rule points to the RuntimeContext where it arose.
-struct Cited {
+struct Cited : public Addressable {
     /// Context in which this rule entity was created. Seed ingestion and runtime rule creation set it once; moving an entity between contexts requires a fork.
     KnowledgeContext origin_context = {};
     /// Immediate source entity copied to create this rule fork.
     std::optional<Entity> fork_of = std::nullopt;
-    /// Path of the source text this was extracted from, relative to the game's vendored source root (e.g. book1/character-creation.md).
+    /// Path of the source document relative to its source root.
     std::optional<std::string> source_file = std::nullopt;
     /// The nearest heading above the quote in the source.
     std::optional<std::string> source_section = std::nullopt;

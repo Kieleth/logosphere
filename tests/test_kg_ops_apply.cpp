@@ -35,11 +35,12 @@ static kg::OntologyRegistry make_registry() {
     r.addEntityType("Cycle",        "", false);
     r.addEntityType("TrailSegment", "", false);
     r.addEntityType("Wormhole",     "", false);
-    r.addProperty("Cycle",     "max_speed", "float",  false,
+    r.addProperty("Cycle", "max_speed", kg::PropertyValueKind::Float, false,
                   /*has_min=*/true, 0.1, /*has_max=*/true, 25.0);
-    r.addProperty("Wormhole",  "x",         "float",  false);
-    r.addProperty("Wormhole",  "y",         "float",  false);
-    r.addProperty("Wormhole",  "pair_id",   "string", false);
+    r.addProperty("Wormhole", "x", kg::PropertyValueKind::Float, false);
+    r.addProperty("Wormhole", "y", kg::PropertyValueKind::Float, false);
+    r.addProperty("Wormhole", "pair_id", kg::PropertyValueKind::String,
+                  false);
     r.addRelationType("PARENT_OF",
         std::unordered_set<std::string>{"Cycle"},
         std::unordered_set<std::string>{"TrailSegment"});

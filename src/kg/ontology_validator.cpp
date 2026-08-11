@@ -1,7 +1,9 @@
 #include "logosphere/kg/ontology_validator.h"
 
 #include "logosphere/kg/kg_module.h"
+#include "logosphere/kg/finite_float.h"
 #include "logosphere/kg/ontology_registry.h"
+#include "logosphere/kg/qualified_reference.h"
 
 #include <algorithm>
 #include <charconv>
@@ -68,37 +70,56 @@ bool is_seed_owned_type(const OntologyRegistry& ont,
            ont.isSubtypeOf(type, "SourceDocumentContext");
 }
 
+bool is_ontology_meta_type(const OntologyRegistry& ont,
+                           const std::string& type) {
+    return ont.isSubtypeOf(type, "OntologyMetaEntity") ||
+           ont.isSubtypeOf(type, "OntologyMetaContext");
+}
+
 ValidationResult require_mutable(EntityID id, const KGModule& kg,
                                  const OntologyRegistry& ont,
                                  const ValidationOptions& options) {
-    if (options.constructing.count(id)) return ValidationResult{};
-
     const std::string type = kg.getType(id);
+    if (is_ontology_meta_type(ont, type)) {
+        if (options.authority ==
+            MutationAuthority::OntologyMaterialization) {
+            return ValidationResult{};
+        }
+        return fail("entity " + std::to_string(id) + " (" + type +
+                    ") belongs to the immutable ontology meta-graph");
+    }
+    if (options.constructing.count(id)) return ValidationResult{};
     if (is_sealed_origin_type(ont, type)) {
         return fail("entity " + std::to_string(id) + " (" + type +
                     ") is a sealed origin context");
     }
-    if (!ont.hasProperty(type, "origin_context") ||
-        !kg.hasProperty(id, "origin_context")) {
-        return ValidationResult{};
-    }
-
-    EntityID context = INVALID_ENTITY;
-    if (auto parsed = entity_ref_id(
-            "entity " + std::to_string(id) + " origin_context",
-            kg.getProperty(id, "origin_context"), context);
-        !parsed.ok) {
-        return parsed;
-    }
-    if (!kg.exists(context)) {
-        return fail("entity " + std::to_string(id) +
-                    " origin_context references missing entity " +
-                    std::to_string(context));
-    }
-    const std::string context_type = kg.getType(context);
-    if (is_sealed_origin_type(ont, context_type)) {
-        return fail("entity " + std::to_string(id) + " has sealed origin " +
-                    std::to_string(context) + " (" + context_type + ")");
+    for (const std::string context_property :
+         {"origin_context", "identity_context"}) {
+        if (!ont.hasProperty(type, context_property) ||
+            !kg.hasProperty(id, context_property)) {
+            continue;
+        }
+        EntityID context = INVALID_ENTITY;
+        if (auto parsed = entity_ref_id(
+                "entity " + std::to_string(id) + " " + context_property,
+                kg.getProperty(id, context_property), context);
+            !parsed.ok) {
+            return parsed;
+        }
+        if (!kg.exists(context)) {
+            return fail("entity " + std::to_string(id) + " " +
+                        context_property + " references missing entity " +
+                        std::to_string(context));
+        }
+        const std::string context_type = kg.getType(context);
+        if (is_sealed_origin_type(ont, context_type)) {
+            const std::string label = context_property == "origin_context"
+                                          ? "sealed origin"
+                                          : "sealed identity context";
+            return fail("entity " + std::to_string(id) + " has " + label +
+                        " " + std::to_string(context) + " (" +
+                        context_type + ")");
+        }
     }
     return ValidationResult{};
 }
@@ -150,7 +171,7 @@ ValidationResult check_entity_ref(const std::string& where,
 }
 
 // Coerce a property value (KG stores strings) against its declared
-// value_type. Returns ok + parsed numeric (when applicable) so the
+// value kind. Returns ok + parsed numeric (when applicable) so the
 // range check below doesn't reparse.
 struct CoerceResult {
     bool   ok = true;
@@ -158,45 +179,164 @@ struct CoerceResult {
     double number  = 0.0;
     std::string reason;
 };
-CoerceResult coerce_property_value(const std::string& value_type,
+CoerceResult coerce_property_value(PropertyValueKind value_kind,
                                    const std::string& value) {
     CoerceResult c;
-    if (value_type == "string") {
-        return c;  // any string ok
-    }
-    if (value_type == "boolean") {
-        if (value == "true" || value == "false" || value == "0" || value == "1") return c;
-        c.ok = false; c.reason = "expected boolean (true/false), got '" + value + "'";
-        return c;
-    }
-    if (value_type == "integer") {
-        try {
-            size_t end = 0;
-            long long n = std::stoll(value, &end);
-            if (end != value.size()) throw std::invalid_argument("trailing garbage");
-            c.numeric = true; c.number = static_cast<double>(n);
+    switch (value_kind) {
+        case PropertyValueKind::String:
+        case PropertyValueKind::LegacyDateTime:
             return c;
-        } catch (...) {
-            c.ok = false; c.reason = "expected integer, got '" + value + "'";
+
+        case PropertyValueKind::Boolean:
+            if (value == "true" || value == "false" || value == "0" ||
+                value == "1") {
+                return c;
+            }
+            c.ok = false;
+            c.reason = "expected boolean (true/false), got '" + value + "'";
             return c;
-        }
+
+        case PropertyValueKind::Integer:
+            try {
+                size_t end = 0;
+                const long long n = std::stoll(value, &end);
+                if (end != value.size()) {
+                    throw std::invalid_argument("trailing garbage");
+                }
+                c.numeric = true;
+                c.number = static_cast<double>(n);
+                return c;
+            } catch (...) {
+                c.ok = false;
+                c.reason = "expected integer, got '" + value + "'";
+                return c;
+            }
+
+        case PropertyValueKind::Float:
+            if (const auto parsed = parse_finite_binary64(value);
+                parsed.ok) {
+                c.numeric = true;
+                c.number = parsed.value;
+                return c;
+            } else {
+                c.ok = false;
+                c.reason = parsed.error;
+                return c;
+            }
+
+        case PropertyValueKind::EntityRef:
+        case PropertyValueKind::Enum:
+            c.ok = false;
+            c.reason = "internal error: refined property kind reached scalar coercion";
+            return c;
     }
-    if (value_type == "float") {
-        try {
-            size_t end = 0;
-            double n = std::stod(value, &end);
-            if (end != value.size()) throw std::invalid_argument("trailing garbage");
-            c.numeric = true; c.number = n;
-            return c;
-        } catch (...) {
-            c.ok = false; c.reason = "expected float, got '" + value + "'";
-            return c;
-        }
-    }
-    // Unknown value_type — pass through (the schema may have a
-    // type the validator doesn't know about; better to allow than
-    // to block legitimate ops).
+    c.ok = false;
+    c.reason = "unknown property value kind";
     return c;
+}
+
+ValidationResult validate_property_value(const std::string& where,
+                                         const PropertyDef& def,
+                                         const std::string& value,
+                                         const KGModule& kg,
+                                         const OntologyRegistry& ont) {
+    if (def.value_kind == PropertyValueKind::EntityRef) {
+        return check_entity_ref(where, def, value, kg, ont);
+    }
+    if (def.value_kind == PropertyValueKind::Enum) {
+        if (!ont.hasEnumType(def.enum_type)) {
+            return fail(where + ": property '" + def.name +
+                        "' references unknown enum type '" + def.enum_type +
+                        "'");
+        }
+        if (!ont.isEnumMember(def.enum_type, value)) {
+            return fail(where + ": value '" + value + "' is not a member of " +
+                        "enum '" + def.enum_type + "' for property '" +
+                        def.name + "'");
+        }
+        return ValidationResult{};
+    }
+
+    const auto coerce = coerce_property_value(def.value_kind, value);
+    if (!coerce.ok) {
+        return fail(where + ": " + coerce.reason);
+    }
+    if (coerce.numeric) {
+        if (def.has_min && coerce.number < def.min_value) {
+            return fail(where + ": value " + value +
+                        " below schema minimum " +
+                        std::to_string(def.min_value));
+        }
+        if (def.has_max && coerce.number > def.max_value) {
+            return fail(where + ": value " + value +
+                        " above schema maximum " +
+                        std::to_string(def.max_value));
+        }
+    }
+    return ValidationResult{};
+}
+
+const std::string* create_property(const KGOpCreateEntity& op,
+                                   const std::string& name) {
+    const auto found = std::find_if(
+        op.properties.begin(), op.properties.end(),
+        [&](const auto& property) { return property.first == name; });
+    return found == op.properties.end() ? nullptr : &found->second;
+}
+
+ValidationResult validate_portable_identity(const KGOpCreateEntity& op,
+                                            const KGModule& kg,
+                                            const OntologyRegistry& ont) {
+    if (ont.isSubtypeOf(op.type, "KnowledgeContext")) {
+        const std::string* context_key = create_property(op, "context_key");
+        if (!context_key || context_key->empty()) {
+            return fail("create_entity '" + op.type +
+                        "': empty context_key");
+        }
+        try {
+            (void)encode_qualified_reference_segment(*context_key);
+        } catch (const std::invalid_argument& error) {
+            return fail("create_entity '" + op.type +
+                        "': invalid context_key: " + error.what());
+        }
+        for (EntityID id : kg.findByProperty("context_key", *context_key)) {
+            if (ont.isSubtypeOf(kg.getType(id), "KnowledgeContext")) {
+                return fail("create_entity '" + op.type +
+                            "': duplicate KnowledgeContext key '" +
+                            *context_key + "'");
+            }
+        }
+    }
+
+    if (!ont.isSubtypeOf(op.type, "Addressable")) {
+        return ValidationResult{};
+    }
+    const std::string* identity_context =
+        create_property(op, "identity_context");
+    const std::string* entity_key = create_property(op, "entity_key");
+    if (!identity_context || identity_context->empty()) {
+        return fail("create_entity '" + op.type +
+                    "': empty identity_context");
+    }
+    if (!entity_key || entity_key->empty()) {
+        return fail("create_entity '" + op.type + "': empty entity_key");
+    }
+    try {
+        (void)encode_qualified_reference_segment(*entity_key);
+    } catch (const std::invalid_argument& error) {
+        return fail("create_entity '" + op.type +
+                    "': invalid entity_key: " + error.what());
+    }
+    for (EntityID id : kg.findByType(op.type)) {
+        if (kg.getProperty(id, "identity_context") == *identity_context &&
+            kg.getProperty(id, "entity_key") == *entity_key) {
+            return fail("create_entity '" + op.type +
+                        "': duplicate Addressable identity (" +
+                        *identity_context + ", " + op.type + ", " +
+                        *entity_key + ")");
+        }
+    }
+    return ValidationResult{};
 }
 
 ValidationResult validate_create(const KGOpCreateEntity& op,
@@ -211,6 +351,12 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
     if (ont.isAbstract(op.type)) {
         return fail("create_entity: type '" + op.type
                     + "' is abstract; cannot instantiate");
+    }
+    if (is_ontology_meta_type(ont, op.type) &&
+        options.authority !=
+            MutationAuthority::OntologyMaterialization) {
+        return fail("create_entity: type '" + op.type +
+                    "' is owned by engine-owned ontology materialization");
     }
     if (is_seed_owned_type(ont, op.type) &&
         options.authority != MutationAuthority::SeedIngestion) {
@@ -248,28 +394,35 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
             return fail("create_entity '" + op.type + "." + k +
                         "': identifier is engine-managed");
         }
-        if (def->value_type == "entity_ref") {
-            if (auto r = check_entity_ref("create_entity '" + op.type + "'",
-                                          *def, v, kg, ont); !r.ok) {
-                return r;
-            }
-            continue;
+        if (auto result = validate_property_value(
+                "create_entity '" + op.type + "." + k + "'", *def, v, kg,
+                ont);
+            !result.ok) {
+            return result;
         }
-        auto coerce = coerce_property_value(def->value_type, v);
-        if (!coerce.ok) {
-            return fail("create_entity '" + op.type + "." + k + "': "
-                        + coerce.reason);
-        }
-        if (coerce.numeric) {
-            if (def->has_min && coerce.number < def->min_value) {
-                return fail("create_entity '" + op.type + "." + k
-                            + "': value " + v + " below schema minimum "
-                            + std::to_string(def->min_value));
+    }
+
+    if (auto identity = validate_portable_identity(op, kg, ont);
+        !identity.ok) {
+        return identity;
+    }
+
+    if (options.authority != MutationAuthority::SeedIngestion &&
+        ont.isSubtypeOf(op.type, "Addressable")) {
+        const std::string* identity_context =
+            create_property(op, "identity_context");
+        if (identity_context) {
+            EntityID context = INVALID_ENTITY;
+            if (auto parsed = entity_ref_id(
+                    "create_entity '" + op.type + ".identity_context'",
+                    *identity_context, context);
+                !parsed.ok) {
+                return parsed;
             }
-            if (def->has_max && coerce.number > def->max_value) {
-                return fail("create_entity '" + op.type + "." + k
-                            + "': value " + v + " above schema maximum "
-                            + std::to_string(def->max_value));
+            if (kg.exists(context) &&
+                is_sealed_origin_type(ont, kg.getType(context))) {
+                return fail("create_entity: runtime addressable content "
+                            "cannot claim a sealed identity context");
             }
         }
     }
@@ -311,9 +464,16 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
                     + op.property + "'");
     }
 
-    // Value-type + range checks (C.3). Look up the PropertyDef
-    // for the schema-declared value_type + min/max.
+    // Value-kind + range checks (C.3). Look up the PropertyDef
+    // for the schema-declared kind + min/max.
     const PropertyDef* def = ont.findProperty(t, op.property);
+    if (is_ontology_meta_type(ont, t)) {
+        if (auto immutable =
+                require_mutable(op.target.id, kg, ont, options);
+            !immutable.ok) {
+            return immutable;
+        }
+    }
     if (def && def->identifier) {
         return fail("set_property '" + t + "." + op.property +
                     "': identifier is engine-managed");
@@ -327,30 +487,10 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
         !mutable_result.ok) {
         return mutable_result;
     }
-    if (def && def->value_type == "entity_ref") {
-        return check_entity_ref("set_property '" + t + "'", *def, op.value,
-                                kg, ont);
-    }
     if (def) {
-        auto coerce = coerce_property_value(def->value_type, op.value);
-        if (!coerce.ok) {
-            return fail("set_property '" + t + "." + op.property + "': "
-                        + coerce.reason);
-        }
-        if (coerce.numeric) {
-            if (def->has_min && coerce.number < def->min_value) {
-                return fail("set_property '" + t + "." + op.property
-                            + "': value " + op.value
-                            + " below schema minimum "
-                            + std::to_string(def->min_value));
-            }
-            if (def->has_max && coerce.number > def->max_value) {
-                return fail("set_property '" + t + "." + op.property
-                            + "': value " + op.value
-                            + " above schema maximum "
-                            + std::to_string(def->max_value));
-            }
-        }
+        return validate_property_value(
+            "set_property '" + t + "." + op.property + "'", *def,
+            op.value, kg, ont);
     }
     return ValidationResult{};
 }

@@ -3,6 +3,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_ops_transaction.h"
 #include "logosphere/kg/ontology_registry.h"
+#include "logosphere/kg/qualified_reference.h"
 
 #include <algorithm>
 #include <map>
@@ -19,8 +20,9 @@ RuleForkResult fail(const std::string& error) {
 
 bool excluded_copy_property(const kg::PropertyDef& property) {
     return property.identifier || property.name == "origin_context" ||
-           property.name == "fork_of" || property.name == "created_at" ||
-           property.name == "updated_at";
+           property.name == "identity_context" ||
+           property.name == "entity_key" || property.name == "fork_of" ||
+           property.name == "created_at" || property.name == "updated_at";
 }
 
 }  // namespace
@@ -35,6 +37,15 @@ RuleForkResult fork_rule(kg::KGModule& world,
         return fail("fork destination context " +
                     std::to_string(request.destination_context) +
                     " does not exist");
+    }
+    if (request.entity_key.empty()) {
+        return fail("fork request requires a non-empty portable entity key");
+    }
+    try {
+        (void)kg::encode_qualified_reference_segment(request.entity_key);
+    } catch (const std::invalid_argument& error) {
+        return fail("fork entity key is invalid: " +
+                    std::string(error.what()));
     }
 
     const kg::OntologyRegistry& ontology = world.getRegistry();
@@ -74,14 +85,18 @@ RuleForkResult fork_rule(kg::KGModule& world,
         if (!overridden.insert(name).second) {
             return fail("fork request repeats override '" + name + "'");
         }
-        if (name == "origin_context" || name == "fork_of") {
-            return fail("fork request cannot override provenance property '" +
-                        name + "'");
+        if (name == "origin_context" || name == "identity_context" ||
+            name == "entity_key" || name == "fork_of") {
+            return fail("fork request cannot override identity or provenance "
+                        "property '" + name + "'");
         }
         properties[name] = value;
     }
     properties["origin_context"] =
         std::to_string(request.destination_context);
+    properties["identity_context"] =
+        std::to_string(request.destination_context);
+    properties["entity_key"] = request.entity_key;
     properties["fork_of"] = std::to_string(request.source);
 
     std::vector<std::pair<std::string, std::string>> create_properties(

@@ -38,14 +38,21 @@ static kg::OntologyRegistry make_registry() {
     r.addEntityType("Record",      "",        true);
     r.addEntityType("RequiredRecord", "Record", false);
     r.addAncestors("RequiredRecord", {"Record"});
-    r.addProperty("Cycle",        "max_speed", "float", false,
+    r.addProperty("Cycle", "max_speed", kg::PropertyValueKind::Float, false,
                   /*has_min=*/true, 0.1, /*has_max=*/true, 25.0);
-    r.addProperty("Cycle",        "x",         "float", false);
-    r.addProperty("Cycle",        "lap_count", "integer", false);
-    r.addProperty("Cycle",        "is_user",   "boolean", false);
-    r.addProperty("TrailSegment", "start_x",   "float", false);
+    r.addProperty("Cycle", "x", kg::PropertyValueKind::Float, false);
+    r.addProperty("Cycle", "lap_count", kg::PropertyValueKind::Integer,
+                  false);
+    r.addProperty("Cycle", "is_user", kg::PropertyValueKind::Boolean,
+                  false);
+    r.addProperty("TrailSegment", "start_x", kg::PropertyValueKind::Float,
+                  false);
     r.addRefProperty("Cycle",     "trail",     false, "TrailSegment");
-    r.addProperty("Record",       "code",      "string", true);
+    r.addEnumType("Mood", {"CALM", "COMMON"});
+    r.addEnumType("Access", {"OPEN", "COMMON"});
+    r.addEnumProperty("Cycle", "mood", "Mood", false);
+    r.addEnumProperty("Cycle", "access", "Access", false);
+    r.addProperty("Record", "code", kg::PropertyValueKind::String, true);
     r.addRefProperty("RequiredRecord", "owner", true, "TrailSegment");
     r.addRelationType("PARENT_OF",
         std::unordered_set<std::string>{"Cycle"},
@@ -254,6 +261,48 @@ void set_property_boolean_value_ok() {
     ASSERT_TRUE(r.ok, std::string("expected ok; got: ") + r.reason);
 }
 
+void create_with_exact_enum_member_ok() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{"Cycle", {{"mood", "CALM"}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("expected exact enum member; got: ") +
+                          r.reason);
+}
+
+void create_with_member_from_other_enum_rejected() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{"Cycle", {{"mood", "OPEN"}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "member from another enum must reject on create");
+    ASSERT_TRUE(r.reason.find("OPEN") != std::string::npos &&
+                    r.reason.find("Mood") != std::string::npos,
+                std::string("reason names member and exact enum; got: ") +
+                    r.reason);
+}
+
+void set_property_with_shared_exact_enum_member_ok() {
+    Fixture f;
+    auto e = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{e, ""}, "mood", "COMMON"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("shared token declared by Mood is valid; got: ") +
+                          r.reason);
+}
+
+void set_property_with_member_from_other_enum_rejected() {
+    Fixture f;
+    auto e = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{e, ""}, "access", "CALM"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "member from another enum must reject on set");
+    ASSERT_TRUE(r.reason.find("CALM") != std::string::npos &&
+                    r.reason.find("Access") != std::string::npos,
+                std::string("reason names member and exact enum; got: ") +
+                    r.reason);
+}
+
 // Entity-reference properties (class-ranged slots): the value must be
 // the id of an existing entity of the declared class or a subtype.
 
@@ -386,6 +435,10 @@ int main() {
     TEST(set_property_below_min_rejected);
     TEST(set_property_wrong_value_type_rejected);
     TEST(set_property_boolean_value_ok);
+    TEST(create_with_exact_enum_member_ok);
+    TEST(create_with_member_from_other_enum_rejected);
+    TEST(set_property_with_shared_exact_enum_member_ok);
+    TEST(set_property_with_member_from_other_enum_rejected);
     TEST(set_ref_property_right_class_ok);
     TEST(set_ref_property_wrong_class_rejected);
     TEST(set_ref_property_junk_rejected);

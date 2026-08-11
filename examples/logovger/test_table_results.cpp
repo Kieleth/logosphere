@@ -247,9 +247,9 @@ bool semantic_reason_contains(const kg::SeedVerifyReport& report,
 
 bool is_required(const kg::OntologyRegistry& reg, const std::string& type,
                  const std::string& property,
-                 const std::string& value_type) {
+                 kg::PropertyValueKind value_kind) {
     const auto* def = reg.findProperty(type, property);
-    return def && def->required && def->value_type == value_type;
+    return def && def->required && def->value_kind == value_kind;
 }
 
 void test_cepheus_declares_each_lookup_result_shape() {
@@ -262,20 +262,22 @@ void test_cepheus_declares_each_lookup_result_shape() {
               !reg.isAbstract("CharacteristicModifierEntry"),
           "Cepheus declares a concrete characteristic-modifier row");
     CHECK(is_required(reg, "CharacteristicModifierEntry", "pseudohex_min",
-                      "string") &&
+                      kg::PropertyValueKind::String) &&
               is_required(reg, "CharacteristicModifierEntry", "pseudohex_max",
-                          "string") &&
+                          kg::PropertyValueKind::String) &&
               is_required(reg, "CharacteristicModifierEntry",
-                          "characteristic_modifier", "integer"),
+                          "characteristic_modifier",
+                          kg::PropertyValueKind::Integer),
           "the characteristic row requires all three printed result fields");
 
     CHECK(reg.hasEntityType("DifficultyEntry") &&
               reg.isSubtypeOf("DifficultyEntry", "LookupEntry") &&
               !reg.isAbstract("DifficultyEntry"),
           "Cepheus declares a concrete law-difficulty row");
-    CHECK(is_required(reg, "DifficultyEntry", "difficulty_name", "string") &&
+    CHECK(is_required(reg, "DifficultyEntry", "difficulty_name",
+                      kg::PropertyValueKind::String) &&
               is_required(reg, "DifficultyEntry", "difficulty_modifier",
-                          "integer"),
+                          kg::PropertyValueKind::Integer),
           "the difficulty row requires both printed result fields");
 
     CHECK(reg.hasEntityType("EndCareer") &&

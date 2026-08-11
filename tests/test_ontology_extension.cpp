@@ -57,10 +57,14 @@ static kg::OntologyRegistry build_farming_ontology() {
         /*targets=*/{"Soil"});
 
     // Custom properties
-    reg.addProperty("Crop", "growth_stage",  "integer", /*required=*/false);
-    reg.addProperty("Crop", "water_level",   "float",   false);
-    reg.addProperty("Soil", "fertility",     "float",   false);
-    reg.addProperty("Soil", "moisture",      "float",   false);
+    reg.addProperty("Crop", "growth_stage", kg::PropertyValueKind::Integer,
+                    /*required=*/false);
+    reg.addProperty("Crop", "water_level", kg::PropertyValueKind::Float,
+                    false);
+    reg.addProperty("Soil", "fertility", kg::PropertyValueKind::Float,
+                    false);
+    reg.addProperty("Soil", "moisture", kg::PropertyValueKind::Float,
+                    false);
 
     return reg;
 }
@@ -231,11 +235,13 @@ void test_conflicting_relation_type_fails_atomically() {
 void test_conflicting_property_fails_atomically() {
     kg::OntologyRegistry base;
     base.addEntityType("Thing", "Entity", false);
-    base.addProperty("Thing", "score", "integer", false);
+    base.addProperty("Thing", "score", kg::PropertyValueKind::Integer,
+                     false);
 
     kg::OntologyRegistry extension;
     extension.addEntityType("NewType", "Entity", false);
-    extension.addProperty("Thing", "score", "string", false);
+    extension.addProperty("Thing", "score", kg::PropertyValueKind::String,
+                          false);
 
     bool threw = false;
     try {
@@ -246,7 +252,8 @@ void test_conflicting_property_fails_atomically() {
 
     ASSERT(threw, "a conflicting property definition throws");
     ASSERT(base.propertiesOf("Thing").size() == 1 &&
-               base.propertiesOf("Thing")[0].value_type == "integer",
+               base.propertiesOf("Thing")[0].value_kind ==
+                   kg::PropertyValueKind::Integer,
            "the existing property definition survives the conflict");
     ASSERT(!base.hasEntityType("NewType"),
            "a property conflict leaves the whole extension unapplied");
@@ -337,6 +344,99 @@ void test_invalid_base_registry_is_rejected_when_used() {
     ASSERT(threw, "KG construction rejects an invalid registry");
 }
 
+void test_identical_enum_definitions_compose_idempotently() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEnumType("Mood", {"CALM", "ANGRY"});
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEnumType("Mood", {"ANGRY", "CALM"});
+    extension.addEnumProperty("Character", "mood", "Mood", false);
+
+    base.extend(extension);
+
+    ASSERT(base.enumTypes().size() == 1,
+           "an identical enum definition composes once");
+    ASSERT(base.enumTypes().at("Mood").members ==
+               std::unordered_set<std::string>({"CALM", "ANGRY"}),
+           "the composed enum retains its members");
+    ASSERT(base.enumTypes().at("Mood").source == "schema://base",
+           "the original enum provenance survives idempotent composition");
+    ASSERT(base.findProperty("Character", "mood")->enum_type == "Mood",
+           "the property retains its exact enum refinement");
+}
+
+void test_distinct_enum_names_remain_nominal_with_identical_members() {
+    kg::OntologyRegistry registry("schema://nominal");
+    registry.addEnumType("Mood", {"SHARED"});
+    registry.addEnumType("Access", {"SHARED"});
+    registry.addEnumProperty("Character", "mood", "Mood", false);
+    registry.addEnumProperty("Character", "access", "Access", false);
+    registry.validateReferences();
+
+    ASSERT(registry.enumTypes().size() == 2,
+           "identical member sets do not merge distinct enum names");
+    ASSERT(registry.findProperty("Character", "mood")->enum_type == "Mood" &&
+               registry.findProperty("Character", "access")->enum_type ==
+                   "Access",
+           "properties retain nominal refinements despite identical members");
+}
+
+void test_conflicting_enum_definition_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEnumType("Mood", {"CALM", "ANGRY"});
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "", false);
+    extension.addEnumType("Mood", {"CALM", "AFRAID"});
+
+    bool threw = false;
+    bool provenance_is_exact = false;
+    try {
+        base.extend(extension);
+    } catch (const kg::OntologyCollision& collision) {
+        threw = true;
+        provenance_is_exact =
+            collision.kind() == "enum type" &&
+            collision.definition() == "Mood" &&
+            collision.existing_source() == "schema://base" &&
+            collision.incoming_source() == "schema://incoming";
+    }
+
+    ASSERT(threw, "an incompatible enum definition throws");
+    ASSERT(provenance_is_exact,
+           "the enum collision identifies both schema sources");
+    ASSERT(base.enumTypes().at("Mood").members.count("ANGRY") == 1,
+           "the existing enum survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "an enum conflict lands no earlier definitions");
+}
+
+void test_unknown_enum_refinement_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("Character", "", false);
+    extension.addEnumProperty(
+        "Character", "mood", "MissingMood", false);
+
+    bool threw = false;
+    std::string reason;
+    try {
+        base.extend(extension);
+    } catch (const std::exception& error) {
+        threw = true;
+        reason = error.what();
+    }
+
+    ASSERT(threw, "a property refined by an unknown enum throws");
+    ASSERT(reason.find("Character.mood") != std::string::npos &&
+               reason.find("MissingMood") != std::string::npos &&
+               reason.find("schema://incoming") != std::string::npos,
+           "the enum reference error names property, enum, and source");
+    ASSERT(!base.hasEntityType("Character"),
+           "an invalid enum reference leaves the extension unapplied");
+}
+
 int main() {
     std::cout << "=== Ontology Extension Tests ===" << std::endl;
 
@@ -353,6 +453,10 @@ int main() {
     test_unknown_entity_parent_fails_atomically();
     test_unknown_relation_endpoint_fails_atomically();
     test_invalid_base_registry_is_rejected_when_used();
+    test_identical_enum_definitions_compose_idempotently();
+    test_distinct_enum_names_remain_nominal_with_identical_members();
+    test_conflicting_enum_definition_fails_atomically();
+    test_unknown_enum_refinement_fails_atomically();
 
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;

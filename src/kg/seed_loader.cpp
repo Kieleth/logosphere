@@ -185,12 +185,12 @@ bool require_context_property(const KGModule& kg, EntityID id,
     return true;
 }
 
-bool seed_creates_cited_content(const SeedEnvelope& seed,
-                                const KGModule& kg) {
+bool seed_creates_addressable_content(const SeedEnvelope& seed,
+                                      const KGModule& kg) {
     for (const KGOp& op : seed.ops) {
         const auto* create = std::get_if<KGOpCreateEntity>(&op);
         if (create &&
-            kg.getRegistry().isSubtypeOf(create->type, "Cited")) {
+            kg.getRegistry().isSubtypeOf(create->type, "Addressable")) {
             return true;
         }
     }
@@ -221,6 +221,24 @@ bool validate_loader_owned_ops(const SeedEnvelope& seed, const KGModule& kg,
                     "]: create_entity alias @" + create->as +
                     " is reserved by the seed loader";
             return false;
+        }
+        if (kg.getRegistry().isSubtypeOf(create->type, "Addressable")) {
+            if (create->as.empty()) {
+                failed_op = static_cast<int>(index);
+                error = "ops[" + std::to_string(index) + "]: Addressable " +
+                        "type '" + create->type + "' requires a non-empty " +
+                        "create_entity alias for its portable entity key";
+                return false;
+            }
+            for (const auto& [name, value] : create->properties) {
+                (void)value;
+                if (name == "identity_context" || name == "entity_key") {
+                    failed_op = static_cast<int>(index);
+                    error = "ops[" + std::to_string(index) + "]: " + name +
+                            " is seed-loader-owned";
+                    return false;
+                }
+            }
         }
     }
     return true;
@@ -342,8 +360,8 @@ bool refuse_names_already_loaded(const SeedEnvelope& seed, const KGModule& kg,
             failed_op = static_cast<int>(i);
             error = "unique_name_per_type " + create->type + ": '" + name +
                     "' is already loaded from another seed. Reference it "
-                    "with @@" + create->type + ":" + name +
-                    " instead of creating it again.";
+                    "with its canonical @@entity/<context-key>/<exact-type>/"
+                    "<entity-key> path instead of creating it again.";
             return false;
         }
     }
@@ -364,7 +382,7 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
         report.failed_op = invalid_op;
         return false;
     }
-    if (!seed_creates_cited_content(seed, kg)) {
+    if (!seed_creates_addressable_content(seed, kg)) {
         KGOpBatchReport batch;
         const bool ok = apply_kg_ops_atomically(
             seed.ops, kg, batch, MutationAuthority::SeedIngestion);
@@ -443,6 +461,12 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
 
     for (size_t index = 0; index < seed.ops.size(); ++index) {
         KGOp copied = seed.ops[index];
+        if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
+            create &&
+            kg.getRegistry().isSubtypeOf(create->type, "Addressable")) {
+            create->properties.emplace_back("identity_context", document_ref);
+            create->properties.emplace_back("entity_key", create->as);
+        }
         if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
             create && kg.getRegistry().isSubtypeOf(create->type, "Cited")) {
             const auto existing = std::find_if(

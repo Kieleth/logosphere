@@ -146,20 +146,20 @@ void test_table_results_have_one_complete_shape() {
     const auto& reg = rulebook::ontology::registry();
 
     auto required = [&](const std::string& type, const std::string& property,
-                        const std::string& value_type) {
+                        kg::PropertyValueKind value_kind) {
         const auto* def = reg.findProperty(type, property);
-        return def && def->required && def->value_type == value_type;
+        return def && def->required && def->value_kind == value_kind;
     };
 
     const auto* table_dice = reg.findProperty("RollableTable", "dice");
     CHECK(table_dice && table_dice->required &&
-              table_dice->value_type == "entity_ref" &&
+              table_dice->value_kind == kg::PropertyValueKind::EntityRef &&
               table_dice->ref_target == "DiceExpression",
           "every RollableTable requires the DiceExpression that selects it");
 
     const auto* entry_type = reg.findProperty("LookupTable", "entry_type");
     CHECK(entry_type && entry_type->required &&
-              entry_type->value_type == "string",
+              entry_type->value_kind == kg::PropertyValueKind::String,
           "every LookupTable requires the concrete LookupEntry subtype it "
           "contains");
     CHECK(!reg.hasProperty("LookupEntry", "outcome"),
@@ -171,83 +171,107 @@ void test_table_results_have_one_complete_shape() {
     const auto* max_unbounded =
         reg.findProperty("LookupEntry", "key_max_unbounded");
     CHECK(key_min && !key_min->required &&
-              key_min->value_type == "integer" &&
+              key_min->value_kind == kg::PropertyValueKind::Integer &&
               key_max && !key_max->required &&
-              key_max->value_type == "integer" &&
+              key_max->value_kind == kg::PropertyValueKind::Integer &&
               min_unbounded && !min_unbounded->required &&
-              min_unbounded->value_type == "boolean" &&
+              min_unbounded->value_kind == kg::PropertyValueKind::Boolean &&
               max_unbounded && !max_unbounded->required &&
-              max_unbounded->value_type == "boolean",
+              max_unbounded->value_kind == kg::PropertyValueKind::Boolean,
           "lookup bounds are optional only through explicit unbounded flags");
 
     const auto* row_outcome = reg.findProperty("TableEntry", "outcome");
     CHECK(row_outcome && row_outcome->required &&
-              row_outcome->value_type == "entity_ref" &&
+              row_outcome->value_kind == kg::PropertyValueKind::EntityRef &&
               row_outcome->ref_target == "Outcome",
           "every rollable row requires one typed root Outcome");
 
     const auto* step_index = reg.findProperty("OutcomeStep", "step_index");
     const auto* step_outcome = reg.findProperty("OutcomeStep", "outcome");
     CHECK(step_index && step_index->required &&
-              step_index->value_type == "integer",
+              step_index->value_kind == kg::PropertyValueKind::Integer,
           "every OutcomeStep requires its explicit order");
     CHECK(step_outcome && step_outcome->required &&
-              step_outcome->value_type == "entity_ref" &&
+              step_outcome->value_kind == kg::PropertyValueKind::EntityRef &&
               step_outcome->ref_target == "Outcome",
           "every OutcomeStep requires its typed child Outcome");
 
-    CHECK(required("EnsureSkillLevel", "skill", "entity_ref") &&
-              required("EnsureSkillLevel", "skill_level", "integer"),
+    CHECK(required("EnsureSkillLevel", "skill",
+                   kg::PropertyValueKind::EntityRef) &&
+              required("EnsureSkillLevel", "skill_level",
+                       kg::PropertyValueKind::Integer),
           "EnsureSkillLevel requires its skill and minimum level");
-    CHECK(required("AdvanceSkill", "skill", "entity_ref") &&
-              required("AdvanceSkill", "initial_skill_level", "integer") &&
-              required("AdvanceSkill", "existing_skill_delta", "integer"),
+    CHECK(required("AdvanceSkill", "skill",
+                   kg::PropertyValueKind::EntityRef) &&
+              required("AdvanceSkill", "initial_skill_level",
+                       kg::PropertyValueKind::Integer) &&
+              required("AdvanceSkill", "existing_skill_delta",
+                       kg::PropertyValueKind::Integer),
           "AdvanceSkill carries both branches of its state-dependent rule");
-    CHECK(required("SkillRating", "skill", "entity_ref") &&
-              required("SkillRating", "skill_level", "integer"),
+    CHECK(required("SkillRating", "skill",
+                   kg::PropertyValueKind::EntityRef) &&
+              required("SkillRating", "skill_level",
+                       kg::PropertyValueKind::Integer),
           "runtime SkillRating state is complete at creation");
 
     CHECK(reg.isAbstract("GainMoney") &&
-              required("GainMoney", "currency", "entity_ref"),
+              required("GainMoney", "currency",
+                       kg::PropertyValueKind::EntityRef),
           "GainMoney is an abstract currency-denominated outcome");
-    CHECK(required("GainFixedMoney", "amount", "integer") &&
+    CHECK(required("GainFixedMoney", "amount",
+                   kg::PropertyValueKind::Integer) &&
               !reg.hasProperty("GainFixedMoney", "amount_dice"),
           "fixed money requires only its fixed amount");
-    CHECK(required("GainRolledMoney", "amount_dice", "entity_ref") &&
+    CHECK(required("GainRolledMoney", "amount_dice",
+                   kg::PropertyValueKind::EntityRef) &&
               !reg.hasProperty("GainRolledMoney", "amount"),
           "rolled money requires only its DiceExpression");
-    CHECK(required("CurrencyBalance", "currency", "entity_ref") &&
-              required("CurrencyBalance", "balance_amount", "integer"),
+    CHECK(required("CurrencyBalance", "currency",
+                   kg::PropertyValueKind::EntityRef) &&
+              required("CurrencyBalance", "balance_amount",
+                       kg::PropertyValueKind::Integer),
           "runtime money state is a typed balance per currency");
 
-    CHECK(required("ModifyAttribute", "attribute_ref", "string") &&
-              required("ModifyAttribute", "attribute_delta", "integer"),
+    CHECK(required("ModifyAttribute", "attribute_ref",
+                   kg::PropertyValueKind::String) &&
+              required("ModifyAttribute", "attribute_delta",
+                       kg::PropertyValueKind::Integer),
           "ModifyAttribute cannot reach execution without both operands");
-    CHECK(required("GrantTableRoll", "table", "entity_ref") &&
-              required("GrantTableRoll", "roll_count", "integer"),
+    CHECK(required("GrantTableRoll", "table",
+                   kg::PropertyValueKind::EntityRef) &&
+              required("GrantTableRoll", "roll_count",
+                       kg::PropertyValueKind::Integer),
           "a table-roll request names its table and count");
 
-    CHECK(required("OutcomeChoice", "choice_authority", "string"),
+    CHECK(required("OutcomeChoice", "choice_authority",
+                   kg::PropertyValueKind::String),
           "every choice names who must resolve it");
-    CHECK(required("OutcomeOption", "option_index", "integer") &&
-              required("OutcomeOption", "option_label", "string") &&
-              required("OutcomeOption", "outcome", "entity_ref"),
+    CHECK(required("OutcomeOption", "option_index",
+                   kg::PropertyValueKind::Integer) &&
+              required("OutcomeOption", "option_label",
+                       kg::PropertyValueKind::String) &&
+              required("OutcomeOption", "outcome",
+                       kg::PropertyValueKind::EntityRef),
           "every choice option is ordered, labeled, and typed");
 
-    CHECK(required("ProcedureStep", "step_index", "integer") &&
-              required("ProcedureStep", "primitive_ref", "string"),
+    CHECK(required("ProcedureStep", "step_index",
+                   kg::PropertyValueKind::Integer) &&
+              required("ProcedureStep", "primitive_ref",
+                       kg::PropertyValueKind::String),
           "every procedure step is ordered and names one primitive");
-    CHECK(required("StepRoute", "route_label", "string") &&
-              required("StepRoute", "next_step", "entity_ref"),
+    CHECK(required("StepRoute", "route_label",
+                   kg::PropertyValueKind::String) &&
+              required("StepRoute", "next_step",
+                       kg::PropertyValueKind::EntityRef),
           "every procedure route names its label and destination");
 }
 
 void test_task_checks_declare_the_complete_mechanic() {
     const auto reg = rulebook::ontology::registry();
     const auto required = [&](const std::string& property,
-                              const std::string& type) {
+                              kg::PropertyValueKind kind) {
         const auto* def = reg.findProperty("TaskCheck", property);
-        return def && def->required && def->value_type == type;
+        return def && def->required && def->value_kind == kind;
     };
     // attribute_ref is deliberately NOT required. Cepheus prints
     // re-enlistment as a bare "6+", a throw no characteristic
@@ -255,7 +279,7 @@ void test_task_checks_declare_the_complete_mechanic() {
     // check. What a throw cannot do without is dice and a target.
     const auto* attribute = reg.findProperty("TaskCheck", "attribute_ref");
     CHECK(attribute && !attribute->required &&
-              attribute->value_type == "string",
+              attribute->value_kind == kg::PropertyValueKind::String,
           "TaskCheck's attribute is optional, for throws the book "
           "prints with no characteristic at all");
     // The modifier lookup travels with the attribute: a throw with no
@@ -265,8 +289,8 @@ void test_task_checks_declare_the_complete_mechanic() {
     CHECK(lookup && !lookup->required && column && !column->required,
           "TaskCheck's modifier lookup is optional, like the attribute "
           "it exists to modify");
-    CHECK(required("target_number", "integer") &&
-              required("dice", "entity_ref"),
+    CHECK(required("target_number", kg::PropertyValueKind::Integer) &&
+              required("dice", kg::PropertyValueKind::EntityRef),
           "TaskCheck requires its dice "
           "result column, and threshold");
     const auto* table = reg.findProperty("TaskCheck", "modifier_table");
@@ -300,7 +324,8 @@ void test_rule_contexts_are_explicit_kg_entities() {
               source_layer && source_layer->required &&
               source_commit && source_commit->required &&
               source_layer_context && source_layer_context->required &&
-              source_layer_context->value_type == "entity_ref" &&
+              source_layer_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
               source_layer_context->ref_target == "SourceLayerContext" &&
               runtime_kind && runtime_kind->required,
           "contexts carry complete identity, source lineage, and runtime "
@@ -309,13 +334,32 @@ void test_rule_contexts_are_explicit_kg_entities() {
     const auto* origin = reg.findProperty("TaskCheck", "origin_context");
     const auto* fork = reg.findProperty("TaskCheck", "fork_of");
     CHECK(origin && origin->required &&
-              origin->value_type == "entity_ref" &&
+              origin->value_kind == kg::PropertyValueKind::EntityRef &&
               origin->ref_target == "KnowledgeContext",
           "every cited rule requires an explicit origin context");
     CHECK(fork && !fork->required &&
-              fork->value_type == "entity_ref" &&
+              fork->value_kind == kg::PropertyValueKind::EntityRef &&
               fork->ref_target == "Entity",
           "a rule fork records its source as typed KG lineage");
+}
+
+void test_rule_content_has_portable_addressable_identity() {
+    const auto& reg = rulebook::ontology::registry();
+    CHECK(reg.hasEntityType("Addressable") && reg.isAbstract("Addressable"),
+          "Addressable is reusable abstract ontology vocabulary");
+    CHECK(reg.isSubtypeOf("TaskCheck", "Addressable"),
+          "cited rule content carries portable identity");
+
+    const auto* context =
+        reg.findProperty("Addressable", "identity_context");
+    const auto* key = reg.findProperty("Addressable", "entity_key");
+    CHECK(context && context->required && context->create_only &&
+              context->value_kind == kg::PropertyValueKind::EntityRef &&
+              context->ref_target == "KnowledgeContext",
+          "portable identity names one immutable KnowledgeContext");
+    CHECK(key && key->required && key->create_only &&
+              key->value_kind == kg::PropertyValueKind::String,
+          "portable identity has one immutable machine key");
 }
 
 void test_rule_origin_and_published_content_are_immutable() {
@@ -395,6 +439,8 @@ void test_rule_origin_and_published_content_are_immutable() {
         kg::KGOp{kg::KGOpCreateEntity{
             "RuleConstant",
             {{"origin_context", std::to_string(source_document)},
+             {"identity_context", std::to_string(runtime)},
+             {"entity_key", "forged-source-rule"},
              {"constant_value", "21"}},
             ""}},
         kg, kg.getRegistry());
@@ -439,13 +485,15 @@ void test_chapter_one_instantiates() {
         {"LookupEntry", "Cited", "Entity", "Describable", "Identifiable",
          "Temporal"});
     row_types.addProperty("CharacteristicModifierEntry",
-                          "characteristic_modifier", "integer", true);
+                          "characteristic_modifier",
+                          kg::PropertyValueKind::Integer, true);
     row_types.addEntityType("NobilityEntry", "LookupEntry", false);
     row_types.addAncestors(
         "NobilityEntry",
         {"LookupEntry", "Cited", "Entity", "Describable", "Identifiable",
          "Temporal"});
-    row_types.addProperty("NobilityEntry", "title", "string", true);
+    row_types.addProperty("NobilityEntry", "title",
+                          kg::PropertyValueKind::String, true);
     kg.extendOntology(row_types);
     kg.setMode(kg::KGMode::MINIMAL);
     world = &kg;
@@ -849,6 +897,7 @@ int main() {
     test_table_results_have_one_complete_shape();
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
+    test_rule_content_has_portable_addressable_identity();
     test_rule_origin_and_published_content_are_immutable();
     test_chapter_one_instantiates();
     test_every_quote_is_verbatim();

@@ -64,7 +64,7 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
                            "' is not declared on target type '" +
                            target_type + "'");
         }
-        if (attribute_def->value_type != "integer") {
+        if (attribute_def->value_kind != kg::PropertyValueKind::Integer) {
             return failure("TaskCheck attribute_ref '" + attribute +
                            "' is not an integer property");
         }
@@ -120,7 +120,7 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
                            modifier_property + "' is not declared on lookup "
                            "entry type '" + entry_type + "'");
         }
-        if (modifier_def->value_type != "integer") {
+        if (modifier_def->value_kind != kg::PropertyValueKind::Integer) {
             return failure("TaskCheck modifier_property '" +
                            modifier_property + "' is not an integer "
                            "property");

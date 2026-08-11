@@ -29,10 +29,24 @@ namespace {
 
 kg::OntologyRegistry registry() {
     kg::OntologyRegistry out;
+    out.addEntityType("KnowledgeContext", "", true);
+    out.addEntityType("SourceDocumentContext", "KnowledgeContext", false);
+    out.addAncestors("SourceDocumentContext", {"KnowledgeContext"});
+    out.addEntityType("RuntimeContext", "KnowledgeContext", false);
+    out.addAncestors("RuntimeContext", {"KnowledgeContext"});
+    out.addEntityType("Addressable", "", true);
     out.addEntityType("Parent", "", false);
+    out.addAncestors("Parent", {"Addressable"});
     out.addEntityType("Child", "", false);
-    out.addProperty("Parent", "value", "integer", false);
-    out.addProperty("Child", "label", "string", true);
+    out.addProperty("KnowledgeContext", "context_key",
+                    kg::PropertyValueKind::String, true, true);
+    out.addRefProperty("Addressable", "identity_context", true,
+                       "KnowledgeContext", true);
+    out.addProperty("Addressable", "entity_key",
+                    kg::PropertyValueKind::String, true, true);
+    out.addProperty("Parent", "value", kg::PropertyValueKind::Integer,
+                    false);
+    out.addProperty("Child", "label", kg::PropertyValueKind::String, true);
     out.addRelationType("HAS_PART", {"Parent"}, {"Child"});
     // A reference to something a different seed created.
     out.addRefProperty("Child", "points_at", false, "Parent");
@@ -43,14 +57,20 @@ struct Fixture {
     kg::OntologyRegistry ontology = registry();
     kg::KGModule world{ontology};
     logosphere::EventBus events;
+    kg::EntityID context = kg::INVALID_ENTITY;
     kg::EntityID parent = kg::INVALID_ENTITY;
     int property_events = 0;
     int relation_events = 0;
 
     Fixture() {
         world.setMode(kg::KGMode::MINIMAL);
+        context = world.createEntity("RuntimeContext");
+        world.setProperty(context, "context_key", "source-document:test");
         parent = world.createEntity("Parent");
         world.setProperty(parent, "value", "1");
+        world.setProperty(parent, "identity_context",
+                          std::to_string(context));
+        world.setProperty(parent, "entity_key", "admin");
         world.set_event_bus(&events);
         events.state_changes().subscribe(
             [&](const logosphere::ontology::WorldEvent&) {
@@ -128,101 +148,77 @@ void unsupported_destructive_ops_fail_before_mutation() {
             "the destructive operation must touch nothing");
 }
 
-// An alias is file-local. "@@Type:Name" is the one way across that
-// boundary, and it must be narrow enough to be trustworthy.
-void a_world_reference_finds_an_entity_another_batch_created() {
+const char* kParentReference =
+    "@@entity/source-document%3Atest/Parent/admin";
+
+kg::KGOpCreateEntity child_pointing_at(const std::string& reference) {
+    return {"Child", {{"label", "x"}, {"points_at", reference}}, "c"};
+}
+
+void a_canonical_reference_finds_an_exact_addressable_entity() {
     Fixture f;
     f.world.setProperty(f.parent, "name", "Admin");
-    std::vector<kg::KGOp> ops;
-    kg::KGOpCreateEntity child;
-    child.type = "Child";
-    child.as = "c";
-    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Admin"}};
-    ops.push_back(child);
+    f.world.setProperty(f.parent, "source_aliases", "Administrator");
     kg::KGOpBatchReport report;
-    REQUIRE(kg::apply_kg_ops_atomically(ops, f.world, report),
-            "a world reference to a loaded entity must resolve");
+    REQUIRE(kg::apply_kg_ops_atomically(
+                {child_pointing_at(kParentReference)}, f.world, report),
+            "a canonical world reference must resolve: " + report.error);
     const auto made = report.bindings.at("c");
     REQUIRE(f.world.getProperty(made, "points_at") ==
                 std::to_string(f.parent),
-            "it must bind to the entity that already exists");
+            "the exact context, type, and machine key identify the target");
 }
 
-// The career tables print "Jack o' Trades"; the skills chapter defines
-// "Jack-of-All-Trades (Jack o' Trades or JoT)". One skill, two names,
-// both the book's own.
-void a_world_reference_resolves_through_a_source_alias() {
+void display_names_and_source_aliases_do_not_affect_identity() {
     Fixture f;
-    f.world.setProperty(f.parent, "name", "Jack-of-All-Trades");
-    f.world.setProperty(f.parent, "source_aliases", "Jack o' Trades; JoT");
-    std::vector<kg::KGOp> ops;
-    kg::KGOpCreateEntity child;
-    child.type = "Child";
-    child.as = "c";
-    child.properties = {{"label", "x"}, {"points_at", "@@Parent:JoT"}};
-    ops.push_back(child);
+    f.world.setProperty(f.parent, "name", "Changed display name");
+    f.world.setProperty(f.parent, "source_aliases", "Anything; Else");
     kg::KGOpBatchReport report;
-    REQUIRE(kg::apply_kg_ops_atomically(ops, f.world, report),
-            "an alias the source itself uses must resolve: " + report.error);
+    REQUIRE(kg::apply_kg_ops_atomically(
+                {child_pointing_at(kParentReference)}, f.world, report),
+            "mutable labels must not affect canonical identity: " +
+                report.error);
     REQUIRE(f.world.getProperty(report.bindings.at("c"), "points_at") ==
                 std::to_string(f.parent),
-            "and it must reach the entity that carries the alias");
+            "canonical resolution does not inspect labels or aliases");
 }
 
-// An alias must never beat a real name, or a seed could be silently
-// redirected by someone else's nickname.
-void an_exact_name_wins_over_someone_elses_alias() {
-    Fixture f;
-    f.world.setProperty(f.parent, "name", "Recon");
-    const auto other = f.world.createEntity("Parent");
-    f.world.setProperty(other, "name", "Perception");
-    f.world.setProperty(other, "source_aliases", "Recon");
-    std::vector<kg::KGOp> ops;
-    kg::KGOpCreateEntity child;
-    child.type = "Child";
-    child.as = "c";
-    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Recon"}};
-    ops.push_back(child);
-    kg::KGOpBatchReport report;
-    REQUIRE(kg::apply_kg_ops_atomically(ops, f.world, report),
-            "the exact name must resolve: " + report.error);
-    REQUIRE(f.world.getProperty(report.bindings.at("c"), "points_at") ==
-                std::to_string(f.parent),
-            "to the entity NAMED Recon, not the one aliased Recon");
-}
-
-void a_world_reference_to_nothing_fails_loudly() {
+void the_legacy_name_reference_is_dead() {
     Fixture f;
     f.world.setProperty(f.parent, "name", "Admin");
-    std::vector<kg::KGOp> ops;
-    kg::KGOpCreateEntity child;
-    child.type = "Child";
-    child.as = "c";
-    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Nope"}};
-    ops.push_back(child);
     kg::KGOpBatchReport report;
-    REQUIRE(!kg::apply_kg_ops_atomically(ops, f.world, report),
-            "a reference to a name nobody loaded must fail");
-    REQUIRE(report.error.find("Nope") != std::string::npos,
-            "the error must name what could not be found: " + report.error);
+    REQUIRE(!kg::apply_kg_ops_atomically(
+                {child_pointing_at("@@Parent:Admin")}, f.world, report),
+            "the removed name-based reference must not resolve");
+    REQUIRE(report.error.find("expected @@meta/... or @@entity/...") !=
+                std::string::npos,
+            "the error points to the canonical grammar: " + report.error);
 }
 
-void an_ambiguous_world_reference_fails_rather_than_picking() {
+void a_canonical_reference_to_nothing_fails_loudly() {
     Fixture f;
-    f.world.setProperty(f.parent, "name", "Admin");
+    kg::KGOpBatchReport report;
+    REQUIRE(!kg::apply_kg_ops_atomically(
+                {child_pointing_at(
+                    "@@entity/source-document%3Atest/Parent/missing")},
+                f.world, report),
+            "an absent canonical identity must fail");
+    REQUIRE(report.error.find("no matching Addressable") !=
+                std::string::npos,
+            "the error names the missing identity: " + report.error);
+}
+
+void duplicate_canonical_identity_fails_rather_than_picking() {
+    Fixture f;
     const auto twin = f.world.createEntity("Parent");
-    f.world.setProperty(twin, "name", "Admin");
-    std::vector<kg::KGOp> ops;
-    kg::KGOpCreateEntity child;
-    child.type = "Child";
-    child.as = "c";
-    child.properties = {{"label", "x"}, {"points_at", "@@Parent:Admin"}};
-    ops.push_back(child);
+    f.world.setProperty(twin, "identity_context", std::to_string(f.context));
+    f.world.setProperty(twin, "entity_key", "admin");
     kg::KGOpBatchReport report;
-    REQUIRE(!kg::apply_kg_ops_atomically(ops, f.world, report),
-            "two entities of that name must not silently bind to one");
-    REQUIRE(report.error.find("ambiguous") != std::string::npos,
-            "the error must say why: " + report.error);
+    REQUIRE(!kg::apply_kg_ops_atomically(
+                {child_pointing_at(kParentReference)}, f.world, report),
+            "corrupt duplicate identity must not silently bind");
+    REQUIRE(report.error.find("found 2") != std::string::npos,
+            "the resolver reports the duplicate identity: " + report.error);
 }
 
 }  // namespace
@@ -232,11 +228,11 @@ int main() {
     TEST(a_late_failure_restores_everything_and_emits_nothing);
     TEST(a_success_commits_once_and_publishes_afterward);
     TEST(unsupported_destructive_ops_fail_before_mutation);
-    TEST(a_world_reference_finds_an_entity_another_batch_created);
-    TEST(a_world_reference_resolves_through_a_source_alias);
-    TEST(an_exact_name_wins_over_someone_elses_alias);
-    TEST(a_world_reference_to_nothing_fails_loudly);
-    TEST(an_ambiguous_world_reference_fails_rather_than_picking);
+    TEST(a_canonical_reference_finds_an_exact_addressable_entity);
+    TEST(display_names_and_source_aliases_do_not_affect_identity);
+    TEST(the_legacy_name_reference_is_dead);
+    TEST(a_canonical_reference_to_nothing_fails_loudly);
+    TEST(duplicate_canonical_identity_fails_rather_than_picking);
     std::cout << tests_passed << " passed, " << tests_failed << " failed\n";
     return tests_failed == 0 ? 0 : 1;
 }

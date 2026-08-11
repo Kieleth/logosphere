@@ -71,7 +71,8 @@ void a_fork_copies_content_and_changes_only_requested_fields() {
     Fixture fixture;
     const auto result = logosphere::rules::fork_rule(
         fixture.world,
-        {fixture.source, fixture.runtime, {{"constant_value", "21"}}});
+        {fixture.source, fixture.runtime, "age-session-one",
+         {{"constant_value", "21"}}});
     REQUIRE(result.ok, "fork succeeds: " + result.error);
     REQUIRE(result.entity != kg::INVALID_ENTITY &&
                 result.entity != fixture.source,
@@ -87,6 +88,11 @@ void a_fork_copies_content_and_changes_only_requested_fields() {
             "fork copies source content and applies the explicit override");
     REQUIRE(fixture.world.getProperty(result.entity, "origin_context") ==
                 std::to_string(fixture.runtime) &&
+                fixture.world.getProperty(result.entity,
+                                          "identity_context") ==
+                    std::to_string(fixture.runtime) &&
+                fixture.world.getProperty(result.entity, "entity_key") ==
+                    "age-session-one" &&
                 fixture.world.getProperty(result.entity, "fork_of") ==
                     std::to_string(fixture.source),
             "fork records its runtime origin and immediate source lineage");
@@ -99,7 +105,8 @@ void a_runtime_fork_remains_mutable() {
     Fixture fixture;
     const auto forked = logosphere::rules::fork_rule(
         fixture.world,
-        {fixture.source, fixture.runtime, {{"constant_value", "21"}}});
+        {fixture.source, fixture.runtime, "mutable-age",
+         {{"constant_value", "21"}}});
     REQUIRE(forked.ok, "fork succeeds");
     kg::KGOpBatchReport update;
     REQUIRE(kg::apply_kg_ops_atomically(
@@ -118,14 +125,15 @@ void invalid_forks_fail_atomically() {
 
     const auto bad_value = logosphere::rules::fork_rule(
         fixture.world,
-        {fixture.source, fixture.runtime, {{"constant_value", "banana"}}});
+        {fixture.source, fixture.runtime, "bad-value",
+         {{"constant_value", "banana"}}});
     REQUIRE(!bad_value.ok &&
                 bad_value.error.find("expected integer") != std::string::npos,
             "invalid override is rejected with the schema reason");
 
     const auto forged_origin = logosphere::rules::fork_rule(
         fixture.world,
-        {fixture.source, fixture.runtime,
+        {fixture.source, fixture.runtime, "forged-origin",
          {{"origin_context", std::to_string(fixture.source_context)}}});
     REQUIRE(!forged_origin.ok &&
                 forged_origin.error.find("cannot override") !=
@@ -134,12 +142,19 @@ void invalid_forks_fail_atomically() {
 
     const auto source_destination = logosphere::rules::fork_rule(
         fixture.world,
-        {fixture.source, fixture.source_context,
+        {fixture.source, fixture.source_context, "source-destination",
          {{"constant_value", "21"}}});
     REQUIRE(!source_destination.ok &&
                 source_destination.error.find("RuntimeContext") !=
                     std::string::npos,
             "a runtime fork cannot claim a published source context");
+
+    const auto missing_key = logosphere::rules::fork_rule(
+        fixture.world,
+        {fixture.source, fixture.runtime, "", {{"constant_value", "21"}}});
+    REQUIRE(!missing_key.ok &&
+                missing_key.error.find("entity key") != std::string::npos,
+            "a fork requires an explicit portable entity key");
     REQUIRE(fixture.world.findByType("RuleConstant").size() == before,
             "every rejected fork leaves the graph unchanged");
 }

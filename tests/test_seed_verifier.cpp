@@ -317,7 +317,7 @@ void test_a_second_seed_cannot_recreate_a_name() {
     kg::SeedLoadReport b;
     CHECK(!kg::load_seed(second, world, b),
           "a second seed must not recreate a name already loaded");
-    CHECK(b.error.find("@@Skill:Gun Combat") != std::string::npos,
+    CHECK(b.error.find("canonical @@entity/") != std::string::npos,
           "the error must say how to reference it instead: " + b.error);
     CHECK(world.findByType("Skill").size() == 1,
           "the refused seed must leave nothing behind");
@@ -356,6 +356,11 @@ void test_loader_materializes_seed_origin_contexts() {
     CHECK(world.getProperty(check, "origin_context") ==
               std::to_string(documents[0]),
           "a cited rule points to the exact source document context");
+    CHECK(world.getProperty(check, "identity_context") ==
+                  std::to_string(documents[0]) &&
+              world.getProperty(check, "entity_key") == "int_throw",
+          "a cited rule gets portable identity from its source document "
+          "and seed alias");
 
     kg::KGOpBatchReport batch;
     CHECK(!kg::apply_kg_ops_atomically(
@@ -365,6 +370,47 @@ void test_loader_materializes_seed_origin_contexts() {
               batch.error.find("sealed origin") != std::string::npos &&
               world.getProperty(check, "target_number") == "8",
           "the validated runtime path cannot mutate a published rule");
+}
+
+void test_loader_owns_seed_portable_identity() {
+    {
+        kg::SeedEnvelope seed = mini_seed(
+            "book1/character-creation.md",
+            R"({"op":"create_entity","type":"RuleConstant",
+                "as":"@rule","properties":{"name":"age",
+                "constant_value":18,"entity_key":"forged"}})");
+        kg::KGModule world(engine_registry());
+        world.setMode(kg::KGMode::MINIMAL);
+        kg::SeedLoadReport report;
+
+        CHECK(!kg::load_seed(seed, world, report),
+              "seed content cannot choose its portable identity");
+        CHECK(report.error.find("entity_key is seed-loader-owned") !=
+                  std::string::npos,
+              "the rejection names the loader-owned identity field: " +
+                  report.error);
+        CHECK(world.findByType("RuleConstant").empty(),
+              "rejected identity forgery leaves no rule content");
+    }
+
+    {
+        kg::SeedEnvelope seed = mini_seed(
+            "book1/character-creation.md",
+            R"({"op":"create_entity","type":"RuleConstant",
+                "properties":{"name":"age","constant_value":18}})");
+        kg::KGModule world(engine_registry());
+        world.setMode(kg::KGMode::MINIMAL);
+        kg::SeedLoadReport report;
+
+        CHECK(!kg::load_seed(seed, world, report),
+              "addressable seed content requires a machine alias");
+        CHECK(report.error.find("requires a non-empty create_entity alias") !=
+                  std::string::npos,
+              "the missing alias error explains the identity requirement: " +
+                  report.error);
+        CHECK(world.findByType("RuleConstant").empty(),
+              "missing identity alias leaves no rule content");
+    }
 }
 
 void test_loader_failure_rolls_back_the_whole_seed() {
@@ -431,7 +477,8 @@ void test_loader_failure_rolls_back_the_whole_seed() {
 void test_loader_rejects_missing_required_properties_atomically() {
     kg::OntologyRegistry reg("schema://required-test");
     reg.addEntityType("RequiredRecord", "", false);
-    reg.addProperty("RequiredRecord", "code", "string", true);
+    reg.addProperty("RequiredRecord", "code",
+                    kg::PropertyValueKind::String, true);
 
     kg::SeedEnvelope seed;
     seed.ops.push_back(kg::KGOp{kg::KGOpCreateEntity{
@@ -1288,6 +1335,7 @@ int main() {
     test_loader_binds_and_resolves();
     test_a_second_seed_cannot_recreate_a_name();
     test_loader_materializes_seed_origin_contexts();
+    test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();
     test_loader_publishes_events_after_commit();

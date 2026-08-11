@@ -37,12 +37,14 @@
 // (seed_verifier.h) runs it against a throwaway world as its
 // schema check.
 //
-// When the registry includes the rulebook pack and a seed creates Cited
-// content, the loader also owns provenance materialization. In the same
+// When the registry includes the rule-language pack and a seed creates
+// Addressable content, the loader also owns identity materialization. In the
+// same
 // atomic batch it creates or reuses SourceLayerContext and
-// SourceDocumentContext entities, then injects the document context as each
-// cited entity's required origin_context. Seed ops cannot forge those
-// engine-owned contexts or choose their own origin.
+// SourceDocumentContext entities, then injects the document context and seed
+// alias as each entity's identity_context and entity_key. Cited content also
+// gets the document context as origin_context. Seed ops cannot forge those
+// loader-owned values.
 //
 // Engine-side helper. Generic - no game knowledge.
 
@@ -114,8 +116,8 @@ struct SeedLoadReport {
     // Per op: the entity it created (INVALID_ENTITY for non-creates).
     std::vector<EntityID> created_ids;
 
-    // Engine-owned provenance contexts. INVALID_ENTITY when this seed has no
-    // Cited creates and therefore needs no rulebook origin context.
+    // Engine-owned identity contexts. INVALID_ENTITY when this seed has no
+    // Addressable creates.
     EntityID source_layer_context = INVALID_ENTITY;
     EntityID source_document_context = INVALID_ENTITY;
 };
@@ -126,7 +128,8 @@ struct SeedLoadReport {
 // no events, and exposes no partial bindings or created ids. Successful
 // mutation events publish only after the complete graph is committed.
 // Destruction and cinematics are not seed data and are rejected.
-// Source context creation and Cited.origin_context are loader-owned.
+// Source context creation, Addressable identity, and Cited.origin_context are
+// loader-owned.
 // The report is cleared on entry, so reusing one report object cannot
 // leak bindings between seeds. Validation runs against kg.getRegistry(),
 // the registry the world was built from. Returns report.ok.

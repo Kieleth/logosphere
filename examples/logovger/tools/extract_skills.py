@@ -10,9 +10,9 @@ source. Judgement about meaning happens elsewhere, against text this
 tool has already proved.
 
 Output is a seed envelope: one file that OWNS the skill vocabulary.
-Everything else references it with "@@Skill:Name" rather than creating
-its own copy, which is what the four duplicate Gun Combat entities
-taught us.
+Everything else references its stable source-document, Skill type, and
+seed alias rather than creating its own copy, which is what the four
+duplicate Gun Combat entities taught us.
 
 Usage:
     python3 examples/logovger/tools/extract_skills.py \

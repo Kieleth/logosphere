@@ -67,7 +67,7 @@ def _write_if_changed(path: Path, content: str) -> bool:
 
 def _cpp_string_set(values: set[str]) -> str:
     """Format a C++ unordered_set initializer."""
-    items = ", ".join(f'"{v}"' for v in sorted(values))
+    items = ", ".join(json.dumps(v) for v in sorted(values))
     return "{" + items + "}"
 
 
@@ -109,6 +109,17 @@ def _annotation_is_true(definition, name: str) -> bool:
     }
 
 
+def _annotation_csv(definition, name: str) -> set[str]:
+    annotations = getattr(definition, "annotations", None)
+    if not annotations or name not in annotations:
+        return set()
+    return {
+        value.strip()
+        for value in str(annotations[name].value).split(",")
+        if value.strip()
+    }
+
+
 def _is_mixin(sv: SchemaView, class_name: str) -> bool:
     """Check if a class is a mixin."""
     cls = sv.get_class(class_name)
@@ -128,50 +139,70 @@ def _get_ancestors(sv: SchemaView, class_name: str) -> set[str]:
     return ancestors
 
 
-def _linkml_range_to_value_type(sv: SchemaView, range_name: str | None) -> str:
-    """Map a LinkML range to a simple value type string."""
+def _linkml_range_to_value_kind(sv: SchemaView, range_name: str | None) -> str:
+    """Map a LinkML range to the registry's closed value-kind enum."""
     if not range_name:
-        return "string"
+        raise ValueError("LinkML slot has no range after schema induction")
     if range_name in sv.all_enums():
-        return "enum"
+        return "Enum"
     if range_name in sv.all_classes():
-        return "entity_ref"
+        return "EntityRef"
     type_map = {
-        "string": "string",
-        "integer": "integer",
-        "float": "float",
-        "double": "float",
-        "boolean": "boolean",
-        "datetime": "datetime",
-        "date": "datetime",
+        "string": "String",
+        "integer": "Integer",
+        "float": "Float",
+        "double": "Float",
+        "decimal": "Float",
+        "boolean": "Boolean",
+        "datetime": "LegacyDateTime",
+        "date": "LegacyDateTime",
     }
-    return type_map.get(range_name, "string")
+    if range_name in type_map:
+        return type_map[range_name]
+
+    custom_type = sv.get_type(range_name)
+    if custom_type and custom_type.typeof:
+        return _linkml_range_to_value_kind(sv, custom_type.typeof)
+
+    raise ValueError(f"Unknown LinkML range '{range_name}'")
 
 
-def _get_relation_domain_range(sv: SchemaView) -> dict[str, tuple[set[str], set[str]]]:
-    """Extract domain/range for relation types from WorldRelationType enum.
+def _get_relation_domain_range(
+    sv: SchemaView,
+) -> dict[str, tuple[set[str], set[str], object]]:
+    """Extract relation names and endpoint constraints from owned enums.
 
-    Since LinkML enums don't carry domain/range natively, we derive
-    constraints from the schema structure. WorldRelation constrains
-    source_id and target_id to string (entity IDs). The actual
-    domain/range per relation type is set broadly (any entity type)
-    unless we add custom annotations later.
+    WorldRelationType remains the engine's default relation vocabulary.
+    Imported packs may own another enum annotated relation_type_enum: true.
+    Permissible values optionally declare comma-separated
+    valid_source_types and valid_target_types; omission means Entity.
     """
     result = {}
-    enum_def = sv.get_enum("WorldRelationType")
-    if not enum_def or not enum_def.permissible_values:
-        return result
-
-    # Collect all concrete entity types for default domain/range
-    entity_types = set()
-    for cn in sv.all_classes():
-        if _is_entity_subtype(sv, cn) and not _is_mixin(sv, cn):
-            entity_types.add(cn)
-
-    # Default: any entity can participate in any relation
-    # Specific constraints can be added later via annotations
-    for pv_name in enum_def.permissible_values:
-        result[pv_name] = ({"Entity"}, {"Entity"})
+    for enum_name, enum_def in sorted(sv.all_enums().items()):
+        if enum_name != "WorldRelationType" and not _annotation_is_true(
+            enum_def, "relation_type_enum"
+        ):
+            continue
+        for pv_name, permissible in (enum_def.permissible_values or {}).items():
+            sources = _annotation_csv(permissible, "valid_source_types") or {
+                "Entity"
+            }
+            targets = _annotation_csv(permissible, "valid_target_types") or {
+                "Entity"
+            }
+            unknown = (sources | targets) - set(sv.all_classes())
+            if unknown:
+                raise ValueError(
+                    f"Relation '{pv_name}' names unknown endpoint types: "
+                    + ", ".join(sorted(unknown))
+                )
+            incoming = (sources, targets, enum_def)
+            if pv_name in result and result[pv_name][:2] != incoming[:2]:
+                raise ValueError(
+                    f"Relation '{pv_name}' has conflicting endpoint "
+                    "constraints"
+                )
+            result[pv_name] = incoming
 
     return result
 
@@ -199,16 +230,32 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     lines.append("    kg::OntologyRegistry reg;")
     lines.append("")
 
-    # Entity types (classes that are subtypes of Entity, excluding mixins)
+    # Enum types retain nominal identity. Two enums may share member tokens
+    # without becoming interchangeable property ranges.
+    lines.append("    // Enum types")
+    for enum_name, enum_def in sorted(sv.all_enums().items()):
+        members = set((enum_def.permissible_values or {}).keys())
+        if not members:
+            raise ValueError(f"Enum '{enum_name}' has no permissible values")
+        emit(
+            _definition_source(enum_def, f"enum {enum_name}"),
+            f"    reg.addEnumType({json.dumps(enum_name)}, "
+            f"{_cpp_string_set(members)});",
+        )
+
+    lines.append("")
+
+    # Entity types plus mixins. Mixins are retained as abstract ontology
+    # classes so direct property ownership can be reflected canonically, but
+    # they can never be instantiated.
     lines.append("    // Entity types")
     for cn in sorted(sv.all_classes()):
-        if _is_mixin(sv, cn):
-            continue
-        if not _is_entity_subtype(sv, cn):
+        is_mixin = _is_mixin(sv, cn)
+        if not is_mixin and not _is_entity_subtype(sv, cn):
             continue
         cls = sv.get_class(cn)
         parent = _get_parent(sv, cn)
-        is_abstract = "true" if cls.abstract else "false"
+        is_abstract = "true" if cls.abstract or is_mixin else "false"
         emit(
             _definition_source(cls, f"class {cn}"),
             f'    reg.addEntityType("{cn}", "{parent}", {is_abstract});',
@@ -219,9 +266,7 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     # Ancestors (full inheritance chains)
     lines.append("    // Inheritance chains")
     for cn in sorted(sv.all_classes()):
-        if _is_mixin(sv, cn):
-            continue
-        if not _is_entity_subtype(sv, cn):
+        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)):
             continue
         ancestors = _get_ancestors(sv, cn)
         if ancestors:
@@ -236,7 +281,7 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     # Facets (annotations: facets: on entity classes)
     facet_lines = []
     for cn in sorted(sv.all_classes()):
-        if _is_mixin(sv, cn) or not _is_entity_subtype(sv, cn):
+        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)):
             continue
         facets = _get_facets(sv, cn)
         if facets:
@@ -273,8 +318,9 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     # Relation types with domain/range
     lines.append("    // Relation types")
     rel_constraints = _get_relation_domain_range(sv)
-    relation_enum = sv.get_enum("WorldRelationType")
-    for rel_name, (sources, targets) in sorted(rel_constraints.items()):
+    for rel_name, (sources, targets, relation_enum) in sorted(
+        rel_constraints.items()
+    ):
         src_set = _cpp_string_set(sources)
         tgt_set = _cpp_string_set(targets)
         emit(
@@ -301,7 +347,7 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
         for sn in slot_names:
             slot = sv.induced_slot(sn, cn)
             source = _definition_source(slot, f"slot {cn}.{sn}")
-            value_type = _linkml_range_to_value_type(sv, slot.range)
+            value_kind = _linkml_range_to_value_kind(sv, slot.range)
             required = "true" if slot.required else "false"
             create_only = "true" if _annotation_is_true(
                 slot, "create_only"
@@ -310,18 +356,26 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
                 emit(
                     source,
                     f'    reg.addIdentifierProperty("{cn}", "{sn}", '
-                    f'"{value_type}", {required});',
+                    f"kg::PropertyValueKind::{value_kind}, {required});",
                 )
                 continue
             # Class-ranged slots are entity references: the registry
             # keeps the target class so the OntologyValidator can
             # check the referenced entity is-a that class.
-            if value_type == "entity_ref":
+            if value_kind == "EntityRef":
                 create_only_arg = ", true" if create_only == "true" else ""
                 emit(
                     source,
                     f'    reg.addRefProperty("{cn}", "{sn}", {required}, '
                     f'"{slot.range}"{create_only_arg});',
+                )
+                continue
+            if value_kind == "Enum":
+                emit(
+                    source,
+                    f'    reg.addEnumProperty("{cn}", "{sn}", '
+                    f'"{slot.range}", {required}'
+                    f'{", true" if create_only == "true" else ""});',
                 )
                 continue
             # Range annotations (LinkML's minimum_value / maximum_value
@@ -342,14 +396,16 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
                     has_min, has_max = "false", "false"
                 emit(
                     source,
-                    f'    reg.addProperty("{cn}", "{sn}", "{value_type}", {required}, '
+                    f'    reg.addProperty("{cn}", "{sn}", '
+                    f"kg::PropertyValueKind::{value_kind}, {required}, "
                     f"{has_min}, {min_lit}, {has_max}, {max_lit}"
                     f'{", true" if create_only == "true" else ""});',
                 )
             else:
                 emit(
                     source,
-                    f'    reg.addProperty("{cn}", "{sn}", "{value_type}", '
+                    f'    reg.addProperty("{cn}", "{sn}", '
+                    f"kg::PropertyValueKind::{value_kind}, "
                     f'{required}{", true" if create_only == "true" else ""});',
                 )
 

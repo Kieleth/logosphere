@@ -1,10 +1,12 @@
 #include "logosphere/kg/kg_ops_transaction.h"
 
 #include "logosphere/events/event_bus.h"
+#include "logosphere/kg/finite_float.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_ops_apply.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/ontology_validator.h"
+#include "logosphere/kg/qualified_reference.h"
 
 #include <algorithm>
 #include <string>
@@ -61,74 +63,18 @@ void buffer_relation_event(std::vector<BufferedEvent>& events,
     events.emplace_back(std::move(event));
 }
 
-// "@@Type:Name" addresses an entity another seed created. An alias is
-// file-local by design; this is the one way across that boundary, and
-// it is deliberately narrow: exactly one entity of that type with that
-// name must exist. Zero is a broken reference and many is an ambiguous
-// one, and both fail loudly rather than binding to whichever came
-// first. The parser strips one '@', so a world reference arrives here
-// still carrying the second.
-bool resolve_world_ref(const KGModule& kg, const std::string& spec,
-                       EntityID& out, std::string& error) {
-    const auto colon = spec.find(':');
-    if (colon == std::string::npos || colon == 1 ||
-        colon + 1 >= spec.size()) {
-        error = "world reference '@" + spec +
-                "': expected '@@Type:Name'";
-        return false;
-    }
-    const std::string type = spec.substr(1, colon - 1);
-    const std::string name = spec.substr(colon + 1);
-    std::vector<EntityID> hits;
-    for (EntityID id : kg.findByType(type)) {
-        if (kg.getProperty(id, "name") == name) hits.push_back(id);
-    }
-    if (hits.empty()) {
-        // Nothing by that name. Before giving up, try the names the
-        // SOURCE itself uses: the skills chapter defines
-        // "Jack-of-All-Trades (Jack o' Trades or JoT)" while the career
-        // tables print "Jack o' Trades", and both name one skill. An
-        // alias is the book's own word, so resolving through one is
-        // still resolving to something the book can prove. Aliases are
-        // tried only after exact names, so a real name never loses to
-        // someone else's alias.
-        for (EntityID id : kg.findByType(type)) {
-            const std::string aliases = kg.getProperty(id, "source_aliases");
-            if (aliases.empty()) continue;
-            size_t at = 0;
-            while (at <= aliases.size()) {
-                size_t end = aliases.find("; ", at);
-                if (end == std::string::npos) end = aliases.size();
-                if (aliases.compare(at, end - at, name) == 0) {
-                    hits.push_back(id);
-                    break;
-                }
-                at = end + 2;
-            }
-        }
-    }
-    if (hits.empty()) {
-        error = "world reference '@@" + type + ":" + name +
-                "': no " + type + " with that name is loaded";
-        return false;
-    }
-    if (hits.size() > 1) {
-        error = "world reference '@@" + type + ":" + name + "': " +
-                std::to_string(hits.size()) + " of them are loaded, so " +
-                "the reference is ambiguous";
-        return false;
-    }
-    out = hits.front();
-    return true;
-}
-
 bool resolve_ref(EntityRef& ref, const KGModule& kg,
                  const SymbolTable& symbols, std::string& error) {
     if (!ref.is_symbolic()) return true;
     if (!ref.symbolic.empty() && ref.symbolic.front() == '@') {
-        EntityID id = INVALID_ENTITY;
-        if (!resolve_world_ref(kg, ref.symbolic, id, error)) return false;
-        ref.id = id;
+        // EntityRef parsing strips the first '@' from every symbolic value.
+        const QualifiedResolveResult resolved =
+            resolve_qualified_reference("@" + ref.symbolic, kg);
+        if (!resolved.ok) {
+            error = resolved.error;
+            return false;
+        }
+        ref.id = resolved.entity;
         ref.symbolic.clear();
         return true;
     }
@@ -148,14 +94,16 @@ bool resolve_ref_value(const OntologyRegistry& ontology, const KGModule& kg,
                        std::string& error) {
     if (value.size() < 2 || value.front() != '@') return true;
     const PropertyDef* definition = ontology.findProperty(type, property);
-    if (!definition || definition->value_type != "entity_ref") return true;
+    if (!definition ||
+        definition->value_kind != PropertyValueKind::EntityRef) return true;
     if (value.size() > 2 && value[1] == '@') {
-        EntityID id = INVALID_ENTITY;
-        if (!resolve_world_ref(kg, value.substr(1), id, error)) {
-            error = "property '" + property + "': " + error;
+        const QualifiedResolveResult resolved =
+            resolve_qualified_reference(value, kg);
+        if (!resolved.ok) {
+            error = "property '" + property + "': " + resolved.error;
             return false;
         }
-        value = std::to_string(id);
+        value = std::to_string(resolved.entity);
         return true;
     }
     const auto found = symbols.find(value.substr(1));
@@ -199,6 +147,36 @@ bool resolve_op(KGOp& op, const KGModule& kg,
     }
     error = "unknown op variant";
     return false;
+}
+
+void canonicalize_float_value(const OntologyRegistry& ontology,
+                              const std::string& type,
+                              const std::string& property,
+                              std::string& value) {
+    const PropertyDef* definition = ontology.findProperty(type, property);
+    if (!definition ||
+        definition->value_kind != PropertyValueKind::Float) {
+        return;
+    }
+    // Validation has already proved this is a complete finite float.
+    // Normalize either signed source representation of zero before storage
+    // and event publication.
+    const auto parsed = parse_finite_binary64(value);
+    if (parsed.ok && parsed.value == 0.0) value = "0";
+}
+
+void canonicalize_float_values(KGOp& op, const KGModule& kg,
+                               const OntologyRegistry& ontology) {
+    if (auto* create = std::get_if<KGOpCreateEntity>(&op)) {
+        for (auto& [property, value] : create->properties) {
+            canonicalize_float_value(ontology, create->type, property, value);
+        }
+        return;
+    }
+    if (auto* set = std::get_if<KGOpSetProperty>(&op)) {
+        canonicalize_float_value(ontology, kg.getType(set->target.id),
+                                 set->property, set->value);
+    }
 }
 
 }  // namespace
@@ -270,6 +248,7 @@ bool apply_kg_ops_atomically(const std::vector<KGOp>& ops, KGModule& kg,
             !validated.ok) {
             return fail(index, validated.reason);
         }
+        canonicalize_float_values(op, kg, ontology);
 
         UndoProperty property_undo;
         bool has_property_undo = false;

@@ -60,9 +60,38 @@ struct RelationTypeDef {
     std::string source = "<runtime>";
 };
 
+enum class PropertyValueKind {
+    String,
+    Boolean,
+    Integer,
+    Float,
+    EntityRef,
+    Enum,
+    LegacyDateTime,
+};
+
+inline const char* property_value_kind_name(PropertyValueKind kind) {
+    switch (kind) {
+        case PropertyValueKind::String: return "string";
+        case PropertyValueKind::Boolean: return "boolean";
+        case PropertyValueKind::Integer: return "integer";
+        case PropertyValueKind::Float: return "float";
+        case PropertyValueKind::EntityRef: return "entity_ref";
+        case PropertyValueKind::Enum: return "enum";
+        case PropertyValueKind::LegacyDateTime: return "datetime";
+    }
+    throw std::invalid_argument("Unknown property value kind");
+}
+
+struct EnumTypeDef {
+    std::string name;
+    std::unordered_set<std::string> members;
+    std::string source = "<runtime>";
+};
+
 struct PropertyDef {
     std::string name;
-    std::string value_type;  // "string", "float", "integer", "boolean"
+    PropertyValueKind value_kind = PropertyValueKind::String;
     bool required = false;
     bool identifier = false;
     // Creation-time identity and lineage cannot be rewritten through the
@@ -78,7 +107,11 @@ struct PropertyDef {
     double min_value = 0.0;
     double max_value = 0.0;
 
-    // Set only when value_type == "entity_ref": the class the
+    // Set only when value_kind == Enum: the exact nominal enum whose
+    // members are valid for this property.
+    std::string enum_type;
+
+    // Set only when value_kind == EntityRef: the class the
     // referenced entity must be, or be a subtype of. Enforced on
     // the validated write path; empty means unconstrained.
     std::string ref_target;
@@ -104,6 +137,16 @@ public:
 
     bool hasEntityType(const std::string& type) const {
         return entity_types_.count(type) > 0;
+    }
+
+    bool hasEnumType(const std::string& type) const {
+        return enum_types_.count(type) > 0;
+    }
+
+    bool isEnumMember(const std::string& type,
+                      const std::string& member) const {
+        auto it = enum_types_.find(type);
+        return it != enum_types_.end() && it->second.members.count(member) > 0;
     }
 
     // --- Facets (Knowledge layer selection substrate) ---
@@ -170,6 +213,9 @@ public:
 
     const std::unordered_map<std::string, EntityTypeDef>& entityTypes() const { return entity_types_; }
     const std::unordered_map<std::string, RelationTypeDef>& relationTypes() const { return relation_types_; }
+    const std::unordered_map<std::string, EnumTypeDef>& enumTypes() const {
+        return enum_types_;
+    }
 
     // Properties declared DIRECTLY on this type (does not include
     // inherited properties from ancestors). Use ancestorsOf() to
@@ -182,7 +228,7 @@ public:
 
     // The PropertyDef for prop on this type, walking ancestors.
     // nullptr when no such property exists anywhere on the chain.
-    // Shared by the validator (value_type / range / ref checks) and
+    // Shared by the validator (value kind / range / ref checks) and
     // the seed loader (entity_ref alias resolution).
     const PropertyDef* findProperty(const std::string& entity_type,
                                     const std::string& prop) const {
@@ -259,11 +305,17 @@ public:
         }
         for (const auto& [owner, properties] : properties_) {
             for (const auto& property : properties) {
-                if (property.value_type == "entity_ref" &&
+                if (property.value_kind == PropertyValueKind::EntityRef &&
                     !property.ref_target.empty() &&
                     !hasEntityType(property.ref_target)) {
                     throw_reference("property", owner + "." + property.name,
                                     property.source, property.ref_target);
+                }
+                if (property.value_kind == PropertyValueKind::Enum &&
+                    !hasEnumType(property.enum_type)) {
+                    throw_reference("property", owner + "." + property.name,
+                                    property.source, property.enum_type,
+                                    "enum type");
                 }
             }
         }
@@ -290,6 +342,14 @@ public:
                                 existing->second.source, incoming.source);
             }
         }
+        for (const auto& [name, incoming] : other.enum_types_) {
+            auto existing = enum_types_.find(name);
+            if (existing != enum_types_.end() &&
+                !same_enum(existing->second, incoming)) {
+                throw_collision("enum type", name, existing->second.source,
+                                incoming.source);
+            }
+        }
         for (const auto& [type, incoming_properties] : other.properties_) {
             for (const auto& incoming : incoming_properties) {
                 if (const PropertyDef* existing =
@@ -314,6 +374,8 @@ public:
             combined.entity_types_.emplace(name, def);
         for (const auto& [name, def] : other.relation_types_)
             combined.relation_types_.emplace(name, def);
+        for (const auto& [name, def] : other.enum_types_)
+            combined.enum_types_.emplace(name, def);
         for (const auto& [k, v] : other.properties_) {
             auto& existing = combined.properties_[k];
             for (const auto& p : v) {
@@ -372,45 +434,87 @@ public:
         }
     }
 
+    void addEnumType(const std::string& name,
+                     const std::unordered_set<std::string>& members) {
+        if (name.empty()) {
+            throw std::invalid_argument("Ontology enum type name cannot be empty");
+        }
+        if (members.empty()) {
+            throw std::invalid_argument("Ontology enum type '" + name +
+                                        "' has no members");
+        }
+        for (const auto& member : members) {
+            if (member.empty()) {
+                throw std::invalid_argument("Ontology enum type '" + name +
+                                            "' has an empty member");
+            }
+        }
+        EnumTypeDef incoming{name, members, active_source_};
+        auto [it, inserted] = enum_types_.emplace(name, incoming);
+        if (!inserted && !same_enum(it->second, incoming)) {
+            throw_collision("enum type", name, it->second.source,
+                            incoming.source);
+        }
+    }
+
     void addProperty(const std::string& entity_type, const std::string& prop_name,
-                     const std::string& value_type, bool required) {
+                     PropertyValueKind value_kind, bool required) {
+        require_scalar_property_kind(value_kind, entity_type, prop_name);
         add_property(entity_type,
-                     {prop_name, value_type, required, false, false,
+                     {prop_name, value_kind, required, false, false,
                       false, false,
-                      0.0, 0.0, "", active_source_});
+                      0.0, 0.0, "", "", active_source_});
     }
 
     void addProperty(const std::string& entity_type,
                      const std::string& prop_name,
-                     const std::string& value_type, bool required,
+                     PropertyValueKind value_kind, bool required,
                      bool create_only) {
+        require_scalar_property_kind(value_kind, entity_type, prop_name);
         add_property(entity_type,
-                     {prop_name, value_type, required, false, create_only,
-                      false, false, 0.0, 0.0, "", active_source_});
+                     {prop_name, value_kind, required, false, create_only,
+                      false, false, 0.0, 0.0, "", "", active_source_});
     }
 
     // Overload with optional range annotations. Pass any combination
     // of has_min / has_max flags; the bound for the unset side is
     // ignored.
     void addProperty(const std::string& entity_type, const std::string& prop_name,
-                     const std::string& value_type, bool required,
+                     PropertyValueKind value_kind, bool required,
                      bool has_min, double min_value,
                      bool has_max, double max_value,
                      bool create_only = false) {
+        require_scalar_property_kind(value_kind, entity_type, prop_name);
         add_property(entity_type,
-                     {prop_name, value_type, required, false, create_only,
+                     {prop_name, value_kind, required, false, create_only,
                       has_min, has_max,
-                      min_value, max_value, "", active_source_});
+                      min_value, max_value, "", "", active_source_});
     }
 
     void addIdentifierProperty(const std::string& entity_type,
                                const std::string& prop_name,
-                               const std::string& value_type,
+                               PropertyValueKind value_kind,
                                bool required) {
+        require_scalar_property_kind(value_kind, entity_type, prop_name);
         add_property(entity_type,
-                     {prop_name, value_type, required, true, false,
+                     {prop_name, value_kind, required, true, false,
                       false, false,
-                      0.0, 0.0, "", active_source_});
+                      0.0, 0.0, "", "", active_source_});
+    }
+
+    void addEnumProperty(const std::string& entity_type,
+                         const std::string& prop_name,
+                         const std::string& enum_type, bool required,
+                         bool create_only = false) {
+        if (enum_type.empty()) {
+            throw std::invalid_argument("Ontology enum property '" +
+                                        entity_type + "." + prop_name +
+                                        "' has no enum type");
+        }
+        add_property(entity_type,
+                     {prop_name, PropertyValueKind::Enum, required, false,
+                      create_only, false, false, 0.0, 0.0, enum_type, "",
+                      active_source_});
     }
 
     // Entity-reference property (a class-ranged slot in the schema):
@@ -419,9 +523,9 @@ public:
     void addRefProperty(const std::string& entity_type, const std::string& prop_name,
                         bool required, const std::string& target_class,
                         bool create_only = false) {
-        PropertyDef def{prop_name, "entity_ref", required,
+        PropertyDef def{prop_name, PropertyValueKind::EntityRef, required,
                         false, create_only, false, false, 0.0, 0.0,
-                        target_class,
+                        "", target_class,
                         active_source_};
         add_property(entity_type, std::move(def));
     }
@@ -437,10 +541,11 @@ private:
 
     [[noreturn]] static void throw_reference(
         const std::string& kind, const std::string& definition,
-        const std::string& source, const std::string& target) {
+        const std::string& source, const std::string& target,
+        const std::string& target_kind = "entity type") {
         throw std::invalid_argument(
             "Ontology " + kind + " '" + definition + "' from " + source +
-            " references unknown entity type '" + target + "'");
+            " references unknown " + target_kind + " '" + target + "'");
     }
 
     static bool same_entity(const EntityTypeDef& a,
@@ -456,14 +561,30 @@ private:
                a.valid_target_types == b.valid_target_types;
     }
 
+    static bool same_enum(const EnumTypeDef& a, const EnumTypeDef& b) {
+        return a.name == b.name && a.members == b.members;
+    }
+
     static bool same_property(const PropertyDef& a, const PropertyDef& b) {
-        return a.name == b.name && a.value_type == b.value_type &&
+        return a.name == b.name && a.value_kind == b.value_kind &&
                a.required == b.required &&
                a.identifier == b.identifier &&
                a.create_only == b.create_only &&
                a.has_min == b.has_min &&
                a.has_max == b.has_max && a.min_value == b.min_value &&
-               a.max_value == b.max_value && a.ref_target == b.ref_target;
+               a.max_value == b.max_value && a.enum_type == b.enum_type &&
+               a.ref_target == b.ref_target;
+    }
+
+    static void require_scalar_property_kind(
+        PropertyValueKind kind, const std::string& entity_type,
+        const std::string& prop_name) {
+        if (kind == PropertyValueKind::EntityRef ||
+            kind == PropertyValueKind::Enum) {
+            throw std::invalid_argument(
+                "Ontology property '" + entity_type + "." + prop_name +
+                "' requires its refined registration method");
+        }
     }
 
     std::string source_for_entity(const std::string& type) const {
@@ -526,6 +647,7 @@ private:
 
     std::unordered_map<std::string, EntityTypeDef> entity_types_;
     std::unordered_map<std::string, RelationTypeDef> relation_types_;
+    std::unordered_map<std::string, EnumTypeDef> enum_types_;
     std::unordered_map<std::string, std::vector<PropertyDef>> properties_;
     std::unordered_map<std::string, std::unordered_set<std::string>> ancestors_;
     std::string active_source_;
