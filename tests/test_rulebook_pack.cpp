@@ -249,12 +249,20 @@ void test_task_checks_declare_the_complete_mechanic() {
         const auto* def = reg.findProperty("TaskCheck", property);
         return def && def->required && def->value_type == type;
     };
-    CHECK(required("attribute_ref", "string") &&
-              required("target_number", "integer") &&
+    // attribute_ref is deliberately NOT required. Cepheus prints
+    // re-enlistment as a bare "6+", a throw no characteristic
+    // modifies, and a check without a modifier source is still a
+    // check. What a throw cannot do without is dice and a target.
+    const auto* attribute = reg.findProperty("TaskCheck", "attribute_ref");
+    CHECK(attribute && !attribute->required &&
+              attribute->value_type == "string",
+          "TaskCheck's attribute is optional, for throws the book "
+          "prints with no characteristic at all");
+    CHECK(required("target_number", "integer") &&
               required("dice", "entity_ref") &&
               required("modifier_table", "entity_ref") &&
               required("modifier_property", "string"),
-          "TaskCheck requires its target attribute, dice, modifier lookup, "
+          "TaskCheck requires its dice, modifier lookup, "
           "result column, and threshold");
     const auto* table = reg.findProperty("TaskCheck", "modifier_table");
     CHECK(table && table->ref_target == "LookupTable",

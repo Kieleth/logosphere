@@ -1421,10 +1421,10 @@ struct LookupTable : public Entity, public Cited {
 };
 
 
-/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check. modifier_table names the typed lookup that maps the current attribute value to a row; modifier_property names the integer result column on that table's declared entry type. The runner resolves both through the ontology before rolling.
+/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check, and it is OPTIONAL: Cepheus prints re-enlistment as a bare "6+", a throw no characteristic modifies. modifier_table names the typed lookup that maps the current attribute value to a row; modifier_property names the integer result column on that table's declared entry type. The runner resolves both through the ontology before rolling.
 struct TaskCheck : public Entity, public Cited {
     /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
-    std::string attribute_ref = {};
+    std::optional<std::string> attribute_ref = std::nullopt;
     /// Succeed on this or more.
     int32_t target_number = {};
     /// The dice this check or table is rolled with.
@@ -1606,6 +1606,76 @@ struct StepRoute : public Entity, public Cited {
     std::string route_label = {};
     /// Where flow continues when this route fires.
     ProcedureStep next_step = {};
+};
+
+
+/// An ordered ladder of standing within a profession: the ranks of a career, and whatever a book calls the same idea elsewhere. The track is the ladder itself; its ProgressionStep parts are the rungs, held by HAS_PART. Cepheus prints one table per career covering ranks 0 to 6, where rank 0 is the enlisted entry and ranks 1 and above are the commissioned ones.
+struct ProgressionTrack : public Entity, public Cited {
+};
+
+
+/// One rung: its position, what the book calls someone standing there, and what reaching it grants. Every part is optional except the position, because the source uses all four combinations. Cepheus writes "Lt Commander [Tactics-1]" for a title that also grants a skill, "Midshipman" for a title alone, "[Athletics-1]" for a grant with no title, and an em dash for a rung a career does not have.
+struct ProgressionStep : public Entity, public Cited {
+    /// Explicit position in a procedure or outcome sequence. Procedure flow falls through in index order unless a route redirects it; outcome sequences apply their children in index order.
+    int32_t step_index = {};
+    /// What the book calls someone standing on this rung, verbatim: "Midshipman", "Lt Commander". Narrative, and deliberately so; no rule reads a title.
+    std::optional<std::string> step_title = std::nullopt;
+    /// What reaching this rung gives, as an Outcome. Absent when the rung grants nothing, which the source writes as an em dash.
+    std::optional<Entity> grants = std::nullopt;
+};
+
+
+/// Where a character currently stands on a track. STATE, not book content, so it carries no citation: the rung is cited, standing on it is something that happened. Same shape as SkillRating and CurrencyBalance, for the same reason.
+struct ProgressionStanding : public Entity {
+    /// The ProgressionTrack this standing is on.
+    Entity track = {};
+    /// Which rung of the track is currently held.
+    int32_t standing_index = {};
+};
+
+
+/// A set of attributes the book treats as one thing, named in the book's own words. Cepheus: "Strength, Dexterity, and Endurance are called physical abilities, whereas Intelligence, Education, and Social Standing are loosely termed mental abilities." The grouping is quoted rather than assumed, because a rule that reduces "three physical characteristics" has to know which three are eligible.
+struct AttributeGroup : public Entity, public Cited {
+    /// The attributes in this group, each resolved against the target class's declared slots exactly as attribute_ref is, never a bare label the graph cannot check.
+    std::vector<std::string> attribute_refs = {};
+};
+
+
+/// Change several attributes chosen from a group, by the same delta: the aging table's "Reduce three physical characteristics by 2". Distinct from ModifyAttribute, which names the one attribute it touches. Here the book fixes how many and by how much while leaving WHICH to whoever applies it, so the choice belongs to the character, not to the rule.
+struct ModifyAttributesInGroup : public Outcome {
+    /// The AttributeGroup the affected attributes are drawn from.
+    Entity attribute_group = {};
+    /// How many attributes from the group the change applies to. The book fixes the count; the choice of which is made when the outcome is applied.
+    int32_t affected_count = {};
+    /// Signed change applied to the referenced attribute.
+    int32_t attribute_delta = {};
+};
+
+
+/// Something a character can come to hold that the book names and describes: a Low Passage ticket, a weapon, ship shares, an Explorers' Society membership, a Courier Vessel. The prose the book attaches is kept, because most of these carry rules that matter later even when nothing reads them yet.
+struct Possession : public Entity, public Cited {
+    /// The book's own description of the thing, kept because these carry rules that outlive character creation.
+    std::optional<std::string> possession_text = std::nullopt;
+};
+
+
+/// Receive one or more of a named possession. The count is fixed or rolled, because the material benefits tables print both "Weapon" and "1D6 Ship Shares".
+struct GainPossession : public Outcome {
+    /// The Possession gained or held.
+    Entity possession = {};
+    /// How many are gained or held.
+    std::optional<int32_t> possession_count = std::nullopt;
+    /// Rolled count, when the book rolls for it: "1D6 Ship Shares".
+    std::optional<DiceExpression> possession_count_dice = std::nullopt;
+};
+
+
+/// What a character holds, and how many. STATE, so uncited, for the same reason as ProgressionStanding.
+struct PossessionHolding : public Entity {
+    /// The Possession gained or held.
+    Entity possession = {};
+    /// How many are gained or held.
+    int32_t possession_count = {};
 };
 
 
