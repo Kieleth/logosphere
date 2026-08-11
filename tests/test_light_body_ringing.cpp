@@ -37,7 +37,9 @@
 #include "../src/particle.h"
 #include "logosphere/physics/physics_system.h"
 
+#include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstdio>
 #include <memory>
 #include <vector>
@@ -123,9 +125,28 @@ Ring run_ratio(float ratio) {
         v[light].is_at_rest = false;
     }
 
-    constexpr int FRAMES = 600;
+    // RING_FRAMES bounds the run so a diverging ratio cannot hang the suite.
+    // RING_TRACE prints per-frame state: this is how a ratio that "does not
+    // return" gets separated into diverging-and-slow versus genuinely stuck.
+    const char* fr_env = std::getenv("RING_FRAMES");
+    const int FRAMES = fr_env ? std::atoi(fr_env) : 600;
+    static const bool trace = std::getenv("RING_TRACE") != nullptr;
     for (int f = 0; f < FRAMES; ++f) {
+        const auto t0 = std::chrono::high_resolution_clock::now();
         engine.update(1.0 / 60.0);
+        const double frame_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::high_resolution_clock::now() - t0).count();
+        if (trace) {
+            auto v = ps.lock_particles_for_write();
+            printf("    [RING r=%.1f f%03d] %7.2f ms | light v=(%.2f,%.2f,%.2f) "
+                   "z=%.4f | heavy v=(%.2f,%.2f,%.2f) z=%.4f | dist=%.4f\n",
+                   ratio, f, frame_ms,
+                   v[light].vx, v[light].vy, v[light].vz, v[light].z,
+                   v[heavy].vx, v[heavy].vy, v[heavy].vz, v[heavy].z,
+                   std::sqrt(std::pow(v[heavy].x - v[light].x, 2) +
+                             std::pow(v[heavy].y - v[light].y, 2) +
+                             std::pow(v[heavy].z - v[light].z, 2)));
+        }
         float worst = 0.0f;
         {
             auto v = ps.lock_particles_for_write();
@@ -153,7 +174,9 @@ bool test_light_body_ringing() {
     printf("  %s\n", "------------------------------------------------------------");
 
     int failures = 0;
-    for (float ratio : {1.0f, 2.0f, 5.0f, 10.0f, 15.0f, 22.8f, 25.0f}) {
+    std::vector<float> ratios = {1.0f, 2.0f, 5.0f, 10.0f, 15.0f, 22.8f, 25.0f};
+    if (const char* only = std::getenv("RING_RATIO")) ratios = { (float)std::atof(only) };
+    for (float ratio : ratios) {
         const Ring r = run_ratio(ratio);
         const bool tore = r.bonds_after < r.bonds_before;
         const bool rang_down = r.peak_late <= r.peak_early;
