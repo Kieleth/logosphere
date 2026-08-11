@@ -58,6 +58,10 @@ struct CharacterSheet {
     // try another, at a price, and forbids going back.
     std::vector<std::string> careers_served;
     std::vector<LifeEvent>   life;
+    // Rank within the CURRENT career. The book starts everyone at 0
+    // and only commissioned characters ever leave it.
+    int          rank = 0;
+    std::string  rank_title;
 };
 
 // One option at a decision point. `key` is what the player types.
@@ -112,6 +116,7 @@ private:
     PrimitiveResult draft_or_drifter(const PrimitiveContext& context);
     PrimitiveResult roll_survival(const PrimitiveContext& context);
     PrimitiveResult roll_training(const PrimitiveContext& context);
+    PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);

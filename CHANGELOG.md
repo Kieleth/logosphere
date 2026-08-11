@@ -24,7 +24,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ### Changed
 - `TaskCheck`'s attribute and its modifier lookup are now optional, and
-  travel together: neither, or both. Cepheus prints re-enlistment as a
+  travel together: neither, or both. `TaskCheckRunner` throws unmodified
+  checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
+  a pointer that is null when there was nothing to look up.
+- **Logovger re-enlistment is a throw, not a decision.** At the end of a term
+  the book rolls first and honours the player's wish only if the roll allows
+  it: a failure forces them out of the career, and a natural 12 forces them
+  to stay, outranking the seven-term cap exactly as the book states. Cepheus prints re-enlistment as a
   bare "6+", a throw no characteristic modifies, and a check without a
   modifier source is still a check. Dice and a target remain required.
 - **`source_aliases`, `source_defect` and `suggested_reading` on the `Cited`

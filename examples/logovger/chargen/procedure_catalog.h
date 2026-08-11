@@ -27,6 +27,8 @@ make_chargen_procedure_registry() {
     add("roll_survival", {"passed", "failed"});
     add("roll_training");
     add("advance_term");
+    // Two of the three outcomes are not the player's to choose.
+    add("roll_reenlistment", {"forced", "must_leave", "may_choose"});
     add("choose_term_end", {"continue", "muster_out"});
     add("finish_character");
     return registry;

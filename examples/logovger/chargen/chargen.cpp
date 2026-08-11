@@ -105,6 +105,48 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
 }
 
+// A step consults a table the SCHEMA names, and that table's rows say
+// which subject each is about. Nothing here matches a table by name:
+// the step carries subject_table, the row carries subject, and this
+// walks from one to the other.
+kg::EntityID subject_row(const kg::KGModule& kg, kg::EntityID step,
+                         kg::EntityID subject, const char* result_slot,
+                         std::string& error) {
+    const std::string table_ref = kg.getProperty(step, "subject_table");
+    if (table_ref.empty()) {
+        error = "this step names no subject_table";
+        return kg::INVALID_ENTITY;
+    }
+    kg::EntityID table = kg::INVALID_ENTITY;
+    try {
+        table = static_cast<kg::EntityID>(std::stoul(table_ref));
+    } catch (...) {
+        error = "step's subject_table is not an entity reference";
+        return kg::INVALID_ENTITY;
+    }
+    for (auto row : kg.getRelated(table, "HAS_PART")) {
+        if (kg.getProperty(row, "subject") != std::to_string(subject)) {
+            continue;
+        }
+        const std::string result = kg.getProperty(row, result_slot);
+        if (result.empty()) {
+            error = "the row for this subject carries no " +
+                    std::string(result_slot);
+            return kg::INVALID_ENTITY;
+        }
+        try {
+            return static_cast<kg::EntityID>(std::stoul(result));
+        } catch (...) {
+            error = "the row's " + std::string(result_slot) +
+                    " is not an entity reference";
+            return kg::INVALID_ENTITY;
+        }
+    }
+    error = "no row in this step's table is about " +
+            kg.getProperty(subject, "name");
+    return kg::INVALID_ENTITY;
+}
+
 // Select a career training row, then apply its structured outcome. These are
 // separate engine operations: the recorded selection remains a fact if
 // outcome application fails. There is no default skill level in procedure
@@ -240,6 +282,9 @@ void ChargenSession::bind_primitives() {
     });
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
+    });
+    bind("roll_reenlistment", [this](const PrimitiveContext& context) {
+        return roll_reenlistment(context);
     });
     bind("choose_term_end", [this](const PrimitiveContext& context) {
         return choose_term_end(context);
@@ -615,6 +660,48 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     sheet_.life.push_back({term, "gained " + skill,
                            "skills and training", skill_roll});
     return PrimitiveResult::advance();
+}
+
+// Step 9. The book does not let you simply decide to stay: "If
+// continuation is desired, the character must make a successful
+// Reenlistment check as listed for their current profession or
+// service." Two results are not the player's to choose. A natural 12
+// means "they cannot leave their current career and must continue for
+// another term", and it outranks the seven-term cap, which the book
+// says explicitly: a character at seven or more "must retire and
+// cannot undertake any more prior experience, unless they roll a
+// natural 12 during Reenlistment and must serve another term".
+ChargenSession::PrimitiveResult ChargenSession::roll_reenlistment(
+    const PrimitiveContext& context) {
+    const int term = sheet_.terms_served;
+    std::string error;
+    const auto check = subject_row(kg_, context.step, career_,
+                                   "throw_check", error);
+    if (check == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed("re-enlistment: " + error);
+    }
+    logosphere::rules::TaskCheckRunner runner(kg_, dice_);
+    const auto thrown = runner.run(check, sheet_.id, "chargen",
+                                   "re-enlistment");
+    if (!thrown.ok()) return PrimitiveResult::failed(thrown.error);
+    const auto& execution = *thrown.execution;
+
+    const auto& roll = execution.roll();
+    const bool natural_twelve = roll.total == 12;
+    if (natural_twelve) {
+        sheet_.life.push_back(
+            {term, "cannot leave", "natural 12 on re-enlistment",
+             roll.id});
+        return PrimitiveResult::advance("forced");
+    }
+    if (!execution.passed()) {
+        sheet_.life.push_back({term, "not permitted to re-enlist",
+                               check_detail(execution), roll.id});
+        return PrimitiveResult::advance("must_leave");
+    }
+    sheet_.life.push_back({term, "may re-enlist",
+                           check_detail(execution), roll.id});
+    return PrimitiveResult::advance("may_choose");
 }
 
 ChargenSession::PrimitiveResult ChargenSession::advance_term(

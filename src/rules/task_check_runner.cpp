@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -45,29 +46,33 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
                        std::to_string(target));
     }
 
+    // A throw need not be modified by anything. Cepheus prints
+    // re-enlistment as a bare "6+": roll and compare, with no
+    // characteristic and therefore no lookup. Attribute and modifier
+    // table travel together, so an unmodified throw simply has a
+    // modifier of zero.
     const std::string attribute = kg_.getProperty(check, "attribute_ref");
-    if (attribute.empty()) {
-        return failure("TaskCheck has no required attribute_ref");
-    }
-    const std::string target_type = kg_.getType(target);
-    const auto* attribute_def =
-        kg_.getRegistry().findProperty(target_type, attribute);
-    if (!attribute_def) {
-        return failure("TaskCheck attribute_ref '" + attribute +
-                       "' is not declared on target type '" + target_type +
-                       "'");
-    }
-    if (attribute_def->value_type != "integer") {
-        return failure("TaskCheck attribute_ref '" + attribute +
-                       "' is not an integer property");
-    }
-
+    const bool modified = !attribute.empty();
     std::string error;
     int64_t attribute_value = 0;
-    if (!detail::parse_required_integer(
-            kg_.getProperty(target, attribute), attribute, attribute_value,
-            error)) {
-        return failure("TaskCheck target: " + error);
+    if (modified) {
+        const std::string target_type = kg_.getType(target);
+        const auto* attribute_def =
+            kg_.getRegistry().findProperty(target_type, attribute);
+        if (!attribute_def) {
+            return failure("TaskCheck attribute_ref '" + attribute +
+                           "' is not declared on target type '" +
+                           target_type + "'");
+        }
+        if (attribute_def->value_type != "integer") {
+            return failure("TaskCheck attribute_ref '" + attribute +
+                           "' is not an integer property");
+        }
+        if (!detail::parse_required_integer(
+                kg_.getProperty(target, attribute), attribute,
+                attribute_value, error)) {
+            return failure("TaskCheck target: " + error);
+        }
     }
     int64_t target_number = 0;
     if (!detail::parse_required_integer(
@@ -83,41 +88,50 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
     }
 
     EntityID modifier_table = kg::INVALID_ENTITY;
-    if (!detail::read_entity_reference(
-            kg_, check, "modifier_table", "LookupTable", modifier_table,
-            error)) {
-        return failure(std::move(error));
-    }
-    const std::string modifier_property =
-        kg_.getProperty(check, "modifier_property");
-    if (modifier_property.empty()) {
-        return failure("TaskCheck has no required modifier_property");
+    std::string modifier_property;
+    if (modified) {
+        if (!detail::read_entity_reference(
+                kg_, check, "modifier_table", "LookupTable", modifier_table,
+                error)) {
+            return failure(std::move(error));
+        }
+        modifier_property = kg_.getProperty(check, "modifier_property");
+        if (modifier_property.empty()) {
+            return failure("TaskCheck names an attribute but no "
+                           "modifier_property to read its DM from");
+        }
     }
 
-    LookupTableSelector selector(kg_);
-    auto selected = selector.select(modifier_table, attribute_value);
-    if (!selected.ok()) {
-        return failure("TaskCheck modifier lookup failed: " +
-                       selected.error);
-    }
-    const std::string entry_type =
-        kg_.getProperty(modifier_table, "entry_type");
-    const auto* modifier_def =
-        kg_.getRegistry().findProperty(entry_type, modifier_property);
-    if (!modifier_def) {
-        return failure("TaskCheck modifier_property '" + modifier_property +
-                       "' is not declared on lookup entry type '" +
-                       entry_type + "'");
-    }
-    if (modifier_def->value_type != "integer") {
-        return failure("TaskCheck modifier_property '" + modifier_property +
-                       "' is not an integer property");
-    }
     int64_t modifier = 0;
-    if (!detail::parse_required_integer(
-            kg_.getProperty(selected.selection->row(), modifier_property),
-            modifier_property, modifier, error)) {
-        return failure("selected LookupEntry: " + error);
+    std::optional<LookupTableSelection> lookup;
+    if (modified) {
+        LookupTableSelector selector(kg_);
+        auto selected = selector.select(modifier_table, attribute_value);
+        if (!selected.ok()) {
+            return failure("TaskCheck modifier lookup failed: " +
+                           selected.error);
+        }
+        const std::string entry_type =
+            kg_.getProperty(modifier_table, "entry_type");
+        const auto* modifier_def =
+            kg_.getRegistry().findProperty(entry_type, modifier_property);
+        if (!modifier_def) {
+            return failure("TaskCheck modifier_property '" +
+                           modifier_property + "' is not declared on lookup "
+                           "entry type '" + entry_type + "'");
+        }
+        if (modifier_def->value_type != "integer") {
+            return failure("TaskCheck modifier_property '" +
+                           modifier_property + "' is not an integer "
+                           "property");
+        }
+        if (!detail::parse_required_integer(
+                kg_.getProperty(selected.selection->row(),
+                                modifier_property),
+                modifier_property, modifier, error)) {
+            return failure("selected LookupEntry: " + error);
+        }
+        lookup = std::move(*selected.selection);
     }
 
     auto dice_transaction = dice_.begin_transaction();
@@ -138,7 +152,7 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
     TaskCheckResult result;
     result.execution = TaskCheckExecution(
         check, target, attribute, attribute_value,
-        std::move(*selected.selection), modifier_property, modifier,
+        std::move(lookup), modifier_property, modifier,
         target_number, std::move(roll), total);
     dice_transaction.commit();
     return result;

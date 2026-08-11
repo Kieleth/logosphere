@@ -143,7 +143,11 @@ void test_a_life_is_generated() {
     logosphere::dice::DiceService dice;
     logovger::ChargenRequest req;
     req.career_name = "Agent";
-    req.seed        = 1;     // a life that qualifies and serves out
+    // Seed 3, not 1. Re-enlistment is a throw now, not a decision, so
+    // most lives end when the book says they end rather than when the
+    // player is finished; seed 1 is refused after one term. This one
+    // still runs the full path, which is what the case is for.
+    req.seed        = 3;
     req.max_terms   = 4;
 
     logovger::CharacterSheet sheet;
@@ -274,22 +278,27 @@ void test_missing_rules_fail_loudly() {
           "a world with no procedure refuses before creating state: "
               + error);
 
+    // The procedure can no longer be loaded on its own: its
+    // re-enlistment step names the table that maps each career to its
+    // throw, and that table lives with the career data. So the
+    // "procedure but no careers" world is not merely useless now, it
+    // is unbuildable, and the refusal arrives at LOAD time naming
+    // exactly what is missing rather than at play time. That is a
+    // stronger guarantee than the one this case used to make.
     const std::string procedure_json = slurp(
         game_path("seeds/cepheus_basic_chargen_procedure.json"));
     auto procedure_seed = kg::parse_seed_envelope(procedure_json);
     kg::SeedLoadReport procedure_load;
-    CHECK(procedure_seed.ok() &&
-              kg::load_seed(procedure_seed.seed, empty, procedure_load),
-          "the missing-career control loads only the procedure");
-    const auto max_terms = empty.createEntity("RuleConstant");
-    empty.setProperty(max_terms, "name", "max_terms");
-    empty.setProperty(max_terms, "constant_value", "7");
-    error.clear();
-    const bool no_careers =
-        logovger::run_chargen(req, empty, dice, sheet, error);
-    CHECK(!no_careers && error.find("no Career") != std::string::npos,
-          "a world with the procedure but no careers fails explicitly: " +
-              error);
+    const bool loaded_alone =
+        procedure_seed.ok() &&
+        kg::load_seed(procedure_seed.seed, empty, procedure_load);
+    CHECK(!loaded_alone &&
+              procedure_load.error.find("reenlistment throw by career") !=
+                  std::string::npos,
+          "the procedure refuses to load without the career data it "
+          "consults, and names it: " + procedure_load.error);
+    CHECK(empty.findByType("Character").empty(),
+          "and the refused load leaves nothing behind");
 
     kg::KGModule world(game_registry());
     std::string why;
@@ -507,7 +516,10 @@ void test_skill_outcome_parameters_drive_the_executor() {
     }
 
     logosphere::dice::DiceService changed_dice;
-    logovger::ChargenRequest request{"Agent", 1, 4};
+    // Seed 3: a life long enough to gain the same skill twice, which
+    // is what this case measures. Re-enlistment is a throw now, and
+    // seed 1 is refused after one term.
+    logovger::ChargenRequest request{"Agent", 3, 4};
     logovger::CharacterSheet changed_sheet;
     std::string error;
     const bool changed_ok = logovger::run_chargen(
@@ -677,7 +689,10 @@ void test_procedure_data_drives_chargen_control_flow() {
     CHECK(redirected, "the term decision carries a continue route in data");
 
     logosphere::dice::DiceService dice;
-    logovger::ChargenRequest request{"Agent", 1, 4};
+    // Seed 3: a life long enough to gain the same skill twice, which
+    // is what this case measures. Re-enlistment is a throw now, and
+    // seed 1 is refused after one term.
+    logovger::ChargenRequest request{"Agent", 3, 4};
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(
@@ -708,7 +723,10 @@ void test_unknown_runtime_primitive_fails_before_character_state() {
     const auto characters_before = world.findByType("Character").size();
 
     logosphere::dice::DiceService dice;
-    logovger::ChargenRequest request{"Agent", 1, 4};
+    // Seed 3: a life long enough to gain the same skill twice, which
+    // is what this case measures. Re-enlistment is a throw now, and
+    // seed 1 is refused after one term.
+    logovger::ChargenRequest request{"Agent", 3, 4};
     logovger::CharacterSheet sheet;
     std::string error;
     const bool ok = logovger::run_chargen(

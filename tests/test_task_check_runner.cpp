@@ -116,8 +116,9 @@ void execution_returns_every_fact_used_by_the_decision() {
     REQUIRE(execution.check() == f.check && execution.target() == f.target &&
                 execution.attribute() == "ability" &&
                 execution.attribute_value() == 7 &&
-                execution.lookup().table() == f.table &&
-                execution.lookup().row() == f.row &&
+                execution.modified() &&
+                execution.lookup()->table() == f.table &&
+                execution.lookup()->row() == f.row &&
                 execution.modifier_property() == "modifier_value" &&
                 execution.modifier() == 4 && execution.target_number() == 10,
             "the result must retain the exact check inputs and selected row");
