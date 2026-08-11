@@ -1,3 +1,7 @@
+#include "logosphere/physics/physics_solver.h"
+#include <cstdio>
+#include <string>
+#include <set>
 #include "particle_system.h"
 #include "particle_geometry_v2.h"
 #include "triangle_cube_geometry.h"  // For triangle-based cubes
@@ -42,7 +46,50 @@ ParticleSystem::~ParticleSystem() {
     // This is like Python's __del__ but more predictable
 }
 
+// ============================================================================
+// THE TURTLE IS THE FLOOR OF THE WORLD — NOTHING IS PLACED BENEATH IT
+// ============================================================================
+// TURTLE_Z is an absolute boundary, and enforce_turtle_boundary() lifts any
+// body found below it EVERY SUBSTEP as a raw position correction with no
+// energy accounting. A body deliberately placed underground therefore becomes
+// a permanent, unpayable energy source: the turtle lifts it, gravity returns
+// it, forever. Measured with the energy ledger on one buried root plate:
+// +30.6 J every substep and +15797 J on the first, which travelled up the
+// bonds and threw the tree's canopy to 120 m.
+//
+// That is not a tuning problem and it cannot be fixed downstream, so it is
+// caught HERE, at the one door every body comes through, rather than written
+// down as a rule someone has to remember. A generator that wants roots
+// underground has to reconsider, not negotiate.
+//
+// Reports once per offending call site with the arithmetic, so a scene that
+// does it a thousand times says so once and stays readable.
+static void assert_above_turtle(const Particle& p, const char* where) {
+    if (p.GetMass() == 0.0f) return;               // lights float, no body
+    const float bottom = p.z - p.thickness * 0.5f;
+    if (bottom >= PhysicsV4::TURTLE_Z) return;
+    static std::set<std::string> reported;
+    char key[256];
+    std::snprintf(key, sizeof(key), "%s|%.4f", where, bottom);
+    if (!reported.insert(key).second) return;
+    std::cerr << "[TURTLE VIOLATION] " << where
+              << ": body placed BELOW the world floor. z=" << p.z
+              << " thickness=" << p.thickness
+              << " => bottom=" << bottom
+              << " < TURTLE_Z=" << PhysicsV4::TURTLE_Z
+              << " (by " << (PhysicsV4::TURTLE_Z - bottom) << " m)."
+              << " The turtle will lift this body every substep forever and"
+              << " the lift is free energy. Place it so its BOTTOM sits at or"
+              << " above " << PhysicsV4::TURTLE_Z << "." << std::endl;
+    if (std::getenv("TURTLE_STRICT")) {
+        std::cerr << "[TURTLE VIOLATION] TURTLE_STRICT set — aborting so the "
+                     "placement is fixed rather than absorbed." << std::endl;
+        std::abort();
+    }
+}
+
 int ParticleSystem::add_particle(const Particle& particle) {
+    assert_above_turtle(particle, "add_particle");
     // THREAD SAFETY: Acquire exclusive lock for particle addition
     std::unique_lock<std::shared_mutex> lock(particles_mutex_);
 
@@ -264,6 +311,7 @@ void ParticleSystem::update_bvh() {
 }
 
 int ParticleSystem::queue_particle_addition(const Particle& particle) {
+    assert_above_turtle(particle, "queue_particle_addition");
     // Queue the particle for deferred addition
     pending_particles.push(particle);
     

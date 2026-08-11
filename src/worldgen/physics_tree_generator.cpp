@@ -971,7 +971,14 @@ int PhysicsTreeGenerator::generate_root_system(
 
     int num_roots = 3 + (rng_state_ % 2);  // 3-4 roots
     float root_length = tree_height * 0.25f;  // Each root = 25% of height
-    float root_thickness = trunk_thickness * 0.4f;  // Thinner than trunk
+    // A ROOT CANNOT BE THICKER THAN THE PLATE IT GROWS OUT OF.
+    // Roots attach at the plate's side faces, which are at the plate's CENTRE
+    // height, so a root whose Z cross-section exceeds plate_height hangs below
+    // the plate's underside — and with the plate sitting on the turtle, that
+    // puts the root under the world floor. Caught by the turtle guard in
+    // ParticleSystem::add_particle: z=0.125 thickness=0.402 => bottom=-0.076.
+    // Clamping is geometry, not tuning: the plate is the root's socket.
+    float root_thickness = std::min(trunk_thickness * 0.4f, plate_height);
 
     // BOX has 4 side surfaces: +X, -X, +Y, -Y
     // Place one root on each side surface
