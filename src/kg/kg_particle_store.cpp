@@ -67,7 +67,8 @@ static void kg_assert_above_turtle(const Particle& p) {
               << " => bottom=" << bottom << " < " << PhysicsV4::TURTLE_Z
               << " (by " << (PhysicsV4::TURTLE_Z - bottom) << " m)."
               << " It will surface at chunk activation, not here." << std::endl;
-    if (std::getenv("TURTLE_STRICT")) std::abort();
+    // Strict by default, same as the other two doors. TURTLE_LENIENT=1 to warn.
+    if (!std::getenv("TURTLE_LENIENT")) std::abort();
 }
 
 void KGCore::setKGParticleData(KGParticleID kg_id, const Particle& particle_data) {

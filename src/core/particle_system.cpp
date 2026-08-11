@@ -1,3 +1,4 @@
+#include <execinfo.h>
 #include "logosphere/physics/physics_solver.h"
 #include <cstdio>
 #include <string>
@@ -84,7 +85,26 @@ static void assert_above_turtle(const Particle& p, const char* where) {
               << " The turtle will lift this body every substep forever and"
               << " the lift is free energy. Place it so its BOTTOM sits at or"
               << " above " << PhysicsV4::TURTLE_Z << "." << std::endl;
-    if (std::getenv("TURTLE_STRICT")) {
+    // NAME THE CALLER. Grep could not find this one because the z was
+    // computed rather than literal, and searching for it burned several
+    // rounds. A guard that reports WHO placed the body ends that class of
+    // hunt permanently: the next violation identifies its own source.
+    if (std::getenv("TURTLE_TRACE")) {
+        void* frames[12];
+        const int n = backtrace(frames, 12);
+        char** syms = backtrace_symbols(frames, n);
+        if (syms) {
+            std::cerr << "  placed by:" << std::endl;
+            for (int i = 1; i < n && i < 8; ++i)
+                std::cerr << "    " << syms[i] << std::endl;
+            std::free(syms);
+        }
+    }
+    // STRICT BY DEFAULT. All 51 sites the sweep found are fixed and the whole
+    // suite reports zero, so a violation from here on is a NEW one and should
+    // stop the world rather than scroll past. TURTLE_LENIENT=1 downgrades it
+    // to a warning for anyone mid-migration.
+    if (!std::getenv("TURTLE_LENIENT")) {
         std::cerr << "[TURTLE VIOLATION] TURTLE_STRICT set — aborting so the "
                      "placement is fixed rather than absorbed." << std::endl;
         std::abort();
