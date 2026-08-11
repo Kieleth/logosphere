@@ -16,6 +16,12 @@
 // Lazy allocation: the store is null until first particle-data write.
 // Headless builds that never touch particle storage pay no allocation.
 
+#include "logosphere/physics/physics_solver.h"
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <string>
+#include <set>
 #include "logosphere/kg/kg_core.h"
 #include "logosphere/kg/kg_module.h"
 #include "particle.h"
@@ -37,7 +43,35 @@ struct KGParticleDataStore {
 // KGCore: particle data storage for reload
 // ============================================================================
 
+// THE THIRD DOOR. The turtle guard was wired into ParticleSystem::add_particle
+// and ::queue_particle_addition, which misses every generator that stores its
+// bodies in the KG and lets chunk activation materialise them later —
+// rock_generator, fallen_tree_generator, tree_generator, organic_generator,
+// planet_generator and collect_tree_specs all take this path. A repo sweep
+// found 51 definite below-turtle placements and flagged that the guard could
+// not see the generators most likely to offend.
+//
+// Checked HERE the violation is attributed to the generator that wrote it,
+// at the moment it writes it, instead of surfacing later against whichever
+// activator happened to load the chunk.
+static void kg_assert_above_turtle(const Particle& p) {
+    if (p.GetMass() == 0.0f) return;
+    const float bottom = p.z - p.thickness * 0.5f;
+    if (bottom >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP) return;
+    static std::set<std::string> reported;
+    char key[128];
+    std::snprintf(key, sizeof(key), "%.5f|%.5f", p.z, p.thickness);
+    if (!reported.insert(key).second) return;
+    std::cerr << "[TURTLE VIOLATION] setKGParticleData: body STORED below the"
+              << " world floor. z=" << p.z << " thickness=" << p.thickness
+              << " => bottom=" << bottom << " < " << PhysicsV4::TURTLE_Z
+              << " (by " << (PhysicsV4::TURTLE_Z - bottom) << " m)."
+              << " It will surface at chunk activation, not here." << std::endl;
+    if (std::getenv("TURTLE_STRICT")) std::abort();
+}
+
 void KGCore::setKGParticleData(KGParticleID kg_id, const Particle& particle_data) {
+    kg_assert_above_turtle(particle_data);
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!particle_data_store_) {
         particle_data_store_ = std::make_shared<KGParticleDataStore>();
