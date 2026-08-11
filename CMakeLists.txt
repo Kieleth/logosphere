@@ -2232,3 +2232,28 @@ target_include_directories(test-http-after-engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(test-http-after-engine PRIVATE cxx_std_17)
+
+# ---------------------------------------------------------------------------
+# A hung test must FAIL, not wait forever.
+#
+# Written from an actual incident: three ctest runs sat wedged on engine
+# acceptance tests for up to three hours, and a fourth wedged on a
+# different one. The whole suite finishes in about twelve seconds, so any
+# single test still running after two minutes is not slow, it is stuck.
+#
+# Nothing here had a TIMEOUT property and ctest's Linux lane has no step
+# timeout either, so in CI the same hang would hold a runner until
+# GitHub's six-hour ceiling and report nothing useful. Two minutes is
+# roughly ten times the entire suite: generous for a slow machine,
+# decisive against a deadlock.
+#
+# Applied last, so it covers every test registered above however it was
+# added, and it never overrides a timeout a test set deliberately.
+# ---------------------------------------------------------------------------
+get_property(logosphere_all_tests DIRECTORY PROPERTY TESTS)
+foreach(logosphere_test IN LISTS logosphere_all_tests)
+    get_test_property(${logosphere_test} TIMEOUT logosphere_existing_timeout)
+    if(NOT logosphere_existing_timeout)
+        set_tests_properties(${logosphere_test} PROPERTIES TIMEOUT 120)
+    endif()
+endforeach()

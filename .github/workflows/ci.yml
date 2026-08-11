@@ -68,6 +68,7 @@ jobs:
         run: cmake --build build -j $(nproc)
 
       - name: Run physics smoke tests
+        timeout-minutes: 10
         run: |
           set -e
           for t in test_humanoid_headless test_pin_gluon_lifecycle; do
@@ -109,6 +110,7 @@ jobs:
       # but never run and the gate silently checked compilation alone.
       # A new add_headless_test() is gated the moment it exists.
       - name: Run headless test suite
+        timeout-minutes: 10
         working-directory: build
         run: ctest --output-on-failure -j $(nproc)
 
@@ -170,4 +172,5 @@ jobs:
         run: cmake --build build --config Release -j 4
 
       - name: Run headless test suite
+        timeout-minutes: 15
         run: ctest --test-dir build -C Release --output-on-failure
