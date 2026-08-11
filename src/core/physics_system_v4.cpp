@@ -3782,8 +3782,21 @@ void PhysicsSystem::enforce_turtle_boundary(ParticleSystem::WriteView& particles
         float half_thickness = p.thickness * 0.5f;
         float particle_bottom = p.z - half_thickness;
 
-        // Check for turtle penetration
-        if (particle_bottom < TURTLE_Z) {
+        // THE BOUNDARY HAS THE SAME SLOP EVERY OTHER CONTACT HAS.
+        //
+        // This fired on `bottom < TURTLE_Z` with no tolerance, and exact
+        // geometric equality is not achievable in floating point. A body
+        // computed to sit exactly on the floor lands a few hundred nanometres
+        // under it and gets lifted — every substep, forever, as a free
+        // position correction. Measured on grass: blades placed at
+        // z = 0.0199997 against a half-thickness of 0.0200000, under by 250
+        // NANOMETRES, on hundreds of blades.
+        //
+        // SLOP is the engine's existing statement of "this much geometric
+        // error is not real", already used by every contact row. Reusing it
+        // rather than inventing a second tolerance, so there is one number
+        // that means one thing.
+        if (particle_bottom < TURTLE_Z - SLOP) {
             // Clamp position so bottom is exactly at turtle
             float correction = TURTLE_Z - particle_bottom;
             p.z += correction;

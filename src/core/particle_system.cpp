@@ -67,7 +67,10 @@ ParticleSystem::~ParticleSystem() {
 static void assert_above_turtle(const Particle& p, const char* where) {
     if (p.GetMass() == 0.0f) return;               // lights float, no body
     const float bottom = p.z - p.thickness * 0.5f;
-    if (bottom >= PhysicsV4::TURTLE_Z) return;
+    // Same tolerance the boundary itself uses. Below SLOP this is float
+    // residue on a body trying to sit exactly on the floor, not a placement
+    // decision, and reporting it as one buries the real violations in noise.
+    if (bottom >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP) return;
     static std::set<std::string> reported;
     char key[256];
     std::snprintf(key, sizeof(key), "%s|%.4f", where, bottom);
