@@ -72,19 +72,6 @@
     },
     {
       "op": "create_entity",
-      "type": "TaskCheck",
-      "as": "@int_throw",
-      "properties": {
-        "name": "int_8_plus",
-        "attribute_ref": "intelligence",
-        "target_number": 8,
-        "dice": "@d2d6",
-        "source_section": "Careers",
-        "source_quote": "A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."
-      }
-    },
-    {
-      "op": "create_entity",
       "type": "RuleConstant",
       "as": "@age_of_majority",
       "properties": {
@@ -314,6 +301,21 @@
       "from": "@dm_table",
       "relation": "HAS_PART",
       "to": "@dm_row_3_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@int_throw",
+      "properties": {
+        "name": "int_8_plus",
+        "attribute_ref": "intelligence",
+        "target_number": 8,
+        "dice": "@d2d6",
+        "modifier_table": "@dm_table",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Careers",
+        "source_quote": "A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."
+      }
     },
     {
       "op": "create_entity",

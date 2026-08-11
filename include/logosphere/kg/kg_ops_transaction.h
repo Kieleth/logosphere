@@ -11,6 +11,7 @@
 // them yet.
 
 #include "logosphere/kg/kg_ops.h"
+#include "logosphere/kg/ontology_validator.h"
 
 #include <cstddef>
 #include <string>
@@ -31,7 +32,9 @@ struct KGOpBatchReport {
 };
 
 bool apply_kg_ops_atomically(const std::vector<KGOp>& ops, KGModule& kg,
-                             KGOpBatchReport& report);
+                             KGOpBatchReport& report,
+                             MutationAuthority authority =
+                                 MutationAuthority::Runtime);
 
 }  // namespace kg
 

@@ -100,6 +100,15 @@ def _get_facets(sv: SchemaView, class_name: str) -> list:
     return sorted(f.strip() for f in raw.split(",") if f.strip())
 
 
+def _annotation_is_true(definition, name: str) -> bool:
+    annotations = getattr(definition, "annotations", None)
+    if not annotations or name not in annotations:
+        return False
+    return str(annotations[name].value).strip().lower() in {
+        "1", "true", "yes"
+    }
+
+
 def _is_mixin(sv: SchemaView, class_name: str) -> bool:
     """Check if a class is a mixin."""
     cls = sv.get_class(class_name)
@@ -294,6 +303,9 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
             source = _definition_source(slot, f"slot {cn}.{sn}")
             value_type = _linkml_range_to_value_type(sv, slot.range)
             required = "true" if slot.required else "false"
+            create_only = "true" if _annotation_is_true(
+                slot, "create_only"
+            ) else "false"
             if slot.identifier:
                 emit(
                     source,
@@ -305,10 +317,11 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
             # keeps the target class so the OntologyValidator can
             # check the referenced entity is-a that class.
             if value_type == "entity_ref":
+                create_only_arg = ", true" if create_only == "true" else ""
                 emit(
                     source,
                     f'    reg.addRefProperty("{cn}", "{sn}", {required}, '
-                    f'"{slot.range}");',
+                    f'"{slot.range}"{create_only_arg});',
                 )
                 continue
             # Range annotations (LinkML's minimum_value / maximum_value
@@ -330,12 +343,14 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
                 emit(
                     source,
                     f'    reg.addProperty("{cn}", "{sn}", "{value_type}", {required}, '
-                    f"{has_min}, {min_lit}, {has_max}, {max_lit});",
+                    f"{has_min}, {min_lit}, {has_max}, {max_lit}"
+                    f'{", true" if create_only == "true" else ""});',
                 )
             else:
                 emit(
                     source,
-                    f'    reg.addProperty("{cn}", "{sn}", "{value_type}", {required});',
+                    f'    reg.addProperty("{cn}", "{sn}", "{value_type}", '
+                    f'{required}{", true" if create_only == "true" else ""});',
                 )
 
     lines.append("")

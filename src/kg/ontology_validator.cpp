@@ -3,6 +3,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 
+#include <algorithm>
 #include <charconv>
 #include <limits>
 #include <stdexcept>
@@ -39,10 +40,78 @@ ValidationResult resolve_type(const EntityRef& ref,
     return ValidationResult{};
 }
 
+ValidationResult entity_ref_id(const std::string& where,
+                               const std::string& value,
+                               EntityID& out) {
+    unsigned long long parsed = 0;
+    const auto [end, error] = std::from_chars(
+        value.data(), value.data() + value.size(), parsed);
+    if (error != std::errc{} || end != value.data() + value.size() ||
+        parsed == 0 || parsed > std::numeric_limits<EntityID>::max()) {
+        return fail(where + ": expected an entity id, got '" + value + "'");
+    }
+    out = static_cast<EntityID>(parsed);
+    return ValidationResult{};
+}
+
+bool is_sealed_origin_type(const OntologyRegistry& ont,
+                           const std::string& type) {
+    return ont.hasFacet(type, "sealed-origin") ||
+           ont.isSubtypeOf(type, "SourceLayerContext") ||
+           ont.isSubtypeOf(type, "SourceDocumentContext");
+}
+
+bool is_seed_owned_type(const OntologyRegistry& ont,
+                        const std::string& type) {
+    return ont.hasFacet(type, "seed-owned") ||
+           ont.isSubtypeOf(type, "SourceLayerContext") ||
+           ont.isSubtypeOf(type, "SourceDocumentContext");
+}
+
+ValidationResult require_mutable(EntityID id, const KGModule& kg,
+                                 const OntologyRegistry& ont,
+                                 const ValidationOptions& options) {
+    if (options.constructing.count(id)) return ValidationResult{};
+
+    const std::string type = kg.getType(id);
+    if (is_sealed_origin_type(ont, type)) {
+        return fail("entity " + std::to_string(id) + " (" + type +
+                    ") is a sealed origin context");
+    }
+    if (!ont.hasProperty(type, "origin_context") ||
+        !kg.hasProperty(id, "origin_context")) {
+        return ValidationResult{};
+    }
+
+    EntityID context = INVALID_ENTITY;
+    if (auto parsed = entity_ref_id(
+            "entity " + std::to_string(id) + " origin_context",
+            kg.getProperty(id, "origin_context"), context);
+        !parsed.ok) {
+        return parsed;
+    }
+    if (!kg.exists(context)) {
+        return fail("entity " + std::to_string(id) +
+                    " origin_context references missing entity " +
+                    std::to_string(context));
+    }
+    const std::string context_type = kg.getType(context);
+    if (is_sealed_origin_type(ont, context_type)) {
+        return fail("entity " + std::to_string(id) + " has sealed origin " +
+                    std::to_string(context) + " (" + context_type + ")");
+    }
+    return ValidationResult{};
+}
+
 ValidationResult validate_destroy(const KGOpDestroyEntity& op,
-                                  const KGModule& kg) {
+                                  const KGModule& kg,
+                                  const OntologyRegistry& ont,
+                                  const ValidationOptions& options) {
     std::string t;
-    return resolve_type(op.target, kg, t);  // existence check is enough
+    if (auto result = resolve_type(op.target, kg, t); !result.ok) {
+        return result;
+    }
+    return require_mutable(op.target.id, kg, ont, options);
 }
 
 // Entity-reference values (class-ranged slots, e.g. TableEntry.outcome
@@ -132,7 +201,8 @@ CoerceResult coerce_property_value(const std::string& value_type,
 
 ValidationResult validate_create(const KGOpCreateEntity& op,
                                  const KGModule& kg,
-                                 const OntologyRegistry& ont) {
+                                 const OntologyRegistry& ont,
+                                 const ValidationOptions& options) {
     if (op.type.empty()) return fail("create_entity: empty type");
     if (!ont.hasEntityType(op.type)) {
         return fail("create_entity: type '" + op.type
@@ -141,6 +211,11 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
     if (ont.isAbstract(op.type)) {
         return fail("create_entity: type '" + op.type
                     + "' is abstract; cannot instantiate");
+    }
+    if (is_seed_owned_type(ont, op.type) &&
+        options.authority != MutationAuthority::SeedIngestion) {
+        return fail("create_entity: type '" + op.type +
+                    "' is owned by trusted seed ingestion");
     }
     std::unordered_set<std::string> provided;
     for (const auto& [name, value] : op.properties) {
@@ -198,12 +273,36 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
             }
         }
     }
+
+    if (options.authority != MutationAuthority::SeedIngestion &&
+        ont.isSubtypeOf(op.type, "Cited")) {
+        const auto origin = std::find_if(
+            op.properties.begin(), op.properties.end(),
+            [](const auto& property) {
+                return property.first == "origin_context";
+            });
+        if (origin != op.properties.end()) {
+            EntityID context = INVALID_ENTITY;
+            if (auto parsed = entity_ref_id(
+                    "create_entity '" + op.type + ".origin_context'",
+                    origin->second, context);
+                !parsed.ok) {
+                return parsed;
+            }
+            if (kg.exists(context) &&
+                is_sealed_origin_type(ont, kg.getType(context))) {
+                return fail("create_entity: runtime content cannot claim a "
+                            "sealed source origin");
+            }
+        }
+    }
     return ValidationResult{};
 }
 
 ValidationResult validate_set_property(const KGOpSetProperty& op,
                                        const KGModule& kg,
-                                       const OntologyRegistry& ont) {
+                                       const OntologyRegistry& ont,
+                                       const ValidationOptions& options) {
     std::string t;
     if (auto r = resolve_type(op.target, kg, t); !r.ok) return r;
     if (op.property.empty()) return fail("set_property: empty property name");
@@ -218,6 +317,15 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
     if (def && def->identifier) {
         return fail("set_property '" + t + "." + op.property +
                     "': identifier is engine-managed");
+    }
+    if (def && def->create_only) {
+        return fail("set_property '" + t + "." + op.property +
+                    "': creation-only property");
+    }
+    if (auto mutable_result =
+            require_mutable(op.target.id, kg, ont, options);
+        !mutable_result.ok) {
+        return mutable_result;
     }
     if (def && def->value_type == "entity_ref") {
         return check_entity_ref("set_property '" + t + "'", *def, op.value,
@@ -249,7 +357,8 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
 
 ValidationResult validate_set_relation(const KGOpSetRelation& op,
                                        const KGModule& kg,
-                                       const OntologyRegistry& ont) {
+                                       const OntologyRegistry& ont,
+                                       const ValidationOptions& options) {
     if (op.relation.empty()) return fail("set_relation: empty relation name");
     if (!ont.hasRelationType(op.relation)) {
         return fail("set_relation: relation '" + op.relation
@@ -262,24 +371,25 @@ ValidationResult validate_set_relation(const KGOpSetRelation& op,
         return fail("set_relation: '" + op.relation
                     + "' does not accept (" + from_t + " -> " + to_t + ")");
     }
-    return ValidationResult{};
+    return require_mutable(op.from.id, kg, ont, options);
 }
 
 }  // namespace
 
 ValidationResult validate_kg_op(const KGOp& op,
                                 const KGModule& kg,
-                                const OntologyRegistry& ont) {
+                                const OntologyRegistry& ont,
+                                const ValidationOptions& options) {
     return std::visit([&](const auto& concrete) -> ValidationResult {
         using T = std::decay_t<decltype(concrete)>;
         if constexpr (std::is_same_v<T, KGOpCreateEntity>)
-            return validate_create(concrete, kg, ont);
+            return validate_create(concrete, kg, ont, options);
         if constexpr (std::is_same_v<T, KGOpDestroyEntity>)
-            return validate_destroy(concrete, kg);
+            return validate_destroy(concrete, kg, ont, options);
         if constexpr (std::is_same_v<T, KGOpSetProperty>)
-            return validate_set_property(concrete, kg, ont);
+            return validate_set_property(concrete, kg, ont, options);
         if constexpr (std::is_same_v<T, KGOpSetRelation>)
-            return validate_set_relation(concrete, kg, ont);
+            return validate_set_relation(concrete, kg, ont, options);
         if constexpr (std::is_same_v<T, KGOpPlayCinematic>) {
             // The host's cinematic registry is the gate for
             // names; the validator's job is just to enforce that

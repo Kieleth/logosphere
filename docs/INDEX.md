@@ -12,6 +12,7 @@ Read in order:
 - **[Getting Started](GETTING_STARTED.md)** — step-by-step tutorial with Eden as reference
 - **[Game Layer](GAME_LAYER.md)** — IApplication, ontology extension, event bus, capability rules, DynamicsParams override, particle interaction model
 - **[Knowledge Layer](KNOWLEDGE_LAYER.md)** — facets, queries, the event journal, history renderers, and the ops write-back loop: how any consumer (LLM director, AI, inspector, replay) reads meaning from the world
+- **[Ontology-native Rule Language](RULE_LANGUAGE.md)**: architecture contract for applications and games that store typed, executable rule programs in the KG
 
 ## Engine internals
 

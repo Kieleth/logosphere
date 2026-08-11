@@ -77,7 +77,8 @@ kg::OntologyRegistry game_registry() {
 bool build_world(kg::KGModule& kg, std::string& why) {
     kg.setMode(kg::KGMode::MINIMAL);
     const auto procedures = logovger::make_chargen_procedure_registry();
-    const char* seeds[] = {"seeds/cepheus_careers.json",
+    const char* seeds[] = {"seeds/cepheus_book1_tables.json",
+                           "seeds/cepheus_careers.json",
                            "seeds/cepheus_basic_chargen_procedure.json"};
     for (const char* seed : seeds) {
         const std::string json = slurp(game_path(seed));
@@ -272,6 +273,9 @@ void test_missing_rules_fail_loudly() {
     CHECK(procedure_seed.ok() &&
               kg::load_seed(procedure_seed.seed, empty, procedure_load),
           "the missing-career control loads only the procedure");
+    const auto max_terms = empty.createEntity("RuleConstant");
+    empty.setProperty(max_terms, "name", "max_terms");
+    empty.setProperty(max_terms, "constant_value", "7");
     error.clear();
     const bool no_careers =
         logovger::run_chargen(req, empty, dice, sheet, error);
@@ -287,6 +291,73 @@ void test_missing_rules_fail_loudly() {
     CHECK(!ok2 && error.find("Xenolinguist") != std::string::npos,
           "and a career that is not in the book at all is refused by "
           "name, not silently substituted");
+}
+
+void test_missing_rule_constant_never_falls_back() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why),
+          "the missing-constant control world loads: " + why);
+
+    bool removed = false;
+    for (const auto id : world.findByType("RuleConstant")) {
+        if (world.getProperty(id, "name") != "max_terms") continue;
+        world.removeProperty(id, "constant_value");
+        removed = true;
+    }
+    CHECK(removed, "the control removed max_terms from the graph");
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    std::string error;
+    const bool ok = session.begin(1, error);
+    CHECK(!ok && error.find("RuleConstant 'max_terms'") !=
+                     std::string::npos &&
+              error.find("invalid constant_value") != std::string::npos,
+          "missing max_terms data fails instead of assuming seven: " +
+              error);
+}
+
+void test_character_facts_use_the_modifier_table() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why),
+          "the character-facts control world loads: " + why);
+
+    logovger::CharacterSheet sheet;
+    sheet.strength = sheet.dexterity = sheet.endurance = 9;
+    sheet.intelligence = sheet.education = sheet.social_standing = 9;
+    sheet.upp = "999999";
+
+    std::string facts;
+    std::string error;
+    CHECK(logovger::format_character_facts(sheet, world, facts, error) &&
+              facts.find("Str 9 (DM +1)") != std::string::npos,
+          "narration facts use the seeded characteristic modifier: " +
+              error);
+
+    for (const auto row : world.findByType("CharacteristicModifierEntry")) {
+        if (world.getProperty(row, "key_min") == "9") {
+            world.setProperty(row, "characteristic_modifier", "42");
+        }
+    }
+    facts.clear();
+    error.clear();
+    CHECK(logovger::format_character_facts(sheet, world, facts, error) &&
+              facts.find("Str 9 (DM +42)") != std::string::npos,
+          "changing modifier data changes narration facts without code: " +
+              error);
+
+    for (const auto row : world.findByType("CharacteristicModifierEntry")) {
+        if (world.getProperty(row, "key_min") == "9") {
+            world.removeProperty(row, "characteristic_modifier");
+        }
+    }
+    facts.clear();
+    error.clear();
+    CHECK(!logovger::format_character_facts(sheet, world, facts, error) &&
+              error.find("characteristic_modifier") != std::string::npos,
+          "missing modifier data blocks narration facts loudly: " + error);
 }
 
 // The rules are DATA: change what the book says and the life changes,
@@ -330,6 +401,93 @@ void test_the_rules_are_data() {
           "the same seed that served four terms now never joins: raising "
           "the target in the KG alone ended the career, and the runner "
           "reads the rule rather than knowing it");
+}
+
+void test_characteristic_modifier_table_drives_checks() {
+    kg::KGModule control(game_registry()), changed(game_registry());
+    std::string why;
+    CHECK(build_world(control, why), "the modifier control world loads: " +
+                                         why);
+    why.clear();
+    CHECK(build_world(changed, why), "the changed modifier world loads: " +
+                                         why);
+
+    for (const auto row : changed.findByType("CharacteristicModifierEntry")) {
+        changed.setProperty(row, "characteristic_modifier", "-100");
+    }
+
+    const logovger::ChargenRequest request{"Agent", 1, 1};
+    logosphere::dice::DiceService control_dice, changed_dice;
+    logovger::CharacterSheet control_sheet, changed_sheet;
+    std::string error;
+    const bool control_ok = logovger::run_chargen(
+        request, control, control_dice, control_sheet, error);
+    error.clear();
+    const bool changed_ok = logovger::run_chargen(
+        request, changed, changed_dice, changed_sheet, error);
+    bool cited_changed_modifier = false;
+    for (const auto& event : changed_sheet.life) {
+        if (event.detail.find("-100 DM") != std::string::npos) {
+            cited_changed_modifier = true;
+        }
+    }
+    CHECK(control_ok && control_sheet.qualified && !changed_ok &&
+              !changed_sheet.qualified && cited_changed_modifier &&
+              error.find("Draft or Drifter") != std::string::npos,
+          "changing only characteristic_modifier data changes the same "
+          "qualification throw and stops at the unresolved authority "
+          "choice: " + error);
+
+    kg::KGModule incomplete(game_registry());
+    why.clear();
+    CHECK(build_world(incomplete, why),
+          "the incomplete modifier world loads before mutation: " + why);
+    for (const auto row :
+         incomplete.findByType("CharacteristicModifierEntry")) {
+        incomplete.removeProperty(row, "characteristic_modifier");
+    }
+    logosphere::dice::DiceService incomplete_dice;
+    logovger::CharacterSheet incomplete_sheet;
+    error.clear();
+    const bool incomplete_ok = logovger::run_chargen(
+        request, incomplete, incomplete_dice, incomplete_sheet, error);
+    bool qualification_rolled = false;
+    for (const auto& roll : incomplete_dice.journal()) {
+        if (roll.purpose == "qualification") qualification_rolled = true;
+    }
+    CHECK(!incomplete_ok &&
+              error.find("characteristic_modifier") != std::string::npos &&
+              !qualification_rolled,
+          "missing selected modifier data stops before the check roll: " +
+          error);
+
+    kg::KGModule wrong_column(game_registry());
+    why.clear();
+    CHECK(build_world(wrong_column, why),
+          "the wrong-column world loads before mutation: " + why);
+    kg::EntityID agent = kg::INVALID_ENTITY;
+    for (const auto id : wrong_column.findByType("Career")) {
+        if (wrong_column.getProperty(id, "name") == "Agent") agent = id;
+    }
+    const auto qualification_ref =
+        wrong_column.getProperty(agent, "qualification_check");
+    const auto qualification_check = static_cast<kg::EntityID>(
+        std::stoul(qualification_ref));
+    wrong_column.setProperty(qualification_check, "modifier_property",
+                             "pseudohex_min");
+    logosphere::dice::DiceService wrong_column_dice;
+    logovger::CharacterSheet wrong_column_sheet;
+    error.clear();
+    const bool wrong_column_ok = logovger::run_chargen(
+        request, wrong_column, wrong_column_dice, wrong_column_sheet, error);
+    qualification_rolled = false;
+    for (const auto& roll : wrong_column_dice.journal()) {
+        if (roll.purpose == "qualification") qualification_rolled = true;
+    }
+    CHECK(!wrong_column_ok && error.find("integer") != std::string::npos &&
+              !qualification_rolled,
+          "chargen executes the TaskCheck's declared modifier column and "
+          "rejects a string column before rolling: " + error);
 }
 
 void test_skill_outcome_parameters_drive_the_executor() {
@@ -562,7 +720,10 @@ int main() {
     test_a_life_is_generated();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
+    test_missing_rule_constant_never_falls_back();
+    test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();
+    test_characteristic_modifier_table_drives_checks();
     test_skill_outcome_parameters_drive_the_executor();
     test_skill_table_dice_data_drives_selection();
     test_every_skill_table_row_is_validated_before_selection();

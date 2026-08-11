@@ -8,9 +8,8 @@ if the conversation and this file disagree, fix the file._
 ## The one-sentence version
 
 The engine learns what a rulebook IS; a game supplies which rulebook it
-plays by, as data; an LLM referees by reading rules and world from the
-same knowledge graph, writing through the same validated grammar as
-everything else.
+plays by, as data; a referee reads rules and world from the same knowledge
+graph and writes through the same validated grammar as everything else.
 
 ## Why this is engine domain
 
@@ -39,6 +38,62 @@ GAME     cepheus layer           what THIS book says: per-chapter
 Layer separation is 100% by owner decision: the diff between cepheus
 and voyager is the game's design document.
 
+## Rule origin, growth contexts, and forks
+
+Built 2026-08-10. Origin and learning scope are graph data, not one
+linear `layer` field.
+
+`KnowledgeContext` is the abstract context concept. Seed loading creates
+and reuses one `SourceLayerContext` for the envelope layer and one
+`SourceDocumentContext` for the exact layer, source file, and source
+commit. Every seeded `Cited` entity receives a required
+`origin_context` reference to that document context. Seed content cannot
+create these engine-owned contexts or supply its own origin.
+
+`RuntimeContext` represents places where rules and knowledge can grow.
+Its required `context_kind` is ontology and KG data rather than an
+engine enum. Initial intended kinds include session, campaign, user,
+group, and global. Context hierarchy, applicability resolution, and
+promotion between learning scopes remain later work.
+
+Source contexts and every entity originating in one are immutable on the
+validated write path. Origin and lineage properties are creation-only.
+`fork_rule` implements copy-on-write: it copies the source entity's
+ordinary properties and outgoing relations, applies explicit overrides,
+sets the destination RuntimeContext as origin, records `fork_of`, and
+commits the complete fork atomically. It never edits the source.
+
+The referee may create rules in a RuntimeContext or request forks using
+ontology shapes and existing KG content. It cannot add executable
+operators. A future DM-authority mechanism may add a higher-authority
+override rule, but that authority model is deliberately not implemented
+here.
+
+## Ontology-native rule language (DESIGN)
+
+The general rule mechanism is an engine-level, ontology-native language.
+Ontology classes define its grammar and type system; KG entities are programs;
+the evaluator validates and executes those programs. Logovger's modifier
+algebra is its first consumer, not a separate game DSL.
+
+Rules belong to explicit KnowledgeContexts and declare applicability through
+declarative graph predicates. Evaluation receives active contexts explicitly
+and never discovers rules by scanning every context in the KG.
+
+Expression evaluation is pure. Explicitly invoked action rules may construct
+typed Outcome plans, but only OutcomeExecutor validates and commits them. A
+predicate becoming true does not cause an implicit graph mutation.
+
+The runtime ontology registry remains the source of truth. Once all ontology
+layers are composed, the engine will materialize an immutable meta-graph with
+one canonical entity for each class, property, and relation. Rule programs use
+typed references to those meta-entities instead of raw property or relation
+names. Runtime authors may compose existing operators but cannot manufacture
+new executable semantics.
+
+The reusable application and game contract, validation requirements, open
+decisions, and TDD order live in [RULE_LANGUAGE.md](RULE_LANGUAGE.md).
+
 ### Shelob is outside this architecture
 
 Shelob is the server deployment library. It is not the referee, the
@@ -61,6 +116,7 @@ every citation into the vendored SRD.
 | Class | Models | First instances (Cepheus ch. 1) |
 |---|---|---|
 | Cited (mixin) | source file, section, verbatim quote on everything | every row below |
+| KnowledgeContext / SourceLayerContext / SourceDocumentContext / RuntimeContext | explicit origin and growth scopes, plus copy-on-write lineage | Cepheus seed layers and documents; session, campaign, user, group, and global runtime scopes |
 | DiceExpression | count, sides, modifier, multiplier; mirrors the engine dice struct field for field | 2D6 characteristics, 1D6x10000 medical bill |
 | TaskCheck | attribute ref, target, dice ref | the book's "Int 8+" definition, Athlete survival Dex 5+ |
 | RollableTable / TableEntry | dice ref; rows as HAS_PART, each claiming a roll band (min/max) | Survival Mishaps 1D6, Aging Table 2D6 |
@@ -98,8 +154,11 @@ Tables have two contracts because the book uses them for two different
 jobs.
 
 A lookup table returns information. Its matching row is the result. The
-engine-level `LookupEntry` is abstract and carries only `key_min` and
-`key_max`. Each game declares concrete row subclasses with the columns its
+engine-level `LookupEntry` is abstract and carries only its key band. Each
+side is either a finite `key_min` or `key_max`, or the matching explicit
+`key_min_unbounded=true` or `key_max_unbounded=true` flag. Omission is not
+unboundedness, and a finite bound plus its true flag is ambiguous and
+invalid. Each game declares concrete row subclasses with the columns its
 book prints. Cepheus currently proves two shapes:
 
 - `CharacteristicModifierEntry`: pseudohex lower and upper symbols plus
@@ -111,6 +170,14 @@ verifier rejects unknown types, abstract types, types outside
 `LookupEntry`, empty tables, and attached rows that do not conform to the
 declared type. `LookupEntry.outcome` was removed. There is no scalar union,
 generic result wrapper, or legacy fallback.
+
+`LookupTableSelector` validates the complete live table before returning a
+row: table and declared type, every attached row type, every explicit bound,
+finite band order, and overlaps. It returns the exact typed row and the key;
+it does not interpret game result columns. An uncovered requested key fails
+without a default. Seed verification calls the same preflight. A
+`band_coverage` invariant may use JSON null for an explicitly unbounded end,
+such as `[0, null]`.
 
 A rollable table returns a consequence. Every `TableEntry` requires one
 typed root `outcome`. `NoEffect` records that a cited row deliberately
@@ -205,13 +272,14 @@ a reroll. Selection and consequence therefore have separate transaction
 boundaries. The engine does not recursively execute a table result, and game
 code does not interpret row bands or dice fields.
 
-The current Logovger slice registers eight game primitives:
+The current Logovger slice registers nine game primitives:
 `generate_characteristics`, `choose_career`, `roll_qualification`,
-`roll_survival`, `roll_training`, `advance_term`, `choose_term_end`, and
-`finish_character`. Their order and qualification, survival, continue, and
-muster-out routes live in the cited `basic_chargen` seed. The primitive
-handlers contain the game behavior, not the checklist order. Retargeting only
-a seeded route changes the executed flow in the acceptance test.
+`draft_or_drifter`, `roll_survival`, `roll_training`, `advance_term`,
+`choose_term_end`, and `finish_character`. Their order and qualification,
+Draft/Drifter, survival, continue, and muster-out routes live in the cited
+`basic_chargen` seed. The primitive handlers contain the game behavior, not
+the checklist order. Retargeting only a seeded route changes the executed
+flow in the acceptance test.
 
 Procedure execution is not one transaction across player choices. Each
 primitive owns its own mutation boundary. Outcome execution inside a primitive
@@ -219,9 +287,15 @@ keeps the atomic guarantees described above. A handler that changes arbitrary
 state before reporting its own failure cannot be rolled back by the generic
 runner, so game handlers must validate required input before mutation.
 
-The TaskCheck runner remains design work. Dice are engine-side, seeded,
-journaled, and cited by roll id. Gameplay code requests rolls and receives
-facts; it cannot assert a die result.
+`TaskCheckRunner` is built. It validates the complete check, target
+attribute, dice expression, modifier lookup table, selected row, and
+integer result column before randomness. It returns an itemized execution
+fact with the citable roll, modifier, total, threshold, and pass result.
+Gameplay code requests checks and receives facts; it cannot assert a die
+result. General contextual modifier composition remains later work.
+The cited prior-career qualification penalty is deliberately not applied by
+game code. It requires that general composition layer; mutating a temporary
+check would create a second, hard-coded modifier path.
 
 ## The referee (DESIGN)
 
@@ -478,26 +552,37 @@ Then the parts that finish a character.
 | 2026-08-10 | Outcome executor contract, owner: handlers produce plans and never mutate the KG directly; one central executor validates and commits. Exact concrete types dispatch or fail loudly. Choices are typed OutcomeChoice data with player, referee, or procedure authority and suspend before mutation. Skill acquisition separates EnsureSkillLevel from AdvanceSkill so initial and existing-skill behavior remain data. Money uses generic per-currency balance state and distinct fixed versus rolled outcomes. Sequence atomicity includes KG state, mutation events, dice streams, the dice journal, and dice events. GrantTableRoll produces a typed pending request; game-specific outcomes may produce typed procedure signals. |
 | 2026-08-10 | Procedure runner scope, owner selected option 2: build the generic engine runner and migrate the current playable chargen slice, without absorbing the full Cepheus checklist in the same phase. The current eight primitive names and their exact route labels are fixed by the game registry. Procedure order and gotos are cited KG data; primitive behavior remains game code. Complete graph validation happens before execution, choices suspend and resume the same step, and synchronous route cycles fail at a transition limit. |
 | 2026-08-10 | RollableTable execution, owner selected option 3: selection and consequence application are explicit phases. The engine validates the complete table before randomness, commits one immutable selection fact containing table, row, typed outcome, and citable roll, then stops. The caller applies the selected outcome separately through OutcomeExecutor. Failure or suspension reuses the same selection without rerolling. No hidden recursive execution and no rule consequences baked into table-runner code. |
+| 2026-08-10 | LookupTable bounds and selection, owner selected option 1: a missing key bound is legal only with the matching explicit unbounded flag; a finite bound plus a true flag is rejected. The generic engine selector validates the complete table and returns its game-typed row without interpreting result columns. Cepheus characteristic modifiers are all twelve cited rows, with `33 or higher` represented as `key_min=33` and `key_max_unbounded=true`. Qualification and survival read the selected modifier data; the old formula implementation was deleted. |
+| 2026-08-10 | General rule authoring boundary, owner: the referee may create and compose rules only from ontology and KG content the engine already understands. The engine derives results. Published rules are immutable and changes create forks. Origin and growth scope are explicit KnowledgeContext entities, supporting session, campaign, user, group, and global learning without a fixed enum ladder. A future DM-authority layer may override by adding a higher-authority rule. New executable operators remain engine work. |
+| 2026-08-10 | Main integration boundary: preserve the sheet, personnel file, narration, career history, Draft, and strict term cap while keeping all checks on the generic runners. The deleted characteristic formula and temporary-check modifier path stay deleted. Narration facts read characteristic DMs from the seeded LookupTable. The prior-career penalty remains cited data until general modifier composition can apply it without baking the rule into chargen code. |
+| 2026-08-10 | General rule applicability: modifiers belong to explicit KnowledgeContexts and use declarative graph predicates. The evaluator receives active contexts explicitly and never scans unrelated contexts globally. |
+| 2026-08-10 | Rule-language boundary: build one engine-level ontology-native language, not a Logovger modifier DSL or a serialized C++ Query. KG entities are typed programs. Pure expressions derive values; explicitly invoked action rules may produce typed Outcome plans through OutcomeExecutor. |
+| 2026-08-10 | Ontology reflection: OntologyRegistry remains the sole executable TBox. After registry composition, the engine materializes an immutable, uniquely keyed meta-graph for classes, properties, and relations. Rule nodes use typed entity references to this graph. Author-created meta-entities and unchecked symbolic strings are rejected. |
+| 2026-08-10 | Expression typing: use a hybrid model. Ontology inheritance enforces broad value families on operator slots. Immutable class, property, and relation meta-references refine entity and collection types, which the static verifier proves across the expression graph. An operator's broad result type comes from its concrete ontology class, not a writable result-type field. |
+| 2026-08-10 | Initial value families: mirror the complete current KG registry with Boolean, integer, float, string, entity, typed scalar collection, class-refined entity collection, and Outcome-plan expression families. Missing data is failure, not a null/default value. Coercion and operator semantics remain separate decisions. |
+| 2026-08-10 | Numeric compatibility: integer operands widen automatically when used by a float-producing or mixed-numeric operator. Float values never narrow implicitly. Concrete operator types still fix their broad result family, and evaluation traces expose every widening. Precision-loss, overflow, division, and non-finite semantics remain open. |
 
 ## Build state (updated at each compaction point)
 
-_Last updated 2026-08-10, first playable slice merged; see "What the
-first playable slice taught us"._
+_Last updated 2026-08-10, the first playable slice, generic rule runners,
+explicit rule contexts, and copy-on-write forks integrated._
 
 | Step | What | State |
 |---|---|---|
 | 1 | DiceService, engine core (seeded streams, citable rolls, DiceRollEvent + dice_rolls() channel) | BUILT, 30/0 (incl. xK multiplier), merged to main (584c3f5) |
-| 2 | rulebook.yaml engine meta-pack: 16 classes incl. Cited mixin, LookupTable/LookupEntry, typed Outcome subclasses, StepRoute; SPECIALIZES in core; dice xK multiplier; typed entity refs in the validator | BUILT, 34/0 (test_rulebook_pack verbatim-checks 28 ch1 instances against the vendored SRD; entity refs class-checked on the ops path) |
+| 2 | rulebook.yaml engine meta-pack: 31 classes incl. Cited mixin, explicit KnowledgeContexts, LookupTable/LookupEntry, typed Outcome subclasses, and StepRoute; SPECIALIZES in core; dice xK multiplier; typed entity refs in the validator | BUILT, 70/0 (test_rulebook_pack verbatim-checks ch1 instances against the vendored SRD; entity refs class-checked on the ops path) |
 | 3 | cepheus skills pack (Skill + is_cascade, cascades as nested SPECIALIZES; engine SkillRating; 68 instances come later via ops) | BUILT (test_skills_pack; citations verbatim vs the re-vendored fixed SRD) |
 | 4 | The verifier (schema / verbatim / value / semantic / invariant) + seed-file grammar ("as" binders, envelope) + the loader that doubles as step 6 | BUILT; semantic checks cover table and outcome structure plus procedure primitive and route contracts |
 | 4b | Typed table-result completeness: concrete lookup row shapes, required roll outcomes, NoEffect, ordered sequences and choices, semantic verifier | BUILT on codex/logovger-outcome-executor |
 | 5 | Extraction: careers, skills, ch1 constants -> KG-ops seed files | PARTIAL: skills, careers, and selected book-1 tables are production seeds |
 | 6 | Ops loader: seed files -> KG at game start | BUILT; now delegates to the reusable atomic KG-op batch |
 | 7a | Outcome executor | BUILT with exact dispatch, atomic KG and dice execution, typed choices, generic skill and currency state, typed pending table rolls, and game procedure signals |
-| 7b | Procedure runner (outcome-label routing) + thin game primitives | BUILT for the current slice: generic engine runner plus eight registered Logovger primitives; full-checklist primitives remain part of later absorption |
+| 7b | Procedure runner (outcome-label routing) + thin game primitives | BUILT for the current slice: generic engine runner plus nine registered Logovger primitives, including the Draft/Drifter decision; full-checklist primitives remain part of later absorption |
 | 7c | RollableTable runner | BUILT with complete preflight, one committed citable selection, and explicit separate outcome application |
-| 8 | Chargen session, playable screen (sheet + live personnel file + provenance), multi-career, refusal to Draft/Drifter, seven-term cap, LLM narration recorded as Narration entities | PLAYABLE END TO END, merged (6f775d7); mishap table, ageing and mustering-out benefits not yet absorbed |
-| 8-prev | Chargen session and rule-12 life timeline | BASIC SLICE BUILT on the seeded `basic_chargen` Procedure; skill training uses engine table selection followed explicitly by the engine outcome executor; broader checklist and referee integration remain |
+| 7d | LookupTable selector | BUILT with explicit finite or unbounded bounds, complete preflight shared by ingestion, and exact typed-row selection |
+| 7e | Rule origin and copy-on-write | BUILT: explicit source and runtime KnowledgeContexts, seed-stamped origin, sealed published content, creation-only lineage, and atomic rule forks |
+| 7f | Ontology-native rule language | DESIGN: context-owned graph predicates, pure expressions, explicit Outcome-plan actions, immutable registry-backed ontology reflection, hybrid expression typing, registry-complete value families, and automatic integer-to-float widening selected; initial operator vocabulary remains open |
+| 8 | Chargen session and playable screen | PLAYABLE END TO END: seeded `basic_chargen` Procedure, sheet, live personnel file with provenance, narration recorded as Narration entities, multi-career history, Draft/Drifter choice, and strict term cap; skill training uses rollable selection plus outcome execution, and qualification and survival use TaskCheckRunner; mishaps, ageing, mustering-out benefits, general contextual modifiers, and referee integration remain |
 
 Working agreements in force: decisions surfaced BEFORE building; gated
 merges only (conclusion checked in the same command); background tasks
@@ -510,7 +595,7 @@ _Reconciled 2026-08-09 against the decisions log; former items 3, 5, 6
 (rule-text selection, dev transport, instance loading) are decided
 above and removed here._
 
-1. Primitive names and route contracts beyond the current eight-step
+1. Primitive names and route contracts beyond the current nine-step
    `basic_chargen` slice. They surface for approval with each later
    checklist expansion, not as speculative engine vocabulary.
 2. Turn cadence and interruption model for the referee loop.
@@ -525,6 +610,7 @@ above and removed here._
 
 ## Pointers
 
+- Reusable ontology-native rule-language contract: docs/RULE_LANGUAGE.md
 - Absorption contract: examples/logovger/docs/ABSORPTION_INVENTORY.md
 - The mission and binding rules: examples/logovger/README.md, CLAUDE.md
 - Tracking issue: #48

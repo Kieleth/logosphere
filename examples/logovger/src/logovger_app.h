@@ -20,7 +20,6 @@
 
 #include "chargen/chargen.h"
 #include "narrator.h"
-#include "rules/characteristics.h"
 #include "sheet_screen.h"
 #include "chargen/procedure_catalog.h"
 #include "generated/rulebook_ontology_registry.h"
@@ -94,7 +93,7 @@ public:
                         SheetScreen::Tone::Bad);
         }
         screen_.say("The rulebook is in the graph: 24 careers, 48 throws, "
-                    "144 table rows, all cited.");
+                    "150 rollable-table rows, all cited.");
         screen_.say("Click any value on the sheet to see where the book "
                     "says it.");
         screen_.say("");
@@ -114,15 +113,15 @@ private:
                       std::vector<std::string> facts,
                       std::vector<uint64_t> rolls) {
         if (!narrator_.ready() || !session_) return;
-        // Hold the next decision until this beat has been told.
-        screen_.set_waiting(true);
-        waiting_since_ = 0.0f;
         Beat beat;
         beat.kind = kind;
         beat.term = term;
         beat.facts = std::move(facts);
         beat.roll_ids = std::move(rolls);
-        beat.sheet = character_for_narrator(session_->sheet());
+        if (!character_for_narrator(session_->sheet(), beat.sheet)) return;
+        // Hold the next decision until this beat has been told.
+        screen_.set_waiting(true);
+        waiting_since_ = 0.0f;
         const auto character = session_->sheet().id;
         const auto seed = seed_;
         narrator_.narrate(beat, seed,
@@ -148,7 +147,7 @@ private:
         if (!narrator_.ready() || !session_) return;
         Beat beat;
         beat.kind = "dossier";
-        beat.sheet = character_for_narrator(session_->sheet());
+        if (!character_for_narrator(session_->sheet(), beat.sheet)) return;
         const auto character = session_->sheet().id;
         narrator_.narrate(beat, seed_,
             [this, beat, character](const std::string& prose) {
@@ -194,7 +193,7 @@ private:
         for (const auto& e : session_->sheet().life)
             beat.facts.push_back("T" + std::to_string(e.term) + " " + e.what +
                                  (e.detail.empty() ? "" : ": " + e.detail));
-        beat.sheet = character_for_narrator(session_->sheet());
+        if (!character_for_narrator(session_->sheet(), beat.sheet)) return;
         const auto character = session_->sheet().id;
         screen_.set_assessment("... the file is being closed ...");
         narrator_.narrate(beat, seed_,
@@ -280,6 +279,7 @@ private:
     bool load_rules(kg::KGModule& kg, std::string& why) {
         const auto procedures = make_chargen_procedure_registry();
         const char* seeds[] = {
+            "seeds/cepheus_book1_tables.json",
             "seeds/cepheus_careers.json",
             "seeds/cepheus_basic_chargen_procedure.json"};
         for (const char* seed : seeds) {
@@ -416,37 +416,14 @@ private:
         return s;
     }
 
-    // What the narrator is told about the person. Spelled out, because
-    // "Dex 4" means nothing to a reader who does not know the scale:
-    // the modifier IS the book's own judgement of the number.
-    static std::string character_for_narrator(const logovger::CharacterSheet& s) {
-        auto rate = [](int v) {
-            const int dm = logovger::characteristic_dm(v);
-            if (dm <= -2) return "crippling";
-            if (dm == -1) return "poor";
-            if (dm == 0)  return "average";
-            if (dm == 1)  return "good";
-            return "exceptional";
-        };
-        std::ostringstream o;
-        o << "Str " << s.strength        << " (" << rate(s.strength) << "), "
-          << "Dex " << s.dexterity       << " (" << rate(s.dexterity) << "), "
-          << "End " << s.endurance       << " (" << rate(s.endurance) << "), "
-          << "Int " << s.intelligence    << " (" << rate(s.intelligence) << "), "
-          << "Edu " << s.education       << " (" << rate(s.education) << "), "
-          << "Soc " << s.social_standing << " (" << rate(s.social_standing) << ")"
-          << "\nUPP " << s.upp << ", age " << s.age_years
-          << ", " << s.terms_served << " term(s)";
-        if (!s.career.empty()) o << ", currently " << s.career;
-        if (!s.careers_served.empty()) {
-            o << "\nCareers so far:";
-            for (const auto& c : s.careers_served) o << " " << c;
+    bool character_for_narrator(const logovger::CharacterSheet& sheet,
+                                std::string& facts) {
+        std::string error;
+        if (format_character_facts(sheet, engine_->get_kg(), facts, error)) {
+            return true;
         }
-        if (!s.skills.empty()) {
-            o << "\nSkills:";
-            for (const auto& sk : s.skills) o << " " << sk;
-        }
-        return o.str();
+        screen_.say("NARRATOR SKIPPED: " + error, SheetScreen::Tone::Bad);
+        return false;
     }
 
     static std::string sheet_line(const CharacterSheet& s) {

@@ -30,6 +30,7 @@
 #include "logosphere/kg/kg_ops.h"
 
 #include <string>
+#include <unordered_set>
 
 namespace kg {
 
@@ -41,9 +42,22 @@ struct ValidationResult {
     std::string reason;   // human-readable; empty when ok
 };
 
+enum class MutationAuthority {
+    Runtime,
+    SeedIngestion,
+};
+
+struct ValidationOptions {
+    MutationAuthority authority = MutationAuthority::Runtime;
+    // A trusted seed may finish assembling entities it created in the same
+    // atomic batch. It may never rewrite sealed entities from an earlier load.
+    std::unordered_set<EntityID> constructing;
+};
+
 ValidationResult validate_kg_op(const KGOp& op,
                                 const KGModule& kg,
-                                const OntologyRegistry& ont);
+                                const OntologyRegistry& ont,
+                                const ValidationOptions& options = {});
 
 }  // namespace kg
 

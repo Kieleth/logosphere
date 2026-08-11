@@ -27,6 +27,7 @@
 
 #include "logosphere/events/event_bus.h"
 #include "logosphere/kg/kg_module.h"
+#include "logosphere/kg/kg_ops_transaction.h"
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/procedure_runner.h"
@@ -221,6 +222,19 @@ void test_envelope_parses() {
           "band_coverage alias stripped and range kept");
 }
 
+void test_unbounded_band_coverage_parses_explicit_null() {
+    const auto parsed = kg::parse_seed_envelope(
+        R"({"source":{"file":"f","commit":"c"},"layer":"x",
+             "invariants":{"band_coverage":{"@t":[0,null]}},"ops":[]})");
+    CHECK(parsed.ok(), "an explicit null upper coverage bound parses: " +
+                           parsed.error);
+    if (!parsed.ok()) return;
+    const auto& coverage = parsed.seed.invariants.band_coverage.front();
+    CHECK(coverage.lo.has_value() && *coverage.lo == 0 &&
+              !coverage.hi.has_value(),
+          "null means explicitly upper-unbounded, not a numeric default");
+}
+
 void test_envelope_parser_is_loud() {
     struct Case { const char* label; const char* json; };
     const Case cases[] = {
@@ -278,6 +292,49 @@ void test_loader_binds_and_resolves() {
     CHECK(world.getRelated(report.bindings.at("mishap_table"),
                            "HAS_PART").size() == 2,
           "the table owns its two rows through resolved relations");
+}
+
+void test_loader_materializes_seed_origin_contexts() {
+    kg::SeedEnvelope seed = parse_fixture();
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+
+    kg::SeedLoadReport report;
+    const bool ok = kg::load_seed(seed, world, report);
+    CHECK(ok, "a cited seed loads with engine-owned origin context: " +
+                  report.error);
+    if (!ok) return;
+
+    const auto layers = world.findByType("SourceLayerContext");
+    const auto documents = world.findByType("SourceDocumentContext");
+    CHECK(layers.size() == 1 && documents.size() == 1,
+          "one source layer and one exact source document become KG "
+          "entities");
+    if (layers.size() != 1 || documents.size() != 1) return;
+
+    CHECK(world.getProperty(layers[0], "source_layer") == seed.layer &&
+              world.getProperty(documents[0], "source_file") ==
+                  seed.source.file &&
+              world.getProperty(documents[0], "source_commit") ==
+                  seed.source.commit &&
+              world.getProperty(documents[0], "source_layer_context") ==
+                  std::to_string(layers[0]),
+          "context entities preserve the envelope layer, file, commit, and "
+          "parent layer");
+
+    const auto check = report.bindings.at("int_throw");
+    CHECK(world.getProperty(check, "origin_context") ==
+              std::to_string(documents[0]),
+          "a cited rule points to the exact source document context");
+
+    kg::KGOpBatchReport batch;
+    CHECK(!kg::apply_kg_ops_atomically(
+              {kg::KGOp{kg::KGOpSetProperty{{check, ""}, "target_number",
+                                             "99"}}},
+              world, batch) &&
+              batch.error.find("sealed origin") != std::string::npos &&
+              world.getProperty(check, "target_number") == "8",
+          "the validated runtime path cannot mutate a published rule");
 }
 
 void test_loader_failure_rolls_back_the_whole_seed() {
@@ -509,6 +566,26 @@ void test_loader_rejects_non_data_ops_atomically() {
     }
 }
 
+void test_seed_content_cannot_create_engine_owned_contexts() {
+    kg::SeedEnvelope seed = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"SourceLayerContext",
+            "as":"@forged_origin",
+            "properties":{"context_key":"source-layer:forged",
+                          "source_layer":"forged"}})");
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedLoadReport report;
+
+    CHECK(!kg::load_seed(seed, world, report),
+          "seed content cannot manufacture engine-owned origin contexts");
+    CHECK(report.error.find("seed-loader-owned") != std::string::npos,
+          "the rejection names the ownership boundary");
+    CHECK(world.findByType("SourceLayerContext").empty() &&
+              world.findByType("SourceDocumentContext").empty(),
+          "the rejected provenance forgery leaves no context entities");
+}
+
 // ------------------------------------------------- the positive path
 
 void test_positive_seed_verifies() {
@@ -534,8 +611,8 @@ void test_positive_seed_verifies() {
           "twelve numeric values checked - a row's band is proven by "
           "the row KEY it addresses, not by digits in its text");
     CHECK(report.bands_derived == 6, "six bands derived from quotes");
-    CHECK(report.semantics_checked == 12,
-          "twelve table and outcome structures checked");
+    CHECK(report.semantics_checked == 13,
+          "thirteen table, check, and outcome structures checked");
     CHECK(report.invariants_checked == 22,
           "twenty-two declared invariants checked");
 }
@@ -921,8 +998,8 @@ void test_value_must_equal_a_whole_number_token() {
     // 5 against a quote whose only numbers are 15 and 8: must fail.
     kg::SeedEnvelope wrong = mini_seed(
         "book1/character-creation.md",
-        R"({"op":"create_entity","type":"TaskCheck","as":"@t",
-            "properties":{"name":"bogus","target_number":5,
+        R"({"op":"create_entity","type":"RuleConstant","as":"@t",
+            "properties":{"name":"bogus","constant_value":5,
               "source_section":"Careers",
               "source_quote":"A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."}})");
     auto r_wrong = kg::verify_seed(wrong, kSourceRoot, engine_registry());
@@ -933,8 +1010,8 @@ void test_value_must_equal_a_whole_number_token() {
     // The same slot with a number the quote really prints: passes.
     kg::SeedEnvelope right = mini_seed(
         "book1/character-creation.md",
-        R"({"op":"create_entity","type":"TaskCheck","as":"@t",
-            "properties":{"name":"real","target_number":8,
+        R"({"op":"create_entity","type":"RuleConstant","as":"@t",
+            "properties":{"name":"real","constant_value":8,
               "source_section":"Careers",
               "source_quote":"A throw of Int 8+ means 'roll 2D6, add your Intelligence DM, and you succeed if you roll an 8 or more'."}})");
     auto r_right = kg::verify_seed(right, kSourceRoot, engine_registry());
@@ -1174,14 +1251,17 @@ int main() {
     std::cout << "Seed verifier (extracted rule data, engine verification)"
               << std::endl;
     test_envelope_parses();
+    test_unbounded_band_coverage_parses_explicit_null();
     test_envelope_parser_is_loud();
     test_loader_binds_and_resolves();
+    test_loader_materializes_seed_origin_contexts();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();
     test_loader_publishes_events_after_commit();
     test_duplicate_alias_binder_mutates_nothing();
     test_report_reuse_is_fresh();
     test_loader_rejects_non_data_ops_atomically();
+    test_seed_content_cannot_create_engine_owned_contexts();
     test_positive_seed_verifies();
     test_band_shapes_the_book_actually_prints();
     test_procedures_verify_against_registered_primitive_contracts();

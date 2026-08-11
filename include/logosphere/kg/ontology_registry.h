@@ -65,6 +65,9 @@ struct PropertyDef {
     std::string value_type;  // "string", "float", "integer", "boolean"
     bool required = false;
     bool identifier = false;
+    // Creation-time identity and lineage cannot be rewritten through the
+    // validated mutation path. A changed origin is a new entity, not a set.
+    bool create_only = false;
 
     // Optional range annotations from the schema. The validator
     // honours these when present; if has_min / has_max is false
@@ -372,8 +375,18 @@ public:
     void addProperty(const std::string& entity_type, const std::string& prop_name,
                      const std::string& value_type, bool required) {
         add_property(entity_type,
-                     {prop_name, value_type, required, false, false, false,
+                     {prop_name, value_type, required, false, false,
+                      false, false,
                       0.0, 0.0, "", active_source_});
+    }
+
+    void addProperty(const std::string& entity_type,
+                     const std::string& prop_name,
+                     const std::string& value_type, bool required,
+                     bool create_only) {
+        add_property(entity_type,
+                     {prop_name, value_type, required, false, create_only,
+                      false, false, 0.0, 0.0, "", active_source_});
     }
 
     // Overload with optional range annotations. Pass any combination
@@ -382,9 +395,10 @@ public:
     void addProperty(const std::string& entity_type, const std::string& prop_name,
                      const std::string& value_type, bool required,
                      bool has_min, double min_value,
-                     bool has_max, double max_value) {
+                     bool has_max, double max_value,
+                     bool create_only = false) {
         add_property(entity_type,
-                     {prop_name, value_type, required, false,
+                     {prop_name, value_type, required, false, create_only,
                       has_min, has_max,
                       min_value, max_value, "", active_source_});
     }
@@ -394,7 +408,8 @@ public:
                                const std::string& value_type,
                                bool required) {
         add_property(entity_type,
-                     {prop_name, value_type, required, true, false, false,
+                     {prop_name, value_type, required, true, false,
+                      false, false,
                       0.0, 0.0, "", active_source_});
     }
 
@@ -402,9 +417,11 @@ public:
     // the value is an entity id whose type must be, or be a subtype
     // of, target_class. Generated code uses this for class ranges.
     void addRefProperty(const std::string& entity_type, const std::string& prop_name,
-                        bool required, const std::string& target_class) {
+                        bool required, const std::string& target_class,
+                        bool create_only = false) {
         PropertyDef def{prop_name, "entity_ref", required,
-                        false, false, false, 0.0, 0.0, target_class,
+                        false, create_only, false, false, 0.0, 0.0,
+                        target_class,
                         active_source_};
         add_property(entity_type, std::move(def));
     }
@@ -442,7 +459,9 @@ private:
     static bool same_property(const PropertyDef& a, const PropertyDef& b) {
         return a.name == b.name && a.value_type == b.value_type &&
                a.required == b.required &&
-               a.identifier == b.identifier && a.has_min == b.has_min &&
+               a.identifier == b.identifier &&
+               a.create_only == b.create_only &&
+               a.has_min == b.has_min &&
                a.has_max == b.has_max && a.min_value == b.min_value &&
                a.max_value == b.max_value && a.ref_target == b.ref_target;
     }
