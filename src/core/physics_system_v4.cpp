@@ -185,6 +185,18 @@ static EnergyBuckets measure_energy(
     return e;
 }
 
+// PER-ROW-TYPE ENERGY ATTRIBUTION. Applying impulse J along the jacobian to a
+// pair changes their kinetic energy by exactly
+//     dKE = J * v_rel + J^2 / (2 * m_eff)
+// (expand 1/2 m (v+J/m)^2 for both bodies; the cross terms give J*v_rel and
+// the squares give J^2/2 * (1/ma + 1/mb) = J^2/(2*m_eff)). Both quantities are
+// already in scope where the impulse is applied, so this costs two multiplies
+// per row and tells us WHICH KIND of constraint is pumping — the same split
+// that turned d_integrate into d_positions and d_turtle and named the turtle
+// in one run.
+struct RowEnergy { double contact = 0.0, turtle = 0.0, gluon = 0.0; };
+static RowEnergy g_row_energy;
+
 static bool energy_ledger_on() {
     static const bool v = std::getenv("ENERGY_LEDGER") != nullptr;
     return v;
@@ -326,7 +338,8 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
         const bool ledger = energy_ledger_on();
-        if (ledger) e_before = measure_energy(particles, gluon_constraints_v2_);
+        if (ledger) { e_before = measure_energy(particles, gluon_constraints_v2_);
+                      g_row_energy = RowEnergy{}; }
 
         {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsForces);
@@ -400,7 +413,10 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                           << " d_angular=" << d_ang
                           << " d_positions=" << d_pos
                           << " d_turtle=" << d_turtle
-                          << " d_TOTAL=" << d_all
+                          << " | rows: contact=" << g_row_energy.contact
+                          << " turtleRow=" << g_row_energy.turtle
+                          << " gluon=" << g_row_energy.gluon
+                          << " | d_TOTAL=" << d_all
                           << (d_all > 1.0 ? "   *** ENERGY CREATED ***" : "")
                           << std::endl;
             }
@@ -2688,6 +2704,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             float inv_mb = c.is_turtle_contact ? 0.0f :
                            ((pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pb.GetMass()));
 
+            if (energy_ledger_on() && c.effective_mass > 0.0f) {
+                const double dke = double(impulse) * double(v_rel)
+                                 + double(impulse) * double(impulse)
+                                   / (2.0 * double(c.effective_mass));
+                if (c.is_turtle_contact)   g_row_energy.turtle  += dke;
+                else if (c.is_contact)     g_row_energy.contact += dke;
+                else                       g_row_energy.gluon   += dke;
+            }
+
             pa.vx += c.jx * impulse * inv_ma;
             pa.vy += c.jy * impulse * inv_ma;
             pa.vz += c.jz * impulse * inv_ma;
@@ -3160,6 +3185,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             for (Constraint& c : constraints) {
                 if (c.is_turtle_contact) continue;
                 if (c.bias == 0.0f) continue;
+                // A CORRECTION WITH NO TOLERANCE NEVER TERMINATES.
+                //
+                // This pass corrected ANY non-zero position error, which
+                // sounds rigorous and is the bug: below a certain size the
+                // "error" is not geometry, it is the last bits of a float. It
+                // then lifts the body a few hundred nanometres, recomputes a
+                // very slightly smaller error, and lifts again — converging
+                // toward zero asymptotically and never arriving.
+                //
+                // Measured on test_settling_wiggle, a scene AT REST with zero
+                // kinetic energy and no constraint row firing: the pass fired
+                // 1955 times, moving the same body 290 nm every substep, while
+                // potential energy climbed 29424.7 -> 29424.9. Each lift is
+                // real work against gravity that nothing pays for. That is the
+                // Baumgarte ratchet I removed from velocity this morning,
+                // reinstalled in position by me.
+                //
+                // SLOP is the engine's existing statement that this much
+                // geometric error is not real — contact rows have always used
+                // it, and the turtle boundary got it this afternoon for the
+                // identical defect. Third place that needed the same number.
+                const float bias_as_error = std::fabs(c.bias) * dt;
+                if (bias_as_error < PhysicsV4::SLOP) continue;
                 // Speculative approach limits stayed in the velocity solve;
                 // they are not geometry to repair. Skipping them explicitly
                 // rather than relying on the unilateral clamp to zero them.
