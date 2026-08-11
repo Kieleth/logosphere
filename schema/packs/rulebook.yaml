@@ -161,8 +161,11 @@ classes:
       from the named attribute, succeed on target or more. The book's
       "Int 8+". The attribute is a reference resolved against the
       target class's declared slots, never a bare label the graph
-      cannot check, and it is OPTIONAL: Cepheus prints re-enlistment
-      as a bare "6+", a throw no characteristic modifies. modifier_table names the typed lookup that maps the
+      cannot check. The attribute and its modifier lookup are OPTIONAL
+      and travel together: Cepheus prints re-enlistment as a bare
+      "6+", a throw no characteristic modifies, and a throw with no
+      characteristic has no modifier table to consult either. What a
+      throw cannot do without is dice and a target. modifier_table names the typed lookup that maps the
       current attribute value to a row; modifier_property names the integer
       result column on that table's declared entry type. The runner resolves
       both through the ontology before rolling.
@@ -678,7 +681,9 @@ classes:
     description: >-
       Receive one or more of a named possession. The count is fixed or
       rolled, because the material benefits tables print both "Weapon"
-      and "1D6 Ship Shares".
+      and "1D6 Ship Shares". An ABSENT count means one: the book
+      writes a bare name for a single item, and writing an explicit 1
+      would assert a number the source never printed.
     annotations:
       facets: rulebook
     slot_usage:
@@ -858,13 +863,13 @@ slots:
     description: Succeed on this or more.
   modifier_table:
     range: LookupTable
-    required: true
     description: >-
       Typed lookup table that maps the TaskCheck target's named attribute
-      value to the row containing its modifier.
+      value to the row containing its modifier. Optional, and only
+      meaningful alongside an attribute: a throw the book prints as a
+      bare "6+" has no characteristic and therefore nothing to look up.
   modifier_property:
     range: string
-    required: true
     description: >-
       Required integer property on modifier_table's declared entry_type.
       The runner reads this column from the selected typed row.

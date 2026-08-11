@@ -258,11 +258,16 @@ void test_task_checks_declare_the_complete_mechanic() {
               attribute->value_type == "string",
           "TaskCheck's attribute is optional, for throws the book "
           "prints with no characteristic at all");
+    // The modifier lookup travels with the attribute: a throw with no
+    // characteristic has nothing to look up. Both optional, together.
+    const auto* lookup = reg.findProperty("TaskCheck", "modifier_table");
+    const auto* column = reg.findProperty("TaskCheck", "modifier_property");
+    CHECK(lookup && !lookup->required && column && !column->required,
+          "TaskCheck's modifier lookup is optional, like the attribute "
+          "it exists to modify");
     CHECK(required("target_number", "integer") &&
-              required("dice", "entity_ref") &&
-              required("modifier_table", "entity_ref") &&
-              required("modifier_property", "string"),
-          "TaskCheck requires its dice, modifier lookup, "
+              required("dice", "entity_ref"),
+          "TaskCheck requires its dice "
           "result column, and threshold");
     const auto* table = reg.findProperty("TaskCheck", "modifier_table");
     CHECK(table && table->ref_target == "LookupTable",

@@ -17,15 +17,16 @@
    "EnterCareer": 6
   },
   "unique_name_per_type": [
-   "Career",
-   "TaskCheck",
-   "RollableTable",
-   "TableEntry",
    "AdvanceSkill",
+   "Career",
    "CharacteristicModifierEntry",
+   "DiceExpression",
+   "EnterCareer",
    "LookupTable",
+   "RollableTable",
    "RuleConstant",
-   "EnterCareer"
+   "TableEntry",
+   "TaskCheck"
   ],
   "band_coverage": {
    "@aerospace_defense_svc": [
@@ -173,20 +174,6 @@
     "source_section": "Careers",
     "source_kind": "sentence",
     "source_quote": "Most of these throws are characteristic throws \u2013 roll 2D6, add the DM from the listed characteristic, and try to get a total higher than the listed value."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "DiceExpression",
-   "as": "@d1d6",
-   "properties": {
-    "name": "1D6",
-    "dice_count": "1",
-    "dice_sides": "6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Skills and Training",
-    "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
    }
   },
   {
@@ -548,7 +535,7 @@
    "as": "@aerospace_defense_svc",
    "properties": {
     "name": "Aerospace Defense Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -858,7 +845,7 @@
    "as": "@agent_svc",
    "properties": {
     "name": "Agent Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -1168,7 +1155,7 @@
    "as": "@athlete_svc",
    "properties": {
     "name": "Athlete Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -1478,7 +1465,7 @@
    "as": "@barbarian_svc",
    "properties": {
     "name": "Barbarian Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -1788,7 +1775,7 @@
    "as": "@belter_svc",
    "properties": {
     "name": "Belter Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -2098,7 +2085,7 @@
    "as": "@bureaucrat_svc",
    "properties": {
     "name": "Bureaucrat Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -2408,7 +2395,7 @@
    "as": "@colonist_svc",
    "properties": {
     "name": "Colonist Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -2718,7 +2705,7 @@
    "as": "@diplomat_svc",
    "properties": {
     "name": "Diplomat Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -3028,7 +3015,7 @@
    "as": "@drifter_svc",
    "properties": {
     "name": "Drifter Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -3338,7 +3325,7 @@
    "as": "@entertainer_svc",
    "properties": {
     "name": "Entertainer Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -3648,7 +3635,7 @@
    "as": "@hunter_svc",
    "properties": {
     "name": "Hunter Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -3958,7 +3945,7 @@
    "as": "@marine_svc",
    "properties": {
     "name": "Marine Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -4268,7 +4255,7 @@
    "as": "@maritime_defense_svc",
    "properties": {
     "name": "Maritime Defense Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -4578,7 +4565,7 @@
    "as": "@mercenary_svc",
    "properties": {
     "name": "Mercenary Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -4888,7 +4875,7 @@
    "as": "@merchant_svc",
    "properties": {
     "name": "Merchant Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -5198,7 +5185,7 @@
    "as": "@navy_svc",
    "properties": {
     "name": "Navy Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -5508,7 +5495,7 @@
    "as": "@noble_svc",
    "properties": {
     "name": "Noble Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -5818,7 +5805,7 @@
    "as": "@physician_svc",
    "properties": {
     "name": "Physician Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -6128,7 +6115,7 @@
    "as": "@pirate_svc",
    "properties": {
     "name": "Pirate Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -6438,7 +6425,7 @@
    "as": "@rogue_svc",
    "properties": {
     "name": "Rogue Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -6748,7 +6735,7 @@
    "as": "@scientist_svc",
    "properties": {
     "name": "Scientist Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7058,7 +7045,7 @@
    "as": "@scout_svc",
    "properties": {
     "name": "Scout Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7368,7 +7355,7 @@
    "as": "@surface_defense_svc",
    "properties": {
     "name": "Surface Defense Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7678,7 +7665,7 @@
    "as": "@technician_svc",
    "properties": {
     "name": "Technician Service Skills",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7948,7 +7935,7 @@
    "as": "@draft_table",
    "properties": {
     "name": "Draft Career",
-    "dice": "@d1d6",
+    "dice": "@@DiceExpression:1D6",
     "source_file": "book1/character-creation.md",
     "source_section": "Qualifying and the Draft",
     "source_kind": "table",

@@ -1421,7 +1421,7 @@ struct LookupTable : public Entity, public Cited {
 };
 
 
-/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check, and it is OPTIONAL: Cepheus prints re-enlistment as a bare "6+", a throw no characteristic modifies. modifier_table names the typed lookup that maps the current attribute value to a row; modifier_property names the integer result column on that table's declared entry type. The runner resolves both through the ontology before rolling.
+/// A throw against a target: roll the dice, add the DM derived from the named attribute, succeed on target or more. The book's "Int 8+". The attribute is a reference resolved against the target class's declared slots, never a bare label the graph cannot check. The attribute and its modifier lookup are OPTIONAL and travel together: Cepheus prints re-enlistment as a bare "6+", a throw no characteristic modifies, and a throw with no characteristic has no modifier table to consult either. What a throw cannot do without is dice and a target. modifier_table names the typed lookup that maps the current attribute value to a row; modifier_property names the integer result column on that table's declared entry type. The runner resolves both through the ontology before rolling.
 struct TaskCheck : public Entity, public Cited {
     /// Reference to an attribute: the name of a declared slot on the class the rule applies to (e.g. a characteristic score slot on the game's Character). Resolved and rejected-if-unresolvable by the ingestion verifier; never a free label.
     std::optional<std::string> attribute_ref = std::nullopt;
@@ -1429,10 +1429,10 @@ struct TaskCheck : public Entity, public Cited {
     int32_t target_number = {};
     /// The dice this check or table is rolled with.
     DiceExpression dice = {};
-    /// Typed lookup table that maps the TaskCheck target's named attribute value to the row containing its modifier.
-    LookupTable modifier_table = {};
+    /// Typed lookup table that maps the TaskCheck target's named attribute value to the row containing its modifier. Optional, and only meaningful alongside an attribute: a throw the book prints as a bare "6+" has no characteristic and therefore nothing to look up.
+    std::optional<LookupTable> modifier_table = std::nullopt;
     /// Required integer property on modifier_table's declared entry_type. The runner reads this column from the selected typed row.
-    std::string modifier_property = {};
+    std::optional<std::string> modifier_property = std::nullopt;
 };
 
 
@@ -1659,7 +1659,7 @@ struct Possession : public Entity, public Cited {
 };
 
 
-/// Receive one or more of a named possession. The count is fixed or rolled, because the material benefits tables print both "Weapon" and "1D6 Ship Shares".
+/// Receive one or more of a named possession. The count is fixed or rolled, because the material benefits tables print both "Weapon" and "1D6 Ship Shares". An ABSENT count means one: the book writes a bare name for a single item, and writing an explicit 1 would assert a number the source never printed.
 struct GainPossession : public Outcome {
     /// The Possession gained or held.
     Entity possession = {};

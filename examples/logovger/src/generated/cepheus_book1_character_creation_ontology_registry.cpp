@@ -520,8 +520,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("TaskCheck", "attribute_ref", "string", false);
     reg.addProperty("TaskCheck", "target_number", "integer", true);
     reg.addRefProperty("TaskCheck", "dice", true, "DiceExpression");
-    reg.addRefProperty("TaskCheck", "modifier_table", true, "LookupTable");
-    reg.addProperty("TaskCheck", "modifier_property", "string", true);
+    reg.addRefProperty("TaskCheck", "modifier_table", false, "LookupTable");
+    reg.addProperty("TaskCheck", "modifier_property", "string", false);
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Temporal", "created_at", "datetime", false);
     reg.addProperty("Temporal", "updated_at", "datetime", false);

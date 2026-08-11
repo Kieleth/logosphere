@@ -739,6 +739,24 @@ struct Checker {
         ++report.semantics_checked;
         const std::string table_value =
             world.getProperty(check, "modifier_table");
+        const std::string attribute =
+            world.getProperty(check, "attribute_ref");
+        // A throw the book prints as a bare "6+" has no characteristic
+        // and therefore nothing to look up. The attribute and its
+        // modifier table travel together: neither, or both.
+        if (table_value.empty() && attribute.empty()) return;
+        if (table_value.empty() || attribute.empty()) {
+            semantic_violation(
+                check, load,
+                "TaskCheck has " +
+                    std::string(attribute.empty() ? "a modifier_table but "
+                                                    "no attribute_ref"
+                                                  : "an attribute_ref but "
+                                                    "no modifier_table") +
+                    ": a throw is modified by a characteristic through a "
+                    "lookup, or by neither");
+            return;
+        }
         EntityID table = INVALID_ENTITY;
         try {
             size_t end = 0;
