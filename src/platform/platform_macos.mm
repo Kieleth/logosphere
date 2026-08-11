@@ -32,42 +32,81 @@ std::unique_ptr<IPlatformSystem> create_platform_system() {
 
 PlatformMacOS::PlatformMacOS() {
     instance_ = this;
-    
-    // Set GLFW error callback
+
+    // The error callback is the one GLFW entry point documented as
+    // legal before glfwInit(), so it can be armed here.
     glfwSetErrorCallback(error_callback);
-    
-    // Initialize GLFW
+
+    // NOTHING ELSE. glfwInit() is deliberately NOT called here.
+    //
+    // On Cocoa, glfwInit() ends in:
+    //
+    //     if (![[NSRunningApplication currentApplication] isFinishedLaunching])
+    //         [NSApp run];
+    //
+    // which makes this process a full NSApplication and blocks the
+    // calling thread until the window server answers the launch
+    // handshake. That handshake is a per-user, session-global
+    // resource: it is serialized across every process asking at once.
+    // Measured on an M4 Max, 16 cores: 63 ms for one process, 550 ms
+    // when 32 ask together, and under `ctest -j 8` some process
+    // periodically never gets its applicationDidFinishLaunching: at
+    // all and sits in mach_msg forever. That is what made the test
+    // suite deadlock-prone in parallel while every test passed alone.
+    //
+    // A headless engine has no window, so it has no business becoming
+    // a GUI application. GLFW now comes up in create_window() and
+    // nowhere else, which is the only place that genuinely needs it.
+    // Guarded by tests/test_headless_no_window_server.cpp.
+}
+
+bool PlatformMacOS::ensure_glfw() {
+    if (glfw_ready_) return true;
+
     if (!glfwInit()) {
         std::cerr << "PlatformMacOS: Failed to initialize GLFW" << std::endl;
-        return;
+        return false;
     }
-    
+    glfw_ready_ = true;
+
     // CRITICAL: NO OpenGL - we use Metal directly
     // GLFW is only for window management and input
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // Start hidden
 
     std::cout << "[PLATFORM] GLFW initialized with NO_API (Metal-only)" << std::endl;
+    return true;
 }
 
 PlatformMacOS::~PlatformMacOS() {
     destroy_window();
-    glfwTerminate();
-    
+    // Only tear down what was brought up. glfwTerminate() on a
+    // never-initialized GLFW raises GLFW_NOT_INITIALIZED through the
+    // error callback, which is noise on every headless shutdown.
+    if (glfw_ready_) {
+        glfwTerminate();
+        glfw_ready_ = false;
+    }
+
     if (instance_ == this) {
         instance_ = nullptr;
     }
 }
 
 bool PlatformMacOS::create_window(const WindowConfig& config) {
-    std::cout << "[PLATFORM] create_window called with size " << config.width << "x" << config.height 
+    std::cout << "[PLATFORM] create_window called with size " << config.width << "x" << config.height
               << " title: " << config.title << std::endl;
-    
+
     if (window_) {
         std::cerr << "[PLATFORM] ERROR: Window already exists" << std::endl;
         return false;
     }
-    
+
+    // The one place that needs a window server connection.
+    if (!ensure_glfw()) {
+        return false;
+    }
+
     // Set window hints
     glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
     
@@ -233,11 +272,16 @@ void PlatformMacOS::set_should_close(bool should_close) {
     }
 }
 
+// Engine::update() calls poll_events() unconditionally, headless
+// included. With no window there is no event queue to pump, and
+// calling into GLFW before init only raises GLFW_NOT_INITIALIZED.
 void PlatformMacOS::poll_events() {
+    if (!glfw_ready_) return;
     glfwPollEvents();
 }
 
 void PlatformMacOS::wait_events() {
+    if (!glfw_ready_) return;
     glfwWaitEvents();
 }
 
@@ -278,15 +322,19 @@ DisplayInfo PlatformMacOS::get_display_info() const {
     info.dpi_scale_x = dpi_scale_x_;
     info.dpi_scale_y = dpi_scale_y_;
     
-    // Get refresh rate from primary monitor
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    if (monitor) {
-        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        if (mode) {
-            info.refresh_rate = static_cast<float>(mode->refreshRate);
+    // Get refresh rate from primary monitor. Only meaningful once a
+    // window exists; asking GLFW before init would raise
+    // GLFW_NOT_INITIALIZED and return the same default anyway.
+    if (glfw_ready_) {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        if (monitor) {
+            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+            if (mode) {
+                info.refresh_rate = static_cast<float>(mode->refreshRate);
+            }
         }
     }
-    
+
     return info;
 }
 
@@ -807,7 +855,11 @@ void PlatformMacOS::force_drawable_resize(int width, int height) {
 }
 
 double PlatformMacOS::get_time() const {
-    return glfwGetTime();
+    // Monotonic seconds since this platform was created, which is what
+    // glfwGetTime() reported (seconds since glfwInit). Reading a clock
+    // must not be a reason to start a GUI application.
+    return std::chrono::duration<double>(
+               std::chrono::steady_clock::now() - created_at_).count();
 }
 
 void PlatformMacOS::set_swap_interval(int interval) {

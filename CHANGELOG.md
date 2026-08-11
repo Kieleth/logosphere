@@ -140,6 +140,22 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   knowledge of game action vocabulary.
 
 ### Fixed
+- **A headless engine no longer starts a GUI application, which made the
+  test suite deadlock under `ctest -j`.** `PlatformMacOS` called
+  `glfwInit()` from its constructor, so `create_display = false` still
+  ran GLFW's Cocoa path, which ends in `[NSApp run]` and blocks on the
+  window server's launch handshake. That handshake is session-global and
+  serialized across processes: measured 63 ms for one process on an M4
+  Max and 550 ms with 32 asking at once, and under load some process
+  never received `applicationDidFinishLaunching:` and sat in `mach_msg`
+  forever. Every test passed alone; the suite hung on a different test
+  each parallel run. GLFW now comes up in `create_window()` and nowhere
+  else. `IPlatformSystem::get_time()` is monotonic seconds since the
+  platform was created (it was `glfwGetTime()`, same semantics) so that
+  reading a clock no longer forces a window server connection. On this
+  machine `ctest -j 8` went from intermittent 120 s timeouts to 12 s,
+  five runs green, and three concurrent `ctest -j 8` invocations against
+  one build directory now finish in 15 s.
 - **GOAP: a target at the world origin was mistaken for "no target"**
   (#44). Routing used `food_x != 0` per axis as a presence test, so a
   goal at the origin was silently swapped for the smell target, and a

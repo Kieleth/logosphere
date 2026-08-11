@@ -541,6 +541,11 @@ endfunction()
 
 if(LOGOSPHERE_FULL)
     add_engine_at(test_engine_headless_render)
+    # Parallel-safety guard: a headless Engine must never call
+    # glfwInit(), because on Cocoa that runs [NSApp run] and blocks on
+    # the session-global window-server launch handshake. That is what
+    # made `ctest -j 8` deadlock on a different test each run.
+    add_engine_at(test_headless_no_window_server)
     add_engine_at(test_trail_fade_render)
     add_engine_at(test_celestial_moon)   # moon factory preset (pure config)
     add_engine_at(test_strata_earth_impact)  # earth preset + boulder crater contract
