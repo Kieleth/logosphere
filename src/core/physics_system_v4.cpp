@@ -3207,8 +3207,35 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // has crossed rest and the memory is now driving the next
             // swing — bleed it fast instead of carrying it through.
             const float DECAY_REVERSED = 0.55f;
-            const float cap = gluon->calculate_breaking_force(
-                particles[gluon->particle_a], particles[gluon->particle_b]) * dt;
+            // THE INTEGRAL'S AUTHORITY IS A MOMENTUM, NOT A FORCE.
+            //
+            // This cap used to be breaking_force * dt, which is a property of
+            // how hard the bond is to SNAP and says nothing about what the
+            // bodies it joins can absorb. On a 2 g grass blade that is roughly
+            // 8 kN·s of stored impulse against 0.00238 kg of body: applying a
+            // fraction of it launches the blade. Measured consequence, 3-body
+            // chain at 15x mass ratio: a 1.2 m/s push came back as 7.4 m/s,
+            // and 4 of 7 ratios either grew without bound or tore.
+            //
+            // An accumulated impulse is momentum. Bound it by the momentum the
+            // LIGHTER endpoint can carry at the same speed the engine already
+            // says a constraint may drive a correction. Then the integral can
+            // never impart more than that speed to the body least able to take
+            // it, whatever the bond's breaking force happens to be.
+            //
+            //   2 g blade   -> 0.0095 N·s, at most 4 m/s imparted
+            //   5 kg arm    -> 20 N·s, ample authority for a driven joint
+            //
+            // One law, scaling with mass. No mass-ratio branch: the charter
+            // rejects those, and this does not need one — the physics of
+            // momentum already carries the scaling.
+            const Particle& cap_a = particles[gluon->particle_a];
+            const Particle& cap_b = particles[gluon->particle_b];
+            const float m_a = cap_a.GetMass(), m_b = cap_b.GetMass();
+            const float m_light = (m_a > 0.0f && m_b > 0.0f)
+                                    ? std::fmin(m_a, m_b)
+                                    : std::fmax(m_a, m_b);
+            const float cap = m_light * PhysicsV4::GLUON_MAX_BIAS_VELOCITY;
             auto upd = [&](float warm_old, size_t row_idx, float acc) {
                 const Constraint& rc = constraints[row_idx];
                 // Under split impulse the row's accumulator is already pure
