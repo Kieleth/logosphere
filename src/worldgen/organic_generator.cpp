@@ -380,14 +380,34 @@ std::vector<Particle> OrganicGenerator::generate_trunk(float world_x, float worl
         float seg_center_y = world_y + seg_dir_y * trunk_height * t_mid;
         float seg_center_z = world_z + seg_dir_z * trunk_height * t_mid;
 
+        // THE OVERLAP GROWS UPWARD, NOT AROUND.
+        //
+        // thickness is segment_length * 1.1 ("slight overlap") so neighbouring
+        // segments merge instead of showing a seam. But a BOX extends about
+        // its centre, so half of that extra 10% hung BELOW the segment — and
+        // for the bottom segment, below the world floor.
+        //
+        // Caught by the turtle guard, and the arithmetic named it outright:
+        // every violating blade had z / thickness = 0.4545 to five figures,
+        // across different sizes and seeds, and 0.5 / 0.4545 = 1.1 exactly.
+        // Identical ratios across independent blades can only be a fixed
+        // multiplier, never a jitter or an accumulation, which pointed at a
+        // single literal.
+        //
+        // Shifting the centre up its OWN axis by half the extra keeps the
+        // underside exactly where placement put it and puts all the overlap
+        // at the seam above, which is what "slight overlap" meant.
+        const float seg_overlap = segment_length * 0.1f;
+        const float seg_shift   = seg_overlap * 0.5f;
+
         Particle trunk_seg;
-        trunk_seg.x = seg_center_x;
-        trunk_seg.y = seg_center_y;
-        trunk_seg.z = seg_center_z;
+        trunk_seg.x = seg_center_x + seg_dir_x * seg_shift;
+        trunk_seg.y = seg_center_y + seg_dir_y * seg_shift;
+        trunk_seg.z = seg_center_z + seg_dir_z * seg_shift;
         trunk_seg.shape = ParticleShape::BOX;
         trunk_seg.width = diameter_at_segment;
         trunk_seg.height = diameter_at_segment;
-        trunk_seg.thickness = segment_length * 1.1f;  // Slight overlap
+        trunk_seg.thickness = segment_length + seg_overlap;  // overlap, added above
         trunk_seg.material_strength = spec.material_strength;
 
         // Rotate to match segment direction
