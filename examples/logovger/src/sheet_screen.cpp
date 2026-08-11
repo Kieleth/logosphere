@@ -527,7 +527,12 @@ void SheetScreen::show(kg::KGModule& kg, const ChargenSession& session) {
         const auto name = kg.getProperty(skill, "name");
         if (name.empty()) continue;
         const auto level = kg.getProperty(part, "skill_level");
-        skill_rows.push_back({name, name, "-" + (level.empty() ? "1" : level)});
+        // "Admin-1" is how the book writes a skill and its level: one
+        // token. Splitting it across the two columns left a bare "-1"
+        // sitting in the second, which reads as a minus sign rather
+        // than as part of the name.
+        skill_rows.push_back(
+            {name, name + "-" + (level.empty() ? "0" : level), ""});
     }
     // What they own sits with what they know: both are things the
     // character walks around with. A holding carries no key, so
