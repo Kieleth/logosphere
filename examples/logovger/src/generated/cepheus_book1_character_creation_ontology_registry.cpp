@@ -21,6 +21,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("BodyPart", "WorldEntity", true);
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addEntityType("Career", "Entity", false);
+    reg.addEntityType("CareerThrowEntry", "SubjectLookupEntry", false);
     reg.addEntityType("Character", "LivingEntity", false);
     reg.addEntityType("CharacteristicModifierEntry", "LookupEntry", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -104,6 +105,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("StepRoute", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Structure", "WorldEntity", true);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("SubjectLookupEntry", "Entity", true);
+    reg.addEntityType("SubjectLookupTable", "Entity", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("SystemEntity", "Entity", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("TableEntry", "Entity", false);
@@ -133,6 +138,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("BodyPart", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addAncestors("Career", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("CareerThrowEntry", {"Cited", "Describable", "Entity", "Identifiable", "SubjectLookupEntry", "Temporal"});
     reg.addAncestors("Character", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("CharacteristicModifierEntry", {"Cited", "Describable", "Entity", "Identifiable", "LookupEntry", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -216,6 +222,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("StepRoute", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Structure", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("SubjectLookupEntry", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("SubjectLookupTable", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("SystemEntity", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("TableEntry", {"Cited", "Describable", "Entity", "Identifiable", "Temporal"});
@@ -236,6 +246,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("AdvanceSkill", {"rulebook"});
     reg.addFacets("AttributeGroup", {"rulebook"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addFacets("CareerThrowEntry", {"rulebook"});
     reg.addFacets("CharacteristicModifierEntry", {"rulebook"});
     reg.addFacets("Currency", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -276,6 +287,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("StepRoute", {"rulebook"});
+    reg.addFacets("SubjectLookupEntry", {"rulebook"});
+    reg.addFacets("SubjectLookupTable", {"rulebook"});
     reg.addFacets("TableEntry", {"rulebook"});
     reg.addFacets("TaskCheck", {"rulebook"});
 
@@ -327,6 +340,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addRefProperty("Career", "qualification_check", false, "TaskCheck");
     reg.addRefProperty("Career", "survival_check", false, "TaskCheck");
+    reg.addRefProperty("CareerThrowEntry", "throw_check", true, "TaskCheck");
     reg.addProperty("Character", "dexterity", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "endurance", "integer", false, true, 0.0, true, 33.0);
     reg.addProperty("Character", "intelligence", "integer", false, true, 0.0, true, 33.0);
@@ -480,6 +494,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("PossessionHolding", "possession_count", "integer", true);
     reg.addProperty("ProcedureStep", "step_index", "integer", true, true, 0.0, false, 0.0);
     reg.addProperty("ProcedureStep", "primitive_ref", "string", true);
+    reg.addRefProperty("ProcedureStep", "subject_table", false, "SubjectLookupTable");
     reg.addRefProperty("ProgressionStanding", "track", true, "Entity");
     reg.addProperty("ProgressionStanding", "standing_index", "integer", true, true, 0.0, false, 0.0);
     reg.addProperty("ProgressionStep", "step_index", "integer", true, true, 0.0, false, 0.0);
@@ -514,6 +529,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("StepRoute", "route_label", "string", true);
     reg.addRefProperty("StepRoute", "next_step", true, "ProcedureStep");
+    reg.addRefProperty("SubjectLookupEntry", "subject", true, "Entity");
     reg.addProperty("TableEntry", "roll_min", "integer", true);
     reg.addProperty("TableEntry", "roll_max", "integer", true);
     reg.addRefProperty("TableEntry", "outcome", true, "Outcome");

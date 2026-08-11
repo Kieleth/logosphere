@@ -1449,6 +1449,20 @@ struct LookupEntry : public Entity, public Cited {
 };
 
 
+/// A table whose row is chosen by WHICH subject the rule concerns, not by a die roll or a score. LookupTable answers "score 12 gives +2"; this answers "the Navy row". Rules that vary by career, class, species or faction all have this shape, which is why it lives here rather than in a game pack.
+/// The rule owns the table. A career does not carry a pointer to its re-enlistment throw; the re-enlistment RULE carries a table that maps each career to its throw. That direction matters: a seed may point at book content another seed created, but may never write onto it, and the careers are created before their throws.
+/// Rows hang off it by HAS_PART, each a SubjectLookupEntry subtype declared by the game with the result columns it needs.
+struct SubjectLookupTable : public Entity, public Cited {
+};
+
+
+/// Abstract base for one row of a SubjectLookupTable, keyed by the entity the row is about. A concrete game-declared subtype carries the result columns.
+struct SubjectLookupEntry : public Entity, public Cited {
+    /// The entity this row is about: the career, class or species whose values the row carries.
+    Entity subject = {};
+};
+
+
 /// The mechanical consequence a rule applies. Abstract: each kind of consequence is a concrete subclass with typed slots, and the executor pairs one registered handler per subclass; the handler performs the actual writes through the validated KG-ops path. Games add outcome kinds by declaring a subclass in their own pack and registering a handler. New subclasses obey the rule of two like everything else here.
 struct Outcome : public Entity, public Cited {
 };
@@ -1597,6 +1611,8 @@ struct ProcedureStep : public Entity, public Cited {
     int32_t step_index = {};
     /// Name of the code primitive this step invokes, resolved against the executor's primitive registry. The step never computes; the primitive does.
     std::string primitive_ref = {};
+    /// A table this step consults, keyed by the subject in play. Named here so the step reaches its data through the schema rather than by matching a name in code.
+    std::optional<SubjectLookupTable> subject_table = std::nullopt;
 };
 
 
@@ -1744,6 +1760,13 @@ struct CharacteristicModifierEntry : public LookupEntry {
     std::string pseudohex_max = {};
     /// Dice modifier returned for a score in this row.
     int32_t characteristic_modifier = {};
+};
+
+
+/// One row of a per-career throw table: which career, and the throw it makes [book1/character-creation.md "Career Tables"]. The Commission, Advancement and Re-enlistment rows of the career tables are exactly this, one table per rule.
+struct CareerThrowEntry : public SubjectLookupEntry {
+    /// The throw this row supplies for its career [book1/character-creation.md "Career Tables"].
+    TaskCheck throw_check = {};
 };
 
 

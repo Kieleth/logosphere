@@ -98,6 +98,24 @@ TABLE_CITATIONS = {
 # still carries the cell address. The careers seed established this,
 # and the value verifier enforces it: every number on an entity must
 # appear in the text that entity quotes.
+# Each per-career throw table belongs to the rule that consults it.
+RULE_CITATIONS = {
+    "commission": (
+        "Commission and Advancement",
+        "Within military careers, a Commission check represents an "
+        "opportunity to join the ranks of the commissioned officers."),
+    "advancement": (
+        "Commission and Advancement",
+        "Each career that has a commission check also has an "
+        "Advancement roll, representing your character's ability to "
+        "advance with the ranks of your chosen career's hierarchy."),
+    "reenlistment": (
+        "Reenlistment and Retirement",
+        "If continuation is desired, the character must make a "
+        "successful Reenlistment check as listed for their current "
+        "profession or service."),
+}
+
 SKILL_LEVEL_SECTION = "Character Creation Checklist"
 SKILL_LEVEL_QUOTE = (
     "If you gain a skill as a result and you do not already have levels "
@@ -368,6 +386,7 @@ def main():
 
         elif title == "Career":
             for row in table["rows"]:
+                row_label = row[0]
                 kind = CHECK_ROWS.get(row[0])
                 if kind not in ("commission", "advancement", "reenlistment"):
                     continue          # qualification and survival are seeded
@@ -399,6 +418,21 @@ def main():
                                 f"@{slug(career)}_{kind}", props)
                     counts["check"] += 1
 
+    # One table per rule, created before its rows reference it.
+    # A rule-owned table cites the rule that owns it. Addressing the
+    # Career table's Commission row instead is ambiguous by four: the
+    # chapter prints one Career table per block of six careers, and
+    # each has that row. The ROWS below carry the unambiguous cell
+    # addresses, column included.
+    for kind, (section, quote) in RULE_CITATIONS.items():
+        builder.ops.insert(0, {
+            "op": "create_entity", "type": "SubjectLookupTable",
+            "as": f"@{kind}_table",
+            "properties": dict(
+                name=f"{kind} throw by career",
+                source_file=CHAPTER, source_section=section,
+                source_kind="sentence", source_quote=quote)})
+
     # Possessions last, so only the ones actually referenced exist.
     for name, alias in sorted(builder.possessions.items()):
         builder.ops.insert(0, {
@@ -422,6 +456,7 @@ def main():
         "layer": "cepheus",
         "invariants": {"unique_name_per_type": ["RollableTable", "TaskCheck",
                                                 "ProgressionTrack",
+                                                "SubjectLookupTable",
                                                 "Possession"]},
         "ops": builder.ops,
     }

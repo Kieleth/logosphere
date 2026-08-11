@@ -97,6 +97,21 @@ classes:
       - pseudohex_max
       - characteristic_modifier
 
+  CareerThrowEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of a per-career throw table: which career, and the throw
+      it makes [book1/character-creation.md "Career Tables"]. The
+      Commission, Advancement and Re-enlistment rows of the career
+      tables are exactly this, one table per rule.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      throw_check:
+        required: true
+    slots:
+      - throw_check
+
   EndCareer:
     is_a: Outcome
     description: >-
@@ -216,6 +231,11 @@ slots:
     description: >-
       The throw to survive a term in it
       [book1/character-creation.md "Career Tables" Survival row].
+  throw_check:
+    range: TaskCheck
+    description: >-
+      The throw this row supplies for its career
+      [book1/character-creation.md "Career Tables"].
   pseudohex_min:
     range: string
     required: true

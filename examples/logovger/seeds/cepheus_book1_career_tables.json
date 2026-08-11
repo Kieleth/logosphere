@@ -9,6 +9,7 @@
    "RollableTable",
    "TaskCheck",
    "ProgressionTrack",
+   "SubjectLookupTable",
    "Possession"
   ]
  },
@@ -107,6 +108,42 @@
     "source_section": "Material Benefits",
     "source_kind": "sentence",
     "source_quote": "Material benefits may be characteristics alterations, passages or ship shares."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@reenlistment_table",
+   "properties": {
+    "name": "reenlistment throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "If continuation is desired, the character must make a successful Reenlistment check as listed for their current profession or service."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@advancement_table",
+   "properties": {
+    "name": "advancement throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Commission and Advancement",
+    "source_kind": "sentence",
+    "source_quote": "Each career that has a commission check also has an Advancement roll, representing your character's ability to advance with the ranks of your chosen career's hierarchy."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@commission_table",
+   "properties": {
+    "name": "commission throw by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Commission and Advancement",
+    "source_kind": "sentence",
+    "source_quote": "Within military careers, a Commission check represents an opportunity to join the ranks of the commissioned officers."
    }
   },
   {

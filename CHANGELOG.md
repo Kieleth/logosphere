@@ -8,6 +8,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Subject-keyed lookups** (`SubjectLookupTable`, `SubjectLookupEntry`).
+  `LookupTable` answers "score 12 gives +2"; this answers "the Navy row".
+  Rules that vary by career, class, species or faction all have that shape.
+  A `ProcedureStep` names the table it consults through a schema slot, so a
+  step reaches its data without matching a name in code.
 - **Progression, attribute groups and possessions in the rulebook meta-pack.**
   `ProgressionTrack` / `ProgressionStep` / `ProgressionStanding` model a ladder
   of standing within a profession and where a character stands on it;
