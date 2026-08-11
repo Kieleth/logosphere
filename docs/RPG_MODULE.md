@@ -555,6 +555,25 @@ extractor as money. Kept as money, because the cell is a cash result
 whose amount is zero and a benefit roll was spent to get it. That
 reasoning is in the tool, and any new disagreement still fails.
 
+## Absorb faithfully, tune later, and say which is which
+
+Some rules will be wrong for Voyager and are absorbed anyway. Aging is
+the first: decline from 34, with a 58% chance of permanent loss per
+term by age 46, is a 1977 assumption rather than a fact about a
+setting with jump drives.
+
+Absorbing it faithfully is still right. The Cepheus layer is a true
+reading of the book, and a layer that quietly "improved" the numbers
+would be neither the book nor an honest divergence. The tuning goes in
+Voyager's own layer, and the reasoning goes in
+examples/logovger/docs/VOYAGER_EXPANSION.md at the moment it is
+noticed, not later when the surprise has to be reconstructed.
+
+The useful discovery there: the book usually contains its own dial.
+Aging has anagathics, whose modifier cancels the term count exactly,
+so the setting can move the curve without a single rule being
+rewritten. Look for that before reaching for a divergence.
+
 ## Decisions log
 
 | Date | Decision |

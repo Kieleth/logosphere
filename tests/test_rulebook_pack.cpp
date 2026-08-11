@@ -100,9 +100,13 @@ void test_the_generated_type_surface_compiles() {
                                   rulebook::ontology::OutcomeChoice>::value,
                   "OutcomeChoice is an Outcome");
     rulebook::ontology::TableEntry row;
-    CHECK(row.roll_min == 0 && row.roll_max == 0 &&
+    // roll_max is optional now: a row may be open at the top, which
+    // the aging table's "1+" band needs, so an unset one must come up
+    // ABSENT rather than as a zero that reads like a real ceiling.
+    CHECK(row.roll_min == 0 && !row.roll_max.has_value() &&
               !row.source_quote.has_value(),
-          "required generated fields are deterministically initialized");
+          "required generated fields are deterministically initialized, "
+          "and optional ones are absent rather than zero");
 }
 
 void test_the_pack_grants_the_vocabulary() {
@@ -237,11 +241,19 @@ void test_table_results_have_one_complete_shape() {
               required("ModifyAttribute", "attribute_delta",
                        kg::PropertyValueKind::Integer),
           "ModifyAttribute cannot reach execution without both operands");
+    // roll_count is deliberately NOT required. Cepheus writes "Roll on
+    // the Injury table" with no number at all, so the seed stores no
+    // number; a 1 there would be a figure the source never printed.
+    // Absent means one, and the executor is what honours that. What a
+    // table-roll cannot do without is the table.
+    const auto* roll_count = reg.findProperty("GrantTableRoll",
+                                              "roll_count");
     CHECK(required("GrantTableRoll", "table",
                    kg::PropertyValueKind::EntityRef) &&
-              required("GrantTableRoll", "roll_count",
-                       kg::PropertyValueKind::Integer),
-          "a table-roll request names its table and count");
+              roll_count && !roll_count->required &&
+              roll_count->value_kind == kg::PropertyValueKind::Integer,
+          "a table-roll names its table; its count is optional, for the "
+          "bare instructions the book prints with no number");
 
     CHECK(required("OutcomeChoice", "choice_authority",
                    kg::PropertyValueKind::String),

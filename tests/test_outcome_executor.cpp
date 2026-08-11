@@ -291,6 +291,41 @@ void table_rolls_are_typed_requests_not_hidden_recursive_execution() {
             "granting a roll does not choose or roll a table implicitly");
 }
 
+// Cepheus writes "Roll on the Injury table" with no number, so the
+// seed stores no roll_count and the executor supplies the one the
+// sentence means. Both mishap rows that refer to the Injury table are
+// shaped this way; before this was honoured they failed outright with
+// "missing required integer 'roll_count'".
+void an_absent_roll_count_means_one() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto table = f.world.createEntity("RollableTable");
+    const auto grant = outcome(f, "GrantTableRoll");
+    f.world.setProperty(grant, "table", std::to_string(table));
+    // roll_count deliberately not set.
+    const auto result = executor.apply(grant, f.context());
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED &&
+                result.table_roll_requests.size() == 1 &&
+                result.table_roll_requests[0].roll_count == 1,
+            "a bare table-roll instruction grants exactly one roll");
+
+    // The control: absent is the only thing that defaults. A count
+    // that IS written must still be a positive integer, so a zero and
+    // a non-number are both refused rather than silently becoming one.
+    for (const char* bad : {"0", "-1", "many"}) {
+        Fixture g;
+        rules::OutcomeExecutor ex(g.world, g.dice);
+        const auto t = g.world.createEntity("RollableTable");
+        const auto o = outcome(g, "GrantTableRoll");
+        g.world.setProperty(o, "table", std::to_string(t));
+        g.world.setProperty(o, "roll_count", bad);
+        REQUIRE(ex.apply(o, g.context()).status ==
+                    rules::OutcomeStatus::FAILED,
+                std::string("a written roll_count of '") + bad +
+                    "' is refused, not defaulted");
+    }
+}
+
 void a_sequence_rolls_back_kg_dice_and_events_on_late_failure() {
     Fixture f;
     rules::OutcomeExecutor executor(f.world, f.dice);
@@ -468,6 +503,7 @@ int main() {
     TEST(skill_outcomes_keep_both_rule_branches_in_data);
     TEST(fixed_and_rolled_money_share_generic_balance_state);
     TEST(table_rolls_are_typed_requests_not_hidden_recursive_execution);
+    TEST(an_absent_roll_count_means_one);
     TEST(a_sequence_rolls_back_kg_dice_and_events_on_late_failure);
     TEST(a_late_kg_validation_failure_rolls_back_the_dice_plan);
     TEST(sequences_compose_against_the_planned_state);

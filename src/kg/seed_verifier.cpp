@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <limits>
 #include <map>
@@ -19,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -121,6 +123,47 @@ std::vector<std::string> number_tokens(const std::string& q) {
             }
         }
         out.push_back(std::move(tok));
+    }
+
+    // Books write small numbers as words, and a count spelled out is
+    // still a count the text states. Cepheus aging: "Reduce three
+    // physical characteristics by 2" proves the 2 and, without this,
+    // proves nothing about the three. Only whole words count, so
+    // "someone" never yields a one, and only the small numerals a
+    // rulebook actually spells out are recognised: past twelve, books
+    // use digits.
+    static const std::pair<const char*, const char*> kWords[] = {
+        {"one", "1"},    {"two", "2"},    {"three", "3"},
+        {"four", "4"},   {"five", "5"},   {"six", "6"},
+        {"seven", "7"},  {"eight", "8"},  {"nine", "9"},
+        {"ten", "10"},   {"eleven", "11"}, {"twelve", "12"},
+        // "both other physical characteristics" states a count of two
+        // as plainly as the numeral would.
+        {"both", "2"},
+    };
+    std::string lowered;
+    lowered.reserve(q.size());
+    for (char c : q) {
+        lowered += static_cast<char>(
+            std::tolower(static_cast<unsigned char>(c)));
+    }
+    const auto is_word_char = [](char c) {
+        return std::isalpha(static_cast<unsigned char>(c)) != 0;
+    };
+    for (const auto& [word, digits] : kWords) {
+        const size_t length = std::strlen(word);
+        size_t at = 0;
+        while ((at = lowered.find(word, at)) != std::string::npos) {
+            const bool starts = at == 0 || !is_word_char(lowered[at - 1]);
+            const size_t after = at + length;
+            const bool ends =
+                after >= lowered.size() || !is_word_char(lowered[after]);
+            if (starts && ends) {
+                out.emplace_back(digits);
+                break;          // one witness is enough to prove it
+            }
+            at = after;
+        }
     }
     return out;
 }
@@ -287,6 +330,14 @@ bool parse_band_cell(const std::string& q, Band& band) {
         if (!parse_num(last)) return false;
         band.lo = first;
         band.hi = last;
+    } else if (i < q.size() && q[i] == '+') {
+        // "| 1+ |" is the same statement as "1 or higher", in the
+        // shorthand the book actually prints. It appears three times
+        // in the vendored SRD: the aging table's 1+, retirement pay's
+        // 9+, and the difficulty table's 10+.
+        ++i;
+        band.lo = first;
+        band.hi.reset();
     } else if (q.compare(i, 9, "or higher") == 0) {
         i += 9;
         band.lo = first;
@@ -344,6 +395,19 @@ bool read_lookup_band(const KGModule& kg, EntityID id, Band& band) {
 // key_min/key_max on LookupEntry. Returns false if the type has
 // neither pair set.
 bool read_row_band(const KGModule& kg, EntityID id, Band& band) {
+    // A row may be open at the top, which is how the book writes its
+    // last row: "| 1+ |". The flag and the number are exclusive, the
+    // same contract key_max_unbounded has on a lookup row.
+    const std::string top_flag = kg.getProperty(id, "roll_max_unbounded");
+    if (top_flag == "true" || top_flag == "1") {
+        const std::string lo = kg.getProperty(id, "roll_min");
+        if (lo.empty() || !kg.getProperty(id, "roll_max").empty()) {
+            return false;
+        }
+        band.lo = std::strtoll(lo.c_str(), nullptr, 10);
+        band.hi.reset();
+        return true;
+    }
     return read_band(kg, id, "roll_min", "roll_max", band) ||
            read_lookup_band(kg, id, band);
 }

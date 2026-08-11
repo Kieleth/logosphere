@@ -8,6 +8,24 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **The ingestion verifier reads numbers written as words.** Books spell small
+  counts out, and "Reduce three physical characteristics by 2" states the
+  three as plainly as a numeral. Whole words only, one through twelve plus
+  "both"; a number the text does not state still fails.
+- **`N+` is a band the verifier understands**, the shorthand for "N or higher"
+  that the SRD prints three times. `TableEntry` gained `roll_max_unbounded`
+  to carry it, matching `key_max_unbounded` on `LookupEntry`.
+- **`unmodelled` on the `Cited` mixin**: the part of a rule the graph does not
+  yet express, in plain words. Absorption is sometimes partial, and a partial
+  rule that admits it is honest where one that looks whole is not.
+- **Aging, mishaps and injuries are absorbed.** Twenty rows across three
+  tables, each addressed to the cell it came from: the aging table with its
+  signed bands and its open-ended top, the survival-mishap table the Referee
+  may allow instead of death, and the injury table mishaps send you to. Two
+  clauses exceed what the outcome vocabulary can say and carry `unmodelled`
+  saying which and why.
+- `attribute_delta_dice` for rolled reductions ("reduce one physical
+  characteristic by 1D6") and `ForfeitBenefits` for "lose all benefits".
 - **Subject-keyed lookups** (`SubjectLookupTable`, `SubjectLookupEntry`).
   `LookupTable` answers "score 12 gives +2"; this answers "the Navy row".
   Rules that vary by career, class, species or faction all have that shape.

@@ -101,6 +101,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("FloorTile", "Floor", false);
     reg.addEntityType("Foot", "BodyPart", false);
     reg.addEntityType("Forearm", "BodyPart", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("ForfeitBenefits", "Outcome", false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addEntityType("FunctionExpression", "Expression", true);
     reg.addEntityType("FunctionParameterSpec", "Entity", false);
@@ -338,6 +340,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("FloorTile", {"Bondable", "Describable", "Entity", "Floor", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("Foot", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Forearm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("ForfeitBenefits", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("FunctionExpression", {"Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.addAncestors("FunctionParameterSpec", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
@@ -513,6 +517,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("DifficultyEntry", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("EnsureSkillLevel", {"rulebook"});
+    reg.addFacets("ForfeitBenefits", {"rulebook"});
     reg.addFacets("GainFixedMoney", {"rulebook"});
     reg.addFacets("GainMoney", {"rulebook"});
     reg.addFacets("GainPossession", {"rulebook"});
@@ -637,6 +642,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Cited", "source_aliases", kg::PropertyValueKind::String, false);
     reg.addProperty("Cited", "source_defect", kg::PropertyValueKind::String, false);
     reg.addProperty("Cited", "suggested_reading", kg::PropertyValueKind::String, false);
+    reg.addProperty("Cited", "unmodelled", kg::PropertyValueKind::String, false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("CollisionEvent", "collision_force", kg::PropertyValueKind::Float, false);
     reg.addProperty("CollisionEvent", "normal_x", kg::PropertyValueKind::Float, false);
@@ -713,7 +719,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("GainPossession", "possession_count_dice", false, "DiceExpression");
     reg.addRefProperty("GainRolledMoney", "amount_dice", true, "DiceExpression");
     reg.addRefProperty("GrantTableRoll", "table", true, "RollableTable");
-    reg.addProperty("GrantTableRoll", "roll_count", kg::PropertyValueKind::Integer, true, true, 1.0, false, 0.0);
+    reg.addProperty("GrantTableRoll", "roll_count", kg::PropertyValueKind::Integer, false, true, 1.0, false, 0.0);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Growable", "growth_iteration", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Growable", "is_mature", kg::PropertyValueKind::Boolean, false);
@@ -769,7 +775,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ModifyAttribute", "attribute_delta", kg::PropertyValueKind::Integer, true);
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_group", true, "Entity");
     reg.addProperty("ModifyAttributesInGroup", "affected_count", kg::PropertyValueKind::Integer, true, true, 1.0, false, 0.0);
-    reg.addProperty("ModifyAttributesInGroup", "attribute_delta", kg::PropertyValueKind::Integer, true);
+    reg.addProperty("ModifyAttributesInGroup", "attribute_delta", kg::PropertyValueKind::Integer, false);
+    reg.addRefProperty("ModifyAttributesInGroup", "attribute_delta_dice", false, "DiceExpression");
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("OntologyClassMeta", "class_abstract", kg::PropertyValueKind::Boolean, true, true);
     reg.addProperty("OntologyClassMeta", "has_direct_parent", kg::PropertyValueKind::Boolean, true, true);
@@ -845,7 +852,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("StepRoute", "next_step", true, "ProcedureStep");
     reg.addRefProperty("SubjectLookupEntry", "subject", true, "Entity");
     reg.addProperty("TableEntry", "roll_min", kg::PropertyValueKind::Integer, true);
-    reg.addProperty("TableEntry", "roll_max", kg::PropertyValueKind::Integer, true);
+    reg.addProperty("TableEntry", "roll_max", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("TableEntry", "roll_max_unbounded", kg::PropertyValueKind::Boolean, false);
     reg.addRefProperty("TableEntry", "outcome", true, "Outcome");
     reg.addProperty("TaskCheck", "attribute_ref", kg::PropertyValueKind::String, false);
     reg.addProperty("TaskCheck", "target_number", kg::PropertyValueKind::Integer, true);

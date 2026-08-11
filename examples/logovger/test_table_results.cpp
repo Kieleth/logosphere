@@ -68,6 +68,19 @@ kg::SeedEnvelope parse_table_seed() {
     return parsed.seed;
 }
 
+// The mishap and injury tables moved. They were three demonstration
+// rows in the sampler above, and the completed absorption took
+// ownership of them, which is invariant 8: a partial thing is
+// finished by deciding who owns it, not by editing the owner's file.
+// The sequence fixtures below follow them.
+kg::SeedEnvelope parse_shared_seed() {
+    const auto parsed = kg::parse_seed_envelope(
+        slurp(game_path("seeds/cepheus_book1_shared_tables.json")));
+    CHECK(parsed.ok(), "the shared-table seed parses for a semantic "
+                       "mutation: " + parsed.error);
+    return parsed.seed;
+}
+
 // Everything the careers seed depends on, taken FROM THE MANIFEST
 // rather than listed here. It references the Skills the vocabulary
 // owns and the dice the tables seed owns, and that list has grown
@@ -205,7 +218,7 @@ void append_relation(kg::SeedEnvelope& seed, const std::string& from,
 }
 
 kg::SeedEnvelope seed_with_complete_choice() {
-    auto seed = parse_table_seed();
+    auto seed = parse_shared_seed();
     const std::string quote =
         "| 3 | Missing eye or limb. Reduce Strength or Dexterity by 2. |";
     append_create(seed, "OutcomeChoice", "injury_choice",
@@ -217,14 +230,14 @@ kg::SeedEnvelope seed_with_complete_choice() {
                   {{"name", "reduce_strength"},
                    {"option_index", "0"},
                    {"option_label", "Strength"},
-                   {"outcome", "@no_permanent_effect"},
+                   {"outcome", "@injury_6_none"},
                    {"source_section", "Injuries"},
                    {"source_quote", quote}});
     append_create(seed, "OutcomeOption", "injury_choice_dexterity",
                   {{"name", "reduce_dexterity"},
                    {"option_index", "1"},
                    {"option_label", "Dexterity"},
-                   {"outcome", "@no_permanent_effect"},
+                   {"outcome", "@injury_6_none"},
                    {"source_section", "Injuries"},
                    {"source_quote", quote}});
     append_relation(seed, "injury_choice", "injury_choice_strength");
@@ -399,7 +412,21 @@ void test_cited_tables_load_with_typed_results() {
               complete_law_rows,
           "the law table returns a typed difficulty name and modifier");
 
-    const auto mishap_three = loaded.bindings.at("mishap_row_3");
+    // The mishap and injury rows live in the seed that owns those
+    // tables now, and this world already has it: the prerequisites
+    // above load everything the manifest lists before careers. So
+    // find the rows rather than binding them a second time, which
+    // would trip the one-owner guard.
+    const auto row_named = [&world](const std::string& name) {
+        for (const auto id : world.findByType("TableEntry")) {
+            if (world.getProperty(id, "name") == name) return id;
+        }
+        return kg::INVALID_ENTITY;
+    };
+    const auto mishap_three = row_named("mishap 3");
+    CHECK(mishap_three != kg::INVALID_ENTITY,
+          "the completed mishap table is in this world");
+    if (mishap_three == kg::INVALID_ENTITY) return;
     const auto sequence = static_cast<kg::EntityID>(
         std::stoul(world.getProperty(mishap_three, "outcome")));
     const auto steps = world.getRelated(sequence, "HAS_PART");
@@ -409,7 +436,10 @@ void test_cited_tables_load_with_typed_results() {
               world.getProperty(steps[1], "step_index"),
           "the composite consequences carry explicit distinct order");
 
-    const auto injury_six = loaded.bindings.at("injury_row_6");
+    const auto injury_six = row_named("injury 6");
+    CHECK(injury_six != kg::INVALID_ENTITY,
+          "and so is the completed injury table");
+    if (injury_six == kg::INVALID_ENTITY) return;
     const auto no_effect = static_cast<kg::EntityID>(
         std::stoul(world.getProperty(injury_six, "outcome")));
     CHECK(world.getType(no_effect) == "NoEffect",
@@ -524,45 +554,49 @@ void test_task_check_requires_an_integer_modifier_result() {
 }
 
 void test_outcome_sequence_rejects_duplicate_order() {
-    auto seed = parse_table_seed();
-    CHECK(set_property(seed, "mishap_3_step_1", "step_index", "0"),
+    auto seed = parse_shared_seed();
+    CHECK(set_property(seed, "mishap_3_s1", "step_index", "0"),
           "the duplicate step mutation was applied");
     const auto report = kg::verify_seed(
         seed, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(!report.ok(), "duplicate outcome step order fails verification");
     CHECK(semantic_reason_contains(report, "duplicate step_index 0"),
           "the semantic error names the duplicate sequence index");
 }
 
 void test_outcome_sequence_requires_steps_and_contiguous_order() {
-    auto empty = parse_table_seed();
-    CHECK(remove_relations_from(empty, "mishap_3_sequence"),
+    auto empty = parse_shared_seed();
+    CHECK(remove_relations_from(empty, "mishap_3"),
           "both sequence-step relations were removed");
     const auto empty_report = kg::verify_seed(
         empty, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(empty_report,
                                    "has no OutcomeStep parts"),
           "an empty composite outcome fails semantic verification");
 
-    auto wrong_part = parse_table_seed();
-    CHECK(retarget_relation(wrong_part, "mishap_3_sequence",
-                            "mishap_3_step_1", "end_career"),
+    auto wrong_part = parse_shared_seed();
+    CHECK(retarget_relation(wrong_part, "mishap_3",
+                            "mishap_3_s1", "mishap_3_c0"),
           "a sequence relation was retargeted to a non-step outcome");
     const auto wrong_part_report = kg::verify_seed(
         wrong_part, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(wrong_part_report,
                                    "non-OutcomeStep part type 'EndCareer'"),
           "a sequence rejects parts that are not OutcomeStep entities");
 
-    auto gap = parse_table_seed();
-    CHECK(set_property(gap, "mishap_3_step_1", "step_index", "2"),
+    auto gap = parse_shared_seed();
+    CHECK(set_property(gap, "mishap_3_s1", "step_index", "2"),
           "the sequence gap mutation was applied");
     const auto gap_report = kg::verify_seed(
         gap, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(gap_report, "are not contiguous"),
           "a sequence rejects gaps in its explicit order");
 }
@@ -571,7 +605,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
     auto complete = seed_with_complete_choice();
     const auto complete_report = kg::verify_seed(
         complete, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     if (!complete_report.ok()) {
         for (const auto& violation : complete_report.violations) {
             std::cout << "  [measure] " << violation.check << ": "
@@ -587,7 +622,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
           "the invalid choice authority mutation was applied");
     const auto authority_report = kg::verify_seed(
         authority, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(authority_report,
                                    "unknown choice_authority 'nobody'"),
           "a choice rejects authority outside player, referee, procedure");
@@ -597,18 +633,20 @@ void test_outcome_choice_requires_authority_options_and_order() {
           "both choice-option relations were removed");
     const auto empty_report = kg::verify_seed(
         empty, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(empty_report,
                                    "has no OutcomeOption parts"),
           "a choice without alternatives fails semantic verification");
 
     auto wrong_part = seed_with_complete_choice();
     CHECK(retarget_relation(wrong_part, "injury_choice",
-                            "injury_choice_strength", "end_career"),
+                            "injury_choice_strength", "mishap_3_c0"),
           "a choice relation was retargeted to a non-option outcome");
     const auto wrong_part_report = kg::verify_seed(
         wrong_part, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(
               wrong_part_report,
               "non-OutcomeOption part type 'EndCareer'"),
@@ -620,7 +658,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
           "the duplicate option index mutation was applied");
     const auto duplicate_report = kg::verify_seed(
         duplicate, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(duplicate_report,
                                    "duplicate option_index 0"),
           "a choice rejects duplicate option order");
@@ -630,7 +669,8 @@ void test_outcome_choice_requires_authority_options_and_order() {
           "the option gap mutation was applied");
     const auto gap_report = kg::verify_seed(
         gap, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(gap_report, "are not contiguous"),
           "a choice rejects gaps in option order");
 
@@ -640,20 +680,22 @@ void test_outcome_choice_requires_authority_options_and_order() {
           "the empty option label mutation was applied");
     const auto empty_label_report = kg::verify_seed(
         empty_label, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(empty_label_report,
                                    "has empty option_label"),
           "a choice rejects an unlabeled alternative");
 }
 
 void test_rollable_table_rejects_non_rows() {
-    auto seed = parse_table_seed();
+    auto seed = parse_shared_seed();
     CHECK(retarget_relation(seed, "mishap_table", "mishap_row_2",
-                            "end_career"),
+                            "mishap_2_c0"),
           "a rollable-table relation was retargeted to an Outcome");
     const auto report = kg::verify_seed(
         seed, game_path("srd/cepheus"), game_registry(), nullptr,
-        prerequisites_before("cepheus_book1_tables.json"));
+        prerequisites_before(
+            "cepheus_book1_shared_tables.json"));
     CHECK(semantic_reason_contains(report,
                                    "non-TableEntry row type 'EndCareer'"),
           "a rollable table rejects attached entities that are not rows");

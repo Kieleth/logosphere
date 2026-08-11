@@ -126,6 +126,42 @@ artifacts.
 
 ---
 
+## 8. One owner per thing, and nobody edits another owner's content
+
+Every entity ingested from a source carries the document and revision it came
+from, and that origin is **sealed**. A seed may point at what another seed
+owns; it may never write onto it. Concretely the validator refuses three
+operations on sealed content: setting a property, destroying it, and creating a
+relation *from* it. It permits new entities that reference it, and relations
+*to* it.
+
+The reason is provenance. Once a seed has said "this came from
+`character-creation.md` at commit `efb8f9d`, and here is the quote", the stored
+content must keep matching that citation forever. If a later file could edit
+it, the citation stops being provable and the graph begins claiming the book
+says something it does not.
+
+**The corollary is the part that gets missed.** When something is partial and
+needs finishing, the answer is never "edit the file that owns it". It is to
+decide who owns the complete thing and give it exactly one owner. That is how
+the skills vocabulary was fixed when two seeds each created a `Gun Combat`, how
+the dice vocabulary was fixed when two seeds each created a `1D6`, and how the
+aging, mishap and injury tables were fixed when a sampler seed held three
+demonstration rows and blocked their completion. Each time the fix was
+ownership, not surgery.
+
+So before assuming a partial thing must be extended in place, **check who
+depends on it**. For the sampler the answer was nobody: not another seed, not
+any code. A thing nothing references can simply change hands.
+
+The same rule decides link direction. A `Career` cannot carry a pointer to its
+re-enlistment throw, because careers are created before their throws; instead
+the re-enlistment **rule** owns a table keyed by career. That is also how the
+book reads: the Commission row belongs to the commission rule, not to the state
+of being a Navy officer.
+
+---
+
 ## Where the boundary is
 
 The engine stops at **generic mechanism**. Games provide **policy**.

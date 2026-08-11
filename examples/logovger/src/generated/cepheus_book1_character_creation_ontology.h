@@ -1897,6 +1897,8 @@ struct Cited : public Addressable {
     std::optional<std::string> source_defect = std::nullopt;
     /// A human's best guess at what a defective citation was meant to say, recorded so the reasoning is not lost, and deliberately consumed by nothing. Rules read the book; they never read a guess. If the guess were safe to act on it would be a fix in the source, not a suggestion here.
     std::optional<std::string> suggested_reading = std::nullopt;
+    /// The part of this rule the graph does not yet express, in plain words. Absorption is sometimes partial: a clause may depend on a choice made earlier in the same outcome ("reduce both OTHER physical characteristics"), or offer a re-roll policy the outcome vocabulary cannot say. Recording the gap keeps a partial rule honest, because the alternative is a rule that looks whole and quietly is not. Empty means fully expressed.
+    std::optional<std::string> unmodelled = std::nullopt;
 };
 
 
@@ -1980,8 +1982,10 @@ struct Outcome : public Entity, public Cited {
 struct TableEntry : public Entity, public Cited {
     /// Lowest die result this row claims, inclusive.
     int32_t roll_min = {};
-    /// Highest die result this row claims, inclusive.
-    int32_t roll_max = {};
+    /// Highest die result this row claims, inclusive. Absent only when roll_max_unbounded says the row has no top.
+    std::optional<int32_t> roll_max = std::nullopt;
+    /// This row claims everything at or above roll_min. The aging table ends at "1+", and writing a number there would put a figure in the graph that the book does not print. The same need already exists one class over, as key_max_unbounded on LookupEntry.
+    std::optional<bool> roll_max_unbounded = std::nullopt;
     /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
     Outcome outcome = {};
 };
@@ -2056,12 +2060,12 @@ struct GainRolledMoney : public GainMoney {
 };
 
 
-/// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables.
+/// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables. An ABSENT roll_count means one, because the book writes a bare instruction for a single roll: "Roll on the Injury table" states no number, and putting a 1 there would be a figure the source never printed.
 struct GrantTableRoll : public Outcome {
     /// The table the extra rolls are granted on.
     RollableTable table = {};
     /// How many extra rolls.
-    int32_t roll_count = {};
+    std::optional<int32_t> roll_count = std::nullopt;
 };
 
 
@@ -2172,7 +2176,14 @@ struct ModifyAttributesInGroup : public Outcome {
     /// How many attributes from the group the change applies to. The book fixes the count; the choice of which is made when the outcome is applied.
     int32_t affected_count = {};
     /// Signed change applied to the referenced attribute.
-    int32_t attribute_delta = {};
+    std::optional<int32_t> attribute_delta = std::nullopt;
+    /// Rolled change, when the book rolls for how much: the injury table's "reduce one physical characteristic by 1D6". The fixed case is attribute_delta; a rule uses one or the other.
+    std::optional<DiceExpression> attribute_delta_dice = std::nullopt;
+};
+
+
+/// Everything this career would have paid is lost. Cepheus: "Dishonorably discharged from the service. Lose all benefits." It is not a debt and not a reduction; it cancels a payout that has not happened yet, which no other outcome can say.
+struct ForfeitBenefits : public Outcome {
 };
 
 

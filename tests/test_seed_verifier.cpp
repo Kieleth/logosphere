@@ -1302,6 +1302,55 @@ void test_missing_source_commit_file_has_no_opinion() {
     CHECK(report.ok(), "and the seed still verifies through a deeper root");
 }
 
+// Books spell small numbers out. "Reduce three physical
+// characteristics by 2" states a count of three as plainly as a
+// numeral would, and a verifier that only reads digits can prove the
+// 2 and nothing about the three.
+void test_a_count_written_as_a_word_is_proof() {
+    const char* op =
+        "{\"op\":\"create_entity\",\"type\":\"RuleConstant\","
+        "\"as\":\"@spelled\",\"properties\":{"
+        "\"name\":\"aging_physical_count\",\"constant_value\":\"3\","
+        "\"source_section\":\"Aging\",\"source_kind\":\"cell\","
+        "\"source_table\":\"2D6\",\"source_row\":\"-5\","
+        "\"source_column\":\"Effects of Aging\","
+        "\"source_quote\":\"Reduce three physical characteristics by 2.\"}}";
+    auto seed = mini_seed("book1/character-creation.md", op);
+    const auto report = kg::verify_seed(seed, kSourceRoot,
+                                        engine_registry());
+    print_first(report, "value");
+    CHECK(report.count("value") == 0,
+          "a count spelled as a word proves the slot that carries it");
+
+    // And it is still proof, not permission: a number the text does
+    // not state, in words or digits, must fail exactly as before.
+    CHECK(set_prop(seed, "spelled", "constant_value", "4"),
+          "the wrong-count mutation applied");
+    const auto wrong = kg::verify_seed(seed, kSourceRoot,
+                                       engine_registry());
+    CHECK(!wrong.ok() && wrong.count("value") > 0,
+          "a count the quote does not state still fails");
+}
+
+// "| 1+ |" is "1 or higher" in the shorthand the book prints, and it
+// appears three times in the vendored SRD.
+void test_an_open_topped_band_is_derived() {
+    const char* op =
+        "{\"op\":\"create_entity\",\"type\":\"RuleConstant\","
+        "\"as\":\"@plus\",\"properties\":{"
+        "\"name\":\"aging_no_effect_floor\",\"constant_value\":\"1\","
+        "\"source_section\":\"Aging\",\"source_kind\":\"cell\","
+        "\"source_table\":\"2D6\",\"source_row\":\"1+\","
+        "\"source_column\":\"Effects of Aging\","
+        "\"source_quote\":\"No effect\"}}";
+    auto seed = mini_seed("book1/character-creation.md", op);
+    const auto report = kg::verify_seed(seed, kSourceRoot,
+                                        engine_registry());
+    print_first(report, "verbatim");
+    CHECK(report.count("verbatim") == 0,
+          "a row keyed '1+' resolves in the source like any other");
+}
+
 void test_duplicate_name_fails_invariant() {
     kg::SeedEnvelope seed = parse_fixture();
     CHECK(set_prop(seed, "prior_career_dm", "name", "age_of_majority"),
@@ -1365,6 +1414,8 @@ int main() {
     test_band_gap_fails_invariant();
     test_band_outside_declared_range_says_so();
     test_unnamed_instance_fails_invariant();
+    test_a_count_written_as_a_word_is_proof();
+    test_an_open_topped_band_is_derived();
     test_duplicate_name_fails_invariant();
     test_source_commit_drift_warns_without_failing();
     test_missing_source_commit_file_has_no_opinion();
