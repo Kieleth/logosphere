@@ -100,6 +100,70 @@ root system, leaf attachment.
 inherited the tear law's rest formula deliberately, to avoid "inventing its own
 definition" — exactly backwards when that formula is the suspect.
 
+### G1c — GREEN: the plate's geometry, and the measurement that found it · 2026-08-10
+
+```
+bonds inspected at frame ZERO     153
+worst strain at birth          1.0000    (was 1.8116)
+bonds born TAUT                     0    (was 75)
+bonds born TORN                     0
+BORN AT REST.  PASS
+```
+
+**Two lines, both in the root system:**
+
+```cpp
+plate_center_z = ground_z - plate_height;        // sank a FULL height
+face_center_z  = ground_z + plate_height * 0.5f; // GUESSED the plate's centre
+```
+
+The plate sank a whole height below ground, so its top sat 0.125 m below where
+the trunk's bottom was placed — on a bond declaring `target_distance = 0`,
+which means "these two points must coincide". And the root code guessed where
+the plate's centre was instead of reading it, missing by exactly 0.375 m.
+
+Those are the two gaps the audit reported, to the millimetre, seed-independent.
+Both now derive from the plate's actual geometry: its top IS the ground, and
+its side faces are at its own centre height.
+
+#### THE EXPENSIVE PART — the instrument was measuring the wrong quantity
+
+Four wrong fixes and five instrument errors preceded this, all one mistake:
+
+> **The audit compared CENTRE-to-CENTRE against a rest that governs ATTACHMENT
+> POINTS.**
+
+A gluon holds `|attach_a - attach_b| == target_distance`, where each attachment
+is `centre + R·offset`. Comparing centre separation against that is comparing
+two different quantities, and for anything with a non-zero offset — every leaf,
+every branch — it is simply a different number.
+
+What that cost:
+
+| symptom | actual meaning |
+|---|---|
+| 75 of 153 bonds "born taut" | mostly satisfied bonds, measured wrongly |
+| worst strain pinned at 1.8116 through 4 edits | I was editing a file with no bug in it |
+| every placement fix made the mean WORSE | shuffling bodies against a phantom target |
+| the ladder green at rung 1, red at rung 2 | the ladder mirrored the generator instead of calling it |
+
+The moment the audit asked what the bond actually enforces, **145 of 153 bonds
+read exactly 1.0** and the remaining 8 named themselves in two lines with round,
+seed-independent constants.
+
+#### The rules this earns
+
+1. **Measure the quantity the code enforces, not a proxy for it.** A constraint
+   on attachment points is not a constraint on centres.
+2. **A test that defers to the code under test is not independent.** The audit
+   inherited the tear law's rest formula deliberately, to avoid "inventing its
+   own definition" — exactly backwards when that formula is the suspect.
+3. **A test that MIRRORS the code cannot validate a fix to it.** The placement
+   ladder reimplemented the generator's arithmetic, so it stayed red no matter
+   what the generator did.
+4. **A number that does not move when you change things is telling you that you
+   are in the wrong file.** 1.8116 said so four times before I listened.
+
 ### G2 — Mixed-frame branch offsets · FIXED · `ea67ad1`
 
 One gluon carried two frames: `offset_a` local, `offset_b` built from the

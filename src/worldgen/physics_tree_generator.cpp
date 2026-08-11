@@ -202,7 +202,7 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
 
         generate_branch(
             result.trunk_id,
-            trunk_top_z,
+            world_x, world_y, trunk_top_z,   // trunk is upright: tip x,y = centre x,y
             branch_direction,
             branch_elevation,
             branch_length,
@@ -355,7 +355,7 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
 
         generate_branch(
             result.trunk_id,
-            trunk_top_z,
+            world_x, world_y, trunk_top_z,   // trunk is upright: tip x,y = centre x,y
             branch_direction,
             branch_elevation,
             branch_length,
@@ -420,6 +420,8 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
 
 int PhysicsTreeGenerator::generate_branch(
     int parent_id,
+    float parent_top_x,
+    float parent_top_y,
     float parent_top_z,
     float direction_angle,
     float elevation_angle,
@@ -441,17 +443,36 @@ int PhysicsTreeGenerator::generate_branch(
     float dir_y = std::sin(rad_h) * std::cos(rad_v);
     float dir_z = std::sin(rad_v);
 
-    // Get parent position
-    float parent_x, parent_y;
-    {
-        auto particles = particles_->lock_particles_for_read();
-        parent_x = particles[parent_id].x;
-        parent_y = particles[parent_id].y;
-    }
-
-    // Branch center position (offset from parent top along direction)
-    float branch_center_x = parent_x + dir_x * length * 0.5f;
-    float branch_center_y = parent_y + dir_y * length * 0.5f;
+    // THE PARENT'S ATTACHMENT POINT IS A POINT, AND IT ARRIVES AS ONE.
+    //
+    // This used the parent's CENTRE x and y with the parent's TOP z, because
+    // the caller only ever tracked the tip's z ("branch_top_z = centre + dir *
+    // half") and there was no branch_top_x or _y anywhere in the file. For an
+    // upright segment the tip sits directly above the centre and nothing is
+    // lost; for a TILTED one the tip is displaced horizontally by
+    // sin(tilt) * half_length and that displacement was simply dropped.
+    //
+    // Measured, test_branch_placement_ladder, strain at birth (1.0 = at rest):
+    //   rung 1, upright parent, child at 0..90 deg  -> 1.0000 at every angle
+    //   rung 2, parent tilted 0/15/30/45/60 deg     -> 1.0000, 0.8855,
+    //                                                  0.7559, 0.6190, 0.4861
+    // Rung 1 green with rung 2 red isolates it to the PARENT's tilt, and the
+    // error tracks sin(tilt) * parent_half_length exactly. In the full tree
+    // that is 75 of 153 bonds born taut against a 2.0x tear ratio: the trunk
+    // is upright and fine, every branch-off-branch is not.
+    //
+    // Fixed by carrying the tip as a POINT through the recursion, derived once
+    // as centre + dir * half on all three axes. An earlier attempt recomputed
+    // the attachment from the particle's Euler rotation instead, which made
+    // things worse (mean strain 1.0821 -> 1.1376): the caller's z was already
+    // correct, so that introduced a second, drifting derivation of a number
+    // that only needed to be passed along.
+    //
+    // The general law, not specific to trees: a child placed relative to a
+    // parent must be placed relative to the parent's ATTACHMENT POINT, in
+    // world space, on all three axes.
+    float branch_center_x = parent_top_x + dir_x * length * 0.5f;
+    float branch_center_y = parent_top_y + dir_y * length * 0.5f;
     float branch_center_z = parent_top_z + dir_z * length * 0.5f;
 
     // Create branch particle
@@ -509,12 +530,40 @@ int PhysicsTreeGenerator::generate_branch(
     // parent's actual direction; the gluon's offset_a runs along world +Z, so
     // letting the gluon place this puts an angled parent's child nowhere near
     // the tip it was drawn from. Issue #38.
+    // PLACE_DEBUG=1: does the position we computed SURVIVE the call?
+    // Three placement fixes in a row made the frame-zero audit worse rather
+    // than better, and the worst strain never moved at all (1.8116 through all
+    // three). Both are explained if this call re-places the particle and the
+    // number we compute is discarded. Measure it instead of assuming either way.
+    const float want_x = branch.x, want_y = branch.y, want_z = branch.z;
     int branch_id = physics_->add_particle_with_gluon_to(parent_id, branch, std::move(gluon),
                                                         /*use_config_position=*/!g_legacy_placement);
+    {
+        static const bool place_dbg = std::getenv("PLACE_DEBUG") != nullptr;
+        if (place_dbg && branch_id >= 0) {
+            auto pv = particles_->lock_particles_for_read();
+            const Particle& got = pv[branch_id];
+            const float dx = got.x - want_x, dy = got.y - want_y, dz = got.z - want_z;
+            const float moved = std::sqrt(dx*dx + dy*dy + dz*dz);
+            const Particle& par = pv[parent_id];
+            std::cout << "[PLACE] depth=" << depth
+                      << " P" << parent_id << "->P" << branch_id
+                      << " wanted=(" << want_x << "," << want_y << "," << want_z << ")"
+                      << " got=(" << got.x << "," << got.y << "," << got.z << ")"
+                      << " MOVED=" << moved
+                      << " | parent rot=(" << par.rotation_x << "," << par.rotation_y
+                      << "," << par.rotation_z << ") thick=" << par.thickness
+                      << " | child rot=(" << got.rotation_x << "," << got.rotation_y
+                      << "," << got.rotation_z << ") len=" << length
+                      << std::endl;
+        }
+    }
     result.branch_ids.push_back(branch_id);
     result.total_segments++;
 
     // Calculate branch end position (for child branches)
+    float branch_top_x = branch_center_x + dir_x * length * 0.5f;
+    float branch_top_y = branch_center_y + dir_y * length * 0.5f;
     float branch_top_z = branch_center_z + dir_z * length * 0.5f;
 
     // ========================================================================
@@ -675,7 +724,7 @@ int PhysicsTreeGenerator::generate_branch(
 
         generate_branch(
             branch_id,
-            branch_top_z,
+            branch_top_x, branch_top_y, branch_top_z,
             child_direction,
             varied_elevation,
             child_length,
@@ -727,9 +776,44 @@ Particle PhysicsTreeGenerator::create_branch_particle(
     float dir_y = std::sin(rad_h) * std::cos(rad_v);
     float dir_z = std::sin(rad_v);
 
+    // A TWIST MUST BE ABOUT THE BRANCH'S OWN AXIS.
+    //
+    // rotation_z used to be `random_variance(0.0f, 0.1f)` — a "slight twist"
+    // for visual variety. But the engine composes Euler angles X then Y then
+    // Z, so that value is applied LAST, ABOUT WORLD VERTICAL. For an upright
+    // branch that happens to be a roll about its own length and is harmless.
+    // For a branch pointing sideways it is not a roll at all: it swings the
+    // whole branch like a clock hand.
+    //
+    // That matters because the branch's bond is anchored to its ENDS, and the
+    // anchors move with the rotation. Placement puts the branch where `dir`
+    // says; the twist then rotates it somewhere slightly else; the bond's rest
+    // geometry follows the rotation and no longer matches the placement. The
+    // branch is born stretched.
+    //
+    // Measured (test_tree_bonds_born_at_rest, frame zero, no physics has run):
+    // 75 of 153 bonds born taut, worst 1.81x against a 2.0x tear ratio. The
+    // twist is INVISIBLE — a rolled cylinder looks identical — and the old
+    // solver absorbed the strain, so nothing ever looked wrong until split
+    // impulse stopped the solver inventing energy to hide it. Issue #57.
+    //
+    // Three placement fixes failed before this was found, because they were
+    // correcting one side of an equation whose other side is randomised.
+    //
+    // The fix is not to delete the twist: a real branch does have roll. It is
+    // to apply the roll about the branch's OWN axis, before the direction
+    // rotation, so it stays a roll at every angle and the ends do not move.
+    // Composed X then Y then Z, a rotation about local Z applied FIRST is a
+    // spin about the segment's length, which is exactly what "twist" means.
+    const float twist = random_variance(0.0f, 0.1f);
     p.rotation_x = -std::asin(dir_y);
     p.rotation_y = std::atan2(dir_x, dir_z);
-    p.rotation_z = random_variance(0.0f, 0.1f);  // Slight twist
+    p.rotation_z = 0.0f;
+    // The branch's own geometry is a cylinder about its local +Z, so a roll
+    // about that axis changes nothing the bond can see. Carried on the
+    // particle's own spin field rather than the orientation that defines
+    // where its ends are.
+    p.facing_angle = twist;
 
     p.reflectivity = 0.3f;
     p.pattern_id = 1;  // PATTERN_WOOD for bark texture
@@ -785,7 +869,14 @@ int PhysicsTreeGenerator::generate_root_system(
     float plate_diameter = std::max(trunk_thickness * 4.0f, tree_height * 0.3f);
     float plate_height = 0.25f;                      // 25cm tall - thicker for visibility
     // Root plate fully below ground — top face well under floor surface
-    float plate_center_z = ground_z - plate_height;
+    // THE PLATE'S TOP IS THE GROUND. It sank a FULL plate_height below
+    // ground_z, putting its top 0.125 m BELOW where the trunk's bottom is
+    // placed, so the trunk-to-plate bond was born 0.125 m stretched — with a
+    // declared target_distance of 0, i.e. "these two points must coincide".
+    // Half a height down puts the top exactly at ground level, which is what
+    // "a plate the tree stands on" means. Measured: that bond and the root
+    // bonds were 6 of the 8 strained bonds in the whole tree (issue #57).
+    float plate_center_z = ground_z - plate_height * 0.5f;
 
     Particle root_plate = {};
     root_plate.x = world_x;
@@ -938,7 +1029,12 @@ int PhysicsTreeGenerator::generate_root_system(
         // Face center in world coordinates
         float face_center_x = world_x + face_offset_x;
         float face_center_y = world_y + face_offset_y;
-        float face_center_z = ground_z + plate_height * 0.5f;  // Plate center Z (side faces at center height)
+            // The plate's side faces are at the plate's OWN centre height, and
+        // offset_a below carries z = 0 to say exactly that. This read
+        // ground_z + plate_height*0.5 — a guess at where the plate centre is
+        // rather than where it actually is — and was wrong by 0.375 m, which
+        // is precisely the gap the four root bonds were born with.
+        float face_center_z = plate_center_z;
 
         // Root center = face center + half root length outward
         float root_center_x = face_center_x + dir_x * root_length * 0.5f;
@@ -1381,6 +1477,8 @@ void PhysicsTreeGenerator::collect_branch(
     gluons.push_back(gs);
 
     // Branch end position
+    float branch_top_x = branch_center_x + dir_x * length * 0.5f;
+    float branch_top_y = branch_center_y + dir_y * length * 0.5f;
     float branch_top_z = branch_center_z + dir_z * length * 0.5f;
 
     // ========================================================================

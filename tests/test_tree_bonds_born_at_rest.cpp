@@ -44,6 +44,24 @@ namespace {
 // |R_a*offset_a - R_b*offset_b|: the centre separation at which this bond is
 // satisfied, with each offset rotated by the body that owns it. Same Euler
 // composition the solver uses to build attachment points.
+// The world position of a bond's attachment point on one body: the offset
+// rotated by that body's own orientation, then added to its centre. Same
+// Euler composition the solver uses.
+void world_attach(const Particle& p, const Vec3& o, bool rotate,
+                  float& wx, float& wy, float& wz) {
+    if (!rotate) { wx = p.x + o.x; wy = p.y + o.y; wz = p.z + o.z; return; }
+    const float cx = cosf(p.rotation_x), sx = sinf(p.rotation_x);
+    const float cy = cosf(p.rotation_y), sy = sinf(p.rotation_y);
+    const float cz = cosf(p.rotation_z), sz = sinf(p.rotation_z);
+    const float y1 = o.y * cx - o.z * sx;
+    const float z1 = o.y * sx + o.z * cx;
+    const float x2 = o.x * cy + z1 * sy;
+    const float z2 = -o.x * sy + z1 * cy;
+    wx = p.x + x2 * cz - y1 * sz;
+    wy = p.y + x2 * sz + y1 * cz;
+    wz = p.z + z2;
+}
+
 float rest_in_bond_frame(const Particle& pa, const Particle& pb,
                          const GluonConstraintBase& g) {
     auto rot = [](const Particle& p, const Vec3& o, float& wx, float& wy, float& wz) {
@@ -112,8 +130,20 @@ bool test_tree_bonds_born_at_rest() {
                 if (seen.count({a,b})) continue;
                 seen[{a,b}] = true;
 
-                const float dx = v[b].x - v[a].x, dy = v[b].y - v[a].y,
-                            dz = v[b].z - v[a].z;
+                // MEASURE WHAT THE BOND ENFORCES: the separation of its two
+                // ATTACHMENT POINTS, not of the two centres.
+                //
+                // This compared centre-to-centre against a rest that is an
+                // attachment-point distance, and for leaves those differ by the
+                // branch's half-length — offset_a is the branch TIP while
+                // offset_b is the leaf CENTRE, and target_distance is recorded
+                // tip-to-leaf. That produced the entire "worst offender" list:
+                // P8 to its six leaves, placed 1.68 against a rest of 1.40,
+                // reported as 1.20x strain when the bond was satisfied.
+                float ax, ay, az, bx, by, bz;
+                world_attach(v[a], g->offset_a, g->rotate_offsets, ax, ay, az);
+                world_attach(v[b], g->offset_b, g->rotate_offsets, bx, by, bz);
+                const float dx = bx - ax, dy = by - ay, dz = bz - az;
                 const float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
                 // REST, MEASURED IN THE BOND'S OWN FRAME.
                 //
@@ -132,9 +162,10 @@ bool test_tree_bonds_born_at_rest() {
                 // segments finally are collinear and the naive sum is correct.
                 // Predicted strains 0.7454 / 0.8189 / 0.8819 / 0.9326 matched
                 // the measured ones to four decimals.
-                const float rest = std::max({g->target_distance,
-                                             rest_in_bond_frame(v[a], v[b], *g),
-                                             0.01f});
+                // A distance bond holds its attachments target_distance apart.
+                // Bonds that declare 0 (the trunk/branch "touch" bonds) want
+                // their attachments coincident, so any separation is error.
+                const float rest = std::max(g->target_distance, 0.01f);
                 const float ratio = dist / rest;
 
                 counted++;

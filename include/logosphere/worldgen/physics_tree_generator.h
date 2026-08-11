@@ -137,7 +137,14 @@ private:
     // Returns particle ID of created branch segment
     int generate_branch(
         int parent_id,              // Parent particle to attach to
-        float parent_top_z,         // Z position of parent's top surface
+        // The parent's attachment POINT, in world space. It used to be a
+        // lone z, which cannot describe the tip of a tilted segment: the
+        // caller tracked "centre + dir*half" for z and simply never tracked
+        // x or y. Every branch-off-branch was therefore placed short of its
+        // own bond's rest position and was born strained (issue #57).
+        float parent_top_x,
+        float parent_top_y,
+        float parent_top_z,
         float direction_angle,      // Horizontal angle (degrees)
         float elevation_angle,      // Vertical angle (degrees)
         float length,               // Branch length

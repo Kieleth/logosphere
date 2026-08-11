@@ -56,7 +56,7 @@ struct Rung {
 };
 
 Rung place_one(Engine& engine, float parent_tilt_deg, float child_elev_deg,
-               float parent_len, float child_len) {
+               float parent_len, float child_len, float lane_x) {
     auto& ps = engine.get_particle_system();
     auto& physics = engine.get_physics_system();
 
@@ -66,7 +66,7 @@ Rung place_one(Engine& engine, float parent_tilt_deg, float child_elev_deg,
     const float ptilt = parent_tilt_deg * (float)M_PI / 180.0f;
     Particle parent = {};
     parent.shape = ParticleShape::BOX;
-    parent.x = 0.0f; parent.y = 0.0f; parent.z = 2.0f;
+    parent.x = lane_x; parent.y = 0.0f; parent.z = 2.0f;
     parent.width = parent.height = 0.20f;
     parent.thickness = parent_len;          // thickness IS length for a segment
     parent.size = 0.20f;
@@ -126,9 +126,30 @@ Rung place_one(Engine& engine, float parent_tilt_deg, float child_elev_deg,
                     dz = v[cb].z - v[pa].z;
         const float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
         const GluonConstraintBase* gg = physics.get_gluon(pa, cb);
-        const float rest = gg ? std::max({gg->target_distance,
-                                          gg->get_segment_length(), 0.01f})
-                              : 0.01f;
+        // Rest in the BOND'S frame: |R_a*off_a - R_b*off_b|. Using the raw
+        // get_segment_length() here made rung 1 red on a case that is
+        // provably correct — the test would have been measuring the tear
+        // law's opinion rather than the geometry.
+        float rest = 0.01f;
+        if (gg) {
+            auto rot = [](const Particle& p, const Vec3& o,
+                          float& wx, float& wy, float& wz) {
+                const float cx = cosf(p.rotation_x), sx = sinf(p.rotation_x);
+                const float cy = cosf(p.rotation_y), sy = sinf(p.rotation_y);
+                const float cz = cosf(p.rotation_z), sz = sinf(p.rotation_z);
+                const float y1 = o.y * cx - o.z * sx;
+                const float z1 = o.y * sx + o.z * cx;
+                const float x2 = o.x * cy + z1 * sy;
+                const float z2 = -o.x * sy + z1 * cy;
+                wx = x2 * cz - y1 * sz; wy = x2 * sz + y1 * cz; wz = z2;
+            };
+            float ax, ay, az, bx, by, bz;
+            rot(v[pa], gg->offset_a, ax, ay, az);
+            rot(v[cb], gg->offset_b, bx, by, bz);
+            const float rx = ax - bx, ry = ay - by, rz = az - bz;
+            rest = std::max({gg->target_distance,
+                             std::sqrt(rx*rx + ry*ry + rz*rz), 0.01f});
+        }
         r.strain = dist / rest;
     }
     // The theory: the parent's top is displaced horizontally from its centre
@@ -147,16 +168,17 @@ bool test_branch_placement_ladder() {
     printf("  RUNG 1 — upright trunk, one branch. Every angle must read 1.000,\n");
     printf("           because an upright segment's top is directly above its centre.\n\n");
     printf("    %-16s %10s %10s\n", "child elev", "strain", "verdict");
+    EngineConfig cfg; cfg.create_display = false;
+    cfg.enable_chat_window = false; cfg.show_debug_overlay = false;
+    Engine e;
+    if (e.initialize(cfg) != 0) { printf("  init failed\n  FAIL\n"); return false; }
+    float lane = 0.0f;
     for (float elev : {0.0f, 15.0f, 30.0f, 45.0f, 60.0f, 90.0f}) {
-        EngineConfig cfg; cfg.create_display = false;
-        cfg.enable_chat_window = false; cfg.show_debug_overlay = false;
-        Engine e;
-        if (e.initialize(cfg) != 0) { printf("  init failed\n  FAIL\n"); return false; }
-        const Rung r = place_one(e, /*parent_tilt=*/0.0f, elev, 2.0f, 1.0f);
+        lane += 20.0f;
+        const Rung r = place_one(e, /*parent_tilt=*/0.0f, elev, 2.0f, 1.0f, lane);
         const bool ok = std::fabs(r.strain - 1.0f) <= 0.02f;
         if (!ok) failures++;
         printf("    %11.0f deg %10.4f %10s\n", elev, r.strain, ok ? "ok" : "*** RED ***");
-        e.shutdown();
     }
 
     // ---- RUNG 2: tilted parent --------------------------------------------
@@ -165,17 +187,14 @@ bool test_branch_placement_ladder() {
     printf("           exactly sin(tilt) x parent_half_length.\n\n");
     printf("    %-16s %10s %14s %10s\n", "parent tilt", "strain", "predicted gap", "verdict");
     for (float tilt : {0.0f, 15.0f, 30.0f, 45.0f, 60.0f}) {
-        EngineConfig cfg; cfg.create_display = false;
-        cfg.enable_chat_window = false; cfg.show_debug_overlay = false;
-        Engine e;
-        if (e.initialize(cfg) != 0) { printf("  init failed\n  FAIL\n"); return false; }
-        const Rung r = place_one(e, tilt, /*child_elev=*/0.0f, 2.0f, 1.0f);
+        lane += 20.0f;
+        const Rung r = place_one(e, tilt, /*child_elev=*/0.0f, 2.0f, 1.0f, lane);
         const bool ok = std::fabs(r.strain - 1.0f) <= 0.02f;
         if (!ok) failures++;
         printf("    %11.0f deg %10.4f %14.4f %10s\n",
                tilt, r.strain, r.predicted_gap, ok ? "ok" : "*** RED ***");
-        e.shutdown();
     }
+    e.shutdown();
 
     printf("\n  %d rung(s) red\n", failures);
     const bool pass = (failures == 0);
