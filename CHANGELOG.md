@@ -8,6 +8,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Progression, attribute groups and possessions in the rulebook meta-pack.**
+  `ProgressionTrack` / `ProgressionStep` / `ProgressionStanding` model a ladder
+  of standing within a profession and where a character stands on it;
+  `AttributeGroup` plus `ModifyAttributesInGroup` express "reduce three
+  physical characteristics by 2", which names a count and a group rather than
+  an attribute; `Possession` / `GainPossession` / `PossessionHolding` cover
+  what a book hands out that is neither money nor a skill. Standing and
+  holdings are state, so they carry no citation, matching `SkillRating`.
+
+### Changed
+- `TaskCheck`'s attribute and its modifier lookup are now optional, and
+  travel together: neither, or both. Cepheus prints re-enlistment as a
+  bare "6+", a throw no characteristic modifies, and a check without a
+  modifier source is still a check. Dice and a target remain required.
 - **`source_aliases`, `source_defect` and `suggested_reading` on the `Cited`
   mixin.** Absorbing a book finds holes in it, and every absorbed book will
   have some. A defective entity now enters the graph as the source writes

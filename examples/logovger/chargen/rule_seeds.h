@@ -24,6 +24,10 @@ inline constexpr const char* kRuleSeeds[] = {
     "seeds/cepheus_book1_skill_vocabulary.json",
     "seeds/cepheus_book1_tables.json",
     "seeds/cepheus_careers.json",
+    // Last of the rule data: it references the Skills the vocabulary
+    // owns, the Currency and dice the earlier seeds create, and the
+    // characteristic-modifier lookup from the careers seed.
+    "seeds/cepheus_book1_career_tables.json",
     "seeds/cepheus_basic_chargen_procedure.json",
 };
 

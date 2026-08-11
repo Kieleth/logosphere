@@ -1,316 +1,317 @@
 {
-  "source": {
-    "file": "book1/character-creation.md",
-    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+ "source": {
+  "file": "book1/character-creation.md",
+  "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+ },
+ "layer": "cepheus",
+ "invariants": {
+  "count_of_type": {
+   "Currency": 1,
+   "DiceExpression": 1,
+   "DifficultyEntry": 2,
+   "EndCareer": 1,
+   "GainFixedMoney": 1,
+   "LookupTable": 1,
+   "NoEffect": 1,
+   "OutcomeSequence": 1,
+   "OutcomeStep": 2,
+   "RollableTable": 2,
+   "TableEntry": 3
   },
-  "layer": "cepheus",
-  "invariants": {
-    "count_of_type": {
-      "Currency": 1,
-      "DiceExpression": 1,
-      "DifficultyEntry": 2,
-      "EndCareer": 1,
-      "GainFixedMoney": 1,
-      "LookupTable": 1,
-      "NoEffect": 1,
-      "OutcomeSequence": 1,
-      "OutcomeStep": 2,
-      "RollableTable": 2,
-      "TableEntry": 3
-    },
-    "unique_name_per_type": [
-      "DifficultyEntry",
-      "LookupTable",
-      "OutcomeSequence",
-      "RollableTable",
-      "TableEntry"
-    ],
-    "band_coverage": {
-      "@injury_table": [
-        6,
-        6
-      ],
-      "@law_table": [
-        0,
-        3
-      ],
-      "@mishap_table": [
-        2,
-        3
-      ]
-    }
+  "unique_name_per_type": [
+   "DiceExpression",
+   "DifficultyEntry",
+   "LookupTable",
+   "OutcomeSequence",
+   "RollableTable",
+   "TableEntry"
+  ],
+  "band_coverage": {
+   "@injury_table": [
+    6,
+    6
+   ],
+   "@law_table": [
+    0,
+    3
+   ],
+   "@mishap_table": [
+    2,
+    3
+   ]
+  }
+ },
+ "ops": [
+  {
+   "op": "create_entity",
+   "type": "DiceExpression",
+   "as": "@d1d6",
+   "properties": {
+    "name": "1D6",
+    "dice_count": 1,
+    "dice_sides": 6,
+    "source_section": "Survival",
+    "source_quote": "| 1D6 | Mishaps |",
+    "source_kind": "table",
+    "source_table": "1D6"
+   }
   },
-  "ops": [
-    {
-      "op": "create_entity",
-      "type": "DiceExpression",
-      "as": "@d1d6",
-      "properties": {
-        "name": "1D6",
-        "dice_count": 1,
-        "dice_sides": 6,
-        "source_section": "Survival",
-        "source_quote": "| 1D6 | Mishaps |",
-        "source_kind": "table",
-        "source_table": "1D6"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "Currency",
-      "as": "@credits",
-      "properties": {
-        "name": "Credits",
-        "source_section": "Injury Crisis",
-        "source_quote": "he can pay 1D6\u00d710,000 Credits for medical care"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "EndCareer",
-      "as": "@end_career",
-      "properties": {
-        "name": "leave_service_after_mishap",
-        "source_section": "Survival",
-        "source_quote": "This mishap is always enough to force you to leave the service after half a term, or two years of service."
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "GainFixedMoney",
-      "as": "@debt_10000",
-      "properties": {
-        "name": "debt_10000",
-        "currency": "@credits",
-        "amount": -10000,
-        "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "3"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "OutcomeSequence",
-      "as": "@mishap_3_sequence",
-      "properties": {
-        "name": "mishap_3_consequences",
-        "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "3"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "OutcomeStep",
-      "as": "@mishap_3_step_0",
-      "properties": {
-        "name": "mishap_3_end_career",
-        "step_index": 0,
-        "outcome": "@end_career",
-        "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "3"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "OutcomeStep",
-      "as": "@mishap_3_step_1",
-      "properties": {
-        "name": "mishap_3_add_debt",
-        "step_index": 1,
-        "outcome": "@debt_10000",
-        "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "3"
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@mishap_3_sequence",
-      "relation": "HAS_PART",
-      "to": "@mishap_3_step_0"
-    },
-    {
-      "op": "set_relation",
-      "from": "@mishap_3_sequence",
-      "relation": "HAS_PART",
-      "to": "@mishap_3_step_1"
-    },
-    {
-      "op": "create_entity",
-      "type": "NoEffect",
-      "as": "@no_permanent_effect",
-      "properties": {
-        "name": "no_permanent_effect",
-        "source_section": "Injuries",
-        "source_quote": "| 6 | Lightly injured. No permanent effect. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "6"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "RollableTable",
-      "as": "@mishap_table",
-      "properties": {
-        "name": "survival_mishaps",
-        "dice": "@d1d6",
-        "source_section": "Survival",
-        "source_quote": "| 1D6 | Mishaps |",
-        "source_kind": "table",
-        "source_table": "1D6"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "TableEntry",
-      "as": "@mishap_row_2",
-      "properties": {
-        "name": "mishap_row_2",
-        "roll_min": 2,
-        "roll_max": 2,
-        "outcome": "@end_career",
-        "source_section": "Survival",
-        "source_quote": "| 2 | Honorably discharged from the service. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "2"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "TableEntry",
-      "as": "@mishap_row_3",
-      "properties": {
-        "name": "mishap_row_3",
-        "roll_min": 3,
-        "roll_max": 3,
-        "outcome": "@mishap_3_sequence",
-        "source_section": "Survival",
-        "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "3"
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@mishap_table",
-      "relation": "HAS_PART",
-      "to": "@mishap_row_2"
-    },
-    {
-      "op": "set_relation",
-      "from": "@mishap_table",
-      "relation": "HAS_PART",
-      "to": "@mishap_row_3"
-    },
-    {
-      "op": "create_entity",
-      "type": "RollableTable",
-      "as": "@injury_table",
-      "properties": {
-        "name": "injuries",
-        "dice": "@d1d6",
-        "source_section": "Injuries",
-        "source_quote": "| 1D6 | Injury |",
-        "source_kind": "table",
-        "source_table": "1D6"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "TableEntry",
-      "as": "@injury_row_6",
-      "properties": {
-        "name": "injury_row_6",
-        "roll_min": 6,
-        "roll_max": 6,
-        "outcome": "@no_permanent_effect",
-        "source_section": "Injuries",
-        "source_quote": "| 6 | Lightly injured. No permanent effect. |",
-        "source_kind": "row",
-        "source_table": "1D6",
-        "source_row": "6"
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@injury_table",
-      "relation": "HAS_PART",
-      "to": "@injury_row_6"
-    },
-    {
-      "op": "create_entity",
-      "type": "LookupTable",
-      "as": "@law_table",
-      "properties": {
-        "name": "base_difficulty_by_law_level",
-        "entry_type": "DifficultyEntry",
-        "source_file": "book1/skills.md",
-        "source_section": "Local Law Level",
-        "source_quote": "| Law Level | Difficulty |",
-        "source_kind": "table",
-        "source_table": "Law Level"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "DifficultyEntry",
-      "as": "@law_row_0",
-      "properties": {
-        "name": "law_row_0",
-        "key_min": 0,
-        "key_max": 0,
-        "difficulty_name": "Routine",
-        "difficulty_modifier": 2,
-        "source_file": "book1/skills.md",
-        "source_section": "Local Law Level",
-        "source_quote": "| 0 | Routine (DM+2) |",
-        "source_kind": "row",
-        "source_table": "Law Level",
-        "source_row": "0"
-      }
-    },
-    {
-      "op": "create_entity",
-      "type": "DifficultyEntry",
-      "as": "@law_row_1_3",
-      "properties": {
-        "name": "law_row_1_3",
-        "key_min": 1,
-        "key_max": 3,
-        "difficulty_name": "Average",
-        "difficulty_modifier": 0,
-        "source_file": "book1/skills.md",
-        "source_section": "Local Law Level",
-        "source_quote": "| 1-3 | Average (DM+0) |",
-        "source_kind": "row",
-        "source_table": "Law Level",
-        "source_row": "1-3"
-      }
-    },
-    {
-      "op": "set_relation",
-      "from": "@law_table",
-      "relation": "HAS_PART",
-      "to": "@law_row_0"
-    },
-    {
-      "op": "set_relation",
-      "from": "@law_table",
-      "relation": "HAS_PART",
-      "to": "@law_row_1_3"
-    }
-  ]
+  {
+   "op": "create_entity",
+   "type": "Currency",
+   "as": "@credits",
+   "properties": {
+    "name": "Credits",
+    "source_section": "Injury Crisis",
+    "source_quote": "he can pay 1D6\u00d710,000 Credits for medical care"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "EndCareer",
+   "as": "@end_career",
+   "properties": {
+    "name": "leave_service_after_mishap",
+    "source_section": "Survival",
+    "source_quote": "This mishap is always enough to force you to leave the service after half a term, or two years of service."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "GainFixedMoney",
+   "as": "@debt_10000",
+   "properties": {
+    "name": "debt_10000",
+    "currency": "@credits",
+    "amount": -10000,
+    "source_section": "Survival",
+    "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "3"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "OutcomeSequence",
+   "as": "@mishap_3_sequence",
+   "properties": {
+    "name": "mishap_3_consequences",
+    "source_section": "Survival",
+    "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "3"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "OutcomeStep",
+   "as": "@mishap_3_step_0",
+   "properties": {
+    "name": "mishap_3_end_career",
+    "step_index": 0,
+    "outcome": "@end_career",
+    "source_section": "Survival",
+    "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "3"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "OutcomeStep",
+   "as": "@mishap_3_step_1",
+   "properties": {
+    "name": "mishap_3_add_debt",
+    "step_index": 1,
+    "outcome": "@debt_10000",
+    "source_section": "Survival",
+    "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "3"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@mishap_3_sequence",
+   "relation": "HAS_PART",
+   "to": "@mishap_3_step_0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@mishap_3_sequence",
+   "relation": "HAS_PART",
+   "to": "@mishap_3_step_1"
+  },
+  {
+   "op": "create_entity",
+   "type": "NoEffect",
+   "as": "@no_permanent_effect",
+   "properties": {
+    "name": "no_permanent_effect",
+    "source_section": "Injuries",
+    "source_quote": "| 6 | Lightly injured. No permanent effect. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "6"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollableTable",
+   "as": "@mishap_table",
+   "properties": {
+    "name": "survival_mishaps",
+    "dice": "@d1d6",
+    "source_section": "Survival",
+    "source_quote": "| 1D6 | Mishaps |",
+    "source_kind": "table",
+    "source_table": "1D6"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TableEntry",
+   "as": "@mishap_row_2",
+   "properties": {
+    "name": "mishap_row_2",
+    "roll_min": 2,
+    "roll_max": 2,
+    "outcome": "@end_career",
+    "source_section": "Survival",
+    "source_quote": "| 2 | Honorably discharged from the service. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "2"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TableEntry",
+   "as": "@mishap_row_3",
+   "properties": {
+    "name": "mishap_row_3",
+    "roll_min": 3,
+    "roll_max": 3,
+    "outcome": "@mishap_3_sequence",
+    "source_section": "Survival",
+    "source_quote": "| 3 | Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "3"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@mishap_table",
+   "relation": "HAS_PART",
+   "to": "@mishap_row_2"
+  },
+  {
+   "op": "set_relation",
+   "from": "@mishap_table",
+   "relation": "HAS_PART",
+   "to": "@mishap_row_3"
+  },
+  {
+   "op": "create_entity",
+   "type": "RollableTable",
+   "as": "@injury_table",
+   "properties": {
+    "name": "injuries",
+    "dice": "@d1d6",
+    "source_section": "Injuries",
+    "source_quote": "| 1D6 | Injury |",
+    "source_kind": "table",
+    "source_table": "1D6"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TableEntry",
+   "as": "@injury_row_6",
+   "properties": {
+    "name": "injury_row_6",
+    "roll_min": 6,
+    "roll_max": 6,
+    "outcome": "@no_permanent_effect",
+    "source_section": "Injuries",
+    "source_quote": "| 6 | Lightly injured. No permanent effect. |",
+    "source_kind": "row",
+    "source_table": "1D6",
+    "source_row": "6"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_table",
+   "relation": "HAS_PART",
+   "to": "@injury_row_6"
+  },
+  {
+   "op": "create_entity",
+   "type": "LookupTable",
+   "as": "@law_table",
+   "properties": {
+    "name": "base_difficulty_by_law_level",
+    "entry_type": "DifficultyEntry",
+    "source_file": "book1/skills.md",
+    "source_section": "Local Law Level",
+    "source_quote": "| Law Level | Difficulty |",
+    "source_kind": "table",
+    "source_table": "Law Level"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "DifficultyEntry",
+   "as": "@law_row_0",
+   "properties": {
+    "name": "law_row_0",
+    "key_min": 0,
+    "key_max": 0,
+    "difficulty_name": "Routine",
+    "difficulty_modifier": 2,
+    "source_file": "book1/skills.md",
+    "source_section": "Local Law Level",
+    "source_quote": "| 0 | Routine (DM+2) |",
+    "source_kind": "row",
+    "source_table": "Law Level",
+    "source_row": "0"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "DifficultyEntry",
+   "as": "@law_row_1_3",
+   "properties": {
+    "name": "law_row_1_3",
+    "key_min": 1,
+    "key_max": 3,
+    "difficulty_name": "Average",
+    "difficulty_modifier": 0,
+    "source_file": "book1/skills.md",
+    "source_section": "Local Law Level",
+    "source_quote": "| 1-3 | Average (DM+0) |",
+    "source_kind": "row",
+    "source_table": "Law Level",
+    "source_row": "1-3"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@law_table",
+   "relation": "HAS_PART",
+   "to": "@law_row_0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@law_table",
+   "relation": "HAS_PART",
+   "to": "@law_row_1_3"
+  }
+ ]
 }
