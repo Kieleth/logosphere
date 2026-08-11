@@ -67,9 +67,38 @@ segment's top is a **vector**.
 Predicts what was measured — the angled branches are the taut ones, the upright
 trunk chain is fine, and worst case scales with tilt rather than being uniform.
 
-**Status:** root cause identified, not yet fixed. Confirming rung is a trunk
-with one branch at 0° (must read 1.0) and the same at 45° (must be strained by
-exactly the predicted horizontal offset).
+**Status: THAT ROOT CAUSE IS WRONG.** See G1b. The RED is real, the
+explanation was not.
+
+### G1b — the placement is exonerated · 2026-08-10
+
+`test_branch_placement_ladder`, rung 1: upright trunk, one branch. Under G1's
+explanation every angle must read 1.000. Measured 0.7454 / 0.8189 / 0.8819 /
+0.9326 — red on the one case the theory said was clean.
+
+Hand-worked, parent half 1.0, child half 0.5:
+
+```
+                        elev 0    15      30      45
+placed centre distance  1.1180  1.2283  1.3229  1.3990
+unrotated rest (flat)   1.5000  1.5000  1.5000  1.5000  -> 0.7454 0.8189 0.8819 0.9326
+rotated rest            1.1180  1.2283  1.3229  1.3990  -> 1.0000 1.0000 1.0000 1.0000
+```
+
+The unrotated column reproduces the measurement to four decimals. **Placement
+is correct at every angle**; rung 1 was red because the TEST used the wrong
+rest formula.
+
+Consequence: `1fc74be`, filed as a failed experiment, was the correct fix.
+
+The frame-zero RED survives the formula correction (mean 1.0628 -> 1.0821,
+worst 1.8116, 75 taut both ways), so the tree really is born strained and the
+cause is **not** single-branch placement. Next rungs: branch-off-branch, the
+root system, leaf attachment.
+
+**A test that defers to the code under test is not independent.** The audit
+inherited the tear law's rest formula deliberately, to avoid "inventing its own
+definition" — exactly backwards when that formula is the suspect.
 
 ### G2 — Mixed-frame branch offsets · FIXED · `ea67ad1`
 
