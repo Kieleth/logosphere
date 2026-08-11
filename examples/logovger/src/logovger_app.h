@@ -423,7 +423,14 @@ private:
         }
         // The prose is asked for AFTER the mechanics are on screen, so
         // nothing waits on the network. It slots in when it lands.
-        if (!beat_facts_.empty() && !suppress_beat_) {
+        //
+        // A step that asks several times is still ONE thing happening.
+        // Mustering out rolls four benefits, and narrating each drain
+        // told the same character's story four times over, each with
+        // the whole sheet to work from and nothing new to say. Wait
+        // for the step to finish, then tell it once, with everything.
+        if (!beat_facts_.empty() && !suppress_beat_ &&
+            !session_->mid_sequence()) {
             const auto kind = session_->finished() ? "ending"
                             : (beat_bad_ ? "refusal" : "term");
             narrate_beat(kind, session_->sheet().terms_served,

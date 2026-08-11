@@ -105,6 +105,14 @@ public:
     // Events since the last drain, for incremental display.
     std::vector<LifeEvent> drain();
 
+    // Is a step still part-way through itself? Training and mustering
+    // out ask several times before they are done, and each answer
+    // produces events. A caller that reacts to every drain reacts four
+    // times to one payout; this says "not yet".
+    bool mid_sequence() const {
+        return training_rolls_owed_ > 0 || benefit_rolls_owed_ > 0;
+    }
+
 private:
     using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
