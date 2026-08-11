@@ -61,9 +61,14 @@ public:
                         logosphere::dice::DiceService& dice)
         : kg_(kg), dice_(dice) {}
 
+    // dice_modifier is a DM applied to this roll only, folded into the
+    // table's own expression so the recorded dice fact shows the total
+    // that actually selected the row. Cepheus rolls aging as "2D6 with
+    // total terms as a negative DM"; the table itself is plain 2D6.
     RollableTableResult select(kg::EntityID table,
                                const std::string& dice_stream,
-                               const std::string& purpose) const;
+                               const std::string& purpose,
+                               int dice_modifier = 0) const;
 
 private:
     const kg::KGModule& kg_;

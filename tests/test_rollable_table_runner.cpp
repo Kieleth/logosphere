@@ -72,7 +72,101 @@ struct Fixture {
         world.createRelation(table, "HAS_PART", id);
         return id;
     }
+
+    // A band the book prints open-ended ("1+"): a roll_min, no
+    // roll_max at all, and roll_max_unbounded saying that is deliberate.
+    kg::EntityID open_row(int low, kg::EntityID outcome) {
+        const auto id = world.createEntity("TableEntry");
+        world.setProperty(id, "roll_min", std::to_string(low));
+        world.setProperty(id, "roll_max_unbounded", "true");
+        world.setProperty(id, "outcome", std::to_string(outcome));
+        world.createRelation(table, "HAS_PART", id);
+        return id;
+    }
 };
+
+// Cepheus writes the top of the aging table as "1+", with no upper
+// figure. Before roll_max_unbounded was honoured here the whole table
+// was unrollable: the missing roll_max failed as a malformed row.
+void an_open_ended_band_catches_every_total_above_it() {
+    Fixture f;
+    const auto low_outcome = f.outcome();
+    const auto open_outcome = f.outcome();
+    const auto low = f.row(1, 3, low_outcome);
+    const auto open = f.open_row(4, open_outcome);
+
+    rules::RollableTableRunner runner(f.world, f.dice);
+    const auto result = runner.select(f.table, "table", "fixture");
+    REQUIRE(result.ok(),
+            "an open-ended top band must be rollable: " + result.error);
+    const auto& selected = *result.selection;
+    const bool high = selected.roll().total >= 4;
+    REQUIRE(selected.row() == (high ? open : low) &&
+                selected.outcome() == (high ? open_outcome : low_outcome),
+            "every total at or above the open band's floor selects it");
+
+    // The control: unbounded is the only thing that excuses a missing
+    // roll_max. Without the flag the same row is still malformed, so a
+    // typo cannot quietly become an open band.
+    Fixture bare;
+    bare.row(1, 3, bare.outcome());
+    const auto broken = bare.world.createEntity("TableEntry");
+    bare.world.setProperty(broken, "roll_min", "4");
+    bare.world.setProperty(broken, "outcome",
+                           std::to_string(bare.outcome()));
+    bare.world.createRelation(bare.table, "HAS_PART", broken);
+    rules::RollableTableRunner bare_runner(bare.world, bare.dice);
+    const auto refused = bare_runner.select(bare.table, "table", "fixture");
+    REQUIRE(!refused.ok() &&
+                refused.error.find("roll_max") != std::string::npos,
+            "a row with no roll_max and no unbounded flag stays malformed");
+    REQUIRE(bare.dice.journal().empty(),
+            "the malformed table must be refused before any roll");
+}
+
+// Aging is "2D6 with total terms as a negative DM". The DM belongs to
+// the roll, not to the table, and coverage has to be validated against
+// the totals the modified roll can actually reach.
+void a_dice_modifier_shifts_both_the_roll_and_its_validation() {
+    Fixture f;
+    const auto below = f.outcome();
+    const auto above = f.outcome();
+    f.row(-2, 0, below);
+    f.row(1, 3, above);
+
+    rules::RollableTableRunner runner(f.world, f.dice);
+    const auto result = runner.select(f.table, "table", "fixture", -3);
+    REQUIRE(result.ok(),
+            "a table covering the shifted band must roll: " + result.error);
+    const auto total = result.selection->roll().total;
+    REQUIRE(total >= -2 && total <= 3,
+            "1D6-3 must land in -2..3, got " + std::to_string(total));
+    REQUIRE(result.selection->outcome() == (total <= 0 ? below : above),
+            "the modified total selects the row, not the bare dice");
+
+    // The control: the same table that is complete for an unmodified
+    // 1D6 is incomplete once a DM moves the band, and must be refused
+    // rather than rolled into a hole.
+    Fixture unshifted;
+    unshifted.row(1, 6, unshifted.outcome());
+    rules::RollableTableRunner unshifted_runner(unshifted.world,
+                                                unshifted.dice);
+    const auto refused =
+        unshifted_runner.select(unshifted.table, "table", "fixture", -3);
+    REQUIRE(!refused.ok() &&
+                refused.error.find("reachable total") != std::string::npos,
+            "a DM that can reach an uncovered total must be refused");
+    REQUIRE(unshifted.dice.journal().empty(),
+            "the incomplete table must be refused before any roll");
+
+    // And with no modifier that same table is fine, so the refusal
+    // above is the DM's doing and not a broken fixture.
+    Fixture plain;
+    plain.row(1, 6, plain.outcome());
+    rules::RollableTableRunner plain_runner(plain.world, plain.dice);
+    REQUIRE(plain_runner.select(plain.table, "table", "fixture").ok(),
+            "the unmodified roll still covers the same table");
+}
 
 void selection_records_the_roll_and_returns_the_exact_row_and_outcome() {
     Fixture f;
@@ -202,6 +296,8 @@ void a_pending_outcome_keeps_the_original_table_selection() {
 int main() {
     std::cout << "Rollable table runner\n";
     TEST(selection_records_the_roll_and_returns_the_exact_row_and_outcome);
+    TEST(an_open_ended_band_catches_every_total_above_it);
+    TEST(a_dice_modifier_shifts_both_the_roll_and_its_validation);
     TEST(the_complete_table_validates_before_any_roll_is_consumed);
     TEST(malformed_references_and_context_fail_loudly_without_a_roll);
     TEST(outcome_failure_reuses_the_same_selection_without_rerolling);

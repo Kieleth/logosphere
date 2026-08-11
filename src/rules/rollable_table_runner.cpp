@@ -52,12 +52,23 @@ bool read_rows(const kg::KGModule& world, EntityID table,
 
         Row row;
         row.id = part;
+        // A band the book writes open-ended ("1+", "8+") carries no
+        // roll_max at all, because the source prints no upper figure.
+        // roll_max_unbounded says so explicitly rather than letting a
+        // missing property mean two different things.
+        const bool unbounded =
+            world.getProperty(part, "roll_max_unbounded") == "true";
         if (!detail::parse_required_integer(
                 world.getProperty(part, "roll_min"), "roll_min", row.low,
-                error) ||
-            !detail::parse_required_integer(
-                world.getProperty(part, "roll_max"), "roll_max", row.high,
                 error)) {
+            error = "TableEntry " + std::to_string(part) + ": " + error;
+            return false;
+        }
+        if (unbounded) {
+            row.high = std::numeric_limits<int64_t>::max();
+        } else if (!detail::parse_required_integer(
+                       world.getProperty(part, "roll_max"), "roll_max",
+                       row.high, error)) {
             error = "TableEntry " + std::to_string(part) + ": " + error;
             return false;
         }
@@ -121,7 +132,7 @@ bool covers_every_reachable_total(
 
 RollableTableResult RollableTableRunner::select(
     EntityID table, const std::string& dice_stream,
-    const std::string& purpose) const {
+    const std::string& purpose, int dice_modifier) const {
     if (dice_stream.empty()) {
         return failure("RollableTable selection requires a dice stream");
     }
@@ -144,6 +155,20 @@ RollableTableResult RollableTableRunner::select(
             kg_, table, "dice", expression, error)) {
         return failure(std::move(error));
     }
+    // The caller's modifier folds into the expression, so the recorded
+    // dice fact carries the DM that produced the row rather than the
+    // bare table dice. Coverage is then validated against the totals
+    // this roll can actually reach, not the unmodified ones: aging is
+    // "2D6 minus total terms", and at seven terms the reachable band
+    // is -5..5, which is a different question from 2..12.
+    const int64_t combined =
+        static_cast<int64_t>(expression.modifier) + dice_modifier;
+    if (combined < std::numeric_limits<int>::min() ||
+        combined > std::numeric_limits<int>::max()) {
+        return failure("dice modifier overflows the table's expression");
+    }
+    expression.modifier = static_cast<int>(combined);
+
     std::vector<Row> rows;
     if (!read_rows(kg_, table, rows, error) ||
         !covers_every_reachable_total(rows, expression, error)) {
