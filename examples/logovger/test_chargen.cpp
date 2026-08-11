@@ -572,9 +572,18 @@ void test_skill_table_dice_data_drives_selection() {
           "Agent has a skills and training RollableTable");
     if (table == kg::INVALID_ENTITY) return;
 
-    const auto dice_ref = world.getProperty(table, "dice");
-    const auto dice_id = static_cast<kg::EntityID>(std::stoul(dice_ref));
-    world.setProperty(dice_id, "dice_modifier", "6");
+    // Point this table at DIFFERENT dice rather than editing the ones
+    // it shares. One seed owns "1D6" and every table in the book
+    // references it, so mutating that entity changes the benefit
+    // tables too and they stop covering their own rows. Swapping the
+    // reference is also the truer test: it proves the table's dice
+    // slot drives selection.
+    const auto shifted = world.createEntity("DiceExpression");
+    world.setProperty(shifted, "name", "1D6+6 (test)");
+    world.setProperty(shifted, "dice_count", "1");
+    world.setProperty(shifted, "dice_sides", "6");
+    world.setProperty(shifted, "dice_modifier", "6");
+    world.setProperty(table, "dice", std::to_string(shifted));
     for (const auto row : world.getRelated(table, "HAS_PART")) {
         world.setProperty(
             row, "roll_min",

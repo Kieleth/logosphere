@@ -35,6 +35,9 @@ make_chargen_procedure_registry() {
     // Two of the three outcomes are not the player's to choose.
     add("roll_reenlistment", {"forced", "must_leave", "may_choose"});
     add("choose_term_end", {"continue", "muster_out"});
+    // Benefits taken, the character is free to look for another
+    // career or to stop.
+    add("muster_out", {"continue"});
     add("finish_character");
     return registry;
 }

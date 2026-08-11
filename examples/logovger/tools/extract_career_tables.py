@@ -347,6 +347,18 @@ def main():
                 # The training rule owns which tables a career offers,
                 # for the same reason the throw rules do: a career is
                 # created by an earlier seed and cannot be written to.
+                if title in CASH_TABLES or title in MATERIAL_TABLES:
+                    brow = f"@benefit_opt_{slug(canonical[career])}_{slug(title)}"
+                    bsection, bquote = TABLE_CITATIONS["benefit"]
+                    builder.add("CareerTableEntry", brow, dict(
+                        name=f"{title} for {canonical[career]}",
+                        subject=f"@@Career:{canonical[career]}",
+                        rollable_table=f"@{tag}",
+                        source_file=CHAPTER, source_section=bsection,
+                        source_kind="sentence", source_quote=bquote))
+                    builder.ops.append({"op": "set_relation",
+                                        "from": "@benefit_tables",
+                                        "relation": "HAS_PART", "to": brow})
                 if title in SKILL_TABLES:
                     row = f"@training_opt_{slug(canonical[career])}_{slug(title)}"
                     builder.add("CareerTableEntry", row, dict(
@@ -520,6 +532,15 @@ def main():
         builder.ops.append({"op": "set_relation", "from": "@training_tables",
                             "relation": "HAS_PART", "to": row})
 
+    section, quote = TABLE_CITATIONS["benefit"]
+    builder.ops.insert(0, {
+        "op": "create_entity", "type": "SubjectLookupTable",
+        "as": "@benefit_tables",
+        "properties": dict(
+            name="benefit table by career",
+            source_file=CHAPTER, source_section=section,
+            source_kind="sentence", source_quote=quote)})
+
     section, quote = TABLE_CITATIONS["rank"]
     builder.ops.insert(0, {
         "op": "create_entity", "type": "SubjectLookupTable",
@@ -574,9 +595,11 @@ def main():
         # is what turns that silence into a failure.
         "invariants": {"count_of_type": {
                            "CareerThrowEntry": counts["check"],
-                           "CareerTableEntry": counts["skill_table"] + 24,
+                           "CareerTableEntry": counts["skill_table"] + 24 +
+                                               counts["cash"] +
+                                               counts["material"],
                            "CareerTrackEntry": counts["rank"],
-                           "SubjectLookupTable": 5,
+                           "SubjectLookupTable": 6,
                            "ProgressionTrack": counts["rank"]},
                        "unique_name_per_type": ["RollableTable", "TaskCheck",
                                                 "ProgressionTrack",

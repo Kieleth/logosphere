@@ -7,8 +7,8 @@
  "invariants": {
   "count_of_type": {
    "Procedure": 1,
-   "ProcedureStep": 13,
-   "StepRoute": 9
+   "ProcedureStep": 14,
+   "StepRoute": 10
   },
   "unique_name_per_type": [
    "Procedure",
@@ -119,7 +119,7 @@
    "as": "@finish_character",
    "properties": {
     "name": "finish_character",
-    "step_index": "11",
+    "step_index": "12",
     "primitive_ref": "finish_character",
     "source_section": "Character Creation Checklist",
     "source_quote": "If you wish to leave this career, go to step 10."
@@ -131,7 +131,7 @@
    "as": "@draft_or_drifter",
    "properties": {
     "name": "draft or drifter",
-    "step_index": "12",
+    "step_index": "13",
     "primitive_ref": "draft_or_drifter",
     "source_file": "book1/character-creation.md",
     "source_section": "Qualifying and the Draft",
@@ -159,6 +159,27 @@
    "from": "@basic_chargen",
    "relation": "HAS_PART",
    "to": "@basic_training"
+  },
+  {
+   "op": "create_entity",
+   "type": "ProcedureStep",
+   "as": "@roll_benefits",
+   "properties": {
+    "name": "muster_out",
+    "step_index": "11",
+    "primitive_ref": "muster_out",
+    "subject_table": "@@SubjectLookupTable:benefit table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@basic_chargen",
+   "relation": "HAS_PART",
+   "to": "@roll_benefits"
   },
   {
    "op": "create_entity",
@@ -205,7 +226,7 @@
    "properties": {
     "name": "muster_out",
     "route_label": "muster_out",
-    "next_step": "@choose_career",
+    "next_step": "@roll_benefits",
     "source_section": "Character Creation Checklist",
     "source_quote": "If you're leaving your current career and your total number of terms in character creation is less than seven, you may go to step 3 to choose a new career or to step 12 if you wish to finish your character.",
     "source_kind": "sentence",
@@ -378,7 +399,7 @@
    "properties": {
     "name": "refused re-enlistment",
     "route_label": "must_leave",
-    "next_step": "@choose_career",
+    "next_step": "@roll_benefits",
     "source_file": "book1/character-creation.md",
     "source_section": "Reenlistment and Retirement",
     "source_kind": "sentence",
@@ -452,6 +473,26 @@
    "from": "@basic_chargen",
    "relation": "HAS_PART",
    "to": "@roll_advancement"
+  },
+  {
+   "op": "create_entity",
+   "type": "StepRoute",
+   "as": "@after_benefits",
+   "properties": {
+    "name": "benefits taken",
+    "route_label": "continue",
+    "next_step": "@choose_career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@roll_benefits",
+   "relation": "HAS_PART",
+   "to": "@after_benefits"
   }
  ]
 }

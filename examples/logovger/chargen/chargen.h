@@ -62,6 +62,8 @@ struct CharacterSheet {
     // and only commissioned characters ever leave it.
     int          rank = 0;
     std::string  rank_title;
+    long long    credits = 0;
+    std::vector<std::string> possessions;
 };
 
 // One option at a decision point. `key` is what the player types.
@@ -120,6 +122,7 @@ private:
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
     PrimitiveResult basic_training(const PrimitiveContext& context);
+    PrimitiveResult muster_out(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
@@ -140,6 +143,10 @@ private:
     // for each promotion, plus one more when the career offers no
     // promotion at all. The book counts them; this is that count.
     int                              training_rolls_owed_ = 0;
+    // Benefit rolls still to take on leaving a career, and how many of
+    // them may still be taken as cash.
+    int                              benefit_rolls_owed_ = 0;
+    int                              cash_rolls_left_ = 0;
     size_t                           drained_ = 0;
     std::string                      turned_away_from_;
 };

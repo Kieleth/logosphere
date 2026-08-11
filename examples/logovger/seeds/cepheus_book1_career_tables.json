@@ -7,9 +7,9 @@
  "invariants": {
   "count_of_type": {
    "CareerThrowEntry": 58,
-   "CareerTableEntry": 96,
+   "CareerTableEntry": 144,
    "CareerTrackEntry": 24,
-   "SubjectLookupTable": 5,
+   "SubjectLookupTable": 6,
    "ProgressionTrack": 24
   },
   "unique_name_per_type": [
@@ -175,6 +175,18 @@
     "source_section": "Commission and Advancement",
     "source_kind": "sentence",
     "source_quote": "You also get any benefits listed for your new rank."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SubjectLookupTable",
+   "as": "@benefit_tables",
+   "properties": {
+    "name": "benefit table by career",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
   },
   {
@@ -1438,6 +1450,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_athlete_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Athlete",
+    "subject": "@@Career:Athlete",
+    "rollable_table": "@athlete_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_athlete_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@athlete_material_benefits_e1",
    "properties": {
@@ -1730,6 +1762,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_aerospace_defense_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "rollable_table": "@aerospace_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_aerospace_defense_material_benefits"
   },
   {
    "op": "create_entity",
@@ -2028,6 +2080,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_agent_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Agent",
+    "subject": "@@Career:Agent",
+    "rollable_table": "@agent_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_agent_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@agent_material_benefits_e1",
    "properties": {
@@ -2319,6 +2391,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_barbarian_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "rollable_table": "@barbarian_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_barbarian_material_benefits"
   },
   {
    "op": "create_entity",
@@ -2616,6 +2708,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_belter_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Belter",
+    "subject": "@@Career:Belter",
+    "rollable_table": "@belter_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_belter_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@belter_material_benefits_e1",
    "properties": {
@@ -2909,6 +3021,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_bureaucrat_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "rollable_table": "@bureaucrat_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_bureaucrat_material_benefits"
   },
   {
    "op": "create_entity",
@@ -3212,6 +3344,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_athlete_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Athlete",
+    "subject": "@@Career:Athlete",
+    "rollable_table": "@athlete_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_athlete_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@athlete_cash_benefits_e1",
    "properties": {
@@ -3509,6 +3661,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_aerospace_defense_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Aerospace Defense",
+    "subject": "@@Career:Aerospace Defense",
+    "rollable_table": "@aerospace_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_aerospace_defense_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -3812,6 +3984,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_agent_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Agent",
+    "subject": "@@Career:Agent",
+    "rollable_table": "@agent_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_agent_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@agent_cash_benefits_e1",
    "properties": {
@@ -4109,6 +4301,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_barbarian_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Barbarian",
+    "subject": "@@Career:Barbarian",
+    "rollable_table": "@barbarian_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_barbarian_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -4412,6 +4624,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_belter_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Belter",
+    "subject": "@@Career:Belter",
+    "rollable_table": "@belter_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_belter_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@belter_cash_benefits_e1",
    "properties": {
@@ -4709,6 +4941,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_bureaucrat_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Bureaucrat",
+    "subject": "@@Career:Bureaucrat",
+    "rollable_table": "@bureaucrat_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_bureaucrat_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -10952,6 +11204,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_colonist_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Colonist",
+    "subject": "@@Career:Colonist",
+    "rollable_table": "@colonist_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_colonist_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@colonist_material_benefits_e1",
    "properties": {
@@ -11247,6 +11519,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_diplomat_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "rollable_table": "@diplomat_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_diplomat_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@diplomat_material_benefits_e1",
    "properties": {
@@ -11537,6 +11829,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_drifter_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Drifter",
+    "subject": "@@Career:Drifter",
+    "rollable_table": "@drifter_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_drifter_material_benefits"
   },
   {
    "op": "create_entity",
@@ -11834,6 +12146,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_entertainer_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "rollable_table": "@entertainer_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_entertainer_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@entertainer_material_benefits_e1",
    "properties": {
@@ -12125,6 +12457,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_hunter_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Hunter",
+    "subject": "@@Career:Hunter",
+    "rollable_table": "@hunter_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_hunter_material_benefits"
   },
   {
    "op": "create_entity",
@@ -12420,6 +12772,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_marine_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Marine",
+    "subject": "@@Career:Marine",
+    "rollable_table": "@marine_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_marine_material_benefits"
   },
   {
    "op": "create_entity",
@@ -12723,6 +13095,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_colonist_cost_benefits",
+   "properties": {
+    "name": "Cost Benefits for Colonist",
+    "subject": "@@Career:Colonist",
+    "rollable_table": "@colonist_cost_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_colonist_cost_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@colonist_cost_benefits_e1",
    "properties": {
@@ -13020,6 +13412,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_diplomat_cost_benefits",
+   "properties": {
+    "name": "Cost Benefits for Diplomat",
+    "subject": "@@Career:Diplomat",
+    "rollable_table": "@diplomat_cost_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_diplomat_cost_benefits"
   },
   {
    "op": "create_entity",
@@ -13323,6 +13735,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_drifter_cost_benefits",
+   "properties": {
+    "name": "Cost Benefits for Drifter",
+    "subject": "@@Career:Drifter",
+    "rollable_table": "@drifter_cost_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_drifter_cost_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@drifter_cost_benefits_e1",
    "properties": {
@@ -13620,6 +14052,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_entertainer_cost_benefits",
+   "properties": {
+    "name": "Cost Benefits for Entertainer",
+    "subject": "@@Career:Entertainer",
+    "rollable_table": "@entertainer_cost_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_entertainer_cost_benefits"
   },
   {
    "op": "create_entity",
@@ -13923,6 +14375,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_hunter_cost_benefits",
+   "properties": {
+    "name": "Cost Benefits for Hunter",
+    "subject": "@@Career:Hunter",
+    "rollable_table": "@hunter_cost_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_hunter_cost_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@hunter_cost_benefits_e1",
    "properties": {
@@ -14220,6 +14692,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_marine_cost_benefits",
+   "properties": {
+    "name": "Cost Benefits for Marine",
+    "subject": "@@Career:Marine",
+    "rollable_table": "@marine_cost_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_marine_cost_benefits"
   },
   {
    "op": "create_entity",
@@ -21102,6 +21594,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_maritime_defense_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "rollable_table": "@maritime_defense_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_maritime_defense_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@maritime_defense_material_benefits_e1",
    "properties": {
@@ -21395,6 +21907,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_mercenary_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "rollable_table": "@mercenary_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_mercenary_material_benefits"
   },
   {
    "op": "create_entity",
@@ -21693,6 +22225,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_merchant_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Merchant",
+    "subject": "@@Career:Merchant",
+    "rollable_table": "@merchant_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_merchant_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@merchant_material_benefits_e1",
    "properties": {
@@ -21985,6 +22537,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_navy_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Navy",
+    "subject": "@@Career:Navy",
+    "rollable_table": "@navy_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_navy_material_benefits"
   },
   {
    "op": "create_entity",
@@ -22284,6 +22856,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_noble_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Noble",
+    "subject": "@@Career:Noble",
+    "rollable_table": "@noble_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_noble_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@noble_material_benefits_e1",
    "properties": {
@@ -22577,6 +23169,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_physician_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Physician",
+    "subject": "@@Career:Physician",
+    "rollable_table": "@physician_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_physician_material_benefits"
   },
   {
    "op": "create_entity",
@@ -22880,6 +23492,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_maritime_defense_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Maritime Defense",
+    "subject": "@@Career:Maritime Defense",
+    "rollable_table": "@maritime_defense_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_maritime_defense_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@maritime_defense_cash_benefits_e1",
    "properties": {
@@ -23177,6 +23809,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_mercenary_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Mercenary",
+    "subject": "@@Career:Mercenary",
+    "rollable_table": "@mercenary_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_mercenary_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -23480,6 +24132,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_merchant_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Merchant",
+    "subject": "@@Career:Merchant",
+    "rollable_table": "@merchant_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_merchant_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@merchant_cash_benefits_e1",
    "properties": {
@@ -23777,6 +24449,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_navy_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Navy",
+    "subject": "@@Career:Navy",
+    "rollable_table": "@navy_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_navy_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -24080,6 +24772,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_noble_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Noble",
+    "subject": "@@Career:Noble",
+    "rollable_table": "@noble_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_noble_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@noble_cash_benefits_e1",
    "properties": {
@@ -24377,6 +25089,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_physician_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Physician",
+    "subject": "@@Career:Physician",
+    "rollable_table": "@physician_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_physician_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -31062,6 +31794,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_pirate_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Pirate",
+    "subject": "@@Career:Pirate",
+    "rollable_table": "@pirate_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_pirate_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@pirate_material_benefits_e1",
    "properties": {
@@ -31354,6 +32106,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_rogue_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Rogue",
+    "subject": "@@Career:Rogue",
+    "rollable_table": "@rogue_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_rogue_material_benefits"
   },
   {
    "op": "create_entity",
@@ -31653,6 +32425,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_scientist_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Scientist",
+    "subject": "@@Career:Scientist",
+    "rollable_table": "@scientist_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_scientist_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@scientist_material_benefits_e1",
    "properties": {
@@ -31943,6 +32735,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_scout_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Scout",
+    "subject": "@@Career:Scout",
+    "rollable_table": "@scout_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_scout_material_benefits"
   },
   {
    "op": "create_entity",
@@ -32241,6 +33053,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_surface_defense_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "rollable_table": "@surface_defense_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_surface_defense_material_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@surface_defense_material_benefits_e1",
    "properties": {
@@ -32534,6 +33366,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_technician_material_benefits",
+   "properties": {
+    "name": "Material Benefits for Technician",
+    "subject": "@@Career:Technician",
+    "rollable_table": "@technician_material_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_technician_material_benefits"
   },
   {
    "op": "create_entity",
@@ -32837,6 +33689,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_pirate_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Pirate",
+    "subject": "@@Career:Pirate",
+    "rollable_table": "@pirate_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_pirate_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@pirate_cash_benefits_e1",
    "properties": {
@@ -33134,6 +34006,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_rogue_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Rogue",
+    "subject": "@@Career:Rogue",
+    "rollable_table": "@rogue_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_rogue_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -33437,6 +34329,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_scientist_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Scientist",
+    "subject": "@@Career:Scientist",
+    "rollable_table": "@scientist_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_scientist_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@scientist_cash_benefits_e1",
    "properties": {
@@ -33734,6 +34646,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_scout_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Scout",
+    "subject": "@@Career:Scout",
+    "rollable_table": "@scout_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_scout_cash_benefits"
   },
   {
    "op": "create_entity",
@@ -34037,6 +34969,26 @@
   },
   {
    "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_surface_defense_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Surface Defense",
+    "subject": "@@Career:Surface Defense",
+    "rollable_table": "@surface_defense_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_surface_defense_cash_benefits"
+  },
+  {
+   "op": "create_entity",
    "type": "TableEntry",
    "as": "@surface_defense_cash_benefits_e1",
    "properties": {
@@ -34334,6 +35286,26 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "CareerTableEntry",
+   "as": "@benefit_opt_technician_cash_benefits",
+   "properties": {
+    "name": "Cash Benefits for Technician",
+    "subject": "@@Career:Technician",
+    "rollable_table": "@technician_cash_benefits",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@benefit_tables",
+   "relation": "HAS_PART",
+   "to": "@benefit_opt_technician_cash_benefits"
   },
   {
    "op": "create_entity",

@@ -27,6 +27,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   travel together: neither, or both. `TaskCheckRunner` throws unmodified
   checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
   a pointer that is null when there was nothing to look up.
+- **Logovger mustering out.** Leaving a career pays: one benefit roll per
+  term served, plus one at rank 4, two at 5 and three at 6, with at most
+  three taken as cash. `GainPossession` is now an outcome the executor
+  applies, so passages, weapons and ship shares are held in the graph with
+  their counts.
 - **Logovger basic training.** A first term in a first career grants every
   skill on the career's service table at level 0; a first term in a later
   career grants one of them, chosen. Both career entries route through it,

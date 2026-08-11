@@ -331,6 +331,9 @@ void ChargenSession::bind_primitives() {
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
     });
+    bind("muster_out", [this](const PrimitiveContext& context) {
+        return muster_out(context);
+    });
     bind("basic_training", [this](const PrimitiveContext& context) {
         return basic_training(context);
     });
@@ -753,8 +756,20 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     sheet_.life.push_back({term, "gained " + skill,
                            kg_.getProperty(chosen, "name"), skill_roll});
     // A promotion buys another roll, and so does a career with no
-    // hierarchy to climb. Stay on this step until they are spent.
-    if (--training_rolls_owed_ > 0) return roll_training(context);
+    // hierarchy to climb. Stay on this step until they are spent, and
+    // ASK again rather than re-reading the answer already given.
+    if (--training_rolls_owed_ > 0) {
+        choices_.clear();
+        for (size_t i = 0; i < options.size(); ++i) {
+            choices_.push_back({std::to_string(i + 1),
+                                kg_.getProperty(options[i], "name"),
+                                "roll 1D6 on it"});
+        }
+        prompt_ = "Term " + std::to_string(term) + ": " +
+                  std::to_string(training_rolls_owed_) +
+                  " more training roll(s). Which table?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
     return PrimitiveResult::advance();
 }
 
@@ -874,6 +889,130 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
     know_at_level_zero(kg_, sheet_.id, skills[index].first);
     sheet_.life.push_back({sheet_.terms_served, "basic training",
                            skills[index].second + " at level 0", 0});
+    return PrimitiveResult::advance();
+}
+
+// Step 10. "Characters who end their careers receive one benefit per
+// term served in which they did not lose benefits. An additional
+// benefit is gained if the character held rank O4, and two for rank
+// O5. A character with rank O6 gains three extra benefits." And: "Up
+// to 3 benefit rolls can be taken on the Cash table. All others must
+// be taken in material benefits."
+ChargenSession::PrimitiveResult ChargenSession::muster_out(
+    const PrimitiveContext& context) {
+    std::string error;
+    const auto tables = subject_rows(kg_, context.step, career_,
+                                     "rollable_table", error);
+    if (tables.empty()) {
+        return PrimitiveResult::failed("benefits: " + error);
+    }
+    // Which of the two is the cash table is read from its name. That
+    // is weaker than a typed slot and worth replacing if a third kind
+    // of benefit table ever appears; today the book prints two.
+    const auto is_cash = [this](kg::EntityID table) {
+        const std::string name = kg_.getProperty(table, "name");
+        return name.find("Cash Benefits") != std::string::npos ||
+               name.find("Cost Benefits") != std::string::npos;
+    };
+
+    if (benefit_rolls_owed_ == 0) {
+        benefit_rolls_owed_ = sheet_.terms_served;
+        if (sheet_.rank >= 6)      benefit_rolls_owed_ += 3;
+        else if (sheet_.rank == 5) benefit_rolls_owed_ += 2;
+        else if (sheet_.rank == 4) benefit_rolls_owed_ += 1;
+        cash_rolls_left_ = 3;
+        if (benefit_rolls_owed_ <= 0) {
+            sheet_.life.push_back({sheet_.terms_served, "no benefits",
+                                   "no term served in this career", 0});
+            return PrimitiveResult::advance();
+        }
+    }
+
+    if (!context.input) {
+        choices_.clear();
+        for (size_t i = 0; i < tables.size(); ++i) {
+            if (is_cash(tables[i]) && cash_rolls_left_ <= 0) continue;
+            choices_.push_back(
+                {std::to_string(i + 1), kg_.getProperty(tables[i], "name"),
+                 is_cash(tables[i])
+                     ? std::to_string(cash_rolls_left_) + " cash rolls left"
+                     : "goods, passages, ship shares"});
+        }
+        prompt_ = std::to_string(benefit_rolls_owed_) +
+                  " benefit roll(s) left: which table?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    const Choice* picked = find_choice(choices_, *context.input);
+    if (!picked) {
+        return PrimitiveResult::failed("'" + *context.input +
+                                       "' is not one of the tables");
+    }
+    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    choices_.clear();
+    if (index >= tables.size()) {
+        return PrimitiveResult::failed("no such benefit table");
+    }
+    const kg::EntityID chosen = tables[index];
+    if (is_cash(chosen) && cash_rolls_left_ <= 0) {
+        return PrimitiveResult::failed(
+            "the book allows at most three cash benefit rolls");
+    }
+
+    logosphere::rules::RollableTableRunner runner(kg_, dice_);
+    const auto selected = runner.select(chosen, "chargen", "benefits");
+    if (!selected.ok()) {
+        return PrimitiveResult::failed("benefit selection failed: " +
+                                       selected.error);
+    }
+    const auto outcome = selected.selection->outcome();
+    logosphere::rules::OutcomeExecutor executor(kg_, dice_);
+    const auto applied = executor.apply(
+        outcome, {sheet_.id, "chargen", "benefits"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        return PrimitiveResult::failed("benefit failed: " + applied.error);
+    }
+    std::string got = kg_.getProperty(outcome, "name");
+    const auto cut = got.rfind(": ");
+    if (cut != std::string::npos) got = got.substr(cut + 2);
+    sheet_.life.push_back({sheet_.terms_served, "mustering out: " + got,
+                           kg_.getProperty(chosen, "name"),
+                           selected.selection->roll().id});
+    if (is_cash(chosen)) --cash_rolls_left_;
+    if (--benefit_rolls_owed_ > 0) {
+        choices_.clear();
+        for (size_t i = 0; i < tables.size(); ++i) {
+            if (is_cash(tables[i]) && cash_rolls_left_ <= 0) continue;
+            choices_.push_back(
+                {std::to_string(i + 1), kg_.getProperty(tables[i], "name"),
+                 is_cash(tables[i])
+                     ? std::to_string(cash_rolls_left_) + " cash rolls left"
+                     : "goods, passages, ship shares"});
+        }
+        prompt_ = std::to_string(benefit_rolls_owed_) +
+                  " benefit roll(s) left: which table?";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+
+    // What the character walks away with, read back from the graph
+    // rather than accumulated alongside it.
+    sheet_.credits = 0;
+    sheet_.possessions.clear();
+    for (auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
+        const std::string type = kg_.getType(part);
+        if (type == "CurrencyBalance") {
+            const auto amount = kg_.getProperty(part, "balance_amount");
+            if (!amount.empty()) sheet_.credits += std::stoll(amount);
+        } else if (type == "PossessionHolding") {
+            const auto ref = kg_.getProperty(part, "possession");
+            const auto count = kg_.getProperty(part, "possession_count");
+            if (ref.empty()) continue;
+            const auto name = kg_.getProperty(
+                static_cast<kg::EntityID>(std::stoul(ref)), "name");
+            if (name.empty()) continue;
+            sheet_.possessions.push_back(
+                count.empty() || count == "1" ? name : count + "x " + name);
+        }
+    }
     return PrimitiveResult::advance();
 }
 
@@ -1133,6 +1272,14 @@ bool run_chargen(const ChargenRequest& request,
         // term, and an auto-player has no taste. It takes Service
         // Skills, which is the table this harness rolled before the
         // choice existed, so what it measures is unchanged.
+        // Benefits: the auto-player takes cash while the book allows
+        // it, then goods. A human weighs a weapon against money; this
+        // one just needs to be deterministic and to spend them all.
+        if (session.prompt().find("benefit roll(s) left") !=
+            std::string::npos) {
+            if (!session.choose(choices.front().key, error)) return false;
+            continue;
+        }
         // Reaching for rank costs nothing but the throw, so the
         // auto-player always tries. A human decides; this one has no
         // reason not to.
@@ -1163,6 +1310,17 @@ bool run_chargen(const ChargenRequest& request,
     if (!session.finished() && !session.choices().empty() &&
         session.choices().front().label == "Serve another term") {
         if (!session.choose("2", error)) return false;
+    }
+    // Leaving a career pays out, and that happens after the term loop
+    // has stopped counting terms. Spend every roll the book grants.
+    int benefit_guard = 0;
+    while (!session.finished() && !session.choices().empty() &&
+           session.prompt().find("benefit roll(s) left") !=
+               std::string::npos) {
+        if (++benefit_guard > 32) break;
+        if (!session.choose(session.choices().front().key, error)) {
+            return false;
+        }
     }
     if (!session.finished()) {
         const bool finish_offered = std::any_of(
