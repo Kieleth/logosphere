@@ -140,6 +140,11 @@ over this and dies when consumers migrate.
 Information layer: capacity-retained history with sequence cursors).
 Each event type has its own `EventChannel`.
 
+> **Full guide: [OBSERVING_CHANGE.md](OBSERVING_CHANGE.md)** — when to
+> use the bus, when to use `PlannedWorld`, why events are transactional
+> and what that rules out. Read it before writing an outcome handler
+> that reads a value and writes it back.
+
 ### Subscribing
 
 ```cpp
@@ -169,7 +174,10 @@ for (const auto& e : reader.drain()) {
 | `perception()` | `PerceptionEvent` | AI sense events |
 | `state_changes()` | `WorldEvent` | KG property mutations (via setProperty) |
 | `relations()` | `RelationEvent` | Topological changes (HAS_PART created/removed, etc.) |
-| `animation_contacts()` | `PhysicsContactEvent` | Animation-physics handoff |
+| `dice_rolls()` | `DiceRollEvent` | Engine-side rolls, as citable facts |
+| `transformations()` | `TransformationEvent` | A TransformationRule fired |
+| `volume()` | `VolumeEvent` | Medium entry/exit episodes |
+| `contact_filtered()` | `ContactFilteredEvent` | Pair excluded from narrow phase |
 
 `deaths()` means DEATHS: emit it when something the game considers
 alive stops being alive (DamageSystem does this on HP zero; Logotron

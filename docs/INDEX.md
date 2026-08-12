@@ -11,6 +11,7 @@ Read in order:
 
 - **[Getting Started](GETTING_STARTED.md)** — step-by-step tutorial with Eden as reference
 - **[Game Layer](GAME_LAYER.md)** — IApplication, ontology extension, event bus, capability rules, DynamicsParams override, particle interaction model
+- **[Observing Change](OBSERVING_CHANGE.md)** — the event bus and `PlannedWorld`: how to find out the world changed, or is about to. Which of the two to use, why events only ever describe committed facts, and the read-modify-write trap that silently loses data in outcome handlers
 - **[Knowledge Layer](KNOWLEDGE_LAYER.md)** — facets, queries, the event journal, history renderers, and the ops write-back loop: how any consumer (LLM director, AI, inspector, replay) reads meaning from the world
 - **[Ontology-native Rule Language](RULE_LANGUAGE.md)**: architecture contract for applications and games that store typed, executable rule programs in the KG
 
@@ -66,6 +67,7 @@ Each pattern is demonstrated by a dedicated test executable.
 | Damage → capability pipeline | `tests/test_damage_pipeline.cpp` |
 | Event bus subscription | `tests/test_damage_events.cpp` |
 | Event journal (ring, cursors, collect_since) | `tests/test_event_log.cpp` |
+| Reading an in-flight plan before it commits | `tests/test_planned_world.cpp` |
 | KG query algebra + facets | `tests/test_kg_query.cpp` |
 | Journal renderers (compact, state deltas) | `tests/test_journal_render.cpp` |
 | KG relation events | `tests/test_relation_events.cpp` |
