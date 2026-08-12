@@ -247,6 +247,125 @@ void test_a_life_is_generated() {
 // The honesty property that makes a session replayable and a referee
 // auditable: the same seed replays the same life, a different seed
 // does not.
+// "With the Referee's approval, you can keep the character that fails
+// a survival roll and roll on the Survival Mishaps table instead."
+//
+// The whole chain in one life: a missed survival throw, the referee's
+// call, a roll on the mishap table, and for two of its six rows a
+// further roll on the Injury table, which the executor asks for and
+// deliberately refuses to make itself.
+void test_a_mishap_is_taken_instead_of_dying() {
+    std::string why;
+    kg::KGModule world(game_registry());
+    // Once. Loading the same seeds into one world twice is refused, so
+    // calling it again just to test the result silently skipped this
+    // entire case: it reported one passing check and returned.
+    const bool loaded = build_world(world, why);
+    CHECK(loaded, "the mishap world loads: " + why);
+    if (!loaded) return;
+
+    const auto first_eligible =
+        [](const logosphere::rules::AttributeSelectionRequest& request,
+           std::vector<std::string>& chosen, std::string&) {
+            chosen.assign(request.eligible.begin(),
+                          request.eligible.begin() + request.count);
+            return true;
+        };
+
+    int lives = 0, mishaps = 0, injuries = 0;
+    uint64_t took_it = 0;
+    logovger::CharacterSheet marked;
+    for (uint64_t seed = 1; seed <= 200 && took_it == 0; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        req.attribute_selector = first_eligible;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        if (!logovger::run_chargen(req, world, dice, sheet, error)) continue;
+        ++lives;
+        bool had_mishap = false, had_injury = false;
+        for (const auto& event : sheet.life) {
+            if (event.what.rfind("mishap: ", 0) == 0) had_mishap = true;
+            if (event.what.rfind("Injury: ", 0) == 0) had_injury = true;
+        }
+        if (had_mishap) ++mishaps;
+        if (had_injury) { ++injuries; took_it = seed; marked = sheet; }
+    }
+    std::cout << "  [measure] " << lives << " lives, " << mishaps
+              << " took a mishap, " << injuries
+              << " reached the Injury table\n";
+
+    CHECK(mishaps > 0,
+          "some life survives a failed throw by taking the mishap");
+    CHECK(took_it != 0,
+          "some mishap chains to the Injury table; none did, so the "
+          "granted roll is unproven");
+    if (took_it == 0) return;
+
+    std::cout << "  [measure] seed " << took_it << ":\n"
+              << logovger::format_life(marked);
+
+    bool left = false, injured = false;
+    for (const auto& event : marked.life) {
+        if (event.what == "left the service" &&
+            event.detail.rfind("two years into the term", 0) == 0) {
+            left = true;
+        }
+        if (event.what.rfind("Injury: ", 0) == 0) injured = true;
+    }
+    CHECK(left, "the mishap ends the service two years into the term, not "
+                "at the end of it");
+    CHECK(injured, "and the Injury table was rolled and applied");
+
+    // Every link in the chain cites its roll, so a reader can follow
+    // the throw to the mishap to the injury.
+    bool citable = true;
+    size_t chain = 0;
+    for (const auto& event : marked.life) {
+        if (event.what.rfind("mishap: ", 0) != 0 &&
+            event.what.rfind("Injury: ", 0) != 0) {
+            continue;
+        }
+        ++chain;
+        if (event.roll_id == 0) citable = false;
+    }
+    CHECK(citable && chain >= 2,
+          "the mishap and the injury it caused each cite a roll (" +
+              std::to_string(chain) + " links)");
+
+    // The control: declining is still death, which is the book's
+    // default and the thing the optional rule is an exception to.
+    int declined = 0;
+    for (uint64_t seed = 1; seed <= 200 && declined == 0; ++seed) {
+        kg::KGModule solo(game_registry());
+        if (!build_world(solo, why)) continue;
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(solo, dice);
+        session.set_attribute_selector(first_eligible);
+        std::string error;
+        if (!session.begin(seed, error)) continue;
+        bool refused = false;
+        for (int guard = 0; guard < 300 && !session.finished(); ++guard) {
+            if (session.choices().empty()) break;
+            if (session.prompt().find("should have killed them") !=
+                std::string::npos) {
+                refused = true;
+                if (!session.choose("2", error)) break;
+                continue;
+            }
+            if (!session.choose(session.choices().front().key, error)) break;
+        }
+        if (refused && session.finished()) ++declined;
+    }
+    CHECK(declined > 0,
+          "declining the mishap still ends the character, which is what "
+          "the book does by default");
+    std::cout << "  [measure] the declined life ended, as the book has it\n";
+}
+
 // Aging is the first rule the book leaves half-open: it fixes how many
 // characteristics go and not which. The engine refuses to choose, so a
 // life that rolls a damaging row cannot finish unless someone answers.
@@ -1469,6 +1588,7 @@ int main() {
     std::cout << "Logovger chargen (a life, from the book, in the graph)"
               << std::endl;
     test_a_life_is_generated();
+    test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();

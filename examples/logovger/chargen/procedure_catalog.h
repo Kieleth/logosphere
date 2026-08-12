@@ -36,6 +36,10 @@ make_chargen_procedure_registry() {
     // decides whether to serve another. Aging only costs you
     // something, unless the crisis it can trigger goes unpaid.
     add("roll_aging", {"died"});
+    // A failed survival throw is death, unless the Referee allows the
+    // mishap table instead. Either way the career ends; what is in
+    // question is whether the character walks away from it.
+    add("survival_mishap", {"died"});
     // Two of the three outcomes are not the player's to choose.
     add("roll_reenlistment", {"forced", "must_leave", "may_choose"});
     add("choose_term_end", {"continue", "muster_out"});
