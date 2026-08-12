@@ -26,9 +26,19 @@ namespace logosphere::rules {
 
 enum class OutcomeStatus { APPLIED, PENDING_CHOICE, FAILED };
 
+// Which of several rolls counts, when a rule rolls a table more than
+// once. LOWEST and HIGHEST mean the lowest or highest dice TOTAL, not
+// the better or worse result: on Cepheus's Injury table 1 is the worst
+// outcome and 6 the mildest, so which end is kind is a fact about the
+// table rather than about the rule.
+enum class TableRollSelection { EACH, LOWEST, HIGHEST };
+
 struct TableRollRequest {
     kg::EntityID table = kg::INVALID_ENTITY;
     int roll_count = 0;
+    // Absent in the data means EACH: a bare "roll on the table" says
+    // nothing about picking between results.
+    TableRollSelection selection = TableRollSelection::EACH;
 };
 
 struct ProcedureSignal {
@@ -60,11 +70,28 @@ struct OutcomeContext {
     std::string purpose;
 };
 
+// A change the schema would not allow in full. Cepheus reduces
+// characteristics and the schema floors them at 0, so "reduce three
+// physical characteristics by 2" applied to someone already at 1 asks
+// for -1. Refusing the whole rule is wrong (the book has an answer for
+// exactly this: the aging crisis), and writing -1 is not allowed, so
+// the change lands at the floor and says it did.
+//
+// The engine stops there. What hitting the floor MEANS, dying unless
+// you can pay for medical care in Cepheus's case, is the game's rule.
+struct AttributeLimited {
+    kg::EntityID target = kg::INVALID_ENTITY;
+    std::string attribute;
+    int64_t requested = 0;   // what the rule asked for
+    int64_t applied = 0;     // what the schema allowed
+};
+
 struct OutcomePlan {
     std::vector<kg::KGOp> ops;
     std::vector<TableRollRequest> table_roll_requests;
     std::vector<ProcedureSignal> procedure_signals;
     std::vector<uint64_t> roll_ids;
+    std::vector<AttributeLimited> attributes_limited;
 };
 
 struct OutcomeHandlerContext {
@@ -87,6 +114,7 @@ struct OutcomeResult {
     std::vector<TableRollRequest> table_roll_requests;
     std::vector<ProcedureSignal> procedure_signals;
     std::vector<uint64_t> roll_ids;
+    std::vector<AttributeLimited> attributes_limited;
     std::optional<PendingChoice> pending_choice;
 };
 

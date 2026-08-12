@@ -514,6 +514,122 @@ void a_second_change_sees_what_the_first_one_took() {
                 g.world.getProperty(g.character, "strength"));
 }
 
+// A reduction past the schema floor is expected play, not malformed
+// data: Cepheus floors characteristics at 0 and then has a rule for
+// what reaching 0 means. So the change lands at the floor and says it
+// did, instead of refusing the whole rule and killing the run.
+void a_change_past_the_floor_lands_on_it_and_says_so() {
+    // The fixture's own character type has no bounds, so this needs a
+    // type that declares them, the way a real game's does.
+    kg::OntologyRegistry ontology = registry();
+    kg::OntologyRegistry bounded("schema://floor-test");
+    bounded.addEntityType("BoundedCharacter", "Entity", false);
+    bounded.addAncestors("BoundedCharacter", {"Entity", "Describable",
+                                              "Identifiable", "Temporal"});
+    bounded.addProperty("BoundedCharacter", "strength",
+                        kg::PropertyValueKind::Integer, false, true, 0.0,
+                        true, 15.0);
+    ontology.extend(bounded);
+
+    kg::KGModule world{ontology};
+    world.setMode(kg::KGMode::MINIMAL);
+    logosphere::dice::DiceService dice;
+    const auto who = world.createEntity("BoundedCharacter");
+    world.setProperty(who, "strength", "1");
+
+    rules::OutcomeExecutor executor(world, dice);
+    const auto out = world.createEntity("ModifyAttribute");
+    world.setProperty(out, "attribute_ref", "strength");
+    world.setProperty(out, "attribute_delta", "-3");
+
+    const auto result = executor.apply(out, {who, "floor-test", "aging"});
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "a reduction past the floor still applies: " + result.error);
+    REQUIRE(world.getProperty(who, "strength") == "0",
+            "it lands ON the floor, got " +
+                world.getProperty(who, "strength"));
+    REQUIRE(result.attributes_limited.size() == 1 &&
+                result.attributes_limited[0].attribute == "strength" &&
+                result.attributes_limited[0].requested == -2 &&
+                result.attributes_limited[0].applied == 0,
+            "and reports what was asked for versus what was allowed");
+
+    // The control: a change that fits reports nothing, so a game
+    // reacting to the report does not fire on ordinary damage.
+    kg::KGModule fine{ontology};
+    fine.setMode(kg::KGMode::MINIMAL);
+    logosphere::dice::DiceService fine_dice;
+    const auto healthy = fine.createEntity("BoundedCharacter");
+    fine.setProperty(healthy, "strength", "8");
+    rules::OutcomeExecutor fine_exec(fine, fine_dice);
+    const auto ok = fine.createEntity("ModifyAttribute");
+    fine.setProperty(ok, "attribute_ref", "strength");
+    fine.setProperty(ok, "attribute_delta", "-3");
+    const auto plain = fine_exec.apply(ok, {healthy, "floor-test", "aging"});
+    REQUIRE(plain.status == rules::OutcomeStatus::APPLIED &&
+                fine.getProperty(healthy, "strength") == "5" &&
+                plain.attributes_limited.empty(),
+            "an ordinary reduction is silent about limits");
+}
+
+// "Alternatively, roll twice on the Injury table and take the lower
+// result." Which of several rolls counts belongs to the rule, not to
+// whoever happens to run it, so it travels with the request.
+void rolling_twice_says_which_roll_counts() {
+    const auto request = [](Fixture& f, const char* count,
+                            const char* selection) {
+        const auto table = f.world.createEntity("RollableTable");
+        const auto id = outcome(f, "GrantTableRoll");
+        f.world.setProperty(id, "table", std::to_string(table));
+        if (count) f.world.setProperty(id, "roll_count", count);
+        if (selection) f.world.setProperty(id, "roll_selection", selection);
+        return id;
+    };
+
+    Fixture lower;
+    rules::OutcomeExecutor lower_exec(lower.world, lower.dice);
+    const auto got = lower_exec.apply(request(lower, "2", "LOWEST"),
+                                      lower.context());
+    REQUIRE(got.status == rules::OutcomeStatus::APPLIED,
+            "roll twice take lowest applies: " + got.error);
+    REQUIRE(got.table_roll_requests.size() == 1 &&
+                got.table_roll_requests[0].roll_count == 2 &&
+                got.table_roll_requests[0].selection ==
+                    rules::TableRollSelection::LOWEST,
+            "the request carries both the count and which roll counts");
+
+    // A bare instruction to roll says nothing about choosing, so every
+    // roll counts. Absent is EACH, exactly as absent count is one.
+    Fixture bare;
+    rules::OutcomeExecutor bare_exec(bare.world, bare.dice);
+    const auto plain = bare_exec.apply(request(bare, nullptr, nullptr),
+                                       bare.context());
+    REQUIRE(plain.status == rules::OutcomeStatus::APPLIED &&
+                plain.table_roll_requests[0].roll_count == 1 &&
+                plain.table_roll_requests[0].selection ==
+                    rules::TableRollSelection::EACH,
+            "a bare roll is one roll, and it counts");
+
+    // Refusals, so a typo cannot become a silent EACH and a rule
+    // cannot ask to choose between a single roll.
+    Fixture typo;
+    rules::OutcomeExecutor typo_exec(typo.world, typo.dice);
+    const auto refused = typo_exec.apply(request(typo, "2", "LOWER"),
+                                         typo.context());
+    REQUIRE(refused.status == rules::OutcomeStatus::FAILED &&
+                refused.error.find("roll_selection") != std::string::npos,
+            "an unknown roll_selection is refused, got: " + refused.error);
+
+    Fixture lonely;
+    rules::OutcomeExecutor lonely_exec(lonely.world, lonely.dice);
+    const auto nonsense = lonely_exec.apply(request(lonely, "1", "LOWEST"),
+                                            lonely.context());
+    REQUIRE(nonsense.status == rules::OutcomeStatus::FAILED &&
+                nonsense.error.find("more than one roll") !=
+                    std::string::npos,
+            "choosing between one roll is refused, got: " + nonsense.error);
+}
+
 // Dice say how much, never which way. The book prints "reduce one
 // physical characteristic by 1D6" with no minus sign, and a rule that
 // rolled a GAIN would print none either, so the engine must not infer
@@ -791,6 +907,8 @@ int main() {
     TEST(a_group_change_covering_everything_needs_no_selector);
     TEST(a_partial_group_change_requires_an_installed_selector);
     TEST(a_selector_cannot_widen_or_wander_outside_the_rule);
+    TEST(a_change_past_the_floor_lands_on_it_and_says_so);
+    TEST(rolling_twice_says_which_roll_counts);
     TEST(a_second_change_sees_what_the_first_one_took);
     TEST(a_rolled_delta_must_say_which_way_it_goes);
     TEST(an_absent_roll_count_means_one);

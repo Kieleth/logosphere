@@ -658,6 +658,17 @@ ChargenSession::PrimitiveResult ChargenSession::roll_qualification(
         return PrimitiveResult::failed(
             "roll_qualification has no selected career");
     }
+    // "The character automatically fails any Qualification checks from
+    // now on." A crisis survivor does not get to roll: the book says
+    // the check fails, not that it is made at a penalty, so no die is
+    // spent on it and none is cited.
+    if (kg_.getProperty(sheet_.id, "qualification_barred") == "true") {
+        sheet_.qualified = false;
+        sheet_.life.push_back(
+            {sheet_.terms_served, "turned away by " + sheet_.career,
+             "no service takes them after the crisis", 0});
+        return PrimitiveResult::advance("failed");
+    }
     TaskCheckReference check;
     std::string error;
     if (!task_check_reference(kg_, career_, "qualification_check", check,
@@ -1329,6 +1340,114 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
     return PrimitiveResult::advance();
 }
 
+
+// "If any characteristic is reduced to 0 by aging, then the character
+// suffers an aging crisis. The character dies unless he can pay
+// 1D6x10,000 Credits for medical care, which will bring any
+// characteristics back up to 1. The character automatically fails any
+// Qualification checks from now on."
+//
+// The book prints this rule twice, once under Aging and once under
+// Injuries, word for word apart from the cause. It is written once
+// here for the same reason.
+//
+// The price is rolled BEFORE the question, because the book prices the
+// care and then asks whether you can meet it. Someone who cannot pay
+// is not offered the choice: the book does not let you decline a bill
+// you could not have settled.
+ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
+    const char* cause) {
+    logosphere::dice::DiceExpression cost;
+    cost.count = 1;
+    cost.sides = 6;
+    cost.multiplier = 10000;
+    const auto price = dice_.roll(cost, "chargen", "medical care");
+    if (price.id == 0) {
+        return PrimitiveResult::failed("the crisis could not be priced");
+    }
+    crisis_price_ = price.total;
+    crisis_roll_ = price.id;
+    crisis_cause_ = cause;
+
+    std::vector<std::string> at_zero;
+    const auto zero = [&](const char* name, int value) {
+        if (value == 0) at_zero.push_back(name);
+    };
+    zero("Strength", sheet_.strength);
+    zero("Dexterity", sheet_.dexterity);
+    zero("Endurance", sheet_.endurance);
+    zero("Intelligence", sheet_.intelligence);
+    zero("Education", sheet_.education);
+    zero("Social Standing", sheet_.social_standing);
+    std::string ruined;
+    for (size_t i = 0; i < at_zero.size(); ++i) {
+        ruined += (i ? ", " : "") + at_zero[i];
+    }
+
+    sheet_.life.push_back(
+        {sheet_.terms_served, std::string(cause) + " crisis: " + ruined +
+                                  " gone",
+         "medical care costs Cr" + std::to_string(crisis_price_), price.id});
+
+    choices_.clear();
+    if (sheet_.credits >= crisis_price_) {
+        choices_.push_back({"1",
+                            "pay Cr" + std::to_string(crisis_price_) +
+                                " for medical care",
+                            "restored to 1, and you will never qualify "
+                            "for a new career again",
+                            kg::INVALID_ENTITY});
+    }
+    choices_.push_back({"2", "refuse the care", "the character dies here",
+                        kg::INVALID_ENTITY});
+    prompt_ = std::string(cause) + " has taken " + ruined +
+              " to nothing. Care costs Cr" + std::to_string(crisis_price_) +
+              "; you hold Cr" + std::to_string(sheet_.credits) +
+              (sheet_.credits >= crisis_price_
+                   ? "."
+                   : ", which is not enough.");
+    return PrimitiveResult::pending(prompt_, choices_);
+}
+
+ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
+    const std::string& answer) {
+    if (answer != "1") {
+        finish_reason_ = crisis_cause_ +
+                         " took a characteristic to nothing, and the "
+                         "care went unpaid.";
+        sheet_.life.push_back({sheet_.terms_served, "died of the " +
+                                                        crisis_cause_,
+                               "care unpaid", crisis_roll_});
+        return PrimitiveResult::advance("died");
+    }
+
+    sheet_.credits -= crisis_price_;
+    kg_.setProperty(sheet_.id, "credits", std::to_string(sheet_.credits));
+    // "which will bring any characteristics back up to 1"
+    const auto restore = [&](const char* slot, int& value) {
+        if (value != 0) return;
+        value = 1;
+        kg_.setProperty(sheet_.id, slot, "1");
+    };
+    restore("strength", sheet_.strength);
+    restore("dexterity", sheet_.dexterity);
+    restore("endurance", sheet_.endurance);
+    restore("intelligence", sheet_.intelligence);
+    restore("education", sheet_.education);
+    restore("social_standing", sheet_.social_standing);
+    read_characteristics(kg_, sheet_);
+
+    // Permanent, so it is a mark on the character rather than a
+    // modifier on one throw.
+    kg_.setProperty(sheet_.id, "qualification_barred", "true");
+    sheet_.life.push_back(
+        {sheet_.terms_served, "bought back from the " + crisis_cause_,
+         "Cr" + std::to_string(crisis_price_) +
+             " spent; no new career will ever take them",
+         crisis_roll_});
+    return PrimitiveResult::advance();
+}
+
 // Step 8. "The effects of aging begin when a character reaches 34
 // years of age. At the end of the fourth term, and at the end of every
 // term thereafter, the character must roll 2D6 on the Aging Table.
@@ -1346,7 +1465,10 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
 // apart deliberately: benefits are paid per career, this is paid by a
 // whole life.
 ChargenSession::PrimitiveResult ChargenSession::roll_aging(
-    const PrimitiveContext&) {
+    const PrimitiveContext& context) {
+    // The only question this step asks is the crisis, so an answer
+    // arriving here is an answer to that.
+    if (context.input) return resolve_crisis(*context.input);
     if (sheet_.terms_served < 4) return PrimitiveResult::advance();
 
     const auto table = find_named(kg_, "RollableTable", "Effects of Aging");
@@ -1393,6 +1515,12 @@ ChargenSession::PrimitiveResult ChargenSession::roll_aging(
                            toll.empty() ? "the years pass, unmarked"
                                         : "the years take " + toll,
                            detail.str(), roll.id});
+
+    // "If any characteristic is reduced to 0 by aging..."
+    const bool ruined = sheet_.strength == 0 || sheet_.dexterity == 0 ||
+                        sheet_.endurance == 0 || sheet_.intelligence == 0 ||
+                        sheet_.education == 0 || sheet_.social_standing == 0;
+    if (ruined) return begin_crisis("aging");
     return PrimitiveResult::advance();
 }
 

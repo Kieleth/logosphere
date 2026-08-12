@@ -682,6 +682,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Character", "age_years", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Character", "terms_served", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Character", "credits", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("Character", "qualification_barred", kg::PropertyValueKind::Boolean, false);
     reg.addProperty("Character", "strength", kg::PropertyValueKind::Integer, false, true, 0.0, true, 33.0);
     reg.addProperty("CharacteristicModifierEntry", "pseudohex_min", kg::PropertyValueKind::String, true);
     reg.addProperty("CharacteristicModifierEntry", "pseudohex_max", kg::PropertyValueKind::String, true);
@@ -777,6 +778,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("GainRolledMoney", "amount_dice", true, "DiceExpression");
     reg.addRefProperty("GrantTableRoll", "table", true, "RollableTable");
     reg.addProperty("GrantTableRoll", "roll_count", kg::PropertyValueKind::Integer, false, true, 1.0, false, 0.0);
+    reg.addProperty("GrantTableRoll", "roll_selection", kg::PropertyValueKind::String, false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Growable", "growth_iteration", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Growable", "is_mature", kg::PropertyValueKind::Boolean, false);

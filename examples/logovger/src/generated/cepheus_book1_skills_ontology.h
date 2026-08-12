@@ -2066,6 +2066,8 @@ struct GrantTableRoll : public Outcome {
     RollableTable table = {};
     /// How many extra rolls.
     std::optional<int32_t> roll_count = std::nullopt;
+    /// Which of several rolls on a table actually counts, when a rule rolls more than once. Cepheus: "roll twice on the Injury table and take the lower result." Permitted values are EACH, LOWEST and HIGHEST, and an ABSENT value means EACH, because a bare "roll on the table" says nothing about picking between results and the source prints nothing to store. LOWEST and HIGHEST name the lowest or highest dice TOTAL, not the better or worse result: on the Injury table 1 is the worst outcome and 6 the mildest, so which end is kind is a fact about the table, not about the rule.
+    std::optional<std::string> roll_selection = std::nullopt;
 };
 
 

@@ -423,6 +423,33 @@ bool plan_possession(const OutcomeHandlerContext& context, OutcomePlan& plan,
 
 // "Reduce two physical characteristics by 2": the book fixes the count
 // and the delta, and leaves which ones to whoever applies the rule.
+// A change the schema will not take in full lands at the boundary and
+// says so. Refusing the whole rule would be wrong: Cepheus floors
+// characteristics at 0 and then has a rule for reaching 0, so a
+// reduction past the floor is expected play, not malformed data.
+//
+// What it MEANS is the game's business, which is why this reports and
+// stops.
+int64_t clamp_to_schema(const OutcomeHandlerContext& context,
+                        OutcomePlan& plan, const std::string& property,
+                        int64_t wanted) {
+    const kg::PropertyDef* def = context.kg.getRegistry().findProperty(
+        context.kg.getType(context.target), property);
+    if (!def) return wanted;
+    int64_t applied = wanted;
+    if (def->has_min && static_cast<double>(applied) < def->min_value) {
+        applied = static_cast<int64_t>(def->min_value);
+    }
+    if (def->has_max && static_cast<double>(applied) > def->max_value) {
+        applied = static_cast<int64_t>(def->max_value);
+    }
+    if (applied != wanted) {
+        plan.attributes_limited.push_back(
+            {context.target, property, wanted, applied});
+    }
+    return applied;
+}
+
 bool plan_attributes_in_group(const OutcomeHandlerContext& context,
                               OutcomePlan& plan,
                               const AttributeSelector& selector,
@@ -594,6 +621,7 @@ bool plan_attributes_in_group(const OutcomeHandlerContext& context,
             error = "attribute arithmetic overflow";
             return false;
         }
+        next = clamp_to_schema(context, plan, property, next);
         plan.ops.emplace_back(kg::KGOpSetProperty{
             target, property, std::to_string(next)});
     }
@@ -799,6 +827,7 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
                 error = "attribute arithmetic overflow";
                 return false;
             }
+            next = clamp_to_schema(context, plan, property, next);
             plan.ops.emplace_back(kg::KGOpSetProperty{
                 target, property, std::to_string(next)});
             return true;
@@ -863,8 +892,34 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
                 if (error.empty()) error = "roll_count must be positive";
                 return false;
             }
+            // "Roll twice on the Injury table and take the lower
+            // result." Which roll counts is part of the request, not
+            // something the caller invents; an absent value means
+            // every roll counts, because a bare instruction to roll
+            // says nothing about choosing between results.
+            TableRollSelection selection = TableRollSelection::EACH;
+            const std::string wanted =
+                context.kg.getProperty(context.outcome, "roll_selection");
+            if (!wanted.empty()) {
+                if (wanted == "EACH") {
+                    selection = TableRollSelection::EACH;
+                } else if (wanted == "LOWEST") {
+                    selection = TableRollSelection::LOWEST;
+                } else if (wanted == "HIGHEST") {
+                    selection = TableRollSelection::HIGHEST;
+                } else {
+                    error = "GrantTableRoll has unknown roll_selection '" +
+                            wanted + "'";
+                    return false;
+                }
+            }
+            if (selection != TableRollSelection::EACH && count < 2) {
+                error = "roll_selection '" + wanted +
+                        "' needs more than one roll to choose between";
+                return false;
+            }
             plan.table_roll_requests.push_back(
-                {table, static_cast<int>(count)});
+                {table, static_cast<int>(count), selection});
             return true;
         }, error);
 }
@@ -951,6 +1006,8 @@ OutcomeResult OutcomeExecutor::apply(
         std::move(planner.plan.table_roll_requests);
     result.procedure_signals = std::move(planner.plan.procedure_signals);
     result.roll_ids = std::move(planner.plan.roll_ids);
+    result.attributes_limited =
+        std::move(planner.plan.attributes_limited);
     return result;
 }
 

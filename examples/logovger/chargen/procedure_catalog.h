@@ -33,9 +33,9 @@ make_chargen_procedure_registry() {
     add("roll_training");
     add("advance_term");
     // The years land at the end of a term, before the character
-    // decides whether to serve another. No route labels: aging never
-    // redirects the procedure, it only costs you something.
-    add("roll_aging");
+    // decides whether to serve another. Aging only costs you
+    // something, unless the crisis it can trigger goes unpaid.
+    add("roll_aging", {"died"});
     // Two of the three outcomes are not the player's to choose.
     add("roll_reenlistment", {"forced", "must_leave", "may_choose"});
     add("choose_term_end", {"continue", "muster_out"});

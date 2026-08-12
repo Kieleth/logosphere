@@ -161,6 +161,12 @@ private:
     PrimitiveResult muster_out(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult roll_aging(const PrimitiveContext& context);
+    // "If any characteristic is reduced to 0 ... the character dies
+    // unless he can pay 1D6x10,000 Credits for medical care." The same
+    // rule is printed twice, once for aging and once for injuries, so
+    // it lives apart from either.
+    PrimitiveResult begin_crisis(const char* cause);
+    PrimitiveResult resolve_crisis(const std::string& answer);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
 
@@ -192,6 +198,11 @@ private:
     int                              cash_rolls_left_ = 0;
     size_t                           drained_ = 0;
     std::string                      turned_away_from_;
+    // The price the crisis quoted, rolled once and remembered across
+    // the question so the answer is priced at what was asked.
+    long long                        crisis_price_ = 0;
+    uint64_t                         crisis_roll_ = 0;
+    std::string                      crisis_cause_;
 };
 
 // Auto-played convenience: the whole life with no questions asked,
