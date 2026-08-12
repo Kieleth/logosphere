@@ -35,6 +35,24 @@ Look at the `[Unreleased]` section in `CHANGELOG.md`.
 - Only `Fixed` / `Security`? → bump PATCH (e.g. `0.1.0` → `0.1.1`)
 - Only `Added` (backwards-compatible)? → bump MINOR
 
+### 1b. On a MINOR bump, move the version in two more places
+
+The package is exported `SameMinorVersion`, so a pin on the old minor
+stops resolving the moment the new one installs.
+
+1. `project(logosphere VERSION X.Y.Z)` in the root `CMakeLists.txt`.
+2. `find_package(logosphere X.Y REQUIRED)` in
+   `examples/consumer-smoke/CMakeLists.txt`.
+
+Miss the second and the `headless-linux` CI lane fails at the consumer
+smoke step with "Could not find a configuration file for package
+logosphere compatible with requested version", *after* every test has
+passed. The tests are green and the lane is red, which reads like a
+flake and is not one.
+
+`include/logosphere/build_info.h` needs no edit: it is generated from
+`git describe` at configure time and picks the tag up by itself.
+
 ### 2. Update `CHANGELOG.md`
 
 Replace the `[Unreleased]` header with:
