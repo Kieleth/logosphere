@@ -40,6 +40,14 @@ kg::OntologyRegistry registry() {
                                           "Identifiable", "Temporal"});
     game.addProperty("TestCharacter", "strength",
                      kg::PropertyValueKind::Integer, false);
+    // A group needs more than one member to be a group, and one
+    // property outside it to prove the rule stays inside its own.
+    game.addProperty("TestCharacter", "dexterity",
+                     kg::PropertyValueKind::Integer, false);
+    game.addProperty("TestCharacter", "endurance",
+                     kg::PropertyValueKind::Integer, false);
+    game.addProperty("TestCharacter", "intelligence",
+                     kg::PropertyValueKind::Integer, false);
     game.addEntityType("TestSkill", "Entity", false);
     game.addAncestors("TestSkill", {"Entity", "Describable",
                                      "Identifiable", "Temporal"});
@@ -74,6 +82,9 @@ struct Fixture {
         skill = world.createEntity("TestSkill");
         currency = world.createEntity("TestCurrency");
         world.setProperty(character, "strength", "8");
+        world.setProperty(character, "dexterity", "8");
+        world.setProperty(character, "endurance", "8");
+        world.setProperty(character, "intelligence", "8");
         events.state_changes().subscribe(
             [&](const logosphere::ontology::WorldEvent&) { ++state_events; });
         events.relations().subscribe(
@@ -291,6 +302,112 @@ void table_rolls_are_typed_requests_not_hidden_recursive_execution() {
             "granting a roll does not choose or roll a table implicitly");
 }
 
+// Aging prints "reduce three physical characteristics by 2" over a
+// group of exactly three, so there is nothing to choose and the rule
+// applies on its own. A game that installs no selector must still be
+// able to run these.
+void a_group_change_covering_everything_needs_no_selector() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto group = f.world.createEntity("AttributeGroup");
+    f.world.setProperty(group, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto out = outcome(f, "ModifyAttributesInGroup");
+    f.world.setProperty(out, "attribute_group", std::to_string(group));
+    f.world.setProperty(out, "affected_count", "3");
+    f.world.setProperty(out, "attribute_delta", "-2");
+
+    const auto result = executor.apply(out, f.context());
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "the whole group applies without a selector: " + result.error);
+    REQUIRE(f.world.getProperty(f.character, "strength") == "6" &&
+                f.world.getProperty(f.character, "dexterity") == "6" &&
+                f.world.getProperty(f.character, "endurance") == "6",
+            "every attribute in the group took the delta");
+}
+
+// "Reduce two physical characteristics by 2" over a group of three is
+// a real choice, and the engine refuses to invent it.
+void a_partial_group_change_requires_an_installed_selector() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto group = f.world.createEntity("AttributeGroup");
+    f.world.setProperty(group, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto out = outcome(f, "ModifyAttributesInGroup");
+    f.world.setProperty(out, "attribute_group", std::to_string(group));
+    f.world.setProperty(out, "affected_count", "2");
+    f.world.setProperty(out, "attribute_delta", "-2");
+
+    const auto refused = executor.apply(out, f.context());
+    REQUIRE(refused.status == rules::OutcomeStatus::FAILED &&
+                refused.error.find("selector") != std::string::npos,
+            "a partial change without a selector must fail loudly");
+    REQUIRE(f.world.getProperty(f.character, "strength") == "8",
+            "nothing moved on the refusal");
+
+    rules::AttributeSelectionRequest seen;
+    executor.set_attribute_selector(
+        [&](const rules::AttributeSelectionRequest& request,
+            std::vector<std::string>& chosen, std::string&) {
+            seen = request;
+            chosen = {"strength", "endurance"};
+            return true;
+        });
+    const auto applied = executor.apply(out, f.context());
+    REQUIRE(applied.status == rules::OutcomeStatus::APPLIED,
+            "the selector's answer applies: " + applied.error);
+    REQUIRE(seen.count == 2 && seen.delta == -2 &&
+                seen.eligible.size() == 3 && seen.target == f.character,
+            "the selector is told the count, the delta and the group");
+    REQUIRE(f.world.getProperty(f.character, "strength") == "6" &&
+                f.world.getProperty(f.character, "endurance") == "6" &&
+                f.world.getProperty(f.character, "dexterity") == "8",
+            "exactly the chosen attributes moved");
+}
+
+// The selector may be a prompt, a roll or a narrator. None of them is
+// trusted: a wrong answer cannot widen the rule the book set.
+void a_selector_cannot_widen_or_wander_outside_the_rule() {
+    struct Case {
+        const char* name;
+        std::vector<std::string> answer;
+        const char* expect;
+    };
+    const std::vector<Case> cases = {
+        {"too many", {"strength", "dexterity", "endurance"}, "not 2"},
+        {"too few", {"strength"}, "not 2"},
+        {"outside the group", {"strength", "intelligence"}, "not in the group"},
+        {"the same one twice", {"strength", "strength"}, "twice"},
+    };
+    for (const auto& item : cases) {
+        Fixture f;
+        rules::OutcomeExecutor executor(f.world, f.dice);
+        const auto group = f.world.createEntity("AttributeGroup");
+        f.world.setProperty(group, "attribute_refs",
+                            "strength; dexterity; endurance");
+        const auto out = outcome(f, "ModifyAttributesInGroup");
+        f.world.setProperty(out, "attribute_group", std::to_string(group));
+        f.world.setProperty(out, "affected_count", "2");
+        f.world.setProperty(out, "attribute_delta", "-2");
+        executor.set_attribute_selector(
+            [&](const rules::AttributeSelectionRequest&,
+                std::vector<std::string>& chosen, std::string&) {
+                chosen = item.answer;
+                return true;
+            });
+        const auto result = executor.apply(out, f.context());
+        REQUIRE(result.status == rules::OutcomeStatus::FAILED &&
+                    result.error.find(item.expect) != std::string::npos,
+                std::string("a selector answering with ") + item.name +
+                    " must be refused, got: " + result.error);
+        REQUIRE(f.world.getProperty(f.character, "strength") == "8" &&
+                    f.world.getProperty(f.character, "dexterity") == "8",
+                std::string("nothing moved when the selector answered ") +
+                    item.name);
+    }
+}
+
 // Cepheus writes "Roll on the Injury table" with no number, so the
 // seed stores no roll_count and the executor supplies the one the
 // sentence means. Both mishap rows that refer to the Injury table are
@@ -503,6 +620,9 @@ int main() {
     TEST(skill_outcomes_keep_both_rule_branches_in_data);
     TEST(fixed_and_rolled_money_share_generic_balance_state);
     TEST(table_rolls_are_typed_requests_not_hidden_recursive_execution);
+    TEST(a_group_change_covering_everything_needs_no_selector);
+    TEST(a_partial_group_change_requires_an_installed_selector);
+    TEST(a_selector_cannot_widen_or_wander_outside_the_rule);
     TEST(an_absent_roll_count_means_one);
     TEST(a_sequence_rolls_back_kg_dice_and_events_on_late_failure);
     TEST(a_late_kg_validation_failure_rolls_back_the_dice_plan);

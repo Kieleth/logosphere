@@ -16,6 +16,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace kg { class KGModule; }
@@ -89,13 +90,49 @@ struct OutcomeResult {
     std::optional<PendingChoice> pending_choice;
 };
 
+// A ModifyAttributesInGroup change whose count is smaller than its
+// group: the book fixes how many attributes move and by how much, and
+// leaves WHICH to whoever applies the rule. Cepheus aging prints
+// "reduce two physical characteristics by 2" over a group of three.
+//
+// The engine will not invent that answer. It supplies the eligible
+// set, the count and the resolved delta; a game installs whatever
+// policy it wants, a prompt, a roll, a narrator. When the count covers
+// the whole group there is nothing to choose and no selector is
+// consulted.
+struct AttributeSelectionRequest {
+    kg::EntityID target = kg::INVALID_ENTITY;
+    kg::EntityID outcome = kg::INVALID_ENTITY;
+    kg::EntityID group = kg::INVALID_ENTITY;
+    std::vector<std::string> eligible;
+    int count = 0;
+    int64_t delta = 0;
+};
+
+// Fills chosen with exactly count distinct names drawn from eligible.
+// Anything else the executor refuses, so an unreliable source of
+// answers cannot widen a rule.
+using AttributeSelector = std::function<bool(
+    const AttributeSelectionRequest&, std::vector<std::string>& chosen,
+    std::string& error)>;
+
 class OutcomeExecutor {
 public:
     OutcomeExecutor(kg::KGModule& kg,
                     logosphere::dice::DiceService& dice);
 
+    // Registered handlers capture this executor, so it stays put.
+    OutcomeExecutor(const OutcomeExecutor&) = delete;
+    OutcomeExecutor& operator=(const OutcomeExecutor&) = delete;
+    OutcomeExecutor(OutcomeExecutor&&) = delete;
+    OutcomeExecutor& operator=(OutcomeExecutor&&) = delete;
+
     bool register_handler(const std::string& concrete_type,
                           OutcomeHandler handler, std::string& error);
+
+    void set_attribute_selector(AttributeSelector selector) {
+        attribute_selector_ = std::move(selector);
+    }
 
     OutcomeResult apply(
         kg::EntityID root, const OutcomeContext& context,
@@ -107,6 +144,7 @@ private:
     kg::KGModule& kg_;
     logosphere::dice::DiceService& dice_;
     std::unordered_map<std::string, OutcomeHandler> handlers_;
+    AttributeSelector attribute_selector_;
 };
 
 }  // namespace logosphere::rules

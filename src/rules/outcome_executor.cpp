@@ -6,6 +6,7 @@
 #include "logosphere/kg/ontology_registry.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -137,6 +138,27 @@ std::vector<kg::EntityRef> matching_parts(
         }
     }
     return matches;
+}
+
+// Multivalued strings are stored "a; b; c", the separator this
+// ontology documents on every list-valued slot.
+std::vector<std::string> split_list(const std::string& value) {
+    std::vector<std::string> out;
+    size_t at = 0;
+    while (at <= value.size()) {
+        const size_t cut = value.find(';', at);
+        const size_t end = cut == std::string::npos ? value.size() : cut;
+        size_t first = at;
+        size_t last = end;
+        while (first < last && std::isspace(
+                   static_cast<unsigned char>(value[first]))) ++first;
+        while (last > first && std::isspace(
+                   static_cast<unsigned char>(value[last - 1]))) --last;
+        if (last > first) out.push_back(value.substr(first, last - first));
+        if (cut == std::string::npos) break;
+        at = cut + 1;
+    }
+    return out;
 }
 
 bool read_dice(const kg::KGModule& world, EntityID outcome,
@@ -399,6 +421,154 @@ bool plan_possession(const OutcomeHandlerContext& context, OutcomePlan& plan,
     return true;
 }
 
+// "Reduce two physical characteristics by 2": the book fixes the count
+// and the delta, and leaves which ones to whoever applies the rule.
+bool plan_attributes_in_group(const OutcomeHandlerContext& context,
+                              OutcomePlan& plan,
+                              const AttributeSelector& selector,
+                              std::string& error) {
+    EntityID group = kg::INVALID_ENTITY;
+    if (!parse_entity(context.kg, context.outcome, "attribute_group",
+                      "AttributeGroup", group, error)) {
+        return false;
+    }
+    const std::vector<std::string> eligible =
+        split_list(context.kg.getProperty(group, "attribute_refs"));
+    if (eligible.empty()) {
+        error = "AttributeGroup names no attributes in attribute_refs";
+        return false;
+    }
+    int64_t count = 0;
+    if (!parse_integer(context.kg.getProperty(context.outcome,
+                                              "affected_count"),
+                       "affected_count", count, error)) {
+        return false;
+    }
+    if (count < 1 || static_cast<size_t>(count) > eligible.size()) {
+        error = "affected_count " + std::to_string(count) +
+                " is outside the group's " +
+                std::to_string(eligible.size()) + " attributes";
+        return false;
+    }
+
+    // A fixed delta or a rolled one, never both: the book uses one or
+    // the other, and a rule carrying both is ambiguous rather than
+    // generous.
+    const std::string fixed =
+        context.kg.getProperty(context.outcome, "attribute_delta");
+    const bool rolled =
+        !context.kg.getProperty(context.outcome,
+                                "attribute_delta_dice").empty();
+    int64_t delta = 0;
+    if (!fixed.empty() && rolled) {
+        error = "ModifyAttributesInGroup has both attribute_delta and "
+                "attribute_delta_dice";
+        return false;
+    }
+    if (!fixed.empty()) {
+        if (!parse_integer(fixed, "attribute_delta", delta, error)) {
+            return false;
+        }
+    } else if (rolled) {
+        logosphere::dice::DiceExpression expression;
+        if (!read_dice(context.kg, context.outcome, expression, error,
+                       "attribute_delta_dice")) {
+            return false;
+        }
+        const auto roll = context.dice.roll(expression, context.dice_stream,
+                                            context.purpose);
+        if (roll.id == 0) {
+            error = "DiceService rejected attribute_delta_dice";
+            return false;
+        }
+        plan.roll_ids.push_back(roll.id);
+        // The book rolls the SIZE of a reduction, "reduce one physical
+        // characteristic by 1D6", so the sign lives in the rule and the
+        // dice only say how much.
+        delta = -roll.total;
+    } else {
+        error = "ModifyAttributesInGroup needs attribute_delta or "
+                "attribute_delta_dice";
+        return false;
+    }
+
+    std::vector<std::string> chosen;
+    if (static_cast<size_t>(count) == eligible.size()) {
+        chosen = eligible;  // the whole group: nothing to choose
+    } else if (!selector) {
+        error = "ModifyAttributesInGroup affects " + std::to_string(count) +
+                " of " + std::to_string(eligible.size()) +
+                " attributes and no attribute selector is installed";
+        return false;
+    } else {
+        AttributeSelectionRequest request;
+        request.target = context.target;
+        request.outcome = context.outcome;
+        request.group = group;
+        request.eligible = eligible;
+        request.count = static_cast<int>(count);
+        request.delta = delta;
+        if (!selector(request, chosen, error)) {
+            if (error.empty()) error = "attribute selector refused";
+            return false;
+        }
+        // The selector is not trusted. It may be a prompt, a roll or a
+        // narrator, and none of those may widen the rule the book set.
+        if (chosen.size() != static_cast<size_t>(count)) {
+            error = "attribute selector returned " +
+                    std::to_string(chosen.size()) + " attributes, not " +
+                    std::to_string(count);
+            return false;
+        }
+        for (size_t i = 0; i < chosen.size(); ++i) {
+            if (std::find(eligible.begin(), eligible.end(), chosen[i]) ==
+                eligible.end()) {
+                error = "attribute selector chose '" + chosen[i] +
+                        "', which is not in the group";
+                return false;
+            }
+            if (std::find(chosen.begin(), chosen.begin() + i, chosen[i]) !=
+                chosen.begin() + i) {
+                error = "attribute selector chose '" + chosen[i] + "' twice";
+                return false;
+            }
+        }
+    }
+
+    const std::string target_type = context.kg.getType(context.target);
+    const kg::EntityRef target{context.target, ""};
+    for (const auto& property : chosen) {
+        const kg::PropertyDef* definition =
+            context.kg.getRegistry().findProperty(target_type, property);
+        if (!definition ||
+            definition->value_kind != kg::PropertyValueKind::Integer) {
+            error = "target type '" + target_type +
+                    "' has no integer property '" + property + "'";
+            return false;
+        }
+        const std::string current_value =
+            planned_property(context.kg, plan, target, property);
+        if (current_value.empty() &&
+            !context.kg.hasProperty(context.target, property)) {
+            error = "target has no current value for property '" +
+                    property + "'";
+            return false;
+        }
+        int64_t current = 0;
+        int64_t next = 0;
+        if (!parse_integer(current_value, property, current, error)) {
+            return false;
+        }
+        if (!checked_add(current, delta, next)) {
+            error = "attribute arithmetic overflow";
+            return false;
+        }
+        plan.ops.emplace_back(kg::KGOpSetProperty{
+            target, property, std::to_string(next)});
+    }
+    return true;
+}
+
 }  // namespace
 
 struct OutcomeExecutor::Planner {
@@ -601,6 +771,13 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
             plan.ops.emplace_back(kg::KGOpSetProperty{
                 target, property, std::to_string(next)});
             return true;
+        }, error);
+    register_handler(
+        "ModifyAttributesInGroup",
+        [this](const OutcomeHandlerContext& context, OutcomePlan& plan,
+               std::string& error) {
+            return plan_attributes_in_group(
+                context, plan, attribute_selector_, error);
         }, error);
     register_handler(
         "EnsureSkillLevel",
