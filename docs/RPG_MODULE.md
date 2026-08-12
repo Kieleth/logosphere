@@ -555,6 +555,28 @@ extractor as money. Kept as money, because the cell is a cash result
 whose amount is zero and a benefit roll was spent to get it. That
 reasoning is in the tool, and any new disagreement still fails.
 
+## No LLM, no game, and no quiet fallbacks
+
+Some rules hand a judgment to a person rather than to the dice.
+Cepheus aging reduces "two physical characteristics by 2" without
+saying which two, and the mishap table turns on the referee's
+approval. Logovger sends those to the model, reading the character's
+history so the choice means something.
+
+There is no fallback. If no API key is set and no local server is
+reachable, the game refuses to start. A deterministic stand-in like
+"take the highest first" would be policy the book never printed,
+invented by us, applied silently, and indistinguishable in the finished
+character from a judgment someone actually made. A missing model is a
+missing referee, and the honest response is to stop.
+
+This is the same discipline as refusing to invent a number the source
+never gave. It costs a hard dependency and it is worth it.
+
+Tests are not an exception to it, they are how it stays true: a test
+installs its own stub selector and asserts against that, so the
+production path never grows a fallback to make CI pass.
+
 ## Absorb faithfully, tune later, and say which is which
 
 Some rules will be wrong for Voyager and are absorbed anyway. Aging is
@@ -578,6 +600,7 @@ rewritten. Look for that before reaching for a divergence.
 
 | Date | Decision |
 |---|---|
+| 2026-08-11 | **No LLM, no game.** Logovger requires a model, remote or local. Where a rule defers a judgment the book leaves open, that judgment goes to the model and there is NO deterministic fallback: no key and no local server means the game refuses to run, not that it quietly decides for itself. Tests inject their own stub selector; production never carries one. Applies to every decision of this shape from here on. |
 | 2026-08-08 | Absorb Traveller; the book is the spec; referee cannot roll; everything watchable (rule 12) |
 | 2026-08-08 | Spin: psionics-forward frontier sensibility; EA's Sentinel Worlds is tone inspiration only, no names/text/assets |
 | 2026-08-09 | Bundled in-repo as examples/logovger, the engine's LLM-runs-a-game showcase |

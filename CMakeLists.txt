@@ -441,6 +441,18 @@ add_test(NAME logosphere_verify_negative
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
 
+# Logovger: the referee's answer, held to the rule that asked for it.
+# Deliberately free of any LLM dependency (logosphere_llm is defined
+# below the headless short-circuit), because this is the check that
+# stops a loose reply widening a rule, and it has to run everywhere.
+add_executable(test_judgment_answer
+    examples/logovger/test_judgment_answer.cpp
+    examples/logovger/src/judgment_answer.cpp
+)
+target_compile_features(test_judgment_answer PRIVATE cxx_std_17)
+target_include_directories(test_judgment_answer PRIVATE examples/logovger)
+register_headless_test(test_judgment_answer)
+
 # Logovger: absorbed rules proven against the book's own numbers.
 # Game sources compiled into the test, engine as a library.
 add_executable(test_logovger_rules_book1
