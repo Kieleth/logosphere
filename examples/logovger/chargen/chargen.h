@@ -167,6 +167,17 @@ private:
     // it lives apart from either.
     PrimitiveResult begin_crisis(const char* cause);
     PrimitiveResult resolve_crisis(const std::string& answer);
+    // "With the Referee's approval, you can keep the character that
+    // fails a survival roll and roll on the Survival Mishaps table
+    // instead." Optional in the book, so it is offered rather than
+    // taken: in a solo generation the player holds the referee's seat.
+    PrimitiveResult survival_mishap(const PrimitiveContext& context);
+    // Rolls a table an outcome asked for and applies what it selects.
+    // Mishaps reach the Injury table this way; the executor hands back
+    // the request and deliberately never rolls it itself.
+    bool run_granted_rolls(
+        const std::vector<logosphere::rules::TableRollRequest>& requests,
+        const char* purpose, std::string& error);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
 
@@ -203,6 +214,9 @@ private:
     long long                        crisis_price_ = 0;
     uint64_t                         crisis_roll_ = 0;
     std::string                      crisis_cause_;
+    // "Lose all benefits", set by a mishap row and consumed by the
+    // muster-out that follows it.
+    bool                             benefits_forfeited_ = false;
 };
 
 // Auto-played convenience: the whole life with no questions asked,

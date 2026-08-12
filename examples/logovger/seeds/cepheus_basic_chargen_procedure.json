@@ -7,8 +7,8 @@
   "invariants": {
     "count_of_type": {
       "Procedure": 1,
-      "ProcedureStep": 15,
-      "StepRoute": 11
+      "ProcedureStep": 16,
+      "StepRoute": 12
     },
     "unique_name_per_type": [
       "Procedure",
@@ -26,6 +26,20 @@
         "source_section": "Character Creation Checklist",
         "source_quote": "Character Creation Checklist",
         "source_kind": "heading"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@survival_mishap",
+      "properties": {
+        "name": "survival_mishap",
+        "step_index": "12",
+        "primitive_ref": "survival_mishap",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "sentence",
+        "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead. This mishap is always enough to force you to leave the service after half a term, or two years of service. You lose the benefit roll for the current term only."
       }
     },
     {
@@ -133,7 +147,7 @@
       "as": "@finish_character",
       "properties": {
         "name": "finish_character",
-        "step_index": "13",
+        "step_index": "14",
         "primitive_ref": "finish_character",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you wish to leave this career, go to step 10."
@@ -159,7 +173,7 @@
       "as": "@draft_or_drifter",
       "properties": {
         "name": "draft or drifter",
-        "step_index": "14",
+        "step_index": "15",
         "primitive_ref": "draft_or_drifter",
         "source_file": "book1/character-creation.md",
         "source_section": "Qualifying and the Draft",
@@ -194,7 +208,7 @@
       "as": "@roll_benefits",
       "properties": {
         "name": "muster_out",
-        "step_index": "12",
+        "step_index": "13",
         "primitive_ref": "muster_out",
         "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/benefit_tables",
         "source_file": "book1/character-creation.md",
@@ -230,7 +244,7 @@
       "properties": {
         "name": "survival_failed",
         "route_label": "failed",
-        "next_step": "@finish_character",
+        "next_step": "@survival_mishap",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you did not succeed, you have died."
       }
@@ -533,6 +547,32 @@
       "from": "@roll_aging",
       "relation": "HAS_PART",
       "to": "@aging_crisis_unpaid"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@mishap_declined",
+      "properties": {
+        "name": "mishap declined",
+        "route_label": "died",
+        "next_step": "@finish_character",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "sentence",
+        "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead. This mishap is always enough to force you to leave the service after half a term, or two years of service. You lose the benefit roll for the current term only."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@survival_mishap"
+    },
+    {
+      "op": "set_relation",
+      "from": "@survival_mishap",
+      "relation": "HAS_PART",
+      "to": "@mishap_declined"
     }
   ]
 }

@@ -418,6 +418,9 @@ void ChargenSession::bind_primitives() {
     bind("roll_aging", [this](const PrimitiveContext& context) {
         return roll_aging(context);
     });
+    bind("survival_mishap", [this](const PrimitiveContext& context) {
+        return survival_mishap(context);
+    });
     bind("muster_out", [this](const PrimitiveContext& context) {
         return muster_out(context);
     });
@@ -1037,6 +1040,16 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                name.find("Cost Benefits") != std::string::npos;
     };
 
+    // "Lose all benefits." Checked BEFORE the lazy initialisation
+    // below, which would otherwise refill the very count it is meant
+    // to empty: muster_out reads 0 as "not worked out yet" rather than
+    // "none owed", so zeroing the counter would achieve nothing.
+    if (benefits_forfeited_) {
+        sheet_.life.push_back({sheet_.terms_served, "no benefits",
+                               "forfeited on leaving the service", 0});
+        benefits_forfeited_ = false;
+        return PrimitiveResult::advance("continue");
+    }
     if (benefit_rolls_owed_ == 0) {
         // "A character gets one Benefit Roll for every full term
         // served IN THAT CAREER." Counting every term of the whole
@@ -1472,6 +1485,176 @@ ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
     return PrimitiveResult::advance();
 }
 
+// What a table row DID, in the book's own words. Absorbed outcomes
+// carry the cell they came from, so the timeline can read "Medically
+// discharged from the service" instead of the alias the seed happened
+// to give the entity. Falls back to the name when a rule carries no
+// quote, which is state rather than absorbed text.
+std::string row_text(const kg::KGModule& kg, kg::EntityID outcome) {
+    std::string text = kg.getProperty(outcome, "source_quote");
+    if (text.empty()) {
+        text = kg.getProperty(outcome, "name");
+        const auto cut = text.rfind(": ");
+        if (cut != std::string::npos) text = text.substr(cut + 2);
+        return text;
+    }
+    // One clause is enough for a timeline; the citation carries the
+    // rest and the roll id points at it.
+    const auto stop = text.find(". ");
+    if (stop != std::string::npos) text = text.substr(0, stop + 1);
+    return text;
+}
+
+// A rule can say "roll on the Injury table" as part of its outcome.
+// The executor hands that back as a request rather than performing it,
+// so the roll happens here, above apply(), and the loop is visible
+// instead of hidden inside a handler recursing on itself.
+bool ChargenSession::run_granted_rolls(
+    const std::vector<logosphere::rules::TableRollRequest>& requests,
+    const char* purpose, std::string& error) {
+    logosphere::rules::RollableTableRunner runner(kg_, dice_);
+    for (const auto& request : requests) {
+        // "Roll twice and take the lower result": the rule says how
+        // many rolls and which of them counts, so both come from the
+        // request and neither is decided here.
+        std::vector<logosphere::rules::RollableTableSelection> rolled;
+        for (int i = 0; i < request.roll_count; ++i) {
+            const auto selected =
+                runner.select(request.table, "chargen", purpose);
+            if (!selected.ok()) { error = selected.error; return false; }
+            rolled.push_back(*selected.selection);
+        }
+        if (rolled.empty()) continue;
+        size_t chosen = 0;
+        for (size_t i = 1; i < rolled.size(); ++i) {
+            const bool lower = rolled[i].roll().total < rolled[chosen].roll().total;
+            switch (request.selection) {
+                case logosphere::rules::TableRollSelection::LOWEST:
+                    if (lower) chosen = i;
+                    break;
+                case logosphere::rules::TableRollSelection::HIGHEST:
+                    if (!lower) chosen = i;
+                    break;
+                case logosphere::rules::TableRollSelection::EACH:
+                    break;
+            }
+        }
+        const std::string table_name = kg_.getProperty(request.table, "name");
+        for (size_t i = 0; i < rolled.size(); ++i) {
+            if (request.selection !=
+                    logosphere::rules::TableRollSelection::EACH &&
+                i != chosen) {
+                // Recorded, not applied: the roll happened and is
+                // citable even though the rule discarded it.
+                sheet_.life.push_back(
+                    {sheet_.terms_served, table_name + ": set aside",
+                     "rolled " + std::to_string(rolled[i].roll().total),
+                     rolled[i].roll().id});
+                continue;
+            }
+            const auto applied = executor_.apply(
+                rolled[i].outcome(), {sheet_.id, "chargen", purpose});
+            if (applied.status !=
+                logosphere::rules::OutcomeStatus::APPLIED) {
+                error = table_name + ": " + outcome_failure(applied);
+                return false;
+            }
+            sheet_.life.push_back(
+                {sheet_.terms_served,
+                 table_name + ": " + row_text(kg_, rolled[i].outcome()),
+                 "rolled " + std::to_string(rolled[i].roll().total),
+                 rolled[i].roll().id});
+        }
+    }
+    return true;
+}
+
+// Step 5, the way out of a failed survival throw.
+//
+// "With the Referee's approval, you can keep the character that fails
+// a survival roll and roll on the Survival Mishaps table instead. This
+// mishap is always enough to force you to leave the service after half
+// a term, or two years of service. You lose the benefit roll for the
+// current term only."
+//
+// The book's default is death, and this is printed as an optional
+// rule. Both are therefore offered: in a solo generation the player
+// holds the referee's seat, and the choice is made where the book puts
+// it, at the moment the throw is missed.
+ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
+    const PrimitiveContext& context) {
+    if (!context.input) {
+        choices_.clear();
+        choices_.push_back({"1", "take the mishap instead",
+                            "the career ends, but the character lives",
+                            kg::INVALID_ENTITY});
+        choices_.push_back({"2", "let the character die",
+                            "the book's own default", kg::INVALID_ENTITY});
+        prompt_ = sheet_.career +
+                  " should have killed them. The Referee may allow a "
+                  "mishap instead.";
+        return PrimitiveResult::pending(prompt_, choices_);
+    }
+    if (*context.input != "1") {
+        finish_reason_ = "The career ended here. A failed survival throw "
+                         "is death, and the mishap rule was not taken.";
+        return PrimitiveResult::advance("died");
+    }
+
+    const auto table = find_named(kg_, "RollableTable", "Survival Mishaps");
+    if (table == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "the Survival Mishaps table is not in the graph; load the "
+            "shared tables seed");
+    }
+    logosphere::rules::RollableTableRunner runner(kg_, dice_);
+    const auto selected = runner.select(table, "chargen", "mishap");
+    if (!selected.ok()) {
+        return PrimitiveResult::failed("mishap: " + selected.error);
+    }
+    const auto& roll = selected.selection->roll();
+    const auto applied = executor_.apply(
+        selected.selection->outcome(), {sheet_.id, "chargen", "mishap"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        return PrimitiveResult::failed("mishap: " + outcome_failure(applied));
+    }
+
+    sheet_.life.push_back(
+        {sheet_.terms_served,
+         "mishap: " + row_text(kg_, selected.selection->outcome()),
+         "1D6 = " + std::to_string(roll.total), roll.id});
+
+    // What the rule MEANT, as opposed to what it wrote to the graph.
+    for (const auto& signal : applied.procedure_signals) {
+        if (signal.outcome_type == "ForfeitBenefits") {
+            benefits_forfeited_ = true;
+        }
+    }
+    // "Roll on the Injury table", where two of the six rows send you.
+    std::string error;
+    if (!run_granted_rolls(applied.table_roll_requests, "injury", error)) {
+        return PrimitiveResult::failed("mishap: " + error);
+    }
+    read_characteristics(kg_, sheet_);
+
+    // "after half a term, or two years of service". This path skips
+    // advance_term, so the term neither completes nor pays: the two
+    // years are added here and terms_in_career is left alone, which is
+    // what makes the current term's benefit roll disappear.
+    sheet_.age_years += 2;
+    write_sheet(kg_, sheet_);
+    sheet_.life.push_back({sheet_.terms_served, "left the service",
+                           "two years into the term, age " +
+                               std::to_string(sheet_.age_years), 0});
+
+    // The same rule aging has: a characteristic at 0 is a crisis.
+    const bool ruined = sheet_.strength == 0 || sheet_.dexterity == 0 ||
+                        sheet_.endurance == 0 || sheet_.intelligence == 0 ||
+                        sheet_.education == 0 || sheet_.social_standing == 0;
+    if (ruined) return begin_crisis("injury");
+    return PrimitiveResult::advance();
+}
+
 // Step 8. "The effects of aging begin when a character reaches 34
 // years of age. At the end of the fourth term, and at the end of every
 // term thereafter, the character must roll 2D6 on the Aging Table.
@@ -1674,6 +1857,16 @@ bool run_chargen(const ChargenRequest& request,
         if (session.prompt().find("benefit roll(s) left") !=
             std::string::npos) {
             if (!session.choose(choices.front().key, error)) return false;
+            continue;
+        }
+        // A failed survival throw is death unless the Referee allows
+        // the mishap table instead. The auto-player allows it, for the
+        // same reason it pays for care: it exists to carry a life to
+        // its end, and the alternative stops it dead. A human referee
+        // weighs the story; this one has no story to weigh.
+        if (session.prompt().find("should have killed them") !=
+            std::string::npos) {
+            if (!session.choose("1", error)) return false;
             continue;
         }
         // A crisis is pay-or-die, and the auto-player pays whenever
