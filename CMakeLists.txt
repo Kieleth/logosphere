@@ -126,6 +126,7 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/seed_verifier.cpp
     src/rules/outcome_executor.cpp
     src/rules/planned_world.cpp
+    src/replay/run_recorder.cpp
     src/rules/procedure_runner.cpp
     src/rules/rollable_table_runner.cpp
     src/rules/lookup_table_selector.cpp
@@ -358,6 +359,7 @@ add_headless_test(test_goap_planner)  # the NPC planner, previously untested
 add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untested
 add_headless_test(test_event_log)
 add_headless_test(test_planned_world)  # reading a plan before it commits
+add_headless_test(test_run_recorder)   # the run, as a diffable trace
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
 add_headless_test(test_event_bus)
