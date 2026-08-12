@@ -76,29 +76,14 @@ bool same_ref(const kg::EntityRef& left, const kg::EntityRef& right) {
     return left.id == right.id && left.symbolic == right.symbolic;
 }
 
+// One implementation of "the world as this plan will leave it", in
+// PlannedWorld. This was hand-rolled here three separate times before
+// it had a name, which is how it earned one.
 std::string planned_property(const kg::KGModule& world,
                              const OutcomePlan& plan,
                              const kg::EntityRef& target,
                              const std::string& property) {
-    for (auto it = plan.ops.rbegin(); it != plan.ops.rend(); ++it) {
-        const auto* set = std::get_if<kg::KGOpSetProperty>(&*it);
-        if (set && same_ref(set->target, target) &&
-            set->property == property) {
-            return set->value;
-        }
-    }
-    if (target.is_numeric()) {
-        return world.getProperty(target.id, property);
-    }
-    for (const auto& op : plan.ops) {
-        const auto* create = std::get_if<kg::KGOpCreateEntity>(&op);
-        if (!create || create->as != target.symbolic) continue;
-        for (const auto& [key, value] : create->properties) {
-            if (key == property) return value;
-        }
-        break;
-    }
-    return {};
+    return PlannedWorld(world, plan).property(target, property);
 }
 
 std::vector<kg::EntityRef> matching_parts(
@@ -762,9 +747,13 @@ struct OutcomeExecutor::Planner {
                         "'";
                 ok = false;
             } else {
+                // Built fresh per call: it reads the plan as it stands
+                // now, and it must not outlive this handler.
+                const PlannedWorld planned(executor.kg_, plan);
                 OutcomeHandlerContext handler_context{
                     outcome, context.target, type, executor.kg_,
-                    executor.dice_, context.dice_stream, context.purpose};
+                    executor.dice_, context.dice_stream, context.purpose,
+                    planned};
                 ok = handler->second(handler_context, plan, error);
                 if (!ok && error.empty()) {
                     error = "outcome handler '" + type +

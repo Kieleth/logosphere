@@ -9,6 +9,7 @@
 // atomically, then publishes typed procedure results.
 
 #include "logosphere/kg/kg_ops.h"
+#include "logosphere/rules/planned_world.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -102,6 +103,12 @@ struct OutcomeHandlerContext {
     logosphere::dice::DiceService& dice;
     const std::string& dice_stream;
     const std::string& purpose;
+    // The world as this plan will leave it. A handler that reads a
+    // value, changes it and writes it back MUST read it here: `kg` is
+    // the committed graph and still reads as it did before the rule
+    // started, so a second step of the same rule that read from `kg`
+    // would silently clobber the first. Valid only for this call.
+    const PlannedWorld& planned;
 };
 
 using OutcomeHandler = std::function<bool(
