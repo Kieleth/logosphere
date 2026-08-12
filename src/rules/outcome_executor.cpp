@@ -482,10 +482,20 @@ bool plan_attributes_in_group(const OutcomeHandlerContext& context,
             return false;
         }
         plan.roll_ids.push_back(roll.id);
-        // The book rolls the SIZE of a reduction, "reduce one physical
-        // characteristic by 1D6", so the sign lives in the rule and the
-        // dice only say how much.
-        delta = -roll.total;
+        // Dice say how much, never which way. "Reduce one physical
+        // characteristic by 1D6" prints no minus sign, and neither does
+        // a rule that rolls a gain, so the direction has to be stated
+        // rather than assumed from the one table we happened to absorb
+        // first. A rule that rolls without saying is refused.
+        const std::string direction =
+            context.kg.getProperty(context.outcome, "attribute_delta_reduces");
+        if (direction != "true" && direction != "false") {
+            error = "ModifyAttributesInGroup rolls attribute_delta_dice "
+                    "without saying which way it goes: set "
+                    "attribute_delta_reduces";
+            return false;
+        }
+        delta = direction == "true" ? -roll.total : roll.total;
     } else {
         error = "ModifyAttributesInGroup needs attribute_delta or "
                 "attribute_delta_dice";

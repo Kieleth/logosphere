@@ -408,6 +408,68 @@ void a_selector_cannot_widen_or_wander_outside_the_rule() {
     }
 }
 
+// Dice say how much, never which way. The book prints "reduce one
+// physical characteristic by 1D6" with no minus sign, and a rule that
+// rolled a GAIN would print none either, so the engine must not infer
+// a direction from whichever table it happened to absorb first.
+void a_rolled_delta_must_say_which_way_it_goes() {
+    const auto build = [](Fixture& f, const char* direction) {
+        const auto group = f.world.createEntity("AttributeGroup");
+        f.world.setProperty(group, "attribute_refs",
+                            "strength; dexterity; endurance");
+        const auto dice = f.world.createEntity("DiceExpression");
+        f.world.setProperty(dice, "dice_count", "1");
+        f.world.setProperty(dice, "dice_sides", "6");
+        const auto out = outcome(f, "ModifyAttributesInGroup");
+        f.world.setProperty(out, "attribute_group", std::to_string(group));
+        f.world.setProperty(out, "affected_count", "3");
+        f.world.setProperty(out, "attribute_delta_dice",
+                            std::to_string(dice));
+        if (direction) {
+            f.world.setProperty(out, "attribute_delta_reduces", direction);
+        }
+        return out;
+    };
+
+    // Says nothing: refused, and nothing moved.
+    Fixture silent;
+    rules::OutcomeExecutor silent_exec(silent.world, silent.dice);
+    const auto refused = silent_exec.apply(build(silent, nullptr),
+                                           silent.context());
+    REQUIRE(refused.status == rules::OutcomeStatus::FAILED &&
+                refused.error.find("attribute_delta_reduces") !=
+                    std::string::npos,
+            "a rolled delta with no stated direction must be refused, "
+            "got: " + refused.error);
+    REQUIRE(silent.world.getProperty(silent.character, "strength") == "8",
+            "the refused roll moved nothing");
+
+    // Says it reduces: the characteristic goes DOWN by the roll.
+    Fixture down;
+    rules::OutcomeExecutor down_exec(down.world, down.dice);
+    const auto reduced = down_exec.apply(build(down, "true"),
+                                         down.context());
+    REQUIRE(reduced.status == rules::OutcomeStatus::APPLIED,
+            "a reducing roll applies: " + reduced.error);
+    const int after_down =
+        std::stoi(down.world.getProperty(down.character, "strength"));
+    REQUIRE(after_down < 8 && after_down >= 2,
+            "1D6 came off a starting 8, got " + std::to_string(after_down));
+
+    // The control: says it does not reduce, and the same machinery
+    // moves the characteristic UP. Without this, "reduces" could be
+    // ignored entirely and the test above would still pass.
+    Fixture up;
+    rules::OutcomeExecutor up_exec(up.world, up.dice);
+    const auto gained = up_exec.apply(build(up, "false"), up.context());
+    REQUIRE(gained.status == rules::OutcomeStatus::APPLIED,
+            "a rolled gain applies: " + gained.error);
+    const int after_up =
+        std::stoi(up.world.getProperty(up.character, "strength"));
+    REQUIRE(after_up > 8 && after_up <= 14,
+            "1D6 went onto a starting 8, got " + std::to_string(after_up));
+}
+
 // Cepheus writes "Roll on the Injury table" with no number, so the
 // seed stores no roll_count and the executor supplies the one the
 // sentence means. Both mishap rows that refer to the Injury table are
@@ -623,6 +685,7 @@ int main() {
     TEST(a_group_change_covering_everything_needs_no_selector);
     TEST(a_partial_group_change_requires_an_installed_selector);
     TEST(a_selector_cannot_widen_or_wander_outside_the_rule);
+    TEST(a_rolled_delta_must_say_which_way_it_goes);
     TEST(an_absent_roll_count_means_one);
     TEST(a_sequence_rolls_back_kg_dice_and_events_on_late_failure);
     TEST(a_late_kg_validation_failure_rolls_back_the_dice_plan);

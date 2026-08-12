@@ -28,9 +28,11 @@
 
 #include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
+#include "logosphere/rules/outcome_executor.h"
 #include "logosphere/rules/procedure_runner.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace logovger {
@@ -113,11 +115,29 @@ public:
         return training_rolls_owed_ > 0 || benefit_rolls_owed_ > 0;
     }
 
+    // Who answers the questions the book leaves to a referee: which
+    // characteristics aging takes, when the rule fixes how many but
+    // not which. The game installs this; the engine refuses to choose
+    // on its own, so without one those outcomes fail loudly rather
+    // than picking quietly. The app installs an adjudicator-backed
+    // selector; a test installs its own stub. There is deliberately no
+    // default.
+    void set_attribute_selector(
+        logosphere::rules::AttributeSelector selector) {
+        attribute_selector_ = std::move(selector);
+        executor_.set_attribute_selector(attribute_selector_);
+    }
+
 private:
     using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
 
     void bind_primitives();
+    // EndCareer and ForfeitBenefits are GAME policy: the engine
+    // dispatches the typed Outcome and this decides what it means.
+    // Registered once, on the session's single executor, because
+    // register_handler refuses a duplicate rather than overwriting.
+    void register_outcome_handlers();
     // Everything that belongs to a career rather than to a life:
     // rank, its title, and the terms served in it. "You begin as a
     // Rank 0 character", each time.
@@ -140,13 +160,20 @@ private:
     PrimitiveResult basic_training(const PrimitiveContext& context);
     PrimitiveResult muster_out(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
+    PrimitiveResult roll_aging(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
 
     kg::KGModule&                    kg_;
     logosphere::dice::DiceService&   dice_;
+    logosphere::rules::AttributeSelector attribute_selector_;
     logosphere::rules::ProcedurePrimitiveRegistry primitives_;
     logosphere::rules::ProcedureRunner runner_;
+    // ONE executor per session. Handlers are registered on it, and a
+    // per-call executor would either lose them or fail on the second
+    // registration. It is non-copyable and non-movable, so it is a
+    // direct member.
+    logosphere::rules::OutcomeExecutor executor_;
     CharacterSheet                   sheet_;
     std::vector<Choice>              choices_;
     std::string                      prompt_;
@@ -174,6 +201,12 @@ struct ChargenRequest {
     std::string career_name;
     uint64_t    seed = 0;
     int         max_terms = 4;
+    // Who decides which characteristics aging takes. Empty means
+    // nobody, and a life that rolls a row leaving that choice open
+    // then fails loudly rather than picking for itself. A four-term
+    // life reaches the aging table, so anything driving one past a
+    // damaging row must supply this.
+    logosphere::rules::AttributeSelector attribute_selector;
 };
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,

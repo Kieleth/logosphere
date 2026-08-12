@@ -2179,6 +2179,8 @@ struct ModifyAttributesInGroup : public Outcome {
     std::optional<int32_t> attribute_delta = std::nullopt;
     /// Rolled change, when the book rolls for how much: the injury table's "reduce one physical characteristic by 1D6". The fixed case is attribute_delta; a rule uses one or the other.
     std::optional<DiceExpression> attribute_delta_dice = std::nullopt;
+    /// Which way a rolled change goes. Dice say how much and never which way: "reduce one physical characteristic by 1D6" prints no minus sign, and a rule that rolled a gain would print none either. Required whenever attribute_delta_dice is used, because the alternative is the engine assuming a direction from whichever table it met first. The fixed case needs no such slot, since attribute_delta carries its own sign.
+    std::optional<bool> attribute_delta_reduces = std::nullopt;
 };
 
 

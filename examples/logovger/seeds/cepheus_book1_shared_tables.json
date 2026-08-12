@@ -1,1568 +1,1570 @@
 {
- "source": {
-  "file": "book1/character-creation.md",
-  "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
- },
- "layer": "cepheus",
- "invariants": {
-  "count_of_type": {
-   "AttributeGroup": 2,
-   "RollableTable": 3,
-   "TableEntry": 20
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
   },
-  "unique_name_per_type": [
-   "AttributeGroup",
-   "RollableTable"
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "AttributeGroup": 2,
+      "RollableTable": 3,
+      "TableEntry": 20
+    },
+    "unique_name_per_type": [
+      "AttributeGroup",
+      "RollableTable"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "AttributeGroup",
+      "as": "@group_physical",
+      "properties": {
+        "name": "physical characteristics",
+        "attribute_refs": "strength; dexterity; endurance",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Characteristics",
+        "source_kind": "sentence",
+        "source_quote": "Strength, Dexterity, and Endurance are called physical abilities, whereas Intelligence, Education, and Social Standing are loosely termed mental abilities."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "AttributeGroup",
+      "as": "@group_mental",
+      "properties": {
+        "name": "mental characteristics",
+        "attribute_refs": "intelligence; education; social_standing",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Characteristics",
+        "source_kind": "sentence",
+        "source_quote": "Strength, Dexterity, and Endurance are called physical abilities, whereas Intelligence, Education, and Social Standing are loosely termed mental abilities."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@aging_table",
+      "properties": {
+        "name": "Effects of Aging",
+        "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "sentence",
+        "source_quote": "At the end of the fourth term, and at the end of every term thereafter, the character must roll 2D6 on the Aging Table."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m6_c0",
+      "properties": {
+        "name": "aging_m6_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-6",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-2"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m6_c1",
+      "properties": {
+        "name": "aging_m6_c1",
+        "attribute_group": "@group_mental",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-6",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@aging_m6",
+      "properties": {
+        "name": "aging_m6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-6",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@aging_m6_s0",
+      "properties": {
+        "name": "aging_m6_s0",
+        "step_index": "0",
+        "outcome": "@aging_m6_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-6",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_m6",
+      "relation": "HAS_PART",
+      "to": "@aging_m6_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@aging_m6_s1",
+      "properties": {
+        "name": "aging_m6_s1",
+        "step_index": "1",
+        "outcome": "@aging_m6_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-6",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_m6",
+      "relation": "HAS_PART",
+      "to": "@aging_m6_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_m6",
+      "properties": {
+        "name": "aging -6",
+        "roll_min": "-6",
+        "outcome": "@aging_m6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-6",
+        "source_column": "Effects of Aging",
+        "roll_max": "-6"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_m6"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m5_c0",
+      "properties": {
+        "name": "aging_m5_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2.",
+        "source_table": "2D6",
+        "source_row": "\\-5",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-2"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_m5",
+      "properties": {
+        "name": "aging -5",
+        "roll_min": "-5",
+        "outcome": "@aging_m5_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 2.",
+        "source_table": "2D6",
+        "source_row": "\\-5",
+        "source_column": "Effects of Aging",
+        "roll_max": "-5"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_m5"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m4_c0",
+      "properties": {
+        "name": "aging_m4_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-4",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-2"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m4_c1",
+      "properties": {
+        "name": "aging_m4_c1",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-4",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@aging_m4",
+      "properties": {
+        "name": "aging_m4",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-4",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@aging_m4_s0",
+      "properties": {
+        "name": "aging_m4_s0",
+        "step_index": "0",
+        "outcome": "@aging_m4_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-4",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_m4",
+      "relation": "HAS_PART",
+      "to": "@aging_m4_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@aging_m4_s1",
+      "properties": {
+        "name": "aging_m4_s1",
+        "step_index": "1",
+        "outcome": "@aging_m4_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-4",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_m4",
+      "relation": "HAS_PART",
+      "to": "@aging_m4_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_m4",
+      "properties": {
+        "name": "aging -4",
+        "roll_min": "-4",
+        "outcome": "@aging_m4",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-4",
+        "source_column": "Effects of Aging",
+        "roll_max": "-4"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_m4"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m3_c0",
+      "properties": {
+        "name": "aging_m3_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-3",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-2"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m3_c1",
+      "properties": {
+        "name": "aging_m3_c1",
+        "attribute_group": "@group_physical",
+        "affected_count": "2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-3",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@aging_m3",
+      "properties": {
+        "name": "aging_m3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-3",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@aging_m3_s0",
+      "properties": {
+        "name": "aging_m3_s0",
+        "step_index": "0",
+        "outcome": "@aging_m3_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-3",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_m3",
+      "relation": "HAS_PART",
+      "to": "@aging_m3_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@aging_m3_s1",
+      "properties": {
+        "name": "aging_m3_s1",
+        "step_index": "1",
+        "outcome": "@aging_m3_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-3",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_m3",
+      "relation": "HAS_PART",
+      "to": "@aging_m3_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_m3",
+      "properties": {
+        "name": "aging -3",
+        "roll_min": "-3",
+        "outcome": "@aging_m3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "\\-3",
+        "source_column": "Effects of Aging",
+        "roll_max": "-3"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_m3"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m2_c0",
+      "properties": {
+        "name": "aging_m2_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 1",
+        "source_table": "2D6",
+        "source_row": "\\-2",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_m2",
+      "properties": {
+        "name": "aging -2",
+        "roll_min": "-2",
+        "outcome": "@aging_m2_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce three physical characteristics by 1",
+        "source_table": "2D6",
+        "source_row": "\\-2",
+        "source_column": "Effects of Aging",
+        "roll_max": "-2"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_m2"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_m1_c0",
+      "properties": {
+        "name": "aging_m1_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 1",
+        "source_table": "2D6",
+        "source_row": "\\-1",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_m1",
+      "properties": {
+        "name": "aging -1",
+        "roll_min": "-1",
+        "outcome": "@aging_m1_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce two physical characteristics by 1",
+        "source_table": "2D6",
+        "source_row": "\\-1",
+        "source_column": "Effects of Aging",
+        "roll_max": "-1"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_m1"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@aging_0_c0",
+      "properties": {
+        "name": "aging_0_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "0",
+        "source_column": "Effects of Aging",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_0",
+      "properties": {
+        "name": "aging 0",
+        "roll_min": "0",
+        "outcome": "@aging_0_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "Reduce one physical characteristic by 1",
+        "source_table": "2D6",
+        "source_row": "0",
+        "source_column": "Effects of Aging",
+        "roll_max": "0"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_0"
+    },
+    {
+      "op": "create_entity",
+      "type": "NoEffect",
+      "as": "@aging_1p_none",
+      "properties": {
+        "name": "aging: no effect",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "No effect",
+        "source_table": "2D6",
+        "source_row": "1+",
+        "source_column": "Effects of Aging"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@aging_row_1p",
+      "properties": {
+        "name": "aging 1+",
+        "roll_min": "1",
+        "outcome": "@aging_1p_none",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging",
+        "source_kind": "cell",
+        "source_quote": "No effect",
+        "source_table": "2D6",
+        "source_row": "1+",
+        "source_column": "Effects of Aging",
+        "roll_max_unbounded": "true"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_table",
+      "relation": "HAS_PART",
+      "to": "@aging_row_1p"
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@injury_table",
+      "properties": {
+        "name": "Injury",
+        "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "sentence",
+        "source_quote": "Characters that are wounded in combat or accidents during character creation must roll on the Injury table."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@injury_1_c0",
+      "properties": {
+        "name": "injury_1_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Nearly killed. Reduce one physical characteristic by 1D6, reduce both other physical characteristics by 2 (or one of them by 4).",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Injury",
+        "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+        "unmodelled": "The second clause, 'reduce both other physical characteristics by 2 (or one of them by 4)', depends on which characteristic the first clause reduced. An outcome cannot refer to a choice made earlier in its own sequence, so only the 1D6 reduction is expressed.",
+        "attribute_delta_reduces": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_1",
+      "properties": {
+        "name": "injury 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@injury_1_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Nearly killed. Reduce one physical characteristic by 1D6, reduce both other physical characteristics by 2 (or one of them by 4).",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_1"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@injury_2_c0",
+      "properties": {
+        "name": "injury_2_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Severely injured. Reduce one physical characteristic by 1D6.",
+        "source_table": "1D6",
+        "source_row": "2",
+        "source_column": "Injury",
+        "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+        "attribute_delta_reduces": "true"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_2",
+      "properties": {
+        "name": "injury 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@injury_2_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Severely injured. Reduce one physical characteristic by 1D6.",
+        "source_table": "1D6",
+        "source_row": "2",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_2"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeChoice",
+      "as": "@injury_3_c0",
+      "properties": {
+        "name": "injury_3_c0",
+        "choice_authority": "player",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttribute",
+      "as": "@injury_3_c0_e0",
+      "properties": {
+        "name": "strength -2",
+        "attribute_ref": "strength",
+        "attribute_delta": "-2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeOption",
+      "as": "@injury_3_c0_o0",
+      "properties": {
+        "name": "reduce strength",
+        "option_index": "0",
+        "option_label": "reduce strength",
+        "outcome": "@injury_3_c0_e0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_3_c0",
+      "relation": "HAS_PART",
+      "to": "@injury_3_c0_o0"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttribute",
+      "as": "@injury_3_c0_e1",
+      "properties": {
+        "name": "dexterity -2",
+        "attribute_ref": "dexterity",
+        "attribute_delta": "-2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeOption",
+      "as": "@injury_3_c0_o1",
+      "properties": {
+        "name": "reduce dexterity",
+        "option_index": "1",
+        "option_label": "reduce dexterity",
+        "outcome": "@injury_3_c0_e1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_3_c0",
+      "relation": "HAS_PART",
+      "to": "@injury_3_c0_o1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_3",
+      "properties": {
+        "name": "injury 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@injury_3_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_3"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@injury_4_c0",
+      "properties": {
+        "name": "injury_4_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Scarred. You are scarred and injured. Reduce any one physical characteristic by 2.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Injury",
+        "attribute_delta": "-2"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_4",
+      "properties": {
+        "name": "injury 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@injury_4_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Scarred. You are scarred and injured. Reduce any one physical characteristic by 2.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_4"
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttributesInGroup",
+      "as": "@injury_5_c0",
+      "properties": {
+        "name": "injury_5_c0",
+        "attribute_group": "@group_physical",
+        "affected_count": "1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Injured. Reduce any physical characteristic by 1.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Injury",
+        "attribute_delta": "-1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_5",
+      "properties": {
+        "name": "injury 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@injury_5_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Injured. Reduce any physical characteristic by 1.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "NoEffect",
+      "as": "@injury_6_none",
+      "properties": {
+        "name": "injury: no permanent effect",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Lightly injured. No permanent effect.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@injury_row_6",
+      "properties": {
+        "name": "injury 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@injury_6_none",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Injuries",
+        "source_kind": "cell",
+        "source_quote": "Lightly injured. No permanent effect.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Injury"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@injury_table",
+      "relation": "HAS_PART",
+      "to": "@injury_row_6"
+    },
+    {
+      "op": "create_entity",
+      "type": "RollableTable",
+      "as": "@mishap_table",
+      "properties": {
+        "name": "Survival Mishaps",
+        "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "sentence",
+        "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantTableRoll",
+      "as": "@mishap_1_c0",
+      "properties": {
+        "name": "mishap_1_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps",
+        "unmodelled": "The book says this is the same as a result of 2 on the Injury table, and offers an alternative of rolling twice and taking the lower. The alternative is a re-roll policy, which the outcome vocabulary cannot say, so this rolls on the Injury table.",
+        "table": "@injury_table"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_1",
+      "properties": {
+        "name": "mishap 1",
+        "roll_min": "1",
+        "roll_max": "1",
+        "outcome": "@mishap_1_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_1"
+    },
+    {
+      "op": "create_entity",
+      "type": "EndCareer",
+      "as": "@mishap_2_c0",
+      "properties": {
+        "name": "mishap_2_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service.",
+        "source_table": "1D6",
+        "source_row": "2",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_2",
+      "properties": {
+        "name": "mishap 2",
+        "roll_min": "2",
+        "roll_max": "2",
+        "outcome": "@mishap_2_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service.",
+        "source_table": "1D6",
+        "source_row": "2",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_2"
+    },
+    {
+      "op": "create_entity",
+      "type": "EndCareer",
+      "as": "@mishap_3_c0",
+      "properties": {
+        "name": "mishap_3_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GainFixedMoney",
+      "as": "@mishap_3_c1",
+      "properties": {
+        "name": "mishap_3_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Mishaps",
+        "amount": "-10000",
+        "currency": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Currency/credits"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@mishap_3",
+      "properties": {
+        "name": "mishap_3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_3_s0",
+      "properties": {
+        "name": "mishap_3_s0",
+        "step_index": "0",
+        "outcome": "@mishap_3_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_3",
+      "relation": "HAS_PART",
+      "to": "@mishap_3_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_3_s1",
+      "properties": {
+        "name": "mishap_3_s1",
+        "step_index": "1",
+        "outcome": "@mishap_3_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_3",
+      "relation": "HAS_PART",
+      "to": "@mishap_3_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_3",
+      "properties": {
+        "name": "mishap 3",
+        "roll_min": "3",
+        "roll_max": "3",
+        "outcome": "@mishap_3",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
+        "source_table": "1D6",
+        "source_row": "3",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_3"
+    },
+    {
+      "op": "create_entity",
+      "type": "EndCareer",
+      "as": "@mishap_4_c0",
+      "properties": {
+        "name": "mishap_4_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ForfeitBenefits",
+      "as": "@mishap_4_c1",
+      "properties": {
+        "name": "mishap_4_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@mishap_4",
+      "properties": {
+        "name": "mishap_4",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_4_s0",
+      "properties": {
+        "name": "mishap_4_s0",
+        "step_index": "0",
+        "outcome": "@mishap_4_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_4",
+      "relation": "HAS_PART",
+      "to": "@mishap_4_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_4_s1",
+      "properties": {
+        "name": "mishap_4_s1",
+        "step_index": "1",
+        "outcome": "@mishap_4_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_4",
+      "relation": "HAS_PART",
+      "to": "@mishap_4_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_4",
+      "properties": {
+        "name": "mishap 4",
+        "roll_min": "4",
+        "roll_max": "4",
+        "outcome": "@mishap_4",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "4",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_4"
+    },
+    {
+      "op": "create_entity",
+      "type": "EndCareer",
+      "as": "@mishap_5_c0",
+      "properties": {
+        "name": "mishap_5_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ModifyAttribute",
+      "as": "@mishap_5_c1",
+      "properties": {
+        "name": "mishap_5_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps",
+        "attribute_ref": "age_years",
+        "attribute_delta": "4"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ForfeitBenefits",
+      "as": "@mishap_5_c2",
+      "properties": {
+        "name": "mishap_5_c2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@mishap_5",
+      "properties": {
+        "name": "mishap_5",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_5_s0",
+      "properties": {
+        "name": "mishap_5_s0",
+        "step_index": "0",
+        "outcome": "@mishap_5_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_5",
+      "relation": "HAS_PART",
+      "to": "@mishap_5_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_5_s1",
+      "properties": {
+        "name": "mishap_5_s1",
+        "step_index": "1",
+        "outcome": "@mishap_5_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_5",
+      "relation": "HAS_PART",
+      "to": "@mishap_5_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_5_s2",
+      "properties": {
+        "name": "mishap_5_s2",
+        "step_index": "2",
+        "outcome": "@mishap_5_c2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_5",
+      "relation": "HAS_PART",
+      "to": "@mishap_5_s2"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_5",
+      "properties": {
+        "name": "mishap 5",
+        "roll_min": "5",
+        "roll_max": "5",
+        "outcome": "@mishap_5",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
+        "source_table": "1D6",
+        "source_row": "5",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "EndCareer",
+      "as": "@mishap_6_c0",
+      "properties": {
+        "name": "mishap_6_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Medically discharged from the service. Roll on the Injury table.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantTableRoll",
+      "as": "@mishap_6_c1",
+      "properties": {
+        "name": "mishap_6_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Medically discharged from the service. Roll on the Injury table.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Mishaps",
+        "table": "@injury_table"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@mishap_6",
+      "properties": {
+        "name": "mishap_6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Medically discharged from the service. Roll on the Injury table.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_6_s0",
+      "properties": {
+        "name": "mishap_6_s0",
+        "step_index": "0",
+        "outcome": "@mishap_6_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Medically discharged from the service. Roll on the Injury table.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_6",
+      "relation": "HAS_PART",
+      "to": "@mishap_6_s0"
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_6_s1",
+      "properties": {
+        "name": "mishap_6_s1",
+        "step_index": "1",
+        "outcome": "@mishap_6_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Medically discharged from the service. Roll on the Injury table.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_6",
+      "relation": "HAS_PART",
+      "to": "@mishap_6_s1"
+    },
+    {
+      "op": "create_entity",
+      "type": "TableEntry",
+      "as": "@mishap_row_6",
+      "properties": {
+        "name": "mishap 6",
+        "roll_min": "6",
+        "roll_max": "6",
+        "outcome": "@mishap_6",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Medically discharged from the service. Roll on the Injury table.",
+        "source_table": "1D6",
+        "source_row": "6",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_table",
+      "relation": "HAS_PART",
+      "to": "@mishap_row_6"
+    }
   ]
- },
- "ops": [
-  {
-   "op": "create_entity",
-   "type": "AttributeGroup",
-   "as": "@group_physical",
-   "properties": {
-    "name": "physical characteristics",
-    "attribute_refs": "strength; dexterity; endurance",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Characteristics",
-    "source_kind": "sentence",
-    "source_quote": "Strength, Dexterity, and Endurance are called physical abilities, whereas Intelligence, Education, and Social Standing are loosely termed mental abilities."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "AttributeGroup",
-   "as": "@group_mental",
-   "properties": {
-    "name": "mental characteristics",
-    "attribute_refs": "intelligence; education; social_standing",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Characteristics",
-    "source_kind": "sentence",
-    "source_quote": "Strength, Dexterity, and Endurance are called physical abilities, whereas Intelligence, Education, and Social Standing are loosely termed mental abilities."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "RollableTable",
-   "as": "@aging_table",
-   "properties": {
-    "name": "Effects of Aging",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "sentence",
-    "source_quote": "At the end of the fourth term, and at the end of every term thereafter, the character must roll 2D6 on the Aging Table."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m6_c0",
-   "properties": {
-    "name": "aging_m6_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-2"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m6_c1",
-   "properties": {
-    "name": "aging_m6_c1",
-    "attribute_group": "@group_mental",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@aging_m6",
-   "properties": {
-    "name": "aging_m6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@aging_m6_s0",
-   "properties": {
-    "name": "aging_m6_s0",
-    "step_index": "0",
-    "outcome": "@aging_m6_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_m6",
-   "relation": "HAS_PART",
-   "to": "@aging_m6_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@aging_m6_s1",
-   "properties": {
-    "name": "aging_m6_s1",
-    "step_index": "1",
-    "outcome": "@aging_m6_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_m6",
-   "relation": "HAS_PART",
-   "to": "@aging_m6_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_m6",
-   "properties": {
-    "name": "aging -6",
-    "roll_min": "-6",
-    "outcome": "@aging_m6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging",
-    "roll_max": "-6"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_m6"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m5_c0",
-   "properties": {
-    "name": "aging_m5_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2.",
-    "source_table": "2D6",
-    "source_row": "\\-5",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-2"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_m5",
-   "properties": {
-    "name": "aging -5",
-    "roll_min": "-5",
-    "outcome": "@aging_m5_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2.",
-    "source_table": "2D6",
-    "source_row": "\\-5",
-    "source_column": "Effects of Aging",
-    "roll_max": "-5"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_m5"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m4_c0",
-   "properties": {
-    "name": "aging_m4_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-2"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m4_c1",
-   "properties": {
-    "name": "aging_m4_c1",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@aging_m4",
-   "properties": {
-    "name": "aging_m4",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@aging_m4_s0",
-   "properties": {
-    "name": "aging_m4_s0",
-    "step_index": "0",
-    "outcome": "@aging_m4_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_m4",
-   "relation": "HAS_PART",
-   "to": "@aging_m4_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@aging_m4_s1",
-   "properties": {
-    "name": "aging_m4_s1",
-    "step_index": "1",
-    "outcome": "@aging_m4_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_m4",
-   "relation": "HAS_PART",
-   "to": "@aging_m4_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_m4",
-   "properties": {
-    "name": "aging -4",
-    "roll_min": "-4",
-    "outcome": "@aging_m4",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging",
-    "roll_max": "-4"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_m4"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m3_c0",
-   "properties": {
-    "name": "aging_m3_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-2"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m3_c1",
-   "properties": {
-    "name": "aging_m3_c1",
-    "attribute_group": "@group_physical",
-    "affected_count": "2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@aging_m3",
-   "properties": {
-    "name": "aging_m3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@aging_m3_s0",
-   "properties": {
-    "name": "aging_m3_s0",
-    "step_index": "0",
-    "outcome": "@aging_m3_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_m3",
-   "relation": "HAS_PART",
-   "to": "@aging_m3_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@aging_m3_s1",
-   "properties": {
-    "name": "aging_m3_s1",
-    "step_index": "1",
-    "outcome": "@aging_m3_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_m3",
-   "relation": "HAS_PART",
-   "to": "@aging_m3_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_m3",
-   "properties": {
-    "name": "aging -3",
-    "roll_min": "-3",
-    "outcome": "@aging_m3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging",
-    "roll_max": "-3"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_m3"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m2_c0",
-   "properties": {
-    "name": "aging_m2_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-2",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_m2",
-   "properties": {
-    "name": "aging -2",
-    "roll_min": "-2",
-    "outcome": "@aging_m2_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-2",
-    "source_column": "Effects of Aging",
-    "roll_max": "-2"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_m2"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_m1_c0",
-   "properties": {
-    "name": "aging_m1_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-1",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_m1",
-   "properties": {
-    "name": "aging -1",
-    "roll_min": "-1",
-    "outcome": "@aging_m1_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-1",
-    "source_column": "Effects of Aging",
-    "roll_max": "-1"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_m1"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@aging_0_c0",
-   "properties": {
-    "name": "aging_0_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "0",
-    "source_column": "Effects of Aging",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_0",
-   "properties": {
-    "name": "aging 0",
-    "roll_min": "0",
-    "outcome": "@aging_0_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "0",
-    "source_column": "Effects of Aging",
-    "roll_max": "0"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_0"
-  },
-  {
-   "op": "create_entity",
-   "type": "NoEffect",
-   "as": "@aging_1p_none",
-   "properties": {
-    "name": "aging: no effect",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "No effect",
-    "source_table": "2D6",
-    "source_row": "1+",
-    "source_column": "Effects of Aging"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@aging_row_1p",
-   "properties": {
-    "name": "aging 1+",
-    "roll_min": "1",
-    "outcome": "@aging_1p_none",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "No effect",
-    "source_table": "2D6",
-    "source_row": "1+",
-    "source_column": "Effects of Aging",
-    "roll_max_unbounded": "true"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@aging_table",
-   "relation": "HAS_PART",
-   "to": "@aging_row_1p"
-  },
-  {
-   "op": "create_entity",
-   "type": "RollableTable",
-   "as": "@injury_table",
-   "properties": {
-    "name": "Injury",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "sentence",
-    "source_quote": "Characters that are wounded in combat or accidents during character creation must roll on the Injury table."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@injury_1_c0",
-   "properties": {
-    "name": "injury_1_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Nearly killed. Reduce one physical characteristic by 1D6, reduce both other physical characteristics by 2 (or one of them by 4).",
-    "source_table": "1D6",
-    "source_row": "1",
-    "source_column": "Injury",
-    "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
-    "unmodelled": "The second clause, 'reduce both other physical characteristics by 2 (or one of them by 4)', depends on which characteristic the first clause reduced. An outcome cannot refer to a choice made earlier in its own sequence, so only the 1D6 reduction is expressed."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@injury_row_1",
-   "properties": {
-    "name": "injury 1",
-    "roll_min": "1",
-    "roll_max": "1",
-    "outcome": "@injury_1_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Nearly killed. Reduce one physical characteristic by 1D6, reduce both other physical characteristics by 2 (or one of them by 4).",
-    "source_table": "1D6",
-    "source_row": "1",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_table",
-   "relation": "HAS_PART",
-   "to": "@injury_row_1"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@injury_2_c0",
-   "properties": {
-    "name": "injury_2_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Severely injured. Reduce one physical characteristic by 1D6.",
-    "source_table": "1D6",
-    "source_row": "2",
-    "source_column": "Injury",
-    "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@injury_row_2",
-   "properties": {
-    "name": "injury 2",
-    "roll_min": "2",
-    "roll_max": "2",
-    "outcome": "@injury_2_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Severely injured. Reduce one physical characteristic by 1D6.",
-    "source_table": "1D6",
-    "source_row": "2",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_table",
-   "relation": "HAS_PART",
-   "to": "@injury_row_2"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeChoice",
-   "as": "@injury_3_c0",
-   "properties": {
-    "name": "injury_3_c0",
-    "choice_authority": "player",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttribute",
-   "as": "@injury_3_c0_e0",
-   "properties": {
-    "name": "strength -2",
-    "attribute_ref": "strength",
-    "attribute_delta": "-2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeOption",
-   "as": "@injury_3_c0_o0",
-   "properties": {
-    "name": "reduce strength",
-    "option_index": "0",
-    "option_label": "reduce strength",
-    "outcome": "@injury_3_c0_e0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_3_c0",
-   "relation": "HAS_PART",
-   "to": "@injury_3_c0_o0"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttribute",
-   "as": "@injury_3_c0_e1",
-   "properties": {
-    "name": "dexterity -2",
-    "attribute_ref": "dexterity",
-    "attribute_delta": "-2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeOption",
-   "as": "@injury_3_c0_o1",
-   "properties": {
-    "name": "reduce dexterity",
-    "option_index": "1",
-    "option_label": "reduce dexterity",
-    "outcome": "@injury_3_c0_e1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_3_c0",
-   "relation": "HAS_PART",
-   "to": "@injury_3_c0_o1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@injury_row_3",
-   "properties": {
-    "name": "injury 3",
-    "roll_min": "3",
-    "roll_max": "3",
-    "outcome": "@injury_3_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Missing eye or limb. Reduce Strength or Dexterity by 2.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_table",
-   "relation": "HAS_PART",
-   "to": "@injury_row_3"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@injury_4_c0",
-   "properties": {
-    "name": "injury_4_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Scarred. You are scarred and injured. Reduce any one physical characteristic by 2.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Injury",
-    "attribute_delta": "-2"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@injury_row_4",
-   "properties": {
-    "name": "injury 4",
-    "roll_min": "4",
-    "roll_max": "4",
-    "outcome": "@injury_4_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Scarred. You are scarred and injured. Reduce any one physical characteristic by 2.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_table",
-   "relation": "HAS_PART",
-   "to": "@injury_row_4"
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttributesInGroup",
-   "as": "@injury_5_c0",
-   "properties": {
-    "name": "injury_5_c0",
-    "attribute_group": "@group_physical",
-    "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Injured. Reduce any physical characteristic by 1.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Injury",
-    "attribute_delta": "-1"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@injury_row_5",
-   "properties": {
-    "name": "injury 5",
-    "roll_min": "5",
-    "roll_max": "5",
-    "outcome": "@injury_5_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Injured. Reduce any physical characteristic by 1.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_table",
-   "relation": "HAS_PART",
-   "to": "@injury_row_5"
-  },
-  {
-   "op": "create_entity",
-   "type": "NoEffect",
-   "as": "@injury_6_none",
-   "properties": {
-    "name": "injury: no permanent effect",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Lightly injured. No permanent effect.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@injury_row_6",
-   "properties": {
-    "name": "injury 6",
-    "roll_min": "6",
-    "roll_max": "6",
-    "outcome": "@injury_6_none",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Injuries",
-    "source_kind": "cell",
-    "source_quote": "Lightly injured. No permanent effect.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Injury"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@injury_table",
-   "relation": "HAS_PART",
-   "to": "@injury_row_6"
-  },
-  {
-   "op": "create_entity",
-   "type": "RollableTable",
-   "as": "@mishap_table",
-   "properties": {
-    "name": "Survival Mishaps",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "sentence",
-    "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "GrantTableRoll",
-   "as": "@mishap_1_c0",
-   "properties": {
-    "name": "mishap_1_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
-    "source_table": "1D6",
-    "source_row": "1",
-    "source_column": "Mishaps",
-    "unmodelled": "The book says this is the same as a result of 2 on the Injury table, and offers an alternative of rolling twice and taking the lower. The alternative is a re-roll policy, which the outcome vocabulary cannot say, so this rolls on the Injury table.",
-    "table": "@injury_table"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@mishap_row_1",
-   "properties": {
-    "name": "mishap 1",
-    "roll_min": "1",
-    "roll_max": "1",
-    "outcome": "@mishap_1_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
-    "source_table": "1D6",
-    "source_row": "1",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_table",
-   "relation": "HAS_PART",
-   "to": "@mishap_row_1"
-  },
-  {
-   "op": "create_entity",
-   "type": "EndCareer",
-   "as": "@mishap_2_c0",
-   "properties": {
-    "name": "mishap_2_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service.",
-    "source_table": "1D6",
-    "source_row": "2",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@mishap_row_2",
-   "properties": {
-    "name": "mishap 2",
-    "roll_min": "2",
-    "roll_max": "2",
-    "outcome": "@mishap_2_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service.",
-    "source_table": "1D6",
-    "source_row": "2",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_table",
-   "relation": "HAS_PART",
-   "to": "@mishap_row_2"
-  },
-  {
-   "op": "create_entity",
-   "type": "EndCareer",
-   "as": "@mishap_3_c0",
-   "properties": {
-    "name": "mishap_3_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "GainFixedMoney",
-   "as": "@mishap_3_c1",
-   "properties": {
-    "name": "mishap_3_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Mishaps",
-    "amount": "-10000",
-    "currency": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Currency/credits"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@mishap_3",
-   "properties": {
-    "name": "mishap_3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_3_s0",
-   "properties": {
-    "name": "mishap_3_s0",
-    "step_index": "0",
-    "outcome": "@mishap_3_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_3",
-   "relation": "HAS_PART",
-   "to": "@mishap_3_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_3_s1",
-   "properties": {
-    "name": "mishap_3_s1",
-    "step_index": "1",
-    "outcome": "@mishap_3_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_3",
-   "relation": "HAS_PART",
-   "to": "@mishap_3_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@mishap_row_3",
-   "properties": {
-    "name": "mishap 3",
-    "roll_min": "3",
-    "roll_max": "3",
-    "outcome": "@mishap_3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Honorably discharged from the service after a long legal battle. Legal issues create a debt of Cr10,000.",
-    "source_table": "1D6",
-    "source_row": "3",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_table",
-   "relation": "HAS_PART",
-   "to": "@mishap_row_3"
-  },
-  {
-   "op": "create_entity",
-   "type": "EndCareer",
-   "as": "@mishap_4_c0",
-   "properties": {
-    "name": "mishap_4_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ForfeitBenefits",
-   "as": "@mishap_4_c1",
-   "properties": {
-    "name": "mishap_4_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@mishap_4",
-   "properties": {
-    "name": "mishap_4",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_4_s0",
-   "properties": {
-    "name": "mishap_4_s0",
-    "step_index": "0",
-    "outcome": "@mishap_4_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_4",
-   "relation": "HAS_PART",
-   "to": "@mishap_4_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_4_s1",
-   "properties": {
-    "name": "mishap_4_s1",
-    "step_index": "1",
-    "outcome": "@mishap_4_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_4",
-   "relation": "HAS_PART",
-   "to": "@mishap_4_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@mishap_row_4",
-   "properties": {
-    "name": "mishap 4",
-    "roll_min": "4",
-    "roll_max": "4",
-    "outcome": "@mishap_4",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "4",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_table",
-   "relation": "HAS_PART",
-   "to": "@mishap_row_4"
-  },
-  {
-   "op": "create_entity",
-   "type": "EndCareer",
-   "as": "@mishap_5_c0",
-   "properties": {
-    "name": "mishap_5_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ModifyAttribute",
-   "as": "@mishap_5_c1",
-   "properties": {
-    "name": "mishap_5_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps",
-    "attribute_ref": "age_years",
-    "attribute_delta": "4"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "ForfeitBenefits",
-   "as": "@mishap_5_c2",
-   "properties": {
-    "name": "mishap_5_c2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@mishap_5",
-   "properties": {
-    "name": "mishap_5",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_5_s0",
-   "properties": {
-    "name": "mishap_5_s0",
-    "step_index": "0",
-    "outcome": "@mishap_5_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_5",
-   "relation": "HAS_PART",
-   "to": "@mishap_5_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_5_s1",
-   "properties": {
-    "name": "mishap_5_s1",
-    "step_index": "1",
-    "outcome": "@mishap_5_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_5",
-   "relation": "HAS_PART",
-   "to": "@mishap_5_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_5_s2",
-   "properties": {
-    "name": "mishap_5_s2",
-    "step_index": "2",
-    "outcome": "@mishap_5_c2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_5",
-   "relation": "HAS_PART",
-   "to": "@mishap_5_s2"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@mishap_row_5",
-   "properties": {
-    "name": "mishap 5",
-    "roll_min": "5",
-    "roll_max": "5",
-    "outcome": "@mishap_5",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Dishonorably discharged from the service after serving an extra 4 years in prison for a crime. Lose all benefits.",
-    "source_table": "1D6",
-    "source_row": "5",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_table",
-   "relation": "HAS_PART",
-   "to": "@mishap_row_5"
-  },
-  {
-   "op": "create_entity",
-   "type": "EndCareer",
-   "as": "@mishap_6_c0",
-   "properties": {
-    "name": "mishap_6_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Medically discharged from the service. Roll on the Injury table.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "GrantTableRoll",
-   "as": "@mishap_6_c1",
-   "properties": {
-    "name": "mishap_6_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Medically discharged from the service. Roll on the Injury table.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Mishaps",
-    "table": "@injury_table"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeSequence",
-   "as": "@mishap_6",
-   "properties": {
-    "name": "mishap_6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Medically discharged from the service. Roll on the Injury table.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_6_s0",
-   "properties": {
-    "name": "mishap_6_s0",
-    "step_index": "0",
-    "outcome": "@mishap_6_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Medically discharged from the service. Roll on the Injury table.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_6",
-   "relation": "HAS_PART",
-   "to": "@mishap_6_s0"
-  },
-  {
-   "op": "create_entity",
-   "type": "OutcomeStep",
-   "as": "@mishap_6_s1",
-   "properties": {
-    "name": "mishap_6_s1",
-    "step_index": "1",
-    "outcome": "@mishap_6_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Medically discharged from the service. Roll on the Injury table.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_6",
-   "relation": "HAS_PART",
-   "to": "@mishap_6_s1"
-  },
-  {
-   "op": "create_entity",
-   "type": "TableEntry",
-   "as": "@mishap_row_6",
-   "properties": {
-    "name": "mishap 6",
-    "roll_min": "6",
-    "roll_max": "6",
-    "outcome": "@mishap_6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Survival",
-    "source_kind": "cell",
-    "source_quote": "Medically discharged from the service. Roll on the Injury table.",
-    "source_table": "1D6",
-    "source_row": "6",
-    "source_column": "Mishaps"
-   }
-  },
-  {
-   "op": "set_relation",
-   "from": "@mishap_table",
-   "relation": "HAS_PART",
-   "to": "@mishap_row_6"
-  }
- ]
 }

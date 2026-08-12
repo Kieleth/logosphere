@@ -647,6 +647,7 @@ classes:
       - affected_count
       - attribute_delta
       - attribute_delta_dice
+      - attribute_delta_reduces
 
   ForfeitBenefits:
     is_a: Outcome
@@ -1000,6 +1001,16 @@ slots:
     range: DiceExpression
     description: >-
       Rolled count, when the book rolls for it: "1D6 Ship Shares".
+  attribute_delta_reduces:
+    range: boolean
+    description: >-
+      Which way a rolled change goes. Dice say how much and never which
+      way: "reduce one physical characteristic by 1D6" prints no minus
+      sign, and a rule that rolled a gain would print none either.
+      Required whenever attribute_delta_dice is used, because the
+      alternative is the engine assuming a direction from whichever
+      table it met first. The fixed case needs no such slot, since
+      attribute_delta carries its own sign.
   attribute_delta_dice:
     range: DiceExpression
     description: >-

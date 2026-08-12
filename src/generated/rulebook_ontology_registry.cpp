@@ -758,6 +758,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ModifyAttributesInGroup", "affected_count", kg::PropertyValueKind::Integer, true, true, 1.0, false, 0.0);
     reg.addProperty("ModifyAttributesInGroup", "attribute_delta", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_delta_dice", false, "DiceExpression");
+    reg.addProperty("ModifyAttributesInGroup", "attribute_delta_reduces", kg::PropertyValueKind::Boolean, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("OntologyClassMeta", "class_abstract", kg::PropertyValueKind::Boolean, true, true);
     reg.addProperty("OntologyClassMeta", "has_direct_parent", kg::PropertyValueKind::Boolean, true, true);

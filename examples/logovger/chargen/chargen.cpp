@@ -224,9 +224,23 @@ std::vector<kg::EntityID> subject_rows(const kg::KGModule& kg,
 // separate engine operations: the recorded selection remains a fact if
 // outcome application fails. There is no default skill level in procedure
 // code.
+// An outcome that did not apply has two very different reasons, and
+// only one of them fills in `error`. A PENDING_CHOICE is the executor
+// saying "someone has to decide first", and it carries no error text,
+// so reporting it through the failure path produced a message that
+// stopped dead at the colon. Say which it is.
+std::string outcome_failure(const logosphere::rules::OutcomeResult& applied) {
+    if (applied.status == logosphere::rules::OutcomeStatus::PENDING_CHOICE) {
+        return "the rule stops for a choice that chargen cannot yet "
+               "present, so it cannot be applied here";
+    }
+    return applied.error.empty() ? "no reason given" : applied.error;
+}
+
 bool apply_training_table(kg::KGModule& kg, kg::EntityID table,
                           kg::EntityID character,
                           logosphere::dice::DiceService& dice,
+                          logosphere::rules::OutcomeExecutor& executor,
                           uint64_t& roll_id_out, std::string& gained,
                           std::string& error, bool* was_skill = nullptr) {
     gained.clear();
@@ -266,11 +280,11 @@ bool apply_training_table(kg::KGModule& kg, kg::EntityID table,
         }
     }
 
-    logosphere::rules::OutcomeExecutor executor(kg, dice);
     const auto applied = executor.apply(
         outcome, {character, "chargen", "skills and training"});
     if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
-        error = "skills and training outcome failed: " + applied.error;
+        error = "skills and training outcome failed: " +
+                outcome_failure(applied);
         return false;
     }
 
@@ -330,8 +344,45 @@ ChargenSession::ChargenSession(kg::KGModule& kg,
                                logosphere::dice::DiceService& dice)
     : kg_(kg), dice_(dice),
       primitives_(make_chargen_procedure_registry()),
-      runner_(kg_, primitives_) {
+      runner_(kg_, primitives_),
+      executor_(kg_, dice_) {
     bind_primitives();
+    register_outcome_handlers();
+}
+
+// What a career ending, or benefits being forfeited, MEANS is game
+// policy: the engine only dispatches the typed Outcome. Both are
+// reported rather than applied, because neither writes to the graph.
+// They raise a fact the procedure step above reads once the whole
+// outcome has committed.
+//
+// Registering them is not decoration. An OutcomeSequence plans every
+// child and commits once, so an unhandled EndCareer at step 0 fails
+// the whole row and discards the money and the injury after it. Every
+// mishap row but one carries one of these, which is why the mishap
+// table could not run at all before now.
+void ChargenSession::register_outcome_handlers() {
+    std::string error;
+    const auto report = [&](const char* type) {
+        if (!executor_.register_handler(
+                type,
+                [](const logosphere::rules::OutcomeHandlerContext& context,
+                   logosphere::rules::OutcomePlan& plan, std::string&) {
+                    plan.procedure_signals.push_back(
+                        {context.outcome_type, context.outcome,
+                         context.target});
+                    return true;
+                },
+                error)) {
+            // A registry that refuses a handler is a broken build, not
+            // a condition to survive at runtime.
+            throw std::runtime_error(
+                std::string("chargen could not register the ") + type +
+                " handler: " + error);
+        }
+    };
+    report("EndCareer");
+    report("ForfeitBenefits");
 }
 
 void ChargenSession::bind_primitives() {
@@ -362,6 +413,10 @@ void ChargenSession::bind_primitives() {
     });
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
+    });
+
+    bind("roll_aging", [this](const PrimitiveContext& context) {
+        return roll_aging(context);
     });
     bind("muster_out", [this](const PrimitiveContext& context) {
         return muster_out(context);
@@ -785,7 +840,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     std::string skill;
     std::string error;
     bool granted_a_skill = true;
-    if (!apply_training_table(kg_, chosen, sheet_.id, dice_, skill_roll,
+    if (!apply_training_table(kg_, chosen, sheet_.id, dice_, executor_,
+                              skill_roll,
                               skill, error, &granted_a_skill)) {
         return PrimitiveResult::failed(error);
     }
@@ -1027,11 +1083,12 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                                        selected.error);
     }
     const auto outcome = selected.selection->outcome();
-    logosphere::rules::OutcomeExecutor executor(kg_, dice_);
+    auto& executor = executor_;
     const auto applied = executor.apply(
         outcome, {sheet_.id, "chargen", "benefits"});
     if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
-        return PrimitiveResult::failed("benefit failed: " + applied.error);
+        return PrimitiveResult::failed("benefit failed: " +
+                                       outcome_failure(applied));
     }
     std::string got = kg_.getProperty(outcome, "name");
     const auto cut = got.rfind(": ");
@@ -1184,7 +1241,7 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
             sheet_.rank_title = kg_.getProperty(rung, "step_title");
             const std::string grant = kg_.getProperty(rung, "grants");
             if (grant.empty()) break;
-            logosphere::rules::OutcomeExecutor executor(kg_, dice_);
+            auto& executor = executor_;
             const auto applied = executor.apply(
                 static_cast<kg::EntityID>(std::stoul(grant)),
                 {sheet_.id, "chargen", "rank benefit"});
@@ -1272,6 +1329,73 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
     return PrimitiveResult::advance();
 }
 
+// Step 8. "The effects of aging begin when a character reaches 34
+// years of age. At the end of the fourth term, and at the end of every
+// term thereafter, the character must roll 2D6 on the Aging Table.
+// Apply the character's total number of terms as a negative Dice
+// Modifier on this table."
+//
+// The book states the trigger twice, by age and by term count, and the
+// two agree for anyone who has only served: 18 + 4x4 = 34. The term
+// count is the mechanical one, and it is also what the modifier is
+// made of, so it is what gates here. If a rule ever adds years without
+// adding terms (mishap 5's prison sentence does), the two part company
+// and this needs revisiting rather than quietly picking one.
+//
+// TOTAL terms, not terms in this career. The two counters are kept
+// apart deliberately: benefits are paid per career, this is paid by a
+// whole life.
+ChargenSession::PrimitiveResult ChargenSession::roll_aging(
+    const PrimitiveContext&) {
+    if (sheet_.terms_served < 4) return PrimitiveResult::advance();
+
+    const auto table = find_named(kg_, "RollableTable", "Effects of Aging");
+    if (table == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "the Aging table is not in the graph; load the shared "
+            "tables seed");
+    }
+    logosphere::rules::RollableTableRunner runner(kg_, dice_);
+    const auto selected = runner.select(table, "chargen", "aging",
+                                        -sheet_.terms_served);
+    if (!selected.ok()) {
+        return PrimitiveResult::failed("aging: " + selected.error);
+    }
+    const auto& roll = selected.selection->roll();
+    const auto applied = executor_.apply(
+        selected.selection->outcome(), {sheet_.id, "chargen", "aging"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        return PrimitiveResult::failed("aging: " + outcome_failure(applied));
+    }
+    // The executor wrote the reduced values into the graph. The
+    // session's copy is stale until it reads them back, and the UPP is
+    // recomputed from them.
+    const CharacterSheet before = sheet_;
+    read_characteristics(kg_, sheet_);
+
+    std::ostringstream detail;
+    detail << roll.expression.to_string() << " = " << roll.total
+           << " (" << sheet_.terms_served << " terms as a negative DM)";
+    const auto lost = [&](const char* name, int was, int now) {
+        return was == now ? std::string()
+                          : std::string(name) + " " + std::to_string(was) +
+                                "->" + std::to_string(now) + " ";
+    };
+    std::string toll =
+        lost("Str", before.strength, sheet_.strength) +
+        lost("Dex", before.dexterity, sheet_.dexterity) +
+        lost("End", before.endurance, sheet_.endurance) +
+        lost("Int", before.intelligence, sheet_.intelligence) +
+        lost("Edu", before.education, sheet_.education) +
+        lost("Soc", before.social_standing, sheet_.social_standing);
+    if (!toll.empty() && toll.back() == ' ') toll.pop_back();
+    sheet_.life.push_back({sheet_.terms_served,
+                           toll.empty() ? "the years pass, unmarked"
+                                        : "the years take " + toll,
+                           detail.str(), roll.id});
+    return PrimitiveResult::advance();
+}
+
 ChargenSession::PrimitiveResult ChargenSession::choose_term_end(
     const PrimitiveContext& context) {
     if (!context.input) {
@@ -1353,6 +1477,9 @@ bool run_chargen(const ChargenRequest& request,
                  CharacterSheet& out,
                  std::string& error) {
     ChargenSession session(kg, dice);
+    if (request.attribute_selector) {
+        session.set_attribute_selector(request.attribute_selector);
+    }
     if (!session.begin(request.seed, error)) return false;
 
     bool offered = false;
