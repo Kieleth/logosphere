@@ -1652,6 +1652,16 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose(choices.front().key, error)) return false;
             continue;
         }
+        // A crisis is pay-or-die, and the auto-player pays whenever
+        // the money is there: it exists to carry a life to its end, and
+        // refusing care ends it. Where the money is short the book
+        // offers no choice at all and only "refuse" is on the table,
+        // so taking the last option is right either way.
+        if (session.prompt().find("to nothing. Care costs") !=
+            std::string::npos) {
+            if (!session.choose(choices.front().key, error)) return false;
+            continue;
+        }
         // Reaching for rank costs nothing but the throw, so the
         // auto-player always tries. A human decides; this one has no
         // reason not to.
