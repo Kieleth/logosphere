@@ -1540,6 +1540,19 @@ target_include_directories(logosphere_llm PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor  # nlohmann/json for tool registry
 )
+
+# The headless Logovger gains an LLM PLAYER where the LLM library
+# exists. Added to the existing target rather than duplicating it, so
+# the core profile keeps a full life that plays with no API key at all
+# (--random) and the full profile also gets --record, where the model
+# plays the character and every answer is taped.
+target_sources(logovger-headless PRIVATE
+    examples/logovger/src/adjudicator.cpp
+    examples/logovger/src/judgment_answer.cpp
+)
+target_compile_definitions(logovger-headless PRIVATE LOGOVGER_WITH_LLM)
+target_link_libraries(logovger-headless PRIVATE logosphere_llm)
+
 if(LLAMA_INCLUDE)
     target_include_directories(logosphere_llm PUBLIC
         ${LLAMA_INCLUDE}

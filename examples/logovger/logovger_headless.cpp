@@ -31,6 +31,10 @@
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 
+#ifdef LOGOVGER_WITH_LLM
+#include "adjudicator.h"
+#endif
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -106,6 +110,42 @@ bool load_rules(kg::KGModule& world, std::string& why) {
     return true;
 }
 
+#ifdef LOGOVGER_WITH_LLM
+// The model, and what it can see while it plays. The sheet is watched
+// rather than copied so each question carries the life as it stands,
+// which is what makes this playing rather than picking.
+logovger::Adjudicator g_player;
+const logovger::CharacterSheet* g_life = nullptr;
+uint64_t g_seed = 0;
+
+bool ask_the_player(const replay::Ask& ask, std::string& out,
+                    std::string& error) {
+    logovger::Judgment judgment;
+    judgment.rule = "You are making this character, one decision at a "
+                    "time, and you live with what you choose.";
+    judgment.question = ask.prompt;
+    judgment.options = ask.offered;
+    judgment.count = 1;
+    judgment.hint = "play a life worth reading, not the safest one";
+    if (g_life) judgment.history = logovger::format_life(*g_life);
+
+    std::vector<std::string> chosen;
+    std::string reason;
+    if (!g_player.decide(judgment, g_seed, chosen, reason, error)) {
+        return false;
+    }
+    if (chosen.empty()) {
+        error = "the player chose nothing at '" + ask.site + "'";
+        return false;
+    }
+    out = chosen.front();
+    if (!reason.empty()) {
+        std::cout << "    [player] " << out << ": " << reason << "\n";
+    }
+    return true;
+}
+#endif
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -133,10 +173,22 @@ int main(int argc, char** argv) {
         source = std::move(taped);
     } else if (mode == "--record") {
         tape_path = argument;
-        // Nothing live is attached here yet: recording a human needs
-        // the windowed game. Recording a fuzz run is the useful case,
-        // and --random writes a tape too.
-        source = std::make_unique<replay::RandomInput>(1);
+#ifdef LOGOVGER_WITH_LLM
+        // The model plays the character. Every question the book asks
+        // goes to it, with the life so far for context, and every
+        // answer is taped: a life it plays once replays forever
+        // without calling it again.
+        std::string why;
+        if (!g_player.initialize(game_path("lore/voyager.md"), why)) {
+            std::cout << "no player: " << why << "\n";
+            return 1;
+        }
+        source = std::make_unique<replay::LiveInput>(ask_the_player);
+#else
+        std::cout << "--record needs a build with LLM support; this one "
+                     "has none. Use --random N to play without a model.\n";
+        return 1;
+#endif
     } else {
         source = std::make_unique<replay::RandomInput>(
             std::stoull(argument));
@@ -158,6 +210,12 @@ int main(int argc, char** argv) {
     dice.seed_stream("chargen", seed);
 
     logovger::ChargenSession session(world, dice);
+#ifdef LOGOVGER_WITH_LLM
+    // What the player can see: the life as it grows, and the seed, so
+    // its answers cache per life rather than across all of them.
+    g_life = &session.sheet();
+    g_seed = seed;
+#endif
 
     // The referee, through the same seam as the player. In --random
     // this answers with no model and no key; in --replay it comes off
