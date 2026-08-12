@@ -834,6 +834,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ModifyAttributesInGroup", "affected_count", kg::PropertyValueKind::Integer, true, true, 1.0, false, 0.0);
     reg.addProperty("ModifyAttributesInGroup", "attribute_delta", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_delta_dice", false, "DiceExpression");
+    reg.addProperty("ModifyAttributesInGroup", "attribute_delta_reduces", kg::PropertyValueKind::Boolean, false);
     reg.setSource("https://logosphere.dev/logovger/voyager");
     reg.addProperty("Narration", "narrative_text", kg::PropertyValueKind::String, true);
     reg.addRefProperty("Narration", "narrates", true, "Entity");
