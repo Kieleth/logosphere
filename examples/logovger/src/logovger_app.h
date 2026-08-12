@@ -20,6 +20,7 @@
 
 #include "chargen/chargen.h"
 #include "chargen/rule_seeds.h"
+#include "adjudicator.h"
 #include "narrator.h"
 #include "sheet_screen.h"
 #include "chargen/procedure_catalog.h"
@@ -99,6 +100,21 @@ public:
                                   narrator_error)) {
             screen_.say("NARRATOR OFF: " + narrator_error,
                         SheetScreen::Tone::Bad);
+        }
+        // The referee is NOT optional the way the narrator is. Aging
+        // and injuries fix how many characteristics go and leave which
+        // open, and the engine refuses to choose; without someone to
+        // answer, those rules fail rather than picking quietly. So a
+        // missing adjudicator stops the game here instead of at term
+        // four, where it would read as a bug.
+        std::string referee_error;
+        if (!adjudicator_.initialize(game_path("lore/voyager.md"),
+                                     referee_error)) {
+            say("No referee: " + referee_error);
+            say("Aging and injuries ask which characteristics go, and "
+                "that answer is not the engine's to invent. There is no "
+                "fallback on purpose.");
+            return;
         }
         screen_.say("The rulebook is in the graph: 24 careers, 48 throws, "
                     "150 rollable-table rows, all cited.");
@@ -368,6 +384,57 @@ private:
         seed_ = pinned_seed_ ? *pinned_seed_ + lives_ : random_seed();
         ++lives_;
         session_ = std::make_unique<ChargenSession>(kg, dice_);
+        // Who decides which characteristics the years take. The engine
+        // supplies the eligible set, the count and the size of the
+        // change, and refuses to pick; this hands that to the referee,
+        // who reads the life so far and answers. The engine then holds
+        // the answer to the rule, so a loose reply cannot widen it.
+        session_->set_attribute_selector(
+            [this](const logosphere::rules::AttributeSelectionRequest& ask,
+                   std::vector<std::string>& chosen, std::string& error) {
+                logovger::Judgment judgment;
+                judgment.rule =
+                    "Aging and injury reduce characteristics. The rule "
+                    "fixes how many and by how much, and leaves which.";
+                judgment.question =
+                    "Which " + std::to_string(ask.count) +
+                    " give way, and why?";
+                judgment.options = ask.eligible;
+                judgment.count = ask.count;
+                judgment.hint =
+                    "the body gives out first where it was used most";
+                // The life as it stands, which is what makes this a
+                // judgment about a person rather than a coin toss.
+                judgment.history = session_ ? format_life(session_->sheet())
+                                            : std::string();
+                // Where they stand NOW, including anything this same
+                // rule already took a moment ago. The graph cannot be
+                // asked: nothing commits until the whole rule does.
+                std::ostringstream standing;
+                for (size_t i = 0; i < ask.eligible.size(); ++i) {
+                    if (i) standing << ", ";
+                    standing << ask.eligible[i] << " "
+                             << (i < ask.current.size() ? ask.current[i] : 0);
+                    if (std::find(ask.already_taken.begin(),
+                                  ask.already_taken.end(),
+                                  ask.eligible[i]) !=
+                        ask.already_taken.end()) {
+                        standing << " (already taken)";
+                    }
+                }
+                judgment.standing = standing.str();
+
+                std::string reason;
+                if (!adjudicator_.decide(judgment, seed_, chosen, reason,
+                                         error)) {
+                    return false;
+                }
+                if (!reason.empty()) {
+                    screen_.say("  the referee: " + reason,
+                                SheetScreen::Tone::Roll);
+                }
+                return true;
+            });
         file_closed_ = false;
         std::string error;
         if (!session_->begin(seed_, error)) {
@@ -503,6 +570,11 @@ private:
 
     SheetScreen                        screen_;
     Narrator                           narrator_;
+    // Prose and judgment are different jobs with different contracts:
+    // the narrator never blocks and losing it costs only flavour; the
+    // referee blocks, because a rule cannot proceed without its
+    // answer, and losing it stops the game.
+    Adjudicator                        adjudicator_;
     std::vector<std::string>           beat_facts_;
     std::vector<uint64_t>              beat_rolls_;
     bool                               beat_bad_ = false;
