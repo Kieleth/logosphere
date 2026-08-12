@@ -414,6 +414,10 @@ void ChargenSession::bind_primitives() {
     bind("advance_term", [this](const PrimitiveContext& context) {
         return advance_term(context);
     });
+
+    bind("roll_aging", [this](const PrimitiveContext& context) {
+        return roll_aging(context);
+    });
     bind("muster_out", [this](const PrimitiveContext& context) {
         return muster_out(context);
     });
@@ -1325,6 +1329,73 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
     return PrimitiveResult::advance();
 }
 
+// Step 8. "The effects of aging begin when a character reaches 34
+// years of age. At the end of the fourth term, and at the end of every
+// term thereafter, the character must roll 2D6 on the Aging Table.
+// Apply the character's total number of terms as a negative Dice
+// Modifier on this table."
+//
+// The book states the trigger twice, by age and by term count, and the
+// two agree for anyone who has only served: 18 + 4x4 = 34. The term
+// count is the mechanical one, and it is also what the modifier is
+// made of, so it is what gates here. If a rule ever adds years without
+// adding terms (mishap 5's prison sentence does), the two part company
+// and this needs revisiting rather than quietly picking one.
+//
+// TOTAL terms, not terms in this career. The two counters are kept
+// apart deliberately: benefits are paid per career, this is paid by a
+// whole life.
+ChargenSession::PrimitiveResult ChargenSession::roll_aging(
+    const PrimitiveContext&) {
+    if (sheet_.terms_served < 4) return PrimitiveResult::advance();
+
+    const auto table = find_named(kg_, "RollableTable", "Effects of Aging");
+    if (table == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "the Aging table is not in the graph; load the shared "
+            "tables seed");
+    }
+    logosphere::rules::RollableTableRunner runner(kg_, dice_);
+    const auto selected = runner.select(table, "chargen", "aging",
+                                        -sheet_.terms_served);
+    if (!selected.ok()) {
+        return PrimitiveResult::failed("aging: " + selected.error);
+    }
+    const auto& roll = selected.selection->roll();
+    const auto applied = executor_.apply(
+        selected.selection->outcome(), {sheet_.id, "chargen", "aging"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        return PrimitiveResult::failed("aging: " + outcome_failure(applied));
+    }
+    // The executor wrote the reduced values into the graph. The
+    // session's copy is stale until it reads them back, and the UPP is
+    // recomputed from them.
+    const CharacterSheet before = sheet_;
+    read_characteristics(kg_, sheet_);
+
+    std::ostringstream detail;
+    detail << roll.expression.to_string() << " = " << roll.total
+           << " (" << sheet_.terms_served << " terms as a negative DM)";
+    const auto lost = [&](const char* name, int was, int now) {
+        return was == now ? std::string()
+                          : std::string(name) + " " + std::to_string(was) +
+                                "->" + std::to_string(now) + " ";
+    };
+    std::string toll =
+        lost("Str", before.strength, sheet_.strength) +
+        lost("Dex", before.dexterity, sheet_.dexterity) +
+        lost("End", before.endurance, sheet_.endurance) +
+        lost("Int", before.intelligence, sheet_.intelligence) +
+        lost("Edu", before.education, sheet_.education) +
+        lost("Soc", before.social_standing, sheet_.social_standing);
+    if (!toll.empty() && toll.back() == ' ') toll.pop_back();
+    sheet_.life.push_back({sheet_.terms_served,
+                           toll.empty() ? "the years pass, unmarked"
+                                        : "the years take " + toll,
+                           detail.str(), roll.id});
+    return PrimitiveResult::advance();
+}
+
 ChargenSession::PrimitiveResult ChargenSession::choose_term_end(
     const PrimitiveContext& context) {
     if (!context.input) {
@@ -1406,6 +1477,9 @@ bool run_chargen(const ChargenRequest& request,
                  CharacterSheet& out,
                  std::string& error) {
     ChargenSession session(kg, dice);
+    if (request.attribute_selector) {
+        session.set_attribute_selector(request.attribute_selector);
+    }
     if (!session.begin(request.seed, error)) return false;
 
     bool offered = false;

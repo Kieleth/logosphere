@@ -160,6 +160,7 @@ private:
     PrimitiveResult basic_training(const PrimitiveContext& context);
     PrimitiveResult muster_out(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
+    PrimitiveResult roll_aging(const PrimitiveContext& context);
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
 
@@ -200,6 +201,12 @@ struct ChargenRequest {
     std::string career_name;
     uint64_t    seed = 0;
     int         max_terms = 4;
+    // Who decides which characteristics aging takes. Empty means
+    // nobody, and a life that rolls a row leaving that choice open
+    // then fails loudly rather than picking for itself. A four-term
+    // life reaches the aging table, so anything driving one past a
+    // damaging row must supply this.
+    logosphere::rules::AttributeSelector attribute_selector;
 };
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,

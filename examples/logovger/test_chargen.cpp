@@ -245,6 +245,139 @@ void test_a_life_is_generated() {
 // The honesty property that makes a session replayable and a referee
 // auditable: the same seed replays the same life, a different seed
 // does not.
+// Aging is the first rule the book leaves half-open: it fixes how many
+// characteristics go and not which. The engine refuses to choose, so a
+// life that rolls a damaging row cannot finish unless someone answers.
+// This drives that path end to end.
+//
+// The seed is not hardcoded. A damaging row needs the modified 2D6 to
+// land at 0 or below, which most lives never do, so the test sweeps
+// until it finds one and asserts against THAT life. Finding none is
+// itself a failure: it would mean aging had quietly stopped biting.
+void test_aging_takes_what_the_referee_says_it_takes() {
+    std::string why;
+
+    // The stand-in referee: takes the first eligible, in order. A test
+    // supplies its own so the production path never grows a fallback.
+    std::vector<std::string> asked_for;
+    int consulted = 0;
+    const auto stub =
+        [&](const logosphere::rules::AttributeSelectionRequest& request,
+            std::vector<std::string>& chosen, std::string&) {
+            ++consulted;
+            asked_for = request.eligible;
+            chosen.assign(request.eligible.begin(),
+                          request.eligible.begin() + request.count);
+            return true;
+        };
+
+    uint64_t bitten_seed = 0;
+    logovger::CharacterSheet bitten;
+    int bitten_consulted = 0;
+    int ran_lives = 0, failed_lives = 0, aged_lives = 0, longest = 0;
+    int marked_lives = 0;
+    uint64_t whole_group_seed = 0;
+    std::string last_failure;
+    // One world, many lives. Rebuilding it per seed means verifying and
+    // loading every rule seed again, which is the expensive part; the
+    // characters are fresh entities either way. Most lives never reach
+    // the aging table at all (re-enlistment is a throw, and auto-play
+    // cannot answer the Draft), and the one that does has a 1-in-6
+    // chance of being marked, so the sweep has to be wide.
+    kg::KGModule sweep_world(game_registry());
+    CHECK(build_world(sweep_world, why), "the sweep world loads: " + why);
+    for (uint64_t seed = 1; seed <= 400 && bitten_seed == 0; ++seed) {
+        kg::KGModule& world = sweep_world;
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        req.attribute_selector = stub;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        consulted = 0;
+        if (!logovger::run_chargen(req, world, dice, sheet, error)) {
+            ++failed_lives;
+            if (last_failure.empty()) last_failure = error;
+            continue;
+        }
+        ++ran_lives;
+        if (sheet.terms_served >= 4) ++aged_lives;
+        longest = std::max(longest, sheet.terms_served);
+        for (const auto& event : sheet.life) {
+            if (event.what.rfind("the years take", 0) != 0) continue;
+            ++marked_lives;
+            // A row that takes the WHOLE group leaves nothing to
+            // decide, and those are the common ones. Remember the
+            // first as its own proof, but keep hunting for a row that
+            // actually asks.
+            if (consulted == 0 && whole_group_seed == 0) {
+                whole_group_seed = seed;
+            }
+            if (consulted > 0) {
+                bitten_seed = seed;
+                bitten = sheet;
+                bitten_consulted = consulted;
+            }
+            break;
+        }
+    }
+
+    std::cout << "  [measure] " << ran_lives << " lives ran, "
+              << failed_lives << " failed, " << aged_lives
+              << " reached 4+ terms, longest " << longest << " terms, "
+              << marked_lives << " marked by aging\n";
+    if (!last_failure.empty()) {
+        std::cout << "  [measure] first failure: " << last_failure << "\n";
+    }
+    // A row that takes the whole group applies with nobody asked.
+    // That is most of the aging table, and it must keep working in a
+    // build that has no referee at all.
+    CHECK(whole_group_seed != 0,
+          "some life is marked by a row that takes the whole group, "
+          "with no referee consulted");
+    CHECK(bitten_seed != 0,
+          "some life hits an aging row that leaves the choice open; "
+          "none did, so either aging stopped firing or the rows that "
+          "ask are unreachable");
+    if (bitten_seed == 0) return;
+
+    std::cout << "  [measure] seed " << bitten_seed
+              << " is the first life aging marks\n";
+    for (const auto& event : bitten.life) {
+        if (event.what.rfind("the years", 0) == 0) {
+            std::cout << "  [measure] " << event.what << "  ("
+                      << event.detail << ")\n";
+        }
+    }
+
+    CHECK(bitten_consulted > 0,
+          "the referee was actually consulted for that life");
+    CHECK(asked_for.size() == 3 &&
+              std::find(asked_for.begin(), asked_for.end(), "strength") !=
+                  asked_for.end(),
+          "the choice offered was the physical group, not something else");
+
+    // The control, and the point of the whole design: run the SAME
+    // life with nobody to answer. It must fail loudly rather than pick
+    // a characteristic for itself.
+    kg::KGModule world(game_registry());
+    CHECK(build_world(world, why), "the control world loads: " + why);
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest req;
+    req.career_name = "Agent";
+    req.seed = bitten_seed;
+    req.max_terms = 7;
+    // req.attribute_selector deliberately left empty.
+    logovger::CharacterSheet sheet;
+    std::string error;
+    const bool ran = logovger::run_chargen(req, world, dice, sheet, error);
+    CHECK(!ran && error.find("selector") != std::string::npos,
+          "with nobody to decide, aging refuses instead of choosing: ran=" +
+              std::to_string(ran) + " error=" + error);
+}
+
 void test_the_same_seed_replays_the_same_life() {
     kg::KGModule a(game_registry()), b(game_registry()), c(game_registry());
     std::string why;
@@ -888,6 +1021,7 @@ int main() {
     std::cout << "Logovger chargen (a life, from the book, in the graph)"
               << std::endl;
     test_a_life_is_generated();
+    test_aging_takes_what_the_referee_says_it_takes();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
     test_a_career_pays_only_for_its_own_years();
