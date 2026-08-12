@@ -408,6 +408,85 @@ void a_selector_cannot_widen_or_wander_outside_the_rule() {
     }
 }
 
+// WHY the chooser is handed its history instead of subscribing for it.
+//
+// The event bus is the engine's answer to "react to what happened",
+// and it is deliberately no help here: apply_kg_ops_atomically
+// detaches the bus, buffers every event, and re-emits only after the
+// whole batch commits, so nothing is ever announced for a change that
+// might roll back. A chooser runs INSIDE that batch, before any of it
+// is real.
+//
+// This pins both halves at once: mid-rule, the bus is silent and the
+// graph still reads as it did before the rule started, while
+// already_taken tells the truth. If someone later makes the executor
+// emit during planning, this test goes red and the guarantee in
+// docs/GAME_LAYER.md is what they broke.
+void the_bus_is_silent_until_the_whole_rule_commits() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto group = f.world.createEntity("AttributeGroup");
+    f.world.setProperty(group, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto step_of = [&](int count, int delta) {
+        const auto id = outcome(f, "ModifyAttributesInGroup");
+        f.world.setProperty(id, "attribute_group", std::to_string(group));
+        f.world.setProperty(id, "affected_count", std::to_string(count));
+        f.world.setProperty(id, "attribute_delta", std::to_string(delta));
+        return id;
+    };
+    const auto root = sequence(f, {step_of(2, -2), step_of(1, -1)});
+
+    struct Look {
+        int events_seen = 0;
+        std::string strength_in_graph;
+        size_t already_taken = 0;
+    };
+    std::vector<Look> looks;
+    f.state_events = 0;
+    executor.set_attribute_selector(
+        [&](const rules::AttributeSelectionRequest& request,
+            std::vector<std::string>& chosen, std::string&) {
+            looks.push_back({f.state_events,
+                             f.world.getProperty(f.character, "strength"),
+                             request.already_taken.size()});
+            for (const auto& name : request.eligible) {
+                if (std::find(request.already_taken.begin(),
+                              request.already_taken.end(),
+                              name) != request.already_taken.end()) {
+                    continue;
+                }
+                if (static_cast<int>(chosen.size()) < request.count) {
+                    chosen.push_back(name);
+                }
+            }
+            return true;
+        });
+
+    const auto result = executor.apply(root, f.context());
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "the rule applies: " + result.error);
+    REQUIRE(looks.size() == 2, "the chooser ran twice inside one batch");
+
+    REQUIRE(looks[0].events_seen == 0 && looks[1].events_seen == 0,
+            "no state-change event reaches anyone mid-rule, got " +
+                std::to_string(looks[0].events_seen) + " and " +
+                std::to_string(looks[1].events_seen));
+    REQUIRE(looks[0].strength_in_graph == "8" &&
+                looks[1].strength_in_graph == "8",
+            "and the graph still reads as it did before the rule began, "
+            "even on the second call: got " + looks[1].strength_in_graph);
+
+    // The only truthful source at that moment.
+    REQUIRE(looks[0].already_taken == 0 && looks[1].already_taken == 2,
+            "while already_taken knows exactly what the rule has spent");
+
+    // And once it commits, both the graph and the bus catch up at once.
+    REQUIRE(f.world.getProperty(f.character, "strength") == "6" &&
+                f.state_events > 0,
+            "after the commit the change is real and announced");
+}
+
 // Aging's "reduce two physical characteristics by 2, reduce one
 // physical characteristic by 1" is TWO changes over ONE group, and the
 // book means all three go, each once. The chooser therefore has to
@@ -909,6 +988,7 @@ int main() {
     TEST(a_selector_cannot_widen_or_wander_outside_the_rule);
     TEST(a_change_past_the_floor_lands_on_it_and_says_so);
     TEST(rolling_twice_says_which_roll_counts);
+    TEST(the_bus_is_silent_until_the_whole_rule_commits);
     TEST(a_second_change_sees_what_the_first_one_took);
     TEST(a_rolled_delta_must_say_which_way_it_goes);
     TEST(an_absent_roll_count_means_one);
