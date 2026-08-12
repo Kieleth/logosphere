@@ -683,6 +683,13 @@ if(LOGOSPHERE_FULL)
     )
     target_compile_features(at_program_actor PRIVATE cxx_std_17)
 
+    # at_headless_run — the fixed-step, no-window driver every recorded
+    # or repeatable run uses.
+    add_executable(at_headless_run tests/at_headless_run.cpp)
+    target_link_libraries(at_headless_run PRIVATE logosphere)
+    target_compile_features(at_headless_run PRIVATE cxx_std_17)
+    add_test(NAME at_headless_run COMMAND at_headless_run)
+
     # at_cinematic — same pattern as at_program_actor; needs both
     # program_actor.cpp and cinematic.cpp linked in.
     add_executable(at_cinematic
@@ -1241,6 +1248,7 @@ set(LOGOSPHERE_SOURCES
     # InputSystem references out of logosphere_dynamics (B26).
     src/animation/serpent_locomotion_engine.cpp
     src/core/engine.cpp
+    src/replay/headless_run.cpp
     src/assembly/rigid_assembly.cpp  # Rigid multi-particle entity primitive
     # LLM sources now live in the logosphere_llm STATIC target (see below).
     src/core/telemetry.cpp
