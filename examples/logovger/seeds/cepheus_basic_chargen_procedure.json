@@ -8,7 +8,7 @@
     "count_of_type": {
       "Procedure": 1,
       "ProcedureStep": 15,
-      "StepRoute": 10
+      "StepRoute": 11
     },
     "unique_name_per_type": [
       "Procedure",
@@ -137,6 +137,20 @@
         "primitive_ref": "finish_character",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you wish to leave this career, go to step 10."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@aging_crisis_unpaid",
+      "properties": {
+        "name": "aging crisis unpaid",
+        "route_label": "died",
+        "next_step": "@finish_character",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Aging Crisis",
+        "source_kind": "sentence",
+        "source_quote": "The character dies unless he can pay 1D6×10,000 Credits for medical care, which will bring any characteristics back up to 1."
       }
     },
     {
@@ -513,6 +527,12 @@
       "from": "@basic_chargen",
       "relation": "HAS_PART",
       "to": "@roll_aging"
+    },
+    {
+      "op": "set_relation",
+      "from": "@roll_aging",
+      "relation": "HAS_PART",
+      "to": "@aging_crisis_unpaid"
     }
   ]
 }

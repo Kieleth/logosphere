@@ -720,6 +720,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("GainRolledMoney", "amount_dice", true, "DiceExpression");
     reg.addRefProperty("GrantTableRoll", "table", true, "RollableTable");
     reg.addProperty("GrantTableRoll", "roll_count", kg::PropertyValueKind::Integer, false, true, 1.0, false, 0.0);
+    reg.addProperty("GrantTableRoll", "roll_selection", kg::PropertyValueKind::String, false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("Growable", "growth_iteration", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Growable", "is_mature", kg::PropertyValueKind::Boolean, false);

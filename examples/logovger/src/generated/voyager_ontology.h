@@ -2066,6 +2066,8 @@ struct GrantTableRoll : public Outcome {
     RollableTable table = {};
     /// How many extra rolls.
     std::optional<int32_t> roll_count = std::nullopt;
+    /// Which of several rolls on a table actually counts, when a rule rolls more than once. Cepheus: "roll twice on the Injury table and take the lower result." Permitted values are EACH, LOWEST and HIGHEST, and an ABSENT value means EACH, because a bare "roll on the table" says nothing about picking between results and the source prints nothing to store. LOWEST and HIGHEST name the lowest or highest dice TOTAL, not the better or worse result: on the Injury table 1 is the worst outcome and 6 the mildest, so which end is kind is a fact about the table, not about the rule.
+    std::optional<std::string> roll_selection = std::nullopt;
 };
 
 
@@ -2245,6 +2247,8 @@ struct Character : public LivingEntity {
     std::optional<int32_t> terms_served = std::nullopt;
     /// Money, in credits, from mustering out onward.
     std::optional<int32_t> credits = std::nullopt;
+    /// This character automatically fails every Qualification check from now on. Cepheus sets it when a crisis, from aging or from injury, takes a characteristic to 0 and the character survives it: "The character automatically fails any Qualification checks from now on - he must either continue in the career he is in or become a Drifter if he wishes to take any more terms." It is permanent, which is why it is a mark on the character and not a modifier on one throw.
+    std::optional<bool> qualification_barred = std::nullopt;
     /// Str, position 1 of the UPP.
     std::optional<int32_t> strength = std::nullopt;
 };

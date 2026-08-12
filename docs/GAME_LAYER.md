@@ -236,6 +236,40 @@ Subscribers get structured streams — the `relations` channel carries
 `relation_type` (the relation name string, extensible beyond the
 engine's built-in enum values), and `event_type` (the action).
 
+### Events are transactional, and only speak about facts
+
+**Nothing is emitted for a change that might be rolled back, and
+nothing is emitted mid-transaction.** `apply_kg_ops_atomically`
+detaches the bus for the duration of the batch, buffers every event the
+mutations would have raised, and re-emits them only after the whole
+batch has committed (`src/kg/kg_ops_transaction.cpp`). A batch that
+fails half-way undoes its writes and emits nothing at all.
+
+That is deliberate, and it decides what the bus can and cannot be used
+for:
+
+- **Reacting to what happened: yes.** By the time a subscriber runs,
+  the change is real and the graph agrees with it. This is the
+  mechanism for derived state, reactions, journalling and AI.
+- **Observing a change in progress: no.** Anything running *inside* a
+  transaction, before the commit, cannot learn about the batch's own
+  earlier writes from the bus, and cannot learn them by querying the
+  KG either. Both still describe the world as it was before the batch
+  began.
+
+The second case is not a gap to work around; it is the guarantee. A
+subscriber that saw a change which was later rolled back would be
+holding a fact the world never contained.
+
+So a decision that must be made *during* a batch, and that depends on
+what the batch has already planned, has to be handed that state
+explicitly. The rules layer does exactly this:
+`AttributeSelectionRequest` carries `current` (each attribute's
+*planned* value) and `already_taken`, because a rule like "reduce two
+physical characteristics by 2, reduce one physical characteristic by 1"
+asks a chooser twice inside one uncommitted plan. See
+`include/logosphere/rules/outcome_executor.h`.
+
 **Limb-severed example:** a game detects limb loss without needing a
 health-based rule:
 ```cpp

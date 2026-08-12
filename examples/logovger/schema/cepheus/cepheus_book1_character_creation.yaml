@@ -49,6 +49,7 @@ classes:
       - age_years
       - terms_served
       - credits
+      - qualification_barred
 
   Career:
     is_a: Entity
@@ -239,6 +240,17 @@ slots:
   credits:
     range: integer
     description: Money, in credits, from mustering out onward.
+  qualification_barred:
+    range: boolean
+    description: >-
+      This character automatically fails every Qualification check from
+      now on. Cepheus sets it when a crisis, from aging or from injury,
+      takes a characteristic to 0 and the character survives it: "The
+      character automatically fails any Qualification checks from now
+      on - he must either continue in the career he is in or become a
+      Drifter if he wishes to take any more terms." It is permanent,
+      which is why it is a mark on the character and not a modifier on
+      one throw.
   term_number:
     range: integer
     description: 1-based index of the term in the Voyager's life.

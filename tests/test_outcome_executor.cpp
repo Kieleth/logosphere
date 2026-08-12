@@ -408,6 +408,307 @@ void a_selector_cannot_widen_or_wander_outside_the_rule() {
     }
 }
 
+// WHY the chooser is handed its history instead of subscribing for it.
+//
+// The event bus is the engine's answer to "react to what happened",
+// and it is deliberately no help here: apply_kg_ops_atomically
+// detaches the bus, buffers every event, and re-emits only after the
+// whole batch commits, so nothing is ever announced for a change that
+// might roll back. A chooser runs INSIDE that batch, before any of it
+// is real.
+//
+// This pins both halves at once: mid-rule, the bus is silent and the
+// graph still reads as it did before the rule started, while
+// already_taken tells the truth. If someone later makes the executor
+// emit during planning, this test goes red and the guarantee in
+// docs/GAME_LAYER.md is what they broke.
+void the_bus_is_silent_until_the_whole_rule_commits() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto group = f.world.createEntity("AttributeGroup");
+    f.world.setProperty(group, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto step_of = [&](int count, int delta) {
+        const auto id = outcome(f, "ModifyAttributesInGroup");
+        f.world.setProperty(id, "attribute_group", std::to_string(group));
+        f.world.setProperty(id, "affected_count", std::to_string(count));
+        f.world.setProperty(id, "attribute_delta", std::to_string(delta));
+        return id;
+    };
+    const auto root = sequence(f, {step_of(2, -2), step_of(1, -1)});
+
+    struct Look {
+        int events_seen = 0;
+        std::string strength_in_graph;
+        size_t already_taken = 0;
+    };
+    std::vector<Look> looks;
+    f.state_events = 0;
+    executor.set_attribute_selector(
+        [&](const rules::AttributeSelectionRequest& request,
+            std::vector<std::string>& chosen, std::string&) {
+            looks.push_back({f.state_events,
+                             f.world.getProperty(f.character, "strength"),
+                             request.already_taken.size()});
+            for (const auto& name : request.eligible) {
+                if (std::find(request.already_taken.begin(),
+                              request.already_taken.end(),
+                              name) != request.already_taken.end()) {
+                    continue;
+                }
+                if (static_cast<int>(chosen.size()) < request.count) {
+                    chosen.push_back(name);
+                }
+            }
+            return true;
+        });
+
+    const auto result = executor.apply(root, f.context());
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "the rule applies: " + result.error);
+    REQUIRE(looks.size() == 2, "the chooser ran twice inside one batch");
+
+    REQUIRE(looks[0].events_seen == 0 && looks[1].events_seen == 0,
+            "no state-change event reaches anyone mid-rule, got " +
+                std::to_string(looks[0].events_seen) + " and " +
+                std::to_string(looks[1].events_seen));
+    REQUIRE(looks[0].strength_in_graph == "8" &&
+                looks[1].strength_in_graph == "8",
+            "and the graph still reads as it did before the rule began, "
+            "even on the second call: got " + looks[1].strength_in_graph);
+
+    // The only truthful source at that moment.
+    REQUIRE(looks[0].already_taken == 0 && looks[1].already_taken == 2,
+            "while already_taken knows exactly what the rule has spent");
+
+    // And once it commits, both the graph and the bus catch up at once.
+    REQUIRE(f.world.getProperty(f.character, "strength") == "6" &&
+                f.state_events > 0,
+            "after the commit the change is real and announced");
+}
+
+// Aging's "reduce two physical characteristics by 2, reduce one
+// physical characteristic by 1" is TWO changes over ONE group, and the
+// book means all three go, each once. The chooser therefore has to
+// know what the previous step took.
+//
+// It cannot learn that from the graph. The whole plan commits at the
+// end, so a KG query between the two steps reads the values as they
+// stood before either. The request carries the pending state instead.
+void a_second_change_sees_what_the_first_one_took() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto group = f.world.createEntity("AttributeGroup");
+    f.world.setProperty(group, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto step_of = [&](int count, int delta) {
+        const auto id = outcome(f, "ModifyAttributesInGroup");
+        f.world.setProperty(id, "attribute_group", std::to_string(group));
+        f.world.setProperty(id, "affected_count", std::to_string(count));
+        f.world.setProperty(id, "attribute_delta", std::to_string(delta));
+        return id;
+    };
+    const auto root = sequence(f, {step_of(2, -2), step_of(1, -1)});
+
+    std::vector<rules::AttributeSelectionRequest> seen;
+    executor.set_attribute_selector(
+        [&](const rules::AttributeSelectionRequest& request,
+            std::vector<std::string>& chosen, std::string&) {
+            seen.push_back(request);
+            // Behave the way the book means: never take the same one
+            // twice. This is policy, which is why it lives here and
+            // not in the engine.
+            for (const auto& name : request.eligible) {
+                if (std::find(request.already_taken.begin(),
+                              request.already_taken.end(),
+                              name) != request.already_taken.end()) {
+                    continue;
+                }
+                if (static_cast<int>(chosen.size()) < request.count) {
+                    chosen.push_back(name);
+                }
+            }
+            return true;
+        });
+
+    const auto result = executor.apply(root, f.context());
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "the two-step rule applies: " + result.error);
+    REQUIRE(seen.size() == 2, "the chooser was asked twice");
+
+    REQUIRE(seen[0].already_taken.empty(),
+            "the first step has nothing behind it");
+    REQUIRE(seen[0].current.size() == 3 && seen[0].current[0] == 8,
+            "the first step sees the untouched values");
+
+    // The claim. Without this the second step would re-offer an
+    // attribute the first already spent, and the graph could not have
+    // told it so.
+    REQUIRE(seen[1].already_taken.size() == 2,
+            "the second step is told which two are already spent, got " +
+                std::to_string(seen[1].already_taken.size()));
+    REQUIRE(seen[1].current[0] == 6 && seen[1].current[1] == 6,
+            "and sees their PLANNED values, not the graph's stale ones: "
+            "got " + std::to_string(seen[1].current[0]) + "," +
+                std::to_string(seen[1].current[1]));
+
+    // The whole point: all three moved, each exactly once.
+    REQUIRE(f.world.getProperty(f.character, "strength") == "6" &&
+                f.world.getProperty(f.character, "dexterity") == "6" &&
+                f.world.getProperty(f.character, "endurance") == "7",
+            "two by 2 and one by 1, across three distinct attributes: " +
+                f.world.getProperty(f.character, "strength") + "/" +
+                f.world.getProperty(f.character, "dexterity") + "/" +
+                f.world.getProperty(f.character, "endurance"));
+
+    // The control: the engine does NOT enforce disjointness, because a
+    // rule may legitimately hit one attribute twice. A chooser that
+    // ignores already_taken is allowed to, and compounds.
+    Fixture g;
+    rules::OutcomeExecutor greedy(g.world, g.dice);
+    const auto ggroup = g.world.createEntity("AttributeGroup");
+    g.world.setProperty(ggroup, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto gstep = [&](int count, int delta) {
+        const auto id = outcome(g, "ModifyAttributesInGroup");
+        g.world.setProperty(id, "attribute_group", std::to_string(ggroup));
+        g.world.setProperty(id, "affected_count", std::to_string(count));
+        g.world.setProperty(id, "attribute_delta", std::to_string(delta));
+        return id;
+    };
+    const auto groot = sequence(g, {gstep(2, -2), gstep(1, -1)});
+    greedy.set_attribute_selector(
+        [](const rules::AttributeSelectionRequest& request,
+           std::vector<std::string>& chosen, std::string&) {
+            chosen.assign(request.eligible.begin(),
+                          request.eligible.begin() + request.count);
+            return true;
+        });
+    REQUIRE(greedy.apply(groot, g.context()).status ==
+                rules::OutcomeStatus::APPLIED,
+            "a chooser that ignores the history is still allowed");
+    REQUIRE(g.world.getProperty(g.character, "strength") == "5",
+            "and its overlap compounds, 8 -2 -1, proving the engine "
+            "reports rather than enforces: got " +
+                g.world.getProperty(g.character, "strength"));
+}
+
+// A reduction past the schema floor is expected play, not malformed
+// data: Cepheus floors characteristics at 0 and then has a rule for
+// what reaching 0 means. So the change lands at the floor and says it
+// did, instead of refusing the whole rule and killing the run.
+void a_change_past_the_floor_lands_on_it_and_says_so() {
+    // The fixture's own character type has no bounds, so this needs a
+    // type that declares them, the way a real game's does.
+    kg::OntologyRegistry ontology = registry();
+    kg::OntologyRegistry bounded("schema://floor-test");
+    bounded.addEntityType("BoundedCharacter", "Entity", false);
+    bounded.addAncestors("BoundedCharacter", {"Entity", "Describable",
+                                              "Identifiable", "Temporal"});
+    bounded.addProperty("BoundedCharacter", "strength",
+                        kg::PropertyValueKind::Integer, false, true, 0.0,
+                        true, 15.0);
+    ontology.extend(bounded);
+
+    kg::KGModule world{ontology};
+    world.setMode(kg::KGMode::MINIMAL);
+    logosphere::dice::DiceService dice;
+    const auto who = world.createEntity("BoundedCharacter");
+    world.setProperty(who, "strength", "1");
+
+    rules::OutcomeExecutor executor(world, dice);
+    const auto out = world.createEntity("ModifyAttribute");
+    world.setProperty(out, "attribute_ref", "strength");
+    world.setProperty(out, "attribute_delta", "-3");
+
+    const auto result = executor.apply(out, {who, "floor-test", "aging"});
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "a reduction past the floor still applies: " + result.error);
+    REQUIRE(world.getProperty(who, "strength") == "0",
+            "it lands ON the floor, got " +
+                world.getProperty(who, "strength"));
+    REQUIRE(result.attributes_limited.size() == 1 &&
+                result.attributes_limited[0].attribute == "strength" &&
+                result.attributes_limited[0].requested == -2 &&
+                result.attributes_limited[0].applied == 0,
+            "and reports what was asked for versus what was allowed");
+
+    // The control: a change that fits reports nothing, so a game
+    // reacting to the report does not fire on ordinary damage.
+    kg::KGModule fine{ontology};
+    fine.setMode(kg::KGMode::MINIMAL);
+    logosphere::dice::DiceService fine_dice;
+    const auto healthy = fine.createEntity("BoundedCharacter");
+    fine.setProperty(healthy, "strength", "8");
+    rules::OutcomeExecutor fine_exec(fine, fine_dice);
+    const auto ok = fine.createEntity("ModifyAttribute");
+    fine.setProperty(ok, "attribute_ref", "strength");
+    fine.setProperty(ok, "attribute_delta", "-3");
+    const auto plain = fine_exec.apply(ok, {healthy, "floor-test", "aging"});
+    REQUIRE(plain.status == rules::OutcomeStatus::APPLIED &&
+                fine.getProperty(healthy, "strength") == "5" &&
+                plain.attributes_limited.empty(),
+            "an ordinary reduction is silent about limits");
+}
+
+// "Alternatively, roll twice on the Injury table and take the lower
+// result." Which of several rolls counts belongs to the rule, not to
+// whoever happens to run it, so it travels with the request.
+void rolling_twice_says_which_roll_counts() {
+    const auto request = [](Fixture& f, const char* count,
+                            const char* selection) {
+        const auto table = f.world.createEntity("RollableTable");
+        const auto id = outcome(f, "GrantTableRoll");
+        f.world.setProperty(id, "table", std::to_string(table));
+        if (count) f.world.setProperty(id, "roll_count", count);
+        if (selection) f.world.setProperty(id, "roll_selection", selection);
+        return id;
+    };
+
+    Fixture lower;
+    rules::OutcomeExecutor lower_exec(lower.world, lower.dice);
+    const auto got = lower_exec.apply(request(lower, "2", "LOWEST"),
+                                      lower.context());
+    REQUIRE(got.status == rules::OutcomeStatus::APPLIED,
+            "roll twice take lowest applies: " + got.error);
+    REQUIRE(got.table_roll_requests.size() == 1 &&
+                got.table_roll_requests[0].roll_count == 2 &&
+                got.table_roll_requests[0].selection ==
+                    rules::TableRollSelection::LOWEST,
+            "the request carries both the count and which roll counts");
+
+    // A bare instruction to roll says nothing about choosing, so every
+    // roll counts. Absent is EACH, exactly as absent count is one.
+    Fixture bare;
+    rules::OutcomeExecutor bare_exec(bare.world, bare.dice);
+    const auto plain = bare_exec.apply(request(bare, nullptr, nullptr),
+                                       bare.context());
+    REQUIRE(plain.status == rules::OutcomeStatus::APPLIED &&
+                plain.table_roll_requests[0].roll_count == 1 &&
+                plain.table_roll_requests[0].selection ==
+                    rules::TableRollSelection::EACH,
+            "a bare roll is one roll, and it counts");
+
+    // Refusals, so a typo cannot become a silent EACH and a rule
+    // cannot ask to choose between a single roll.
+    Fixture typo;
+    rules::OutcomeExecutor typo_exec(typo.world, typo.dice);
+    const auto refused = typo_exec.apply(request(typo, "2", "LOWER"),
+                                         typo.context());
+    REQUIRE(refused.status == rules::OutcomeStatus::FAILED &&
+                refused.error.find("roll_selection") != std::string::npos,
+            "an unknown roll_selection is refused, got: " + refused.error);
+
+    Fixture lonely;
+    rules::OutcomeExecutor lonely_exec(lonely.world, lonely.dice);
+    const auto nonsense = lonely_exec.apply(request(lonely, "1", "LOWEST"),
+                                            lonely.context());
+    REQUIRE(nonsense.status == rules::OutcomeStatus::FAILED &&
+                nonsense.error.find("more than one roll") !=
+                    std::string::npos,
+            "choosing between one roll is refused, got: " + nonsense.error);
+}
+
 // Dice say how much, never which way. The book prints "reduce one
 // physical characteristic by 1D6" with no minus sign, and a rule that
 // rolled a GAIN would print none either, so the engine must not infer
@@ -685,6 +986,10 @@ int main() {
     TEST(a_group_change_covering_everything_needs_no_selector);
     TEST(a_partial_group_change_requires_an_installed_selector);
     TEST(a_selector_cannot_widen_or_wander_outside_the_rule);
+    TEST(a_change_past_the_floor_lands_on_it_and_says_so);
+    TEST(rolling_twice_says_which_roll_counts);
+    TEST(the_bus_is_silent_until_the_whole_rule_commits);
+    TEST(a_second_change_sees_what_the_first_one_took);
     TEST(a_rolled_delta_must_say_which_way_it_goes);
     TEST(an_absent_roll_count_means_one);
     TEST(a_sequence_rolls_back_kg_dice_and_events_on_late_failure);

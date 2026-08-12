@@ -45,6 +45,14 @@ struct Judgment {
     int                      count = 0; // exactly how many
     std::string              history;   // who this person has become
     std::string              hint;      // a lean, never a constraint
+    // Where the options stand RIGHT NOW, including anything the same
+    // rule has already taken in this round. One rule can strike twice
+    // ("reduce two physical characteristics by 2, reduce one physical
+    // characteristic by 1"), and the second call must not re-take what
+    // the first did. The graph cannot be asked: the whole change
+    // commits at the end, so it still reads the values as they stood
+    // before any of it.
+    std::string              standing;
 };
 
 class Adjudicator {

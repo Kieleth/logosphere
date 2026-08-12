@@ -76,29 +76,14 @@ bool same_ref(const kg::EntityRef& left, const kg::EntityRef& right) {
     return left.id == right.id && left.symbolic == right.symbolic;
 }
 
+// One implementation of "the world as this plan will leave it", in
+// PlannedWorld. This was hand-rolled here three separate times before
+// it had a name, which is how it earned one.
 std::string planned_property(const kg::KGModule& world,
                              const OutcomePlan& plan,
                              const kg::EntityRef& target,
                              const std::string& property) {
-    for (auto it = plan.ops.rbegin(); it != plan.ops.rend(); ++it) {
-        const auto* set = std::get_if<kg::KGOpSetProperty>(&*it);
-        if (set && same_ref(set->target, target) &&
-            set->property == property) {
-            return set->value;
-        }
-    }
-    if (target.is_numeric()) {
-        return world.getProperty(target.id, property);
-    }
-    for (const auto& op : plan.ops) {
-        const auto* create = std::get_if<kg::KGOpCreateEntity>(&op);
-        if (!create || create->as != target.symbolic) continue;
-        for (const auto& [key, value] : create->properties) {
-            if (key == property) return value;
-        }
-        break;
-    }
-    return {};
+    return PlannedWorld(world, plan).property(target, property);
 }
 
 std::vector<kg::EntityRef> matching_parts(
@@ -423,6 +408,33 @@ bool plan_possession(const OutcomeHandlerContext& context, OutcomePlan& plan,
 
 // "Reduce two physical characteristics by 2": the book fixes the count
 // and the delta, and leaves which ones to whoever applies the rule.
+// A change the schema will not take in full lands at the boundary and
+// says so. Refusing the whole rule would be wrong: Cepheus floors
+// characteristics at 0 and then has a rule for reaching 0, so a
+// reduction past the floor is expected play, not malformed data.
+//
+// What it MEANS is the game's business, which is why this reports and
+// stops.
+int64_t clamp_to_schema(const OutcomeHandlerContext& context,
+                        OutcomePlan& plan, const std::string& property,
+                        int64_t wanted) {
+    const kg::PropertyDef* def = context.kg.getRegistry().findProperty(
+        context.kg.getType(context.target), property);
+    if (!def) return wanted;
+    int64_t applied = wanted;
+    if (def->has_min && static_cast<double>(applied) < def->min_value) {
+        applied = static_cast<int64_t>(def->min_value);
+    }
+    if (def->has_max && static_cast<double>(applied) > def->max_value) {
+        applied = static_cast<int64_t>(def->max_value);
+    }
+    if (applied != wanted) {
+        plan.attributes_limited.push_back(
+            {context.target, property, wanted, applied});
+    }
+    return applied;
+}
+
 bool plan_attributes_in_group(const OutcomeHandlerContext& context,
                               OutcomePlan& plan,
                               const AttributeSelector& selector,
@@ -518,6 +530,27 @@ bool plan_attributes_in_group(const OutcomeHandlerContext& context,
         request.eligible = eligible;
         request.count = static_cast<int>(count);
         request.delta = delta;
+        // What the plan has already done to this group. The graph
+        // cannot answer for it: every op commits together at the end,
+        // so a chooser asking the KG between two steps of one rule
+        // would read the values as they stood before either.
+        const kg::EntityRef planned_target{context.target, ""};
+        for (const auto& name : eligible) {
+            const std::string value =
+                planned_property(context.kg, plan, planned_target, name);
+            int64_t parsed = 0;
+            std::string ignored;
+            request.current.push_back(
+                parse_integer(value, name, parsed, ignored) ? parsed : 0);
+            for (const auto& op : plan.ops) {
+                const auto* set = std::get_if<kg::KGOpSetProperty>(&op);
+                if (set && same_ref(set->target, planned_target) &&
+                    set->property == name) {
+                    request.already_taken.push_back(name);
+                    break;
+                }
+            }
+        }
         if (!selector(request, chosen, error)) {
             if (error.empty()) error = "attribute selector refused";
             return false;
@@ -573,6 +606,7 @@ bool plan_attributes_in_group(const OutcomeHandlerContext& context,
             error = "attribute arithmetic overflow";
             return false;
         }
+        next = clamp_to_schema(context, plan, property, next);
         plan.ops.emplace_back(kg::KGOpSetProperty{
             target, property, std::to_string(next)});
     }
@@ -713,9 +747,13 @@ struct OutcomeExecutor::Planner {
                         "'";
                 ok = false;
             } else {
+                // Built fresh per call: it reads the plan as it stands
+                // now, and it must not outlive this handler.
+                const PlannedWorld planned(executor.kg_, plan);
                 OutcomeHandlerContext handler_context{
                     outcome, context.target, type, executor.kg_,
-                    executor.dice_, context.dice_stream, context.purpose};
+                    executor.dice_, context.dice_stream, context.purpose,
+                    planned};
                 ok = handler->second(handler_context, plan, error);
                 if (!ok && error.empty()) {
                     error = "outcome handler '" + type +
@@ -778,6 +816,7 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
                 error = "attribute arithmetic overflow";
                 return false;
             }
+            next = clamp_to_schema(context, plan, property, next);
             plan.ops.emplace_back(kg::KGOpSetProperty{
                 target, property, std::to_string(next)});
             return true;
@@ -842,8 +881,34 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
                 if (error.empty()) error = "roll_count must be positive";
                 return false;
             }
+            // "Roll twice on the Injury table and take the lower
+            // result." Which roll counts is part of the request, not
+            // something the caller invents; an absent value means
+            // every roll counts, because a bare instruction to roll
+            // says nothing about choosing between results.
+            TableRollSelection selection = TableRollSelection::EACH;
+            const std::string wanted =
+                context.kg.getProperty(context.outcome, "roll_selection");
+            if (!wanted.empty()) {
+                if (wanted == "EACH") {
+                    selection = TableRollSelection::EACH;
+                } else if (wanted == "LOWEST") {
+                    selection = TableRollSelection::LOWEST;
+                } else if (wanted == "HIGHEST") {
+                    selection = TableRollSelection::HIGHEST;
+                } else {
+                    error = "GrantTableRoll has unknown roll_selection '" +
+                            wanted + "'";
+                    return false;
+                }
+            }
+            if (selection != TableRollSelection::EACH && count < 2) {
+                error = "roll_selection '" + wanted +
+                        "' needs more than one roll to choose between";
+                return false;
+            }
             plan.table_roll_requests.push_back(
-                {table, static_cast<int>(count)});
+                {table, static_cast<int>(count), selection});
             return true;
         }, error);
 }
@@ -930,6 +995,8 @@ OutcomeResult OutcomeExecutor::apply(
         std::move(planner.plan.table_roll_requests);
     result.procedure_signals = std::move(planner.plan.procedure_signals);
     result.roll_ids = std::move(planner.plan.roll_ids);
+    result.attributes_limited =
+        std::move(planner.plan.attributes_limited);
     return result;
 }
 

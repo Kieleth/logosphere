@@ -985,10 +985,22 @@
     },
     {
       "op": "create_entity",
-      "type": "GrantTableRoll",
+      "type": "EndCareer",
       "as": "@mishap_1_c0",
       "properties": {
         "name": "mishap_1_c0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "sentence",
+        "source_quote": "This mishap is always enough to force you to leave the service after half a term, or two years of service."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "GrantTableRoll",
+      "as": "@mishap_1_twice",
+      "properties": {
+        "name": "mishap_1_twice",
         "source_file": "book1/character-creation.md",
         "source_section": "Survival",
         "source_kind": "cell",
@@ -996,8 +1008,110 @@
         "source_table": "1D6",
         "source_row": "1",
         "source_column": "Mishaps",
-        "unmodelled": "The book says this is the same as a result of 2 on the Injury table, and offers an alternative of rolling twice and taking the lower. The alternative is a re-roll policy, which the outcome vocabulary cannot say, so this rolls on the Injury table.",
-        "table": "@injury_table"
+        "table": "@injury_table",
+        "roll_count": "2",
+        "roll_selection": "LOWEST"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeOption",
+      "as": "@mishap_1_o0",
+      "properties": {
+        "name": "as a result of 2",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps",
+        "option_index": "0",
+        "option_label": "as a result of 2 on the Injury table",
+        "outcome": "@injury_2_c0"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeOption",
+      "as": "@mishap_1_o1",
+      "properties": {
+        "name": "roll twice, take the lower",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps",
+        "option_index": "1",
+        "option_label": "roll twice on the Injury table and take the lower result",
+        "outcome": "@mishap_1_twice"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeChoice",
+      "as": "@mishap_1_c1",
+      "properties": {
+        "name": "mishap_1_c1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps",
+        "choice_authority": "player"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeSequence",
+      "as": "@mishap_1",
+      "properties": {
+        "name": "mishap_1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_1_s0",
+      "properties": {
+        "name": "mishap_1_s0",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps",
+        "step_index": "0",
+        "outcome": "@mishap_1_c0"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "OutcomeStep",
+      "as": "@mishap_1_s1",
+      "properties": {
+        "name": "mishap_1_s1",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Survival",
+        "source_kind": "cell",
+        "source_quote": "Injured in action. (This is the same as a result of 2 on the Injury table.) Alternatively, roll twice on the Injury table and take the lower result.",
+        "source_table": "1D6",
+        "source_row": "1",
+        "source_column": "Mishaps",
+        "step_index": "1",
+        "outcome": "@mishap_1_c1"
       }
     },
     {
@@ -1008,7 +1122,7 @@
         "name": "mishap 1",
         "roll_min": "1",
         "roll_max": "1",
-        "outcome": "@mishap_1_c0",
+        "outcome": "@mishap_1",
         "source_file": "book1/character-creation.md",
         "source_section": "Survival",
         "source_kind": "cell",
@@ -1565,6 +1679,30 @@
       "from": "@mishap_table",
       "relation": "HAS_PART",
       "to": "@mishap_row_6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_1_c1",
+      "relation": "HAS_PART",
+      "to": "@mishap_1_o0"
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_1_c1",
+      "relation": "HAS_PART",
+      "to": "@mishap_1_o1"
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_1",
+      "relation": "HAS_PART",
+      "to": "@mishap_1_s0"
+    },
+    {
+      "op": "set_relation",
+      "from": "@mishap_1",
+      "relation": "HAS_PART",
+      "to": "@mishap_1_s1"
     }
   ]
 }
