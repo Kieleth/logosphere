@@ -127,6 +127,7 @@ set(LOGOSPHERE_CORE_SOURCES
     src/rules/outcome_executor.cpp
     src/rules/planned_world.cpp
     src/replay/run_recorder.cpp
+    src/replay/run_tape.cpp
     src/rules/procedure_runner.cpp
     src/rules/rollable_table_runner.cpp
     src/rules/lookup_table_selector.cpp
@@ -360,6 +361,7 @@ add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untes
 add_headless_test(test_event_log)
 add_headless_test(test_planned_world)  # reading a plan before it commits
 add_headless_test(test_run_recorder)   # the run, as a diffable trace
+add_headless_test(test_run_tape)       # recorded, replayed, or invented
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
 add_headless_test(test_event_bus)
@@ -444,6 +446,22 @@ add_test(NAME logosphere_verify_negative
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
+
+# Logovger with no window: a life played by an InputSource. Proves the
+# replay harness on a real game, and gives a fuzzing entry point that
+# needs no API key.
+add_executable(logovger-headless
+    examples/logovger/logovger_headless.cpp
+    examples/logovger/chargen/chargen.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(logovger-headless PRIVATE logosphere_core)
+target_compile_features(logovger-headless PRIVATE cxx_std_17)
+target_include_directories(logovger-headless PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(logovger-headless PRIVATE
+    LOGOVGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger")
 
 # Logovger: the referee's answer, held to the rule that asked for it.
 # Deliberately free of any LLM dependency (logosphere_llm is defined
