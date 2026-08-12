@@ -81,7 +81,8 @@ game, it's engine. If it only makes sense in one genre, it's game.
   emits nothing, and nothing is announced part-way through one, so the
   bus only ever speaks about facts. That makes it the right tool for
   reacting to what happened and the wrong one for watching a change in
-  progress. See [GAME_LAYER.md](GAME_LAYER.md) §3.
+  progress; for that, a rule reads `PlannedWorld`. See
+  [OBSERVING_CHANGE.md](OBSERVING_CHANGE.md).
 - Engine: physics, animation, worldgen generators. Game: what
   entities exist and why.
 

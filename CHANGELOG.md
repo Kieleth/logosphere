@@ -7,6 +7,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+*No changes yet. Add entries here as you merge.*
+
+---
+
+## [0.3.0] - 2026-08-11
+
+A published rulebook now plays: rules are read out of the book, verified
+against the cell they came from, and executed by the engine. The release
+also names the two ways to observe change, the event bus for what has
+happened and `PlannedWorld` for what a rule is about to do.
+
 ### Added
 - **The ingestion verifier reads numbers written as words.** Books spell small
   counts out, and "Reduce three physical characteristics by 2" states the
@@ -39,8 +50,59 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   an attribute; `Possession` / `GainPossession` / `PossessionHolding` cover
   what a book hands out that is neither money nor a skill. Standing and
   holdings are state, so they carry no citation, matching `SkillRating`.
+- **`PlannedWorld`: read the world as your in-flight rule will leave it.**
+  A rule's operations are applied atomically at the very end, so until then
+  the graph reads as it did before the rule started and the event bus stays
+  silent. Both are guarantees, and the cost is that a handler which reads a
+  value, changes it and writes it back could silently discard an earlier step
+  of the same rule. Outcome handlers now receive the view on their context.
+  It answers `property`, `has_property`, `type_of`, `exists`, `related` and
+  `was_written`, the last being the question a value read cannot answer:
+  writing the number something already held is invisible to a comparison and
+  is still a write. Guide: `docs/OBSERVING_CHANGE.md`.
+- **The chooser of a grouped attribute change is told what the rule already
+  took.** `AttributeSelectionRequest` carries the planned value of every
+  eligible attribute and the names of those this outcome already changed, so
+  "reduce two physical characteristics by 2, reduce one physical
+  characteristic by 1" can hit three distinct attributes. Reported, not
+  enforced: a rule may legitimately strike the same attribute twice.
+- **`AttributeSelector`**, the seam where a game answers what a rule leaves
+  open. Where the count covers the whole group there is nothing to choose and
+  no selector is consulted; where it does not, the engine refuses to pick and
+  the game supplies a prompt, a roll, or a referee. An answer that is not
+  exactly the count the book set, distinct, and drawn from the group is
+  refused with nothing moved.
+- **`roll_selection` on `GrantTableRoll`** (`EACH`, `LOWEST`, `HIGHEST`) for
+  "roll twice on the table and take the lower result". Absent means `EACH`,
+  since a bare instruction to roll says nothing about choosing between
+  results. `LOWEST` names the lowest dice total, not the kinder outcome:
+  which end of a table is kind belongs to the table.
+- **`attribute_delta_reduces`.** Dice say how much, never which way. A fixed
+  delta spells out its sign and a rolled one printed nothing, so the engine
+  was inferring direction from the first table it met. A rolled change now
+  states it or is refused.
+- **A change past a schema bound lands on it and says so.** Reducing an
+  attribute below its declared minimum used to fail the whole rule; rulebooks
+  floor characteristics and then have rules about reaching the floor, so this
+  is expected play. `OutcomeResult::attributes_limited` reports what was asked
+  for against what was allowed, and what that means is the game's to decide.
 
 ### Changed
+- **Logovger ages, and a referee decides what the years take.** Aging runs at
+  the end of the fourth term and every term after, with total terms as a
+  negative modifier folded into the recorded roll, so a life reads
+  "2D6-5 = -2 (5 terms as a negative DM)" and the row that hit you is provable
+  from the dice journal. Which characteristics decline is the referee's call,
+  answered by an LLM reading the character's history, with **no fallback**: no
+  model means the game refuses to run rather than quietly deciding for itself.
+  A crisis at zero prices medical care at 1D6x10,000 before asking, restores
+  to 1 if paid, and marks the survivor as failing every future qualification
+  check without spending a die.
+- **Documentation for observing change**, `docs/OBSERVING_CHANGE.md`: which of
+  the two mechanisms to reach for, the channels that exist, why events are
+  transactional, and the read-modify-write trap. The channel table in
+  `GAME_LAYER.md` listed an `animation_contacts()` channel that does not exist
+  and omitted four that do.
 - `TaskCheck`'s attribute and its modifier lookup are now optional, and
   travel together: neither, or both. `TaskCheckRunner` throws unmodified
   checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
