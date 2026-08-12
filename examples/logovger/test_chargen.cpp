@@ -12,8 +12,9 @@
 // line per event, every roll citable by id. Read it and you can see
 // the character being made.
 //
-// Basic on purpose: qualification, survival, service skills, ageing.
-// No commission, mishaps, benefits or ageing crisis yet.
+// Basic on purpose: qualification, survival, service skills, ageing,
+// commission and advancement, benefits, and the aging crisis. No
+// mishaps yet.
 //
 // Usage:
 //   ./build/test_chargen
@@ -31,6 +32,7 @@
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <algorithm>
@@ -1015,6 +1017,452 @@ void test_unknown_runtime_primitive_fails_before_character_state() {
               error);
 }
 
+// ------------------------------------------------- the aging crisis
+//
+// "If any characteristic is reduced to 0 by aging, then the character
+// suffers an aging crisis. The character dies unless he can pay
+// 1D6x10,000 Credits for medical care, which will bring any
+// characteristics back up to 1. The character automatically fails any
+// Qualification checks from now on."
+//   -- srd/cepheus/book1/character-creation.md, "Aging Crisis"
+//
+// Every clause of it is driven here: the bill is quoted before it is
+// answered and is the 1D6x10,000 the engine rolled, paying costs
+// exactly that and brings every ruined characteristic back to 1 and
+// nothing else with it, the survivor is refused by the next career
+// WITHOUT a die being spent on the refusal, refusing the care ends
+// the character, and a character short of the price is never offered
+// the bargain at all.
+//
+// run_chargen cannot get there. It answers the crisis, but it takes
+// only the one career it was named and it refuses the Draft, so it
+// can never bank the benefits of a first career and carry them into a
+// second, which is the only way a character holds Credits when the
+// aging table finally bites. This drives ChargenSession by hand
+// instead: a player who serves every term the book offers, takes cash
+// while cash is allowed, and never finishes early.
+//
+// The seed is not hardcoded. The test sweeps until a life arrives at
+// the crisis holding enough to settle it AND lives long enough
+// afterwards to be turned away by a career, then asserts against THAT
+// life. Finding none is a failure in itself.
+
+// The referee this test installs takes the WEAKEST eligible
+// characteristic first. The book fixes how many aging takes and
+// leaves which to whoever applies the rule, so this is a legal
+// referee, and it is the one that walks a life towards the crisis
+// instead of away from it: a rule that reduces one characteristic by
+// 2 and two more by 1 lands all of it on whatever is already lowest.
+logosphere::rules::AttributeSelector weakest_first_referee() {
+    return [](const logosphere::rules::AttributeSelectionRequest& request,
+              std::vector<std::string>& chosen, std::string& error) {
+        std::vector<bool> taken(request.eligible.size(), false);
+        for (int i = 0; i < request.count; ++i) {
+            int weakest = -1;
+            for (size_t k = 0; k < request.eligible.size(); ++k) {
+                if (taken[k]) continue;
+                if (weakest < 0 ||
+                    request.current[k] < request.current[weakest]) {
+                    weakest = static_cast<int>(k);
+                }
+            }
+            if (weakest < 0) {
+                error = "the group has fewer attributes than the rule takes";
+                return false;
+            }
+            taken[weakest] = true;
+            chosen.push_back(request.eligible[weakest]);
+        }
+        return true;
+    };
+}
+
+// A player who wants the life to go on: serve every term, train on
+// service skills, take the cash benefit while the book still allows
+// one, take the next career rather than finishing. Deterministic, so
+// the same seed replays the same life and the crisis can be answered
+// twice, once each way.
+class LongLife {
+public:
+    explicit LongLife(logovger::ChargenSession& session)
+        : session_(session) {}
+
+    // Answers questions until one whose prompt contains `stop_at`
+    // arrives. False when the life ended, an answer was refused, or
+    // the question never came.
+    bool run_until(const std::string& stop_at, std::string& error) {
+        for (int answered = 0; answered < 500; ++answered) {
+            if (session_.finished() || session_.choices().empty()) {
+                error = "the life ended at '" + session_.prompt() +
+                        "' before '" + stop_at + "'";
+                return false;
+            }
+            if (session_.prompt().find(stop_at) != std::string::npos) {
+                return true;
+            }
+            if (!session_.choose(answer(), error)) return false;
+        }
+        error = "500 answers and no '" + stop_at + "'";
+        return false;
+    }
+
+    // From here on, leave the career at the end of the term. Reaching
+    // a fresh Qualification check means leaving the one you are in.
+    void leave_at_the_end_of_this_term() { leaving_ = true; }
+
+private:
+    std::string answer() const {
+        const auto& choices = session_.choices();
+        const std::string& prompt = session_.prompt();
+        if (prompt.find("which table do you train on") != std::string::npos ||
+            prompt.find("training roll(s). Which table?") !=
+                std::string::npos) {
+            for (const auto& choice : choices) {
+                if (choice.label.size() > 14 &&
+                    choice.label.compare(choice.label.size() - 14, 14,
+                                         "Service Skills") == 0) {
+                    return choice.key;
+                }
+            }
+        }
+        if (prompt.find("benefit roll(s) left") != std::string::npos) {
+            // Cash, because the crisis is priced in Credits and a
+            // character with none is never offered the choice.
+            for (const auto& choice : choices) {
+                if (choice.label.find("Cash Benefits") != std::string::npos ||
+                    choice.label.find("Cost Benefits") != std::string::npos) {
+                    return choice.key;
+                }
+            }
+        }
+        if (prompt.find("is over. What now?") != std::string::npos) {
+            return leaving_ ? "2" : "1";
+        }
+        // Careers first, "finish" last: never finish while the book
+        // still offers a career.
+        for (const auto& choice : choices) {
+            if (choice.key != "finish") return choice.key;
+        }
+        return choices.front().key;
+    }
+
+    logovger::ChargenSession& session_;
+    bool leaving_ = false;
+};
+
+// The price the crisis quoted, read out of the question the player was
+// asked rather than out of the code that asked it.
+long long quoted_price(const std::string& prompt) {
+    const auto at = prompt.find("Care costs Cr");
+    if (at == std::string::npos) return -1;
+    return std::stoll(prompt.substr(at + std::strlen("Care costs Cr")));
+}
+
+const char* const kCharacteristics[] = {"strength", "dexterity", "endurance",
+                                        "intelligence", "education",
+                                        "social_standing"};
+
+std::vector<int> characteristics_of(const kg::KGModule& world,
+                                    kg::EntityID character) {
+    std::vector<int> out;
+    for (const char* slot : kCharacteristics) {
+        const auto text = world.getProperty(character, slot);
+        out.push_back(text.empty() ? -1 : std::stoi(text));
+    }
+    return out;
+}
+
+void test_the_aging_crisis_is_paid_for_or_kills() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the crisis world loads: " + why);
+    if (!why.empty()) return;
+    std::string error;
+
+    // ---- find a life the aging table ruins ------------------------
+    uint64_t found = 0;
+    int swept = 0, crises = 0, payable = 0;
+    // The other side of the same sentence: "the character dies UNLESS
+    // he can pay". A character short of the price is not offered the
+    // bargain at all, and the first such life proves it.
+    uint64_t broke_seed = 0;
+    std::string broke_prompt;
+    std::vector<std::string> broke_keys;
+    for (uint64_t seed = 1; seed <= 400 && found == 0; ++seed) {
+        ++swept;
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) continue;
+        LongLife player(session);
+        if (!player.run_until("to nothing. Care costs", error)) continue;
+        ++crises;
+        bool can_pay = false;
+        for (const auto& choice : session.choices()) {
+            if (choice.key == "1") can_pay = true;
+        }
+        if (!can_pay) {
+            if (broke_seed == 0) {
+                broke_seed = seed;
+                broke_prompt = session.prompt();
+                for (const auto& choice : session.choices()) {
+                    broke_keys.push_back(choice.key);
+                }
+            }
+            continue;
+        }
+        ++payable;
+        // It must also outlive the crisis by enough to be offered a
+        // career, or the "never qualifies again" half is unreachable.
+        if (!session.choose("1", error)) continue;
+        player.leave_at_the_end_of_this_term();
+        if (!player.run_until("Another career, or finish?", error)) continue;
+        found = seed;
+    }
+    std::cout << "  [measure] swept " << swept << " seeds, " << crises
+              << " reached an aging crisis, " << payable
+              << " of those could pay\n";
+    CHECK(found != 0,
+          "some life is ruined by aging, can pay for the care, and lives "
+          "on to be refused a career; none did in " +
+              std::to_string(swept) + " seeds");
+    if (found == 0) return;
+    std::cout << "  [measure] seed " << found
+              << " is the first life the aging table ruins with money in "
+                 "hand\n";
+
+    // ---- the bill --------------------------------------------------
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    session.set_attribute_selector(weakest_first_referee());
+    CHECK(session.begin(found, error), "the ruined life begins: " + error);
+    LongLife player(session);
+    CHECK(player.run_until("to nothing. Care costs", error),
+          "the replay reaches the same crisis: " + error);
+    const auto& sheet = session.sheet();
+    std::cout << logovger::format_life(sheet);
+
+    const long long quoted = quoted_price(session.prompt());
+    const logosphere::dice::DiceRoll* priced = nullptr;
+    for (const auto& roll : dice.journal()) {
+        if (roll.purpose == "medical care") priced = &roll;
+    }
+    CHECK(priced != nullptr && quoted == priced->total &&
+              priced->expression.count == 1 && priced->expression.sides == 6 &&
+              priced->expression.multiplier == 10000 && quoted >= 10000 &&
+              quoted <= 60000,
+          "the question names a price, and it is the 1D6x10,000 the engine "
+          "rolled: quoted Cr" + std::to_string(quoted) + ", rolled Cr" +
+              std::to_string(priced ? priced->total : 0));
+
+    const auto before = characteristics_of(world, sheet.id);
+    std::vector<size_t> ruined;
+    for (size_t i = 0; i < before.size(); ++i) {
+        if (before[i] == 0) ruined.push_back(i);
+    }
+    CHECK(!ruined.empty(),
+          "the crisis was raised because something reached 0, and the graph "
+          "says so too");
+    const long long held = sheet.credits;
+    CHECK(held >= quoted,
+          "the pay option is offered because the money is there: Cr" +
+              std::to_string(held) + " against Cr" + std::to_string(quoted));
+    std::string ruined_names;
+    for (const auto i : ruined) {
+        ruined_names += (ruined_names.empty() ? "" : ", ");
+        ruined_names += kCharacteristics[i];
+    }
+    std::cout << "  [measure] term " << sheet.terms_served << ", UPP "
+              << sheet.upp << ", " << ruined_names << " at 0, care Cr"
+              << quoted << " against Cr" << held << " held\n";
+
+    // ---- paying it --------------------------------------------------
+    CHECK(session.choose("1", error), "the care is paid for: " + error);
+    const auto after = characteristics_of(world, sheet.id);
+    CHECK(sheet.credits == held - quoted,
+          "paying costs exactly what was quoted: Cr" + std::to_string(held) +
+              " - Cr" + std::to_string(quoted) + " = Cr" +
+              std::to_string(sheet.credits));
+    CHECK(world.getProperty(sheet.id, "credits") ==
+              std::to_string(held - quoted),
+          "and the graph holds the same balance, not the old one: '" +
+              world.getProperty(sheet.id, "credits") + "'");
+    bool restored_to_one = true, untouched = true;
+    for (size_t i = 0; i < after.size(); ++i) {
+        const bool was_ruined =
+            std::find(ruined.begin(), ruined.end(), i) != ruined.end();
+        if (was_ruined && after[i] != 1) restored_to_one = false;
+        if (!was_ruined && after[i] != before[i]) untouched = false;
+    }
+    CHECK(restored_to_one,
+          "every characteristic that was 0 comes back at exactly 1, and no "
+          "higher: " + sheet.upp);
+    CHECK(untouched,
+          "and the care touches nothing that was not at 0: " + sheet.upp);
+    CHECK(world.getProperty(sheet.id, "qualification_barred") == "true",
+          "the survivor is marked in the graph, where a referee reading it "
+          "will see it: '" +
+              world.getProperty(sheet.id, "qualification_barred") + "'");
+    std::cout << "  [measure] paid Cr" << quoted << ", left Cr"
+              << sheet.credits << ", UPP now " << sheet.upp << "\n";
+
+    // NOT AN ASSERTION, AND NOT A CLEAN RESULT. The money the
+    // character actually holds lives in CurrencyBalance parts, which
+    // mustering out sums into sheet.credits. resolve_crisis debits the
+    // sum and the Character's `credits` property, and leaves the parts
+    // alone, so the purse still holds the full amount here. The next
+    // muster-out re-derives the sheet from those parts and the payment
+    // comes back. Measured and printed rather than asserted: fixing it
+    // is a change to chargen.cpp, which is the owner's call, and
+    // asserting either number would either go red or bless the wrong
+    // one.
+    long long purse = 0;
+    for (const auto part : world.getRelated(sheet.id, "HAS_PART")) {
+        if (world.getType(part) != "CurrencyBalance") continue;
+        const auto amount = world.getProperty(part, "balance_amount");
+        if (!amount.empty()) purse += std::stoll(amount);
+    }
+    CHECK(purse == sheet.credits,
+          "the money itself was spent, not just the sheet's copy of it: "
+          "purse Cr" + std::to_string(purse) + " vs sheet Cr" +
+              std::to_string(sheet.credits));
+    std::cout << "  [measure] purse Cr" << purse << ", sheet Cr"
+              << sheet.credits << ", agreed\n";
+
+    // ---- and never qualifying again ---------------------------------
+    // "The character automatically fails any Qualification checks from
+    // now on." Automatically: the check is not made at a penalty, so
+    // no die is spent and none is cited.
+    player.leave_at_the_end_of_this_term();
+    CHECK(player.run_until("Another career, or finish?", error),
+          "the survivor lives long enough to be offered another career: " +
+              error);
+    std::string next_career;
+    for (const auto& choice : session.choices()) {
+        if (choice.key != "finish") { next_career = choice.label; break; }
+    }
+    const size_t journal_before = dice.journal().size();
+    const size_t life_before = sheet.life.size();
+    CHECK(session.choose("1", error),
+          "the survivor tries for the " + next_career + ": " + error);
+    CHECK(dice.journal().size() == journal_before,
+          "the refusal spends no die: journal " +
+              std::to_string(journal_before) + " -> " +
+              std::to_string(dice.journal().size()));
+    CHECK(!sheet.qualified, "and the character did not qualify");
+    bool turned_away = false;
+    for (size_t i = life_before; i < sheet.life.size(); ++i) {
+        if (sheet.life[i].what == "turned away by " + next_career &&
+            sheet.life[i].roll_id == 0) {
+            turned_away = true;
+        }
+    }
+    CHECK(turned_away,
+          "the life says the " + next_career + " turned them away, citing no "
+          "roll");
+    std::cout << "  [measure] barred qualification for the " << next_career
+              << ": journal stayed at " << journal_before << " rolls\n";
+    // A muster-out has happened since the payment, and it re-derives
+    // the sheet from scratch out of the CurrencyBalance parts. It also
+    // pays new benefits, so the total legitimately grows: what must
+    // hold is that the two records still agree. Had the crisis debited
+    // only the cache, the re-derive would have restored the spent
+    // money and this would part company.
+    long long purse_later = 0;
+    for (const auto part : world.getRelated(sheet.id, "HAS_PART")) {
+        if (world.getType(part) != "CurrencyBalance") continue;
+        const auto amount = world.getProperty(part, "balance_amount");
+        if (!amount.empty()) purse_later += std::stoll(amount);
+    }
+    CHECK(purse_later == sheet.credits,
+          "purse and sheet still agree after a re-derive: purse Cr" +
+              std::to_string(purse_later) + " vs sheet Cr" +
+              std::to_string(sheet.credits));
+    std::cout << "  [measure] after a muster-out re-derive: purse Cr"
+              << purse_later << ", sheet Cr" << sheet.credits << "\n";
+
+    // The control. The same question, asked of the same life before
+    // any crisis, DOES spend a die: without this the check above
+    // passes for a build where qualification never rolls at all.
+    logosphere::dice::DiceService control_dice;
+    logovger::ChargenSession control(world, control_dice);
+    CHECK(control.begin(found, error), "the control life begins: " + error);
+    CHECK(control.prompt().find("Which career do you try for?") !=
+              std::string::npos,
+          "the control is asked the same question: " + control.prompt());
+    const size_t control_before = control_dice.journal().size();
+    CHECK(control.choose("1", error), "the control tries for it: " + error);
+    size_t qualification_rolls = 0;
+    for (const auto& roll : control_dice.journal()) {
+        if (roll.purpose == "qualification") ++qualification_rolls;
+    }
+    CHECK(control_dice.journal().size() > control_before &&
+              qualification_rolls == 1,
+          "an unbarred character spends exactly one qualification die on the "
+          "same question (" +
+              std::to_string(qualification_rolls) + " rolled, journal " +
+              std::to_string(control_before) + " -> " +
+              std::to_string(control_dice.journal().size()) + ")");
+
+    // ---- refusing it -------------------------------------------------
+    logosphere::dice::DiceService death_dice;
+    logovger::ChargenSession death(world, death_dice);
+    death.set_attribute_selector(weakest_first_referee());
+    CHECK(death.begin(found, error), "the same life begins again: " + error);
+    LongLife mortal(death);
+    CHECK(mortal.run_until("to nothing. Care costs", error),
+          "and reaches the same crisis: " + error);
+    const auto& corpse = death.sheet();
+    const long long unspent = corpse.credits;
+    CHECK(quoted_price(death.prompt()) == quoted,
+          "priced the same, because the seed is the same: Cr" +
+              std::to_string(quoted_price(death.prompt())));
+    CHECK(death.choose("2", error), "the care is refused: " + error);
+    CHECK(death.finished(),
+          "refusing the care ends the character there and then");
+    CHECK(death.prompt().find("the care went unpaid") != std::string::npos,
+          "and says why: " + death.prompt());
+    CHECK(corpse.credits == unspent,
+          "nothing was charged for care not taken: Cr" +
+              std::to_string(corpse.credits));
+    CHECK(world.getProperty(corpse.id, "qualification_barred").empty(),
+          "the dead are not marked as barred, they are simply dead");
+    bool still_ruined = true;
+    for (const auto i : ruined) {
+        if (world.getProperty(corpse.id, kCharacteristics[i]) != "0") {
+            still_ruined = false;
+        }
+    }
+    CHECK(still_ruined,
+          "and nothing was restored: " + ruined_names + " are still 0");
+    bool death_recorded = false;
+    for (const auto& event : corpse.life) {
+        if (event.what == "died of the aging" &&
+            event.roll_id == priced->id) {
+            death_recorded = true;
+        }
+    }
+    CHECK(death_recorded,
+          "the life records the death, citing the bill that went unpaid");
+    std::cout << "  [measure] refusing ended the life at term "
+              << corpse.terms_served << " with Cr" << corpse.credits
+              << " still in hand\n";
+
+    // ---- and the life that cannot pay at all -------------------------
+    CHECK(broke_seed != 0,
+          "some life reaches the crisis without the price; none did in " +
+              std::to_string(swept) + " seeds");
+    if (broke_seed != 0) {
+        CHECK(broke_keys.size() == 1 && broke_keys.front() == "2",
+              "a character who cannot pay is offered no bargain, only the "
+              "end (" + std::to_string(broke_keys.size()) + " option(s))");
+        CHECK(broke_prompt.find("which is not enough") != std::string::npos,
+              "and is told why: " + broke_prompt);
+        std::cout << "  [measure] seed " << broke_seed
+                  << " reached the crisis broke: " << broke_prompt << "\n";
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -1022,6 +1470,7 @@ int main() {
               << std::endl;
     test_a_life_is_generated();
     test_aging_takes_what_the_referee_says_it_takes();
+    test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
     test_a_career_pays_only_for_its_own_years();
