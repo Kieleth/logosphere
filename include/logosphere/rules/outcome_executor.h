@@ -107,6 +107,24 @@ struct AttributeSelectionRequest {
     std::vector<std::string> eligible;
     int count = 0;
     int64_t delta = 0;
+
+    // What this outcome has ALREADY done, which the graph cannot yet
+    // be asked about. A rule like aging's "reduce two physical
+    // characteristics by 2, reduce one physical characteristic by 1"
+    // is two changes over one group, and the whole plan commits at
+    // once at the end, so a selector querying the KG between them
+    // would read the values as they were before any of it. These carry
+    // the pending state instead.
+    //
+    // `current` is the planned value of each entry in `eligible`, in
+    // the same order: what the attribute will be if nothing else
+    // touches it. `already_taken` names the eligible attributes this
+    // same outcome has changed already.
+    //
+    // Neither is enforced. A rule may legitimately hit one attribute
+    // twice, so the engine reports and the chooser decides.
+    std::vector<int64_t> current;
+    std::vector<std::string> already_taken;
 };
 
 // Fills chosen with exactly count distinct names drawn from eligible.

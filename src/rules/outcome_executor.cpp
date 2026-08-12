@@ -518,6 +518,27 @@ bool plan_attributes_in_group(const OutcomeHandlerContext& context,
         request.eligible = eligible;
         request.count = static_cast<int>(count);
         request.delta = delta;
+        // What the plan has already done to this group. The graph
+        // cannot answer for it: every op commits together at the end,
+        // so a chooser asking the KG between two steps of one rule
+        // would read the values as they stood before either.
+        const kg::EntityRef planned_target{context.target, ""};
+        for (const auto& name : eligible) {
+            const std::string value =
+                planned_property(context.kg, plan, planned_target, name);
+            int64_t parsed = 0;
+            std::string ignored;
+            request.current.push_back(
+                parse_integer(value, name, parsed, ignored) ? parsed : 0);
+            for (const auto& op : plan.ops) {
+                const auto* set = std::get_if<kg::KGOpSetProperty>(&op);
+                if (set && same_ref(set->target, planned_target) &&
+                    set->property == name) {
+                    request.already_taken.push_back(name);
+                    break;
+                }
+            }
+        }
         if (!selector(request, chosen, error)) {
             if (error.empty()) error = "attribute selector refused";
             return false;

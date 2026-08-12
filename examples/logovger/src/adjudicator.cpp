@@ -121,6 +121,12 @@ std::string Adjudicator::build_prompt(const Judgment& judgment) const {
     o << "RULE: " << judgment.rule << "\n\n";
     o << "CHOOSE EXACTLY " << judgment.count << " OF:\n";
     for (const auto& option : judgment.options) o << "  - " << option << "\n";
+    if (!judgment.standing.empty()) {
+        o << "\nWHERE THEY STAND NOW: " << judgment.standing << "\n"
+          << "Anything marked already taken was struck by THIS same "
+             "rule a moment ago. Do not take it again unless the rule "
+             "means to.\n";
+    }
     if (!judgment.hint.empty()) o << "\nLEAN: " << judgment.hint << "\n";
     o << "\nTHE LIFE SO FAR:\n" << judgment.history << "\n\n";
     o << judgment.question << "\n";

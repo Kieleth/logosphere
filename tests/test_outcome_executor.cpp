@@ -408,6 +408,112 @@ void a_selector_cannot_widen_or_wander_outside_the_rule() {
     }
 }
 
+// Aging's "reduce two physical characteristics by 2, reduce one
+// physical characteristic by 1" is TWO changes over ONE group, and the
+// book means all three go, each once. The chooser therefore has to
+// know what the previous step took.
+//
+// It cannot learn that from the graph. The whole plan commits at the
+// end, so a KG query between the two steps reads the values as they
+// stood before either. The request carries the pending state instead.
+void a_second_change_sees_what_the_first_one_took() {
+    Fixture f;
+    rules::OutcomeExecutor executor(f.world, f.dice);
+    const auto group = f.world.createEntity("AttributeGroup");
+    f.world.setProperty(group, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto step_of = [&](int count, int delta) {
+        const auto id = outcome(f, "ModifyAttributesInGroup");
+        f.world.setProperty(id, "attribute_group", std::to_string(group));
+        f.world.setProperty(id, "affected_count", std::to_string(count));
+        f.world.setProperty(id, "attribute_delta", std::to_string(delta));
+        return id;
+    };
+    const auto root = sequence(f, {step_of(2, -2), step_of(1, -1)});
+
+    std::vector<rules::AttributeSelectionRequest> seen;
+    executor.set_attribute_selector(
+        [&](const rules::AttributeSelectionRequest& request,
+            std::vector<std::string>& chosen, std::string&) {
+            seen.push_back(request);
+            // Behave the way the book means: never take the same one
+            // twice. This is policy, which is why it lives here and
+            // not in the engine.
+            for (const auto& name : request.eligible) {
+                if (std::find(request.already_taken.begin(),
+                              request.already_taken.end(),
+                              name) != request.already_taken.end()) {
+                    continue;
+                }
+                if (static_cast<int>(chosen.size()) < request.count) {
+                    chosen.push_back(name);
+                }
+            }
+            return true;
+        });
+
+    const auto result = executor.apply(root, f.context());
+    REQUIRE(result.status == rules::OutcomeStatus::APPLIED,
+            "the two-step rule applies: " + result.error);
+    REQUIRE(seen.size() == 2, "the chooser was asked twice");
+
+    REQUIRE(seen[0].already_taken.empty(),
+            "the first step has nothing behind it");
+    REQUIRE(seen[0].current.size() == 3 && seen[0].current[0] == 8,
+            "the first step sees the untouched values");
+
+    // The claim. Without this the second step would re-offer an
+    // attribute the first already spent, and the graph could not have
+    // told it so.
+    REQUIRE(seen[1].already_taken.size() == 2,
+            "the second step is told which two are already spent, got " +
+                std::to_string(seen[1].already_taken.size()));
+    REQUIRE(seen[1].current[0] == 6 && seen[1].current[1] == 6,
+            "and sees their PLANNED values, not the graph's stale ones: "
+            "got " + std::to_string(seen[1].current[0]) + "," +
+                std::to_string(seen[1].current[1]));
+
+    // The whole point: all three moved, each exactly once.
+    REQUIRE(f.world.getProperty(f.character, "strength") == "6" &&
+                f.world.getProperty(f.character, "dexterity") == "6" &&
+                f.world.getProperty(f.character, "endurance") == "7",
+            "two by 2 and one by 1, across three distinct attributes: " +
+                f.world.getProperty(f.character, "strength") + "/" +
+                f.world.getProperty(f.character, "dexterity") + "/" +
+                f.world.getProperty(f.character, "endurance"));
+
+    // The control: the engine does NOT enforce disjointness, because a
+    // rule may legitimately hit one attribute twice. A chooser that
+    // ignores already_taken is allowed to, and compounds.
+    Fixture g;
+    rules::OutcomeExecutor greedy(g.world, g.dice);
+    const auto ggroup = g.world.createEntity("AttributeGroup");
+    g.world.setProperty(ggroup, "attribute_refs",
+                        "strength; dexterity; endurance");
+    const auto gstep = [&](int count, int delta) {
+        const auto id = outcome(g, "ModifyAttributesInGroup");
+        g.world.setProperty(id, "attribute_group", std::to_string(ggroup));
+        g.world.setProperty(id, "affected_count", std::to_string(count));
+        g.world.setProperty(id, "attribute_delta", std::to_string(delta));
+        return id;
+    };
+    const auto groot = sequence(g, {gstep(2, -2), gstep(1, -1)});
+    greedy.set_attribute_selector(
+        [](const rules::AttributeSelectionRequest& request,
+           std::vector<std::string>& chosen, std::string&) {
+            chosen.assign(request.eligible.begin(),
+                          request.eligible.begin() + request.count);
+            return true;
+        });
+    REQUIRE(greedy.apply(groot, g.context()).status ==
+                rules::OutcomeStatus::APPLIED,
+            "a chooser that ignores the history is still allowed");
+    REQUIRE(g.world.getProperty(g.character, "strength") == "5",
+            "and its overlap compounds, 8 -2 -1, proving the engine "
+            "reports rather than enforces: got " +
+                g.world.getProperty(g.character, "strength"));
+}
+
 // Dice say how much, never which way. The book prints "reduce one
 // physical characteristic by 1D6" with no minus sign, and a rule that
 // rolled a GAIN would print none either, so the engine must not infer
@@ -685,6 +791,7 @@ int main() {
     TEST(a_group_change_covering_everything_needs_no_selector);
     TEST(a_partial_group_change_requires_an_installed_selector);
     TEST(a_selector_cannot_widen_or_wander_outside_the_rule);
+    TEST(a_second_change_sees_what_the_first_one_took);
     TEST(a_rolled_delta_must_say_which_way_it_goes);
     TEST(an_absent_roll_count_means_one);
     TEST(a_sequence_rolls_back_kg_dice_and_events_on_late_failure);
