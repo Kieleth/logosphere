@@ -1421,8 +1421,32 @@ ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
         return PrimitiveResult::advance("died");
     }
 
-    sheet_.credits -= crisis_price_;
-    kg_.setProperty(sheet_.id, "credits", std::to_string(sheet_.credits));
+    // The purse is the CurrencyBalance parts. sheet_.credits is a cache
+    // of them, re-derived from scratch whenever anything looks
+    // (muster_out does exactly that), so money taken out of the cache
+    // alone is handed straight back the next time it is recomputed.
+    // Take it out of the money itself, which is the thing that owns it.
+    long long owed = crisis_price_;
+    long long purse = 0;
+    for (const auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
+        if (kg_.getType(part) != "CurrencyBalance") continue;
+        const std::string held = kg_.getProperty(part, "balance_amount");
+        if (held.empty()) continue;
+        long long balance = std::stoll(held);
+        const long long taken = balance < owed ? balance : owed;
+        if (taken > 0) {
+            balance -= taken;
+            owed -= taken;
+            kg_.setProperty(part, "balance_amount", std::to_string(balance));
+        }
+        purse += balance;
+    }
+    // The sheet's field and the Character's credits property are both
+    // mirrors of the purse, so both are re-derived FROM it rather than
+    // decremented alongside it. Two independent subtractions of one
+    // number is how they came to disagree in the first place.
+    sheet_.credits = purse;
+    kg_.setProperty(sheet_.id, "credits", std::to_string(purse));
     // "which will bring any characteristics back up to 1"
     const auto restore = [&](const char* slot, int& value) {
         if (value != 0) return;
