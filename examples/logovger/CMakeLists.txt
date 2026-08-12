@@ -9,6 +9,8 @@ set(LOGOVGER_SOURCES
     src/sheet_screen.cpp
     src/career_list.cpp
     src/narrator.cpp
+    src/adjudicator.cpp
+    src/judgment_answer.cpp
     src/generated/voyager_ontology_registry.cpp
     src/generated/cepheus_book1_skills_ontology_registry.cpp
     src/generated/cepheus_book1_character_creation_ontology_registry.cpp
