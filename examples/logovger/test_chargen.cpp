@@ -727,6 +727,85 @@ void test_leaving_a_career_offers_another_one() {
               std::string(session.finished() ? "session finished" : error));
 }
 
+// Every number the book prints is a RuleConstant, and moving it in the
+// graph moves the life. This exists because a cited constant nothing
+// reads looks exactly like a cited constant something reads:
+// prior_career_dm sat in the seed unread, and only asking "does
+// changing it change anything" would have caught that.
+void test_the_books_numbers_are_all_data() {
+    // crisis_restore_value is deliberately absent. Reaching it needs a
+    // life that both suffers a crisis and can pay for it, and an
+    // auto-played character holds Cr0 until it musters out, so no seed
+    // here gets there. test_the_aging_crisis_is_paid_for_or_kills
+    // drives a session to a payable crisis and asserts the restored
+    // value; asserting it here would only prove this harness cannot
+    // reach the rule.
+    const char* const constants[] = {
+        "term_years", "aging_start_age", "basic_training_level",
+        "cash_benefit_roll_max", "reenlistment_forced_natural",
+    };
+    // Values chosen to be unmistakable in a finished life: a decade per
+    // term, aging that never starts, basic training at level 3, no cash
+    // rolls at all, and re-enlistment forced on a natural 2.
+    const char* const changed_to[] = {"10", "99", "3", "0", "2"};
+
+    const auto life_under = [](kg::KGModule& world, uint64_t seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        req.attribute_selector =
+            [](const logosphere::rules::AttributeSelectionRequest& request,
+               std::vector<std::string>& chosen, std::string&) {
+                chosen.assign(request.eligible.begin(),
+                              request.eligible.begin() + request.count);
+                return true;
+            };
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, world, dice, sheet, error);
+        return logovger::format_life(sheet);
+    };
+
+    kg::KGModule control(game_registry());
+    std::string why;
+    CHECK(build_world(control, why), "the constants control world: " + why);
+    if (!why.empty()) return;
+
+    // Several seeds, because a constant only shows itself in a life
+    // that reaches the rule: seed 28 never has a crisis, so moving the
+    // crisis restore value moves nothing about it. Proving the rule is
+    // live needs a life that gets there, not a bigger claim about one
+    // that does not.
+    for (size_t i = 0; i < sizeof(constants) / sizeof(constants[0]); ++i) {
+        kg::KGModule changed(game_registry());
+        CHECK(build_world(changed, why), "the changed world: " + why);
+        bool found = false;
+        for (const auto id : changed.findByType("RuleConstant")) {
+            if (changed.getProperty(id, "name") != constants[i]) continue;
+            changed.setProperty(id, "constant_value", changed_to[i]);
+            found = true;
+        }
+        CHECK(found, std::string("'") + constants[i] +
+                         "' is a RuleConstant in the graph");
+
+        uint64_t moved_at = 0;
+        for (uint64_t seed = 1; seed <= 120 && moved_at == 0; ++seed) {
+            if (life_under(control, seed) != life_under(changed, seed)) {
+                moved_at = seed;
+            }
+        }
+        std::cout << "  [measure] " << constants[i] << " -> "
+                  << changed_to[i] << ": life changes at seed " << moved_at
+                  << "\n";
+        CHECK(moved_at != 0,
+              std::string("moving '") + constants[i] + "' to " +
+                  changed_to[i] + " changes some life in 120 seeds; none "
+                  "changed, so nothing reads it");
+    }
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -1895,6 +1974,7 @@ int main() {
     test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
+    test_the_books_numbers_are_all_data();
     test_a_natural_two_kills_however_good_the_endurance();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();

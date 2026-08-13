@@ -1023,10 +1023,11 @@ std::vector<std::pair<kg::EntityID, std::string>> service_skills(
     return out;
 }
 
-// Give a skill at level 0 if it is not held at all. Level 0 is the
-// book's own number, and the step carries the sentence that sets it.
+// Give a skill at the level basic training grants, if it is not held
+// at all. The level is the book's number and arrives from the graph;
+// this function does not know what it is.
 bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
-                        kg::EntityID skill) {
+                        kg::EntityID skill, int level) {
     for (auto part : kg.getRelated(character, "HAS_PART")) {
         if (kg.getProperty(part, "skill") == std::to_string(skill)) {
             return false;
@@ -1035,7 +1036,7 @@ bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
     const auto rating = kg.createEntity("SkillRating");
     if (rating == kg::INVALID_ENTITY) return false;
     kg.setProperty(rating, "skill", std::to_string(skill));
-    kg.setProperty(rating, "skill_level", "0");
+    kg.setProperty(rating, "skill_level", std::to_string(level));
     kg.createRelation(character, "HAS_PART", rating);
     return true;
 }
@@ -1071,11 +1072,20 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
             "basic training: the service table grants no skills");
     }
 
+    // "you get every skill in the service skills table at level 0"
+    int basic_level = 0;
+    std::string level_error;
+    if (!constant("basic_training_level", basic_level, level_error)) {
+        return PrimitiveResult::failed(level_error);
+    }
+
     const bool first_career = sheet_.careers_served.size() <= 1;
     if (first_career) {
         int granted = 0;
         for (const auto& [id, name] : skills) {
-            if (know_at_level_zero(kg_, sheet_.id, id)) ++granted;
+            if (know_at_level_zero(kg_, sheet_.id, id, basic_level)) {
+                ++granted;
+            }
         }
         sheet_.life.push_back(
             {sheet_.terms_served, "basic training",
@@ -1119,7 +1129,7 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
     if (index >= skills.size()) {
         return PrimitiveResult::failed("no such skill");
     }
-    know_at_level_zero(kg_, sheet_.id, skills[index].first);
+    know_at_level_zero(kg_, sheet_.id, skills[index].first, basic_level);
     sheet_.life.push_back({sheet_.terms_served, "basic training",
                            skills[index].second + " at level 0", 0});
     return PrimitiveResult::advance();
@@ -1168,7 +1178,10 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         if (sheet_.rank >= 6)      benefit_rolls_owed_ += 3;
         else if (sheet_.rank == 5) benefit_rolls_owed_ += 2;
         else if (sheet_.rank == 4) benefit_rolls_owed_ += 1;
-        cash_rolls_left_ = 3;
+        // "Up to 3 benefit rolls can be taken on the Cash table."
+        if (!constant("cash_benefit_roll_max", cash_rolls_left_, error)) {
+            return PrimitiveResult::failed(error);
+        }
         if (benefit_rolls_owed_ <= 0) {
             sheet_.life.push_back({sheet_.terms_served, "no benefits",
                                    "no term served in this career", 0});
@@ -1414,7 +1427,15 @@ ChargenSession::PrimitiveResult ChargenSession::roll_reenlistment(
     const auto& execution = *thrown.execution;
 
     const auto& roll = execution.roll();
-    const bool natural_twelve = roll.total == 12;
+    // "If the character rolls a natural 12, they cannot leave their
+    // current career and must continue for another term." The 12 is
+    // the book's, so it is in the graph; the identical case is already
+    // done this way for the survival throw's natural failure.
+    int forced_natural = 0;
+    if (!constant("reenlistment_forced_natural", forced_natural, error)) {
+        return PrimitiveResult::failed(error);
+    }
+    const bool natural_twelve = execution.natural_total() == forced_natural;
     if (natural_twelve) {
         sheet_.life.push_back(
             {term, "cannot leave", "natural 12 on re-enlistment",
@@ -1446,7 +1467,14 @@ void ChargenSession::enter_career() {
 ChargenSession::PrimitiveResult ChargenSession::advance_term(
     const PrimitiveContext&) {
     const int term = sheet_.terms_served + 1;
-    sheet_.age_years   += 4;
+    // "Increase your age by 4 years." A term's length is the book's
+    // number, not this procedure's.
+    int term_years = 0;
+    std::string years_error;
+    if (!constant("term_years", term_years, years_error)) {
+        return PrimitiveResult::failed(years_error);
+    }
+    sheet_.age_years   += term_years;
     sheet_.terms_served = term;
     // Benefits and the seven-term cap count different things: one
     // counts this career, the other counts the whole life.
@@ -1569,10 +1597,15 @@ ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
     read_holdings(kg_, sheet_);
     kg_.setProperty(sheet_.id, "credits", std::to_string(sheet_.credits));
     // "which will bring any characteristics back up to 1"
+    int restore_to = 0;
+    std::string restore_error;
+    if (!constant("crisis_restore_value", restore_to, restore_error)) {
+        return PrimitiveResult::failed(restore_error);
+    }
     const auto restore = [&](const char* slot, int& value) {
         if (value != 0) return;
-        value = 1;
-        kg_.setProperty(sheet_.id, slot, "1");
+        value = restore_to;
+        kg_.setProperty(sheet_.id, slot, std::to_string(restore_to));
     };
     restore("strength", sheet_.strength);
     restore("dexterity", sheet_.dexterity);
@@ -1799,7 +1832,14 @@ ChargenSession::PrimitiveResult ChargenSession::roll_aging(
     // only for a life made purely of terms: a mishap adds two years
     // without a term and its prison row adds four, so a character
     // could pass 34 and never roll. Age is what the book asks about.
-    if (sheet_.age_years < 34) return PrimitiveResult::advance();
+    int aging_start_age = 0;
+    std::string age_error;
+    if (!constant("aging_start_age", aging_start_age, age_error)) {
+        return PrimitiveResult::failed(age_error);
+    }
+    if (sheet_.age_years < aging_start_age) {
+        return PrimitiveResult::advance();
+    }
 
     const auto table = find_named(kg_, "RollableTable", "Effects of Aging");
     if (table == kg::INVALID_ENTITY) {
@@ -1929,6 +1969,20 @@ std::vector<LifeEvent> ChargenSession::drain() {
 
 // --- auto-play -----------------------------------------------------
 
+// The key of the first cash table on offer, or of the first table at
+// all when the book will not allow another cash roll. Matched on the
+// label because that is all a caller of the session can see; the
+// session itself reaches the table through the graph.
+std::string cash_first(const std::vector<Choice>& choices) {
+    for (const auto& choice : choices) {
+        if (choice.label.find("Cash Benefits") != std::string::npos ||
+            choice.label.find("Cost Benefits") != std::string::npos) {
+            return choice.key;
+        }
+    }
+    return choices.front().key;
+}
+
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
                  logosphere::dice::DiceService& dice,
@@ -2008,7 +2062,14 @@ bool run_chargen(const ChargenRequest& request,
         // one just needs to be deterministic and to spend them all.
         if (session.prompt().find("benefit roll(s) left") !=
             std::string::npos) {
-            if (!session.choose(choices.front().key, error)) return false;
+            // Cash FIRST, which is what the comment above always
+            // claimed and the code never did: the extractor emits the
+            // material table before the cash one, and taking the front
+            // of the list meant every auto-played character finished
+            // with Cr0. Two rules had therefore never run in any test
+            // - the three-cash-roll cap, and the crisis pay path that
+            // needs money in hand.
+            if (!session.choose(cash_first(choices), error)) return false;
             continue;
         }
         // A failed survival throw is death unless the Referee allows
