@@ -16,12 +16,13 @@
 #include "logosphere/worldgen/humanoid_generator.h"
 #include <iostream>
 #include <cmath>
+#include <cstdlib>
 #include "platform/glfw_compat.h"  // real GLFW, or no-op shim in GLFW-less profiles
 #include "core/force.h"
 
 int main(int argc, char** argv) {
-    // Check for headless mode
-    bool headless = false;
+    // Headless by default; window only when INTERACTIVE=1 is set.
+    bool headless = std::getenv("INTERACTIVE") == nullptr;
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "--no-head") headless = true;
     }

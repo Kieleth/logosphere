@@ -9,7 +9,8 @@
 // without touching the engine.
 //
 // Usage:
-//   ./build/test_dynamics_override --no-head
+//   ./build/test_dynamics_override              # headless (default)
+//   INTERACTIVE=1 ./build/test_dynamics_override # windowed
 
 #include "core/engine.h"
 #include "logosphere/dynamics/particle_dynamics_system.h"
@@ -20,6 +21,7 @@
 #include <iostream>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 
 #define ASSERT(cond, msg) do { \
     if (!(cond)) { \
@@ -138,7 +140,8 @@ void test_fully_custom_dynamics_from_scratch(Engine& engine) {
 }
 
 int main(int argc, char** argv) {
-    bool headless = false;
+    // Headless by default; window only when INTERACTIVE=1 is set.
+    bool headless = std::getenv("INTERACTIVE") == nullptr;
     for (int i = 1; i < argc; i++) {
         if (std::strcmp(argv[i], "--no-head") == 0) headless = true;
     }

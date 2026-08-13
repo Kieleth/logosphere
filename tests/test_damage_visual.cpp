@@ -5,8 +5,8 @@
 // Press SPACE to reset and replay the sequence.
 //
 // Usage:
-//   ./build/test_damage_visual              # interactive (default)
-//   ./build/test_damage_visual --no-head    # headless (auto-run, exit after sequence)
+//   ./build/test_damage_visual                  # headless (auto-run, exit after sequence)
+//   INTERACTIVE=1 ./build/test_damage_visual    # windowed (SPACE replays)
 
 #include "core/engine.h"
 #include "logosphere/damage/damage_system.h"
@@ -33,7 +33,8 @@ static constexpr int HIT_4 = 255;   // 4.25s
 static constexpr int SEQUENCE_END = 360;  // 6.0s: pause before reset
 
 int main(int argc, char* argv[]) {
-    bool headless = false;
+    // Headless by default; window only when INTERACTIVE=1 is set.
+    bool headless = std::getenv("INTERACTIVE") == nullptr;
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "--no-head") headless = true;
     }

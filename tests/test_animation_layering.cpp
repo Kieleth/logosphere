@@ -812,7 +812,8 @@ int test_punch_teleport_diag(TestFixture& f) {
 // main
 // ---------------------------------------------------------------------------
 int main(int argc, char** argv) {
-    bool headless = false;
+    // Headless by default; window only when INTERACTIVE=1 is set.
+    bool headless = true;
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "--no-head") headless = true;
     }
