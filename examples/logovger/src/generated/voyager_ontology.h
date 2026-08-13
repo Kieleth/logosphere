@@ -2068,7 +2068,8 @@ struct GainRolledMoney : public GainMoney {
 
 /// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables. An ABSENT roll_count means one, because the book writes a bare instruction for a single roll: "Roll on the Injury table" states no number, and putting a 1 there would be a figure the source never printed.
 struct GrantTableRoll : public Outcome {
-    /// The table the extra rolls are granted on.
+    /// One named table. On GrantTableRoll, the table the extra rolls are granted on. On a ProcedureStep, the single table that step rolls on when the rule names one rather than choosing among a subject's own: subject_table answers "the Navy row", this answers "the Aging Table", which has no subject and only ever needs finding.
+    /// The step case exists because the alternative was find_named(kg, "RollableTable", "Effects of Aging") - three rules locating their table by the English words the book prints, so renaming one in the seed broke the rule silently and a translated book could not work at all.
     RollableTable table = {};
     /// How many extra rolls.
     std::optional<int32_t> roll_count = std::nullopt;
@@ -2126,6 +2127,7 @@ struct Procedure : public Entity, public Cited {
 
 
 /// One step of a Procedure. It NAMES a code primitive through primitive_ref (resolved against the executor's registry, never computed in data) and carries its routes as StepRoute parts: the book's own gotos, transcribed as routing data.
+/// A step may also declare an OUTCOME: something the book says happens when the step is taken, as against something the primitive computes. Cepheus "Increase your age by 4 years" is the whole of what its checklist step does, and writing it as `age_years += 4` in the primitive put a rule the graph could hold into code, where nobody reading the procedure could see it. The outcome is applied through the same executor and the same validated write path as any other, before the primitive runs.
 struct ProcedureStep : public Entity, public Cited {
     /// Explicit position in a procedure or outcome sequence. Procedure flow falls through in index order unless a route redirects it; outcome sequences apply their children in index order.
     int32_t step_index = {};
@@ -2133,6 +2135,11 @@ struct ProcedureStep : public Entity, public Cited {
     std::string primitive_ref = {};
     /// A table this step consults, keyed by the subject in play. Named here so the step reaches its data through the schema rather than by matching a name in code.
     std::optional<SubjectLookupTable> subject_table = std::nullopt;
+    /// One named table. On GrantTableRoll, the table the extra rolls are granted on. On a ProcedureStep, the single table that step rolls on when the rule names one rather than choosing among a subject's own: subject_table answers "the Navy row", this answers "the Aging Table", which has no subject and only ever needs finding.
+    /// The step case exists because the alternative was find_named(kg, "RollableTable", "Effects of Aging") - three rules locating their table by the English words the book prints, so renaming one in the seed broke the rule silently and a translated book could not work at all.
+    std::optional<RollableTable> table = std::nullopt;
+    /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
+    std::optional<Outcome> outcome = std::nullopt;
 };
 
 

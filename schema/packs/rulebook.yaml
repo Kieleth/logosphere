@@ -523,6 +523,15 @@ classes:
       primitive_ref (resolved against the executor's registry, never
       computed in data) and carries its routes as StepRoute parts:
       the book's own gotos, transcribed as routing data.
+
+      A step may also declare an OUTCOME: something the book says
+      happens when the step is taken, as against something the
+      primitive computes. Cepheus "Increase your age by 4 years" is the
+      whole of what its checklist step does, and writing it as
+      `age_years += 4` in the primitive put a rule the graph could hold
+      into code, where nobody reading the procedure could see it. The
+      outcome is applied through the same executor and the same
+      validated write path as any other, before the primitive runs.
     annotations:
       facets: rulebook
     slot_usage:
@@ -530,10 +539,16 @@ classes:
         required: true
       primitive_ref:
         required: true
+      # Most steps only name a primitive. An outcome is what the book
+      # states a step DOES, and few steps state one.
+      outcome:
+        required: false
     slots:
       - step_index
       - primitive_ref
       - subject_table
+      - table
+      - outcome
 
   StepRoute:
     is_a: Entity
@@ -944,7 +959,18 @@ slots:
     description: Current balance in the referenced currency; may be negative.
   table:
     range: RollableTable
-    description: The table the extra rolls are granted on.
+    description: >-
+      One named table. On GrantTableRoll, the table the extra rolls are
+      granted on. On a ProcedureStep, the single table that step rolls
+      on when the rule names one rather than choosing among a subject's
+      own: subject_table answers "the Navy row", this answers "the
+      Aging Table", which has no subject and only ever needs finding.
+
+      The step case exists because the alternative was
+      find_named(kg, "RollableTable", "Effects of Aging") - three rules
+      locating their table by the English words the book prints, so
+      renaming one in the seed broke the rule silently and a translated
+      book could not work at all.
   roll_count:
     range: integer
     minimum_value: 1

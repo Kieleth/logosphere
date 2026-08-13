@@ -446,10 +446,17 @@ def main():
                 if title in CASH_TABLES or title in MATERIAL_TABLES:
                     brow = f"@benefit_opt_{slug(canonical[career])}_{slug(title)}"
                     bsection, bquote = TABLE_CITATIONS["benefit"]
+                    # Which KIND of benefit table this is, so the rule
+                    # that caps cash rolls asks the row instead of
+                    # matching the table's printed name. The book prints
+                    # one of them as "Cost Benefits" and the rest as
+                    # "Cash Benefits"; both are the cash table, and a
+                    # substring match on either was the whole mechanism.
+                    role = "cash" if title in CASH_TABLES else "material"
                     builder.add("CareerTableEntry", brow, dict(
                         name=f"{title} for {canonical[career]}",
                         subject=builder.careers[canonical[career]],
-                        rollable_table=f"@{tag}",
+                        rollable_table=f"@{tag}", table_role=role,
                         source_file=CHAPTER, source_section=bsection,
                         source_kind="sentence", source_quote=bquote))
                     builder.ops.append({"op": "set_relation",
@@ -624,10 +631,15 @@ def main():
     for career in ALL_CAREERS:
         row = f"@training_opt_{slug(career)}_service_skills"
         section, quote = TABLE_CITATIONS["skill"]
+        # The one training table a rule singles out: "you get every
+        # skill in the SERVICE SKILLS table at level 0". Basic training
+        # found it by comparing the last fourteen characters of the
+        # table's name.
         builder.add("CareerTableEntry", row, dict(
             name=f"Service Skills for {career}",
             subject=builder.careers[career],
             rollable_table=builder.service_table(career),
+            table_role="service",
             source_file=CHAPTER, source_section=section,
             source_kind="sentence", source_quote=quote))
         builder.ops.append({"op": "set_relation", "from": "@training_tables",
