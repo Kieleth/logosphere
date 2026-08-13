@@ -34,6 +34,7 @@
  */
 
 #include <cstddef>
+#include <cstdint>   // uint8_t in Constraint; GCC does not include it transitively
 #include <limits>
 
 namespace PhysicsV4 {
