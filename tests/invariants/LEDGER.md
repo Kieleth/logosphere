@@ -137,3 +137,24 @@ entries added — auditing ghosts would turn tombstones into obligations.
 If anyone uncomments the TODO block, those names instantly surface as
 UNAUDITED moles on the next sweep, which is the correct tripwire.
 Coverage numbers are unchanged.
+
+### 2026-08-13 · CREATE · INV-16 (first aspirational invariant)
+
+Owner ruling: invariants MAY be born red. `status: "aspirational"` means
+the statement is diagnosed true and the code does not yet honor it; the
+sweep reports it as standing debt, never as a mole, and it appears in
+the coverage-hole list intentionally until the mechanism ships and a
+prover exists. INV-16 anchor-pivot-law is the first: correct mechanics
+(rotation-ladder rung 3 evidence), unshippable through independent
+scalar rows (measured unstable at 99.6 m/s), waiting on a full-Jacobian
+row formulation.
+
+### 2026-08-13 · RULING · INV-15 violations + orientation truth
+
+- INV-15: seven live owner-reads in physics_system_v4.cpp (the
+  quat-gravity exemption family) ruled a FIX TASK, not a sanctioned
+  annotation. Tracked as task #43; the static-grep prover test lands
+  with the fix.
+- one-orientation-truth (miner candidate 14): ruling DEFERRED by the
+  owner until the rotation-ladder work forces the representation
+  question. Parked here; not written as an invariant.
