@@ -865,13 +865,14 @@ slots:
     range: boolean
     description: >-
       This row is the open BOTTOM of its table: every total at or below
-      its roll_min selects it. The mirror of roll_max_unbounded, for a
-      book that writes a bottom band as "N or less". Cepheus does not:
-      it prints the worst aging result as a plain "-6", and a character
-      carried past seven terms by a natural 12 on re-enlistment rolls
-      2D6 minus nine and can reach -7, which lands on nothing. The
-      runner refuses that loudly rather than deciding what the book did
-      not say; this slot is how a Referee who has decided says so.
+      its roll_min selects it. The mirror of roll_max_unbounded, and it
+      exists for a hole the book leaves. Cepheus prints its worst aging
+      result as a plain "-6", not "-6 or less", but the aging DM is the
+      character's total terms and a natural 12 on re-enlistment outranks
+      the seven-term cap. Two of those and 2D6 minus nine reaches -7,
+      which lands on no row at all. Someone has to decide what -7 does;
+      this is where that decision is written down, as data a reader can
+      see and a Referee can change, rather than a clamp buried in code.
   roll_max_unbounded:
     range: boolean
     description: >-

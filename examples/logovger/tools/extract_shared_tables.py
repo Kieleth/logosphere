@@ -67,9 +67,29 @@ GROUP_QUOTE = (
     "termed mental abilities.")
 
 # Aging: 2D6 with the character's total terms as a negative DM. Bands
-# are transcribed as printed, including the unmarked bottom row: the
-# top says "1+" and the bottom says "-6" with no "or less", so a total
-# of -7 lands on nothing. That asymmetry is the book's, not ours.
+# are transcribed as printed. The asymmetry at the ends is the book's:
+# the top says "1+" and the bottom says a plain "-6" with no "or less".
+#
+# DIVERGENCE, and the reason for it. The printed table has a hole. The
+# DM is total terms, and a natural 12 on re-enlistment outranks the
+# seven-term cap ("unless they roll a natural 12 during Reenlistment
+# and must serve another term of service"), so two of those put a
+# character at nine terms and 2D6-9 reaches -7. That total lands on no
+# row and the run dies with a coverage error, which happens to about
+# one in 1296 of the characters who reach term 7. The bottom row is
+# therefore marked as catching everything under it. That is a ruling
+# the book does not print, recorded here and in
+# docs/VOYAGER_EXPANSION.md rather than clamped into the procedure.
+AGING_FLOOR_BAND = "-6"
+AGING_FLOOR_DEFECT = (
+    "The Aging Table's bottom row is printed as a plain '-6' while its "
+    "top row is printed '1+', so the table is open at one end and "
+    "closed at the other. The DM is the character's total terms, and a "
+    "natural 12 on Reenlistment overrides the seven-term cap, so a "
+    "character can reach nine terms and roll 2D6-9 for a total of -7, "
+    "which no row claims. Read as '-6 or less', which is what the open "
+    "top row does at the other end.")
+
 AGING_SECTION = "Aging"
 AGING_TABLE = "2D6"
 AGING_COLUMN = "Effects of Aging"
@@ -312,6 +332,13 @@ def main():
             props["roll_max_unbounded"] = "true"
         else:
             props["roll_max"] = band
+        # The bottom row catches everything under it, and says on the
+        # row itself that this is a reading rather than a transcription
+        # - the same treatment the misspelled skill cells get.
+        if band == AGING_FLOOR_BAND:
+            props["roll_min_unbounded"] = "true"
+            props["source_defect"] = AGING_FLOOR_DEFECT
+            props["suggested_reading"] = "Read as -6 or less."
         b.add("TableEntry", entry, props)
         b.relate("@aging_table", entry)
         counts["aging"] += 1

@@ -168,7 +168,10 @@
     "source_table": "2D6",
     "source_row": "\\-6",
     "source_column": "Effects of Aging",
-    "roll_max": "-6"
+    "roll_max": "-6",
+    "roll_min_unbounded": "true",
+    "source_defect": "The Aging Table's bottom row is printed as a plain '-6' while its top row is printed '1+', so the table is open at one end and closed at the other. The DM is the character's total terms, and a natural 12 on Reenlistment overrides the seven-term cap, so a character can reach nine terms and roll 2D6-9 for a total of -7, which no row claims. Read as '-6 or less', which is what the open top row does at the other end.",
+    "suggested_reading": "Read as -6 or less."
    }
   },
   {

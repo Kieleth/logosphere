@@ -1990,7 +1990,7 @@ struct TableEntry : public Entity, public Cited {
     std::optional<int32_t> roll_max = std::nullopt;
     /// This row claims everything at or above roll_min. The aging table ends at "1+", and writing a number there would put a figure in the graph that the book does not print. The same need already exists one class over, as key_max_unbounded on LookupEntry.
     std::optional<bool> roll_max_unbounded = std::nullopt;
-    /// This row is the open BOTTOM of its table: every total at or below its roll_min selects it. The mirror of roll_max_unbounded, and needed for the same reason. Cepheus prints the worst aging result as a plain "-6" because that is as low as 2D6 minus seven terms can reach, but a natural 12 on re-enlistment carries a character past the seven-term cap, and 2D6 minus nine reaches -7. A table that ends at a number the dice can pass has a hole in it.
+    /// This row is the open BOTTOM of its table: every total at or below its roll_min selects it. The mirror of roll_max_unbounded, and it exists for a hole the book leaves. Cepheus prints its worst aging result as a plain "-6", not "-6 or less", but the aging DM is the character's total terms and a natural 12 on re-enlistment outranks the seven-term cap. Two of those and 2D6 minus nine reaches -7, which lands on no row at all. Someone has to decide what -7 does; this is where that decision is written down, as data a reader can see and a Referee can change, rather than a clamp buried in code.
     std::optional<bool> roll_min_unbounded = std::nullopt;
     /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
     Outcome outcome = {};
