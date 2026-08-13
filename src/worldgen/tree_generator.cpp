@@ -1,6 +1,7 @@
 #include "logosphere/worldgen/tree_generator.h"
 #include "core/engine.h"
 #include "core/particle_system.h"
+#include "logosphere/physics/narrow_phase.h"
 #include <cmath>
 #include <iostream>
 #include <algorithm>
@@ -714,6 +715,17 @@ kg::EntityID TreeGenerator::generate_tree_space_colonization(
     int num_trunk_segments = std::max(3, static_cast<int>(trunk_height / 1.5f));  // ~1.5m per segment
     float segment_length = trunk_height / num_trunk_segments;
 
+    // A trunk that LEANS dips below its base point when seated by axis
+    // arithmetic alone: segment 0's centre sits 0.55·L up the tilted AXIS,
+    // but its box reaches further down VERTICALLY than the axis rise —
+    // by 0.55·L·(1−dir_z) under the door guard's z−thickness/2 measure,
+    // and by the cross-section's tilt contribution under the solver's
+    // oriented-extent measure. Both put the base millimetres below the
+    // turtle (INV-1 aborts at the kg door). Measured on segment 0 below,
+    // then the WHOLE tree is lifted by it: a rigid translation, so every
+    // seam, offset and later bond is untouched (INV-4 born-at-rest).
+    float base_lift = 0.0f;
+
     for (int i = 0; i < num_trunk_segments; ++i) {
         // Position along trunk (0 = base, 1 = top)
         float t_start = static_cast<float>(i) / num_trunk_segments;
@@ -765,6 +777,20 @@ kg::EntityID TreeGenerator::generate_tree_space_colonization(
         trunk_seg.reflectivity = 0.3f;
         trunk_seg.pattern_id = 1;  // PATTERN_WOOD for bark texture
 
+        if (i == 0) {
+            // Both measures of "below the base", worst one wins:
+            // the solver's oriented extent (canonical helper, same math
+            // enforce_turtle_boundary uses) and the door guard's
+            // rotation-blind z − thickness/2.
+            const AABB6 bb = aabb_of_obb(
+                obb_of_box_particle(trunk_seg, trunk_seg.z));
+            const float oriented_dip = world_z - bb.min_z;
+            const float door_dip =
+                world_z - (trunk_seg.z - trunk_seg.thickness * 0.5f);
+            base_lift = std::max({0.0f, oriented_dip, door_dip});
+        }
+        trunk_seg.z += base_lift;
+
         kg::KGParticleID seg_kg_id = kg_->createKGParticle(tree_entity, kg::INVALID_RENDER_INDEX);
         kg_->setKGParticleData(seg_kg_id, trunk_seg);
     }
@@ -777,7 +803,7 @@ kg::EntityID TreeGenerator::generate_tree_space_colonization(
         float t = random_variance(0.7f, 0.25f);            // 0.45..0.95
         float base_x = world_x + trunk_dir_x * trunk_height * t;
         float base_y = world_y + trunk_dir_y * trunk_height * t;
-        float base_z = world_z + trunk_dir_z * trunk_height * t;
+        float base_z = world_z + base_lift + trunk_dir_z * trunk_height * t;
         float yaw = random_variance(0.0f, 180.0f) * static_cast<float>(M_PI) / 180.0f;
         float pitch = random_variance(38.0f, 14.0f) * static_cast<float>(M_PI) / 180.0f;
         float dir_x = std::cos(yaw) * std::cos(pitch);
@@ -825,7 +851,10 @@ kg::EntityID TreeGenerator::generate_tree_space_colonization(
         }
     }
 
-    // Run Space Colonization algorithm for crown
+    // Run Space Colonization algorithm for crown. The crown rides the
+    // trunk, so it carries the same base lift.
+    sc_params.root_position.z += base_lift;
+    sc_params.attractor_center.z += base_lift;
     SpaceColonization sc_algorithm;
     TreeSkeleton skeleton = sc_algorithm.generate(sc_params);
 
