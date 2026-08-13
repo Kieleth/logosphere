@@ -9,6 +9,15 @@ int main() {
 
     Logosphere::HTTPClient client("localhost", 8000);
 
+    // Env-dependent test: without a server there is nothing to prove,
+    // and exiting 1 reads as a client bug. Skip honestly instead.
+    if (!client.is_connected()) {
+        std::cout << "SKIPPED: no LLM server on localhost:8000 "
+                     "(start one, e.g. mlx_lm.server, to run this test)"
+                  << std::endl;
+        return 0;
+    }
+
     // Test 1: Simple request
     std::string json = R"({"model": "mlx-community/Qwen2.5-32B-Instruct-4bit", "messages": [{"role": "user", "content": "Say hi"}], "max_tokens": 5})";
 

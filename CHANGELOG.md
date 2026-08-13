@@ -50,6 +50,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   main loops are GLFW-input-driven (SPACE/ESC).
 
 ### Fixed
+- **Space-colonization trees no longer seat the trunk base below the
+  turtle.** A leaning trunk placed by axis arithmetic dipped its first
+  segment millimetres under z=0 (0.55·L·(1−dir_z) under the door
+  guard's measure, plus the cross-section's tilt reach under the
+  solver's oriented extent), which the strict turtle guard rightly
+  aborts. The generator now measures segment 0's true vertical reach
+  with the engine's oriented-box math and lifts the whole tree by the
+  worst dip — a rigid translation, so seams, offsets and bonds are
+  untouched and born-at-rest is preserved.
 - **Gluon rows refresh their effective mass to live state before the
   solve (heel-strike +-100 m/s transients).** Contact rows already got
   this refresh; gluon rows kept build-time masses, and wake-on-strain

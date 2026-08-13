@@ -194,6 +194,15 @@ int main(int argc, char** argv) {
     int assertion_failures = 0;
     bool space_was_pressed = false;
     int frame_count = 0;
+    int clip_start_frame = 0;
+
+    // Headless frame budget per clip. Chained clips advance phase from the
+    // hips' ACTUAL speed; if the walker never reaches 0.01 m/s the phase
+    // never advances and the loop used to spin forever (killed at 4.3M
+    // frames). 3600 frames = 60 s of sim, an order of magnitude above any
+    // legitimate clip; hitting it is a FAILURE reported honestly, not a
+    // hang.
+    const int kClipFrameBudget = 3600;
 
     // Phase-driven walk state
     float walk_phase = 0.0f;         // [0, 2π) — one full cycle = R step + L step
@@ -299,6 +308,7 @@ int main(int argc, char** argv) {
             }
 
             fk_playing = true;
+            clip_start_frame = frame_count;
             std::cout << "\n[FK PLAY] Starting: " << ci.label << std::endl;
         }
 
@@ -324,6 +334,7 @@ int main(int argc, char** argv) {
             }
 
             fk_playing = true;
+            clip_start_frame = frame_count;
             std::cout << "\n[FK PLAY] Starting: " << ci.label << std::endl;
         }
         space_was_pressed = space_pressed;
@@ -339,6 +350,24 @@ int main(int argc, char** argv) {
             // --- Phase accumulation from actual hips velocity ---
             auto hips = ps.get_particle_copy(h.hips_id);
             float actual_speed = std::sqrt(hips.vx * hips.vx + hips.vy * hips.vy);
+
+            // --- Headless frame budget: a clip that cannot finish is a
+            // FAILURE, reported with its stuck state, never a hang. ---
+            if (headless && frame_count - clip_start_frame > kClipFrameBudget) {
+                printf("\n[TIMEOUT] %s did not complete within %d frames: "
+                       "phase=%.2f half_cycles=%d/%d speed=%.4f m/s FAIL\n",
+                       ci.label, kClipFrameBudget, walk_phase,
+                       completed_half_cycles, ci.chain_steps, actual_speed);
+                assertion_failures++;
+                if (ci.chain_steps > 0 && ci.with_root_motion) stop_root_motion();
+                fk_playing = false;
+                current_clip = (current_clip + 1) % clips.size();
+                if (current_clip == 0) {
+                    std::cout << "\n[HEADLESS] All clips tested, exiting" << std::endl;
+                    break;
+                }
+                continue;
+            }
 
             float d_phase = 0.0f;
             bool is_moving = false;

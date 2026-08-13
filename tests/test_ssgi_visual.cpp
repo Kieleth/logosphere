@@ -171,7 +171,7 @@ static void add_floor_tile(Engine& engine, float wx, float wy, float r, float g,
     Particle tile = {};
     tile.x = wx;
     tile.y = wy;
-    tile.z = 0.0f;
+    tile.z = 0.075f;  // bottom rests ON the turtle (thickness 0.15)
     tile.shape = ParticleShape::BOX;
     tile.width = 0.5f;
     tile.height = 0.5f;
@@ -377,7 +377,7 @@ bool test_ssgi_visual() {
             // Static Baseline: huge floor, single cube, single point light on floor
             // Nothing moves. For diagnosing shadow stability.
             Particle floor = {};
-            floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.0f;
+            floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.075f;  // bottom ON the turtle
             floor.shape = ParticleShape::BOX;
             floor.width = 50.0f; floor.height = 50.0f; floor.thickness = 0.15f;
             floor.size = 50.0f;
@@ -492,7 +492,7 @@ bool test_ssgi_visual() {
 
             // White floor (large)
             Particle floor = {};
-            floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.0f;
+            floor.x = 0.0f; floor.y = 0.0f; floor.z = 0.075f;  // bottom ON the turtle
             floor.shape = ParticleShape::BOX;
             floor.width = 50.0f; floor.height = 50.0f; floor.thickness = 0.15f;
             floor.size = 50.0f;

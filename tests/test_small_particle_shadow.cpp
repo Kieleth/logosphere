@@ -38,10 +38,12 @@ bool test_small_particle_shadow(TestContext& ctx) {
         p.shape = ParticleShape::BOX;
         p.x = -5.0f + i * 2.0f;
         p.y = 0;
-        p.z = 1.0f;
         p.width = sizes[i];
         p.height = sizes[i];
         p.thickness = sizes[i] * 2.0f;
+        // Rest each caster ON the floor slab (top at z=0.1). The old fixed
+        // z=1.0 sank the 4 m-tall one a full metre below the turtle.
+        p.z = 0.1f + p.thickness * 0.5f;
         p.r = 1.0f; p.g = 0.0f; p.b = 0.0f; p.a = 1.0f;
         p.SetMaterial(Materials::Type::STONE);
         ctx.add_test_particle(p);

@@ -251,7 +251,7 @@ void eval_golden_hour() {
 int main() {
     const char* key = std::getenv("ANTHROPIC_API_KEY");
     if (!key || !*key) {
-        std::cout << "SKIP: ANTHROPIC_API_KEY not set (live-LLM eval; "
+        std::cout << "SKIPPED: ANTHROPIC_API_KEY not set (live-LLM eval; "
                      "CI-safe skip)" << std::endl;
         return 0;
     }

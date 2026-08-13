@@ -1,7 +1,8 @@
 // Acceptance Test: end-to-end smoke against an OpenAI-compatible
 // local LLM (mlx_lm.server on Apple Silicon, llama-server, Ollama,
-// LM Studio). Auto-skips with PASS when no server is reachable so
-// CI / Linux / no-MLX environments don't go red.
+// LM Studio). Prints SKIPPED and exits 0 when no server is reachable
+// so CI / Linux / no-MLX environments don't go red — and never wears
+// a PASS banner for a round trip that did not run.
 //
 // What it proves when it runs for real:
 //   1. LLMSystemHTTP wires up against a localhost server.
@@ -152,20 +153,9 @@ void test_mlx_director_round_trip() {
         return 30;
     }();
 
-    std::string host;
-    int port = 0;
-    if (!split_url(url, host, port)) {
-        std::cerr << "  [skip] could not parse URL " << url << std::endl;
-        return;  // counts as PASS
-    }
-
-    if (!is_reachable(host, port)) {
-        std::cerr << "  [skip] no server at " << host << ":" << port
-                  << " — start mlx_lm.server (scripts/start_mlx_server.sh)"
-                  << " to run this AT for real." << std::endl;
-        return;  // counts as PASS
-    }
-
+    // Reachability is decided in main() BEFORE this test runs — a skip
+    // must never wear a PASS banner. If the server dies between that
+    // probe and here, the failures below name it honestly.
     Logosphere::LLMSystemHTTP llm;
     if (!llm.initialize_mlx(url, model)) {
         throw std::runtime_error("LLMSystemHTTP::initialize_mlx failed: "
@@ -271,6 +261,28 @@ void test_mlx_director_round_trip() {
 
 int main() {
     std::cout << "Logotron AT — director_mlx_smoke" << std::endl;
+
+    // Skip vs run is decided HERE, before any test banner: the runner
+    // must see SKIPPED, never a PASS that proved nothing.
+    {
+        const std::string url = env_or("LOGOTRON_AT_MLX_URL",
+                                       "http://localhost:8081");
+        std::string host;
+        int port = 0;
+        if (!split_url(url, host, port)) {
+            std::cout << "SKIPPED: could not parse LOGOTRON_AT_MLX_URL "
+                      << url << std::endl;
+            return 0;
+        }
+        if (!is_reachable(host, port)) {
+            std::cout << "SKIPPED: no server at " << host << ":" << port
+                      << " — start mlx_lm.server "
+                         "(scripts/start_mlx_server.sh) to run this AT "
+                         "for real." << std::endl;
+            return 0;
+        }
+    }
+
     AT_TEST(test_mlx_director_round_trip);
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

@@ -37,6 +37,20 @@ public:
 int main() {
     std::cout << "Testing HTTP after engine init (main thread)..." << std::endl;
 
+    // Probe BEFORE engine init: this test proves engine init does not
+    // break sockets, so a missing server pre-init is a missing
+    // environment (skip honestly) — while a request that fails AFTER
+    // init with the server present stays the failure it hunts.
+    {
+        Logosphere::HTTPClient probe("localhost", 8000);
+        if (!probe.is_connected()) {
+            std::cout << "SKIPPED: no LLM server on localhost:8000 "
+                         "(start one, e.g. mlx_lm.server, to run this test)"
+                      << std::endl;
+            return 0;
+        }
+    }
+
     // Initialize application and engine
     HTTPTestApp app;
     Engine engine(&app);

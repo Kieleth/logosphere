@@ -319,18 +319,21 @@ struct TestFixture {
         g.is_at_rest = true;
         g.SetMaterial(Materials::Type::LEAVES);
         if (tall) {
-            g.z = 0.18f + (std::rand() % 100) * 0.0012f;
             g.width = 0.025f + (std::rand() % 100) * 0.00015f;
             g.height = 0.025f + (std::rand() % 100) * 0.00015f;
             g.thickness = 0.30f + (std::rand() % 100) * 0.002f;
             g.r = 0.10f; g.g = 0.35f; g.b = 0.08f;
         } else {
-            g.z = 0.12f + (std::rand() % 100) * 0.0008f;
             g.width = 0.015f + (std::rand() % 100) * 0.0002f;
             g.height = 0.015f + (std::rand() % 100) * 0.0002f;
             g.thickness = 0.12f + (std::rand() % 100) * 0.0028f;
             g.r = 0.15f; g.g = 0.45f; g.b = 0.10f;
         }
+        // Root the blade IN the floor slab (z 0..0.1): bottom lands at a
+        // random depth inside it, never below the turtle. The old fixed-z
+        // draws picked z and thickness independently, so tall blades
+        // dipped up to 5 cm under the world floor.
+        g.z = g.thickness * 0.5f + (std::rand() % 100) * 0.001f;
         engine.add_particle(g);
     }
 
