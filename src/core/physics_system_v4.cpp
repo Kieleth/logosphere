@@ -1643,6 +1643,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             }  // if (!skip_position_bias)
         }
 
+        // A bond between two immovable bodies builds no rows. The wake-on-
+        // strain check above already ran, so a strained sleeping bond woke
+        // its endpoints this substep and does not take this exit. What
+        // remains is the sleeping, satisfied majority of the world: their
+        // rows are guaranteed zeros (eff mass 0 on every axis), and Eden
+        // was visiting 58k of them 15+ iterations x 4 substeps a frame for
+        // nothing. Identity-safe: consumers resolve via gluon_slot, same as
+        // the both-KINEMATIC skip above.
+        if (inv_mass_momentum(pa) == 0.0f && inv_mass_momentum(pb) == 0.0f) {
+            continue;
+        }
+
         // V4.9 material damping, re-expressed as the reduced-mass impulse
         // it always was: J = mu * d * (v_b - v_a), mu = 1/(inv_a + inv_b).
         // For two dynamic bodies this IS the old COM blend, algebraically
@@ -2108,6 +2120,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // ========================================================================
     int actual_iterations = 0;
     float max_dv_this_iter = 0.0f;
+    static int g_maxdv_body_a=-1, g_maxdv_body_b=-1, g_maxdv_type=-1;
     float prev_max_impulse = 1e10f;
     int low_improvement_count = 0;
     constexpr float MIN_IMPROVEMENT_RATE = 0.05f;  // Need 5% improvement per iteration
@@ -2727,8 +2740,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // on its own: 0.01 N*s is a shrug to a 112 kg branch and a shove to
             // a 0.107 kg leaf. Track the VELOCITY it imparts to the lighter
             // endpoint, which is the same physical quantity whatever the mass.
-            max_dv_this_iter = std::max(max_dv_this_iter,
-                                        std::abs(impulse) * std::max(inv_ma, inv_mb));
+            {
+                const float dv_here = std::abs(impulse) * std::max(inv_ma, inv_mb);
+                if (dv_here > max_dv_this_iter) {
+                    max_dv_this_iter = dv_here;
+                    g_maxdv_body_a = (int)c.body_a;
+                    g_maxdv_body_b = (int)c.body_b;
+                    g_maxdv_type = c.is_turtle_contact ? 2 : (c.is_contact ? 1 : 0);
+                }
+            }
 
             if (energy_ledger_on() && c.effective_mass > 0.0f) {
                 const double dke = double(impulse) * double(v_rel)
@@ -2918,10 +2938,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // Now both must be small: the impulse AND the velocity it imparts.
         // Strictly tighter than before for every body — heavy ones keep the
         // solve they already got, light ones stop being abandoned early.
+        // CONVERGED = the next iteration would change no body's velocity by
+        // more than VELOCITY_THRESHOLD. Velocity is the only quantity that
+        // makes the same physical statement at every mass. The impulse
+        // AND-term this replaces (0.01 N*s) was the wrong dimension, and
+        // with derived material stiffness it became unreachable: heavy rows
+        // hold impulses above a threshold that means 3e-5 m/s on a strata
+        // tile, so 58k-row Eden substeps burned all 32 iterations every
+        // time (2.5 FPS, 360 ms of physics a frame) while the light-body
+        // residuals this velocity term watches were long gone.
+        // ...and the velocity-only variant that replaced it was unreachable
+        // from the other side: 1 mm/s on a 0.1 g grass segment is 1e-7 N*s,
+        // solver noise floor, so 58k-row Eden still burned all 32 iterations
+        // (measured: maxdv argmax hopping between adjacent grass-segment
+        // bonds, a different pair every substep). The light-body residual
+        // this term chased is cured at the mechanism now: the impulse-memory
+        // cap is in momentum units and the force law is derived, and the
+        // foliage gate is the regression tripwire. Impulse threshold alone.
         constexpr float ABSOLUTE_THRESHOLD = 0.01f;   // N*s
-        constexpr float VELOCITY_THRESHOLD = 0.001f;  // m/s, mass-independent
-        if (max_impulse_this_iter < ABSOLUTE_THRESHOLD &&
-            (std::getenv("PLATEAU_OLD") || max_dv_this_iter < VELOCITY_THRESHOLD)) {
+        if (max_impulse_this_iter < ABSOLUTE_THRESHOLD) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
             PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
@@ -2944,8 +2979,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // Slow progress on a large error is not a plateau, it is a hard
         // problem. Only stop when the remaining velocity error is negligible
         // in absolute terms, which is the same quantity for any mass.
-        if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f &&
-            (std::getenv("PLATEAU_OLD") || max_dv_this_iter < VELOCITY_PLATEAU_FLOOR)) {
+        if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f) {
             float improvement = (prev_max_impulse - max_impulse_this_iter) / prev_max_impulse;
             if (improvement < MIN_IMPROVEMENT_RATE) {
                 low_improvement_count++;
@@ -3362,6 +3396,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                       << " solver=" << ms(t_after_gluons, t_after_solver)
                       << " nconstraints=" << constraints.size()
                       << " active=" << debug_active_particles
+                      << " iters=" << actual_iterations
+                      << " maxdv_pair=P" << g_maxdv_body_a << "<->P" << g_maxdv_body_b
+                      << " type=" << (g_maxdv_type==0?"gluon":g_maxdv_type==1?"contact":"turtle")
                       << std::endl;
         }
     }

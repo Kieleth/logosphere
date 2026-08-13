@@ -8,6 +8,16 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Solver: convergence exits are dimensionally honest, sleeping bonds
+  build no rows.** The converged exit is the impulse threshold alone; the
+  velocity AND-term added during the leaf-sink investigation was
+  unreachable from both directions in mixed-mass scenes (heavy rows hold
+  impulses that mean 3e-5 m/s; 1 mm/s on a 0.1 g blade is 1e-7 N*s,
+  below solver noise), and the leaf sink is cured at the mechanism now
+  (momentum-unit memory cap + derived force law, foliage gate green).
+  Bonds whose endpoints are both immovable skip row build entirely after
+  the wake-on-strain check. Eden headless 1600px: 2.5 -> 6.3 FPS, rows
+  58k -> 24k, solver 27 -> 9.7 ms/substep.
 - **Organic bonds derive their force law from materials (Phase C, axial).**
   `k = A / (L_a/E_a + L_b/E_b)` (material spans in series between the
   attachment points) and `c = eta * sqrt(k * mu)` (loss factor against the
