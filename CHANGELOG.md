@@ -7,6 +7,37 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- **Physics constants are engine inputs (INV-29).** Every named
+  physics constant — solver schedule, position-correction gains and
+  caps, contact tolerances, turtle boundary, gravity and drag,
+  rest/sleep/damping thresholds, wake gates, warm-start memory, the
+  explosion-detector calibration — is now declared in
+  `schema/physics.yaml` (68 constants, each with value, UCUM unit,
+  group, and the RCA that earned it) and generated into
+  `src/generated/physics_constants.h` (namespace `PhysicsV4`) by
+  `scripts/generate_ontology.py`'s new header-only mode. Extraction
+  was value-identical: the characterization checksum held bit-for-bit.
+  To retune the engine, edit the schema and regenerate; constant-work
+  is a separate effort from code-work by decree.
+- **Physics layer ontology.** `schema/physics.yaml` also carries 37
+  documentation concepts (bodies, constraints, contact geometry, the
+  turtle, the frame pipeline, the instruments) and the LinkML contract
+  that `tests/invariants/INVARIANTS.jsonl` rows validate against. It
+  is a standalone schema root, never imported by the KG ontology:
+  physics concepts are not world entities and cannot reach
+  `createEntity`.
+- **Two static invariant gates run with the fleet.**
+  `test_inv29_constants_gate` (a self-checked magic-float ratchet over
+  the physics translation units; 35 documented residual sites, exact
+  in both directions) and `test_inv15_owner_blindness` (pins the
+  solver's game-layer owner reads at the seven known task-#43 sites,
+  failing on any change either way). Both headless, both profiles.
+  `scripts/validate_invariants.py` additionally validates the
+  invariants files (ids, enums, dangling/cyclic `derives_from`, audit
+  links, mechanism symbols still present in the tree) at every
+  `physics_sweep.py` start.
+
 ### Changed
 - **Test executables are headless by default.** Seven standalone tests
   opened a window unless told otherwise (`test_animation_layering`,
