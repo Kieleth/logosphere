@@ -3536,7 +3536,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
                     c.jz * (pvz[c.body_a] - pvz[c.body_b]);
 
-                float imp = -(pv_rel - c.bias) * c.effective_mass;
+                // THE IMPULSE MUST BE PRICED IN THE MASSES IT IS SPENT ON.
+                // c.effective_mass came from the VELOCITY mass model, where
+                // sleep = infinite mass. This pass spends through the
+                // POSITIONAL model above, where sleep weighs its real mass.
+                // Pricing with one and spending with the other turned a
+                // foot-vs-sleeping-blade row (pair effective mass 1.25 kg,
+                // capture budget 6.2 N·s) into a 13.9 m position teleport
+                // of a 1.6 g blade in ONE substep — measured on the
+                // walk-through-grass canary, frame 934: displacement exactly
+                // along -normal, velocity (0,0,0) before and after, detector
+                // silent because nothing ever moved at velocity level.
+                // Recomputed against the same inverse masses the correction
+                // is applied with, that row moves the blade ~1 mm.
+                const float eff_pos = c.eff_mass_share / (inv_ma + inv_mb);
+                float imp = -(pv_rel - c.bias) * eff_pos;
 
                 // Same clamp the velocity rows obey, so a non-penetration row
                 // still cannot pull and a bond still cannot exceed its break

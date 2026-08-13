@@ -7,6 +7,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- **Split-impulse position repair prices impulses in the masses it
+  spends them on.** The position pass computed pseudo-impulses with the
+  velocity solve's effective mass (sleep = infinite) but applied them
+  through positional inverse masses (sleep = real mass). A walker's
+  foot resting a contact row on a sleeping 1.6 g blade teleported the
+  blade 13.9 m in one substep - position only, velocity untouched, so
+  the explosion detector never fired and the blade was "at rest" a
+  field away. The pass now recomputes each row's effective mass
+  against the same inverse masses it applies the correction with;
+  the same row moves the blade ~1 mm.
+
 ### Changed
 - **Box-box collision is rotation-aware.** Rotated boxes now collide as
   their oriented shapes (SAT over 15 axes + reference-face clipping),
