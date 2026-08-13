@@ -20,6 +20,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   the same row moves the blade ~1 mm.
 
 ### Changed
+- **Contacts skip a bonded structure's internal pairs.** The existing
+  rule (a gluoned pair gets no contact rows - the bond owns it) now
+  applies transitively across the gluon graph, connected through
+  DYNAMIC bodies only: a tree crown's deliberately-crossing branches
+  and foliage boxes no longer fight their own bonds with contact rows,
+  while two plants rooted to the same immovable tile remain separate
+  structures whose blades still collide. Components rebuild from the
+  live gluon list every step, so torn bonds dissolve them immediately.
 - **Box-box collision is rotation-aware.** Rotated boxes now collide as
   their oriented shapes (SAT over 15 axes + reference-face clipping),
   not as world-axis slabs of their raw extents. Contact normals follow

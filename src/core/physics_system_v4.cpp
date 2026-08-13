@@ -675,6 +675,51 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     for (const auto& gluon : gluon_constraints_v2_) {
         gluon_pairs.insert({gluon->particle_a, gluon->particle_b});
     }
+
+    // ==========================================================================
+    // BONDED-STRUCTURE COMPONENTS (union-find over the gluon graph)
+    // ==========================================================================
+    // The direct-pair skip below states the principle: gluons already
+    // constrain the pair, and a contact on top is a conflicting constraint.
+    // A bonded STRUCTURE is that statement transitively: a tree's crown is
+    // built with branches and foliage boxes deliberately crossing each other
+    // (test_foliage_stays_attached's own header: perfect separation at birth
+    // costs the complexity that is the point of the tree). Those crossings
+    // are the structure's internal geometry, held by its bonds; contact rows
+    // inside one structure fight the bonds — measured when the narrow phase
+    // became rotation-aware and first SAW the crossings: 0.80 m
+    // "penetrations" between a trunk and its own crown's foliage boxes,
+    // leaves ejected at 6.77 m/s against a 2.0 gate.
+    //
+    // Connectivity runs through DYNAMIC bodies only. An immovable anchor is
+    // ground, not structure: two plants rooted to the same KINEMATIC tile
+    // are two plants, and their blades still collide with each other.
+    // Rebuilt every step from the live gluon list (~one union per gluon),
+    // so torn bonds dissolve the component with no stale state.
+    std::vector<uint32_t> bond_root(count);
+    for (size_t i = 0; i < count; ++i) bond_root[i] = (uint32_t)i;
+    {
+        auto find_root = [&bond_root](uint32_t x) {
+            while (bond_root[x] != x) {
+                bond_root[x] = bond_root[bond_root[x]];   // path halving
+                x = bond_root[x];
+            }
+            return x;
+        };
+        for (const auto& gluon : gluon_constraints_v2_) {
+            const size_t a = gluon->particle_a, b = gluon->particle_b;
+            if (a >= count || b >= count) continue;
+            if (particles[a].solver_mode == ParticleSolverMode::KINEMATIC ||
+                particles[b].solver_mode == ParticleSolverMode::KINEMATIC)
+                continue;   // ground link, not structure
+            const uint32_t ra = find_root((uint32_t)a);
+            const uint32_t rb = find_root((uint32_t)b);
+            if (ra != rb) bond_root[ra] = rb;
+        }
+        // Flatten so the pair loop's comparison is one array read each.
+        for (size_t i = 0; i < count; ++i)
+            bond_root[i] = find_root((uint32_t)i);
+    }
     auto t_after_gluon_hash = std::chrono::high_resolution_clock::now();
 
     // Use BVH broad-phase to reduce O(n²) to O(n log n)
@@ -915,6 +960,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_rejected",
                                  (int)i, (int)j, "gluon_owns_this_pair");
                     continue;  // Skip - gluon handles this pair
+                }
+                // Same principle, transitively: two bodies of ONE bonded
+                // structure (connected through dynamic bodies in the gluon
+                // graph) do not contact each other. Their overlap is the
+                // structure's internal geometry; the bonds own it.
+                // (KINEMATIC bodies are never unioned, so their components
+                // are singletons and this test cannot fire for them.)
+                if (bond_root[i] == bond_root[j]) {
+                    PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_rejected",
+                                 (int)i, (int)j, "bonded_structure_internal");
+                    continue;
                 }
 
                 // =============================================================
