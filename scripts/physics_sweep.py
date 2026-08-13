@@ -27,6 +27,11 @@
 #   ./scripts/physics_sweep.py --deadline 120 # per-test seconds (default 300)
 # NEVER opens a window: registry tests run --no-head, INTERACTIVE is never
 # set, and the environment strips it defensively.
+#
+# Run ALONE. Measured 2026-08-13: three tests that complete in under a
+# second hung at the 300 s deadline while a docker pre-check build ran
+# concurrently — Metal/CPU contention manufactures phantom moles. The
+# sweep and the pre-check are sequential steps, never parallel ones.
 # =============================================================================
 
 import argparse, json, os, re, signal, subprocess, sys, time
