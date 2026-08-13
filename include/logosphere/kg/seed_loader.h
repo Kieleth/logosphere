@@ -13,6 +13,13 @@
 //     "source": {"file": "book1/character-creation.md",
 //                "commit": "<sha of the vendored source>"},
 //     "layer": "cepheus",
+//     // Optional, and the file's own answer to "may I edit this?".
+//     // A seed written BY A TOOL names the tool. Hand-editing such a
+//     // file is a mistake CI catches by regenerating and diffing; a
+//     // seed with no generated_by is hand-authored and stays that
+//     // way. Ownership went unmarked once, two PRs hand-edited a
+//     // generated seed, and regenerating it dropped fifteen ops.
+//     "generated_by": "examples/logovger/tools/extract_shared_tables.py",
 //     "invariants": {
 //       "count_of_type": {"RuleConstant": 2},
 //       "unique_name_per_type": ["RuleConstant"],

@@ -40,6 +40,7 @@ from urllib.parse import quote
 
 SECTION = "Career Tables"
 CHAPTER = "book1/character-creation.md"
+GENERATED_BY = "examples/logovger/tools/extract_career_tables.py"
 
 # The sub-tables inside a career block, and what each row means. The
 # second block titles its cash table "Cost Benefits" where the other
@@ -689,6 +690,7 @@ def main():
     seed = {
         "source": {"file": CHAPTER, "commit": commit},
         "layer": "cepheus",
+        "generated_by": GENERATED_BY,
         # Counts, asserted. A str.replace that matched nothing once
         # left all three rule tables with zero rows, and everything
         # still verified: empty tables break no citation. The invariant

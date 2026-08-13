@@ -29,7 +29,11 @@ because other seeds reference them, and appends only what is missing.
 Usage:
     python3 examples/logovger/tools/extract_shared_tables.py \\
         examples/logovger/srd/cepheus \\
-        examples/logovger/seeds/cepheus_book1_tables.json
+        examples/logovger/seeds/cepheus_book1_shared_tables.json
+
+THIS SCRIPT OWNS ITS OUTPUT. Edit the script and regenerate; never
+edit the seed. CI regenerates all three seeds and fails on any diff,
+which is the check that was missing when two PRs hand-edited this one.
 """
 import json
 import os
@@ -101,17 +105,35 @@ INJURY_ROWS = {
     "6": ([], ""),
 }
 
+GENERATED_BY = "examples/logovger/tools/extract_shared_tables.py"
+
 MISHAP_SECTION = "Survival"
 MISHAP_TABLE = "1D6"
 MISHAP_COLUMN = "Mishaps"
+
+# Leaving is not printed in every mishap cell. Rows 2 through 5 say
+# "discharged" themselves; row 1 says only "Injured in action", and the
+# rule that ends the career for it is the sentence that introduces the
+# whole table. So that row's EndCareer cites the sentence, because a
+# citation has to prove the clause it carries.
+MISHAP_END_CAREER_QUOTE = (
+    "This mishap is always enough to force you to leave the service "
+    "after half a term, or two years of service.")
+
 # roll -> (clauses, unmodelled). Clauses here are outcome kinds.
 MISHAP_ROWS = {
-    "1": ([("table_roll", "Injury")],
-          "The book says this is the same as a result of 2 on the "
-          "Injury table, and offers an alternative of rolling twice "
-          "and taking the lower. The alternative is a re-roll policy, "
-          "which the outcome vocabulary cannot say, so this rolls on "
-          "the Injury table."),
+    # "Injured in action. (This is the same as a result of 2 on the
+    # Injury table.) Alternatively, roll twice on the Injury table and
+    # take the lower result." Two named alternatives, and the book does
+    # not say which: that is a choice, and the player owns it.
+    "1": ([("end_career_by_sentence",),
+           ("choice", "player",
+            [("as a result of 2",
+              "as a result of 2 on the Injury table",
+              "@injury_2_c0"),
+             ("roll twice, take the lower",
+              "roll twice on the Injury table and take the lower result",
+              "twice")])], ""),
     "2": ([("end_career",)], ""),
     "3": ([("end_career",), ("money", -10000)], ""),
     "4": ([("end_career",), ("forfeit",)], ""),
@@ -222,6 +244,12 @@ def main():
         if dice:
             props["attribute_delta_dice"] = qualified(
                 "d" + dice.lower(), "DiceExpression", COMMIT)
+            # A rolled delta carries no sign, so the row has to say
+            # which way it goes. Every rolled delta in this chapter is
+            # a reduction ("Reduce one physical characteristic by 1D6"),
+            # and the executor refuses one that does not say rather
+            # than guessing the direction.
+            props["attribute_delta_reduces"] = "true"
         else:
             props["attribute_delta"] = str(delta)
         if unmodelled:
@@ -364,6 +392,41 @@ def main():
                 props["unmodelled"] = unmodelled
             if clause[0] == "end_career":
                 parts.append(b.add("EndCareer", alias, props))
+            elif clause[0] == "end_career_by_sentence":
+                parts.append(b.add("EndCareer", alias, dict(
+                    name=alias.lstrip("@"),
+                    **b.cite(MISHAP_SECTION, None, None,
+                             MISHAP_END_CAREER_QUOTE, "sentence"))))
+            elif clause[0] == "choice":
+                # The book names both branches, so both are entities and
+                # the pick is a question rather than a policy the
+                # extractor decides. The alternative that rolls twice is
+                # its own GrantTableRoll, because "take the lower" is a
+                # property of THAT roll and not of the choice.
+                _, authority, options = clause
+                # Targets first, then the options that point at them: an
+                # alias has to exist before an op refers to it.
+                targets = []
+                for label, printed, target in options:
+                    if target == "twice":
+                        target = f"@mishap_{roll}_twice"
+                        b.add("GrantTableRoll", target, dict(
+                            name=target.lstrip("@"), table="@injury_table",
+                            roll_count="2", roll_selection="LOWEST",
+                            **citation))
+                    targets.append((label, printed, target))
+                for option_index, (label, printed, target) in enumerate(
+                        targets):
+                    option = f"@mishap_{roll}_o{option_index}"
+                    b.add("OutcomeOption", option, dict(
+                        name=label, option_index=str(option_index),
+                        option_label=printed, outcome=target, **citation))
+                b.add("OutcomeChoice", alias,
+                      dict(name=alias.lstrip("@"),
+                           choice_authority=authority, **citation))
+                for option_index in range(len(options)):
+                    b.relate(alias, f"@mishap_{roll}_o{option_index}")
+                parts.append(alias)
             elif clause[0] == "forfeit":
                 parts.append(b.add("ForfeitBenefits", alias, props))
             elif clause[0] == "money":
@@ -387,7 +450,8 @@ def main():
         counts["mishap"] += 1
 
     seed = {"source": {"file": CHAPTER, "commit": COMMIT},
-            "layer": "cepheus", "invariants": {}, "ops": []}
+            "layer": "cepheus",
+            "generated_by": GENERATED_BY, "invariants": {}, "ops": []}
     seed["ops"] = b.ops
     added = len(b.ops)
 
