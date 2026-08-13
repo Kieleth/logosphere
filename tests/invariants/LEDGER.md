@@ -303,3 +303,17 @@ be found, a comment/string occurrence must not) and were additionally
 control-tested against the live tree: an injected 0.777f and an
 injected ParticleOwner read each turned their gate red, then were
 removed. INV-15's mechanism line now names its prover.
+
+### 2026-08-13 · LINK · class-1 and class-2 cleared
+
+The two largest known-open classes are fixed and their fourteen
+clearances applied: class-1-foot-sink (turtle plane as support of last
+resort in the humanoid ground probes, f36a479 — the walker finally has
+the world floor under it when no floor particle qualifies) and
+class-2-spawn-placement (scenes made legal + the leaning trunk's
+oriented dip fixed at the generator arithmetic, 88b6bfe).
+test_humanoid_movement reclassified single:locomotion-calibration
+(117/126, nine distance near-misses; its two masking defects — grass
+12.6 mm below turtle and a never-built KG body graph zeroing
+capability — both fixed). New prover: test_turtle_ground_support
+(INV-2 for walkers). test_soft_shadows recorded as VACUOUS.

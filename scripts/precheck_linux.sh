@@ -57,9 +57,12 @@ cmake -S . -B build -G Ninja -DLOGOSPHERE_PROFILE=physics -DCMAKE_BUILD_TYPE=Rel
 cmake --build build -j "$(nproc)" >/dev/null
 echo "BUILD_OK physics"
 for t in test_humanoid_headless test_pin_gluon_lifecycle; do
-  ./build/$t >/dev/null && echo "PASS $t"
+  if ./build/$t >/dev/null; then echo "PASS $t"; else echo "FAIL $t"; PHYS_FAILED=1; fi
 done
-./build/logosphere-physics-guards >/dev/null && echo "GUARDS_OK"
+if ./build/logosphere-physics-guards >/dev/null; then echo "GUARDS_OK"; else echo "FAIL logosphere-physics-guards"; PHYS_FAILED=1; fi
+# A swallowed abort is how this script printed GREEN over three dead
+# markers (2026-08-13): cmd && echo under a for-loop defeats set -e.
+[ -z "${PHYS_FAILED:-}" ] || { echo "PRECHECK FAIL: physics-profile tests failed"; exit 1; }
 ./build/test_deep_probe_halt >/dev/null && echo "INFRA_OK"
 
 # --- job: headless-linux -----------------------------------------------------
