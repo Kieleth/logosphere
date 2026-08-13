@@ -10,6 +10,7 @@
 #include "logosphere/replay/run_tape.h"
 
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -35,8 +36,12 @@ replay::Ask pick(const char* site, std::vector<std::string> offered) {
     return ask;
 }
 
+// Not "/tmp": that path does not exist on Windows, where the writes
+// silently went nowhere and every replay then failed to find its tape.
 std::string tape_path(const char* name) {
-    return std::string("/tmp/logosphere-tape-test-") + name + ".jsonl";
+    return (std::filesystem::temp_directory_path() /
+            (std::string("logosphere-tape-test-") + name + ".jsonl"))
+        .string();
 }
 
 // A seeded source is reproducible: that is what makes a fuzz run worth

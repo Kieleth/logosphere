@@ -40,6 +40,7 @@
 #endif
 
 #include <chrono>
+#include <filesystem>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -211,7 +212,8 @@ int main(int argc, char** argv) {
         }
         source = std::make_unique<replay::RandomInput>(
             std::stoull(argument));
-        tape_path = "/tmp/logovger-" + argument + ".tape";
+        tape_path = (std::filesystem::temp_directory_path() /
+                     ("logovger-" + argument + ".tape")).string();
     }
     replay::RunTape tape(*source, tape_path);
 
