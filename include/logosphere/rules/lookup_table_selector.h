@@ -39,6 +39,13 @@ private:
 struct LookupTableResult {
     std::optional<LookupTableSelection> selection;
     std::string error;
+    // The key hit no row and the TABLE declares that legal: the rule
+    // does not apply here. Kept distinct from both a match and an
+    // error, so a caller cannot read "the book says nothing about rank
+    // 0" as "the table is broken", nor as "rank 0 gets something".
+    // Only ever true when the table carries miss_is_nothing; without
+    // it a miss is an error, exactly as before.
+    bool missed = false;
 
     bool ok() const { return selection.has_value() && error.empty(); }
 };

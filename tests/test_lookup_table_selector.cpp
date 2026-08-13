@@ -207,6 +207,40 @@ void uncovered_keys_and_invalid_table_contracts_fail_loudly() {
             "an unresolved result-row type must fail loudly");
 }
 
+// Books state a bonus for some keys and say nothing about the rest,
+// and the silence is the rule: Cepheus gives extra benefits at ranks
+// O4, O5 and O6 of seven and says nothing of the other four. A table
+// may declare that a miss means nothing, and then it is an answer.
+void a_table_may_say_that_silence_is_an_answer() {
+    Fixture speaks;
+    speaks.closed(4, 6, 1);
+    speaks.world.setProperty(speaks.table, "miss_is_nothing", "true");
+    rules::LookupTableSelector selector(speaks.world);
+
+    const auto hit = selector.select(speaks.table, 5);
+    REQUIRE(hit.ok() && !hit.missed,
+            "a key the table covers still selects its row: " + hit.error);
+
+    const auto quiet = selector.select(speaks.table, 0);
+    REQUIRE(!quiet.ok() && quiet.missed && quiet.error.empty(),
+            "a key it does not cover is a miss, not a failure, and carries "
+            "no error to be mistaken for one: " + quiet.error);
+    REQUIRE(!quiet.selection.has_value(),
+            "and a miss returns no row, so nothing can read a value off it");
+
+    // Only when the table says so. A miss is otherwise still a hole,
+    // because most tables must cover every key, and a quiet zero there
+    // is the defect this check exists to catch.
+    Fixture silent;
+    silent.closed(4, 6, 1);
+    rules::LookupTableSelector strict(silent.world);
+    const auto broken = strict.select(silent.table, 0);
+    REQUIRE(!broken.ok() && !broken.missed &&
+                broken.error.find("no row") != std::string::npos,
+            "a table that has NOT declared it still fails on a miss: " +
+                broken.error);
+}
+
 }  // namespace
 
 int main() {
@@ -217,6 +251,7 @@ int main() {
     TEST(an_omitted_or_ambiguous_bound_fails_loudly);
     TEST(the_complete_table_is_validated_before_returning_a_match);
     TEST(uncovered_keys_and_invalid_table_contracts_fail_loudly);
+    TEST(a_table_may_say_that_silence_is_an_answer);
     std::cout << tests_passed << " passed, " << tests_failed << " failed\n";
     return tests_failed == 0 ? 0 : 1;
 }

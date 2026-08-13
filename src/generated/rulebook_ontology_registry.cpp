@@ -754,6 +754,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("LookupEntry", "key_max_unbounded", kg::PropertyValueKind::Boolean, false);
     reg.addProperty("LookupTable", "attribute_ref", kg::PropertyValueKind::String, false);
     reg.addProperty("LookupTable", "entry_type", kg::PropertyValueKind::String, true);
+    reg.addProperty("LookupTable", "miss_is_nothing", kg::PropertyValueKind::Boolean, false);
     reg.addProperty("ModifyAttribute", "attribute_ref", kg::PropertyValueKind::String, true);
     reg.addProperty("ModifyAttribute", "attribute_delta", kg::PropertyValueKind::Integer, true);
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_group", true, "Entity");

@@ -1936,6 +1936,10 @@ struct LookupTable : public Entity, public Cited {
     std::optional<std::string> attribute_ref = std::nullopt;
     /// Resolved ontology name of the concrete LookupEntry subtype carried by this table. The verifier rejects unknown, abstract, non-entry, and incompatible row types.
     std::string entry_type = {};
+    /// A key this table has no row for is not an error; it means the rule does not apply. Books state a bonus for some keys and say nothing about the rest, and saying nothing is the answer. Cepheus: "An additional benefit is gained if the character held rank O4, and two for rank O5. A character with rank O6 gains three extra benefits" prints three of the seven ranks, and "characters of rank O5 or O6 gain +1 on Material Benefit rolls" prints two.
+    /// The alternative was seeding a row for the ranks the book never mentions, which puts figures in the graph the source does not contain, or letting a primitive read the selector's error as a zero, which is a default invented from a failure. This is the LookupEntry sibling of roll_max_unbounded: the hole is the book's, and the table says so instead of a reader guessing.
+    /// Absent, a miss stays an error. A table whose rows must cover every key is the common case and is unchanged.
+    std::optional<bool> miss_is_nothing = std::nullopt;
 };
 
 
