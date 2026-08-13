@@ -218,3 +218,37 @@ measured, because each was true and near the crime scene. Truth near the
 symptom is not causation. The frame-zero audit is cheap, deterministic, and
 asks the generator directly — it should be the FIRST question about any
 structure that misbehaves, not the last.
+
+### G6 — Branch bonds born without stiffness · ROOT-CAUSED · 2026-08-12
+
+```
+[CANARY ROWBUILD] P6<->P7 eff=399.2 bias=-4 budget=[-0,0]
+                  breaking_per_axis=80167.4 err=2.99886 str_a=5e7 str_b=5e7
+```
+
+`GluonConstraintBase::stiffness` and `damping` have no initializer, and the
+tree generator's BRANCH gluon never sets them (trunk declares 100000/1000,
+leaf declares 5000/100, branch declares nothing; `make_unique`
+value-initializes to zero). Under force-bounded budgeting (rung 3) a bond's
+per-substep impulse budget is `(k*err + d*vrel)*dt`, so k=d=0 means ZERO
+FORCE AT ANY ERROR: the row above shows a bond 3 m stretched, 80 kN of
+breaking budget available, allowed to exert exactly nothing.
+
+Consequence: every branch-to-branch bond in every generated tree is
+hollow. The trunk chain falls through its own bonds at cluster-damping
+terminal velocity (~1.35 m/s), its sleeping branches hold still as
+infinite-mass anchors, and the bond tears at the 2x ratio with both
+bodies near-stationary. This is issue #38's canopy drop. It predates the
+2026-08-10/12 solver work; the at-rest damping-blend bug used to drag the
+sleeping branches down WITH the falling trunk, which made the tree sink
+coherently and hid the hollow bonds behind a second bug.
+
+Three probes were needed because two greps filtered the evidence first
+(anchored grep hid the gravity lines; a frame-ungated probe read as a
+different frame's rows). Unfiltered first, every time.
+
+The fix is not "declare 100000 on the branch too" (fourth copy of a
+number that should not exist). It is the already-chosen law: bonds refuse
+to build undeclared, or Phase C derives k = E*A/L and d from the loss
+factor out of the materials the particles already carry. Owner decides
+which.

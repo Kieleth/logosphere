@@ -511,6 +511,10 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
         // Gravity is momentum input, and who may receive momentum is the
         // door's one question: massless, KINEMATIC and sleeping bodies no.
         if (inv_mass_momentum(p) == 0.0f) continue;
+        if (const char* cenv = std::getenv("CANARY_PID"); cenv && (int)i == std::atoi(cenv)) {
+            std::cout << "[CANARY GRAVITY] P" << i << " receives gravity, vz_pre=" << p.vz
+                      << " at_rest=" << (int)p.is_at_rest << std::endl;
+        }
         // ANIMATION-owned quaternion-driven particles are the animation
         // layer's gluon PD bones: gravity on them would droop a 7-hop
         // chain visibly, and the drive is the animation system's "this
@@ -1757,6 +1761,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                          (int)c.body_a, (int)c.body_b, "gluon_axis",
                          c.bias, c.effective_mass, c.jz);
+            if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
+                std::cout << "[CANARY ROWBUILD] P" << c.body_a << "<->P" << c.body_b
+                          << " j=(" << c.jx << "," << c.jy << "," << c.jz << ")"
+                          << " eff=" << c.effective_mass << " bias=" << c.bias
+                          << " budget=[" << c.min_impulse << "," << c.max_impulse << "]"
+                          << " breaking_per_axis=" << breaking_per_axis
+                          << " err=" << bond_err_mag
+                          << " str_a=" << pa.material_strength
+                          << " str_b=" << pb.material_strength
+                          << std::endl;
+            }
             constraints.push_back(c);
         }
         indices.gluon_slot = this_gluon_slot;
