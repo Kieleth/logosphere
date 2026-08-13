@@ -13,7 +13,7 @@
    "AdvanceSkill": 144,
    "CharacteristicModifierEntry": 12,
    "LookupTable": 1,
-   "RuleConstant": 2,
+   "RuleConstant": 10,
    "EnterCareer": 6
   },
   "unique_name_per_type": [
@@ -160,6 +160,110 @@
     "source_section": "Reenlistment and Retirement",
     "source_kind": "sentence",
     "source_quote": "The Referee may want to change the maximum number of terms spent in character creation from 7 to something else."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@mishap_years",
+   "properties": {
+    "name": "mishap_years",
+    "constant_value": "2",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Survival",
+    "source_kind": "sentence",
+    "source_quote": "This mishap is always enough to force you to leave the service after half a term, or two years of service."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@reenlistment_forced_natural",
+   "properties": {
+    "name": "reenlistment_forced_natural",
+    "constant_value": "12",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "If the character rolls a natural 12, they cannot leave their current career and must continue for another term."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@cash_benefit_roll_max",
+   "properties": {
+    "name": "cash_benefit_roll_max",
+    "constant_value": "3",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Up to 3 benefit rolls can be taken on the Cash table."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@aging_start_age",
+   "properties": {
+    "name": "aging_start_age",
+    "constant_value": "34",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Aging",
+    "source_kind": "sentence",
+    "source_quote": "The effects of aging begin when a character reaches 34 years of age."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@term_years",
+   "properties": {
+    "name": "term_years",
+    "constant_value": "4",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "Increase your age by 4 years."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@crisis_restore_value",
+   "properties": {
+    "name": "crisis_restore_value",
+    "constant_value": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Aging Crisis",
+    "source_kind": "sentence",
+    "source_quote": "The character dies unless he can pay 1D6×10,000 Credits for medical care, which will bring any characteristics back up to 1."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@basic_training_level",
+   "properties": {
+    "name": "basic_training_level",
+    "constant_value": "0",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Character Creation Checklist",
+    "source_kind": "sentence",
+    "source_quote": "For your first term in your first career, you get every skill in the service skills table at level 0."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@survival_natural_failure",
+   "properties": {
+    "name": "survival_natural_failure",
+    "constant_value": "2",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Survival",
+    "source_kind": "sentence",
+    "source_quote": "A natural 2 is always a failure."
    }
   },
   {

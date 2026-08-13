@@ -36,8 +36,20 @@ jobs:
       - name: Run generator contract tests
         run: python -m unittest scripts/test_generate_registry.py
 
+      # The seed extractors have contract tests too, and nothing ran
+      # them. Written when the career extractor was, never wired up.
+      - name: Run seed extractor contract tests
+        run: python -m unittest discover -s examples/logovger/tools -p 'test_*.py'
+
       - name: Regenerate ontology outputs
         run: python scripts/generate_ontology.py
+
+      # The same gate, for the other family of generated files. Seeds
+      # marked "generated_by" are their extractor's output; two PRs
+      # hand-edited one because nothing said so and nothing checked.
+      # Regenerating it would have dropped fifteen ops in silence.
+      - name: Regenerate rule seeds from the vendored SRD
+        run: ./examples/logovger/tools/regenerate_seeds.sh
 
       - name: Reject generated-output drift
         run: git diff --exit-code

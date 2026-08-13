@@ -128,6 +128,18 @@ public:
         executor_.set_attribute_selector(attribute_selector_);
     }
 
+    // The other referee question: which of the branches a rule prints.
+    // Cepheus chapter 1 has two - mishap 1 offers "as a result of 2 on
+    // the Injury table" or "roll twice and take the lower", and injury
+    // 3 names the characteristics it may take. Without a resolver both
+    // rows abort the run, which is the intended behaviour and was the
+    // actual behaviour for a while without anyone noticing: 8% of
+    // generated lives died on a rule the book prints plainly.
+    void set_choice_resolver(logosphere::rules::ChoiceResolver resolver) {
+        choice_resolver_ = std::move(resolver);
+        executor_.set_choice_resolver(choice_resolver_);
+    }
+
 private:
     using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
@@ -154,6 +166,13 @@ private:
     PrimitiveResult draft_or_drifter(const PrimitiveContext& context);
     PrimitiveResult roll_survival(const PrimitiveContext& context);
     PrimitiveResult roll_training(const PrimitiveContext& context);
+    // The training tables this character may roll on right now, gates
+    // applied. Recomputed per offer: a roll can change the answer.
+    std::vector<kg::EntityID> eligible_training_tables(
+        kg::EntityID step, std::string& error);
+    // The characteristics as the book groups them, from the graph.
+    // Rules about "any characteristic" ask this instead of naming six.
+    std::vector<std::string> characteristic_slots(std::string& error) const;
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
@@ -184,6 +203,7 @@ private:
     kg::KGModule&                    kg_;
     logosphere::dice::DiceService&   dice_;
     logosphere::rules::AttributeSelector attribute_selector_;
+    logosphere::rules::ChoiceResolver choice_resolver_;
     logosphere::rules::ProcedurePrimitiveRegistry primitives_;
     logosphere::rules::ProcedureRunner runner_;
     // ONE executor per session. Handlers are registered on it, and a
@@ -213,6 +233,11 @@ private:
     // the question so the answer is priced at what was asked.
     long long                        crisis_price_ = 0;
     uint64_t                         crisis_roll_ = 0;
+    // A crisis is outstanding, so the next answer belongs to it. Two
+    // steps can raise one, and survival_mishap asks a question of its
+    // own first: without this it read "pay for care" as an answer to
+    // "take the mishap", rolled a second mishap and took no money.
+    bool                             crisis_open_ = false;
     std::string                      crisis_cause_;
     // "Lose all benefits", set by a mishap row and consumed by the
     // muster-out that follows it.
@@ -232,6 +257,11 @@ struct ChargenRequest {
     // life reaches the aging table, so anything driving one past a
     // damaging row must supply this.
     logosphere::rules::AttributeSelector attribute_selector;
+    // Who answers a branch the book prints and does not decide. Empty
+    // means the auto-player answers it: it takes the first option, and
+    // says so in the timeline so a reader can see a choice was made
+    // and by whom. A caller that wants taste supplies its own.
+    logosphere::rules::ChoiceResolver choice_resolver;
 };
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,

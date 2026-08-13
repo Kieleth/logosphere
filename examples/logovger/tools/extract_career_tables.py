@@ -40,6 +40,7 @@ from urllib.parse import quote
 
 SECTION = "Career Tables"
 CHAPTER = "book1/character-creation.md"
+GENERATED_BY = "examples/logovger/tools/extract_career_tables.py"
 
 # The sub-tables inside a career block, and what each row means. The
 # second block titles its cash table "Cost Benefits" where the other
@@ -92,6 +93,17 @@ TABLE_CITATIONS = {
     "rank": ("Commission and Advancement",
              "You also get any benefits listed for your new rank."),
 }
+
+# Advanced Education is the one skill table a character can be barred
+# from, and the sentence that bars them is not the one that introduces
+# the tables. It has to be the table's own citation, because the value
+# verifier proves requires_minimum = 8 against the quote the entity
+# carries, and the general sentence prints no 8.
+ADV_EDUCATION_GATE = (
+    "Skills and Training",
+    "You may only roll on the Advanced Education table if your "
+    "character has Education 8+.",
+    "education", "8")
 
 # A cell that says "Carousing" states a skill, not a level. The LEVELS
 # come from the checklist sentence that sets them, so that is what an
@@ -418,11 +430,16 @@ def main():
                     continue
                 family = "skill" if title in SKILL_TABLES else "benefit"
                 section, quote = TABLE_CITATIONS[family]
+                gate = {}
+                if title == "Adv Education":
+                    section, quote, attribute, minimum = ADV_EDUCATION_GATE
+                    gate = dict(requires_attribute=attribute,
+                                requires_minimum=minimum)
                 builder.add("RollableTable", f"@{tag}", dict(
                     name=f"{canonical[career]} {title}",
                     dice=builder.ref("DiceExpression", "d1d6"),
                     source_file=CHAPTER, source_section=section,
-                    source_kind="sentence", source_quote=quote))
+                    source_kind="sentence", source_quote=quote, **gate))
                 # The training rule owns which tables a career offers,
                 # for the same reason the throw rules do: a career is
                 # created by an earlier seed and cannot be written to.
@@ -439,13 +456,18 @@ def main():
                                         "from": "@benefit_tables",
                                         "relation": "HAS_PART", "to": brow})
                 if title in SKILL_TABLES:
+                    # What a career OFFERS is proven by the sentence that
+                    # hands every career the four tables, including for
+                    # Adv Education, whose own citation proves the gate
+                    # rather than the offer.
+                    tsection, tquote = TABLE_CITATIONS["skill"]
                     row = f"@training_opt_{slug(canonical[career])}_{slug(title)}"
                     builder.add("CareerTableEntry", row, dict(
                         name=f"{title} for {canonical[career]}",
                         subject=builder.careers[canonical[career]],
                         rollable_table=f"@{tag}",
-                        source_file=CHAPTER, source_section=section,
-                        source_kind="sentence", source_quote=quote))
+                        source_file=CHAPTER, source_section=tsection,
+                        source_kind="sentence", source_quote=tquote))
                     builder.ops.append({"op": "set_relation",
                                         "from": "@training_tables",
                                         "relation": "HAS_PART",
@@ -668,6 +690,7 @@ def main():
     seed = {
         "source": {"file": CHAPTER, "commit": commit},
         "layer": "cepheus",
+        "generated_by": GENERATED_BY,
         # Counts, asserted. A str.replace that matched nothing once
         # left all three rule tables with zero rows, and everything
         # still verified: empty tables break no citation. The invariant

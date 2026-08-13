@@ -90,6 +90,12 @@ std::string check_detail(
            << (execution.modifier() >= 0 ? " +" : " ")
            << execution.modifier() << " DM -> " << execution.total()
            << " vs " << execution.target_number() << "+";
+    // A throw the dice killed says so, because the numbers alone read
+    // as a pass and a reader would think the engine had miscounted.
+    if (execution.failed_on_natural()) {
+        detail << " (natural " << execution.natural_total()
+               << ": always a failure)";
+    }
     return detail.str();
 }
 
@@ -118,7 +124,37 @@ void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
 // Read the characteristics back out of the graph, where they may have
 // been changed by an outcome, and recompute the UPP from them. Call it
 // after anything that could have touched them.
+// The money and the goods are not the sheet's to hold: they live in
+// the character's CurrencyBalance and PossessionHolding parts, and the
+// sheet only mirrors them. Re-derived from those parts every time the
+// sheet is refreshed, because ANY rule can move money, not only
+// mustering out. Deriving it in one place is the whole point: the
+// mirror was re-read at muster-out alone, so a mishap's fine left the
+// sheet Cr10000 richer than the character, and the aging crisis then
+// quoted a purse that was not there.
+void read_holdings(const kg::KGModule& kg, CharacterSheet& s) {
+    s.credits = 0;
+    s.possessions.clear();
+    for (const auto part : kg.getRelated(s.id, "HAS_PART")) {
+        const std::string type = kg.getType(part);
+        if (type == "CurrencyBalance") {
+            const auto amount = kg.getProperty(part, "balance_amount");
+            if (!amount.empty()) s.credits += std::stoll(amount);
+        } else if (type == "PossessionHolding") {
+            const auto ref = kg.getProperty(part, "possession");
+            const auto count = kg.getProperty(part, "possession_count");
+            if (ref.empty()) continue;
+            const auto name = kg.getProperty(
+                static_cast<kg::EntityID>(std::stoul(ref)), "name");
+            if (name.empty()) continue;
+            s.possessions.push_back(
+                count.empty() || count == "1" ? name : count + "x " + name);
+        }
+    }
+}
+
 void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
+    read_holdings(kg, s);
     const auto value = [&](const char* slot, int& into) {
         const std::string text = kg.getProperty(s.id, slot);
         if (!text.empty()) into = std::stoi(text);
@@ -129,6 +165,12 @@ void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
     value("intelligence", s.intelligence);
     value("education", s.education);
     value("social_standing", s.social_standing);
+    // Age is the graph's too. Mishap 5 is "Injured... and imprisoned
+    // for 4 years", and that ModifyAttribute lands on the entity like
+    // any other outcome - then the session wrote its own stale copy
+    // back over it, so four years of prison cost nothing and the
+    // character came out at 20 instead of 24.
+    value("age_years", s.age_years);
     s.upp = upp(s.strength, s.dexterity, s.endurance, s.intelligence,
                 s.education, s.social_standing);
     kg.getProperty(s.id, "upp") == s.upp
@@ -792,9 +834,20 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
         return PrimitiveResult::failed("career '" + sheet_.career +
                                        "': " + error);
     }
+    // "Each career has a survival roll. If you fail this roll, your
+    // character is dead... A natural 2 is always a failure." The number
+    // lives in the graph rather than here, because it is the book's and
+    // a Referee may change it. Missing is a hard stop: a survival throw
+    // that quietly lost its floor kills nobody it should.
+    int natural_failure = 0;
+    if (!constant("survival_natural_failure", natural_failure, error)) {
+        return PrimitiveResult::failed(error);
+    }
+    logosphere::rules::TaskCheckOptions options;
+    options.natural_failure_at_or_below = natural_failure;
     logosphere::rules::TaskCheckRunner runner(kg_, dice_);
     const auto survival = runner.run(
-        check.id, sheet_.id, "chargen", "survival");
+        check.id, sheet_.id, "chargen", "survival", options);
     if (!survival.ok()) return PrimitiveResult::failed(survival.error);
     const auto& execution = *survival.execution;
     sheet_.life.push_back(
@@ -802,9 +855,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
          check_detail(execution), execution.roll().id});
     if (!execution.passed()) {
         finish_reason_ =
-            "The career ended here. (Cepheus: a failed survival roll is "
-            "death; the mishap table is an optional rule we have not "
-            "absorbed yet.)";
+            "The career ended here: a failed survival roll is death, "
+            "unless the Referee allows the mishap table instead.";
         return PrimitiveResult::advance("failed");
     }
     return PrimitiveResult::advance("passed");
@@ -815,13 +867,95 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
 // gives four: Personal Development, Service Skills, Specialist and
 // Adv Education. Rolling the service table automatically, as this did
 // before, skipped a decision the book makes every single term.
+// Multivalued strings are stored "a; b; c", the separator this
+// ontology documents on every list-valued slot.
+std::vector<std::string> split_refs(const std::string& value) {
+    std::vector<std::string> out;
+    size_t at = 0;
+    while (at <= value.size()) {
+        const size_t cut = value.find(';', at);
+        const size_t end = cut == std::string::npos ? value.size() : cut;
+        size_t first = at, last = end;
+        while (first < last &&
+               std::isspace(static_cast<unsigned char>(value[first]))) ++first;
+        while (last > first &&
+               std::isspace(static_cast<unsigned char>(value[last - 1]))) --last;
+        if (last > first) out.push_back(value.substr(first, last - first));
+        if (cut == std::string::npos) break;
+        at = cut + 1;
+    }
+    return out;
+}
+
+// The characteristics, as the book groups them, read from the graph.
+// "If any characteristic is reduced to 0" and "will bring any
+// characteristics back up to 1" are rules about the WHOLE set, and
+// naming the six in C++ wrote that set out four separate times: a
+// seventh characteristic, or a book that has five, would have needed
+// every one of them edited.
+std::vector<std::string> ChargenSession::characteristic_slots(
+    std::string& error) const {
+    for (const auto id : kg_.findByType("AttributeGroup")) {
+        if (kg_.getProperty(id, "name") != "characteristic characteristics") {
+            continue;
+        }
+        auto slots = split_refs(kg_.getProperty(id, "attribute_refs"));
+        if (slots.empty()) {
+            error = "the characteristic AttributeGroup names no attributes";
+        }
+        return slots;
+    }
+    error = "no AttributeGroup for the characteristics; load the shared "
+            "tables seed";
+    return {};
+}
+
+// The tables this character may roll on RIGHT NOW. Recomputed every
+// time it is asked, because a training roll can change the answer: a
+// table may ask something of whoever rolls on it ("You may only roll
+// on the Advanced Education table if your character has Education
+// 8+"), and "+1 Edu" can meet that requirement mid-term. The
+// requirement lives on the table, so this reads it rather than knowing
+// which table is which.
+std::vector<kg::EntityID> ChargenSession::eligible_training_tables(
+    kg::EntityID step, std::string& error) {
+    auto tables = subject_rows(kg_, step, career_, "rollable_table", error);
+    tables.erase(
+        std::remove_if(tables.begin(), tables.end(),
+            [this](kg::EntityID table) {
+                const std::string attribute =
+                    kg_.getProperty(table, "requires_attribute");
+                const std::string minimum =
+                    kg_.getProperty(table, "requires_minimum");
+                if (attribute.empty() || minimum.empty()) return false;
+                const std::string have =
+                    kg_.getProperty(sheet_.id, attribute);
+                if (have.empty()) return true;   // cannot show it: refuse
+                try {
+                    return std::stoll(have) < std::stoll(minimum);
+                } catch (...) {
+                    return true;
+                }
+            }),
+        tables.end());
+    if (tables.empty() && error.empty()) {
+        error = "every table this career offers is out of reach for this "
+                "character";
+    }
+    return tables;
+}
+
 ChargenSession::PrimitiveResult ChargenSession::roll_training(
     const PrimitiveContext& context) {
     const int term = sheet_.terms_served + 1;
     std::string table_error;
-    if (training_rolls_owed_ <= 0) training_rolls_owed_ = 1;
-    const auto options = subject_rows(kg_, context.step, career_,
-                                      "rollable_table", table_error);
+    // The term's OWN roll, added once when the step is first entered.
+    // It used to be granted only when nothing else was owed, so a
+    // promotion's extra roll REPLACED it: "roll on the skills tables
+    // for an extra skill" (checklist 6.2) is on top of the term's roll
+    // (7.1), and every promoted character was a skill short.
+    if (!context.input) training_rolls_owed_ += 1;
+    const auto options = eligible_training_tables(context.step, table_error);
     if (options.empty()) {
         return PrimitiveResult::failed("skills and training: " +
                                        table_error);
@@ -844,11 +978,18 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
     }
-    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
-    if (index >= options.size()) {
-        return PrimitiveResult::failed("no such training table");
+    // The answer names a TABLE, not a position in a list. Resolving it
+    // by index into a list recomputed on resume let the answer land on
+    // a different table than the one offered: take Personal
+    // Development, roll "+1 Edu" from 7 to 8, and Advanced Education
+    // joins the list for the follow-up roll and shifts everything after
+    // it. The offer already carries the entity it means, so use that.
+    const kg::EntityID chosen = picked->subject;
+    if (std::find(options.begin(), options.end(), chosen) == options.end()) {
+        return PrimitiveResult::failed(
+            "'" + picked->label + "' is not a table this character may "
+            "roll on");
     }
-    const kg::EntityID chosen = options[index];
     choices_.clear();
     uint64_t skill_roll = 0;
     std::string skill;
@@ -869,11 +1010,21 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     // hierarchy to climb. Stay on this step until they are spent, and
     // ASK again rather than re-reading the answer already given.
     if (--training_rolls_owed_ > 0) {
+        // Offered fresh, because the roll just taken can change what
+        // the character may roll on next: "+1 Edu" from 7 to 8 opens
+        // Advanced Education, and reusing the list from before the
+        // gain would keep offering the old four.
+        const auto next = eligible_training_tables(context.step,
+                                                   table_error);
+        if (next.empty()) {
+            return PrimitiveResult::failed("skills and training: " +
+                                           table_error);
+        }
         choices_.clear();
-        for (size_t i = 0; i < options.size(); ++i) {
+        for (size_t i = 0; i < next.size(); ++i) {
             choices_.push_back({std::to_string(i + 1),
-                                kg_.getProperty(options[i], "name"),
-                                "roll 1D6 on it", options[i]});
+                                kg_.getProperty(next[i], "name"),
+                                "roll 1D6 on it", next[i]});
         }
         prompt_ = "Term " + std::to_string(term) + ": " +
                   std::to_string(training_rolls_owed_) +
@@ -915,10 +1066,11 @@ std::vector<std::pair<kg::EntityID, std::string>> service_skills(
     return out;
 }
 
-// Give a skill at level 0 if it is not held at all. Level 0 is the
-// book's own number, and the step carries the sentence that sets it.
+// Give a skill at the level basic training grants, if it is not held
+// at all. The level is the book's number and arrives from the graph;
+// this function does not know what it is.
 bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
-                        kg::EntityID skill) {
+                        kg::EntityID skill, int level) {
     for (auto part : kg.getRelated(character, "HAS_PART")) {
         if (kg.getProperty(part, "skill") == std::to_string(skill)) {
             return false;
@@ -927,7 +1079,7 @@ bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
     const auto rating = kg.createEntity("SkillRating");
     if (rating == kg::INVALID_ENTITY) return false;
     kg.setProperty(rating, "skill", std::to_string(skill));
-    kg.setProperty(rating, "skill_level", "0");
+    kg.setProperty(rating, "skill_level", std::to_string(level));
     kg.createRelation(character, "HAS_PART", rating);
     return true;
 }
@@ -963,11 +1115,20 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
             "basic training: the service table grants no skills");
     }
 
+    // "you get every skill in the service skills table at level 0"
+    int basic_level = 0;
+    std::string level_error;
+    if (!constant("basic_training_level", basic_level, level_error)) {
+        return PrimitiveResult::failed(level_error);
+    }
+
     const bool first_career = sheet_.careers_served.size() <= 1;
     if (first_career) {
         int granted = 0;
         for (const auto& [id, name] : skills) {
-            if (know_at_level_zero(kg_, sheet_.id, id)) ++granted;
+            if (know_at_level_zero(kg_, sheet_.id, id, basic_level)) {
+                ++granted;
+            }
         }
         sheet_.life.push_back(
             {sheet_.terms_served, "basic training",
@@ -1011,7 +1172,7 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
     if (index >= skills.size()) {
         return PrimitiveResult::failed("no such skill");
     }
-    know_at_level_zero(kg_, sheet_.id, skills[index].first);
+    know_at_level_zero(kg_, sheet_.id, skills[index].first, basic_level);
     sheet_.life.push_back({sheet_.terms_served, "basic training",
                            skills[index].second + " at level 0", 0});
     return PrimitiveResult::advance();
@@ -1060,7 +1221,10 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         if (sheet_.rank >= 6)      benefit_rolls_owed_ += 3;
         else if (sheet_.rank == 5) benefit_rolls_owed_ += 2;
         else if (sheet_.rank == 4) benefit_rolls_owed_ += 1;
-        cash_rolls_left_ = 3;
+        // "Up to 3 benefit rolls can be taken on the Cash table."
+        if (!constant("cash_benefit_roll_max", cash_rolls_left_, error)) {
+            return PrimitiveResult::failed(error);
+        }
         if (benefit_rolls_owed_ <= 0) {
             sheet_.life.push_back({sheet_.terms_served, "no benefits",
                                    "no term served in this career", 0});
@@ -1089,12 +1253,17 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
     }
-    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    // The answer names a TABLE, not a position, for the same reason
+    // the training answer does: this list is rebuilt between offers as
+    // cash rolls run out, so an index resolves against a list that is
+    // no longer the one the player was shown.
+    const kg::EntityID chosen = picked->subject;
     choices_.clear();
-    if (index >= tables.size()) {
-        return PrimitiveResult::failed("no such benefit table");
+    if (std::find(tables.begin(), tables.end(), chosen) == tables.end()) {
+        return PrimitiveResult::failed(
+            "'" + picked->label + "' is not a benefit table this career "
+            "offers");
     }
-    const kg::EntityID chosen = tables[index];
     if (is_cash(chosen) && cash_rolls_left_ <= 0) {
         return PrimitiveResult::failed(
             "the book allows at most three cash benefit rolls");
@@ -1142,24 +1311,6 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
     // rather than accumulated alongside it. Benefits can raise a
     // characteristic too, so those come back as well.
     read_characteristics(kg_, sheet_);
-    sheet_.credits = 0;
-    sheet_.possessions.clear();
-    for (auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
-        const std::string type = kg_.getType(part);
-        if (type == "CurrencyBalance") {
-            const auto amount = kg_.getProperty(part, "balance_amount");
-            if (!amount.empty()) sheet_.credits += std::stoll(amount);
-        } else if (type == "PossessionHolding") {
-            const auto ref = kg_.getProperty(part, "possession");
-            const auto count = kg_.getProperty(part, "possession_count");
-            if (ref.empty()) continue;
-            const auto name = kg_.getProperty(
-                static_cast<kg::EntityID>(std::stoul(ref)), "name");
-            if (name.empty()) continue;
-            sheet_.possessions.push_back(
-                count.empty() || count == "1" ? name : count + "x " + name);
-        }
-    }
     // Explicitly routed. Falling through by index from here lands on
     // finish_character, which ended a character who had only left one
     // career and still had terms in front of them.
@@ -1180,7 +1331,16 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
                                    "throw_check", error);
     // No row means this career does not offer the throw at all, which
     // the book states for seven of them. Not an error: a skip.
-    if (check == kg::INVALID_ENTITY) return PrimitiveResult::advance();
+    if (check == kg::INVALID_ENTITY) {
+        // "Because the Athlete, Barbarian, Belter, Drifter,
+        // Entertainer, Hunter and Scout careers do not have commission
+        // or advancement checks, characters get to make two rolls for
+        // skills instead of one every term." Granted at the commission
+        // step only: a career with no commission has no advancement
+        // either, and the book gives two rolls, not three.
+        if (commission) ++training_rolls_owed_;
+        return PrimitiveResult::advance();
+    }
     const bool eligible = commission ? sheet_.rank == 0 : sheet_.rank >= 1;
     if (!eligible) return PrimitiveResult::advance();
 
@@ -1310,7 +1470,15 @@ ChargenSession::PrimitiveResult ChargenSession::roll_reenlistment(
     const auto& execution = *thrown.execution;
 
     const auto& roll = execution.roll();
-    const bool natural_twelve = roll.total == 12;
+    // "If the character rolls a natural 12, they cannot leave their
+    // current career and must continue for another term." The 12 is
+    // the book's, so it is in the graph; the identical case is already
+    // done this way for the survival throw's natural failure.
+    int forced_natural = 0;
+    if (!constant("reenlistment_forced_natural", forced_natural, error)) {
+        return PrimitiveResult::failed(error);
+    }
+    const bool natural_twelve = execution.natural_total() == forced_natural;
     if (natural_twelve) {
         sheet_.life.push_back(
             {term, "cannot leave", "natural 12 on re-enlistment",
@@ -1342,7 +1510,14 @@ void ChargenSession::enter_career() {
 ChargenSession::PrimitiveResult ChargenSession::advance_term(
     const PrimitiveContext&) {
     const int term = sheet_.terms_served + 1;
-    sheet_.age_years   += 4;
+    // "Increase your age by 4 years." A term's length is the book's
+    // number, not this procedure's.
+    int term_years = 0;
+    std::string years_error;
+    if (!constant("term_years", term_years, years_error)) {
+        return PrimitiveResult::failed(years_error);
+    }
+    sheet_.age_years   += term_years;
     sheet_.terms_served = term;
     // Benefits and the seven-term cap count different things: one
     // counts this career, the other counts the whole life.
@@ -1370,6 +1545,10 @@ ChargenSession::PrimitiveResult ChargenSession::advance_term(
 // you could not have settled.
 ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
     const char* cause) {
+    // Pay-or-die turns on what the character HOLDS, so the purse is
+    // read from the parts here rather than trusted from the last time
+    // something happened to look.
+    read_holdings(kg_, sheet_);
     logosphere::dice::DiceExpression cost;
     cost.count = 1;
     cost.sides = 6;
@@ -1381,17 +1560,25 @@ ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
     crisis_price_ = price.total;
     crisis_roll_ = price.id;
     crisis_cause_ = cause;
+    crisis_open_ = true;
 
+    std::string slots_error;
+    const auto slots = characteristic_slots(slots_error);
+    if (slots.empty()) return PrimitiveResult::failed(slots_error);
     std::vector<std::string> at_zero;
-    const auto zero = [&](const char* name, int value) {
-        if (value == 0) at_zero.push_back(name);
-    };
-    zero("Strength", sheet_.strength);
-    zero("Dexterity", sheet_.dexterity);
-    zero("Endurance", sheet_.endurance);
-    zero("Intelligence", sheet_.intelligence);
-    zero("Education", sheet_.education);
-    zero("Social Standing", sheet_.social_standing);
+    for (const auto& slot : slots) {
+        if (kg_.getProperty(sheet_.id, slot) != "0") continue;
+        std::string label = slot;
+        label[0] = static_cast<char>(std::toupper(
+            static_cast<unsigned char>(label[0])));
+        for (size_t i = 1; i < label.size(); ++i) {
+            if (label[i - 1] != '_') continue;
+            label[i] = static_cast<char>(std::toupper(
+                static_cast<unsigned char>(label[i])));
+        }
+        std::replace(label.begin(), label.end(), '_', ' ');
+        at_zero.push_back(label);
+    }
     std::string ruined;
     for (size_t i = 0; i < at_zero.size(); ++i) {
         ruined += (i ? ", " : "") + at_zero[i];
@@ -1424,6 +1611,7 @@ ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
 
 ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
     const std::string& answer) {
+    crisis_open_ = false;
     if (answer != "1") {
         finish_reason_ = crisis_cause_ +
                          " took a characteristic to nothing, and the "
@@ -1440,7 +1628,6 @@ ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
     // alone is handed straight back the next time it is recomputed.
     // Take it out of the money itself, which is the thing that owns it.
     long long owed = crisis_price_;
-    long long purse = 0;
     for (const auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
         if (kg_.getType(part) != "CurrencyBalance") continue;
         const std::string held = kg_.getProperty(part, "balance_amount");
@@ -1452,26 +1639,28 @@ ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
             owed -= taken;
             kg_.setProperty(part, "balance_amount", std::to_string(balance));
         }
-        purse += balance;
     }
     // The sheet's field and the Character's credits property are both
     // mirrors of the purse, so both are re-derived FROM it rather than
     // decremented alongside it. Two independent subtractions of one
     // number is how they came to disagree in the first place.
-    sheet_.credits = purse;
-    kg_.setProperty(sheet_.id, "credits", std::to_string(purse));
+    read_holdings(kg_, sheet_);
+    kg_.setProperty(sheet_.id, "credits", std::to_string(sheet_.credits));
     // "which will bring any characteristics back up to 1"
-    const auto restore = [&](const char* slot, int& value) {
-        if (value != 0) return;
-        value = 1;
-        kg_.setProperty(sheet_.id, slot, "1");
-    };
-    restore("strength", sheet_.strength);
-    restore("dexterity", sheet_.dexterity);
-    restore("endurance", sheet_.endurance);
-    restore("intelligence", sheet_.intelligence);
-    restore("education", sheet_.education);
-    restore("social_standing", sheet_.social_standing);
+    int restore_to = 0;
+    std::string restore_error;
+    if (!constant("crisis_restore_value", restore_to, restore_error)) {
+        return PrimitiveResult::failed(restore_error);
+    }
+    std::string slots_error;
+    const auto slots = characteristic_slots(slots_error);
+    if (slots.empty()) return PrimitiveResult::failed(slots_error);
+    for (const auto& slot : slots) {
+        if (kg_.getProperty(sheet_.id, slot) != "0") continue;
+        kg_.setProperty(sheet_.id, slot, std::to_string(restore_to));
+    }
+    // The graph is what was written, so the sheet is re-read from it
+    // rather than kept in step by hand.
     read_characteristics(kg_, sheet_);
 
     // Permanent, so it is a mark on the character rather than a
@@ -1583,6 +1772,13 @@ bool ChargenSession::run_granted_rolls(
 // it, at the moment the throw is missed.
 ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
     const PrimitiveContext& context) {
+    // This step asks two different questions. The mishap can ruin a
+    // characteristic, and the crisis it raises suspends the SAME step,
+    // so an arriving answer has to be routed by which question is
+    // open. Without this, "pay Cr50000 for care" was read as "take the
+    // mishap": a second mishap was rolled, two more years added, no
+    // money taken, and the characteristic left at 0.
+    if (context.input && crisis_open_) return resolve_crisis(*context.input);
     if (!context.input) {
         choices_.clear();
         choices_.push_back({"1", "take the mishap instead",
@@ -1641,16 +1837,27 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
     // advance_term, so the term neither completes nor pays: the two
     // years are added here and terms_in_career is left alone, which is
     // what makes the current term's benefit roll disappear.
-    sheet_.age_years += 2;
+    int mishap_years = 0;
+    std::string mishap_years_error;
+    if (!constant("mishap_years", mishap_years, mishap_years_error)) {
+        return PrimitiveResult::failed(mishap_years_error);
+    }
+    sheet_.age_years += mishap_years;
     write_sheet(kg_, sheet_);
     sheet_.life.push_back({sheet_.terms_served, "left the service",
                            "two years into the term, age " +
                                std::to_string(sheet_.age_years), 0});
 
     // The same rule aging has: a characteristic at 0 is a crisis.
-    const bool ruined = sheet_.strength == 0 || sheet_.dexterity == 0 ||
-                        sheet_.endurance == 0 || sheet_.intelligence == 0 ||
-                        sheet_.education == 0 || sheet_.social_standing == 0;
+    // "If any characteristic is reduced to 0", asked of the group the
+    // book names rather than of six fields written out here.
+    std::string ruined_error;
+    const auto ruined_slots = characteristic_slots(ruined_error);
+    if (ruined_slots.empty()) return PrimitiveResult::failed(ruined_error);
+    bool ruined = false;
+    for (const auto& slot : ruined_slots) {
+        if (kg_.getProperty(sheet_.id, slot) == "0") ruined = true;
+    }
     if (ruined) return begin_crisis("injury");
     return PrimitiveResult::advance();
 }
@@ -1674,9 +1881,24 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
 ChargenSession::PrimitiveResult ChargenSession::roll_aging(
     const PrimitiveContext& context) {
     // The only question this step asks is the crisis, so an answer
-    // arriving here is an answer to that.
-    if (context.input) return resolve_crisis(*context.input);
-    if (sheet_.terms_served < 4) return PrimitiveResult::advance();
+    // arriving here is an answer to that. Routed on the same flag as
+    // survival_mishap rather than on "there was input", because one
+    // step asking two questions is what went wrong there.
+    if (context.input && crisis_open_) return resolve_crisis(*context.input);
+    // "The effects of aging begin when a character reaches 34 years of
+    // age", and the checklist repeats it as "If your character is 34 or
+    // older, roll for aging." Gating on the term count instead agreed
+    // only for a life made purely of terms: a mishap adds two years
+    // without a term and its prison row adds four, so a character
+    // could pass 34 and never roll. Age is what the book asks about.
+    int aging_start_age = 0;
+    std::string age_error;
+    if (!constant("aging_start_age", aging_start_age, age_error)) {
+        return PrimitiveResult::failed(age_error);
+    }
+    if (sheet_.age_years < aging_start_age) {
+        return PrimitiveResult::advance();
+    }
 
     const auto table = find_named(kg_, "RollableTable", "Effects of Aging");
     if (table == kg::INVALID_ENTITY) {
@@ -1724,9 +1946,15 @@ ChargenSession::PrimitiveResult ChargenSession::roll_aging(
                            detail.str(), roll.id});
 
     // "If any characteristic is reduced to 0 by aging..."
-    const bool ruined = sheet_.strength == 0 || sheet_.dexterity == 0 ||
-                        sheet_.endurance == 0 || sheet_.intelligence == 0 ||
-                        sheet_.education == 0 || sheet_.social_standing == 0;
+    // "If any characteristic is reduced to 0", asked of the group the
+    // book names rather than of six fields written out here.
+    std::string ruined_error;
+    const auto ruined_slots = characteristic_slots(ruined_error);
+    if (ruined_slots.empty()) return PrimitiveResult::failed(ruined_error);
+    bool ruined = false;
+    for (const auto& slot : ruined_slots) {
+        if (kg_.getProperty(sheet_.id, slot) == "0") ruined = true;
+    }
     if (ruined) return begin_crisis("aging");
     return PrimitiveResult::advance();
 }
@@ -1806,6 +2034,20 @@ std::vector<LifeEvent> ChargenSession::drain() {
 
 // --- auto-play -----------------------------------------------------
 
+// The key of the first cash table on offer, or of the first table at
+// all when the book will not allow another cash roll. Matched on the
+// label because that is all a caller of the session can see; the
+// session itself reaches the table through the graph.
+std::string cash_first(const std::vector<Choice>& choices) {
+    for (const auto& choice : choices) {
+        if (choice.label.find("Cash Benefits") != std::string::npos ||
+            choice.label.find("Cost Benefits") != std::string::npos) {
+            return choice.key;
+        }
+    }
+    return choices.front().key;
+}
+
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
                  logosphere::dice::DiceService& dice,
@@ -1815,6 +2057,24 @@ bool run_chargen(const ChargenRequest& request,
     if (request.attribute_selector) {
         session.set_attribute_selector(request.attribute_selector);
     }
+    // An auto-player has no taste, and the alternative to answering is
+    // that mishap 1 and injury 3 abort the run - which they did, for
+    // 8% of every sweep, while the sweeps reported the survivors.
+    // Taking the first option is deterministic and, like every other
+    // auto-played answer here, exists to carry a life to its end.
+    session.set_choice_resolver(
+        request.choice_resolver
+            ? request.choice_resolver
+            : logosphere::rules::ChoiceResolver(
+                  [](const logosphere::rules::PendingChoice& ask,
+                     int& option, std::string& error) {
+                      if (ask.options.empty()) {
+                          error = "an OutcomeChoice with no options";
+                          return false;
+                      }
+                      option = 0;
+                      return true;
+                  }));
     if (!session.begin(request.seed, error)) return false;
 
     bool offered = false;
@@ -1829,9 +2089,14 @@ bool run_chargen(const ChargenRequest& request,
     // An auto-player takes the named career, serves out, and then stops.
     // It only answers prompts containing that career or "Serve another
     // term". Draft versus Drifter is an authority choice it cannot make.
+    // The bound is "stop volunteering for terms", not "stop playing".
+    // A natural 12 on re-enlistment forces a term the character did not
+    // ask for, and the book lets that outrank even its own seven-term
+    // cap, so terms_served can pass max_terms. Leaving the loop at that
+    // point abandoned the session mid-question: measured at 5 lives in
+    // 3000, each stranded on "Term 8: try for advancement?".
     int guard = 0;
-    while (!session.finished() &&
-           session.sheet().terms_served < request.max_terms) {
+    while (!session.finished()) {
         const auto& choices = session.choices();
         const bool career_offered = std::any_of(
             choices.begin(), choices.end(), [&](const Choice& choice) {
@@ -1842,9 +2107,15 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose(request.career_name, error)) return false;
             continue;
         }
+        // Where max_terms is actually spent: the auto-player volunteers
+        // for another term until it has had its fill, then declines.
+        // Being forced to serve on is not this question, and does not
+        // consult this bound.
         if (!choices.empty() &&
             choices.front().label == "Serve another term") {
-            if (!session.choose("1", error)) return false;
+            const bool willing =
+                session.sheet().terms_served < request.max_terms;
+            if (!session.choose(willing ? "1" : "2", error)) return false;
             continue;
         }
         // Which table to train on is a real choice the book gives every
@@ -1856,7 +2127,14 @@ bool run_chargen(const ChargenRequest& request,
         // one just needs to be deterministic and to spend them all.
         if (session.prompt().find("benefit roll(s) left") !=
             std::string::npos) {
-            if (!session.choose(choices.front().key, error)) return false;
+            // Cash FIRST, which is what the comment above always
+            // claimed and the code never did: the extractor emits the
+            // material table before the cash one, and taking the front
+            // of the list meant every auto-played character finished
+            // with Cr0. Two rules had therefore never run in any test
+            // - the three-cash-roll cap, and the crisis pay path that
+            // needs money in hand.
+            if (!session.choose(cash_first(choices), error)) return false;
             continue;
         }
         // A failed survival throw is death unless the Referee allows
@@ -1889,8 +2167,14 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose("1", error)) return false;
             continue;
         }
+        // Both forms of the question: the term's own roll, and the
+        // extra one a promotion buys. Matching only the first left
+        // every promoted character stuck at a prompt the auto-player
+        // could not answer, which is most of a long life.
         if (session.prompt().find("which table do you train on") !=
-            std::string::npos) {
+                std::string::npos ||
+            session.prompt().find("more training roll(s). Which table?") !=
+                std::string::npos) {
             const auto service = std::find_if(
                 choices.begin(), choices.end(), [](const Choice& choice) {
                     return choice.label.size() > 14 &&

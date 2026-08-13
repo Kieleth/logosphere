@@ -288,7 +288,7 @@ SeedParseResult parse_seed_envelope(const std::string& json_text) {
     for (auto it = root.begin(); it != root.end(); ++it) {
         const std::string& k = it.key();
         if (k != "source" && k != "layer" && k != "invariants" &&
-            k != "ops") {
+            k != "generated_by" && k != "ops") {
             result.error = "seed file: unknown top-level field '" + k + "'";
             return result;
         }

@@ -25,7 +25,8 @@ TaskCheckResult failure(std::string error) {
 
 TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
                                      const std::string& dice_stream,
-                                     const std::string& purpose) const {
+                                     const std::string& purpose,
+                                     const TaskCheckOptions& options) const {
     if (dice_stream.empty()) {
         return failure("TaskCheck execution requires a dice stream");
     }
@@ -149,11 +150,21 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
     }
     const int64_t total = static_cast<int64_t>(roll.total) + modifier;
 
+    // "A natural 2 is always a failure." The natural result is the dice
+    // as they landed, so it is summed from the faces rather than taken
+    // off a total that already carries the DM and the multiplier.
+    int64_t natural_total = 0;
+    for (const int face : roll.values) natural_total += face;
+    const bool failed_on_natural =
+        options.natural_failure_at_or_below.has_value() &&
+        natural_total <= *options.natural_failure_at_or_below;
+
     TaskCheckResult result;
     result.execution = TaskCheckExecution(
         check, target, attribute, attribute_value,
         std::move(lookup), modifier_property, modifier,
-        target_number, std::move(roll), total);
+        target_number, std::move(roll), total, natural_total,
+        failed_on_natural);
     dice_transaction.commit();
     return result;
 }

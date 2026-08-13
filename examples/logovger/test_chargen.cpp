@@ -272,8 +272,9 @@ void test_a_mishap_is_taken_instead_of_dying() {
             return true;
         };
 
-    int lives = 0, mishaps = 0, injuries = 0;
+    int lives = 0, mishaps = 0, injuries = 0, refused = 0;
     uint64_t took_it = 0;
+    std::string first_refusal;
     logovger::CharacterSheet marked;
     for (uint64_t seed = 1; seed <= 200 && took_it == 0; ++seed) {
         logosphere::dice::DiceService dice;
@@ -284,7 +285,25 @@ void test_a_mishap_is_taken_instead_of_dying() {
         req.attribute_selector = first_eligible;
         logovger::CharacterSheet sheet;
         std::string error;
-        if (!logovger::run_chargen(req, world, dice, sheet, error)) continue;
+        // A life that cannot be generated is a FINDING, not a seed to
+        // skip. This loop used to `continue` here, and 8% of every
+        // sweep was dying on mishap 1 and injury 3 - rows the book
+        // prints and the executor was handing back unanswered - while
+        // the measure line reported only the survivors.
+        if (!logovger::run_chargen(req, world, dice, sheet, error)) {
+            // The auto-player declares exactly one thing it will not
+            // decide: Draft versus Drifter, which is an authority
+            // choice. Any OTHER refusal is a rule the generator cannot
+            // execute, and that is what this counts.
+            if (error.find("Draft or Drifter") == std::string::npos) {
+                ++refused;
+                if (first_refusal.empty()) {
+                    first_refusal =
+                        "seed " + std::to_string(seed) + ": " + error;
+                }
+            }
+            continue;
+        }
         ++lives;
         bool had_mishap = false, had_injury = false;
         for (const auto& event : sheet.life) {
@@ -296,8 +315,15 @@ void test_a_mishap_is_taken_instead_of_dying() {
     }
     std::cout << "  [measure] " << lives << " lives, " << mishaps
               << " took a mishap, " << injuries
-              << " reached the Injury table\n";
+              << " reached the Injury table, " << refused
+              << " stopped on a rule the generator could not execute\n";
+    if (!first_refusal.empty()) {
+        std::cout << "  [measure] first refusal: " << first_refusal << "\n";
+    }
 
+    CHECK(refused == 0,
+          "no seed stops on a rule the generator cannot execute; " +
+              std::to_string(refused) + " did, first was " + first_refusal);
     CHECK(mishaps > 0,
           "some life survives a failed throw by taking the mishap");
     CHECK(took_it != 0,
@@ -407,7 +433,12 @@ void test_aging_takes_what_the_referee_says_it_takes() {
     // chance of being marked, so the sweep has to be wide.
     kg::KGModule sweep_world(game_registry());
     CHECK(build_world(sweep_world, why), "the sweep world loads: " + why);
-    for (uint64_t seed = 1; seed <= 400 && bitten_seed == 0; ++seed) {
+    // Two separate proofs are wanted, and neither implies the other, so
+    // the sweep runs until it has BOTH. Stopping at the first life that
+    // consulted the referee left the whole-group case unproven whenever
+    // the harder one happened to come first.
+    for (uint64_t seed = 1;
+         seed <= 400 && (bitten_seed == 0 || whole_group_seed == 0); ++seed) {
         kg::KGModule& world = sweep_world;
         logosphere::dice::DiceService dice;
         logovger::ChargenRequest req;
@@ -696,6 +727,85 @@ void test_leaving_a_career_offers_another_one() {
               std::string(session.finished() ? "session finished" : error));
 }
 
+// Every number the book prints is a RuleConstant, and moving it in the
+// graph moves the life. This exists because a cited constant nothing
+// reads looks exactly like a cited constant something reads:
+// prior_career_dm sat in the seed unread, and only asking "does
+// changing it change anything" would have caught that.
+void test_the_books_numbers_are_all_data() {
+    // crisis_restore_value is deliberately absent. Reaching it needs a
+    // life that both suffers a crisis and can pay for it, and an
+    // auto-played character holds Cr0 until it musters out, so no seed
+    // here gets there. test_the_aging_crisis_is_paid_for_or_kills
+    // drives a session to a payable crisis and asserts the restored
+    // value; asserting it here would only prove this harness cannot
+    // reach the rule.
+    const char* const constants[] = {
+        "term_years", "aging_start_age", "basic_training_level",
+        "cash_benefit_roll_max", "reenlistment_forced_natural",
+    };
+    // Values chosen to be unmistakable in a finished life: a decade per
+    // term, aging that never starts, basic training at level 3, no cash
+    // rolls at all, and re-enlistment forced on a natural 2.
+    const char* const changed_to[] = {"10", "99", "3", "0", "2"};
+
+    const auto life_under = [](kg::KGModule& world, uint64_t seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        req.attribute_selector =
+            [](const logosphere::rules::AttributeSelectionRequest& request,
+               std::vector<std::string>& chosen, std::string&) {
+                chosen.assign(request.eligible.begin(),
+                              request.eligible.begin() + request.count);
+                return true;
+            };
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, world, dice, sheet, error);
+        return logovger::format_life(sheet);
+    };
+
+    kg::KGModule control(game_registry());
+    std::string why;
+    CHECK(build_world(control, why), "the constants control world: " + why);
+    if (!why.empty()) return;
+
+    // Several seeds, because a constant only shows itself in a life
+    // that reaches the rule: seed 28 never has a crisis, so moving the
+    // crisis restore value moves nothing about it. Proving the rule is
+    // live needs a life that gets there, not a bigger claim about one
+    // that does not.
+    for (size_t i = 0; i < sizeof(constants) / sizeof(constants[0]); ++i) {
+        kg::KGModule changed(game_registry());
+        CHECK(build_world(changed, why), "the changed world: " + why);
+        bool found = false;
+        for (const auto id : changed.findByType("RuleConstant")) {
+            if (changed.getProperty(id, "name") != constants[i]) continue;
+            changed.setProperty(id, "constant_value", changed_to[i]);
+            found = true;
+        }
+        CHECK(found, std::string("'") + constants[i] +
+                         "' is a RuleConstant in the graph");
+
+        uint64_t moved_at = 0;
+        for (uint64_t seed = 1; seed <= 120 && moved_at == 0; ++seed) {
+            if (life_under(control, seed) != life_under(changed, seed)) {
+                moved_at = seed;
+            }
+        }
+        std::cout << "  [measure] " << constants[i] << " -> "
+                  << changed_to[i] << ": life changes at seed " << moved_at
+                  << "\n";
+        CHECK(moved_at != 0,
+              std::string("moving '") + constants[i] + "' to " +
+                  changed_to[i] + " changes some life in 120 seeds; none "
+                  "changed, so nothing reads it");
+    }
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -719,6 +829,103 @@ void test_missing_rule_constant_never_falls_back() {
               error.find("invalid constant_value") != std::string::npos,
           "missing max_terms data fails instead of assuming seven: " +
               error);
+}
+
+// "Each career has a survival roll. If you fail this roll, your
+// character is dead... A natural 2 is always a failure." The floor is
+// the book's number, held in the graph, and a life that snake-eyes its
+// survival dies however good its Endurance was.
+void test_a_natural_two_kills_however_good_the_endurance() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the natural-failure world loads: " + why);
+
+    // The coincidence the rule is FOR - a natural 2 that a DM had
+    // already carried over the target - needs a 4+ career and a
+    // characteristic of 12, and does not turn up in a sweep. So the
+    // rule is proved where it is decidable: the floor is data, and
+    // moving it moves who lives.
+    const auto floor_constant = [](kg::KGModule& w) {
+        for (const auto id : w.findByType("RuleConstant")) {
+            if (w.getProperty(id, "name") == "survival_natural_failure") {
+                return id;
+            }
+        }
+        return kg::INVALID_ENTITY;
+    };
+    CHECK(floor_constant(world) != kg::INVALID_ENTITY,
+          "the book's floor is in the graph, not in the procedure");
+
+    // Raise the floor to 12 and every 2D6 survival throw is a natural
+    // failure, whatever the DM. Nobody may serve a term.
+    kg::KGModule raised(game_registry());
+    CHECK(build_world(raised, why), "the raised-floor world loads: " + why);
+    raised.setProperty(floor_constant(raised), "constant_value", "12");
+
+    int lived = 0, died = 0, said_natural = 0;
+    for (uint64_t seed = 1; seed <= 40; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, raised, dice, sheet, error);
+        if (sheet.terms_served > 0) ++lived;
+        for (const auto& event : sheet.life) {
+            if (event.detail.find("always a failure") != std::string::npos) {
+                ++said_natural;
+                ++died;
+                break;
+            }
+        }
+    }
+    std::cout << "  [measure] floor at 12: " << died
+              << "/40 lives lost a survival throw to the dice, " << lived
+              << " served a term\n";
+    CHECK(died > 0 && said_natural == died,
+          "raising the floor kills on the dice alone, and every such death "
+          "says so in the timeline");
+    CHECK(lived == 0,
+          "with every natural result at or under the floor, no character "
+          "survives a term: " + std::to_string(lived) + " did");
+
+    // The control: the book's own floor of 2 leaves most lives alone,
+    // so the kill above is the constant's doing and not the harness's.
+    int control_lived = 0;
+    for (uint64_t seed = 1; seed <= 40; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, world, dice, sheet, error);
+        if (sheet.terms_served > 0) ++control_lived;
+    }
+    std::cout << "  [measure] floor at 2 (the book's): " << control_lived
+              << "/40 served a term\n";
+    CHECK(control_lived > 0,
+          "the same seeds under the book's floor do serve terms, so the "
+          "difference is the data and not the sweep");
+
+    // And missing is a stop, not a default of zero.
+    kg::KGModule stripped(game_registry());
+    CHECK(build_world(stripped, why), "the stripped world loads: " + why);
+    stripped.removeProperty(floor_constant(stripped), "constant_value");
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest req;
+    req.career_name = "Agent";
+    req.seed = 1;
+    req.max_terms = 1;
+    logovger::CharacterSheet sheet;
+    std::string error;
+    const bool ran = logovger::run_chargen(req, stripped, dice, sheet, error);
+    CHECK(!ran && error.find("survival_natural_failure") != std::string::npos,
+          "a survival throw with no floor in the graph stops the run rather "
+          "than quietly having none: " + error);
 }
 
 void test_character_facts_use_the_modifier_table() {
@@ -974,15 +1181,31 @@ void test_skill_table_dice_data_drives_selection() {
     std::string error;
     const bool ok = logovger::run_chargen(
         request, world, dice, sheet, error);
-    const logosphere::dice::DiceRoll* training = nullptr;
+    // Every training roll of the term, not just the last: a character
+    // who is promoted rolls twice, and both must come off the table
+    // this test rewrote. Counting rolls rather than skills also keeps
+    // the assertion about the TABLE, since two rolls can land on the
+    // same skill and raise it instead of granting a second.
+    size_t training_rolls = 0, off_the_changed_table = 0;
+    std::string totals;
     for (const auto& roll : dice.journal()) {
-        if (roll.purpose == "skills and training") training = &roll;
+        if (roll.purpose != "skills and training") continue;
+        ++training_rolls;
+        totals += (totals.empty() ? "" : ",") + std::to_string(roll.total);
+        if (roll.expression.modifier == 6 && roll.total >= 7 &&
+            roll.total <= 12) {
+            ++off_the_changed_table;
+        }
     }
-    CHECK(ok && sheet.skills.size() == 1 && training &&
-              training->expression.modifier == 6 && training->total >= 7 &&
-              training->total <= 12,
+    CHECK(ok && !sheet.skills.empty() && training_rolls > 0 &&
+              off_the_changed_table == training_rolls,
           "changing the table's DiceExpression and bands changes selection "
-          "without procedure code changes: " + error);
+          "without procedure code changes: ran=" + std::to_string(ok) +
+              " skills=" + std::to_string(sheet.skills.size()) +
+              " training rolls=" + std::to_string(training_rolls) +
+              " on the changed table=" +
+              std::to_string(off_the_changed_table) + " totals=" + totals +
+              " " + error);
 }
 
 void test_every_skill_table_row_is_validated_before_selection() {
@@ -1291,6 +1514,139 @@ std::vector<int> characteristics_of(const kg::KGModule& world,
     return out;
 }
 
+// A training answer names a TABLE. It used to be resolved by position
+// into a list recomputed on resume, and the Advanced Education gate
+// made that list change shape mid-term: roll "+1 Edu" from 7 to 8 and
+// a fourth table appears, shifting every option after it.
+void test_a_training_answer_names_a_table_not_a_position() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the training-choice world loads: " + why);
+    if (!why.empty()) return;
+
+    std::string error;
+    int reached = 0, shifted = 0;
+    for (uint64_t seed = 1; seed <= 400 && shifted == 0; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) continue;
+        LongLife player(session);
+        if (!player.run_until("which table do you train on", error)) continue;
+        ++reached;
+
+        // Take whatever the offer's LAST slot is, and remember which
+        // table that key promised. If the list grows before the answer
+        // is resolved, a position-based lookup lands elsewhere.
+        const auto offered = session.choices();
+        if (offered.empty()) continue;
+        const auto& taken = offered.back();
+        const kg::EntityID promised = taken.subject;
+        const std::string promised_name =
+            world.getProperty(promised, "name");
+
+        // Put the character one point below the gate so the very next
+        // grant can open a table and change the list.
+        world.setProperty(session.sheet().id, "education", "7");
+        if (!session.choose(taken.key, error)) continue;
+
+        bool rolled_the_promised_table = false;
+        for (const auto& event : session.sheet().life) {
+            if (event.detail == promised_name) rolled_the_promised_table = true;
+        }
+        CHECK(rolled_the_promised_table,
+              "the table that was rolled is the table the answer named: "
+              "asked for '" + promised_name + "'");
+        ++shifted;
+        std::cout << "  [measure] seed " << seed << ": answered '"
+                  << taken.key << "' = " << promised_name
+                  << ", rolled on it\n";
+    }
+    std::cout << "  [measure] " << reached
+              << " lives reached a training choice\n";
+    CHECK(reached > 0 && shifted > 0,
+          "some life reaches a training choice; none did, so this proves "
+          "nothing");
+}
+
+// A mishap can ruin a characteristic, and the crisis it raises
+// suspends the SAME step that asked "take the mishap, or die". The
+// answer to the second question was read as an answer to the first: a
+// second mishap rolled, two more years added, no money taken, and the
+// characteristic left at 0.
+void test_paying_for_an_injury_does_not_re_roll_the_mishap() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the injury-crisis world loads: " + why);
+    if (!why.empty()) return;
+
+    const auto mishaps_in = [](const logovger::CharacterSheet& sheet) {
+        int count = 0;
+        for (const auto& event : sheet.life) {
+            if (event.what.rfind("mishap: ", 0) == 0) ++count;
+        }
+        return count;
+    };
+
+    uint64_t found = 0;
+    int crises = 0;
+    std::string error;
+    for (uint64_t seed = 1; seed <= 600 && found == 0; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) continue;
+        LongLife player(session);
+        if (!player.run_until("injury has taken", error)) continue;
+        ++crises;
+        bool can_pay = false;
+        for (const auto& choice : session.choices()) {
+            if (choice.key == "1") can_pay = true;
+        }
+        if (!can_pay) continue;
+
+        const auto& sheet = session.sheet();
+        const long long quoted = quoted_price(session.prompt());
+        const long long held = sheet.credits;
+        const int mishaps_before = mishaps_in(sheet);
+        const int age_before = sheet.age_years;
+        std::cout << "  [measure] seed " << seed << ": " << session.prompt()
+                  << "\n";
+
+        CHECK(session.choose("1", error), "the care is paid for: " + error);
+        std::cout << "  [measure] after paying: Cr" << sheet.credits
+                  << ", age " << sheet.age_years << ", " << mishaps_in(sheet)
+                  << " mishap(s)\n";
+
+        CHECK(sheet.credits == held - quoted,
+              "paying an injury crisis costs what it quoted: Cr" +
+                  std::to_string(held) + " - Cr" + std::to_string(quoted) +
+                  " = Cr" + std::to_string(sheet.credits));
+        CHECK(mishaps_in(sheet) == mishaps_before,
+              "and rolls no second mishap: " +
+                  std::to_string(mishaps_before) + " before, " +
+                  std::to_string(mishaps_in(sheet)) + " after");
+        CHECK(sheet.age_years == age_before,
+              "and adds no further years: age " +
+                  std::to_string(age_before) + " -> " +
+                  std::to_string(sheet.age_years));
+        bool still_ruined = false;
+        for (const auto* slot : kCharacteristics) {
+            if (world.getProperty(sheet.id, slot) == "0") still_ruined = true;
+        }
+        CHECK(!still_ruined, "and restores what the injury took: " + sheet.upp);
+        CHECK(world.getProperty(sheet.id, "qualification_barred") == "true",
+              "and marks the survivor, as the aging crisis does");
+        found = seed;
+    }
+    std::cout << "  [measure] " << crises
+              << " injury crises swept, first payable was seed " << found
+              << "\n";
+    CHECK(found != 0,
+          "some life reaches an injury crisis it can pay for; none did, so "
+          "this proves nothing");
+}
+
 void test_the_aging_crisis_is_paid_for_or_kills() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -1396,6 +1752,26 @@ void test_the_aging_crisis_is_paid_for_or_kills() {
               << quoted << " against Cr" << held << " held\n";
 
     // ---- paying it --------------------------------------------------
+    // The purse the sheet claims to hold, itemised, so a disagreement
+    // between the cache and the parts names the parts.
+    std::string purse_before;
+    long long purse_sum_before = 0;
+    for (const auto part : world.getRelated(sheet.id, "HAS_PART")) {
+        if (world.getType(part) != "CurrencyBalance") continue;
+        const auto amount = world.getProperty(part, "balance_amount");
+        purse_before += (purse_before.empty() ? "" : "+") +
+                        (amount.empty() ? std::string("<empty>") : amount);
+        if (!amount.empty()) purse_sum_before += std::stoll(amount);
+    }
+    // The question the crisis asks is "can you pay", so the number it
+    // quotes has to be the money that is there. It was not: a rule that
+    // charged the character between mustering out and the crisis moved
+    // the parts while the sheet's copy stood still.
+    CHECK(purse_sum_before == held,
+          "the Cr" + std::to_string(held) +
+              " the crisis says the character holds is the money in the "
+              "parts: " + purse_before + " = Cr" +
+              std::to_string(purse_sum_before));
     CHECK(session.choose("1", error), "the care is paid for: " + error);
     const auto after = characteristics_of(world, sheet.id);
     CHECK(sheet.credits == held - quoted,
@@ -1590,12 +1966,16 @@ int main() {
     test_a_life_is_generated();
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
+    test_a_training_answer_names_a_table_not_a_position();
+    test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();
     test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
+    test_the_books_numbers_are_all_data();
+    test_a_natural_two_kills_however_good_the_endurance();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();
     test_characteristic_modifier_table_drives_checks();

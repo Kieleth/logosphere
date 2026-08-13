@@ -35,6 +35,8 @@ NOT_SKILLS = {
     "Local Law Level",
 }
 
+GENERATED_BY = "examples/logovger/tools/extract_skills.py"
+
 # Skills the career tables grant that the skills chapter never defines.
 # They enter the graph as the book writes them, marked, with the
 # reasoning recorded and consumed by nothing. Both were found the same
@@ -169,6 +171,7 @@ def main():
     seed = {
         "source": {"file": "book1/skills.md", "commit": commit},
         "layer": "cepheus",
+        "generated_by": GENERATED_BY,
         "invariants": {
             "count_of_type": {"Skill": len(ops)},
             "unique_name_per_type": ["Skill"],

@@ -105,6 +105,59 @@ struct Fixture {
     }
 };
 
+// "Each career has a survival roll... A natural 2 is always a failure."
+// The dice can take a throw away that the DM had already won, and
+// before this the DM won anyway: a natural 2 with a +4 DM cleared a 2+
+// target and the character lived.
+void a_natural_result_can_fail_a_throw_the_modifier_had_won() {
+    Fixture f;
+    // 2D2 lands on 2, 3 or 4 whatever the seed, and a +4 DM clears a
+    // target of 2 every time. So a floor of 4 fails EVERY run of this
+    // check, and the assertion needs no particular roll to hold.
+    f.world.setProperty(f.expression, "dice_count", "2");
+    f.world.setProperty(f.expression, "dice_sides", "2");
+    f.world.setProperty(f.expression, "dice_modifier", "0");
+    f.world.setProperty(f.expression, "dice_multiplier", "1");
+    f.world.setProperty(f.check, "target_number", "2");
+
+    rules::TaskCheckRunner runner(f.world, f.dice);
+    const auto unguarded = runner.run(f.check, f.target, "check", "control");
+    REQUIRE(unguarded.ok(), "the control must run: " + unguarded.error);
+    REQUIRE(unguarded.execution->passed() &&
+                !unguarded.execution->failed_on_natural(),
+            "with no floor the modifier carries the throw: total " +
+                std::to_string(unguarded.execution->total()) + " vs 2+");
+
+    rules::TaskCheckOptions options;
+    options.natural_failure_at_or_below = 4;
+    const auto guarded = runner.run(f.check, f.target, "check", "fixture",
+                                    options);
+    REQUIRE(guarded.ok(), "the guarded throw must run: " + guarded.error);
+    const auto& execution = *guarded.execution;
+    int64_t faces = 0;
+    for (const int face : execution.roll().values) faces += face;
+    REQUIRE(execution.natural_total() == faces &&
+                execution.natural_total() != execution.total(),
+            "the natural result is the dice before the DM: natural " +
+                std::to_string(execution.natural_total()) + ", total " +
+                std::to_string(execution.total()));
+    REQUIRE(execution.total() >= execution.target_number(),
+            "the total still clears the target, which is the whole point: " +
+                std::to_string(execution.total()) + " vs " +
+                std::to_string(execution.target_number()) + "+");
+    REQUIRE(!execution.passed() && execution.failed_on_natural(),
+            "and the throw fails anyway, saying it was the dice that did it");
+
+    // The floor is a floor, not an equality: a book that says "1 or 2"
+    // is the same slot, and a natural above it must still pass.
+    rules::TaskCheckOptions below;
+    below.natural_failure_at_or_below = 1;
+    const auto clear = runner.run(f.check, f.target, "check", "clear", below);
+    REQUIRE(clear.ok() && clear.execution->passed() &&
+                !clear.execution->failed_on_natural(),
+            "a natural above the floor is untouched");
+}
+
 void execution_returns_every_fact_used_by_the_decision() {
     Fixture f;
     int events = 0;
@@ -226,6 +279,7 @@ void missing_context_and_target_attribute_never_receive_defaults() {
 int main() {
     std::cout << "Task check runner\n";
     TEST(execution_returns_every_fact_used_by_the_decision);
+    TEST(a_natural_result_can_fail_a_throw_the_modifier_had_won);
     TEST(changing_only_modifier_data_changes_the_same_seeded_check);
     TEST(every_dependency_is_validated_before_randomness);
     TEST(missing_context_and_target_attribute_never_receive_defaults);

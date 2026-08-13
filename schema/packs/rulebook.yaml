@@ -140,6 +140,8 @@ classes:
       dice:
         required: true
     slots:
+      - requires_attribute
+      - requires_minimum
       - dice
 
   TableEntry:
@@ -161,6 +163,7 @@ classes:
       - roll_min
       - roll_max
       - roll_max_unbounded
+      - roll_min_unbounded
       - outcome
 
   LookupTable:
@@ -858,6 +861,18 @@ slots:
     description: >-
       Highest die result this row claims, inclusive. Absent only when
       roll_max_unbounded says the row has no top.
+  roll_min_unbounded:
+    range: boolean
+    description: >-
+      This row is the open BOTTOM of its table: every total at or below
+      its roll_min selects it. The mirror of roll_max_unbounded, and it
+      exists for a hole the book leaves. Cepheus prints its worst aging
+      result as a plain "-6", not "-6 or less", but the aging DM is the
+      character's total terms and a natural 12 on re-enlistment outranks
+      the seven-term cap. Two of those and 2D6 minus nine reaches -7,
+      which lands on no row at all. Someone has to decide what -7 does;
+      this is where that decision is written down, as data a reader can
+      see and a Referee can change, rather than a clamp buried in code.
   roll_max_unbounded:
     range: boolean
     description: >-
@@ -1002,6 +1017,34 @@ slots:
     range: DiceExpression
     description: >-
       Rolled count, when the book rolls for it: "1D6 Ship Shares".
+  table_role:
+    range: string
+    description: >-
+      What part this table plays where several are offered together,
+      when a rule treats them differently. Cepheus caps CASH benefit
+      rolls at three and lets the others run; it grants every SERVICE
+      skill at level 0 on a first career. Both are rules about a
+      table's role, and both were written as C++ matching the table's
+      printed name - "Cash Benefits" by substring, "Service Skills" by
+      a fourteen-character suffix compare - so renaming a table in the
+      seed broke the rule silently and a translated book could not work
+      at all. The values are the game's; the engine only ever compares
+      what the row says against what a step asked for.
+  requires_attribute:
+    range: string
+    description: >-
+      An attribute the chooser must have enough of before this table is
+      even on offer. Cepheus: "You may only roll on the Advanced
+      Education table if your character has Education 8+." Resolved
+      against the target's declared slots exactly as attribute_ref is,
+      never a bare label the graph cannot check.
+  requires_minimum:
+    range: integer
+    description: >-
+      The least the required attribute may be. Travels with
+      requires_attribute: neither means anything alone, and a table
+      carrying one without the other is malformed rather than
+      permissive.
   roll_selection:
     range: string
     description: >-

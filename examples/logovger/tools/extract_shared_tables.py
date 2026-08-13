@@ -29,7 +29,11 @@ because other seeds reference them, and appends only what is missing.
 Usage:
     python3 examples/logovger/tools/extract_shared_tables.py \\
         examples/logovger/srd/cepheus \\
-        examples/logovger/seeds/cepheus_book1_tables.json
+        examples/logovger/seeds/cepheus_book1_shared_tables.json
+
+THIS SCRIPT OWNS ITS OUTPUT. Edit the script and regenerate; never
+edit the seed. CI regenerates all three seeds and fails on any diff,
+which is the check that was missing when two PRs hand-edited this one.
 """
 import json
 import os
@@ -56,6 +60,14 @@ def qualified(alias, type_name, commit, file=CHAPTER):
 GROUPS = {
     "physical": ("strength; dexterity; endurance", "Characteristics"),
     "mental": ("intelligence; education; social_standing", "Characteristics"),
+    # All six, from the same sentence that splits them in two. The
+    # crisis rules ask about the whole set - "If any characteristic is
+    # reduced to 0", "will bring any characteristics back up to 1" -
+    # and without a group naming it, every one of those rules was
+    # written out six times in C++, four separate times.
+    "characteristic": (
+        "strength; dexterity; endurance; intelligence; education; "
+        "social_standing", "Characteristics"),
 }
 GROUP_QUOTE = (
     "Strength, Dexterity, and Endurance are called physical abilities, "
@@ -63,9 +75,29 @@ GROUP_QUOTE = (
     "termed mental abilities.")
 
 # Aging: 2D6 with the character's total terms as a negative DM. Bands
-# are transcribed as printed, including the unmarked bottom row: the
-# top says "1+" and the bottom says "-6" with no "or less", so a total
-# of -7 lands on nothing. That asymmetry is the book's, not ours.
+# are transcribed as printed. The asymmetry at the ends is the book's:
+# the top says "1+" and the bottom says a plain "-6" with no "or less".
+#
+# DIVERGENCE, and the reason for it. The printed table has a hole. The
+# DM is total terms, and a natural 12 on re-enlistment outranks the
+# seven-term cap ("unless they roll a natural 12 during Reenlistment
+# and must serve another term of service"), so two of those put a
+# character at nine terms and 2D6-9 reaches -7. That total lands on no
+# row and the run dies with a coverage error, which happens to about
+# one in 1296 of the characters who reach term 7. The bottom row is
+# therefore marked as catching everything under it. That is a ruling
+# the book does not print, recorded here and in
+# docs/VOYAGER_EXPANSION.md rather than clamped into the procedure.
+AGING_FLOOR_BAND = "-6"
+AGING_FLOOR_DEFECT = (
+    "The Aging Table's bottom row is printed as a plain '-6' while its "
+    "top row is printed '1+', so the table is open at one end and "
+    "closed at the other. The DM is the character's total terms, and a "
+    "natural 12 on Reenlistment overrides the seven-term cap, so a "
+    "character can reach nine terms and roll 2D6-9 for a total of -7, "
+    "which no row claims. Read as '-6 or less', which is what the open "
+    "top row does at the other end.")
+
 AGING_SECTION = "Aging"
 AGING_TABLE = "2D6"
 AGING_COLUMN = "Effects of Aging"
@@ -101,17 +133,35 @@ INJURY_ROWS = {
     "6": ([], ""),
 }
 
+GENERATED_BY = "examples/logovger/tools/extract_shared_tables.py"
+
 MISHAP_SECTION = "Survival"
 MISHAP_TABLE = "1D6"
 MISHAP_COLUMN = "Mishaps"
+
+# Leaving is not printed in every mishap cell. Rows 2 through 5 say
+# "discharged" themselves; row 1 says only "Injured in action", and the
+# rule that ends the career for it is the sentence that introduces the
+# whole table. So that row's EndCareer cites the sentence, because a
+# citation has to prove the clause it carries.
+MISHAP_END_CAREER_QUOTE = (
+    "This mishap is always enough to force you to leave the service "
+    "after half a term, or two years of service.")
+
 # roll -> (clauses, unmodelled). Clauses here are outcome kinds.
 MISHAP_ROWS = {
-    "1": ([("table_roll", "Injury")],
-          "The book says this is the same as a result of 2 on the "
-          "Injury table, and offers an alternative of rolling twice "
-          "and taking the lower. The alternative is a re-roll policy, "
-          "which the outcome vocabulary cannot say, so this rolls on "
-          "the Injury table."),
+    # "Injured in action. (This is the same as a result of 2 on the
+    # Injury table.) Alternatively, roll twice on the Injury table and
+    # take the lower result." Two named alternatives, and the book does
+    # not say which: that is a choice, and the player owns it.
+    "1": ([("end_career_by_sentence",),
+           ("choice", "player",
+            [("as a result of 2",
+              "as a result of 2 on the Injury table",
+              "@injury_2_c0"),
+             ("roll twice, take the lower",
+              "roll twice on the Injury table and take the lower result",
+              "twice")])], ""),
     "2": ([("end_career",)], ""),
     "3": ([("end_career",), ("money", -10000)], ""),
     "4": ([("end_career",), ("forfeit",)], ""),
@@ -222,6 +272,12 @@ def main():
         if dice:
             props["attribute_delta_dice"] = qualified(
                 "d" + dice.lower(), "DiceExpression", COMMIT)
+            # A rolled delta carries no sign, so the row has to say
+            # which way it goes. Every rolled delta in this chapter is
+            # a reduction ("Reduce one physical characteristic by 1D6"),
+            # and the executor refuses one that does not say rather
+            # than guessing the direction.
+            props["attribute_delta_reduces"] = "true"
         else:
             props["attribute_delta"] = str(delta)
         if unmodelled:
@@ -284,6 +340,13 @@ def main():
             props["roll_max_unbounded"] = "true"
         else:
             props["roll_max"] = band
+        # The bottom row catches everything under it, and says on the
+        # row itself that this is a reading rather than a transcription
+        # - the same treatment the misspelled skill cells get.
+        if band == AGING_FLOOR_BAND:
+            props["roll_min_unbounded"] = "true"
+            props["source_defect"] = AGING_FLOOR_DEFECT
+            props["suggested_reading"] = "Read as -6 or less."
         b.add("TableEntry", entry, props)
         b.relate("@aging_table", entry)
         counts["aging"] += 1
@@ -364,6 +427,41 @@ def main():
                 props["unmodelled"] = unmodelled
             if clause[0] == "end_career":
                 parts.append(b.add("EndCareer", alias, props))
+            elif clause[0] == "end_career_by_sentence":
+                parts.append(b.add("EndCareer", alias, dict(
+                    name=alias.lstrip("@"),
+                    **b.cite(MISHAP_SECTION, None, None,
+                             MISHAP_END_CAREER_QUOTE, "sentence"))))
+            elif clause[0] == "choice":
+                # The book names both branches, so both are entities and
+                # the pick is a question rather than a policy the
+                # extractor decides. The alternative that rolls twice is
+                # its own GrantTableRoll, because "take the lower" is a
+                # property of THAT roll and not of the choice.
+                _, authority, options = clause
+                # Targets first, then the options that point at them: an
+                # alias has to exist before an op refers to it.
+                targets = []
+                for label, printed, target in options:
+                    if target == "twice":
+                        target = f"@mishap_{roll}_twice"
+                        b.add("GrantTableRoll", target, dict(
+                            name=target.lstrip("@"), table="@injury_table",
+                            roll_count="2", roll_selection="LOWEST",
+                            **citation))
+                    targets.append((label, printed, target))
+                for option_index, (label, printed, target) in enumerate(
+                        targets):
+                    option = f"@mishap_{roll}_o{option_index}"
+                    b.add("OutcomeOption", option, dict(
+                        name=label, option_index=str(option_index),
+                        option_label=printed, outcome=target, **citation))
+                b.add("OutcomeChoice", alias,
+                      dict(name=alias.lstrip("@"),
+                           choice_authority=authority, **citation))
+                for option_index in range(len(options)):
+                    b.relate(alias, f"@mishap_{roll}_o{option_index}")
+                parts.append(alias)
             elif clause[0] == "forfeit":
                 parts.append(b.add("ForfeitBenefits", alias, props))
             elif clause[0] == "money":
@@ -387,7 +485,8 @@ def main():
         counts["mishap"] += 1
 
     seed = {"source": {"file": CHAPTER, "commit": COMMIT},
-            "layer": "cepheus", "invariants": {}, "ops": []}
+            "layer": "cepheus",
+            "generated_by": GENERATED_BY, "invariants": {}, "ops": []}
     seed["ops"] = b.ops
     added = len(b.ops)
 
