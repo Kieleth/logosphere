@@ -523,6 +523,15 @@ classes:
       primitive_ref (resolved against the executor's registry, never
       computed in data) and carries its routes as StepRoute parts:
       the book's own gotos, transcribed as routing data.
+
+      A step may also declare an OUTCOME: something the book says
+      happens when the step is taken, as against something the
+      primitive computes. Cepheus "Increase your age by 4 years" is the
+      whole of what its checklist step does, and writing it as
+      `age_years += 4` in the primitive put a rule the graph could hold
+      into code, where nobody reading the procedure could see it. The
+      outcome is applied through the same executor and the same
+      validated write path as any other, before the primitive runs.
     annotations:
       facets: rulebook
     slot_usage:
@@ -530,10 +539,15 @@ classes:
         required: true
       primitive_ref:
         required: true
+      # Most steps only name a primitive. An outcome is what the book
+      # states a step DOES, and few steps state one.
+      outcome:
+        required: false
     slots:
       - step_index
       - primitive_ref
       - subject_table
+      - outcome
 
   StepRoute:
     is_a: Entity

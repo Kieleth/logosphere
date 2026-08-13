@@ -800,6 +800,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ProcedureStep", "step_index", kg::PropertyValueKind::Integer, true, true, 0.0, false, 0.0);
     reg.addProperty("ProcedureStep", "primitive_ref", kg::PropertyValueKind::String, true);
     reg.addRefProperty("ProcedureStep", "subject_table", false, "SubjectLookupTable");
+    reg.addRefProperty("ProcedureStep", "outcome", false, "Outcome");
     reg.addRefProperty("ProgressionStanding", "track", true, "Entity");
     reg.addProperty("ProgressionStanding", "standing_index", kg::PropertyValueKind::Integer, true, true, 0.0, false, 0.0);
     reg.addProperty("ProgressionStep", "step_index", kg::PropertyValueKind::Integer, true, true, 0.0, false, 0.0);

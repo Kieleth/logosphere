@@ -429,9 +429,44 @@ void ChargenSession::register_outcome_handlers() {
 
 void ChargenSession::bind_primitives() {
     std::string error;
+    // Every primitive is wrapped, so a step that DECLARES an outcome
+    // has it applied without the primitive knowing. "Increase your age
+    // by 4 years" is the whole of what its checklist step does, and it
+    // was `age_years += 4` inside the primitive: a rule the graph could
+    // hold, written where no reader of the procedure could find it.
+    // Applied on first entry only, so a step that suspends for an
+    // answer does not charge for it twice.
     const auto bind = [&](const std::string& name,
                           logosphere::rules::ProcedurePrimitive primitive) {
-        if (!primitives_.bind_primitive(name, std::move(primitive), error)) {
+        auto wrapped =
+            [this, inner = std::move(primitive)](
+                const PrimitiveContext& context) -> PrimitiveResult {
+            if (!context.input) {
+                const std::string declared =
+                    kg_.getProperty(context.step, "outcome");
+                if (!declared.empty()) {
+                    kg::EntityID outcome = kg::INVALID_ENTITY;
+                    try {
+                        outcome =
+                            static_cast<kg::EntityID>(std::stoul(declared));
+                    } catch (...) {
+                        return PrimitiveResult::failed(
+                            "this step's outcome is not an entity "
+                            "reference");
+                    }
+                    const auto applied = executor_.apply(
+                        outcome, {sheet_.id, "chargen", "step"});
+                    if (applied.status !=
+                        logosphere::rules::OutcomeStatus::APPLIED) {
+                        return PrimitiveResult::failed(
+                            "step outcome: " + outcome_failure(applied));
+                    }
+                    read_characteristics(kg_, sheet_);
+                }
+            }
+            return inner(context);
+        };
+        if (!primitives_.bind_primitive(name, std::move(wrapped), error)) {
             throw std::logic_error(error);
         }
     };
@@ -1509,15 +1544,11 @@ void ChargenSession::enter_career() {
 
 ChargenSession::PrimitiveResult ChargenSession::advance_term(
     const PrimitiveContext&) {
+    // "Increase your age by 4 years" is the step's declared outcome and
+    // has already been applied by the time this runs; the sheet was
+    // re-read from the graph with it. What is left here is the counting
+    // the book does not state as an effect on the character.
     const int term = sheet_.terms_served + 1;
-    // "Increase your age by 4 years." A term's length is the book's
-    // number, not this procedure's.
-    int term_years = 0;
-    std::string years_error;
-    if (!constant("term_years", term_years, years_error)) {
-        return PrimitiveResult::failed(years_error);
-    }
-    sheet_.age_years   += term_years;
     sheet_.terms_served = term;
     // Benefits and the seven-term cap count different things: one
     // counts this career, the other counts the whole life.

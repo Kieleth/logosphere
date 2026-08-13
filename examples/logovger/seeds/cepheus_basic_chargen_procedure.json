@@ -8,7 +8,8 @@
     "count_of_type": {
       "Procedure": 1,
       "ProcedureStep": 16,
-      "StepRoute": 12
+      "StepRoute": 12,
+      "ModifyAttribute": 1
     },
     "unique_name_per_type": [
       "Procedure",
@@ -105,12 +106,25 @@
     },
     {
       "op": "create_entity",
+      "type": "ModifyAttribute",
+      "as": "@advance_term_ages",
+      "properties": {
+        "name": "a term costs four years",
+        "attribute_ref": "age_years",
+        "attribute_delta": "4",
+        "source_section": "Character Creation Checklist",
+        "source_quote": "Increase your age by 4 years."
+      }
+    },
+    {
+      "op": "create_entity",
       "type": "ProcedureStep",
       "as": "@advance_term",
       "properties": {
         "name": "advance_term",
         "step_index": "8",
         "primitive_ref": "advance_term",
+        "outcome": "@advance_term_ages",
         "source_section": "Character Creation Checklist",
         "source_quote": "Increase your age by 4 years."
       }

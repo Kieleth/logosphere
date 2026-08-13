@@ -740,14 +740,18 @@ void test_the_books_numbers_are_all_data() {
     // drives a session to a payable crisis and asserts the restored
     // value; asserting it here would only prove this harness cannot
     // reach the rule.
+    // term_years is gone from this list because it is no longer a
+    // constant: "Increase your age by 4 years" is an outcome the
+    // advance_term STEP declares, and the step-outcome test below
+    // proves it the same way.
     const char* const constants[] = {
-        "term_years", "aging_start_age", "basic_training_level",
+        "aging_start_age", "basic_training_level",
         "cash_benefit_roll_max", "reenlistment_forced_natural",
     };
-    // Values chosen to be unmistakable in a finished life: a decade per
-    // term, aging that never starts, basic training at level 3, no cash
-    // rolls at all, and re-enlistment forced on a natural 2.
-    const char* const changed_to[] = {"10", "99", "3", "0", "2"};
+    // Values chosen to be unmistakable in a finished life: aging that
+    // never starts, basic training at level 3, no cash rolls at all,
+    // and re-enlistment forced on a natural 2.
+    const char* const changed_to[] = {"99", "3", "0", "2"};
 
     const auto life_under = [](kg::KGModule& world, uint64_t seed) {
         logosphere::dice::DiceService dice;
@@ -804,6 +808,63 @@ void test_the_books_numbers_are_all_data() {
                   changed_to[i] + " changes some life in 120 seeds; none "
                   "changed, so nothing reads it");
     }
+}
+
+// "Increase your age by 4 years" is the whole of what its checklist
+// step does, so the STEP declares it and the executor applies it. It
+// used to be age_years += 4 inside the primitive, where no reader of
+// the procedure could find it.
+void test_a_step_can_declare_what_it_does() {
+    const auto age_after_four_terms = [](kg::KGModule& world) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = 28;
+        req.max_terms = 4;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, world, dice, sheet, error);
+        return sheet.age_years;
+    };
+
+    kg::KGModule control(game_registry());
+    std::string why;
+    CHECK(build_world(control, why), "the step-outcome world: " + why);
+    if (!why.empty()) return;
+    const int normal = age_after_four_terms(control);
+    CHECK(normal > 18,
+          "a served life ages at all: " + std::to_string(normal));
+
+    // Move the number the STEP declares, not a constant in the code.
+    kg::KGModule changed(game_registry());
+    CHECK(build_world(changed, why), "the changed-step world: " + why);
+    // Reached through the STEP, not by hunting for a matching entity:
+    // mishap 5's four years of imprisonment are also age_years +4, and
+    // they are a different rule.
+    int found = 0;
+    for (const auto id : changed.findByType("ProcedureStep")) {
+        if (changed.getProperty(id, "primitive_ref") != "advance_term") {
+            continue;
+        }
+        const std::string declared = changed.getProperty(id, "outcome");
+        CHECK(!declared.empty(),
+              "the advance_term step declares an outcome");
+        if (declared.empty()) continue;
+        changed.setProperty(
+            static_cast<kg::EntityID>(std::stoul(declared)),
+            "attribute_delta", "10");
+        ++found;
+    }
+    CHECK(found == 1,
+          "one advance_term step, declaring its years: " +
+              std::to_string(found));
+    const int stretched = age_after_four_terms(changed);
+    std::cout << "  [measure] four terms age a character " << normal
+              << ", and " << stretched << " when the step says ten years\n";
+    CHECK(stretched > normal,
+          "the years a term costs come off the step, not out of the "
+          "procedure: " + std::to_string(normal) + " vs " +
+              std::to_string(stretched));
 }
 
 void test_missing_rule_constant_never_falls_back() {
@@ -1975,6 +2036,7 @@ int main() {
     test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
     test_the_books_numbers_are_all_data();
+    test_a_step_can_declare_what_it_does();
     test_a_natural_two_kills_however_good_the_endurance();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();

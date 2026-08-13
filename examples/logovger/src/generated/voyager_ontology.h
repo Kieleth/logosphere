@@ -2126,6 +2126,7 @@ struct Procedure : public Entity, public Cited {
 
 
 /// One step of a Procedure. It NAMES a code primitive through primitive_ref (resolved against the executor's registry, never computed in data) and carries its routes as StepRoute parts: the book's own gotos, transcribed as routing data.
+/// A step may also declare an OUTCOME: something the book says happens when the step is taken, as against something the primitive computes. Cepheus "Increase your age by 4 years" is the whole of what its checklist step does, and writing it as `age_years += 4` in the primitive put a rule the graph could hold into code, where nobody reading the procedure could see it. The outcome is applied through the same executor and the same validated write path as any other, before the primitive runs.
 struct ProcedureStep : public Entity, public Cited {
     /// Explicit position in a procedure or outcome sequence. Procedure flow falls through in index order unless a route redirects it; outcome sequences apply their children in index order.
     int32_t step_index = {};
@@ -2133,6 +2134,8 @@ struct ProcedureStep : public Entity, public Cited {
     std::string primitive_ref = {};
     /// A table this step consults, keyed by the subject in play. Named here so the step reaches its data through the schema rather than by matching a name in code.
     std::optional<SubjectLookupTable> subject_table = std::nullopt;
+    /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
+    std::optional<Outcome> outcome = std::nullopt;
 };
 
 
