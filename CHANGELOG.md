@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Fixed
+- **Gluon rows refresh their effective mass to live state before the
+  solve (heel-strike +-100 m/s transients).** Contact rows already got
+  this refresh; gluon rows kept build-time masses, and wake-on-strain
+  fires DURING the gluon build — a gluon's own strain check runs after
+  its rows are sized, so a heel-strike replant that strains the stance
+  pin wakes leg-chain bodies whose rows were sized with them immovable.
+  Those rows overcorrect x1.96 per sweep (eff = m for one-movable, true
+  response 2x), a geometric divergence that exhausts all 32 iterations
+  and lands +-100 m/s on the chain's drive child for one substep per
+  heel strike. Walk gate: detector events 2 (worst 92.3 m/s) -> 0
+  (worst 1.2 m/s), all four criteria green, 614/614 grass bonds intact.
 - **Physics-drive joints converge on humanoid rigs (the shoulder
   standing error).** Four mechanisms, each measured on the two-joints
   gate. (1) The solver's converged exits were blind to angular rows: a

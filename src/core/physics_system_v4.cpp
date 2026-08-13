@@ -2511,7 +2511,31 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // times zero; it needs no help, and its cache is the support that must
     // be warm the frame it wakes.
     for (Constraint& c : constraints) {
-        if (!c.is_contact && !c.is_turtle_contact) continue;
+        if (c.is_angular) continue;   // sized by inertia through KINEMATIC-only doors
+        if (!c.is_contact && !c.is_turtle_contact) {
+            // GLUON rows get the same live refresh, for the same disease one
+            // phase later: wake-on-strain fires DURING the gluon build, so a
+            // gluon built early in the loop is sized with an endpoint the
+            // strain of a LATER gluon then wakes. At heel strike the replant
+            // strains the stance pin, the wake sweeps the leg chain, and the
+            // early-built rows (eff = m for one-movable, true response 2x
+            // that) overcorrect x1.96 per sweep — a geometric divergence
+            // that exhausts all 32 iterations and lands +-100 m/s on the one
+            // drive child in the chain for exactly one substep per heel
+            // strike (walk gate: detector events 2, worst 92.3 m/s, period
+            // ~130 substeps = the gait half-cycle; CANARY P718 F376: v_rel
+            // flipping sign at equal magnitude every sweep, impulses +-937
+            // clamped by the +-833 breaking budget). Shrink to the live
+            // value, never grow; budgets stay — a gluon's cap is breaking
+            // FORCE, not a mass-derived cushion.
+            const float ginv_a = inv_mass_momentum(particles[c.body_a]);
+            const float ginv_b = inv_mass_momentum(particles[c.body_b]);
+            const float ginv_sum = ginv_a + ginv_b;
+            if (ginv_sum <= 0.0f) continue;            // sleeping row: leave it
+            const float geff_live = 1.0f / ginv_sum;
+            if (geff_live < c.effective_mass) c.effective_mass = geff_live;
+            continue;
+        }
         const float inv_a = inv_mass_momentum(particles[c.body_a]);
         const float inv_b = c.is_turtle_contact
                             ? 0.0f : inv_mass_momentum(particles[c.body_b]);
