@@ -58,6 +58,12 @@ constexpr int    SOLVER_ITERATIONS = 32;      // Increased for deep constraint c
 // CPU cost.
 constexpr int    SOLVER_SUBSTEPS   = 4;
 constexpr float  SLOP              = 0.001f;  // 1mm allowed penetration
+// Angular twin of SLOP for the split-impulse position pass: below this
+// much orientation error the "error" is float residue, and a tolerance-
+// free repair never terminates (the 290 nm Baumgarte ratchet, measured
+// on test_settling_wiggle, angular edition). 1 mrad = 0.057 deg; a
+// settled drive joint's residual measures ~0.26 mrad, safely under.
+constexpr float  ANGULAR_SLOP      = 0.001f;  // rad
 constexpr float  BETA              = 0.4f;    // Position correction strength (0.4 for stable stacks)
 // Cap on the contact push-out speed Baumgarte may request (V4.14).
 // bias = BETA*pen/dt is a position correction expressed at velocity
@@ -90,6 +96,19 @@ constexpr float  GLUON_MAX_BIAS_VELOCITY = 4.0f;   // m/s
 // measured exactly 151.2 m/s. A joint may correct toward its target at a
 // bounded rate; larger errors resolve over frames (V4.14, third verse).
 constexpr float  MAX_ANGULAR_BIAS_VELOCITY = 4.0f; // rad/s
+// Honest-exit twin for ANGULAR rows. The solve's absolute exit door measures
+// per-iteration delta IMPULSE (0.01 N*s), and an angular impulse is invisible
+// to it: a quat-drive row on the humanoid shoulder holds delta-L ~ 1.5e-4
+// N*m*s every iteration — 60x under the door — while that same impulse is
+// 6.5 rad/s on the 2.3e-5 kg*m^2 shoulder-bridge bone it lands on. Measured:
+// the two-joint drive test solved with iters=1 on every substep and the
+// shoulder crawled to target at 1/65th of its commanded rate (hold error
+// 0.1368 rad against a 0.0627 budget). Same lesson as the linear side's
+// max_dv tracking: track the VELOCITY the impulse imparts, which makes the
+// same physical statement at every inertia. An exit door may only call the
+// solve converged when the last sweep's angular impulses moved no body
+// faster than this.
+constexpr float  ANGULAR_RESIDUAL_FLOOR = 0.01f;   // rad/s
 // Wake-on-strain. is_at_rest is a solver optimization and must never make a
 // strained bond invisible: rotate a KINEMATIC parent and its sleeping child
 // used to ignore the moved anchor entirely (rotation ladder, rung 1). Any

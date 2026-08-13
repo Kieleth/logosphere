@@ -2146,6 +2146,27 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                                  (int)c_axis.body_a, (int)c_axis.body_b, "gluon_angular",
                                  c_axis.bias, c_axis.effective_mass, c_axis.jz);
+                    // CANARY_DEBUG: quaternion angular row build — axis,
+                    // error, bias and budget, mirroring [CANARY ROWBUILD].
+                    if (canary_active && ((int)c_axis.body_a == canary_pid ||
+                                          (int)c_axis.body_b == canary_pid)) {
+                        std::cout << "[CANARY F" << phys_frame << " ANGROW-Q] P"
+                                  << c_axis.body_a << "<->P" << c_axis.body_b
+                                  << " axis=(" << c_axis.angular_axis_x << ","
+                                  << c_axis.angular_axis_y << ","
+                                  << c_axis.angular_axis_z << ")"
+                                  << " e_mag=" << e_mag
+                                  << " bias=" << c_axis.angular_bias
+                                  << " effI=" << c_axis.effective_inertia
+                                  << " budget=[" << c_axis.min_angular_impulse
+                                  << "," << c_axis.max_angular_impulse << "]"
+                                  << " drive=" << (int)gluon->angular_drive_enabled
+                                  << " qa=(" << q_a.w << "," << q_a.x << ","
+                                  << q_a.y << "," << q_a.z << ")"
+                                  << " eul_a=(" << pa.rotation_x << ","
+                                  << pa.rotation_y << "," << pa.rotation_z << ")"
+                                  << std::endl;
+                    }
                     constraints.push_back(c_axis);
                 }
                 continue;  // quaternion path handled; skip the scalar branch below
@@ -2211,6 +2232,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                          (int)c_ang.body_a, (int)c_ang.body_b, "angular",
                          c_ang.bias, c_ang.effective_mass, c_ang.jz);
+            // CANARY_DEBUG: scalar-Z angular row build.
+            if (canary_active && ((int)c_ang.body_a == canary_pid ||
+                                  (int)c_ang.body_b == canary_pid)) {
+                std::cout << "[CANARY F" << phys_frame << " ANGROW-Z] P"
+                          << c_ang.body_a << "<->P" << c_ang.body_b
+                          << " angle_diff=" << angle_diff
+                          << " bias=" << c_ang.angular_bias
+                          << " effI=" << c_ang.effective_inertia
+                          << " budget=[" << c_ang.min_angular_impulse
+                          << "," << c_ang.max_angular_impulse << "]"
+                          << " drive=" << (int)gluon->angular_drive_enabled
+                          << " limit=" << limit
+                          << std::endl;
+            }
             constraints.push_back(c_ang);
         }
     }
@@ -2665,6 +2700,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
     bool solve_exit_recorded = false;   // which door the iteration loop took
 
+    // CONTACT-COUPLED BODIES resolve orientation error in the VELOCITY
+    // phase. The angular split's position repair rotates a body with no
+    // momentum cost — and no negotiation: contacts carry no angular
+    // Jacobian, so a repair that rotates a trampled grass blade back
+    // upright THROUGH the foot standing on it manufactures fresh
+    // penetration every substep, which the contact rows then eject at
+    // full budget (measured on the walk-through-grass gate: worst blade
+    // 27.80 m from home at 19.2 m/s; with the repair kept in momentum,
+    // 2.58 m at 2.7 m/s). The linear position pass never had this hole:
+    // its contact rows sit in the same Gauss-Seidel pass and answer
+    // back. Until angular repairs can be negotiated with contacts, a
+    // body touching anything keeps its bias in the velocity solve.
+    std::vector<uint8_t> body_in_contact(count, 0);
+    for (const Constraint& cc : constraints) {
+        if (!cc.is_contact && !cc.is_turtle_contact) continue;
+        if (cc.body_a < count) body_in_contact[cc.body_a] = 1;
+        if (!cc.is_turtle_contact && cc.body_b < count) body_in_contact[cc.body_b] = 1;
+    }
+
     // Rows entering the solve, counted ONCE. iterations x rows is the true
     // solver work unit; counting rows per iteration would conflate the two.
     LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverRows, constraints.size());
@@ -2673,6 +2727,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         ::logosphere::phystrace::set_iteration(iter);
         float max_impulse_this_iter = 0.0f;
         max_dv_this_iter = 0.0f;
+        // Angular twin of max_dv: the largest angular-velocity change any
+        // angular row imparted this sweep. See ANGULAR_RESIDUAL_FLOOR for
+        // why raw angular impulse cannot gate an exit door.
+        float max_domega_this_iter = 0.0f;
         actual_iterations = iter + 1;
 
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
@@ -2718,9 +2776,57 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                 + (pa.omega_y - pb.omega_y) * ax_y
                                 + (pa.omega_z - pb.omega_z) * ax_z;
 
+                // SPLIT IMPULSE, angular half. The linear rows stopped feeding
+                // their Baumgarte term into momentum (see the linear block
+                // below); angular rows kept theirs, and it is the same disease
+                // one DOF over: an orientation error that cannot close adds
+                // bias-velocity to REAL omega every substep. Measured on the
+                // humanoid drive rig (P948<->P910<->P914): the 2.3e-5 kg*m^2
+                // shoulder-bridge bone carried a sustained |omega| ~ 3 rad/s
+                // limit cycle — its two rows' biases (1.3 + 2.0 rad/s)
+                // pumping a precession that re-rotated both error axes
+                // 30-45 deg per substep and held the joint error at ~0.04 rad
+                // forever. With the bias out of the velocity phase, angular
+                // rows match omegas (the joint's damping statement) and
+                // orientation error is geometry, repaired by the angular
+                // position pass whose pseudo-omega is discarded.
+                // ANGULAR_SPLIT_OFF=1: diagnostic lever, restores the old
+                // bias-into-momentum behavior for A/B isolation.
+                static const bool ang_split_off = std::getenv("ANGULAR_SPLIT_OFF") != nullptr;
+                // CONSTRAINTS split, SPRINGS don't. A row with a finite
+                // torque budget is a force-bounded bond: its bias IS its
+                // spring force, already bounded by (k*e + c*w)*dt, and
+                // moving it to the position pass hands a 2-gram blade
+                // segment budget/I of pseudo-rotation per substep with no
+                // momentum cost — measured on the walk-through-grass gate
+                // as a blade catapulted 27.80 m at 19.2 m/s (baseline
+                // 3.19 m). An unbounded row is a constraint: its bias is
+                // geometry, and geometry goes to the position pass (same
+                // law as the linear split above).
+                const bool spring_row = std::isfinite(c.min_angular_impulse) ||
+                                        std::isfinite(c.max_angular_impulse);
+                // Contact-coupled AND saturated: see the body_in_contact
+                // comment above. A row whose bias sits at the cap is
+                // declaring its error is MOTION, not repair (that is what
+                // the cap means: larger errors resolve over frames), and
+                // motion against live contacts must be negotiated through
+                // momentum. Unsaturated repair on a contact-coupled body
+                // is SLOP-scale geometry the contacts can absorb — keeping
+                // those rows in momentum instead left the two-joints arm
+                // in a permanent velocity-phase tug (grazing bone contacts
+                // never clear on a humanoid) that crept the shoulder
+                // 0.018 -> 0.034 rad across the hold window.
+                const bool contact_coupled =
+                    body_in_contact[c.body_a] || body_in_contact[c.body_b];
+                const bool saturated = std::fabs(c.angular_bias) >=
+                    PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY * 0.999f;
+                float effective_angular_bias = c.angular_bias;
+                if (ENABLE_SPLIT_IMPULSE && !ang_split_off &&
+                    !spring_row && !(contact_coupled && saturated))
+                    effective_angular_bias = 0.0f;
                 // Compute angular impulse to satisfy constraint
-                // Target: omega_rel_new = angular_bias (pushes back to limit boundary)
-                float angular_impulse = -(omega_rel - c.angular_bias) * c.effective_inertia;
+                // Target: omega_rel_new = effective bias
+                float angular_impulse = -(omega_rel - effective_angular_bias) * c.effective_inertia;
 
                 // Clamp accumulated angular impulse
                 float old_ang = c.accumulated_angular_impulse;
@@ -2753,17 +2859,41 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float I_a = pa.GetInertiaAboutAxis(ax_x, ax_y, ax_z);
                 float I_b = pb.GetInertiaAboutAxis(ax_x, ax_y, ax_z);
 
+                float applied_inv_inertia = 0.0f;
                 if (I_a > 0.0f && pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                     float inv = 1.0f / I_a;
                     pa.omega_x += angular_impulse * ax_x * inv;
                     pa.omega_y += angular_impulse * ax_y * inv;
                     pa.omega_z += angular_impulse * ax_z * inv;
+                    applied_inv_inertia = inv;
                 }
                 if (!c.is_turtle_contact && I_b > 0.0f && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
                     float inv = 1.0f / I_b;
                     pb.omega_x -= angular_impulse * ax_x * inv;
                     pb.omega_y -= angular_impulse * ax_y * inv;
                     pb.omega_z -= angular_impulse * ax_z * inv;
+                    applied_inv_inertia = std::max(applied_inv_inertia, inv);
+                }
+
+                // WHAT THAT ANGULAR IMPULSE ACTUALLY DOES — the rad/s it
+                // imparts to the faster-responding endpoint. Same physical
+                // quantity at every inertia; the raw impulse is not.
+                {
+                    const float dw = std::abs(angular_impulse) * applied_inv_inertia;
+                    if (dw > max_domega_this_iter) max_domega_this_iter = dw;
+                }
+
+                // CANARY_DEBUG: angular impulse applied to canary.
+                if (canary_active && std::abs(angular_impulse) > 1e-5f &&
+                    ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
+                    std::cout << "[CANARY F" << phys_frame << " ANGSOLVE I" << iter
+                              << "] P" << c.body_a << "<->P" << c.body_b
+                              << " axis=(" << ax_x << "," << ax_y << "," << ax_z << ")"
+                              << " w_rel=" << omega_rel
+                              << " bias=" << c.angular_bias
+                              << " dL=" << angular_impulse
+                              << " acc=" << c.accumulated_angular_impulse
+                              << std::endl;
                 }
 
                 continue;  // Angular constraints don't have linear/friction components
@@ -3122,7 +3252,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // cap is in momentum units and the force law is derived, and the
         // foliage gate is the regression tripwire. Impulse threshold alone.
         constexpr float ABSOLUTE_THRESHOLD = 0.01f;   // N*s
-        if (max_impulse_this_iter < ABSOLUTE_THRESHOLD) {
+        // Angular AND-term: the impulse threshold is momentum-dimensioned and
+        // blind to angular rows on light bodies (a 1.5e-4 N*m*s drive impulse
+        // is 6.5 rad/s on a 2.3e-5 kg*m^2 bone — measured exiting at iters=1
+        // on every humanoid drive substep, shoulder converging at 1/65th of
+        // its commanded rate). Converged means the last sweep also stopped
+        // spinning anything.
+        // ANGULAR_EXIT_OFF=1: diagnostic lever, restores the angular-blind
+        // exit doors for A/B isolation.
+        static const bool ang_exit_off = std::getenv("ANGULAR_EXIT_OFF") != nullptr;
+        if (max_impulse_this_iter < ABSOLUTE_THRESHOLD &&
+            (ang_exit_off ||
+             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
             PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
@@ -3145,7 +3286,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // Slow progress on a large error is not a plateau, it is a hard
         // problem. Only stop when the remaining velocity error is negligible
         // in absolute terms, which is the same quantity for any mass.
-        if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f) {
+        // The plateau door carries the same angular guard: a drive row
+        // shoving a light link 6 rad/s per sweep with ~1% improvement per
+        // iteration is a HARD PROBLEM mid-solve (Gauss-Seidel propagating
+        // torque through a 65x inertia mismatch), not a converged one.
+        if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f &&
+            (ang_exit_off ||
+             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
             float improvement = (prev_max_impulse - max_impulse_this_iter) / prev_max_impulse;
             if (improvement < MIN_IMPROVEMENT_RATE) {
                 low_improvement_count++;
@@ -3277,7 +3424,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 else if (c.is_contact) canary_contacts++;
             }
         }
-        std::cout << " contacts=" << canary_contacts << " turtle=" << canary_turtle << std::endl;
+        std::cout << " contacts=" << canary_contacts << " turtle=" << canary_turtle
+                  << " omega=(" << cp.omega_x << "," << cp.omega_y << "," << cp.omega_z << ")"
+                  << " q=(" << cp.rotation_q.w << "," << cp.rotation_q.x << ","
+                  << cp.rotation_q.y << "," << cp.rotation_q.z << ")" << std::endl;
     }
 
     // V4.13 DEBUG: Find particle with max upward velocity in early frames
@@ -3419,6 +3569,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // geometrically, and correcting them twice would double the push.
     if (PhysicsV4::ENABLE_SPLIT_IMPULSE && !constraints.empty()) {
         std::vector<float> pvx(count, 0.0f), pvy(count, 0.0f), pvz(count, 0.0f);
+        // Pseudo ANGULAR velocity: the angular rows' Baumgarte terms were
+        // held out of the velocity solve (same split the linear rows get),
+        // so their orientation error is repaired here — pseudo-omega spent
+        // on rotation_q below, then discarded. Allocated lazily: most
+        // worlds have no biased angular row in a given substep.
+        std::vector<float> pwx, pwy, pwz;
         for (Constraint& c : constraints) c.accumulated_pseudo_impulse = 0.0f;
 
         // SLEEP IS NOT IMMOBILITY. Only KINEMATIC is immovable here.
@@ -3445,6 +3601,78 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         for (int iter = 0; iter < PhysicsV4::POSITION_ITERATIONS; ++iter) {
             for (Constraint& c : constraints) {
                 if (c.is_turtle_contact) continue;
+                // ---- Angular rows: repair orientation error via pseudo-omega.
+                if (c.is_angular) {
+                    static const bool ang_split_off2 = std::getenv("ANGULAR_SPLIT_OFF") != nullptr;
+                    if (ang_split_off2) continue;           // lever: bias stayed in the velocity solve
+                    // Springs and saturated contact-coupled rows kept their
+                    // bias in the velocity solve (see the spring_row and
+                    // body_in_contact comments there); repairing them here
+                    // too would double-apply the force.
+                    if (std::isfinite(c.min_angular_impulse) ||
+                        std::isfinite(c.max_angular_impulse)) continue;
+                    if ((body_in_contact[c.body_a] || body_in_contact[c.body_b]) &&
+                        std::fabs(c.angular_bias) >=
+                            PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY * 0.999f) continue;
+                    if (c.angular_bias == 0.0f) continue;   // dead-zone rows couple velocity only
+                    // Tolerance, same law as SLOP: bias*dt is the rotation this
+                    // pass wants; under the floor it is float residue.
+                    if (std::fabs(c.angular_bias) * dt < PhysicsV4::ANGULAR_SLOP) continue;
+                    if (c.body_a >= count || c.body_b >= count) continue;
+
+                    float ax_x, ax_y, ax_z;
+                    if (c.angular_axis_vec_len > 0.0f) {
+                        ax_x = c.angular_axis_x; ax_y = c.angular_axis_y; ax_z = c.angular_axis_z;
+                    } else {
+                        ax_x = (c.angular_axis_idx == 0) ? 1.0f : 0.0f;
+                        ax_y = (c.angular_axis_idx == 1) ? 1.0f : 0.0f;
+                        ax_z = (c.angular_axis_idx == 2) ? 1.0f : 0.0f;
+                    }
+
+                    // Positional inertia door: only KINEMATIC is immovable here
+                    // (sleep is not immobility), matching inv_mass_positional.
+                    const Particle& ra = particles[c.body_a];
+                    const Particle& rb = particles[c.body_b];
+                    const float I_a = (ra.solver_mode == ParticleSolverMode::KINEMATIC)
+                        ? 0.0f : ra.GetInertiaAboutAxis(ax_x, ax_y, ax_z);
+                    const float I_b = (rb.solver_mode == ParticleSolverMode::KINEMATIC)
+                        ? 0.0f : rb.GetInertiaAboutAxis(ax_x, ax_y, ax_z);
+                    if (I_a <= 0.0f && I_b <= 0.0f) continue;
+
+                    if (pwx.empty()) {
+                        pwx.assign(count, 0.0f);
+                        pwy.assign(count, 0.0f);
+                        pwz.assign(count, 0.0f);
+                    }
+                    const float pw_rel =
+                        (pwx[c.body_a] - pwx[c.body_b]) * ax_x +
+                        (pwy[c.body_a] - pwy[c.body_b]) * ax_y +
+                        (pwz[c.body_a] - pwz[c.body_b]) * ax_z;
+
+                    float aimp = -(pw_rel - c.angular_bias) * c.effective_inertia;
+
+                    // Same clamp the velocity rows obey: a force-bounded bond
+                    // repairs its bend within its torque budget, never past it.
+                    const float aold = c.accumulated_pseudo_impulse;
+                    c.accumulated_pseudo_impulse =
+                        std::max(c.min_angular_impulse,
+                                 std::min(c.max_angular_impulse, aold + aimp));
+                    aimp = c.accumulated_pseudo_impulse - aold;
+
+                    if (I_a > 0.0f) {
+                        const float inv = 1.0f / I_a;
+                        pwx[c.body_a] += aimp * ax_x * inv;
+                        pwy[c.body_a] += aimp * ax_y * inv;
+                        pwz[c.body_a] += aimp * ax_z * inv;
+                    }
+                    if (I_b > 0.0f) {
+                        const float inv = 1.0f / I_b;
+                        pwx[c.body_b] -= aimp * ax_x * inv;
+                        pwy[c.body_b] -= aimp * ax_y * inv;
+                        pwz[c.body_b] -= aimp * ax_z * inv;
+                    }
+                    continue;
+                }
                 if (c.bias == 0.0f) continue;
                 // A CORRECTION WITH NO TOLERANCE NEVER TERMINATES.
                 //
@@ -3533,6 +3761,33 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                       << " moved=" << moved
                       << " worst_dz=" << worst_dz << "m on P" << worst_id
                       << std::endl;
+        }
+
+        // Spend the pseudo ANGULAR velocity on orientations, then discard.
+        // Same law as the integrator: quat-driven particles rotate rotation_q
+        // through the axis-angle exponential and republish their Euler triple;
+        // Euler-owned bones take only the Z component (physics owns nothing
+        // else of their Euler state — FK does).
+        if (!pwx.empty()) {
+            for (size_t i = 0; i < count; ++i) {
+                if (pwx[i] == 0.0f && pwy[i] == 0.0f && pwz[i] == 0.0f) continue;
+                Particle& p = particles[i];
+                if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+                if (p.is_quat_driven) {
+                    const float wx = pwx[i], wy = pwy[i], wz = pwz[i];
+                    const float wmag = std::sqrt(wx*wx + wy*wy + wz*wz);
+                    if (wmag > 1e-9f) {
+                        const float theta = wmag * dt;
+                        const float inv = 1.0f / wmag;
+                        logosphere::Quat dq = logosphere::Quat::from_axis_angle(
+                            wx * inv, wy * inv, wz * inv, theta);
+                        p.rotation_q = (dq * p.rotation_q).normalized();
+                        p.rotation_q.to_euler_zyx(p.rotation_x, p.rotation_y, p.rotation_z);
+                    }
+                } else {
+                    p.rotation_z += pwz[i] * dt;
+                }
+            }
         }
     }
 
