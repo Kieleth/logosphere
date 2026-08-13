@@ -349,6 +349,8 @@ target_compile_features(test_mutation_playback PRIVATE cxx_std_17)
 add_headless_test(test_body_plan)
 add_headless_test(test_game_time)
 add_headless_test(test_material_properties)  # mechanical constants must be physically possible
+add_headless_test(test_inv29_constants_gate)  # INV-29 static gate: magic-float ratchet over physics TUs
+add_headless_test(test_inv15_owner_blindness)  # INV-15 static prover: counts the task-#43 owner reads
 add_headless_test(test_kg_setproperty_events)
 add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)

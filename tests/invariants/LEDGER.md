@@ -228,3 +228,78 @@ study's Option 4 rejection is overruled with the resolving insight:
 constants as build-time INPUTS (schema -> generated header) do not
 violate physics' runtime blindness (INV-15) — the engine receives its
 configuration, it does not read the game's ontology.
+
+### 2026-08-13 · UPDATE · INV-29 mechanism — registry landed, gate landed, residuals named
+
+Stages B-E of the physics-schema campaign landed (commits a6ee723,
+cb2d051, c1e0867, 150a6d9, 9652a08, 3a61032 + the Stage E gate):
+
+- schema/physics.yaml: standalone LinkML root (never imported by the KG
+  ontology — createEntity of a physics concept can never work). 37
+  concepts, the Invariant record contract (this file's rows now
+  validate with linkml-validate), and the constants registry: 12
+  groups, 68 constants, each with value, UCUM unit, group and doc.
+- generate_ontology.py header-only mode emits the registry as
+  src/generated/physics_constants.h (namespace PhysicsV4).
+- Extraction was VALUE-IDENTICAL by decree, proven the strong way:
+  test_physics_characterization held bit-identical against pinned
+  baseline c64f3caf02622e3f through all four extraction commits, and
+  the harness stayed 27/27. Behavior gates on the final batch all
+  passed (walk_through_grass 0 detonations / 0.30 m worst drift,
+  foliage, both gluon drive convergence tests, light_body_ringing,
+  settling_flat, rotated_box_contact, drive_gravity_ff).
+- The gate: test_inv29_constants_gate, a self-checked magic-float
+  ratchet over the physics TUs. Discrimination rule documented in the
+  test: identity/algebra {0, 1, -1, 0.5, 2}, precision guards
+  <= 1e-5, sentinels >= 1e9 are not magic; every other float literal
+  is. Integer literals are not scanned (stated limitation: every
+  physical integer input the census found is already in the registry).
+
+**INV-29 stays ASPIRATIONAL.** The scan finds 35 residual float sites
+in 17 token-groups, pinned exactly by the gate's KNOWN_RESIDUALS
+table. Classification:
+
+- Extraction candidates (physical, follow-up constant-work):
+  physics_system_v4.cpp 0.05 (wake-check gap), 0.15 (persistent-
+  contact gap), 0.1 x3 (horizontal-normal classifier, elastic gate),
+  0.3 x3 (receding-speed wake gate, support-normal component), 0.95
+  (damping impulse clamp), 0.999 x2 (cap guard), 0.99 (near-breaking
+  warning), 5.0/24.0 (structural damping bounds), 0.001 x5 and
+  0.01 x6 and 0.0001 x3 (mm-and-below dimensioned gates and pads).
+- Algebra staying put: 4.0f x2 (hysteresis 2^2; I_sec = A^2/(4*pi)).
+- Display conversions: explosion_detector.cpp 1000.0 x2 (J->kJ in the
+  warning printf), 999.0 (ratio fallback when previous KE was 0).
+- INV-9 tension worth its own follow-up: physics_system.h
+  GluonConstraint defaults angular_stiffness 100.0 / angular_damping
+  10.0 are DECLARED bond parameters; INV-9 says derive them.
+
+Extraction lessons already banked: the census pattern (constexpr-only)
+missed three NAMED const float constants (ANGULAR_BETA, MAX_OMEGA,
+ANGULAR_DRAG — extracted in 3a61032); and the engine declares TWO
+gravities, GRAVITY 9.8 (solver) vs ENERGY_LEDGER_G 9.81 (energy
+ledger PE bucket), 0.1% apart — extracted AS FOUND, unification is
+constant-work for a future ruling, not an extraction-time fix.
+
+### 2026-08-13 · LINK · test_inv29_constants_gate, test_inv15_owner_blindness
+
+Two headless standalone binaries added (add_headless_test, pure file
+IO, run in both build profiles), both appended to TEST_AUDIT.jsonl (no
+existing row touched):
+
+- test_inv29_constants_gate proves INV-29's ratchet (above).
+- test_inv15_owner_blindness closes the coverage hole this ledger
+  named the cheapest to close (INV-15 had one touching test, zero
+  provers). Expect-fail style per the task-#43 ruling: it PASSES while
+  the owner reads in physics TUs are exactly the seven known
+  quat-gravity-family sites (7 ParticleOwner / 7 .owner in
+  physics_system_v4.cpp, lines 530/1876/1886/3082/3087/3225/3236 at
+  time of landing, zero in every other TU) and FAILS when the count
+  moves either way — a rise is a new bleed, a drop is task-#43
+  progress that must shrink the test's table, the audit and this
+  ledger in the same commit.
+
+Both tests carry self-checks (the control: a synthetic violation must
+be found, a comment/string occurrence must not) and were additionally
+control-tested against the live tree: an injected 0.777f and an
+injected ParticleOwner read each turned their gate red, then were
+removed. INV-15's mechanism line now names its prover.
