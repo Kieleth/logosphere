@@ -45,16 +45,9 @@ namespace PhysicsSolver {
     constexpr int FORENSIC_PARTICLE_COUNT = 5;          // Track first 5 tree particles
     constexpr int FORENSIC_PARTICLE_IDS[] = {1, 2, 3, 4, 5};  // Trunk + first branches
 
-    // =========================================================================
-    // CONTACT DETECTION TOLERANCES
-    // =========================================================================
-    // Resting contact tolerance - particles within this gap are considered "touching"
-    // This handles:
-    // - Numerical precision errors
-    // - Small transient penetrations from discrete timestep
-    // - Floating-point rounding
-    // Critical for detecting resting contacts where v_rel = 0 (stacked particles)
-    constexpr float RESTING_CONTACT_TOLERANCE = 0.001f;  // 1mm
+    // RESTING_CONTACT_TOLERANCE moved to the INV-29 registry
+    // (schema/physics.yaml, ContactGeometryTolerances group ->
+    // PhysicsV4 in generated/physics_constants.h).
 
 }
 

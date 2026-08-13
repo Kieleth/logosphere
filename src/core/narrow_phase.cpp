@@ -1,4 +1,7 @@
 #include "logosphere/physics/narrow_phase.h"
+// INV-29 constants registry (schema/physics.yaml -> generated header).
+#include "generated/physics_constants.h"
+using namespace PhysicsV4;
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -90,7 +93,7 @@ bool swept_aabb_vs_aabb(const AABB6& a_start, const AABB6& a_end, const AABB6& b
 // coordinate comparisons and intersections are single-axis lerps.
 // ============================================================================
 
-static constexpr int MAX_CLIP_VERTICES = 8;  // 4 original + up to 4 from clipping
+// MAX_CLIP_VERTICES: INV-29 registry (ContactGeometryTolerances group).
 
 struct ClipVertex {
     float x, y, z;
@@ -207,8 +210,7 @@ bool narrow_phase_aabb(const AABB6& a, const AABB6& b,
     // dist_to_exit, Z wins) AND the tile boundary problem (foot straddles
     // tile edge: overlap_y on non-contained axis is larger than overlap_z).
     // ------------------------------------------------------------------
-    constexpr float BOUNDARY_EPSILON = 0.002f;
-    constexpr float ALIGNED_PENALTY = 1e6f;
+    // BOUNDARY_EPSILON, ALIGNED_PENALTY: INV-29 registry.
 
     auto compute_metric = [&](float min_i, float max_i, float min_j, float max_j, float overlap) -> float {
         // Check if bounds are aligned (same extent on this axis)
@@ -659,12 +661,11 @@ bool box_particle_is_rotated(const Particle& p) {
     if (p.is_quat_driven) {
         // Unit quaternion: any orientation shows as |w| < 1.
         // 1 - |w| ~ theta^2 / 8; 1e-6 admits ~3 mrad and under as unrotated.
-        return 1.0f - std::fabs(p.rotation_q.w) > 1e-6f;
+        return 1.0f - std::fabs(p.rotation_q.w) > QUAT_UNROTATED_EPS;
     }
-    constexpr float EPS = 1e-4f;   // radians; ~0.006 degrees
-    return std::fabs(p.rotation_x) > EPS ||
-           std::fabs(p.rotation_y) > EPS ||
-           std::fabs(p.rotation_z) > EPS;
+    return std::fabs(p.rotation_x) > BOX_ROTATION_EPS ||
+           std::fabs(p.rotation_y) > BOX_ROTATION_EPS ||
+           std::fabs(p.rotation_z) > BOX_ROTATION_EPS;
 }
 
 OBB obb_of_box_particle(const Particle& p, float z_override) {
@@ -758,7 +759,6 @@ bool narrow_phase_obb(const OBB& a, const OBB& b,
     // frame to frame. An edge axis wins only when clearly smaller (1 mm,
     // the SLOP scale) — sign-safe, unlike a relative factor, because
     // speculative overlaps can be negative.
-    constexpr float EDGE_TOL = 0.001f;
     const bool use_edge = (best_ea >= 0) &&
                           (best_edge_overlap + EDGE_TOL < best_face_overlap);
 

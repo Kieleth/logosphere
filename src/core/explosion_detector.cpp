@@ -1,5 +1,9 @@
 #include "explosion_detector.h"
 
+// INV-29 constants registry: the calibrated defaults live in
+// schema/physics.yaml (ExplosionDetectorDefaults group).
+#include "generated/physics_constants.h"
+
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -9,16 +13,15 @@ namespace expdet {
 
 namespace {
 
-// Defaults. See the header for how each number was calibrated against the
-// engine's own measured behaviour; none of them is a guess pulled from air.
-float  g_speed_ceiling   = 40.0f;     // m/s
-double g_ke_ratio        = 5.0;       // frame-over-frame
-double g_ke_abs_rise_j   = 10000.0;   // 10 kJ: rise must ALSO clear this
-float  g_escape_xy       = 5000.0f;   // |x| or |y| beyond this is nowhere
-float  g_escape_below_z  = -50.0f;    // enforce_turtle_boundary makes this
-                                      // unreachable; reaching it means the
-                                      // boundary itself failed
-constexpr uint64_t WARN_EVERY_FRAMES = 60;   // per class
+// Defaults from the INV-29 registry; the header and the schema say how
+// each number was calibrated against the engine's own measured
+// behaviour. Mutable because tests and env levers may retune at runtime.
+float  g_speed_ceiling   = PhysicsV4::EXPDET_SPEED_CEILING;
+double g_ke_ratio        = PhysicsV4::EXPDET_KE_RATIO;
+double g_ke_abs_rise_j   = PhysicsV4::EXPDET_KE_ABS_RISE;
+float  g_escape_xy       = PhysicsV4::EXPDET_ESCAPE_XY;
+float  g_escape_below_z  = PhysicsV4::EXPDET_ESCAPE_BELOW_Z;
+constexpr uint64_t WARN_EVERY_FRAMES = PhysicsV4::EXPDET_WARN_EVERY_FRAMES;
 
 bool g_enabled = [] {
     if (const char* e = std::getenv("LOGOSPHERE_EXPLOSION_DETECTOR"))
