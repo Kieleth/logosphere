@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Solver: one immovability predicate, one door for momentum.** "Can this
+  body receive momentum?" (massless, sleeping, KINEMATIC: no) is now
+  answered by a single function (`inv_mass_momentum`) used by gravity,
+  constraint-row build, warm starts, impulse application and damping,
+  replacing inline variants that disagreed with each other. Material
+  damping is re-expressed as the reduced-mass impulse it always was.
+  Fixes: bonds can no longer drag sleeping bodies (a sleeping branch
+  sank 6.74 m under its leaves' bond damping while reading at rest), and
+  a bond between two immovable bodies now has effective mass zero
+  instead of a phantom 1 kg that poisoned warm start and impulse memory
+  and detonated light bodies on wake.
 - **Breaking (NPC layer): the engine/game AI boundary is now real.** The
   engine keeps GOAP *mechanism* — planner, A* pathfinding,
   `ExecutorRegistry`, `GOAPPlanExecutor`, and the generic executors

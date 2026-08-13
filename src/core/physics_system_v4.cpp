@@ -464,6 +464,41 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
  *
  *   vz after = 0 + (-9.8) × 0.0167 = -0.1634 m/s
  */
+// ============================================================================
+// THE ONE DOOR FOR MOMENTUM
+// ============================================================================
+// One predicate answers "can this body receive momentum?", and one function
+// applies every pairwise impulse. Before this existed the predicate was
+// re-derived inline at 8 division sites with three different formulas
+// (KINEMATIC-only at the gluon row build, at_rest||KINEMATIC at the impulse
+// applies, both plus a mass guard at the position projection), and the V4.9
+// damping blend had a fourth opinion: none. A sleeping body was infinite
+// mass to gravity and to impulses but movable to that blend, which is how a
+// 111.661 kg branch sank 6.74 m while asleep (see the damping site).
+//
+// The law: massless, sleeping and KINEMATIC bodies do not receive momentum.
+// Sleep is an optimisation about momentum only. Geometric repair answers a
+// different question with a different predicate (inv_mass_positional in the
+// split-impulse position pass), on purpose: a sleeping body's overlap is as
+// real as an awake one's.
+static inline float inv_mass_momentum(const Particle& p) {
+    if (p.solver_mode == ParticleSolverMode::KINEMATIC) return 0.0f;
+    if (p.is_at_rest) return 0.0f;
+    const float m = p.GetMass();
+    return (m > 0.0f) ? (1.0f / m) : 0.0f;
+}
+
+// Equal and opposite by construction: +J to a, -J to b, each side through
+// the predicate. A body the predicate calls immovable receives J * 0, so
+// "forgot the guard" is not a writable bug at a door call site.
+static inline void apply_pair_impulse(Particle& a, Particle& b,
+                                      float jx, float jy, float jz) {
+    const float ia = inv_mass_momentum(a);
+    const float ib = inv_mass_momentum(b);
+    a.vx += jx * ia;  a.vy += jy * ia;  a.vz += jz * ia;
+    b.vx -= jx * ib;  b.vy -= jy * ib;  b.vz -= jz * ib;
+}
+
 void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float dt) {
     const size_t count = particles.size();
 
@@ -473,12 +508,9 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
     // When a particle wakes (external collision), it will get gravity again.
     for (size_t i = 0; i < count; ++i) {
         Particle& p = particles[i];
-        // Skip massless particles (lights, celestial) - they float
-        if (p.GetMass() == 0.0f) continue;
-        // Skip DYNAMICS-owned - dynamics system applies entity-level gravity
-        if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
-        // Skip at-rest particles - they're in equilibrium
-        if (p.is_at_rest) continue;
+        // Gravity is momentum input, and who may receive momentum is the
+        // door's one question: massless, KINEMATIC and sleeping bodies no.
+        if (inv_mass_momentum(p) == 0.0f) continue;
         // ANIMATION-owned quaternion-driven particles are the animation
         // layer's gluon PD bones: gravity on them would droop a 7-hop
         // chain visibly, and the drive is the animation system's "this
@@ -1424,12 +1456,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             continue;
         }
 
-        // Effective mass (reduced mass) - same for all 3 constraints
-        // DYNAMICS particles act as infinite mass (their velocity is controlled by dynamics)
-        float inv_ma = (pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
-        float inv_mb = (pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f);
+        // Effective mass (reduced mass) - same for all 3 constraints.
+        // Through the one predicate: this build used KINEMATIC-only while the
+        // apply used at_rest||KINEMATIC, so rows sized impulses for moving a
+        // sleeping body the apply then refused to move.
+        float inv_ma = inv_mass_momentum(pa);
+        float inv_mb = inv_mass_momentum(pb);
         float inv_mass_sum = inv_ma + inv_mb;
-        float eff_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 1.0f;
+        // No movable endpoint -> effective mass ZERO, not an arbitrary 1.0f.
+        // The contact build learned this in S22 (see the phantom-impulse
+        // comment there): a fake eff mass makes a row compute the same
+        // nonzero impulse forever, applied times zero, pinning the global
+        // convergence max. With sleep now immovable at this build too, a
+        // strained sleeping bond would otherwise poison warm start and
+        // impulse memory with impulses sized for a 1 kg system on
+        // 0.0002 kg blades, slamming the body the moment it wakes.
+        float eff_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 0.0f;
 
         // Breaking force per axis (total force checked after solve)
         float breaking = gluon->calculate_breaking_force(pa, pb);
@@ -1597,70 +1639,28 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             }  // if (!skip_position_bias)
         }
 
-        // V4.9: Apply material-based damping to velocities BEFORE constraint solve
-        // This reduces relative motion energy based on material properties
-        // Wood-to-wood: high damping (fibers absorb), stone-to-stone: low damping (rigid)
-        //
-        // KINEMATIC endpoints are infinite mass (2026-07-10 fix): the COM
-        // velocity of an infinite+finite mass pair IS the kinematic
-        // endpoint's velocity, so only the dynamic endpoint damps toward
-        // it and the kinematic side is NEVER written. Without this, a
-        // pinned foot-plant anchor was dragged to walking speed by its
-        // pin gluon, never rested, and leaked anchors accumulated into
-        // an eternally-awake contact horde (contract a4 in
-        // tests/test_position_authority.cpp).
-        // AT-REST IS INFINITE MASS HERE TOO. Every other site in this solver
-        // gives a sleeping body inv_mass = 0 (the impulse pass computes
-        // `pa.is_at_rest || KINEMATIC ? 0.0f : 1/m`), but this blend wrote
-        // both endpoints unconditionally. A sleeping 111.661 kg branch
-        // carrying ten 0.107 kg leaves was handed com_vz * damping_factor
-        // once per leaf per substep — 1.02e-3 m/s per frame, 0.6% of gravity,
-        // on a body that skips gravity and never woke because the ramp stayed
-        // under the 0.2 m/s wake threshold. Linear velocity ramp integrates to
-        // quadratic drift: 6.91 m predicted over 900 frames, 6.74 m measured.
-        // That was the foliage canopy "detaching" — the branches were sinking
-        // out from under leaves that stayed where they were put.
+        // V4.9 material damping, re-expressed as the reduced-mass impulse
+        // it always was: J = mu * d * (v_b - v_a), mu = 1/(inv_a + inv_b).
+        // For two dynamic bodies this IS the old COM blend, algebraically
+        // (dv_a = (m_b/M) * d * (v_b - v_a), momentum conserved exactly).
+        // As one side becomes immovable, mu -> m_dyn and the formula
+        // reproduces the old one-kinematic branch with the immovable side
+        // untouched (dv = J * 0). The old code hand-expanded those limits
+        // into three branches, and the case it never wrote, at_rest, moved
+        // sleeping bodies: a 111.661 kg branch asleep under ten 0.107 kg
+        // leaves gained 1.02316e-3 m/s per frame (0.6% of g, under the
+        // 0.2 m/s wake threshold) and sank 6.74 m in 900 frames, at_rest=1
+        // throughout. One formula through the one door; no branch to forget.
         if (damping_factor > 0.0f) {
-            static const bool at_rest_damp_old = std::getenv("AT_REST_DAMP_OLD") != nullptr;
-            bool a_immovable = (pa.solver_mode == ParticleSolverMode::KINEMATIC) ||
-                               (pa.is_at_rest && !at_rest_damp_old);
-            bool b_immovable = (pb.solver_mode == ParticleSolverMode::KINEMATIC) ||
-                               (pb.is_at_rest && !at_rest_damp_old);
-            float keep = 1.0f - damping_factor;
-
-            if (a_immovable && b_immovable) {
-                // Both infinite mass — nothing to damp.
-            } else if (a_immovable || b_immovable) {
-                size_t dyn_id = a_immovable ? body_b : body_a;
-                size_t kin_id = a_immovable ? body_a : body_b;
-                const Particle& kin_p = particles[kin_id];
-                Particle& dyn_p = particles[dyn_id];
-                dyn_p.vx = kin_p.vx + (dyn_p.vx - kin_p.vx) * keep;
-                dyn_p.vy = kin_p.vy + (dyn_p.vy - kin_p.vy) * keep;
-                dyn_p.vz = kin_p.vz + (dyn_p.vz - kin_p.vz) * keep;
-            } else {
-                // Get current velocities
-                float va_x = particles[body_a].vx, va_y = particles[body_a].vy, va_z = particles[body_a].vz;
-                float vb_x = particles[body_b].vx, vb_y = particles[body_b].vy, vb_z = particles[body_b].vz;
-
-                // Compute center-of-mass velocity (conserved)
-                float mass_a = pa.GetMass(), mass_b = pb.GetMass();
-                float total_mass = mass_a + mass_b;
-                float com_vx = (mass_a * va_x + mass_b * vb_x) / total_mass;
-                float com_vy = (mass_a * va_y + mass_b * vb_y) / total_mass;
-                float com_vz = (mass_a * va_z + mass_b * vb_z) / total_mass;
-
-                // Relative velocities from COM
-                float rel_a_x = va_x - com_vx, rel_a_y = va_y - com_vy, rel_a_z = va_z - com_vz;
-                float rel_b_x = vb_x - com_vx, rel_b_y = vb_y - com_vy, rel_b_z = vb_z - com_vz;
-
-                // Damp relative velocities (reduce by damping_factor)
-                particles[body_a].vx = com_vx + rel_a_x * keep;
-                particles[body_a].vy = com_vy + rel_a_y * keep;
-                particles[body_a].vz = com_vz + rel_a_z * keep;
-                particles[body_b].vx = com_vx + rel_b_x * keep;
-                particles[body_b].vy = com_vy + rel_b_y * keep;
-                particles[body_b].vz = com_vz + rel_b_z * keep;
+            const float inv_da = inv_mass_momentum(pa);
+            const float inv_db = inv_mass_momentum(pb);
+            const float inv_sum_d = inv_da + inv_db;
+            if (inv_sum_d > 0.0f) {
+                const float sd = damping_factor / inv_sum_d;   // mu * d
+                apply_pair_impulse(particles[body_a], particles[body_b],
+                    sd * (particles[body_b].vx - particles[body_a].vx),
+                    sd * (particles[body_b].vy - particles[body_a].vy),
+                    sd * (particles[body_b].vz - particles[body_a].vz));
             }
         }
 
@@ -1771,18 +1771,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         if (gluon->force_bounded() && !impulse_memory_off()) {
             Particle& wa = particles[body_a];
             Particle& wb = particles[body_b];
-            const float winv_a = (wa.is_at_rest ||
-                                  wa.solver_mode == ParticleSolverMode::KINEMATIC)
-                                 ? 0.0f : (1.0f / wa.GetMass());
-            const float winv_b = (wb.is_at_rest ||
-                                  wb.solver_mode == ParticleSolverMode::KINEMATIC)
-                                 ? 0.0f : (1.0f / wb.GetMass());
-            wa.vx += gluon->warm_ix * winv_a;
-            wa.vy += gluon->warm_iy * winv_a;
-            wa.vz += gluon->warm_iz * winv_a;
-            wb.vx -= gluon->warm_ix * winv_b;
-            wb.vy -= gluon->warm_iy * winv_b;
-            wb.vz -= gluon->warm_iz * winv_b;
+            apply_pair_impulse(wa, wb,
+                               gluon->warm_ix, gluon->warm_iy, gluon->warm_iz);
         }
 
         // =================================================================
@@ -2271,9 +2261,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 //   Store: 7.35 + tiny ≈ 7.35 (stable)
 
                 Particle& pa = particles[c.body_a];
-                // V4.13: Check is_at_rest like solver does (at_rest = infinite mass)
-                // Also skip DYNAMICS-owned particles - dynamics controls their velocity
-                float inv_ma = (pa.is_at_rest || pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
+                float inv_ma = inv_mass_momentum(pa);
                 float mass_a = pa.GetMass();
 
                 // Compute relative velocity along Jacobian
@@ -2297,9 +2285,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
                 if (!c.is_turtle_contact) {
                     Particle& pb = particles[c.body_b];
-                    // V4.13: Check is_at_rest like solver does (at_rest = infinite mass)
-                    // Also skip DYNAMICS-owned particles - dynamics controls their velocity
-                    float inv_mb = (pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f);
+                    float inv_mb = inv_mass_momentum(pb);
                     pb.vx -= c.jx * warm_impulse * inv_mb;
                     pb.vy -= c.jy * warm_impulse * inv_mb;
                     pb.vz -= c.jz * warm_impulse * inv_mb;
@@ -2308,7 +2294,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // CANARY_DEBUG: Log warm start impulse applied to canary
                 if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
                     float dvz_a = c.jz * warm_impulse * inv_ma;
-                    float dvz_b = c.is_turtle_contact ? 0.0f : (-c.jz * warm_impulse * (particles[c.body_b].is_at_rest ? 0.0f : (1.0f / particles[c.body_b].GetMass())));
+                    float dvz_b = c.is_turtle_contact ? 0.0f : (-c.jz * warm_impulse * inv_mass_momentum(particles[c.body_b]));
                     std::cout << "[CANARY F" << phys_frame << " WARM] P" << c.body_a << "<->P" << c.body_b
                               << " impulse=" << warm_impulse
                               << " j=(" << c.jx << "," << c.jy << "," << c.jz << ")"
@@ -2719,9 +2705,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Turtle contacts: inv_mb = 0 (infinite mass)
             // at_rest particles: treated as infinite mass (don't move until woken)
             // DYNAMICS particles: inv_mass = 0 (dynamics system handles collision response)
-            float inv_ma = (pa.is_at_rest || pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
-            float inv_mb = c.is_turtle_contact ? 0.0f :
-                           ((pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f));
+            float inv_ma = inv_mass_momentum(pa);
+            float inv_mb = c.is_turtle_contact ? 0.0f : inv_mass_momentum(pb);
 
             // WHAT THAT IMPULSE ACTUALLY DOES. An impulse in N*s means nothing
             // on its own: 0.01 N*s is a shrug to a 112 kg branch and a shove to
@@ -3234,7 +3219,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // 4 times in 300 frames (each moving it the capped 0.0333 m) before
         // inverse mass went to zero and repair stopped for good. It finished
         // holding a 2.35 m bond error, 117x the 0.02 m wake threshold.
-        auto inv_mass_of = [](const Particle& p) -> float {
+        // (The momentum-side predicate is inv_mass_momentum; the two differ
+        // on sleep, deliberately.)
+        auto inv_mass_positional = [](const Particle& p) -> float {
             if (p.solver_mode == ParticleSolverMode::KINEMATIC) return 0.0f;
             const float m = p.GetMass();
             return (m > 0.0f) ? (1.0f / m) : 0.0f;
@@ -3273,8 +3260,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (c.is_contact && c.bias < 0.0f) continue;
                 if (c.body_a >= count || c.body_b >= count) continue;
 
-                const float inv_ma = inv_mass_of(particles[c.body_a]);
-                const float inv_mb = inv_mass_of(particles[c.body_b]);
+                const float inv_ma = inv_mass_positional(particles[c.body_a]);
+                const float inv_mb = inv_mass_positional(particles[c.body_b]);
                 if (inv_ma == 0.0f && inv_mb == 0.0f) continue;
 
                 const float pv_rel =
