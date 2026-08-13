@@ -1435,6 +1435,84 @@ std::vector<int> characteristics_of(const kg::KGModule& world,
     return out;
 }
 
+// A mishap can ruin a characteristic, and the crisis it raises
+// suspends the SAME step that asked "take the mishap, or die". The
+// answer to the second question was read as an answer to the first: a
+// second mishap rolled, two more years added, no money taken, and the
+// characteristic left at 0.
+void test_paying_for_an_injury_does_not_re_roll_the_mishap() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the injury-crisis world loads: " + why);
+    if (!why.empty()) return;
+
+    const auto mishaps_in = [](const logovger::CharacterSheet& sheet) {
+        int count = 0;
+        for (const auto& event : sheet.life) {
+            if (event.what.rfind("mishap: ", 0) == 0) ++count;
+        }
+        return count;
+    };
+
+    uint64_t found = 0;
+    int crises = 0;
+    std::string error;
+    for (uint64_t seed = 1; seed <= 600 && found == 0; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) continue;
+        LongLife player(session);
+        if (!player.run_until("injury has taken", error)) continue;
+        ++crises;
+        bool can_pay = false;
+        for (const auto& choice : session.choices()) {
+            if (choice.key == "1") can_pay = true;
+        }
+        if (!can_pay) continue;
+
+        const auto& sheet = session.sheet();
+        const long long quoted = quoted_price(session.prompt());
+        const long long held = sheet.credits;
+        const int mishaps_before = mishaps_in(sheet);
+        const int age_before = sheet.age_years;
+        std::cout << "  [measure] seed " << seed << ": " << session.prompt()
+                  << "\n";
+
+        CHECK(session.choose("1", error), "the care is paid for: " + error);
+        std::cout << "  [measure] after paying: Cr" << sheet.credits
+                  << ", age " << sheet.age_years << ", " << mishaps_in(sheet)
+                  << " mishap(s)\n";
+
+        CHECK(sheet.credits == held - quoted,
+              "paying an injury crisis costs what it quoted: Cr" +
+                  std::to_string(held) + " - Cr" + std::to_string(quoted) +
+                  " = Cr" + std::to_string(sheet.credits));
+        CHECK(mishaps_in(sheet) == mishaps_before,
+              "and rolls no second mishap: " +
+                  std::to_string(mishaps_before) + " before, " +
+                  std::to_string(mishaps_in(sheet)) + " after");
+        CHECK(sheet.age_years == age_before,
+              "and adds no further years: age " +
+                  std::to_string(age_before) + " -> " +
+                  std::to_string(sheet.age_years));
+        bool still_ruined = false;
+        for (const auto* slot : kCharacteristics) {
+            if (world.getProperty(sheet.id, slot) == "0") still_ruined = true;
+        }
+        CHECK(!still_ruined, "and restores what the injury took: " + sheet.upp);
+        CHECK(world.getProperty(sheet.id, "qualification_barred") == "true",
+              "and marks the survivor, as the aging crisis does");
+        found = seed;
+    }
+    std::cout << "  [measure] " << crises
+              << " injury crises swept, first payable was seed " << found
+              << "\n";
+    CHECK(found != 0,
+          "some life reaches an injury crisis it can pay for; none did, so "
+          "this proves nothing");
+}
+
 void test_the_aging_crisis_is_paid_for_or_kills() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -1754,6 +1832,7 @@ int main() {
     test_a_life_is_generated();
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
+    test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();
     test_missing_rules_fail_loudly();

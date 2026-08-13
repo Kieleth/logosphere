@@ -1454,6 +1454,7 @@ ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
     crisis_price_ = price.total;
     crisis_roll_ = price.id;
     crisis_cause_ = cause;
+    crisis_open_ = true;
 
     std::vector<std::string> at_zero;
     const auto zero = [&](const char* name, int value) {
@@ -1497,6 +1498,7 @@ ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
 
 ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
     const std::string& answer) {
+    crisis_open_ = false;
     if (answer != "1") {
         finish_reason_ = crisis_cause_ +
                          " took a characteristic to nothing, and the "
@@ -1654,6 +1656,13 @@ bool ChargenSession::run_granted_rolls(
 // it, at the moment the throw is missed.
 ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
     const PrimitiveContext& context) {
+    // This step asks two different questions. The mishap can ruin a
+    // characteristic, and the crisis it raises suspends the SAME step,
+    // so an arriving answer has to be routed by which question is
+    // open. Without this, "pay Cr50000 for care" was read as "take the
+    // mishap": a second mishap was rolled, two more years added, no
+    // money taken, and the characteristic left at 0.
+    if (context.input && crisis_open_) return resolve_crisis(*context.input);
     if (!context.input) {
         choices_.clear();
         choices_.push_back({"1", "take the mishap instead",
@@ -1745,8 +1754,10 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
 ChargenSession::PrimitiveResult ChargenSession::roll_aging(
     const PrimitiveContext& context) {
     // The only question this step asks is the crisis, so an answer
-    // arriving here is an answer to that.
-    if (context.input) return resolve_crisis(*context.input);
+    // arriving here is an answer to that. Routed on the same flag as
+    // survival_mishap rather than on "there was input", because one
+    // step asking two questions is what went wrong there.
+    if (context.input && crisis_open_) return resolve_crisis(*context.input);
     // "The effects of aging begin when a character reaches 34 years of
     // age", and the checklist repeats it as "If your character is 34 or
     // older, roll for aging." Gating on the term count instead agreed

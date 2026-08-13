@@ -226,6 +226,11 @@ private:
     // the question so the answer is priced at what was asked.
     long long                        crisis_price_ = 0;
     uint64_t                         crisis_roll_ = 0;
+    // A crisis is outstanding, so the next answer belongs to it. Two
+    // steps can raise one, and survival_mishap asks a question of its
+    // own first: without this it read "pay for care" as an answer to
+    // "take the mishap", rolled a second mishap and took no money.
+    bool                             crisis_open_ = false;
     std::string                      crisis_cause_;
     // "Lose all benefits", set by a mishap row and consumed by the
     // muster-out that follows it.
