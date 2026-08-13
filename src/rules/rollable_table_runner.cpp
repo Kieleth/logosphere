@@ -58,12 +58,17 @@ bool read_rows(const kg::KGModule& world, EntityID table,
         // missing property mean two different things.
         const bool unbounded =
             world.getProperty(part, "roll_max_unbounded") == "true";
+        const bool open_bottom =
+            world.getProperty(part, "roll_min_unbounded") == "true";
         if (!detail::parse_required_integer(
                 world.getProperty(part, "roll_min"), "roll_min", row.low,
                 error)) {
             error = "TableEntry " + std::to_string(part) + ": " + error;
             return false;
         }
+        // An open bottom still states its roll_min, because the book
+        // prints one; it simply also catches everything below it.
+        if (open_bottom) row.low = std::numeric_limits<int64_t>::min();
         if (unbounded) {
             row.high = std::numeric_limits<int64_t>::max();
         } else if (!detail::parse_required_integer(

@@ -407,7 +407,12 @@ void test_aging_takes_what_the_referee_says_it_takes() {
     // chance of being marked, so the sweep has to be wide.
     kg::KGModule sweep_world(game_registry());
     CHECK(build_world(sweep_world, why), "the sweep world loads: " + why);
-    for (uint64_t seed = 1; seed <= 400 && bitten_seed == 0; ++seed) {
+    // Two separate proofs are wanted, and neither implies the other, so
+    // the sweep runs until it has BOTH. Stopping at the first life that
+    // consulted the referee left the whole-group case unproven whenever
+    // the harder one happened to come first.
+    for (uint64_t seed = 1;
+         seed <= 400 && (bitten_seed == 0 || whole_group_seed == 0); ++seed) {
         kg::KGModule& world = sweep_world;
         logosphere::dice::DiceService dice;
         logovger::ChargenRequest req;
@@ -974,15 +979,31 @@ void test_skill_table_dice_data_drives_selection() {
     std::string error;
     const bool ok = logovger::run_chargen(
         request, world, dice, sheet, error);
-    const logosphere::dice::DiceRoll* training = nullptr;
+    // Every training roll of the term, not just the last: a character
+    // who is promoted rolls twice, and both must come off the table
+    // this test rewrote. Counting rolls rather than skills also keeps
+    // the assertion about the TABLE, since two rolls can land on the
+    // same skill and raise it instead of granting a second.
+    size_t training_rolls = 0, off_the_changed_table = 0;
+    std::string totals;
     for (const auto& roll : dice.journal()) {
-        if (roll.purpose == "skills and training") training = &roll;
+        if (roll.purpose != "skills and training") continue;
+        ++training_rolls;
+        totals += (totals.empty() ? "" : ",") + std::to_string(roll.total);
+        if (roll.expression.modifier == 6 && roll.total >= 7 &&
+            roll.total <= 12) {
+            ++off_the_changed_table;
+        }
     }
-    CHECK(ok && sheet.skills.size() == 1 && training &&
-              training->expression.modifier == 6 && training->total >= 7 &&
-              training->total <= 12,
+    CHECK(ok && !sheet.skills.empty() && training_rolls > 0 &&
+              off_the_changed_table == training_rolls,
           "changing the table's DiceExpression and bands changes selection "
-          "without procedure code changes: " + error);
+          "without procedure code changes: ran=" + std::to_string(ok) +
+              " skills=" + std::to_string(sheet.skills.size()) +
+              " training rolls=" + std::to_string(training_rolls) +
+              " on the changed table=" +
+              std::to_string(off_the_changed_table) + " totals=" + totals +
+              " " + error);
 }
 
 void test_every_skill_table_row_is_validated_before_selection() {
@@ -1396,6 +1417,26 @@ void test_the_aging_crisis_is_paid_for_or_kills() {
               << quoted << " against Cr" << held << " held\n";
 
     // ---- paying it --------------------------------------------------
+    // The purse the sheet claims to hold, itemised, so a disagreement
+    // between the cache and the parts names the parts.
+    std::string purse_before;
+    long long purse_sum_before = 0;
+    for (const auto part : world.getRelated(sheet.id, "HAS_PART")) {
+        if (world.getType(part) != "CurrencyBalance") continue;
+        const auto amount = world.getProperty(part, "balance_amount");
+        purse_before += (purse_before.empty() ? "" : "+") +
+                        (amount.empty() ? std::string("<empty>") : amount);
+        if (!amount.empty()) purse_sum_before += std::stoll(amount);
+    }
+    // The question the crisis asks is "can you pay", so the number it
+    // quotes has to be the money that is there. It was not: a rule that
+    // charged the character between mustering out and the crisis moved
+    // the parts while the sheet's copy stood still.
+    CHECK(purse_sum_before == held,
+          "the Cr" + std::to_string(held) +
+              " the crisis says the character holds is the money in the "
+              "parts: " + purse_before + " = Cr" +
+              std::to_string(purse_sum_before));
     CHECK(session.choose("1", error), "the care is paid for: " + error);
     const auto after = characteristics_of(world, sheet.id);
     CHECK(sheet.credits == held - quoted,

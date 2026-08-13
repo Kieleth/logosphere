@@ -8478,7 +8478,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -8745,7 +8747,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -9012,7 +9016,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -9279,7 +9285,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -9546,7 +9554,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -9813,7 +9823,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -18233,7 +18245,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -18500,7 +18514,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -18767,7 +18783,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -19034,7 +19052,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -19301,7 +19321,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -19568,7 +19590,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -28628,7 +28652,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -28895,7 +28921,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -29162,7 +29190,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -29429,7 +29459,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -29696,7 +29728,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -29963,7 +29997,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -38825,7 +38861,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -39092,7 +39130,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -39359,7 +39399,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -39626,7 +39668,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -39893,7 +39937,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {
@@ -40160,7 +40206,9 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
-    "source_quote": "In each term you spend in a career, pick one of these tables and roll 1D6 to see which skill you increase."
+    "source_quote": "You may only roll on the Advanced Education table if your character has Education 8+.",
+    "requires_attribute": "education",
+    "requires_minimum": "8"
    }
   },
   {

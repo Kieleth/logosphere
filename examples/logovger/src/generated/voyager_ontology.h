@@ -1917,6 +1917,10 @@ struct DiceExpression : public Entity, public Cited {
 
 /// A table keyed by a die result: roll the dice, land in a row. Rows are TableEntry entities attached with HAS_PART; each row claims a result band, and a well-formed table covers its dice range with no gaps and no overlaps (the ingestion verifier proves that per table).
 struct RollableTable : public Entity, public Cited {
+    /// An attribute the chooser must have enough of before this table is even on offer. Cepheus: "You may only roll on the Advanced Education table if your character has Education 8+." Resolved against the target's declared slots exactly as attribute_ref is, never a bare label the graph cannot check.
+    std::optional<std::string> requires_attribute = std::nullopt;
+    /// The least the required attribute may be. Travels with requires_attribute: neither means anything alone, and a table carrying one without the other is malformed rather than permissive.
+    std::optional<int32_t> requires_minimum = std::nullopt;
     /// The dice this check or table is rolled with.
     DiceExpression dice = {};
 };
@@ -1986,6 +1990,8 @@ struct TableEntry : public Entity, public Cited {
     std::optional<int32_t> roll_max = std::nullopt;
     /// This row claims everything at or above roll_min. The aging table ends at "1+", and writing a number there would put a figure in the graph that the book does not print. The same need already exists one class over, as key_max_unbounded on LookupEntry.
     std::optional<bool> roll_max_unbounded = std::nullopt;
+    /// This row is the open BOTTOM of its table: every total at or below its roll_min selects it. The mirror of roll_max_unbounded, and needed for the same reason. Cepheus prints the worst aging result as a plain "-6" because that is as low as 2D6 minus seven terms can reach, but a natural 12 on re-enlistment carries a character past the seven-term cap, and 2D6 minus nine reaches -7. A table that ends at a number the dice can pass has a hole in it.
+    std::optional<bool> roll_min_unbounded = std::nullopt;
     /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
     Outcome outcome = {};
 };

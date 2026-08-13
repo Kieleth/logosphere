@@ -808,6 +808,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("RelationEvent", "relation_type", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addProperty("RollableTable", "requires_attribute", kg::PropertyValueKind::String, false);
+    reg.addProperty("RollableTable", "requires_minimum", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("RollableTable", "dice", true, "DiceExpression");
     reg.addProperty("RuleConstant", "constant_value", kg::PropertyValueKind::Integer, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -835,6 +837,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("TableEntry", "roll_min", kg::PropertyValueKind::Integer, true);
     reg.addProperty("TableEntry", "roll_max", kg::PropertyValueKind::Integer, false);
     reg.addProperty("TableEntry", "roll_max_unbounded", kg::PropertyValueKind::Boolean, false);
+    reg.addProperty("TableEntry", "roll_min_unbounded", kg::PropertyValueKind::Boolean, false);
     reg.addRefProperty("TableEntry", "outcome", true, "Outcome");
     reg.addProperty("TaskCheck", "attribute_ref", kg::PropertyValueKind::String, false);
     reg.addProperty("TaskCheck", "target_number", kg::PropertyValueKind::Integer, true);

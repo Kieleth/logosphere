@@ -83,7 +83,61 @@ struct Fixture {
         world.createRelation(table, "HAS_PART", id);
         return id;
     }
+
+    // The other end: a band written "N or less". The row still states
+    // the figure the book prints, and roll_min_unbounded says it also
+    // catches everything under it.
+    kg::EntityID open_bottom_row(int low, int high, kg::EntityID outcome) {
+        const auto id = world.createEntity("TableEntry");
+        world.setProperty(id, "roll_min", std::to_string(low));
+        world.setProperty(id, "roll_max", std::to_string(high));
+        world.setProperty(id, "roll_min_unbounded", "true");
+        world.setProperty(id, "outcome", std::to_string(outcome));
+        world.createRelation(table, "HAS_PART", id);
+        return id;
+    }
 };
+
+// The mirror of the open top, and the reason it exists: a negative DM
+// can undershoot the lowest figure a table prints. Cepheus's aging
+// table does not write its bottom row that way, so nothing in the
+// shipped seeds uses this; a book that does write "N or less" is now
+// expressible without a procedure knowing which table it is.
+void an_open_ended_bottom_band_catches_every_total_below_it() {
+    Fixture f;
+    const auto floor_outcome = f.outcome();
+    const auto rest_outcome = f.outcome();
+    const auto floor_row = f.open_bottom_row(-2, -2, floor_outcome);
+    const auto rest = f.row(-1, 8, rest_outcome);
+
+    // 2D6 shifted down by four reaches -2..8, so the floor row is what
+    // stands between the table and an uncovered total.
+    rules::RollableTableRunner runner(f.world, f.dice);
+    const auto result = runner.select(f.table, "table", "fixture", -4);
+    REQUIRE(result.ok(),
+            "an open-ended bottom band must be rollable: " + result.error);
+    const auto& selected = *result.selection;
+    const bool low = selected.roll().total <= -2;
+    REQUIRE(selected.row() == (low ? floor_row : rest) &&
+                selected.outcome() == (low ? floor_outcome : rest_outcome),
+            "every total at or below the floor band's figure selects it");
+
+    // The control: without the flag the same table has a hole, and the
+    // runner refuses it rather than rolling into nothing.
+    Fixture bare;
+    bare.row(-2, -2, bare.outcome());
+    bare.row(-1, 8, bare.outcome());
+    rules::RollableTableRunner bare_runner(bare.world, bare.dice);
+    const auto refused =
+        bare_runner.select(bare.table, "table", "fixture", -5);
+    REQUIRE(!refused.ok() &&
+                refused.error.find("no row for reachable total") !=
+                    std::string::npos,
+            "a closed bottom the DM can undershoot is refused: " +
+                refused.error);
+    REQUIRE(bare.dice.journal().empty(),
+            "and refused before any roll is spent");
+}
 
 // Cepheus writes the top of the aging table as "1+", with no upper
 // figure. Before roll_max_unbounded was honoured here the whole table
@@ -297,6 +351,7 @@ int main() {
     std::cout << "Rollable table runner\n";
     TEST(selection_records_the_roll_and_returns_the_exact_row_and_outcome);
     TEST(an_open_ended_band_catches_every_total_above_it);
+    TEST(an_open_ended_bottom_band_catches_every_total_below_it);
     TEST(a_dice_modifier_shifts_both_the_roll_and_its_validation);
     TEST(the_complete_table_validates_before_any_roll_is_consumed);
     TEST(malformed_references_and_context_fail_loudly_without_a_roll);
