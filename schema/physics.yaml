@@ -973,6 +973,14 @@ classes:
           walk-through-grass gate's worst detonation measured exactly
           151.2 m/s. A joint corrects toward its target at a bounded
           rate; larger errors resolve over frames.
+      ANGULAR_LIMIT_UNLIMITED:
+        range: float
+        ifabsent: float(3.14159)
+        unit: { ucum_code: rad }
+        description: >-
+          A constraint row's default angular dead zone: +/- pi means no
+          limit (180 deg both ways). Rows wanting a real limit set
+          their own.
       CONTACT_CAPTURE_CUSHION:
         range: float
         ifabsent: float(4.0)

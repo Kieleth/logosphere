@@ -121,6 +121,10 @@ constexpr float    GLUON_MAX_BIAS_VELOCITY = 4.0f;   // unit: m/s
 // its target at a bounded rate; larger errors resolve over frames.
 constexpr float    MAX_ANGULAR_BIAS_VELOCITY = 4.0f;   // unit: rad/s
 
+// A constraint row's default angular dead zone: +/- pi means no limit
+// (180 deg both ways). Rows wanting a real limit set their own.
+constexpr float    ANGULAR_LIMIT_UNLIMITED = 3.14159f;   // unit: rad
+
 // MECHANISM A (issue #47), INV-17's number: a contact row's impulse
 // budget is effective_mass * (|approach| + this), instead of infinity.
 // The cushion is what sustains STATIC support: a resting row has zero

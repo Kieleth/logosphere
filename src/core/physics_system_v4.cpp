@@ -5333,9 +5333,10 @@ void PhysicsSystem::notify_particle_swap(size_t old_index, size_t new_index) {
 // - impact_velocity >= WAKE_PROPAGATION_THRESHOLD: propagate wake through gluons
 //
 // Default: FLT_MAX = always propagate (for external API like wake_particle())
+//
+// WAKE_PROPAGATION_THRESHOLD and WAKE_ENERGY_DAMPING live in the INV-29
+// registry (schema/physics.yaml -> generated/physics_constants.h).
 // ============================================================================
-constexpr float WAKE_PROPAGATION_THRESHOLD = 0.5f;  // m/s - small bumps don't cascade
-constexpr float WAKE_ENERGY_DAMPING = 0.3f;  // Energy loss per gluon hop (70% loss)
 
 // Static counters for wake propagation diagnostics
 static size_t s_wake_propagation_total = 0;
