@@ -4385,6 +4385,22 @@ static void derive_organic_force_law(OrganicGluon& g,
     const float eta = 0.5f * (Materials::GetLossFactor(pa.material_type) +
                               Materials::GetLossFactor(pb.material_type));
     g.damping = eta * std::sqrt(g.stiffness * std::fmax(mu, 1e-6f));
+
+    // Bending (Phase C angular): the same material spans resisting rotation.
+    // Second moment of a round section from the area the bond already
+    // carries, I = A^2/(4*pi), so K = I / (L_a/E_a + L_b/E_b) in N*m/rad.
+    // A grass blade derives ~8e-4 (bends underfoot instead of tearing), an
+    // oak branch ~6e5 (holds its canopy). Angular damping is the loss
+    // factor against the pair's reduced moment of inertia. Joint semantics
+    // (enable_angular_constraint, rotation limits) stay declared: they are
+    // policy, not material.
+    const float I_sec = (A * A) / (4.0f * (float)M_PI);
+    g.angular_stiffness = I_sec / (la / Ea + lb / Eb);
+    const float Ia = pa.GetMomentOfInertia(), Ib = pb.GetMomentOfInertia();
+    const float mu_rot = (Ia > 0.0f && Ib > 0.0f) ? (Ia * Ib) / (Ia + Ib)
+                                                  : std::fmax(Ia, Ib);
+    g.angular_damping =
+        eta * std::sqrt(g.angular_stiffness * std::fmax(mu_rot, 1e-12f));
 }
 
 // ============================================================================

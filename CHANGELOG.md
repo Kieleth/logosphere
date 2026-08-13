@@ -8,6 +8,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Phase C complete for organic bonds: bending derives too.** Angular
+  stiffness K = I / (L_a/E_a + L_b/E_b) with I = A^2/(4*pi) from the
+  bond's contact area (N*m/rad; a grass blade derives ~8e-4, an oak
+  branch ~6e5), angular damping from the loss factor against the pair's
+  reduced moment of inertia. Joint semantics (enable flag, rotation
+  limits) stay declared: policy, not material.
 - **Solver: contact rows are never oversized, manifolds split their mass.**
   Contact rows built before the wake pass could freeze an effective mass
   that treated a sleeping body as infinite; the impulses then landed on

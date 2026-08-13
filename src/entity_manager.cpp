@@ -121,8 +121,7 @@ void EntityManager::create_gluon_from_kg(kg::KGGluonID kg_gluon_id, int render_a
             gluon->target_distance = data.target_distance;
             // Linear force law derived at registration (Phase C); KG values unused.
             gluon->rotate_offsets = data.rotate_offsets;
-            gluon->angular_stiffness = data.angular_stiffness;
-            gluon->angular_damping = data.angular_damping;
+            // Angular force law derived at registration (Phase C); KG values unused.
             gluon->target_relative_rotation = data.target_relative_rotation;
             gluon->enable_angular_constraint = data.enable_angular_constraint;
             gluon->max_relative_rotation = data.max_relative_rotation;
