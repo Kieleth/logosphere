@@ -1141,7 +1141,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.jx = manifold.normal_x;
                     c.jy = manifold.normal_y;
                     c.jz = manifold.normal_z;
-                    c.effective_mass = effective_mass;
+                    static const bool split_off = std::getenv("SPLIT_OFF") != nullptr;
+                    c.eff_mass_share = split_off ? 1.0f : 1.0f / (float)manifold.num_points;
+                    c.effective_mass = effective_mass * c.eff_mass_share;
 
                     // Bias = target relative velocity along the contact normal.
                     // Active penetration (pen > SLOP): positive bias pushes bodies
@@ -2197,6 +2199,41 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     static const bool dedup_dbg = std::getenv("DEDUP_DEBUG") != nullptr;
     size_t dup_true = 0, dup_false = 0;
 
+    // ========================================================================
+    // ROW MASS REFRESH: never larger than the live predicate allows
+    // ========================================================================
+    // Contact rows are built BEFORE the gluon pass, and the gluon pass wakes
+    // bodies (wake-on-strain). A row built against a sleeping body froze
+    // eff = m_other (inv 0); the impulses then land on the woken body through
+    // the live predicate. Measured on the walk gate, detector frame 270: a
+    // 0.03 kg blade behind a row sized for a 1.77 kg part of the walker took
+    // 59x its intended dv per correction, the four-point manifold pumped the
+    // error geometrically (impulses 0.21 -> 1.30 -> 2.32 -> 4.00 across
+    // iterations), and the blade left at 245 m/s in one substep with the
+    // capture cap 59x too generous to stop it.
+    //
+    // The refresh SHRINKS oversized rows to the live value and does nothing
+    // else. The first version also zeroed the rows of still-sleeping bodies;
+    // that killed their warm-start continuity across wake and the 500x/1044x
+    // ringing ladder tore where it used to ring down (A/B: refresh-off green,
+    // split-off still red). A sleeping body's row already applies impulses
+    // times zero; it needs no help, and its cache is the support that must
+    // be warm the frame it wakes.
+    for (Constraint& c : constraints) {
+        if (!c.is_contact && !c.is_turtle_contact) continue;
+        const float inv_a = inv_mass_momentum(particles[c.body_a]);
+        const float inv_b = c.is_turtle_contact
+                            ? 0.0f : inv_mass_momentum(particles[c.body_b]);
+        const float inv_sum = inv_a + inv_b;
+        if (inv_sum <= 0.0f) continue;                 // sleeping row: leave it
+        const float eff_live = c.eff_mass_share / inv_sum;
+        if (eff_live < c.effective_mass) {
+            // The cap is eff * (approach + cushion); keep that meaning.
+            c.max_impulse *= eff_live / c.effective_mass;
+            c.effective_mass = eff_live;
+        }
+    }
+
     if (ENABLE_WARM_STARTING) {
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
             Constraint& c = constraints[ci];
@@ -2816,6 +2853,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float dvz_canary = ((int)c.body_a == canary_pid) ? (c.jz * impulse * inv_ma) : (-c.jz * impulse * inv_mb);
                 std::cout << "[CANARY F" << phys_frame << " SOLVE I" << iter << "] P" << c.body_a << "<->P" << c.body_b
                           << " v_rel=" << v_rel << " impulse=" << impulse
+                          << " acc=" << c.accumulated_impulse
+                          << " cap=[" << c.min_impulse << "," << c.max_impulse << "]"
+                          << " bias=" << c.bias << " eff=" << c.effective_mass
                           << " j=(" << c.jx << "," << c.jy << "," << c.jz << ")"
                           << " dvz=" << dvz_canary << " vz_now=" << particles[canary_pid].vz
                           << (c.is_turtle_contact ? " TURTLE" : " BOX") << std::endl;
@@ -3612,7 +3652,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // a count going down and a blade 2.5 m from home.
                 static const bool tear_dbg = std::getenv("TEAR_DEBUG") != nullptr;
                 if (tear_dbg) {
-                    std::cout << "[TEAR] P" << gluon->particle_a
+                    std::cout << "[TEAR f" << phys_frame << "] P" << gluon->particle_a
                               << "<->P" << gluon->particle_b
                               << " dist=" << dist << " rest=" << rest
                               << " strain=" << (dist / rest) << "x (limit "

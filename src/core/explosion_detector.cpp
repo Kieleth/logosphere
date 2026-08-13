@@ -104,9 +104,10 @@ void end_frame() {
                               (unsigned long long)g_suppressed_speed);
             std::fprintf(stderr,
                 "[EXPLOSION WARNING] speed: particle %d at %.1f m/s (ceiling %.1f) "
-                "pos=(%.1f, %.1f, %.1f) mass=%.2f | %llu bodies over ceiling this frame%s\n",
+                "pos=(%.1f, %.1f, %.1f) mass=%.2f f=%llu | %llu bodies over ceiling this frame%s\n",
                 g_max_id, max_speed, g_speed_ceiling,
                 g_max_x, g_max_y, g_max_z, g_max_mass,
+                (unsigned long long)g_frame,
                 (unsigned long long)g_over_this_frame, supp);
             g_last_warn_speed = g_frame;
             g_suppressed_speed = 0;

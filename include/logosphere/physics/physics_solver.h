@@ -218,6 +218,13 @@ struct Constraint {
     float jx, jy, jz;           // Jacobian: direction of constraint (unit vector)
 
     float effective_mass;       // 1/(1/ma + 1/mb + compliance/dt²) - how impulse distributes
+    // Share of the pair's effective mass this row carries: 1/num_points for
+    // a multi-point manifold, 1 otherwise. N same-normal rows describe a
+    // rank-1 error; each solving it with FULL effective mass over-corrects
+    // by xN per sweep, which is a pump against extreme mass ratios (a walker
+    // foot flicking 0.03 kg leaves metres). Splitting is the standard
+    // manifold treatment: the rows sum to one correction.
+    float eff_mass_share = 1.0f;
     float compliance;           // Inverse stiffness. 0 = rigid (contacts). >0 = soft (animation gluons).
     float bias;                 // Velocity bias for position correction
 

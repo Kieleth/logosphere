@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Solver: contact rows are never oversized, manifolds split their mass.**
+  Contact rows built before the wake pass could freeze an effective mass
+  that treated a sleeping body as infinite; the impulses then landed on
+  the woken body at up to 59x their intended velocity change and
+  multi-point manifolds pumped the error geometrically (a 0.03 kg blade
+  left a walked-through lawn at 245 m/s). Rows now shrink to the live
+  predicate at solve start (never grow, never zero: a sleeping row keeps
+  its warm cache for the frame it wakes), and each of a manifold's N
+  same-normal rows carries 1/N of the pair's effective mass. Walk gate:
+  detonations 1 -> 0, worst blade drift 13.93 -> 3.19 m, torn bonds
+  18 -> 4. Eden headless 1600px: 6.3 -> 142.9 FPS.
 - **Solver: convergence exits are dimensionally honest, sleeping bonds
   build no rows.** The converged exit is the impulse threshold alone; the
   velocity AND-term added during the leaf-sink investigation was
