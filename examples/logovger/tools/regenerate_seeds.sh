@@ -21,6 +21,12 @@ seeds="$repo/examples/logovger/seeds"
 python3 "$here/extract_skills.py" "$srd" \
     "$seeds/cepheus_book1_skill_vocabulary.json"
 
+# Careers reads the vocabulary too: every skill a service table grants
+# is resolved against it, and one that does not resolve fails the run.
+python3 "$here/extract_careers.py" "$srd" \
+    "$seeds/cepheus_book1_skill_vocabulary.json" \
+    "$seeds/cepheus_careers.json"
+
 # Careers reads the skill vocabulary, so it runs second: every skill a
 # career table grants is resolved against it, and an unresolved one
 # fails the run rather than being guessed at.
@@ -41,6 +47,8 @@ seeds = sys.argv[1]
 generated = {
     "cepheus_book1_skill_vocabulary.json":
         "examples/logovger/tools/extract_skills.py",
+    "cepheus_careers.json":
+        "examples/logovger/tools/extract_careers.py",
     "cepheus_book1_career_tables.json":
         "examples/logovger/tools/extract_career_tables.py",
     "cepheus_book1_shared_tables.json":

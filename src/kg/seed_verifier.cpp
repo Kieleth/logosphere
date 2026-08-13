@@ -725,6 +725,28 @@ struct Checker {
             if (!is_row) continue;
             const std::string addressed_row =
                 world.getProperty(id, "source_row");
+            // A row the book states in PROSE has no printed band cell
+            // to parse. Cepheus gives extra benefits "if the character
+            // held rank O4, and two for rank O5" - three rows of a
+            // real table, written as a sentence. Its key is still
+            // proved, by the same rule every other number obeys: it
+            // must appear in the quote.
+            if (addressed_row.empty() &&
+                world.getProperty(id, "source_kind") == "sentence") {
+                for (const char* slot : {"key_min", "key_max"}) {
+                    const std::string bound = world.getProperty(id, slot);
+                    if (bound.empty()) continue;
+                    if (std::find(tokens.begin(), tokens.end(), bound) ==
+                        tokens.end()) {
+                        violate("value", static_cast<int>(i), alias,
+                                type + "." + slot + " = " + bound +
+                                ": a row stated in prose must have its key "
+                                "in the words that state it, and this is "
+                                "not in \"" + preview(quote) + "\"");
+                    }
+                }
+                continue;
+            }
             const std::string band_text =
                 addressed_row.empty() ? quote : ("| " + addressed_row + " |");
             Band cell_band;
