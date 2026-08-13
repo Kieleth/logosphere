@@ -214,6 +214,16 @@ kg::KGParticleID RockGenerator::create_rock_box(
 
 kg::EntityID RockGenerator::generate_rock(float world_x, float world_y, float world_z,
                                           const RockSpec& spec) {
+    // Seeded from WHERE the rock is, the way every other generator here
+    // seeds from its spec or its position (FallenTreeGenerator uses
+    // these same primes). The constructor seeded from the wall clock
+    // and seed_rng had no caller anywhere, so a rock's shape and colour
+    // differed on every run: walk away, come back, different rock.
+    // Position-seeding makes a place look like itself.
+    seed_rng(static_cast<unsigned int>(world_x * 73856093 +
+                                       world_y * 19349663 +
+                                       world_z * 83492791));
+
     // Dispatch to appropriate generator based on rock type
     switch (spec.type) {
         case RockSpec::RockType::PEBBLE:

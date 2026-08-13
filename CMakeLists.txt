@@ -708,6 +708,13 @@ if(LOGOSPHERE_FULL)
     target_compile_features(at_headless_run PRIVATE cxx_std_17)
     add_test(NAME at_headless_run COMMAND at_headless_run)
 
+    # test_determinism_guards — three ways the engine used to answer the
+    # same question differently. Full engine: Engine + worldgen.
+    add_executable(test_determinism_guards tests/test_determinism_guards.cpp)
+    target_link_libraries(test_determinism_guards PRIVATE logosphere)
+    target_compile_features(test_determinism_guards PRIVATE cxx_std_17)
+    add_test(NAME test_determinism_guards COMMAND test_determinism_guards)
+
     # at_cinematic — same pattern as at_program_actor; needs both
     # program_actor.cpp and cinematic.cpp linked in.
     add_executable(at_cinematic

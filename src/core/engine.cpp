@@ -1022,7 +1022,8 @@ void Engine::shutdown() {
 
 void Engine::update(double delta_time) {
     // FORENSICS: Log dt value passed to Engine::update() (detect if test is passing wrong value)
-    static int update_call_count = 0;
+    // Per-engine, not per-process: see update_count_ in engine.h.
+    uint64_t& update_call_count = update_count_;
     if constexpr (PhysicsSolver::ENABLE_FORENSIC_LOGGING && PhysicsSolver::LOG_ENGINE_UPDATE_DT) {
         std::cout << "[ENGINE_UPDATE_DT call #" << update_call_count << "] "
                   << "delta_time parameter = " << std::fixed << std::setprecision(10)

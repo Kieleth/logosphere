@@ -172,6 +172,11 @@ public:
     CameraSystem& get_camera_system() { return camera_system_; }
     CameraDirector& get_camera_director() { return camera_director_; }
     TimeSystem& get_time_system() { return time_system_; }
+
+    // How many times THIS engine has been updated. Public because it
+    // is the only way to observe that two engines in one process are
+    // independent, which they were not until recently.
+    uint64_t update_count() const { return update_count_; }
     EntitySystem& get_entity_system() { return *entity_system_; }
     // Renderer/Display split (Phase 4). Engine composes both; headless
     // mode is simply display_ == nullptr. Accessors return by
@@ -591,6 +596,13 @@ private:
     logosphere::GroundLocator ground_locator_;
     Logosphere::HumanoidIntegrityMonitor humanoid_integrity_monitor_;
     Logosphere::DeepProbeManager        deep_probe_manager_;
+    // How many times THIS engine has been updated. It was a
+    // function-local static, which made it shared by every Engine in
+    // the process: a second engine started at the first one's frame
+    // number, and it is handed to the integrity monitor and the deep
+    // probes, so their windows landed somewhere arbitrary. Any test
+    // that builds two engines in one process hit this.
+    uint64_t                            update_count_ = 0;
     ParticleTracer                      particle_tracer_;
 
     // Timing
