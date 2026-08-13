@@ -1892,6 +1892,24 @@ bool run_chargen(const ChargenRequest& request,
     if (request.attribute_selector) {
         session.set_attribute_selector(request.attribute_selector);
     }
+    // An auto-player has no taste, and the alternative to answering is
+    // that mishap 1 and injury 3 abort the run - which they did, for
+    // 8% of every sweep, while the sweeps reported the survivors.
+    // Taking the first option is deterministic and, like every other
+    // auto-played answer here, exists to carry a life to its end.
+    session.set_choice_resolver(
+        request.choice_resolver
+            ? request.choice_resolver
+            : logosphere::rules::ChoiceResolver(
+                  [](const logosphere::rules::PendingChoice& ask,
+                     int& option, std::string& error) {
+                      if (ask.options.empty()) {
+                          error = "an OutcomeChoice with no options";
+                          return false;
+                      }
+                      option = 0;
+                      return true;
+                  }));
     if (!session.begin(request.seed, error)) return false;
 
     bool offered = false;
@@ -1906,9 +1924,14 @@ bool run_chargen(const ChargenRequest& request,
     // An auto-player takes the named career, serves out, and then stops.
     // It only answers prompts containing that career or "Serve another
     // term". Draft versus Drifter is an authority choice it cannot make.
+    // The bound is "stop volunteering for terms", not "stop playing".
+    // A natural 12 on re-enlistment forces a term the character did not
+    // ask for, and the book lets that outrank even its own seven-term
+    // cap, so terms_served can pass max_terms. Leaving the loop at that
+    // point abandoned the session mid-question: measured at 5 lives in
+    // 3000, each stranded on "Term 8: try for advancement?".
     int guard = 0;
-    while (!session.finished() &&
-           session.sheet().terms_served < request.max_terms) {
+    while (!session.finished()) {
         const auto& choices = session.choices();
         const bool career_offered = std::any_of(
             choices.begin(), choices.end(), [&](const Choice& choice) {
@@ -1919,9 +1942,15 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose(request.career_name, error)) return false;
             continue;
         }
+        // Where max_terms is actually spent: the auto-player volunteers
+        // for another term until it has had its fill, then declines.
+        // Being forced to serve on is not this question, and does not
+        // consult this bound.
         if (!choices.empty() &&
             choices.front().label == "Serve another term") {
-            if (!session.choose("1", error)) return false;
+            const bool willing =
+                session.sheet().terms_served < request.max_terms;
+            if (!session.choose(willing ? "1" : "2", error)) return false;
             continue;
         }
         // Which table to train on is a real choice the book gives every

@@ -272,8 +272,9 @@ void test_a_mishap_is_taken_instead_of_dying() {
             return true;
         };
 
-    int lives = 0, mishaps = 0, injuries = 0;
+    int lives = 0, mishaps = 0, injuries = 0, refused = 0;
     uint64_t took_it = 0;
+    std::string first_refusal;
     logovger::CharacterSheet marked;
     for (uint64_t seed = 1; seed <= 200 && took_it == 0; ++seed) {
         logosphere::dice::DiceService dice;
@@ -284,7 +285,25 @@ void test_a_mishap_is_taken_instead_of_dying() {
         req.attribute_selector = first_eligible;
         logovger::CharacterSheet sheet;
         std::string error;
-        if (!logovger::run_chargen(req, world, dice, sheet, error)) continue;
+        // A life that cannot be generated is a FINDING, not a seed to
+        // skip. This loop used to `continue` here, and 8% of every
+        // sweep was dying on mishap 1 and injury 3 - rows the book
+        // prints and the executor was handing back unanswered - while
+        // the measure line reported only the survivors.
+        if (!logovger::run_chargen(req, world, dice, sheet, error)) {
+            // The auto-player declares exactly one thing it will not
+            // decide: Draft versus Drifter, which is an authority
+            // choice. Any OTHER refusal is a rule the generator cannot
+            // execute, and that is what this counts.
+            if (error.find("Draft or Drifter") == std::string::npos) {
+                ++refused;
+                if (first_refusal.empty()) {
+                    first_refusal =
+                        "seed " + std::to_string(seed) + ": " + error;
+                }
+            }
+            continue;
+        }
         ++lives;
         bool had_mishap = false, had_injury = false;
         for (const auto& event : sheet.life) {
@@ -296,8 +315,15 @@ void test_a_mishap_is_taken_instead_of_dying() {
     }
     std::cout << "  [measure] " << lives << " lives, " << mishaps
               << " took a mishap, " << injuries
-              << " reached the Injury table\n";
+              << " reached the Injury table, " << refused
+              << " stopped on a rule the generator could not execute\n";
+    if (!first_refusal.empty()) {
+        std::cout << "  [measure] first refusal: " << first_refusal << "\n";
+    }
 
+    CHECK(refused == 0,
+          "no seed stops on a rule the generator cannot execute; " +
+              std::to_string(refused) + " did, first was " + first_refusal);
     CHECK(mishaps > 0,
           "some life survives a failed throw by taking the mishap");
     CHECK(took_it != 0,

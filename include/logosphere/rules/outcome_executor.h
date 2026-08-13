@@ -169,6 +169,24 @@ using AttributeSelector = std::function<bool(
     const AttributeSelectionRequest&, std::vector<std::string>& chosen,
     std::string& error)>;
 
+// Answers a branch the book prints but does not decide. The sibling of
+// AttributeSelector, for the same reason: the engine knows the options
+// and validates the answer, the game knows who may give one.
+//
+// Set `option` to an index into request.options. Returning false
+// refuses the outcome. There is deliberately no default. A rule with
+// nobody to answer it stops the run, because picking the first option
+// silently collapses every fork the book prints into one branch and
+// nothing downstream can tell that a question was skipped.
+//
+// The two-phase form is still there - apply() hands back
+// PENDING_CHOICE and the caller re-applies with selections - and suits
+// a UI that wants to suspend on the question. A resolver suits a
+// caller that can answer in place, an auto-player or an LLM referee
+// among them.
+using ChoiceResolver = std::function<bool(
+    const PendingChoice& request, int& option, std::string& error)>;
+
 class OutcomeExecutor {
 public:
     OutcomeExecutor(kg::KGModule& kg,
@@ -187,6 +205,12 @@ public:
         attribute_selector_ = std::move(selector);
     }
 
+    // Consulted only when apply() was not already given a selection
+    // for the choice in question, so an explicit answer always wins.
+    void set_choice_resolver(ChoiceResolver resolver) {
+        choice_resolver_ = std::move(resolver);
+    }
+
     OutcomeResult apply(
         kg::EntityID root, const OutcomeContext& context,
         const std::vector<OutcomeSelection>& selections = {});
@@ -198,6 +222,7 @@ private:
     logosphere::dice::DiceService& dice_;
     std::unordered_map<std::string, OutcomeHandler> handlers_;
     AttributeSelector attribute_selector_;
+    ChoiceResolver choice_resolver_;
 };
 
 }  // namespace logosphere::rules

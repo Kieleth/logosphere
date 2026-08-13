@@ -724,7 +724,35 @@ struct OutcomeExecutor::Planner {
             }
             if (ok) {
                 const auto selected = selections.find(outcome);
-                if (selected == selections.end()) {
+                // An explicit selection wins. Failing that, a resolver
+                // answers in place; failing that, the question goes
+                // back to the caller. The order matters: a caller that
+                // already answered must never be second-guessed by a
+                // resolver that would answer differently.
+                if (selected == selections.end() && executor.choice_resolver_) {
+                    const PendingChoice ask{outcome, authority, choices};
+                    int option = -1;
+                    if (!executor.choice_resolver_(ask, option, error)) {
+                        if (error.empty()) {
+                            error = "the choice resolver refused "
+                                    "OutcomeChoice " +
+                                    std::to_string(outcome) +
+                                    " without a reason";
+                        }
+                        ok = false;
+                    } else if (option < 0 ||
+                               static_cast<size_t>(option) >= choices.size()) {
+                        error = "the choice resolver answered "
+                                "OutcomeChoice " + std::to_string(outcome) +
+                                " with option_index " +
+                                std::to_string(option) + ", which is not "
+                                "one of its " +
+                                std::to_string(choices.size()) + " options";
+                        ok = false;
+                    } else {
+                        ok = node(choices[static_cast<size_t>(option)].outcome);
+                    }
+                } else if (selected == selections.end()) {
                     pending = PendingChoice{outcome, authority,
                                             std::move(choices)};
                 } else if (selected->second < 0 ||

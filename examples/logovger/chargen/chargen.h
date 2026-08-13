@@ -128,6 +128,18 @@ public:
         executor_.set_attribute_selector(attribute_selector_);
     }
 
+    // The other referee question: which of the branches a rule prints.
+    // Cepheus chapter 1 has two - mishap 1 offers "as a result of 2 on
+    // the Injury table" or "roll twice and take the lower", and injury
+    // 3 names the characteristics it may take. Without a resolver both
+    // rows abort the run, which is the intended behaviour and was the
+    // actual behaviour for a while without anyone noticing: 8% of
+    // generated lives died on a rule the book prints plainly.
+    void set_choice_resolver(logosphere::rules::ChoiceResolver resolver) {
+        choice_resolver_ = std::move(resolver);
+        executor_.set_choice_resolver(choice_resolver_);
+    }
+
 private:
     using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
@@ -184,6 +196,7 @@ private:
     kg::KGModule&                    kg_;
     logosphere::dice::DiceService&   dice_;
     logosphere::rules::AttributeSelector attribute_selector_;
+    logosphere::rules::ChoiceResolver choice_resolver_;
     logosphere::rules::ProcedurePrimitiveRegistry primitives_;
     logosphere::rules::ProcedureRunner runner_;
     // ONE executor per session. Handlers are registered on it, and a
@@ -232,6 +245,11 @@ struct ChargenRequest {
     // life reaches the aging table, so anything driving one past a
     // damaging row must supply this.
     logosphere::rules::AttributeSelector attribute_selector;
+    // Who answers a branch the book prints and does not decide. Empty
+    // means the auto-player answers it: it takes the first option, and
+    // says so in the timeline so a reader can see a choice was made
+    // and by whom. A caller that wants taste supplies its own.
+    logosphere::rules::ChoiceResolver choice_resolver;
 };
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
