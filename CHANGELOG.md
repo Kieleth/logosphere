@@ -7,6 +7,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Changed
+- **Test executables are headless by default.** Seven standalone tests
+  opened a window unless told otherwise (`test_animation_layering`,
+  `test_damage_visual`, `test_dynamics_override`, `test_spine_fk_lookat`
+  defaulted to windowed; `test_animation_primitives`,
+  `test_leg_primitives`, `test_punch_evolution_primitives` always opened
+  one). All seven now default to headless and open a window only when
+  `INTERACTIVE=1` is set, matching the rest of the test fleet. The three
+  FK demos print `SKIPPED (headless)` without a window because their
+  main loops are GLFW-input-driven (SPACE/ESC).
+
 ### Fixed
 - **Gluon rows refresh their effective mass to live state before the
   solve (heel-strike +-100 m/s transients).** Contact rows already got

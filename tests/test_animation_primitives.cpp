@@ -24,6 +24,17 @@
 #include <string>
 
 int main(int, char**) {
+    // Headless by default. This is an interactive FK demo: the main loop is
+    // driven by GLFW input (SPACE cycles clips, ESC exits) against a live
+    // window, so without a window it would wait on input forever. The
+    // automated TEST_CASE=<n> path also renders/presents to the window.
+    // Window only when INTERACTIVE=1 is set.
+    if (std::getenv("INTERACTIVE") == nullptr) {
+        std::cout << "SKIPPED (headless): interactive FK demo; "
+                  << "run with INTERACTIVE=1 for the window" << std::endl;
+        return 0;
+    }
+
     std::cout << "\n========================================" << std::endl;
     std::cout << "  FK ANIMATION TEST" << std::endl;
     std::cout << "  Joint rotations drive positions" << std::endl;
