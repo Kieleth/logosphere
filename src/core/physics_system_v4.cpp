@@ -1426,8 +1426,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         // Effective mass (reduced mass) - same for all 3 constraints
         // DYNAMICS particles act as infinite mass (their velocity is controlled by dynamics)
-        float inv_ma = (pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pa.GetMass());
-        float inv_mb = (pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pb.GetMass());
+        float inv_ma = (pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
+        float inv_mb = (pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f);
         float inv_mass_sum = inv_ma + inv_mb;
         float eff_mass = (inv_mass_sum > 0.0f) ? (1.0f / inv_mass_sum) : 1.0f;
 
@@ -1609,16 +1609,30 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // pin gluon, never rested, and leaked anchors accumulated into
         // an eternally-awake contact horde (contract a4 in
         // tests/test_position_authority.cpp).
+        // AT-REST IS INFINITE MASS HERE TOO. Every other site in this solver
+        // gives a sleeping body inv_mass = 0 (the impulse pass computes
+        // `pa.is_at_rest || KINEMATIC ? 0.0f : 1/m`), but this blend wrote
+        // both endpoints unconditionally. A sleeping 111.661 kg branch
+        // carrying ten 0.107 kg leaves was handed com_vz * damping_factor
+        // once per leaf per substep — 1.02e-3 m/s per frame, 0.6% of gravity,
+        // on a body that skips gravity and never woke because the ramp stayed
+        // under the 0.2 m/s wake threshold. Linear velocity ramp integrates to
+        // quadratic drift: 6.91 m predicted over 900 frames, 6.74 m measured.
+        // That was the foliage canopy "detaching" — the branches were sinking
+        // out from under leaves that stayed where they were put.
         if (damping_factor > 0.0f) {
-            bool a_kinematic = (pa.solver_mode == ParticleSolverMode::KINEMATIC);
-            bool b_kinematic = (pb.solver_mode == ParticleSolverMode::KINEMATIC);
+            static const bool at_rest_damp_old = std::getenv("AT_REST_DAMP_OLD") != nullptr;
+            bool a_immovable = (pa.solver_mode == ParticleSolverMode::KINEMATIC) ||
+                               (pa.is_at_rest && !at_rest_damp_old);
+            bool b_immovable = (pb.solver_mode == ParticleSolverMode::KINEMATIC) ||
+                               (pb.is_at_rest && !at_rest_damp_old);
             float keep = 1.0f - damping_factor;
 
-            if (a_kinematic && b_kinematic) {
+            if (a_immovable && b_immovable) {
                 // Both infinite mass — nothing to damp.
-            } else if (a_kinematic || b_kinematic) {
-                size_t dyn_id = a_kinematic ? body_b : body_a;
-                size_t kin_id = a_kinematic ? body_a : body_b;
+            } else if (a_immovable || b_immovable) {
+                size_t dyn_id = a_immovable ? body_b : body_a;
+                size_t kin_id = a_immovable ? body_a : body_b;
                 const Particle& kin_p = particles[kin_id];
                 Particle& dyn_p = particles[dyn_id];
                 dyn_p.vx = kin_p.vx + (dyn_p.vx - kin_p.vx) * keep;
@@ -2088,11 +2102,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // Stop when: (1) impulses tiny OR (2) not improving meaningfully anymore.
     // ========================================================================
     int actual_iterations = 0;
+    float max_dv_this_iter = 0.0f;
     float prev_max_impulse = 1e10f;
     int low_improvement_count = 0;
     constexpr float MIN_IMPROVEMENT_RATE = 0.05f;  // Need 5% improvement per iteration
     constexpr int MIN_ITERATIONS = 6;              // At least 6 iterations before considering early stop
     constexpr int PLATEAU_CONFIRM = 3;             // Need 3 consecutive low-improvement iters
+    // The residual velocity below which a plateau really is convergence. Same
+    // physical quantity whatever the body's mass, unlike an impulse or a rate.
+    constexpr float VELOCITY_PLATEAU_FLOOR = 0.001f;  // m/s
 
     // NOTE ON PLACEMENT: this runs BEFORE warm starting, and it must.
     // `warm_started_impulses` below is keyed by constraint INDEX and read back
@@ -2255,7 +2273,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 Particle& pa = particles[c.body_a];
                 // V4.13: Check is_at_rest like solver does (at_rest = infinite mass)
                 // Also skip DYNAMICS-owned particles - dynamics controls their velocity
-                float inv_ma = (pa.is_at_rest || pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pa.GetMass());
+                float inv_ma = (pa.is_at_rest || pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
                 float mass_a = pa.GetMass();
 
                 // Compute relative velocity along Jacobian
@@ -2281,7 +2299,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     Particle& pb = particles[c.body_b];
                     // V4.13: Check is_at_rest like solver does (at_rest = infinite mass)
                     // Also skip DYNAMICS-owned particles - dynamics controls their velocity
-                    float inv_mb = (pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pb.GetMass());
+                    float inv_mb = (pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f);
                     pb.vx -= c.jx * warm_impulse * inv_mb;
                     pb.vy -= c.jy * warm_impulse * inv_mb;
                     pb.vz -= c.jz * warm_impulse * inv_mb;
@@ -2477,6 +2495,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
         ::logosphere::phystrace::set_iteration(iter);
         float max_impulse_this_iter = 0.0f;
+        max_dv_this_iter = 0.0f;
         actual_iterations = iter + 1;
 
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
@@ -2700,9 +2719,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Turtle contacts: inv_mb = 0 (infinite mass)
             // at_rest particles: treated as infinite mass (don't move until woken)
             // DYNAMICS particles: inv_mass = 0 (dynamics system handles collision response)
-            float inv_ma = (pa.is_at_rest || pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pa.GetMass());
+            float inv_ma = (pa.is_at_rest || pa.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
             float inv_mb = c.is_turtle_contact ? 0.0f :
-                           ((pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (1.0f / pb.GetMass()));
+                           ((pb.is_at_rest || pb.solver_mode == ParticleSolverMode::KINEMATIC) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f));
+
+            // WHAT THAT IMPULSE ACTUALLY DOES. An impulse in N*s means nothing
+            // on its own: 0.01 N*s is a shrug to a 112 kg branch and a shove to
+            // a 0.107 kg leaf. Track the VELOCITY it imparts to the lighter
+            // endpoint, which is the same physical quantity whatever the mass.
+            max_dv_this_iter = std::max(max_dv_this_iter,
+                                        std::abs(impulse) * std::max(inv_ma, inv_mb));
 
             if (energy_ledger_on() && c.effective_mass > 0.0f) {
                 const double dke = double(impulse) * double(v_rel)
@@ -2875,8 +2901,27 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // SMART EARLY STOPPING CHECK
         // ================================================================
         // 1. Absolute threshold: impulses are negligible
-        constexpr float ABSOLUTE_THRESHOLD = 0.01f;
-        if (max_impulse_this_iter < ABSOLUTE_THRESHOLD) {
+        // CONVERGED MEANS THE SAME THING FOR A LEAF AND A TRUNK.
+        //
+        // This exited on the impulse alone, at 0.01 N*s. That is an ABSOLUTE
+        // impulse applied to every body in the world regardless of mass, and
+        // what it permits scales as threshold/mass:
+        //     0.01 / 0.107 kg leaf   = 0.093 m/s left unresolved
+        //     0.01 / 111.7 kg branch = 0.00009 m/s     — 1046x stricter
+        // Gravity per frame is 0.0817 m/s, so on a leaf the convergence
+        // threshold was LARGER than the entire error it was asked to fix. The
+        // solver exited at 3-9 iterations of 32 believing it was done, leaving
+        // 1.2% of gravity every frame. Measured on P140: end-of-frame velocity
+        // climbing -0.001, -0.002, -0.003, -0.004, -0.005, -0.006 in perfect
+        // steps until the leaf had sunk metres and its bond tore at 3.9x.
+        //
+        // Now both must be small: the impulse AND the velocity it imparts.
+        // Strictly tighter than before for every body — heavy ones keep the
+        // solve they already got, light ones stop being abandoned early.
+        constexpr float ABSOLUTE_THRESHOLD = 0.01f;   // N*s
+        constexpr float VELOCITY_THRESHOLD = 0.001f;  // m/s, mass-independent
+        if (max_impulse_this_iter < ABSOLUTE_THRESHOLD &&
+            (std::getenv("PLATEAU_OLD") || max_dv_this_iter < VELOCITY_THRESHOLD)) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
             PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
@@ -2886,7 +2931,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
 
         // 2. Convergence rate check (after minimum iterations)
-        if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f) {
+        // A PLATEAU IS ONLY CONVERGENCE IF THE REMAINING ERROR IS SMALL.
+        //
+        // This stopped on the improvement RATE alone: under 5% per iteration
+        // for 3 consecutive iterations and the solve ends, however much error
+        // is left. A rate is dimensionless, so it says nothing about whether
+        // the residual matters — and on a 0.107 kg leaf it exited at iteration
+        // 9 of 32 leaving 1.2% of gravity unresolved EVERY frame. Measured on
+        // P140: end-of-frame velocity climbing -0.001, -0.002, -0.003, -0.004
+        // in perfect steps until the leaf sank metres and its bond tore.
+        //
+        // Slow progress on a large error is not a plateau, it is a hard
+        // problem. Only stop when the remaining velocity error is negligible
+        // in absolute terms, which is the same quantity for any mass.
+        if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f &&
+            (std::getenv("PLATEAU_OLD") || max_dv_this_iter < VELOCITY_PLATEAU_FLOOR)) {
             float improvement = (prev_max_impulse - max_impulse_this_iter) / prev_max_impulse;
             if (improvement < MIN_IMPROVEMENT_RATE) {
                 low_improvement_count++;
@@ -4916,8 +4975,8 @@ void PhysicsSystem::project_gluon_positions(ParticleSystem::WriteView& particles
         // Particles treated as infinite mass (don't move):
         //   - DYNAMICS-owned: controlled by dynamics system
         //   - is_at_rest: performance optimization, acts as anchor until woken
-        float inv_mass_a = (pa.solver_mode == ParticleSolverMode::KINEMATIC || pa.is_at_rest) ? 0.0f : (1.0f / pa.GetMass());
-        float inv_mass_b = (pb.solver_mode == ParticleSolverMode::KINEMATIC || pb.is_at_rest) ? 0.0f : (1.0f / pb.GetMass());
+        float inv_mass_a = (pa.solver_mode == ParticleSolverMode::KINEMATIC || pa.is_at_rest) ? 0.0f : (pa.GetMass() > 0.0f ? 1.0f / pa.GetMass() : 0.0f);
+        float inv_mass_b = (pb.solver_mode == ParticleSolverMode::KINEMATIC || pb.is_at_rest) ? 0.0f : (pb.GetMass() > 0.0f ? 1.0f / pb.GetMass() : 0.0f);
         float total_inv_mass = inv_mass_a + inv_mass_b;
 
         if (total_inv_mass > 0.0f) {

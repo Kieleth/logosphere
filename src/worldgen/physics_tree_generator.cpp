@@ -903,6 +903,25 @@ int PhysicsTreeGenerator::generate_root_system(
     root_plate.x = world_x;
     root_plate.y = world_y;
     root_plate.z = plate_center_z;  // Center of plate above ground
+    // A TREE IS ROOTED. The plate was DYNAMIC and unsupported: it sat with its
+    // bottom exactly on the turtle, and the boundary only corrects a body whose
+    // bottom goes BELOW it, so nothing held it up. It fell, and it dragged the
+    // whole tree down with it — measured, P0 vel 0 -> -0.0817 -> -0.0996,
+    // accelerating, while trunk, branch and leaf all descended with it. That is
+    // why every leaf "drifted" ~7 m and none of them relative to each other:
+    // the canopy was not scattering, the tree was sinking.
+    //
+    // IT WAS STANDING ON A BUG. Before today the plate was placed BELOW the
+    // turtle, so the boundary lifted it every substep — and that illegal lift
+    // was the only thing supporting the tree. Removing the buried placement
+    // (correctly) removed the accidental support with it.
+    //
+    // KINEMATIC is one of the three sanctioned immobility mechanisms and is
+    // exactly what OrganicGenerator already does for a grass blade's base.
+    // Roots hold a tree up; now they do.
+    root_plate.solver_mode = ParticleSolverMode::KINEMATIC;
+    root_plate.is_at_rest = true;
+
     root_plate.vx = 0.0f; root_plate.vy = 0.0f; root_plate.vz = 0.0f;
 
     // Dark bark color (root plate is mostly underground)
@@ -1282,6 +1301,10 @@ void PhysicsTreeGenerator::collect_tree_specs(
     root_plate.x = world_x;
     root_plate.y = world_y;
     root_plate.z = plate_center_z;
+    // Same rooting on the KG/permaworld path — a streamed tree must stand up
+    // too. See the note at the direct path above.
+    root_plate.solver_mode = ParticleSolverMode::KINEMATIC;
+    root_plate.is_at_rest = true;
     root_plate.shape = ParticleShape::BOX;
     root_plate.width = plate_diameter;
     root_plate.height = plate_diameter;
