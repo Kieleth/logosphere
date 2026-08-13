@@ -158,3 +158,52 @@ row formulation.
 - one-orientation-truth (miner candidate 14): ruling DEFERRED by the
   owner until the rotation-ladder work forces the representation
   question. Parked here; not written as an invariant.
+
+### 2026-08-13 · CREATE · INV-17..INV-28 (the miner's 12, owner-amended)
+
+All twelve adopted after per-item owner rulings, with two schema
+additions retrofitted to every entry: `kind` (law | corollary |
+convention | modeling-boundary | architecture) and `derives_from`,
+because several of these are consequences, and the file must say what
+they are consequences OF. The owner's rulings, condensed:
+
+- INV-17 contact-never-amplifies: adopted AS a consequence of energy
+  conservation (a contact is passive, restitution <= 1) — kind
+  corollary, derives from INV-3.
+- INV-18 sleep-hides-nothing: adopted with the owner's framing baked
+  in: sleep is a masked CACHE over dynamics; wake conditions are its
+  dirty-hit invalidation strategies.
+- INV-19 damping-is-physical-dissipation: STRENGTHENED beyond the
+  candidate. Owner: damping is a smell of uncaptured physics unless it
+  models real dissipation (KE -> heat, which leaves the system and is
+  booked). Only then, and only on relative/internal motion. This also
+  commits the ledger to a dissipation bucket (task #44).
+- INV-20 size-and-spend-in-the-same-model: adopted, grounded in
+  momentum conservation — mismatched metrics deliver momentum the
+  books never saw.
+- INV-21 no-position-bias-in-momentum: adopted as kind
+  modeling-boundary, the owner's words honored: a necessary hack —
+  we cannot simulate microscopic contact physics, so repairs get
+  wiggle room between the cracks, bounded to imperceptibility
+  (micro-corrections well under ~300 ms; few-frame adjustments OK)
+  and NEVER entering momentum. The perceptual bounds are to be tuned
+  in play.
+- INV-22 one-mechanism-owns-a-pair: adopted as corollary with sources
+  named (INV-7 momentum door + INV-3), per the owner's ruling that a
+  derived consequence must cite what generates it.
+- INV-23, INV-24, INV-26: adopted as proposed.
+- INV-25 contact-normal-has-one-sign: adopted as kind CONVENTION —
+  the owner's distinction: this is how the engine makes sense of
+  physics' effects, not a law of the world.
+- INV-27 deterministic-given-seeds: REWORDED from plain determinism:
+  bit-identical GIVEN SEEDS, with all randomness through declared
+  seeded channels — designing ahead for dice throws and probabilistic
+  effects the owner wants possible.
+- INV-28 one-attachment-point-definition: adopted as kind
+  architecture — the owner: the connection between software
+  engineering and the physics engine.
+
+File now holds 28 invariants: 15 charter + INV-16 aspirational + these
+twelve. Coverage links for 17-28 are OWED (TEST_AUDIT proves/touches
+refer to 1-15 only); until linked they appear as coverage holes, which
+is correct and loud.
