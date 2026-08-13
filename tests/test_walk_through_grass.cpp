@@ -47,6 +47,8 @@
 #include "logosphere/worldgen/worldgen_system.h"
 #include <cmath>
 #include <cstdio>
+#include <thread>
+#include <chrono>
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -134,7 +136,14 @@ bool test_walk_through_grass() {
                "  test claims can be tested. Fix the plumbing first.\n",
                grass_ids.size(), grass_gluons);
         printf("\n  FAIL\n");
-        engine.shutdown();
+        if (interactive) {
+        printf("  [INTERACTIVE] holding final state 20 s for inspection...\n");
+        for (int f = 0; f < 1200; ++f) {
+            engine.update(1.0 / 60.0);
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
+    }
+    engine.shutdown();
         return false;
     }
 
@@ -189,6 +198,11 @@ bool test_walk_through_grass() {
     float eva_y = eva_y0, eva_z = 0.0f;
     for (int f = 0; f < FRAMES; ++f) {
         engine.update(1.0 / 60.0);
+        // INTERACTIVE: pace to real time so the walk is watchable; headless
+        // runs at full speed as before.
+        if (interactive) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
         {
             auto v = ps.lock_particles_for_write();
             eva_y = v[eva.hips_id].y;
