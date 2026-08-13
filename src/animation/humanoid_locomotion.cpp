@@ -4981,10 +4981,11 @@ void HumanoidLocomotion::apply_entity_gravity(
     const float SEARCH_BELOW_FOOT = 2.0f;      // deep enough for a step down
     const float SUPPORT_THRESHOLD = 0.2f;      // Support if top within 20cm of foot
 
-    // DEBUG: Footprint detection logging (disabled)
-    constexpr bool should_debug = false;
+    // DEBUG: Footprint detection logging (GROUND_CAND=1 to enable)
+    static const bool ground_cand_debug = std::getenv("GROUND_CAND") != nullptr;
     static int ground_debug_frame = 0;
     ground_debug_frame++;
+    const bool should_debug = ground_cand_debug && ground_debug_frame <= 40;
 
     if (bvh && bvh->is_ready() && foot_bottom_z < 1e8f) {
         AABB query_box;
@@ -5006,7 +5007,8 @@ void HumanoidLocomotion::apply_entity_gravity(
                       << " hips=(" << hips.x << "," << hips.y << "," << hips.z << ")"
                       << " foot_bottom=" << foot_bottom_z
                       << " footprint=[" << min_x << "," << max_x << "]x[" << min_y << "," << max_y << "]"
-                      << " candidates=" << candidates.size() << std::endl;
+                      << " candidates=" << candidates.size()
+                      << " total_particles=" << particles.size() << std::endl;
         }
 
         // Check if any candidate provides support
@@ -5023,6 +5025,12 @@ void HumanoidLocomotion::apply_entity_gravity(
             }
             if (is_self) {
                 self_count++;
+                if (should_debug) {
+                    const Particle& sp = particles[cand_id];
+                    std::cout << "  [SELF_CAND " << cand_id << "] pos=(" << sp.x
+                              << "," << sp.y << "," << sp.z << ") size=" << sp.size
+                              << " own=" << (int)sp.owner << std::endl;
+                }
                 continue;
             }
             checked_count++;
@@ -5070,6 +5078,48 @@ void HumanoidLocomotion::apply_entity_gravity(
         }
     } else if (should_debug) {
         std::cout << "[GROUND_DEBUG] BVH not ready or no feet" << std::endl;
+    }
+
+    // ========================================================================
+    // TURTLE PLANE IS GROUND (task #42, CLASS-1 foot-sink RCA)
+    // ========================================================================
+    // The world boundary at z = TURTLE_Z is the one surface guaranteed to
+    // exist under every footprint, yet this probe only accepted BVH
+    // particles as support. The solver's turtle plane lifts solver-DYNAMIC
+    // bodies only; a humanoid's KINEMATIC hips and ANIMATION-owned legs
+    // never receive it. So a walker standing on the bare turtle (floorless
+    // harnesses), or one whose floor tiles were streamed out from under it,
+    // free-fell through the world floor: gravity.apply every frame, foot
+    // z past -0.9, and the next heel-strike queued its pin anchor below
+    // TURTLE_Z — the TURTLE_STRICT abort in the CLASS-1 signature.
+    // Independent of the BVH: the turtle needs no acceleration structure.
+    //
+    // SUPPORT OF LAST RESORT, TOUCH-ONLY: unlike a detected floor particle
+    // (grounded within a ±0.3 m window), the turtle only grounds a body
+    // that is actually AT the plane. A wider window would hold a walker
+    // hovering above real floor that this probe's filters failed to see
+    // (measured: the SHAPE twin of this check with a 0.3 window snapped
+    // Eva 9.5 cm down INTO her floor tiles and the walk gate collapsed
+    // 10.7 m -> 0.23 m). Falling toward the turtle stays free fall; the
+    // grounding engages on contact.
+    // TURTLE_GROUND_OFF=1: diagnostic lever, restores the fall-through
+    // behavior for A/B isolation.
+    static const bool turtle_ground_off = std::getenv("TURTLE_GROUND_OFF") != nullptr;
+    if (!turtle_ground_off && !on_ground && foot_bottom_z < 1e8f) {
+        float turtle_gap = foot_bottom_z - PhysicsV4::TURTLE_Z;
+        if (turtle_gap < 0.02f) {
+            on_ground = true;
+            auto& grav_tracer = impl_->get_particle_tracer();
+            for (unsigned int pid : parts.all_particle_indices) {
+                if (particles[pid].vz < 0) {
+                    float old_vz = particles[pid].vz;
+                    particles[pid].vz = 0;
+                    TRACE_WRITE_N(grav_tracer, static_cast<int>(pid),
+                                  "gravity.on_ground_clamp", "vz", old_vz, 0.0f,
+                                  "turtle support");
+                }
+            }
+        }
     }
 
     // Apply gravity uniformly to ALL particles if not on ground
@@ -5465,8 +5515,11 @@ void HumanoidLocomotion::maintain_entity_shape(
     // tug-of-war and slow walking. Ground correction's remaining job is
     // the swing leg + body clearance over changing terrain height.
     // ========================================================================
+    // The BVH is only needed to find floor PARTICLES. The turtle plane
+    // below is support with or without an acceleration structure, so a
+    // missing/unbuilt BVH must not skip ground support entirely (it did:
+    // bare-subsystem harnesses fell through the world floor — CLASS-1).
     const BVH* bvh = impl_->get_particle_system().get_shadow_bvh();
-    if (!bvh || !bvh->is_ready()) return;
 
     // Find lowest foot position
     float foot_bottom_z = 1e9f;
@@ -5512,9 +5565,11 @@ void HumanoidLocomotion::maintain_entity_shape(
     query_box.max_z = foot_bottom_z + 0.5f;
 
     std::vector<int> candidates;
-    bvh->query_aabb(query_box, particles.get_particles(), candidates);
+    if (bvh && bvh->is_ready()) {
+        bvh->query_aabb(query_box, particles.get_particles(), candidates);
+    }
 
-    // Find highest floor tile beneath footprint
+    // Find highest floor tile beneath footprint.
     float best_support_top = -1e9f;
     int best_support_id = -1;
     for (int cand_id : candidates) {
@@ -5566,6 +5621,27 @@ void HumanoidLocomotion::maintain_entity_shape(
         }
     }
 
+    // ========================================================================
+    // TURTLE PLANE AS SUPPORT OF LAST RESORT (task #42, CLASS-1 foot-sink)
+    // ========================================================================
+    // The world boundary at z = TURTLE_Z underlies every footprint, so
+    // "no floor found" was always a lie — at worst the floor is the turtle
+    // itself. But last-resort support may only ever LIFT: the filters above
+    // can reject real floor (measured: the walk-through-grass tiles fail
+    // them), and an unconditional turtle floor then SNAPPED the walker
+    // 9.5 cm down INTO those tiles (walk gate 10.7 m -> 0.23 m). So the
+    // turtle engages only when the feet are at/below the plane, where the
+    // upward correction and vz clamp are the only possible outcomes.
+    // TURTLE_GROUND_OFF=1: diagnostic lever for A/B isolation.
+    static const bool shape_turtle_off = std::getenv("TURTLE_GROUND_OFF") != nullptr;
+    if (!shape_turtle_off && best_support_top < -1e8f &&
+        foot_bottom_z - PhysicsV4::TURTLE_Z < 0.005f) {
+        // gap <= 0.005 here, so correction = 0.005 - gap >= 0: lift-only
+        // by construction.
+        best_support_top = PhysicsV4::TURTLE_Z;
+        best_support_id = -2;   // sentinel: the turtle plane
+    }
+
     // DEBUG: Shape ground logging
     static int shape_ground_frame = 0;
     shape_ground_frame++;
@@ -5576,10 +5652,15 @@ void HumanoidLocomotion::maintain_entity_shape(
         float gap = foot_bottom_z - best_support_top;
 
         if (should_debug_shape) {
-            const Particle& sup = particles[best_support_id];
             std::cout << "[SHAPE_GROUND] foot=" << foot_bottom_z << " floor=" << best_support_top
-                      << " gap=" << gap << " support_id=" << best_support_id
-                      << " sup_z=" << sup.z << " sup_thick=" << sup.thickness << std::endl;
+                      << " gap=" << gap << " support_id=" << best_support_id;
+            if (best_support_id >= 0) {
+                const Particle& sup = particles[best_support_id];
+                std::cout << " sup_z=" << sup.z << " sup_thick=" << sup.thickness;
+            } else {
+                std::cout << " (turtle plane)";
+            }
+            std::cout << std::endl;
         }
 
         // Only correct if feet are in correction range

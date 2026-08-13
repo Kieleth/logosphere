@@ -19,6 +19,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   main loops are GLFW-input-driven (SPACE/ESC).
 
 ### Fixed
+- **Walkers no longer sink through the world floor (CLASS-1
+  foot-sink).** The humanoid ground-support probes accepted only BVH
+  particles as ground; the turtle plane at z = TURTLE_Z was invisible
+  to them, and the solver's own turtle lift applies to solver-DYNAMIC
+  bodies only — never to a registered humanoid (owner DYNAMICS, solver
+  KINEMATIC). A walker on the bare turtle, or one whose floor tiles
+  streamed out from under it, free-fell through the world floor until
+  a heel-strike queued its pin anchor below z=0 and tripped the
+  TURTLE_STRICT abort. The turtle is now support of last resort in
+  both probes, touch-only and lift-only: it grounds a body at the
+  plane and never snaps one down onto it (an early unconditional
+  version yanked the walk-through-grass walker 9.5 cm into its floor
+  tiles; that gate measures 10.70 m advance, 0 detonations either
+  way now). Diagnostic lever: `TURTLE_GROUND_OFF=1`. Regression:
+  `test_turtle_ground_support`.
 - **Gluon rows refresh their effective mass to live state before the
   solve (heel-strike +-100 m/s transients).** Contact rows already got
   this refresh; gluon rows kept build-time masses, and wake-on-strain
