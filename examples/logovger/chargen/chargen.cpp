@@ -11,6 +11,7 @@
 #include <cctype>
 #include <charconv>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -223,11 +224,10 @@ kg::EntityID subject_row(const kg::KGModule& kg, kg::EntityID step,
 // Every row of the step's table that is about this subject. The
 // training rule offers four tables per career, so one subject has
 // several rows, unlike the throw rules where it has exactly one.
-std::vector<kg::EntityID> subject_rows(const kg::KGModule& kg,
-                                       kg::EntityID step,
-                                       kg::EntityID subject,
-                                       const char* result_slot,
-                                       std::string& error) {
+std::vector<kg::EntityID> subject_rows(
+    const kg::KGModule& kg, kg::EntityID step, kg::EntityID subject,
+    const char* result_slot, std::string& error,
+    std::map<kg::EntityID, std::string>* roles = nullptr) {
     std::vector<kg::EntityID> out;
     const std::string table_ref = kg.getProperty(step, "subject_table");
     if (table_ref.empty()) {
@@ -248,7 +248,14 @@ std::vector<kg::EntityID> subject_rows(const kg::KGModule& kg,
         const std::string result = kg.getProperty(row, result_slot);
         if (result.empty()) continue;
         try {
-            out.push_back(static_cast<kg::EntityID>(std::stoul(result)));
+            const auto id = static_cast<kg::EntityID>(std::stoul(result));
+            out.push_back(id);
+            // The ROW says what part its table plays where a rule
+            // treats one kind differently from another. Carried back
+            // alongside the table because callers hold tables, not
+            // rows, and reading it is what replaces matching the
+            // table's printed name.
+            if (roles) (*roles)[id] = kg.getProperty(row, "table_role");
         } catch (...) {
             error = "a row's " + std::string(result_slot) +
                     " is not an entity reference";
@@ -1127,16 +1134,19 @@ bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
 ChargenSession::PrimitiveResult ChargenSession::basic_training(
     const PrimitiveContext& context) {
     std::string error;
+    std::map<kg::EntityID, std::string> roles;
     const auto tables = subject_rows(kg_, context.step, career_,
-                                     "rollable_table", error);
+                                     "rollable_table", error, &roles);
     if (tables.empty()) {
         return PrimitiveResult::failed("basic training: " + error);
     }
+    // The row says which table is the service one. This used to be a
+    // fourteen-character suffix compare against the table's printed
+    // name, which is a rule about English rather than about the book.
     kg::EntityID service = kg::INVALID_ENTITY;
     for (auto table : tables) {
-        const std::string name = kg_.getProperty(table, "name");
-        if (name.size() > 14 &&
-            name.compare(name.size() - 14, 14, "Service Skills") == 0) {
+        const auto role = roles.find(table);
+        if (role != roles.end() && role->second == "service") {
             service = table;
         }
     }
@@ -1222,18 +1232,20 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
 ChargenSession::PrimitiveResult ChargenSession::muster_out(
     const PrimitiveContext& context) {
     std::string error;
+    std::map<kg::EntityID, std::string> roles;
     const auto tables = subject_rows(kg_, context.step, career_,
-                                     "rollable_table", error);
+                                     "rollable_table", error, &roles);
     if (tables.empty()) {
         return PrimitiveResult::failed("benefits: " + error);
     }
-    // Which of the two is the cash table is read from its name. That
-    // is weaker than a typed slot and worth replacing if a third kind
-    // of benefit table ever appears; today the book prints two.
-    const auto is_cash = [this](kg::EntityID table) {
-        const std::string name = kg_.getProperty(table, "name");
-        return name.find("Cash Benefits") != std::string::npos ||
-               name.find("Cost Benefits") != std::string::npos;
+    // Which table is the cash one comes off the ROW that offers it.
+    // It used to be matched on the printed name, needing to know that
+    // the book calls one block's "Cost Benefits" and the rest "Cash
+    // Benefits"; renaming a table in the seed silently uncapped the
+    // three-roll limit, and a translated book could not work at all.
+    const auto is_cash = [&roles](kg::EntityID table) {
+        const auto found = roles.find(table);
+        return found != roles.end() && found->second == "cash";
     };
 
     // "Lose all benefits." Checked BEFORE the lazy initialisation
@@ -2069,14 +2081,29 @@ std::vector<LifeEvent> ChargenSession::drain() {
 // all when the book will not allow another cash roll. Matched on the
 // label because that is all a caller of the session can see; the
 // session itself reaches the table through the graph.
-std::string cash_first(const std::vector<Choice>& choices) {
-    for (const auto& choice : choices) {
-        if (choice.label.find("Cash Benefits") != std::string::npos ||
-            choice.label.find("Cost Benefits") != std::string::npos) {
-            return choice.key;
+// What part a table plays, read from the row that offers it. A caller
+// holding only a ProcedureChoice has the table in `subject`; the role
+// lives one hop away, on the CareerTableEntry pointing at it.
+std::string table_role_of(const kg::KGModule& kg, kg::EntityID table) {
+    if (table == kg::INVALID_ENTITY) return {};
+    for (const auto row : kg.findByType("CareerTableEntry")) {
+        if (kg.getProperty(row, "rollable_table") != std::to_string(table)) {
+            continue;
         }
+        const std::string role = kg.getProperty(row, "table_role");
+        if (!role.empty()) return role;
     }
-    return choices.front().key;
+    return {};
+}
+
+// The first choice whose table plays the named part, or none.
+std::string choice_with_role(const kg::KGModule& kg,
+                             const std::vector<Choice>& choices,
+                             const char* role) {
+    for (const auto& choice : choices) {
+        if (table_role_of(kg, choice.subject) == role) return choice.key;
+    }
+    return {};
 }
 
 bool run_chargen(const ChargenRequest& request,
@@ -2165,7 +2192,11 @@ bool run_chargen(const ChargenRequest& request,
             // with Cr0. Two rules had therefore never run in any test
             // - the three-cash-roll cap, and the crisis pay path that
             // needs money in hand.
-            if (!session.choose(cash_first(choices), error)) return false;
+            const std::string cash = choice_with_role(kg, choices, "cash");
+            if (!session.choose(cash.empty() ? choices.front().key : cash,
+                                error)) {
+                return false;
+            }
             continue;
         }
         // A failed survival throw is death unless the Referee allows
@@ -2206,17 +2237,15 @@ bool run_chargen(const ChargenRequest& request,
                 std::string::npos ||
             session.prompt().find("more training roll(s). Which table?") !=
                 std::string::npos) {
-            const auto service = std::find_if(
-                choices.begin(), choices.end(), [](const Choice& choice) {
-                    return choice.label.size() > 14 &&
-                           choice.label.compare(choice.label.size() - 14, 14,
-                                                "Service Skills") == 0;
-                });
-            if (service == choices.end()) {
+            // Which table is the service one comes off the graph, not
+            // off the last fourteen characters of its printed name.
+            const std::string service =
+                choice_with_role(kg, choices, "service");
+            if (service.empty()) {
                 error = "no Service Skills table offered for this career";
                 return false;
             }
-            if (!session.choose(service->key, error)) return false;
+            if (!session.choose(service, error)) return false;
             continue;
         }
         break;

@@ -867,6 +867,74 @@ void test_a_step_can_declare_what_it_does() {
               std::to_string(stretched));
 }
 
+// A rule that treats one table differently reads the ROW that offers
+// it, not the table's printed name. Cash rolls were capped by finding
+// "Cash Benefits" or "Cost Benefits" as substrings, and basic training
+// found its table by comparing the last fourteen characters against
+// "Service Skills": rules about English, not about the book. Rename
+// every table and the same lives must come out.
+void test_renaming_every_table_changes_nothing() {
+    const auto life = [](kg::KGModule& world, uint64_t seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, world, dice, sheet, error);
+        // The skills and the age, not the prose: a table's name is
+        // printed in the timeline, and renaming it is meant to change
+        // exactly that and nothing else.
+        std::string shape = std::to_string(sheet.age_years) + "/" +
+                            std::to_string(sheet.terms_served) + "/" +
+                            std::to_string(sheet.credits) + "/" + sheet.upp;
+        for (const auto& skill : sheet.skills) shape += "|" + skill;
+        return shape;
+    };
+
+    kg::KGModule control(game_registry());
+    std::string why;
+    CHECK(build_world(control, why), "the naming control world: " + why);
+    if (!why.empty()) return;
+
+    kg::KGModule renamed(game_registry());
+    CHECK(build_world(renamed, why), "the renamed world: " + why);
+    // Only the tables a CareerTableEntry offers. The Draft, Survival
+    // Mishaps and Aging tables are still reached by find_named, which
+    // is the next conversion and needs a slot letting a ProcedureStep
+    // name a plain RollableTable. Renaming those here would fail this
+    // test for a gap it is not about.
+    int touched = 0;
+    for (const auto row : renamed.findByType("CareerTableEntry")) {
+        const std::string ref = renamed.getProperty(row, "rollable_table");
+        if (ref.empty()) continue;
+        const auto table = static_cast<kg::EntityID>(std::stoul(ref));
+        renamed.setProperty(table, "name",
+                            "table " + std::to_string(table) + " (renamed)");
+        ++touched;
+    }
+    std::cout << "  [measure] renamed " << touched
+              << " career tables (shared tables left alone: still found "
+                 "by name)\n";
+    CHECK(touched > 90,
+          "the world holds the tables this is about: " +
+              std::to_string(touched));
+
+    int compared = 0, differed = 0;
+    for (uint64_t seed = 1; seed <= 40; ++seed) {
+        ++compared;
+        if (life(control, seed) != life(renamed, seed)) ++differed;
+    }
+    std::cout << "  [measure] " << compared
+              << " lives against renamed tables, " << differed
+              << " came out different\n";
+    CHECK(differed == 0,
+          "no rule depends on what a table is called: " +
+              std::to_string(differed) + " of " + std::to_string(compared) +
+              " lives differed");
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2037,6 +2105,7 @@ int main() {
     test_missing_rule_constant_never_falls_back();
     test_the_books_numbers_are_all_data();
     test_a_step_can_declare_what_it_does();
+    test_renaming_every_table_changes_nothing();
     test_a_natural_two_kills_however_good_the_endurance();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();
