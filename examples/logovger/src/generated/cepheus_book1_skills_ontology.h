@@ -2068,7 +2068,8 @@ struct GainRolledMoney : public GainMoney {
 
 /// Gain extra rolls on a named table: a successful commission or advancement grants an extra roll on the career's skill tables. An ABSENT roll_count means one, because the book writes a bare instruction for a single roll: "Roll on the Injury table" states no number, and putting a 1 there would be a figure the source never printed.
 struct GrantTableRoll : public Outcome {
-    /// The table the extra rolls are granted on.
+    /// One named table. On GrantTableRoll, the table the extra rolls are granted on. On a ProcedureStep, the single table that step rolls on when the rule names one rather than choosing among a subject's own: subject_table answers "the Navy row", this answers "the Aging Table", which has no subject and only ever needs finding.
+    /// The step case exists because the alternative was find_named(kg, "RollableTable", "Effects of Aging") - three rules locating their table by the English words the book prints, so renaming one in the seed broke the rule silently and a translated book could not work at all.
     RollableTable table = {};
     /// How many extra rolls.
     std::optional<int32_t> roll_count = std::nullopt;
@@ -2134,6 +2135,9 @@ struct ProcedureStep : public Entity, public Cited {
     std::string primitive_ref = {};
     /// A table this step consults, keyed by the subject in play. Named here so the step reaches its data through the schema rather than by matching a name in code.
     std::optional<SubjectLookupTable> subject_table = std::nullopt;
+    /// One named table. On GrantTableRoll, the table the extra rolls are granted on. On a ProcedureStep, the single table that step rolls on when the rule names one rather than choosing among a subject's own: subject_table answers "the Navy row", this answers "the Aging Table", which has no subject and only ever needs finding.
+    /// The step case exists because the alternative was find_named(kg, "RollableTable", "Effects of Aging") - three rules locating their table by the English words the book prints, so renaming one in the seed broke the rule silently and a translated book could not work at all.
+    std::optional<RollableTable> table = std::nullopt;
     /// The typed root outcome a rollable row applies, or the typed child outcome held by an OutcomeStep.
     std::optional<Outcome> outcome = std::nullopt;
 };

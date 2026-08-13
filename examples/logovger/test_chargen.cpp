@@ -589,11 +589,18 @@ void test_missing_rules_fail_loudly() {
     const bool loaded_alone =
         procedure_seed.ok() &&
         kg::load_seed(procedure_seed.seed, empty, procedure_load);
-    CHECK(!loaded_alone &&
-              procedure_load.error.find("SubjectLookupTable/training_tables") !=
-                  std::string::npos,
+    // WHICH missing table is named is op ordering, not a guarantee.
+    // The procedure now also names the tables its Draft, mishap and
+    // aging steps roll on, so the first unresolved reference moved when
+    // those stopped being found by their English names. What must hold
+    // is that it refuses, and that it says which table it wanted.
+    const bool named_a_table =
+        procedure_load.error.find("SubjectLookupTable/training_tables") !=
+            std::string::npos ||
+        procedure_load.error.find("RollableTable/") != std::string::npos;
+    CHECK(!loaded_alone && named_a_table,
           "the procedure refuses to load without the career data it "
-          "consults, and identifies its canonical table: " +
+          "consults, and identifies the table it wanted: " +
               procedure_load.error);
     CHECK(empty.findByType("Character").empty(),
           "and the refused load leaves nothing behind");
@@ -900,23 +907,16 @@ void test_renaming_every_table_changes_nothing() {
 
     kg::KGModule renamed(game_registry());
     CHECK(build_world(renamed, why), "the renamed world: " + why);
-    // Only the tables a CareerTableEntry offers. The Draft, Survival
-    // Mishaps and Aging tables are still reached by find_named, which
-    // is the next conversion and needs a slot letting a ProcedureStep
-    // name a plain RollableTable. Renaming those here would fail this
-    // test for a gap it is not about.
+    // EVERY table, the Draft, Survival Mishaps and Aging included: the
+    // steps that roll on those now name them, so nothing in the run
+    // reads a table's printed name for anything but display.
     int touched = 0;
-    for (const auto row : renamed.findByType("CareerTableEntry")) {
-        const std::string ref = renamed.getProperty(row, "rollable_table");
-        if (ref.empty()) continue;
-        const auto table = static_cast<kg::EntityID>(std::stoul(ref));
+    for (const auto table : renamed.findByType("RollableTable")) {
         renamed.setProperty(table, "name",
                             "table " + std::to_string(table) + " (renamed)");
         ++touched;
     }
-    std::cout << "  [measure] renamed " << touched
-              << " career tables (shared tables left alone: still found "
-                 "by name)\n";
+    std::cout << "  [measure] renamed " << touched << " tables, all of them\n";
     CHECK(touched > 90,
           "the world holds the tables this is about: " +
               std::to_string(touched));

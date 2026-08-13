@@ -179,6 +179,33 @@ void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
         : const_cast<kg::KGModule&>(kg).setProperty(s.id, "upp", s.upp);
 }
 
+// The single table a step rolls on, named by the step itself. This
+// replaces find_named(kg, "RollableTable", "Effects of Aging") and its
+// two siblings: rules that located their table by the English words
+// the book prints, so renaming one in the seed broke the rule without
+// a word and a translated book could not work at all.
+kg::EntityID step_table(const kg::KGModule& kg, kg::EntityID step,
+                        std::string& error) {
+    const std::string ref = kg.getProperty(step, "table");
+    if (ref.empty()) {
+        error = "this step names no table";
+        return kg::INVALID_ENTITY;
+    }
+    kg::EntityID table = kg::INVALID_ENTITY;
+    try {
+        table = static_cast<kg::EntityID>(std::stoul(ref));
+    } catch (...) {
+        error = "this step's table is not an entity reference";
+        return kg::INVALID_ENTITY;
+    }
+    if (!kg.exists(table) ||
+        !kg.getRegistry().isSubtypeOf(kg.getType(table), "RollableTable")) {
+        error = "this step's table is not a RollableTable in the graph";
+        return kg::INVALID_ENTITY;
+    }
+    return table;
+}
+
 // A step consults a table the SCHEMA names, and that table's rows say
 // which subject each is about. Nothing here matches a table by name:
 // the step carries subject_table, the row carries subject, and this
@@ -820,11 +847,10 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
         // graph: 1D6 across six services, rolled by the engine, and
         // the row's typed outcome names the career you are taken by.
         // You do not choose, which is the whole point of a draft.
-        const auto table = find_named(kg_, "RollableTable", "Draft Career");
+        std::string table_error;
+        const auto table = step_table(kg_, context.step, table_error);
         if (table == kg::INVALID_ENTITY) {
-            return PrimitiveResult::failed(
-                "the Draft table is not in the graph; load the careers "
-                "seed");
+            return PrimitiveResult::failed("the Draft: " + table_error);
         }
         logosphere::rules::RollableTableRunner runner(kg_, dice_);
         const auto drafted = runner.select(table, "chargen", "the Draft");
@@ -1840,11 +1866,10 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
         return PrimitiveResult::advance("died");
     }
 
-    const auto table = find_named(kg_, "RollableTable", "Survival Mishaps");
+    std::string table_error;
+    const auto table = step_table(kg_, context.step, table_error);
     if (table == kg::INVALID_ENTITY) {
-        return PrimitiveResult::failed(
-            "the Survival Mishaps table is not in the graph; load the "
-            "shared tables seed");
+        return PrimitiveResult::failed("mishap: " + table_error);
     }
     logosphere::rules::RollableTableRunner runner(kg_, dice_);
     const auto selected = runner.select(table, "chargen", "mishap");
@@ -1943,11 +1968,10 @@ ChargenSession::PrimitiveResult ChargenSession::roll_aging(
         return PrimitiveResult::advance();
     }
 
-    const auto table = find_named(kg_, "RollableTable", "Effects of Aging");
+    std::string table_error;
+    const auto table = step_table(kg_, context.step, table_error);
     if (table == kg::INVALID_ENTITY) {
-        return PrimitiveResult::failed(
-            "the Aging table is not in the graph; load the shared "
-            "tables seed");
+        return PrimitiveResult::failed("aging: " + table_error);
     }
     logosphere::rules::RollableTableRunner runner(kg_, dice_);
     const auto selected = runner.select(table, "chargen", "aging",

@@ -40,7 +40,8 @@
         "source_file": "book1/character-creation.md",
         "source_section": "Survival",
         "source_kind": "sentence",
-        "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead. This mishap is always enough to force you to leave the service after half a term, or two years of service. You lose the benefit roll for the current term only."
+        "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead. This mishap is always enough to force you to leave the service after half a term, or two years of service. You lose the benefit roll for the current term only.",
+        "table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/RollableTable/mishap_table"
       }
     },
     {
@@ -140,7 +141,8 @@
         "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
         "source_kind": "sentence",
-        "source_quote": "If your character is 34 or older, roll for aging."
+        "source_quote": "If your character is 34 or older, roll for aging.",
+        "table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/RollableTable/aging_table"
       }
     },
     {
@@ -178,7 +180,7 @@
         "source_file": "book1/character-creation.md",
         "source_section": "Aging Crisis",
         "source_kind": "sentence",
-        "source_quote": "The character dies unless he can pay 1D6×10,000 Credits for medical care, which will bring any characteristics back up to 1."
+        "source_quote": "The character dies unless he can pay 1D6\u00d710,000 Credits for medical care, which will bring any characteristics back up to 1."
       }
     },
     {
@@ -192,7 +194,8 @@
         "source_file": "book1/character-creation.md",
         "source_section": "Qualifying and the Draft",
         "source_kind": "sentence",
-        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term."
+        "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term.",
+        "table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/RollableTable/draft_table"
       }
     },
     {

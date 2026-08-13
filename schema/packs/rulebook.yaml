@@ -547,6 +547,7 @@ classes:
       - step_index
       - primitive_ref
       - subject_table
+      - table
       - outcome
 
   StepRoute:
@@ -958,7 +959,18 @@ slots:
     description: Current balance in the referenced currency; may be negative.
   table:
     range: RollableTable
-    description: The table the extra rolls are granted on.
+    description: >-
+      One named table. On GrantTableRoll, the table the extra rolls are
+      granted on. On a ProcedureStep, the single table that step rolls
+      on when the rule names one rather than choosing among a subject's
+      own: subject_table answers "the Navy row", this answers "the
+      Aging Table", which has no subject and only ever needs finding.
+
+      The step case exists because the alternative was
+      find_named(kg, "RollableTable", "Effects of Aging") - three rules
+      locating their table by the English words the book prints, so
+      renaming one in the seed broke the rule silently and a translated
+      book could not work at all.
   roll_count:
     range: integer
     minimum_value: 1
