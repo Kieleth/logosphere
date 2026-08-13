@@ -1435,6 +1435,61 @@ std::vector<int> characteristics_of(const kg::KGModule& world,
     return out;
 }
 
+// A training answer names a TABLE. It used to be resolved by position
+// into a list recomputed on resume, and the Advanced Education gate
+// made that list change shape mid-term: roll "+1 Edu" from 7 to 8 and
+// a fourth table appears, shifting every option after it.
+void test_a_training_answer_names_a_table_not_a_position() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the training-choice world loads: " + why);
+    if (!why.empty()) return;
+
+    std::string error;
+    int reached = 0, shifted = 0;
+    for (uint64_t seed = 1; seed <= 400 && shifted == 0; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) continue;
+        LongLife player(session);
+        if (!player.run_until("which table do you train on", error)) continue;
+        ++reached;
+
+        // Take whatever the offer's LAST slot is, and remember which
+        // table that key promised. If the list grows before the answer
+        // is resolved, a position-based lookup lands elsewhere.
+        const auto offered = session.choices();
+        if (offered.empty()) continue;
+        const auto& taken = offered.back();
+        const kg::EntityID promised = taken.subject;
+        const std::string promised_name =
+            world.getProperty(promised, "name");
+
+        // Put the character one point below the gate so the very next
+        // grant can open a table and change the list.
+        world.setProperty(session.sheet().id, "education", "7");
+        if (!session.choose(taken.key, error)) continue;
+
+        bool rolled_the_promised_table = false;
+        for (const auto& event : session.sheet().life) {
+            if (event.detail == promised_name) rolled_the_promised_table = true;
+        }
+        CHECK(rolled_the_promised_table,
+              "the table that was rolled is the table the answer named: "
+              "asked for '" + promised_name + "'");
+        ++shifted;
+        std::cout << "  [measure] seed " << seed << ": answered '"
+                  << taken.key << "' = " << promised_name
+                  << ", rolled on it\n";
+    }
+    std::cout << "  [measure] " << reached
+              << " lives reached a training choice\n";
+    CHECK(reached > 0 && shifted > 0,
+          "some life reaches a training choice; none did, so this proves "
+          "nothing");
+}
+
 // A mishap can ruin a characteristic, and the crisis it raises
 // suspends the SAME step that asked "take the mishap, or die". The
 // answer to the second question was read as an answer to the first: a
@@ -1832,6 +1887,7 @@ int main() {
     test_a_life_is_generated();
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
+    test_a_training_answer_names_a_table_not_a_position();
     test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();

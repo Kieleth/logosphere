@@ -861,28 +861,18 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
 // gives four: Personal Development, Service Skills, Specialist and
 // Adv Education. Rolling the service table automatically, as this did
 // before, skipped a decision the book makes every single term.
-ChargenSession::PrimitiveResult ChargenSession::roll_training(
-    const PrimitiveContext& context) {
-    const int term = sheet_.terms_served + 1;
-    std::string table_error;
-    // The term's OWN roll, added once when the step is first entered.
-    // It used to be granted only when nothing else was owed, so a
-    // promotion's extra roll REPLACED it: "roll on the skills tables
-    // for an extra skill" (checklist 6.2) is on top of the term's roll
-    // (7.1), and every promoted character was a skill short.
-    if (!context.input) training_rolls_owed_ += 1;
-    auto options = subject_rows(kg_, context.step, career_,
-                                "rollable_table", table_error);
-    if (options.empty()) {
-        return PrimitiveResult::failed("skills and training: " +
-                                       table_error);
-    }
-    // A table may ask something of whoever rolls on it: "You may only
-    // roll on the Advanced Education table if your character has
-    // Education 8+." The requirement lives on the table, so this reads
-    // it rather than knowing which table it is.
-    options.erase(
-        std::remove_if(options.begin(), options.end(),
+// The tables this character may roll on RIGHT NOW. Recomputed every
+// time it is asked, because a training roll can change the answer: a
+// table may ask something of whoever rolls on it ("You may only roll
+// on the Advanced Education table if your character has Education
+// 8+"), and "+1 Edu" can meet that requirement mid-term. The
+// requirement lives on the table, so this reads it rather than knowing
+// which table is which.
+std::vector<kg::EntityID> ChargenSession::eligible_training_tables(
+    kg::EntityID step, std::string& error) {
+    auto tables = subject_rows(kg_, step, career_, "rollable_table", error);
+    tables.erase(
+        std::remove_if(tables.begin(), tables.end(),
             [this](kg::EntityID table) {
                 const std::string attribute =
                     kg_.getProperty(table, "requires_attribute");
@@ -898,11 +888,28 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
                     return true;
                 }
             }),
-        options.end());
+        tables.end());
+    if (tables.empty() && error.empty()) {
+        error = "every table this career offers is out of reach for this "
+                "character";
+    }
+    return tables;
+}
+
+ChargenSession::PrimitiveResult ChargenSession::roll_training(
+    const PrimitiveContext& context) {
+    const int term = sheet_.terms_served + 1;
+    std::string table_error;
+    // The term's OWN roll, added once when the step is first entered.
+    // It used to be granted only when nothing else was owed, so a
+    // promotion's extra roll REPLACED it: "roll on the skills tables
+    // for an extra skill" (checklist 6.2) is on top of the term's roll
+    // (7.1), and every promoted character was a skill short.
+    if (!context.input) training_rolls_owed_ += 1;
+    const auto options = eligible_training_tables(context.step, table_error);
     if (options.empty()) {
-        return PrimitiveResult::failed(
-            "skills and training: every table this career offers is "
-            "out of reach for this character");
+        return PrimitiveResult::failed("skills and training: " +
+                                       table_error);
     }
     if (!context.input) {
         choices_.clear();
@@ -922,11 +929,18 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
     }
-    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
-    if (index >= options.size()) {
-        return PrimitiveResult::failed("no such training table");
+    // The answer names a TABLE, not a position in a list. Resolving it
+    // by index into a list recomputed on resume let the answer land on
+    // a different table than the one offered: take Personal
+    // Development, roll "+1 Edu" from 7 to 8, and Advanced Education
+    // joins the list for the follow-up roll and shifts everything after
+    // it. The offer already carries the entity it means, so use that.
+    const kg::EntityID chosen = picked->subject;
+    if (std::find(options.begin(), options.end(), chosen) == options.end()) {
+        return PrimitiveResult::failed(
+            "'" + picked->label + "' is not a table this character may "
+            "roll on");
     }
-    const kg::EntityID chosen = options[index];
     choices_.clear();
     uint64_t skill_roll = 0;
     std::string skill;
@@ -947,11 +961,21 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
     // hierarchy to climb. Stay on this step until they are spent, and
     // ASK again rather than re-reading the answer already given.
     if (--training_rolls_owed_ > 0) {
+        // Offered fresh, because the roll just taken can change what
+        // the character may roll on next: "+1 Edu" from 7 to 8 opens
+        // Advanced Education, and reusing the list from before the
+        // gain would keep offering the old four.
+        const auto next = eligible_training_tables(context.step,
+                                                   table_error);
+        if (next.empty()) {
+            return PrimitiveResult::failed("skills and training: " +
+                                           table_error);
+        }
         choices_.clear();
-        for (size_t i = 0; i < options.size(); ++i) {
+        for (size_t i = 0; i < next.size(); ++i) {
             choices_.push_back({std::to_string(i + 1),
-                                kg_.getProperty(options[i], "name"),
-                                "roll 1D6 on it", options[i]});
+                                kg_.getProperty(next[i], "name"),
+                                "roll 1D6 on it", next[i]});
         }
         prompt_ = "Term " + std::to_string(term) + ": " +
                   std::to_string(training_rolls_owed_) +

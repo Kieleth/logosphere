@@ -166,6 +166,10 @@ private:
     PrimitiveResult draft_or_drifter(const PrimitiveContext& context);
     PrimitiveResult roll_survival(const PrimitiveContext& context);
     PrimitiveResult roll_training(const PrimitiveContext& context);
+    // The training tables this character may roll on right now, gates
+    // applied. Recomputed per offer: a roll can change the answer.
+    std::vector<kg::EntityID> eligible_training_tables(
+        kg::EntityID step, std::string& error);
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
