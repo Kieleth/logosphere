@@ -170,6 +170,9 @@ private:
     // applied. Recomputed per offer: a roll can change the answer.
     std::vector<kg::EntityID> eligible_training_tables(
         kg::EntityID step, std::string& error);
+    // The characteristics as the book groups them, from the graph.
+    // Rules about "any characteristic" ask this instead of naming six.
+    std::vector<std::string> characteristic_slots(std::string& error) const;
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);

@@ -867,6 +867,49 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
 // gives four: Personal Development, Service Skills, Specialist and
 // Adv Education. Rolling the service table automatically, as this did
 // before, skipped a decision the book makes every single term.
+// Multivalued strings are stored "a; b; c", the separator this
+// ontology documents on every list-valued slot.
+std::vector<std::string> split_refs(const std::string& value) {
+    std::vector<std::string> out;
+    size_t at = 0;
+    while (at <= value.size()) {
+        const size_t cut = value.find(';', at);
+        const size_t end = cut == std::string::npos ? value.size() : cut;
+        size_t first = at, last = end;
+        while (first < last &&
+               std::isspace(static_cast<unsigned char>(value[first]))) ++first;
+        while (last > first &&
+               std::isspace(static_cast<unsigned char>(value[last - 1]))) --last;
+        if (last > first) out.push_back(value.substr(first, last - first));
+        if (cut == std::string::npos) break;
+        at = cut + 1;
+    }
+    return out;
+}
+
+// The characteristics, as the book groups them, read from the graph.
+// "If any characteristic is reduced to 0" and "will bring any
+// characteristics back up to 1" are rules about the WHOLE set, and
+// naming the six in C++ wrote that set out four separate times: a
+// seventh characteristic, or a book that has five, would have needed
+// every one of them edited.
+std::vector<std::string> ChargenSession::characteristic_slots(
+    std::string& error) const {
+    for (const auto id : kg_.findByType("AttributeGroup")) {
+        if (kg_.getProperty(id, "name") != "characteristic characteristics") {
+            continue;
+        }
+        auto slots = split_refs(kg_.getProperty(id, "attribute_refs"));
+        if (slots.empty()) {
+            error = "the characteristic AttributeGroup names no attributes";
+        }
+        return slots;
+    }
+    error = "no AttributeGroup for the characteristics; load the shared "
+            "tables seed";
+    return {};
+}
+
 // The tables this character may roll on RIGHT NOW. Recomputed every
 // time it is asked, because a training roll can change the answer: a
 // table may ask something of whoever rolls on it ("You may only roll
@@ -1519,16 +1562,23 @@ ChargenSession::PrimitiveResult ChargenSession::begin_crisis(
     crisis_cause_ = cause;
     crisis_open_ = true;
 
+    std::string slots_error;
+    const auto slots = characteristic_slots(slots_error);
+    if (slots.empty()) return PrimitiveResult::failed(slots_error);
     std::vector<std::string> at_zero;
-    const auto zero = [&](const char* name, int value) {
-        if (value == 0) at_zero.push_back(name);
-    };
-    zero("Strength", sheet_.strength);
-    zero("Dexterity", sheet_.dexterity);
-    zero("Endurance", sheet_.endurance);
-    zero("Intelligence", sheet_.intelligence);
-    zero("Education", sheet_.education);
-    zero("Social Standing", sheet_.social_standing);
+    for (const auto& slot : slots) {
+        if (kg_.getProperty(sheet_.id, slot) != "0") continue;
+        std::string label = slot;
+        label[0] = static_cast<char>(std::toupper(
+            static_cast<unsigned char>(label[0])));
+        for (size_t i = 1; i < label.size(); ++i) {
+            if (label[i - 1] != '_') continue;
+            label[i] = static_cast<char>(std::toupper(
+                static_cast<unsigned char>(label[i])));
+        }
+        std::replace(label.begin(), label.end(), '_', ' ');
+        at_zero.push_back(label);
+    }
     std::string ruined;
     for (size_t i = 0; i < at_zero.size(); ++i) {
         ruined += (i ? ", " : "") + at_zero[i];
@@ -1602,17 +1652,15 @@ ChargenSession::PrimitiveResult ChargenSession::resolve_crisis(
     if (!constant("crisis_restore_value", restore_to, restore_error)) {
         return PrimitiveResult::failed(restore_error);
     }
-    const auto restore = [&](const char* slot, int& value) {
-        if (value != 0) return;
-        value = restore_to;
+    std::string slots_error;
+    const auto slots = characteristic_slots(slots_error);
+    if (slots.empty()) return PrimitiveResult::failed(slots_error);
+    for (const auto& slot : slots) {
+        if (kg_.getProperty(sheet_.id, slot) != "0") continue;
         kg_.setProperty(sheet_.id, slot, std::to_string(restore_to));
-    };
-    restore("strength", sheet_.strength);
-    restore("dexterity", sheet_.dexterity);
-    restore("endurance", sheet_.endurance);
-    restore("intelligence", sheet_.intelligence);
-    restore("education", sheet_.education);
-    restore("social_standing", sheet_.social_standing);
+    }
+    // The graph is what was written, so the sheet is re-read from it
+    // rather than kept in step by hand.
     read_characteristics(kg_, sheet_);
 
     // Permanent, so it is a mark on the character rather than a
@@ -1796,9 +1844,15 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
                                std::to_string(sheet_.age_years), 0});
 
     // The same rule aging has: a characteristic at 0 is a crisis.
-    const bool ruined = sheet_.strength == 0 || sheet_.dexterity == 0 ||
-                        sheet_.endurance == 0 || sheet_.intelligence == 0 ||
-                        sheet_.education == 0 || sheet_.social_standing == 0;
+    // "If any characteristic is reduced to 0", asked of the group the
+    // book names rather than of six fields written out here.
+    std::string ruined_error;
+    const auto ruined_slots = characteristic_slots(ruined_error);
+    if (ruined_slots.empty()) return PrimitiveResult::failed(ruined_error);
+    bool ruined = false;
+    for (const auto& slot : ruined_slots) {
+        if (kg_.getProperty(sheet_.id, slot) == "0") ruined = true;
+    }
     if (ruined) return begin_crisis("injury");
     return PrimitiveResult::advance();
 }
@@ -1887,9 +1941,15 @@ ChargenSession::PrimitiveResult ChargenSession::roll_aging(
                            detail.str(), roll.id});
 
     // "If any characteristic is reduced to 0 by aging..."
-    const bool ruined = sheet_.strength == 0 || sheet_.dexterity == 0 ||
-                        sheet_.endurance == 0 || sheet_.intelligence == 0 ||
-                        sheet_.education == 0 || sheet_.social_standing == 0;
+    // "If any characteristic is reduced to 0", asked of the group the
+    // book names rather than of six fields written out here.
+    std::string ruined_error;
+    const auto ruined_slots = characteristic_slots(ruined_error);
+    if (ruined_slots.empty()) return PrimitiveResult::failed(ruined_error);
+    bool ruined = false;
+    for (const auto& slot : ruined_slots) {
+        if (kg_.getProperty(sheet_.id, slot) == "0") ruined = true;
+    }
     if (ruined) return begin_crisis("aging");
     return PrimitiveResult::advance();
 }

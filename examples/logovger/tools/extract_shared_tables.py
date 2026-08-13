@@ -60,6 +60,14 @@ def qualified(alias, type_name, commit, file=CHAPTER):
 GROUPS = {
     "physical": ("strength; dexterity; endurance", "Characteristics"),
     "mental": ("intelligence; education; social_standing", "Characteristics"),
+    # All six, from the same sentence that splits them in two. The
+    # crisis rules ask about the whole set - "If any characteristic is
+    # reduced to 0", "will bring any characteristics back up to 1" -
+    # and without a group naming it, every one of those rules was
+    # written out six times in C++, four separate times.
+    "characteristic": (
+        "strength; dexterity; endurance; intelligence; education; "
+        "social_standing", "Characteristics"),
 }
 GROUP_QUOTE = (
     "Strength, Dexterity, and Endurance are called physical abilities, "

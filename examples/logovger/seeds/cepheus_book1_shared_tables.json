@@ -7,7 +7,7 @@
  "generated_by": "examples/logovger/tools/extract_shared_tables.py",
  "invariants": {
   "count_of_type": {
-   "AttributeGroup": 2,
+   "AttributeGroup": 3,
    "RollableTable": 3,
    "TableEntry": 20
   },
@@ -37,6 +37,19 @@
    "properties": {
     "name": "mental characteristics",
     "attribute_refs": "intelligence; education; social_standing",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Characteristics",
+    "source_kind": "sentence",
+    "source_quote": "Strength, Dexterity, and Endurance are called physical abilities, whereas Intelligence, Education, and Social Standing are loosely termed mental abilities."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "AttributeGroup",
+   "as": "@group_characteristic",
+   "properties": {
+    "name": "characteristic characteristics",
+    "attribute_refs": "strength; dexterity; endurance; intelligence; education; social_standing",
     "source_file": "book1/character-creation.md",
     "source_section": "Characteristics",
     "source_kind": "sentence",
