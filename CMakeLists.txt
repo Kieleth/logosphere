@@ -126,6 +126,8 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/seed_verifier.cpp
     src/rules/outcome_executor.cpp
     src/rules/planned_world.cpp
+    src/replay/run_recorder.cpp
+    src/replay/run_tape.cpp
     src/rules/procedure_runner.cpp
     src/rules/rollable_table_runner.cpp
     src/rules/lookup_table_selector.cpp
@@ -358,6 +360,8 @@ add_headless_test(test_goap_planner)  # the NPC planner, previously untested
 add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untested
 add_headless_test(test_event_log)
 add_headless_test(test_planned_world)  # reading a plan before it commits
+add_headless_test(test_run_recorder)   # the run, as a diffable trace
+add_headless_test(test_run_tape)       # recorded, replayed, or invented
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
 add_headless_test(test_event_bus)
@@ -442,6 +446,22 @@ add_test(NAME logosphere_verify_negative
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
+
+# Logovger with no window: a life played by an InputSource. Proves the
+# replay harness on a real game, and gives a fuzzing entry point that
+# needs no API key.
+add_executable(logovger-headless
+    examples/logovger/logovger_headless.cpp
+    examples/logovger/chargen/chargen.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(logovger-headless PRIVATE logosphere_core)
+target_compile_features(logovger-headless PRIVATE cxx_std_17)
+target_include_directories(logovger-headless PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(logovger-headless PRIVATE
+    LOGOVGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger")
 
 # Logovger: the referee's answer, held to the rule that asked for it.
 # Deliberately free of any LLM dependency (logosphere_llm is defined
@@ -680,6 +700,13 @@ if(LOGOSPHERE_FULL)
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
     )
     target_compile_features(at_program_actor PRIVATE cxx_std_17)
+
+    # at_headless_run — the fixed-step, no-window driver every recorded
+    # or repeatable run uses.
+    add_executable(at_headless_run tests/at_headless_run.cpp)
+    target_link_libraries(at_headless_run PRIVATE logosphere)
+    target_compile_features(at_headless_run PRIVATE cxx_std_17)
+    add_test(NAME at_headless_run COMMAND at_headless_run)
 
     # at_cinematic — same pattern as at_program_actor; needs both
     # program_actor.cpp and cinematic.cpp linked in.
@@ -1239,6 +1266,7 @@ set(LOGOSPHERE_SOURCES
     # InputSystem references out of logosphere_dynamics (B26).
     src/animation/serpent_locomotion_engine.cpp
     src/core/engine.cpp
+    src/replay/headless_run.cpp
     src/assembly/rigid_assembly.cpp  # Rigid multi-particle entity primitive
     # LLM sources now live in the logosphere_llm STATIC target (see below).
     src/core/telemetry.cpp
@@ -1512,6 +1540,19 @@ target_include_directories(logosphere_llm PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor  # nlohmann/json for tool registry
 )
+
+# The headless Logovger gains an LLM PLAYER where the LLM library
+# exists. Added to the existing target rather than duplicating it, so
+# the core profile keeps a full life that plays with no API key at all
+# (--random) and the full profile also gets --record, where the model
+# plays the character and every answer is taped.
+target_sources(logovger-headless PRIVATE
+    examples/logovger/src/adjudicator.cpp
+    examples/logovger/src/judgment_answer.cpp
+)
+target_compile_definitions(logovger-headless PRIVATE LOGOVGER_WITH_LLM)
+target_link_libraries(logovger-headless PRIVATE logosphere_llm)
+
 if(LLAMA_INCLUDE)
     target_include_directories(logosphere_llm PUBLIC
         ${LLAMA_INCLUDE}
