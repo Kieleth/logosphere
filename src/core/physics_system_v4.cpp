@@ -1426,7 +1426,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // scenes that were red, and never in the one that was green.
         size_t gluon_slot = SIZE_MAX;   // index into gluon_constraints_v2_
         size_t x_idx, y_idx, z_idx;
-        size_t ang_idx = SIZE_MAX;      // quat-drive angular row, when built
     };
     std::vector<GluonConstraintIndices> gluon_constraint_indices;
     gluon_constraint_indices.reserve(gluon_constraints_v2_.size());
@@ -1881,6 +1880,132 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // Rodrigues error e = theta * axis is what each world-axis
             // constraint row tries to null out.
             if (gluon->angular_drive_enabled && gluon->use_quat_target) {
+                // ============================================================
+                // GRAVITY FEED-FORWARD: the holding torque is DERIVED
+                // ============================================================
+                // A drive row is a proportional controller, so under a
+                // sustained load it holds a standing error proportional to
+                // that load (both drive tests: distal joints green, the
+                // loaded shoulder red at 0.1368 rad against 0.0627). Two
+                // integral-term attempts (linear, then angular) both pumped
+                // the joint's own oscillation and were retired; see the
+                // FAILED experiment commit. The lawful cure is statics, not
+                // integration: the torque a joint must hold is the moment of
+                // its child subtree's weight about the joint anchor,
+                //   tau = -(COM_sub - anchor) x (M_sub * g),
+                // every term already in the data. Robotics calls this the
+                // G(q) compensation term. Applied as +tau*dt to the child
+                // and the reaction to the parent, each side through the
+                // sleep/KINEMATIC guards. FEEDFORWARD_OFF=1 for A/B.
+                // DEFAULT OFF: two attempts measured worse than no
+                // compensation at all (integral: shoulder 0.1368 -> 0.3394;
+                // this feed-forward: -> 1.93, because the drive-gluon a/b
+                // direction is not a reliable parent->child convention and
+                // the subtree sweep climbs into the torso: P370->P348 read
+                // 29.186 kg while its sibling chain P370->P349 read 0.213).
+                // Doing this right needs grounded-side detection (cut the
+                // joint, take the component without the kinematic root) and
+                // a sign proof against the row's q_err convention.
+                // FEEDFORWARD_ON=1 to experiment.
+                static const bool ff_on = std::getenv("FEEDFORWARD_ON") != nullptr;
+                if (ff_on) {
+                    float m_sub = 0.0f, cx = 0.0f, cy = 0.0f, cz = 0.0f;
+                    {
+                        // Subtree = the child and everything hanging off it
+                        // distally (each joint compensates its OWN load, so
+                        // nesting does not double-count).
+                        std::vector<size_t> stack{body_b};
+                        std::unordered_set<size_t> seen{body_a, body_b};
+                        while (!stack.empty()) {
+                            const size_t pid = stack.back(); stack.pop_back();
+                            const Particle& sp = particles[pid];
+                            const float m = sp.GetMass();
+                            m_sub += m;
+                            cx += m * sp.x; cy += m * sp.y; cz += m * sp.z;
+                            for (const GluonConstraintBase* cg :
+                                 get_gluons_for_particle(pid)) {
+                                if (!cg) continue;
+                                const size_t other =
+                                    (cg->particle_a == pid) ? cg->particle_b
+                                                            : cg->particle_a;
+                                // Descend the JOINT tree only: drive gluons,
+                                // parent->child. Descending every bond type
+                                // swept structural bonds and pins across the
+                                // whole body graph (measured: a "subtree" of
+                                // 32.275 kg on a rig whose arm weighs a few
+                                // kilos, and the near-massless neck holding
+                                // 30 kg of phantom load, 7x worse than no
+                                // feed-forward at all).
+                                if (other < particles.size() &&
+                                    cg->angular_drive_enabled &&
+                                    cg->use_quat_target &&
+                                    cg->particle_a == pid &&
+                                    seen.insert(other).second) {
+                                    stack.push_back(other);
+                                }
+                            }
+                        }
+                    }
+                    if (std::getenv("FF_DEBUG")) {
+                        static int ffn = 0;
+                        if ((ffn++ % 240) == 0)
+                            printf("[FF] joint P%zu->P%zu m_sub=%.3f kg\n",
+                                   body_a, body_b, m_sub);
+                    }
+                    if (m_sub > 0.0f) {
+                        cx /= m_sub; cy /= m_sub; cz /= m_sub;
+                        // Anchor = the joint pivot: body a's attachment
+                        // point, its local offset rotated by a's orientation
+                        // (same Euler composition as the linear build).
+                        float anchor_x, anchor_y;
+                        {
+                            const float ox = gluon->offset_a.x;
+                            const float oy = gluon->offset_a.y;
+                            const float oz = gluon->offset_a.z;
+                            const float cxr = cosf(pa.rotation_x), sxr = sinf(pa.rotation_x);
+                            const float cyr = cosf(pa.rotation_y), syr = sinf(pa.rotation_y);
+                            const float czr = cosf(pa.rotation_z), szr = sinf(pa.rotation_z);
+                            const float y1 = oy * cxr - oz * sxr;
+                            const float z1 = oy * sxr + oz * cxr;
+                            const float x2 = ox * cyr + z1 * syr;
+                            anchor_x = pa.x + x2 * czr - y1 * szr;
+                            anchor_y = pa.y + x2 * szr + y1 * czr;
+                        }
+                        // Only the horizontal lever matters against vertical
+                        // gravity: tau = r x (0,0,-Mg) has no z component.
+                        const float rx = cx - anchor_x;
+                        const float ry = cy - anchor_y;
+                        // tau = -r x (M*g), g = (0,0,-GRAVITY):
+                        // r x (0,0,-Mg) = (-ry*Mg, rx*Mg, 0); negated below.
+                        const float Mg = m_sub * GRAVITY;
+                        const float tx = -ry * Mg;
+                        const float ty =  rx * Mg;
+                        // tau_motor = -(r x Mg vec):
+                        const float ffx = -tx, ffy = -ty;
+                        const float fmag = std::sqrt(ffx * ffx + ffy * ffy);
+                        if (fmag > 1e-9f) {
+                            const float axf = ffx / fmag, ayf = ffy / fmag;
+                            const float J = fmag * dt;   // torque -> angular impulse
+                            Particle& fb = particles[body_b];
+                            const float Ifb = fb.GetInertiaAboutAxis(axf, ayf, 0.0f);
+                            if (Ifb > 0.0f && !fb.is_at_rest &&
+                                fb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                                const float inv = J / Ifb;
+                                fb.omega_x += axf * inv;
+                                fb.omega_y += ayf * inv;
+                            }
+                            Particle& fa = particles[body_a];
+                            const float Ifa = fa.GetInertiaAboutAxis(axf, ayf, 0.0f);
+                            if (Ifa > 0.0f && !fa.is_at_rest &&
+                                fa.solver_mode != ParticleSolverMode::KINEMATIC) {
+                                const float inv = J / Ifa;
+                                fa.omega_x -= axf * inv;
+                                fa.omega_y -= ayf * inv;
+                            }
+                        }
+                    }
+                }
+
                 if (qhit) {
                     static int qn2 = 0;
                     if ((qn2++ % 240) == 0) printf("[QDBG] quat path entered\n");
@@ -2022,42 +2147,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                  (int)c_axis.body_a, (int)c_axis.body_b, "gluon_angular",
                                  c_axis.bias, c_axis.effective_mass, c_axis.jz);
                     constraints.push_back(c_axis);
-                    gluon_constraint_indices.back().ang_idx =
-                        constraints.size() - 1;
-
-                    // ANGULAR MEMORY apply: last frame's holding torque, up
-                    // front (linear twin at the warm_ix apply), so the drive
-                    // row corrects residuals instead of re-earning the load
-                    // from the angle error every frame.
-                    if (!impulse_memory_off()) {
-                        const float wmx = gluon->warm_ang_x;
-                        const float wmy = gluon->warm_ang_y;
-                        const float wmz = gluon->warm_ang_z;
-                        const float wmag2 = wmx * wmx + wmy * wmy + wmz * wmz;
-                        if (wmag2 > 0.0f) {
-                            const float wmag = std::sqrt(wmag2);
-                            const float axm = wmx / wmag, aym = wmy / wmag,
-                                        azm = wmz / wmag;
-                            Particle& wpa = particles[body_a];
-                            Particle& wpb = particles[body_b];
-                            const float Iwa = wpa.GetInertiaAboutAxis(axm, aym, azm);
-                            if (Iwa > 0.0f && !wpa.is_at_rest &&
-                                wpa.solver_mode != ParticleSolverMode::KINEMATIC) {
-                                const float inv = wmag / Iwa;
-                                wpa.omega_x += axm * inv;
-                                wpa.omega_y += aym * inv;
-                                wpa.omega_z += azm * inv;
-                            }
-                            const float Iwb = wpb.GetInertiaAboutAxis(axm, aym, azm);
-                            if (Iwb > 0.0f && !wpb.is_at_rest &&
-                                wpb.solver_mode != ParticleSolverMode::KINEMATIC) {
-                                const float inv = wmag / Iwb;
-                                wpb.omega_x -= axm * inv;
-                                wpb.omega_y -= aym * inv;
-                                wpb.omega_z -= azm * inv;
-                            }
-                        }
-                    }
                 }
                 continue;  // quaternion path handled; skip the scalar branch below
             }
@@ -3590,49 +3679,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             gluon->warm_ix = upd(gluon->warm_ix, idx.x_idx, impulse_x);
             gluon->warm_iy = upd(gluon->warm_iy, idx.y_idx, impulse_y);
             gluon->warm_iz = upd(gluon->warm_iz, idx.z_idx, impulse_z);
-        }
-
-        // ANGULAR MEMORY store-back (quat-driven joints), the rotational
-        // twin of the block above. World-space vector, decayed, anti-windup
-        // on reversal, capped in angular-momentum units by the lighter-
-        // inertia endpoint at MAX_ANGULAR_BIAS_VELOCITY.
-        if (gluon->angular_drive_enabled && gluon->use_quat_target &&
-            !impulse_memory_off()) {
-            const float DECAY = 0.98f;
-            const float DECAY_REVERSED = 0.55f;
-            float mx = gluon->warm_ang_x, my = gluon->warm_ang_y,
-                  mz = gluon->warm_ang_z;
-            if (idx.ang_idx != SIZE_MAX && idx.ang_idx < constraints.size()) {
-                const Constraint& rc = constraints[idx.ang_idx];
-                const float acc = rc.accumulated_angular_impulse;
-                const float nx = rc.angular_axis_x, ny = rc.angular_axis_y,
-                            nz = rc.angular_axis_z;
-                const float dot = (mx * nx + my * ny + mz * nz) * acc;
-                const float d = (dot < 0.0f) ? DECAY_REVERSED : DECAY;
-                mx = d * (mx + acc * nx);
-                my = d * (my + acc * ny);
-                mz = d * (mz + acc * nz);
-                const Particle& ca = particles[gluon->particle_a];
-                const Particle& cb = particles[gluon->particle_b];
-                const float Ica = ca.GetInertiaAboutAxis(nx, ny, nz);
-                const float Icb = cb.GetInertiaAboutAxis(nx, ny, nz);
-                const float I_light = (Ica > 0.0f && Icb > 0.0f)
-                                        ? std::fmin(Ica, Icb)
-                                        : std::fmax(Ica, Icb);
-                const float cap = I_light * PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY;
-                const float mmag = std::sqrt(mx * mx + my * my + mz * mz);
-                if (mmag > cap && mmag > 0.0f) {
-                    const float sc = cap / mmag;
-                    mx *= sc; my *= sc; mz *= sc;
-                }
-            } else {
-                // No drive row this frame (error at zero): bleed the memory
-                // so a retargeted joint does not inherit last pose's torque.
-                mx *= DECAY; my *= DECAY; mz *= DECAY;
-            }
-            gluon->warm_ang_x = mx;
-            gluon->warm_ang_y = my;
-            gluon->warm_ang_z = mz;
         }
 
         // Total force magnitude

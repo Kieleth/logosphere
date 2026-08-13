@@ -198,20 +198,6 @@ public:
     // with decay; capped at breaking force * dt. A/B'd on the sweep.
     float warm_ix = 0.0f, warm_iy = 0.0f, warm_iz = 0.0f;
 
-    // ANGULAR IMPULSE MEMORY (the integral term, rotational twin of the
-    // above). A driven joint's angular row is a proportional controller:
-    // under sustained gravity torque it equilibrates at a standing angle
-    // error proportional to the load (both drive tests: every distal joint
-    // green, the loaded shoulder red at 0.1368 rad against a 0.0627
-    // budget). Last frame's angular impulse re-applied at warm start
-    // carries the holding torque so the row corrects residuals instead of
-    // re-earning the load from the error. Stored as a world-space vector:
-    // the drive row's axis is the Rodrigues error direction, frame-coherent
-    // only near steady state, and a vector survives axis drift. Capped in
-    // angular-momentum units by the lighter-inertia endpoint at
-    // MAX_ANGULAR_BIAS_VELOCITY, the same law as the linear cap.
-    float warm_ang_x = 0.0f, warm_ang_y = 0.0f, warm_ang_z = 0.0f;
-
     // PLASTIC YIELD (rung 4, owner: 'a bent grass would stay bent if
     // damage is done'). Finite = plastic: bent past this angle, the bond's
     // rest orientation CREEPS to keep the elastic error at the yield —
