@@ -430,8 +430,14 @@ void test_cited_tables_load_with_typed_results() {
     const auto sequence = static_cast<kg::EntityID>(
         std::stoul(world.getProperty(mishap_three, "outcome")));
     const auto steps = world.getRelated(sequence, "HAS_PART");
-    CHECK(world.getType(sequence) == "OutcomeSequence" && steps.size() == 2,
-          "mishap 3 has one sequence root containing both consequences");
+    // Three now, not two. Leaving the service costs two years, and
+    // that is an outcome every mishap row carries rather than an
+    // addition the procedure makes: "Honorably discharged... Legal
+    // issues create a debt of Cr10,000", plus the half-term years the
+    // mishap rule states for all of them.
+    CHECK(world.getType(sequence) == "OutcomeSequence" && steps.size() == 3,
+          "mishap 3 has one sequence root holding all its consequences: " +
+              std::to_string(steps.size()));
     CHECK(world.getProperty(steps[0], "step_index") !=
               world.getProperty(steps[1], "step_index"),
           "the composite consequences carry explicit distinct order");

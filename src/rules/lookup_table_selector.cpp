@@ -194,6 +194,15 @@ LookupTableResult LookupTableSelector::select(EntityID table,
                                         return contains(row, key);
                                     });
     if (found == rows.end()) {
+        // A book that states a bonus for three ranks and says nothing
+        // about the other four has not left a hole in its table: the
+        // silence IS the rule. A table may declare that, and then a
+        // miss is an answer rather than a failure.
+        if (kg_.getProperty(table, "miss_is_nothing") == "true") {
+            LookupTableResult nothing;
+            nothing.missed = true;
+            return nothing;
+        }
         return failure("LookupTable has no row for key " +
                        std::to_string(key));
     }

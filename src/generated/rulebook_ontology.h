@@ -1897,6 +1897,10 @@ struct Cited : public Addressable {
     std::optional<std::string> source_defect = std::nullopt;
     /// A human's best guess at what a defective citation was meant to say, recorded so the reasoning is not lost, and deliberately consumed by nothing. Rules read the book; they never read a guess. If the guess were safe to act on it would be a fix in the source, not a suggestion here.
     std::optional<std::string> suggested_reading = std::nullopt;
+    /// The words that state a number WITHOUT writing it, quoted from the entity's own citation. Cepheus: "An additional benefit is gained if the character held rank O4" states a count of one, carried by the indefinite article; the very next clause writes "two for rank O5" and the one after "three extra benefits", and only the first is unwritable as a token.
+    /// This is not source_defect - the English is correct, there is nothing wrong to report upstream. It is not unmodelled - the rule IS expressed. It is the third case: a value the text asserts and does not spell, where the inference deserves to be visible and arguable rather than silent.
+    /// The value verifier treats it as the proof. A number carrying implied_by is checked against this phrase appearing verbatim in the quote, instead of against the quote's number tokens, so the reading is still pinned to the source and a phrase that is not there still fails. Absent, a number proves itself the ordinary way and this changes nothing.
+    std::optional<std::string> implied_by = std::nullopt;
     /// The part of this rule the graph does not yet express, in plain words. Absorption is sometimes partial: a clause may depend on a choice made earlier in the same outcome ("reduce both OTHER physical characteristics"), or offer a re-roll policy the outcome vocabulary cannot say. Recording the gap keeps a partial rule honest, because the alternative is a rule that looks whole and quietly is not. Empty means fully expressed.
     std::optional<std::string> unmodelled = std::nullopt;
 };
@@ -1932,6 +1936,10 @@ struct LookupTable : public Entity, public Cited {
     std::optional<std::string> attribute_ref = std::nullopt;
     /// Resolved ontology name of the concrete LookupEntry subtype carried by this table. The verifier rejects unknown, abstract, non-entry, and incompatible row types.
     std::string entry_type = {};
+    /// A key this table has no row for is not an error; it means the rule does not apply. Books state a bonus for some keys and say nothing about the rest, and saying nothing is the answer. Cepheus: "An additional benefit is gained if the character held rank O4, and two for rank O5. A character with rank O6 gains three extra benefits" prints three of the seven ranks, and "characters of rank O5 or O6 gain +1 on Material Benefit rolls" prints two.
+    /// The alternative was seeding a row for the ranks the book never mentions, which puts figures in the graph the source does not contain, or letting a primitive read the selector's error as a zero, which is a default invented from a failure. This is the LookupEntry sibling of roll_max_unbounded: the hole is the book's, and the table says so instead of a reader guessing.
+    /// Absent, a miss stays an error. A table whose rows must cover every key is the common case and is unchanged.
+    std::optional<bool> miss_is_nothing = std::nullopt;
 };
 
 

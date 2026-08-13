@@ -1901,16 +1901,15 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
     }
     read_characteristics(kg_, sheet_);
 
-    // "after half a term, or two years of service". This path skips
-    // advance_term, so the term neither completes nor pays: the two
-    // years are added here and terms_in_career is left alone, which is
-    // what makes the current term's benefit roll disappear.
-    int mishap_years = 0;
-    std::string mishap_years_error;
-    if (!constant("mishap_years", mishap_years, mishap_years_error)) {
-        return PrimitiveResult::failed(mishap_years_error);
-    }
-    sheet_.age_years += mishap_years;
+    // "after half a term, or two years of service" is an outcome the
+    // ROW carries, applied by the executor above and read back with
+    // everything else, so nothing is added here. Mishap 5 states four
+    // years of imprisonment and carries no half-term two: the reading,
+    // recorded on that row, is that the four include them.
+    //
+    // This path still skips advance_term, so the term neither completes
+    // nor pays, and terms_in_career is left alone. That is what makes
+    // the current term's benefit roll disappear.
     write_sheet(kg_, sheet_);
     sheet_.life.push_back({sheet_.terms_served, "left the service",
                            "two years into the term, age " +

@@ -1332,6 +1332,40 @@ void test_a_count_written_as_a_word_is_proof() {
           "a count the quote does not state still fails");
 }
 
+// A book can state a number without writing it. Cepheus: "An
+// additional benefit is gained if the character held rank O4" is a
+// count of one, carried by the indefinite article, and no tokeniser
+// will ever find it. implied_by names the words that carry it and
+// becomes the proof - but only if those words are really there.
+void test_a_count_the_text_implies_is_proved_by_the_words_that_imply_it() {
+    const char* op =
+        "{\"op\":\"create_entity\",\"type\":\"RuleConstant\","
+        "\"as\":\"@implied\",\"properties\":{"
+        "\"name\":\"rank_o4_extra_benefits\",\"constant_value\":\"1\","
+        "\"source_section\":\"Mustering Out Benefits\","
+        "\"source_kind\":\"sentence\","
+        "\"implied_by\":\"An additional benefit is gained\","
+        "\"source_quote\":\"An additional benefit is gained if the "
+        "character held rank O4, and two for rank O5.\"}}";
+    auto seed = mini_seed("book1/character-creation.md", op);
+    const auto report = kg::verify_seed(seed, kSourceRoot,
+                                        engine_registry());
+    print_first(report, "value");
+    CHECK(report.count("value") == 0,
+          "a count the words imply is proved by the words that imply it, "
+          "where no digit and no number word exists to prove it");
+
+    // A reading, not a licence: the phrase has to be IN the quote, so
+    // a marker invented to smuggle a number past the check fails.
+    CHECK(set_prop(seed, "implied", "implied_by",
+                   "a benefit is gained for every hat worn"),
+          "the invented-phrase mutation applied");
+    const auto invented = kg::verify_seed(seed, kSourceRoot,
+                                          engine_registry());
+    CHECK(!invented.ok() && invented.count("value") > 0,
+          "a phrase the quote does not contain proves nothing");
+}
+
 // "| 1+ |" is "1 or higher" in the shorthand the book prints, and it
 // appears three times in the vendored SRD.
 void test_an_open_topped_band_is_derived() {
@@ -1415,6 +1449,7 @@ int main() {
     test_band_outside_declared_range_says_so();
     test_unnamed_instance_fails_invariant();
     test_a_count_written_as_a_word_is_proof();
+    test_a_count_the_text_implies_is_proved_by_the_words_that_imply_it();
     test_an_open_topped_band_is_derived();
     test_duplicate_name_fails_invariant();
     test_source_commit_drift_warns_without_failing();
