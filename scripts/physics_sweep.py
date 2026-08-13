@@ -126,7 +126,15 @@ def main():
         if entry is None:
             cls = "UNAUDITED"; unaudited.append(name)
         elif verdict == "HUNG":
-            cls = "MOLE"; moles_red.append((name, entry, "HUNG"))
+            # A hang is a failure for baseline purposes: only a mole when the
+            # audit expected this test to pass (a known-red or legacy test
+            # that hangs instead of failing is the same known red).
+            if expect == "pass" and not entry.get("known_open"):
+                cls = "MOLE"; moles_red.append((name, entry, "HUNG"))
+            elif expect == "pass":
+                cls = "KNOWN-OPEN"; known_open.append((name, entry))
+            else:
+                cls = "OK"
         elif expect == "pass" and verdict == "FAIL":
             if entry.get("known_open"):
                 cls = "KNOWN-OPEN"; known_open.append((name, entry))
