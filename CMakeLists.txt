@@ -1461,6 +1461,7 @@ add_executable(logosphere-physics-guards
     tests/test_position_authority.cpp
     tests/test_deferred_deletion_integrity.cpp
     tests/test_pin_anchor_persistence.cpp
+    tests/test_turtle_ground_support.cpp
     tests/test_interaction_filtering.cpp
     tests/test_interaction_volume_forces.cpp
     tests/test_interaction_transformations.cpp
@@ -1925,6 +1926,7 @@ set(TEST_SOURCES
     tests/test_position_authority.cpp             # PHYSICS: one integrator per particle — speed cap binds ground speed
     tests/test_deferred_deletion_integrity.cpp    # PHYSICS: queued deletions survive swap-and-pop
     tests/test_pin_anchor_persistence.cpp         # PHYSICS: foot-plant anchors moved, never churned
+    tests/test_turtle_ground_support.cpp          # PHYSICS: bare turtle plane supports a walker (task #42 CLASS-1)
     tests/test_shadow_edge_quantization.cpp       # RENDERING: hard-shadow staircase catcher
     tests/test_ui_text_dpi.cpp                    # UI: HUD glyph scale follows render resolution
     tests/test_gpu_wait_no_fixed_sleep.cpp        # RENDERING: GPU drain primitive carries no fixed sleep (live-stall guard)

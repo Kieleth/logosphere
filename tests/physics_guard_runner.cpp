@@ -34,6 +34,7 @@ extern bool test_phase_e_diagnostic();
 extern bool test_position_authority();
 extern bool test_deferred_deletion_integrity();
 extern bool test_pin_anchor_persistence();
+extern bool test_turtle_ground_support();
 extern bool test_interaction_filtering();
 extern bool test_interaction_volume_forces();
 extern bool test_interaction_transformations();
@@ -67,6 +68,7 @@ const GuardTest kGuards[] = {
     {"test_position_authority",            test_position_authority,            false},
     {"test_deferred_deletion_integrity",   test_deferred_deletion_integrity,   false},
     {"test_pin_anchor_persistence",        test_pin_anchor_persistence,        false},
+    {"test_turtle_ground_support",         test_turtle_ground_support,         false},
     {"test_interaction_filtering",         test_interaction_filtering,         false},
     {"test_interaction_volume_forces",     test_interaction_volume_forces,     false},
     {"test_interaction_transformations",   test_interaction_transformations,   false},

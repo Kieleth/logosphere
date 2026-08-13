@@ -184,6 +184,7 @@ extern bool test_gluon_removal_unindexes();           // PHYSICS: marked gluon r
 extern bool test_position_authority();                // PHYSICS: one integrator per particle — speed cap binds ground speed (STANDALONE)
 extern bool test_deferred_deletion_integrity();       // PHYSICS: queued deletions survive swap-and-pop (STANDALONE)
 extern bool test_pin_anchor_persistence();             // PHYSICS: foot-plant anchors moved, never churned (STANDALONE)
+extern bool test_turtle_ground_support();              // PHYSICS: bare turtle plane supports a walker — task #42 CLASS-1 (STANDALONE)
 extern bool test_shadow_edge_quantization();           // RENDERING: hard-shadow staircase catcher (STANDALONE)
 extern bool test_ui_text_dpi();                        // UI: HUD glyph scale follows render resolution (STANDALONE)
 extern bool test_gpu_wait_no_fixed_sleep();            // RENDERING: GPU drain has no fixed sleep (STANDALONE)
@@ -390,6 +391,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_position_authority"] = [](TestContext&) { return test_position_authority(); };  // PHYSICS: position authority (STANDALONE)
     registry["test_deferred_deletion_integrity"] = [](TestContext&) { return test_deferred_deletion_integrity(); };  // PHYSICS: deletion queue swap integrity (STANDALONE)
     registry["test_pin_anchor_persistence"] = [](TestContext&) { return test_pin_anchor_persistence(); };  // PHYSICS: pin anchor persistence (STANDALONE)
+    registry["test_turtle_ground_support"] = [](TestContext&) { return test_turtle_ground_support(); };  // PHYSICS: turtle plane is ground (STANDALONE)
     registry["test_shadow_edge_quantization"] = [](TestContext&) { return test_shadow_edge_quantization(); };  // RENDERING: shadow staircase catcher (STANDALONE)
     registry["test_ui_text_dpi"] = [](TestContext&) { return test_ui_text_dpi(); };  // UI: HUD glyph DPI scale (STANDALONE)
     registry["test_gpu_wait_no_fixed_sleep"] = [](TestContext&) { return test_gpu_wait_no_fixed_sleep(); };  // RENDERING: GPU drain sleep guard (STANDALONE)
@@ -708,6 +710,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_position_authority",
         "test_deferred_deletion_integrity",
         "test_pin_anchor_persistence",
+        "test_turtle_ground_support",
         "test_shadow_edge_quantization",
         "test_multi_light_progressive",
         "test_sphere_lod_quality",
@@ -825,6 +828,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_position_authority", test_position_authority},
         {"test_deferred_deletion_integrity", test_deferred_deletion_integrity},
         {"test_pin_anchor_persistence", test_pin_anchor_persistence},
+        {"test_turtle_ground_support", test_turtle_ground_support},
         {"test_shadow_edge_quantization", test_shadow_edge_quantization},
         {"test_multi_light_progressive", test_multi_light_progressive},
         {"test_sphere_lod_quality", test_sphere_lod_quality},
