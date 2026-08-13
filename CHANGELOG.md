@@ -8,6 +8,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Box-box collision is rotation-aware.** Rotated boxes now collide as
+  their oriented shapes (SAT over 15 axes + reference-face clipping),
+  not as world-axis slabs of their raw extents. Contact normals follow
+  the bodies' actual orientations: a 30-degree-tipped plate resting on
+  a slab reports the slab's face normal with its low edge's true 5 mm
+  depth, a yawed blade's face contact carries both lateral components
+  (|nx/ny| = tan(yaw) exactly), and a quarter-turned plate settles ON
+  its support with 1 mm of air instead of hovering at its unrotated
+  height. Unrotated boxes keep the existing axis-aligned path bit for
+  bit, including the static-tile surface merging. Broad-phase bounds
+  (pair AABBs and BVH leaves) now enclose the oriented box, so rotated
+  overlaps the raw extents under-covered are no longer missed. New
+  regression test: `test_rotated_box_contact`.
 - **Phase C complete for organic bonds: bending derives too.** Angular
   stiffness K = I / (L_a/E_a + L_b/E_b) with I = A^2/(4*pi) from the
   bond's contact area (N*m/rad; a grass blade derives ~8e-4, an oak

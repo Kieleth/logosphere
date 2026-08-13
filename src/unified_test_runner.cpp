@@ -108,6 +108,7 @@ extern bool test_divergence_microscope();     // issue #47: freeze on the detona
 extern bool test_grass_yields();              // owner: blades must bend gracefully; measures stuck-ness + cause (STANDALONE)
 extern bool test_single_blade_contact();      // owner's reduction: one blade, one human, the contact studied (STANDALONE)
 extern bool test_immovable_pair_phantom_impulse(); // TDD RED: phantom impulse from zero-inv-mass pairs (STANDALONE)
+extern bool test_rotated_box_contact();       // OBB narrow phase: contact matches the rotated geometry (STANDALONE)
 extern bool test_ui_label_actually_renders();// Does a registered widget actually render? (STANDALONE)
 extern bool test_gpu_shadow_ray(TestContext& ctx);  // GPU compute shadow ray validation (Phase I MVP)
 // extern bool test_gpu_multi_triangle(TestContext& ctx);  // GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
@@ -312,6 +313,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_grass_yields"] = [](TestContext&) { return test_grass_yields(); };  // STANDALONE: own engine
     registry["test_single_blade_contact"] = [](TestContext&) { return test_single_blade_contact(); };  // STANDALONE: own engine
     registry["test_immovable_pair_phantom_impulse"] = [](TestContext&) { return test_immovable_pair_phantom_impulse(); };  // STANDALONE: own engine
+    registry["test_rotated_box_contact"] = [](TestContext&) { return test_rotated_box_contact(); };  // STANDALONE: own engine
     registry["test_ui_label_actually_renders"] = [](TestContext&) { return test_ui_label_actually_renders(); };  // STANDALONE: own engine
 
     // GPU compute tests (Phase I MVP, I-B, I-C, II-A)
@@ -742,6 +744,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_grass_yields",
         "test_single_blade_contact",
         "test_immovable_pair_phantom_impulse",
+        "test_rotated_box_contact",
         "test_ui_label_actually_renders",
         "test_interaction_filtering",
         "test_interaction_volume_forces",
@@ -858,6 +861,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_grass_yields", test_grass_yields},
         {"test_single_blade_contact", test_single_blade_contact},
         {"test_immovable_pair_phantom_impulse", test_immovable_pair_phantom_impulse},
+        {"test_rotated_box_contact", test_rotated_box_contact},
         {"test_ui_label_actually_renders", test_ui_label_actually_renders},
         {"test_interaction_filtering", test_interaction_filtering},
         {"test_interaction_volume_forces", test_interaction_volume_forces},

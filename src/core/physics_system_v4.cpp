@@ -804,17 +804,32 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         LOGO_COUNT(::logosphere::telemetry::Counter::PhysActiveBodies);
 
         // Particle i AABB (using predicted Z)
-        // Particle dimensions: width=X, height=Y, thickness=Z
-        float half_xi = pi.width * 0.5f;
-        float half_yi = pi.height * 0.5f;
-        float half_zi = pi.thickness * 0.5f;
-
-        float min_xi = pi.x - half_xi;
-        float max_xi = pi.x + half_xi;
-        float min_yi = pi.y - half_yi;
-        float max_yi = pi.y + half_yi;
-        float min_zi = z_predicted[i] - half_zi;
-        float max_zi = z_predicted[i] + half_zi;
+        // Particle dimensions: width=X, height=Y, thickness=Z.
+        // A ROTATED box's raw extents under-cover its world span (a tilted
+        // blade's length leaves Z and enters Y), so its bounds come from the
+        // oriented box instead — exact for a box, never loose. Unrotated
+        // particles keep the raw arithmetic to the bit.
+        const bool obb_i = (pi.shape == ParticleShape::BOX) &&
+                           box_particle_is_rotated(pi);
+        OBB obb_i_box;   // valid only when obb_i
+        float min_xi, max_xi, min_yi, max_yi, min_zi, max_zi;
+        if (obb_i) {
+            obb_i_box = obb_of_box_particle(pi, z_predicted[i]);
+            const AABB6 w = aabb_of_obb(obb_i_box);
+            min_xi = w.min_x; max_xi = w.max_x;
+            min_yi = w.min_y; max_yi = w.max_y;
+            min_zi = w.min_z; max_zi = w.max_z;
+        } else {
+            const float half_xi = pi.width * 0.5f;
+            const float half_yi = pi.height * 0.5f;
+            const float half_zi = pi.thickness * 0.5f;
+            min_xi = pi.x - half_xi;
+            max_xi = pi.x + half_xi;
+            min_yi = pi.y - half_yi;
+            max_yi = pi.y + half_yi;
+            min_zi = z_predicted[i] - half_zi;
+            max_zi = z_predicted[i] + half_zi;
+        }
 
         // Query BVH for nearby candidates - O(log n) instead of O(n)
         // Expand query box by CONTACT_MARGIN in Z to catch speculative contacts
@@ -838,18 +853,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             const Particle& pj = particles[j];
 
-            // Particle j AABB (using predicted Z)
-            // Particle dimensions: width=X, height=Y, thickness=Z
-            float half_xj = pj.width * 0.5f;
-            float half_yj = pj.height * 0.5f;
-            float half_zj = pj.thickness * 0.5f;
-
-            float min_xj = pj.x - half_xj;
-            float max_xj = pj.x + half_xj;
-            float min_yj = pj.y - half_yj;
-            float max_yj = pj.y + half_yj;
-            float min_zj = z_predicted[j] - half_zj;
-            float max_zj = z_predicted[j] + half_zj;
+            // Particle j AABB (using predicted Z) — same oriented-bounds
+            // rule as particle i above.
+            const bool obb_j = (pj.shape == ParticleShape::BOX) &&
+                               box_particle_is_rotated(pj);
+            OBB obb_j_box;   // valid only when obb_j
+            float min_xj, max_xj, min_yj, max_yj, min_zj, max_zj;
+            if (obb_j) {
+                obb_j_box = obb_of_box_particle(pj, z_predicted[j]);
+                const AABB6 w = aabb_of_obb(obb_j_box);
+                min_xj = w.min_x; max_xj = w.max_x;
+                min_yj = w.min_y; max_yj = w.max_y;
+                min_zj = w.min_z; max_zj = w.max_z;
+            } else {
+                const float half_xj = pj.width * 0.5f;
+                const float half_yj = pj.height * 0.5f;
+                const float half_zj = pj.thickness * 0.5f;
+                min_xj = pj.x - half_xj;
+                max_xj = pj.x + half_xj;
+                min_yj = pj.y - half_yj;
+                max_yj = pj.y + half_yj;
+                min_zj = z_predicted[j] - half_zj;
+                max_zj = z_predicted[j] + half_zj;
+            }
 
             // Check 3D AABB overlap (must overlap on ALL axes)
             // V4.13: Added CONTACT_MARGIN_XY to X/Y to prevent edge contact jitter
@@ -1042,12 +1068,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 AABB6 aabb_i = {min_xi, max_xi, min_yi, max_yi, min_zi, max_zi};
                 AABB6 aabb_j = {min_xj, max_xj, min_yj, max_yj, min_zj, max_zj};
 
+                bool both_box = (pi.shape == ParticleShape::BOX) &&
+                                (pj.shape == ParticleShape::BOX);
+                // Rotation-aware pairs bypass the AABB SAT below: a rotated
+                // box collided as its world-axis bounds produces axis-locked
+                // normals ((0,-1,0)/(0,0,-1) only on the grass-walk canary)
+                // and a tipped plate resting on the air where its unrotated
+                // slab would be.
+                const bool oriented_pair = both_box && (obb_i || obb_j);
+
                 // Surface continuity: if j is static, merge its AABB with
                 // adjacent coplanar static neighbors. Two adjacent floor tiles
                 // aren't two surfaces - they're one surface represented as
                 // two particles. Merging removes the data-structure artifact
                 // that makes SAT pick the phantom boundary axis.
-                if (pj.is_at_rest) {
+                // Axis-aligned seam fix; the oriented path doesn't read aabb_j.
+                if (pj.is_at_rest && !oriented_pair) {
                     for (int cand_k : candidates) {
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
@@ -1079,10 +1115,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
 
                 ContactManifold manifold;
-                bool both_box = (pi.shape == ParticleShape::BOX) &&
-                                (pj.shape == ParticleShape::BOX);
                 bool have_contact;
-                if (both_box) {
+                if (oriented_pair) {
+                    // Box-box with at least one rotated body: SAT over the
+                    // oriented boxes. The unrotated side degenerates to
+                    // identity axes, so mixed pairs are exact too.
+                    have_contact = narrow_phase_obb(
+                        obb_i ? obb_i_box : obb_of_box_particle(pi, z_predicted[i]),
+                        obb_j ? obb_j_box : obb_of_box_particle(pj, z_predicted[j]),
+                        i, j, CONTACT_MARGIN, manifold);
+                } else if (both_box) {
                     have_contact = narrow_phase_aabb(aabb_i, aabb_j, i, j,
                                                      CONTACT_MARGIN, manifold);
                 } else {
@@ -1209,11 +1251,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
                 // CANARY_DEBUG: Log manifold involving canary particle
                 if (canary_active && ((int)i == canary_pid || (int)j == canary_pid)) {
+                    float worst_pen = manifold.points[0].penetration;
+                    for (int cp = 1; cp < manifold.num_points; cp++)
+                        worst_pen = std::fmax(worst_pen, manifold.points[cp].penetration);
                     std::cout << "[CANARY F" << phys_frame << " CONTACT] P" << i << "<->P" << j
                               << " n=(" << manifold.normal_x << "," << manifold.normal_y << "," << manifold.normal_z << ")"
                               << " pen=" << (penetration*1000) << "mm"
+                              << " worst_pen=" << (worst_pen*1000) << "mm"
                               << " points=" << manifold.num_points << " corner=" << is_corner_contact
-                              << " zi=" << pi.z << " zj=" << pj.z << std::endl;
+                              << " zi=" << pi.z << " zj=" << pj.z
+                              << (oriented_pair ? " OBB" : " AABB") << std::endl;
+                    std::cout << "         Pi dims=(" << pi.width << "," << pi.height << "," << pi.thickness
+                              << ") rot=(" << pi.rotation_x << "," << pi.rotation_y << "," << pi.rotation_z
+                              << ") | Pj dims=(" << pj.width << "," << pj.height << "," << pj.thickness
+                              << ") rot=(" << pj.rotation_x << "," << pj.rotation_y << "," << pj.rotation_z
+                              << ")" << std::endl;
                 }
 
                 // Record collision event for game systems (combat, step climbing, etc.)

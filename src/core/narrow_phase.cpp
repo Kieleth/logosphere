@@ -595,6 +595,348 @@ bool narrow_phase_sphere_aabb(
     return true;
 }
 
+// ============================================================================
+// ORIENTED BOXES: SAT (15 axes) + reference-face clipping
+// ============================================================================
+// The AABB path above reads width/height/thickness as WORLD extents; that is
+// exactly right for the unrotated boxes worldgen compensates by hand (roots,
+// tiles) and exactly wrong for anything that carries rotation_x/y/z (blade
+// segments, tree branches, tipped debris). This path reads the same extents
+// along the particle's OWN axes. Normal convention is unchanged: unit vector
+// from B toward A.
+
+namespace {
+
+inline float dot3(const float* a, const float* b) {
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+
+inline void cross3(const float* a, const float* b, float* out) {
+    out[0] = a[1]*b[2] - a[2]*b[1];
+    out[1] = a[2]*b[0] - a[0]*b[2];
+    out[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+// Projected radius of an oriented box onto a unit axis L.
+inline float obb_radius_on(const OBB& o, const float* L) {
+    return o.half[0] * std::fabs(dot3(o.axis[0], L)) +
+           o.half[1] * std::fabs(dot3(o.axis[1], L)) +
+           o.half[2] * std::fabs(dot3(o.axis[2], L));
+}
+
+struct ClipV3 { float v[3]; };
+
+// Clip a polygon against the half-space dot(n, x) <= limit.
+// General-plane version of the axis-aligned clippers above.
+int clip_halfspace(const ClipV3* in, int in_count, ClipV3* out,
+                   const float* n, float limit) {
+    if (in_count == 0) return 0;
+    int out_count = 0;
+    for (int i = 0; i < in_count && out_count < MAX_CLIP_VERTICES; i++) {
+        int next = (i + 1) % in_count;
+        const float di = dot3(in[i].v, n) - limit;
+        const float dn = dot3(in[next].v, n) - limit;
+        const bool i_inside = di <= 0.0f;
+        const bool n_inside = dn <= 0.0f;
+        if (i_inside && n_inside) {
+            out[out_count++] = in[next];
+        } else if (i_inside != n_inside) {
+            const float t = di / (di - dn);
+            ClipV3 x;
+            for (int k = 0; k < 3; ++k)
+                x.v[k] = in[i].v[k] + t * (in[next].v[k] - in[i].v[k]);
+            out[out_count++] = x;
+            if (n_inside && out_count < MAX_CLIP_VERTICES)
+                out[out_count++] = in[next];
+        }
+    }
+    return out_count;
+}
+
+} // namespace
+
+bool box_particle_is_rotated(const Particle& p) {
+    if (p.is_quat_driven) {
+        // Unit quaternion: any orientation shows as |w| < 1.
+        // 1 - |w| ~ theta^2 / 8; 1e-6 admits ~3 mrad and under as unrotated.
+        return 1.0f - std::fabs(p.rotation_q.w) > 1e-6f;
+    }
+    constexpr float EPS = 1e-4f;   // radians; ~0.006 degrees
+    return std::fabs(p.rotation_x) > EPS ||
+           std::fabs(p.rotation_y) > EPS ||
+           std::fabs(p.rotation_z) > EPS;
+}
+
+OBB obb_of_box_particle(const Particle& p, float z_override) {
+    OBB o;
+    o.c[0] = p.x; o.c[1] = p.y; o.c[2] = z_override;
+    o.half[0] = p.width * 0.5f;
+    o.half[1] = p.height * 0.5f;
+    o.half[2] = p.thickness * 0.5f;
+    const logosphere::Quat q = p.is_quat_driven
+        ? p.rotation_q
+        : logosphere::Quat::from_euler(p.rotation_x, p.rotation_y, p.rotation_z);
+    float m[9];
+    q.to_matrix3x3(m);   // row-major; world = m * local
+    for (int i = 0; i < 3; ++i) {   // local axis i = column i
+        o.axis[i][0] = m[0 + i];
+        o.axis[i][1] = m[3 + i];
+        o.axis[i][2] = m[6 + i];
+    }
+    return o;
+}
+
+AABB6 aabb_of_obb(const OBB& o) {
+    float e[3];
+    for (int k = 0; k < 3; ++k)
+        e[k] = o.half[0] * std::fabs(o.axis[0][k]) +
+               o.half[1] * std::fabs(o.axis[1][k]) +
+               o.half[2] * std::fabs(o.axis[2][k]);
+    return AABB6{o.c[0] - e[0], o.c[0] + e[0],
+                 o.c[1] - e[1], o.c[1] + e[1],
+                 o.c[2] - e[2], o.c[2] + e[2]};
+}
+
+bool narrow_phase_obb(const OBB& a, const OBB& b,
+                      size_t id_a, size_t id_b,
+                      float margin,
+                      ContactManifold& out) {
+    out.num_points = 0;
+
+    // Center offset, B to A. Overlap on a unit axis L is ra + rb - |d.L|;
+    // negative down to -margin is a speculative near-contact, below that
+    // the axis separates the pair.
+    const float d[3] = {a.c[0] - b.c[0], a.c[1] - b.c[1], a.c[2] - b.c[2]};
+    auto overlap_on = [&](const float* L) {
+        return obb_radius_on(a, L) + obb_radius_on(b, L) - std::fabs(dot3(d, L));
+    };
+
+    // ---- 6 face axes ----
+    float best_face_overlap = std::numeric_limits<float>::max();
+    int best_face_body = -1, best_face_axis = -1;
+    for (int body = 0; body < 2; ++body) {
+        const OBB& box = (body == 0) ? a : b;
+        for (int i = 0; i < 3; ++i) {
+            const float ov = overlap_on(box.axis[i]);
+            if (ov < -margin) return false;
+            if (ov < best_face_overlap) {
+                best_face_overlap = ov;
+                best_face_body = body;
+                best_face_axis = i;
+            }
+        }
+    }
+
+    // ---- 9 edge-cross axes ----
+    float best_edge_overlap = std::numeric_limits<float>::max();
+    int best_ea = -1, best_eb = -1;
+    float best_edge_axis[3] = {0, 0, 0};
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            float L[3];
+            cross3(a.axis[i], b.axis[j], L);
+            const float len2 = dot3(L, L);
+            if (len2 < 1e-8f) continue;   // near-parallel: face axes cover it
+            const float inv = 1.0f / std::sqrt(len2);
+            L[0] *= inv; L[1] *= inv; L[2] *= inv;
+            const float ov = overlap_on(L);
+            if (ov < -margin) return false;
+            if (ov < best_edge_overlap) {
+                best_edge_overlap = ov;
+                best_ea = i; best_eb = j;
+                best_edge_axis[0] = L[0];
+                best_edge_axis[1] = L[1];
+                best_edge_axis[2] = L[2];
+            }
+        }
+    }
+
+    out.body_a = id_a;
+    out.body_b = id_b;
+
+    // Prefer face axes: face manifolds carry up to 4 points and are stable
+    // frame to frame. An edge axis wins only when clearly smaller (1 mm,
+    // the SLOP scale) — sign-safe, unlike a relative factor, because
+    // speculative overlaps can be negative.
+    constexpr float EDGE_TOL = 0.001f;
+    const bool use_edge = (best_ea >= 0) &&
+                          (best_edge_overlap + EDGE_TOL < best_face_overlap);
+
+    if (use_edge) {
+        // ---- edge-edge: single point between the two closest edges ----
+        float n[3] = {best_edge_axis[0], best_edge_axis[1], best_edge_axis[2]};
+        if (dot3(d, n) < 0.0f) { n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2]; }
+        // n now points from B toward A (the output convention).
+
+        // Supporting edge on A: runs along a.axis[best_ea], displaced toward
+        // B (i.e. along -n) on the other two axes. Mirror for B toward A.
+        float pa[3] = {a.c[0], a.c[1], a.c[2]};
+        for (int k = 0; k < 3; ++k) {
+            if (k == best_ea) continue;
+            const float s = (dot3(a.axis[k], n) > 0.0f) ? -1.0f : 1.0f;
+            for (int q = 0; q < 3; ++q) pa[q] += s * a.half[k] * a.axis[k][q];
+        }
+        float pb[3] = {b.c[0], b.c[1], b.c[2]};
+        for (int k = 0; k < 3; ++k) {
+            if (k == best_eb) continue;
+            const float s = (dot3(b.axis[k], n) > 0.0f) ? 1.0f : -1.0f;
+            for (int q = 0; q < 3; ++q) pb[q] += s * b.half[k] * b.axis[k][q];
+        }
+
+        // Closest points of the two edge lines, clamped to the edges.
+        const float* e1 = a.axis[best_ea];
+        const float* e2 = b.axis[best_eb];
+        const float r[3] = {pa[0] - pb[0], pa[1] - pb[1], pa[2] - pb[2]};
+        const float a12 = dot3(e1, e2);
+        const float denom = 1.0f - a12 * a12;   // > 1e-8 by the cross check
+        float s = (a12 * dot3(e2, r) - dot3(e1, r)) / denom;
+        float t = (dot3(e2, r) - a12 * dot3(e1, r)) / denom;
+        s = std::max(-a.half[best_ea], std::min(a.half[best_ea], s));
+        t = std::max(-b.half[best_eb], std::min(b.half[best_eb], t));
+
+        out.normal_x = n[0]; out.normal_y = n[1]; out.normal_z = n[2];
+        out.is_face_contact = false;
+        out.reference_body = 0;
+        // Dominant world component, for parity with the AABB path's field.
+        out.reference_axis =
+            (std::fabs(n[0]) >= std::fabs(n[1]) && std::fabs(n[0]) >= std::fabs(n[2])) ? 0 :
+            (std::fabs(n[1]) >= std::fabs(n[2])) ? 1 : 2;
+        out.num_points = 1;
+        ContactPoint& cp = out.points[0];
+        cp.px = 0.5f * ((pa[0] + s * e1[0]) + (pb[0] + t * e2[0]));
+        cp.py = 0.5f * ((pa[1] + s * e1[1]) + (pb[1] + t * e2[1]));
+        cp.pz = 0.5f * ((pa[2] + s * e1[2]) + (pb[2] + t * e2[2]));
+        cp.penetration = best_edge_overlap;
+        cp.point_id = 0;
+        return true;
+    }
+
+    // ---- face contact: clip the incident face against the reference face ----
+    const OBB& ref = (best_face_body == 0) ? a : b;
+    const OBB& inc = (best_face_body == 0) ? b : a;
+    const float* u = ref.axis[best_face_axis];
+
+    // Reference face: the one facing the incident box. Its outward normal.
+    const float to_inc[3] = {inc.c[0] - ref.c[0], inc.c[1] - ref.c[1],
+                             inc.c[2] - ref.c[2]};
+    const float s_ref = (dot3(to_inc, u) >= 0.0f) ? 1.0f : -1.0f;
+    const float nref[3] = {s_ref * u[0], s_ref * u[1], s_ref * u[2]};
+
+    // Output normal points from B toward A. The reference face's outward
+    // normal points toward the OTHER box: away from A when A is reference,
+    // toward A when B is.
+    const float sign_out = (best_face_body == 0) ? -1.0f : 1.0f;
+    out.normal_x = sign_out * nref[0];
+    out.normal_y = sign_out * nref[1];
+    out.normal_z = sign_out * nref[2];
+    out.is_face_contact = true;
+    out.reference_body = best_face_body;
+    {
+        const float ax = std::fabs(out.normal_x), ay = std::fabs(out.normal_y),
+                    az = std::fabs(out.normal_z);
+        out.reference_axis = (ax >= ay && ax >= az) ? 0 : (ay >= az) ? 1 : 2;
+    }
+
+    // Incident face: the face of `inc` most anti-parallel to nref.
+    int ii = 0;
+    {
+        float best_align = -1.0f;
+        for (int i = 0; i < 3; ++i) {
+            const float al = std::fabs(dot3(inc.axis[i], nref));
+            if (al > best_align) { best_align = al; ii = i; }
+        }
+    }
+    const float t_inc = (dot3(inc.axis[ii], nref) > 0.0f) ? -1.0f : 1.0f;
+    const int ip = (ii + 1) % 3, iq = (ii + 2) % 3;
+    float fc[3];
+    for (int k = 0; k < 3; ++k)
+        fc[k] = inc.c[k] + t_inc * inc.half[ii] * inc.axis[ii][k];
+
+    ClipV3 buf1[MAX_CLIP_VERTICES];
+    ClipV3 buf2[MAX_CLIP_VERTICES];
+    {   // incident face quad, wound as a cycle
+        const float hp = inc.half[ip], hq = inc.half[iq];
+        const float* ap = inc.axis[ip];
+        const float* aq = inc.axis[iq];
+        const float sp[4] = {+1, -1, -1, +1};
+        const float sq[4] = {+1, +1, -1, -1};
+        for (int v = 0; v < 4; ++v)
+            for (int k = 0; k < 3; ++k)
+                buf1[v].v[k] = fc[k] + sp[v] * hp * ap[k] + sq[v] * hq * aq[k];
+    }
+    int count = 4;
+
+    // Side planes of the reference face: dot(+-axis, x) <= dot(+-axis, c) + half
+    const int rp = (best_face_axis + 1) % 3, rq = (best_face_axis + 2) % 3;
+    const int side_axes[2] = {rp, rq};
+    for (int siv = 0; siv < 2 && count > 0; ++siv) {
+        const float* n_side = ref.axis[side_axes[siv]];
+        const float dc = dot3(n_side, ref.c);
+        const float h = ref.half[side_axes[siv]];
+        count = clip_halfspace(buf1, count, buf2, n_side, dc + h);
+        const float neg[3] = {-n_side[0], -n_side[1], -n_side[2]};
+        count = clip_halfspace(buf2, count, buf1, neg, -(dc - h));
+    }
+
+    // Admit clipped points behind (or within margin of) the reference face.
+    const float face_d = dot3(nref, ref.c) + ref.half[best_face_axis];
+    struct Cand { float v[3]; float depth; };
+    Cand cands[MAX_CLIP_VERTICES];
+    int n_cand = 0;
+    for (int i = 0; i < count; ++i) {
+        const float depth = face_d - dot3(nref, buf1[i].v);
+        if (depth >= -margin) {
+            cands[n_cand].v[0] = buf1[i].v[0];
+            cands[n_cand].v[1] = buf1[i].v[1];
+            cands[n_cand].v[2] = buf1[i].v[2];
+            cands[n_cand].depth = depth;
+            n_cand++;
+        }
+    }
+
+    if (n_cand == 0) {
+        // Numerically thinned manifold (grazing pose): fall back to the
+        // incident box's deepest vertex along the reference normal.
+        float sp[3] = {inc.c[0], inc.c[1], inc.c[2]};
+        for (int k = 0; k < 3; ++k) {
+            const float s = (dot3(inc.axis[k], nref) > 0.0f) ? -1.0f : 1.0f;
+            for (int q = 0; q < 3; ++q) sp[q] += s * inc.half[k] * inc.axis[k][q];
+        }
+        const float depth = face_d - dot3(nref, sp);
+        if (depth < -margin) return false;
+        out.num_points = 1;
+        out.points[0].px = sp[0];
+        out.points[0].py = sp[1];
+        out.points[0].pz = sp[2];
+        out.points[0].penetration = depth;
+        out.points[0].point_id = 0;
+        return true;
+    }
+
+    // Keep the 4 deepest (selection over at most 8).
+    if (n_cand > 4) {
+        for (int i = 0; i < 4; ++i) {
+            int deepest = i;
+            for (int j = i + 1; j < n_cand; ++j)
+                if (cands[j].depth > cands[deepest].depth) deepest = j;
+            const Cand tmp = cands[i];
+            cands[i] = cands[deepest];
+            cands[deepest] = tmp;
+        }
+        n_cand = 4;
+    }
+
+    out.num_points = n_cand;
+    for (int i = 0; i < n_cand; ++i) {
+        out.points[i].px = cands[i].v[0];
+        out.points[i].py = cands[i].v[1];
+        out.points[i].pz = cands[i].v[2];
+        out.points[i].penetration = cands[i].depth;
+        out.points[i].point_id = i;
+    }
+    return true;
+}
+
 bool narrow_phase_particle_pair(
     const Particle& a, const Particle& b,
     size_t id_a, size_t id_b,

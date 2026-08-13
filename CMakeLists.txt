@@ -1853,6 +1853,7 @@ set(TEST_SOURCES
     tests/test_grass_yields.cpp                # owner: grass must bend gracefully; stuck-ness instrumented
     tests/test_single_blade_contact.cpp        # one blade, one human: the contact, studied end to end
     tests/test_immovable_pair_phantom_impulse.cpp # TDD RED: immovable pairs must not produce work
+    tests/test_rotated_box_contact.cpp         # OBB narrow phase: contact matches the rotated geometry
     tests/test_ui_label_actually_renders.cpp   # does a registered widget put pixels on screen?
     tests/test_gpu_shadow_ray.cpp              # GPU compute shadow ray validation (Phase I MVP)
     # tests/test_gpu_multi_triangle.cpp          # GPU multi-triangle shadow ray (Phase I-B) - FILE MISSING
