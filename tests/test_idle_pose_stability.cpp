@@ -83,6 +83,15 @@ bool test_idle_pose_stability() {
     // Eden run at this position.
     const float eva_spawn_x = 35.0f;
     const float eva_spawn_y = -25.0f;
+    // Strata streaming follows the CAMERA when no input-target entity is
+    // registered (WorldGenSystem::update observer fallback). With the
+    // camera at its default origin, Eva at (35,-25) sits 43 m out —
+    // past unload_radius=40 — and the first streaming tick (frame ~10)
+    // deleted the 36 chunks under her feet mid-test (task #42 RCA:
+    // total_particles 3704 -> 1004, [SHAPE_GROUND] NO FLOOR FOUND).
+    // In Eden the camera follows the player, so park it on Eva to keep
+    // the world this test is written to exercise loaded.
+    engine.get_camera_system().set_position(eva_spawn_x, eva_spawn_y, 10.0f);
     auto eva = hgen.generate_humanoid_physics(
         eva_spawn_x, eva_spawn_y, 1.0f, -1, HumanoidSpec::eva(), false);
     auto& kg = engine.get_kg();
@@ -107,7 +116,26 @@ bool test_idle_pose_stability() {
         fix(l_foot); fix(l_shin); fix(l_thigh);
         fix(r_foot); fix(r_shin); fix(r_thigh);
         fix(hips_id);
+        // Keep tracer labels in sync across index swaps (CLAUDE.md pattern)
+        auto& tracer = engine.get_particle_tracer();
+        if (tracer.is_traced((int)old_idx)) {
+            auto label = tracer.label_of((int)old_idx);
+            tracer.untrace((int)old_idx);
+            tracer.trace((int)new_idx, std::move(label));
+        }
     });
+
+    // DIAG (TRACE_FEET=1): trace hips + right leg chain so every dynamics
+    // write site that touches them names itself (task #42 foot-sink RCA).
+    const bool trace_feet = std::getenv("TRACE_FEET") != nullptr;
+    if (trace_feet) {
+        auto& tracer = engine.get_particle_tracer();
+        tracer.trace(hips_id, "eva/hips");
+        tracer.trace(r_thigh, "eva/r_thigh");
+        tracer.trace(r_shin,  "eva/r_shin");
+        tracer.trace(r_foot,  "eva/r_foot");
+        tracer.trace(l_foot,  "eva/l_foot");
+    }
 
     const float dt = 1.0f / 60.0f;
 
@@ -142,6 +170,18 @@ bool test_idle_pose_stability() {
         // the mouse pointed off-axis.
         engine.get_humanoid_locomotion().set_body_relative_velocity(eva.hips_id, 0.0f, 0.0f);
         engine.update(dt);
+        if (trace_feet && frame < 60) {
+            auto vv = ps.lock_particles_for_read();
+            const Particle& F = vv[r_foot];
+            const Particle& H2 = vv[hips_id];
+            printf("  [FEET f%2d] r_foot z=%+.4f vz=%+.4f own=%d mode=%d rest=%d | "
+                   "hips z=%+.4f vz=%+.4f own=%d mode=%d rest=%d\n",
+                   frame, F.z, F.vz, (int)F.owner, (int)F.solver_mode, (int)F.is_at_rest,
+                   H2.z, H2.vz, (int)H2.owner, (int)H2.solver_mode, (int)H2.is_at_rest);
+        }
+        if (trace_feet && frame == 45) {
+            engine.get_particle_tracer().dump(std::cout, /*last_n_frames=*/12);
+        }
         auto v = ps.lock_particles_for_read();
         const Particle& H = v[hips_id];
         const Particle& L = v[l_foot];

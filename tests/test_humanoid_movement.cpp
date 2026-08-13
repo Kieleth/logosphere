@@ -202,6 +202,14 @@ struct TestFixture {
         HumanoidSpec spec = HumanoidSpec::hunter();
         h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, 0.0f, -1, spec, false);
 
+        // Build the KG body graph BEFORE registering with entity_id.
+        // register_humanoid_direct(entity_id) derives DynamicsParams from
+        // the KG capability profile; an entity with no body-part graph
+        // aggregates locomotion_factor = 0, so max_run_speed = 0 and the
+        // walker covers 0 m in every scenario (task #42 RCA: the log line
+        // "[CAP] Entity N ... loco=0 ... " was the tell).
+        h.create_kg_entities(kg, "Humanoid", 150.0f, 600.0f);
+
         engine.get_humanoid_locomotion().register_humanoid_direct(
             h.hips_id,
             h.left_leg_ids, h.right_leg_ids,
