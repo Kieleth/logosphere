@@ -75,6 +75,21 @@ SERVICE_TABLE_QUOTE = (
 DRAFT_SECTION = "Qualifying and the Draft"
 DRAFT_TABLE = "Roll"
 DRAFT_COLUMN = "Draft Career"
+# The Draft names four of its six services differently from the career
+# tables: "Aerospace System Defense (Planetary Air Force)" is the
+# career the block header calls "Aerospace Defense". The cell is
+# transcribed verbatim and the career it means is declared here,
+# because deciding that those two strings are one service is a reading
+# and not a transcription. A cell that resolves to no career fails the
+# run rather than being guessed at.
+DRAFT_CAREERS = {
+    "Aerospace System Defense (Planetary Air Force)": "Aerospace Defense",
+    "Marine": "Marine",
+    "Maritime System Defense (Planetary Navy)": "Maritime Defense",
+    "Navy": "Navy",
+    "Scout": "Scout",
+    "Surface System Defense (Planetary Army)": "Surface Defense",
+}
 
 DM_SECTION = "Characteristic Modifiers"
 DM_TABLE = "Score Range"
@@ -192,7 +207,11 @@ def main():
             return 1
         # "0-2" spans two symbols; the last row prints a single "Z".
         symbols = pseudohex.split("-")
+        # "33 or higher" has one number and an open top, and its alias
+        # says so rather than reading like a single-value band.
         alias = "@dm_row_" + "_".join(numbers)
+        if len(numbers) == 1:
+            alias += "_plus"
         citation = b.cite(DM_SECTION, DM_TABLE, band, DM_COLUMN, modifier)
         # These rows carry no source_file: the whole seed is one
         # chapter and the envelope already says which.
@@ -201,12 +220,15 @@ def main():
                      pseudohex_min=symbols[0],
                      characteristic_modifier=int(modifier.replace("\\", "")),
                      **citation)
+        props["pseudohex_max"] = symbols[-1]
         if len(numbers) > 1:
             props["key_max"] = int(numbers[1])
-            props["pseudohex_max"] = symbols[-1]
         else:
-            props["key_max_unbounded"] = "true"
-            props["pseudohex_max_unbounded"] = "true"
+            # "33 or higher" is open at the top in SCORE, but its
+            # pseudohex is the single symbol Z: the alphabet stops
+            # there, so the symbol band is closed even though the
+            # scores it stands for are not.
+            props["key_max_unbounded"] = True
         b.add("CharacteristicModifierEntry", alias, props)
         b.relate("@dm_table", alias)
         counts["dm"] += 1
@@ -255,11 +277,120 @@ def main():
         print("REFUSED: no career block headers found")
         return 1
 
+    # ---- service skills, one table per career -----------------------
+    # A sub-table abbreviates its columns: the block header writes
+    # "Aerospace Defense" and the Service Skills table under it writes
+    # "Aerospace". They are the same career, matched by POSITION in the
+    # block, which is the only thing that actually relates them. The
+    # cell citation still records the abbreviation the book printed.
+    block = []
+    for table in tables:
+        if table["title"] == "Career":
+            block = list(table["columns"])
+            continue
+        if table["title"] != "Service Skills":
+            continue
+        for index, printed in enumerate(table["columns"]):
+            career = block[index] if index < len(block) else printed
+            if career not in careers:
+                print("REFUSED: Service Skills column %r sits at position "
+                      "%d of a block naming %r, which is not a career"
+                      % (printed, index, career))
+                return 1
+            alias = careers[career]
+            svc = alias + "_svc"
+            b.add("RollableTable", svc, dict(
+                name="%s Service Skills" % career, dice=b.dice("d1d6"),
+                source_file=CHAPTER, source_section=SERVICE_TABLE_SECTION,
+                source_kind="sentence", source_quote=SERVICE_TABLE_QUOTE))
+            for row in table["rows"]:
+                key, value = row[0], row[index + 1]
+                if value not in b.skills:
+                    print("REFUSED: %s service %s reads %r, which resolves "
+                          "to no skill" % (career, key, value))
+                    return 1
+                grant = "%s_g%s" % (alias, key)
+                b.add("AdvanceSkill", grant, dict(
+                    name="%s: gain %s" % (career, value),
+                    skill=b.skills[value], initial_skill_level="1",
+                    existing_skill_delta="1", source_file=CHAPTER,
+                    source_section=SKILL_LEVEL_SECTION,
+                    source_kind="sentence", source_quote=SKILL_LEVEL_QUOTE))
+                entry = "%s_r%s" % (alias, key)
+                b.add("TableEntry", entry, dict(
+                    name="%s service %s" % (career, key),
+                    roll_min=key, roll_max=key, outcome=grant,
+                    **b.cite(SECTION, "Service Skills", key,
+                             table["columns"][index], value)))
+                b.relate(svc, entry)
+                counts["service_row"] += 1
+            # The career owns its service table. Basic training reaches
+            # it this way, and without the relation the table sits in
+            # the graph belonging to nobody.
+            b.relate(alias, svc)
+
+    # ---- the Draft --------------------------------------------------
+    draft = [t for t in tables
+             if t["title"] == DRAFT_TABLE and t["columns"] == [DRAFT_COLUMN]]
+    if not draft:
+        print("REFUSED: no Draft table in the chapter")
+        return 1
+    b.add("RollableTable", "@draft_table", dict(
+        name="Draft Career", dice=b.dice("d1d6"), source_file=CHAPTER,
+        source_section=DRAFT_SECTION, source_kind="table",
+        source_table=DRAFT_TABLE,
+        source_quote="| %s | %s |" % (DRAFT_TABLE, DRAFT_COLUMN)))
+    for row in draft[0]["rows"]:
+        key, cell = row[0], row[1]
+        career = DRAFT_CAREERS.get(cell)
+        if career is None or career not in careers:
+            print("REFUSED: the Draft names %r, which resolves to no "
+                  "career" % cell)
+            return 1
+        out = "@draft_out_%s" % key
+        b.add("EnterCareer", out, dict(
+            name="drafted into %s" % career, drafted_career=careers[career],
+            **b.cite(DRAFT_SECTION, DRAFT_TABLE, key, DRAFT_COLUMN, cell)))
+        entry = "@draft_row_%s" % key
+        b.add("TableEntry", entry, dict(
+            name="draft %s" % key, roll_min=key, roll_max=key, outcome=out,
+            **b.cite(DRAFT_SECTION, DRAFT_TABLE, key, DRAFT_COLUMN, cell)))
+        b.relate("@draft_table", entry)
+        counts["draft"] += 1
+
+    # ---- the eight numbers a human read out of the prose ------------
+    for name, value, section, quote in RULE_CONSTANTS:
+        b.add("RuleConstant", "@" + name, dict(
+            name=name, constant_value=value, source_file=CHAPTER,
+            source_section=section, source_kind="sentence",
+            source_quote=quote))
+
     print("careers:      %d" % counts["career"])
     print("throws:       %d" % counts["check"])
+    print("service rows: %d" % counts["service_row"])
+    print("draft rows:   %d" % counts["draft"])
+    print("modifiers:    %d" % counts["dm"])
+    print("constants:    %d" % len(RULE_CONSTANTS))
+    # Counts and coverage, asserted. A change that silently drops a
+    # career or half a table still verifies - every citation left
+    # behind is still true - and the invariant is what turns that
+    # silence into a failure.
+    counted = {}
+    for op in b.ops:
+        if op["op"] == "create_entity":
+            counted[op["type"]] = counted.get(op["type"], 0) + 1
+    bands = {alias + "_svc": [1, 6] for alias in careers.values()}
+    bands["@dm_table"] = [0, None]
+    bands["@draft_table"] = [1, 6]
     seed = {"source": {"file": CHAPTER, "commit": commit},
             "layer": "cepheus", "generated_by": GENERATED_BY,
-            "invariants": {}, "ops": b.ops}
+            "invariants": {
+                "count_of_type": counted,
+                "unique_name_per_type": sorted(
+                    set(counted) | {"DiceExpression"}),
+                "band_coverage": bands,
+            },
+            "ops": b.ops}
     json.dump(seed, open(out_path, "w", encoding="utf-8"), indent=1)
     open(out_path, "a", encoding="utf-8").write("\n")
     print("total ops:    %d -> %s" % (len(b.ops), out_path))
