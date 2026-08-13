@@ -13,7 +13,7 @@
    "AdvanceSkill": 144,
    "CharacteristicModifierEntry": 12,
    "LookupTable": 1,
-   "RuleConstant": 2,
+   "RuleConstant": 3,
    "EnterCareer": 6
   },
   "unique_name_per_type": [
@@ -160,6 +160,19 @@
     "source_section": "Reenlistment and Retirement",
     "source_kind": "sentence",
     "source_quote": "The Referee may want to change the maximum number of terms spent in character creation from 7 to something else."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@survival_natural_failure",
+   "properties": {
+    "name": "survival_natural_failure",
+    "constant_value": "2",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Survival",
+    "source_kind": "sentence",
+    "source_quote": "A natural 2 is always a failure."
    }
   },
   {

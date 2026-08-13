@@ -726,6 +726,103 @@ void test_missing_rule_constant_never_falls_back() {
               error);
 }
 
+// "Each career has a survival roll. If you fail this roll, your
+// character is dead... A natural 2 is always a failure." The floor is
+// the book's number, held in the graph, and a life that snake-eyes its
+// survival dies however good its Endurance was.
+void test_a_natural_two_kills_however_good_the_endurance() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the natural-failure world loads: " + why);
+
+    // The coincidence the rule is FOR - a natural 2 that a DM had
+    // already carried over the target - needs a 4+ career and a
+    // characteristic of 12, and does not turn up in a sweep. So the
+    // rule is proved where it is decidable: the floor is data, and
+    // moving it moves who lives.
+    const auto floor_constant = [](kg::KGModule& w) {
+        for (const auto id : w.findByType("RuleConstant")) {
+            if (w.getProperty(id, "name") == "survival_natural_failure") {
+                return id;
+            }
+        }
+        return kg::INVALID_ENTITY;
+    };
+    CHECK(floor_constant(world) != kg::INVALID_ENTITY,
+          "the book's floor is in the graph, not in the procedure");
+
+    // Raise the floor to 12 and every 2D6 survival throw is a natural
+    // failure, whatever the DM. Nobody may serve a term.
+    kg::KGModule raised(game_registry());
+    CHECK(build_world(raised, why), "the raised-floor world loads: " + why);
+    raised.setProperty(floor_constant(raised), "constant_value", "12");
+
+    int lived = 0, died = 0, said_natural = 0;
+    for (uint64_t seed = 1; seed <= 40; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, raised, dice, sheet, error);
+        if (sheet.terms_served > 0) ++lived;
+        for (const auto& event : sheet.life) {
+            if (event.detail.find("always a failure") != std::string::npos) {
+                ++said_natural;
+                ++died;
+                break;
+            }
+        }
+    }
+    std::cout << "  [measure] floor at 12: " << died
+              << "/40 lives lost a survival throw to the dice, " << lived
+              << " served a term\n";
+    CHECK(died > 0 && said_natural == died,
+          "raising the floor kills on the dice alone, and every such death "
+          "says so in the timeline");
+    CHECK(lived == 0,
+          "with every natural result at or under the floor, no character "
+          "survives a term: " + std::to_string(lived) + " did");
+
+    // The control: the book's own floor of 2 leaves most lives alone,
+    // so the kill above is the constant's doing and not the harness's.
+    int control_lived = 0;
+    for (uint64_t seed = 1; seed <= 40; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenRequest req;
+        req.career_name = "Agent";
+        req.seed = seed;
+        req.max_terms = 7;
+        logovger::CharacterSheet sheet;
+        std::string error;
+        logovger::run_chargen(req, world, dice, sheet, error);
+        if (sheet.terms_served > 0) ++control_lived;
+    }
+    std::cout << "  [measure] floor at 2 (the book's): " << control_lived
+              << "/40 served a term\n";
+    CHECK(control_lived > 0,
+          "the same seeds under the book's floor do serve terms, so the "
+          "difference is the data and not the sweep");
+
+    // And missing is a stop, not a default of zero.
+    kg::KGModule stripped(game_registry());
+    CHECK(build_world(stripped, why), "the stripped world loads: " + why);
+    stripped.removeProperty(floor_constant(stripped), "constant_value");
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest req;
+    req.career_name = "Agent";
+    req.seed = 1;
+    req.max_terms = 1;
+    logovger::CharacterSheet sheet;
+    std::string error;
+    const bool ran = logovger::run_chargen(req, stripped, dice, sheet, error);
+    CHECK(!ran && error.find("survival_natural_failure") != std::string::npos,
+          "a survival throw with no floor in the graph stops the run rather "
+          "than quietly having none: " + error);
+}
+
 void test_character_facts_use_the_modifier_table() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -1637,6 +1734,7 @@ int main() {
     test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
+    test_a_natural_two_kills_however_good_the_endurance();
     test_character_facts_use_the_modifier_table();
     test_the_rules_are_data();
     test_characteristic_modifier_table_drives_checks();

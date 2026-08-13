@@ -90,6 +90,12 @@ std::string check_detail(
            << (execution.modifier() >= 0 ? " +" : " ")
            << execution.modifier() << " DM -> " << execution.total()
            << " vs " << execution.target_number() << "+";
+    // A throw the dice killed says so, because the numbers alone read
+    // as a pass and a reader would think the engine had miscounted.
+    if (execution.failed_on_natural()) {
+        detail << " (natural " << execution.natural_total()
+               << ": always a failure)";
+    }
     return detail.str();
 }
 
@@ -822,9 +828,20 @@ ChargenSession::PrimitiveResult ChargenSession::roll_survival(
         return PrimitiveResult::failed("career '" + sheet_.career +
                                        "': " + error);
     }
+    // "Each career has a survival roll. If you fail this roll, your
+    // character is dead... A natural 2 is always a failure." The number
+    // lives in the graph rather than here, because it is the book's and
+    // a Referee may change it. Missing is a hard stop: a survival throw
+    // that quietly lost its floor kills nobody it should.
+    int natural_failure = 0;
+    if (!constant("survival_natural_failure", natural_failure, error)) {
+        return PrimitiveResult::failed(error);
+    }
+    logosphere::rules::TaskCheckOptions options;
+    options.natural_failure_at_or_below = natural_failure;
     logosphere::rules::TaskCheckRunner runner(kg_, dice_);
     const auto survival = runner.run(
-        check.id, sheet_.id, "chargen", "survival");
+        check.id, sheet_.id, "chargen", "survival", options);
     if (!survival.ok()) return PrimitiveResult::failed(survival.error);
     const auto& execution = *survival.execution;
     sheet_.life.push_back(
@@ -1949,8 +1966,14 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose("1", error)) return false;
             continue;
         }
+        // Both forms of the question: the term's own roll, and the
+        // extra one a promotion buys. Matching only the first left
+        // every promoted character stuck at a prompt the auto-player
+        // could not answer, which is most of a long life.
         if (session.prompt().find("which table do you train on") !=
-            std::string::npos) {
+                std::string::npos ||
+            session.prompt().find("more training roll(s). Which table?") !=
+                std::string::npos) {
             const auto service = std::find_if(
                 choices.begin(), choices.end(), [](const Choice& choice) {
                     return choice.label.size() > 14 &&
