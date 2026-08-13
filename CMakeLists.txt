@@ -1903,6 +1903,7 @@ set(TEST_SOURCES
     tests/test_leg_shoot_out_during_rotation.cpp # PHYSICS: no leg teleports during yaw cascade + twist-step
     tests/test_idle_pose_stability.cpp           # PHYSICS: standing Eva keeps feet under body
     tests/test_gluon_angular_drive_converges.cpp # PHYSICS-DRIVE: gluon PD drive to target rotation (Phase 1)
+    tests/test_drive_gravity_ff.cpp # PHYSICS-DRIVE: gravity compensation ladder (task #41)
     tests/test_gluon_3axis_drive_converges.cpp   # ROTATIONAL-DOF: gluon 3-axis PD drive (Stage 2)
     tests/test_particle_quat_euler_sync.cpp      # ROTATIONAL-DOF: quat-driven Euler derivation (Stage 3 bridge)
     tests/test_physics_drive_neck_yaw.cpp        # PHYSICS-DRIVE: humanoid neck yaw physics-driven (Phase 2)
