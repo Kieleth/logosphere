@@ -2308,6 +2308,8 @@ struct CareerThrowEntry : public SubjectLookupEntry {
 struct CareerTableEntry : public SubjectLookupEntry {
     /// The table this row supplies for its career [book1/character-creation.md "Career Tables"].
     RollableTable rollable_table = {};
+    /// What part this table plays where several are offered together, when a rule treats them differently. Cepheus caps CASH benefit rolls at three and lets the others run; it grants every SERVICE skill at level 0 on a first career. Both are rules about a table's role, and both were written as C++ matching the table's printed name - "Cash Benefits" by substring, "Service Skills" by a fourteen-character suffix compare - so renaming a table in the seed broke the rule silently and a translated book could not work at all. The values are the game's; the engine only ever compares what the row says against what a step asked for.
+    std::optional<std::string> table_role = std::nullopt;
 };
 
 

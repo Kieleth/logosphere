@@ -1017,6 +1017,19 @@ slots:
     range: DiceExpression
     description: >-
       Rolled count, when the book rolls for it: "1D6 Ship Shares".
+  table_role:
+    range: string
+    description: >-
+      What part this table plays where several are offered together,
+      when a rule treats them differently. Cepheus caps CASH benefit
+      rolls at three and lets the others run; it grants every SERVICE
+      skill at level 0 on a first career. Both are rules about a
+      table's role, and both were written as C++ matching the table's
+      printed name - "Cash Benefits" by substring, "Service Skills" by
+      a fourteen-character suffix compare - so renaming a table in the
+      seed broke the rule silently and a translated book could not work
+      at all. The values are the game's; the engine only ever compares
+      what the row says against what a step asked for.
   requires_attribute:
     range: string
     description: >-

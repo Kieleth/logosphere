@@ -133,6 +133,10 @@ classes:
         required: true
     slots:
       - rollable_table
+      # "cash", "material" or "service" where a Cepheus rule treats one
+      # kind of table differently from another. Absent on the training
+      # tables, which the book treats alike.
+      - table_role
 
   CareerTrackEntry:
     is_a: SubjectLookupEntry

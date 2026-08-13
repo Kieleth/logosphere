@@ -1837,7 +1837,12 @@ ChargenSession::PrimitiveResult ChargenSession::survival_mishap(
     // advance_term, so the term neither completes nor pays: the two
     // years are added here and terms_in_career is left alone, which is
     // what makes the current term's benefit roll disappear.
-    sheet_.age_years += 2;
+    int mishap_years = 0;
+    std::string mishap_years_error;
+    if (!constant("mishap_years", mishap_years, mishap_years_error)) {
+        return PrimitiveResult::failed(mishap_years_error);
+    }
+    sheet_.age_years += mishap_years;
     write_sheet(kg_, sheet_);
     sheet_.life.push_back({sheet_.terms_served, "left the service",
                            "two years into the term, age " +
