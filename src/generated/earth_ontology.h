@@ -68,7 +68,7 @@ enum class MaterialType {
     GOLD,
     /// Massless light emitter
     LIGHT,
-    /// Immovable boundary material
+    /// Deprecated, and never what its name says. It is a density of 10000 kg/m3 and nothing else: dense is not immovable, and a structure held up by weight gives way once something heavy enough leans on it. Only the turtle boundary is intrinsically immovable (INV-1); to make a body genuinely immovable set solver_authority KINEMATIC. For floor tiles use STONE plus bonding, which is what the strata generator does. Marked deprecated in src/materials.h and due to leave the enum; retained so existing scenes still compile.
     HEAVY_STATIC
 };
 
@@ -114,28 +114,23 @@ inline bool from_string(const char* str, MaterialType& out) {
     return false;
 }
 
-/// Constraint type connecting two particles.
+/// Constraint type connecting two particles. These are the three bond kinds the engine actually builds. The vocabulary is kept equal to kg::KGGluonType (include/logosphere/kg/kg_types.h), which is what the entity manager and every generator switch on.
+/// Until 2026-08-13 this enum listed five values (NAIL, JOINT, CEMENT, GLUE, MAGIC) that no code had ever produced or consumed, while the three real kinds went unnamed. A schema reader learned a bond palette the engine does not have, which is the failure mode the ontology exists to prevent.
 enum class GluonType {
-    /// Rigid connection with directional stiffness
+    /// Rigid connection holding a fixed relative pose, failing at a declared breaking force. The default for assembled rigs.
     NAIL,
-    /// Rotational connection with angle limits
-    JOINT,
-    /// Brittle connection that breaks suddenly
-    CEMENT,
-    /// Viscous connection resisting fast motion
-    GLUE,
-    /// Force field with distance-based attraction
-    MAGIC
+    /// Cohesive bond whose strength is derived, never declared: the breaking force is contact area times material tensile strength, and the force law follows from material and geometry (INV-9). This is what holds grown structures together.
+    ORGANIC,
+    /// Compliant connection modelling a real elastic element (tendon, ligament, knee). Compliance here is a physical model, not a numerical patch; see INV-5.
+    ELASTIC
 };
 
 /// Convert GluonType to its string representation.
 inline const char* to_string(GluonType value) {
     switch (value) {
         case GluonType::NAIL: return "NAIL";
-        case GluonType::JOINT: return "JOINT";
-        case GluonType::CEMENT: return "CEMENT";
-        case GluonType::GLUE: return "GLUE";
-        case GluonType::MAGIC: return "MAGIC";
+        case GluonType::ORGANIC: return "ORGANIC";
+        case GluonType::ELASTIC: return "ELASTIC";
     }
     return "unknown";
 }
@@ -143,10 +138,8 @@ inline const char* to_string(GluonType value) {
 /// Parse a string into GluonType. Returns false if the string is not a valid value.
 inline bool from_string(const char* str, GluonType& out) {
     if (std::strcmp(str, "NAIL") == 0) { out = GluonType::NAIL; return true; }
-    if (std::strcmp(str, "JOINT") == 0) { out = GluonType::JOINT; return true; }
-    if (std::strcmp(str, "CEMENT") == 0) { out = GluonType::CEMENT; return true; }
-    if (std::strcmp(str, "GLUE") == 0) { out = GluonType::GLUE; return true; }
-    if (std::strcmp(str, "MAGIC") == 0) { out = GluonType::MAGIC; return true; }
+    if (std::strcmp(str, "ORGANIC") == 0) { out = GluonType::ORGANIC; return true; }
+    if (std::strcmp(str, "ELASTIC") == 0) { out = GluonType::ELASTIC; return true; }
     return false;
 }
 
@@ -1287,8 +1280,14 @@ struct SystemEntity : public Entity {
 };
 
 
-/// Singleton entity holding global physics parameters.
+/// Singleton entity holding the global physics parameters a world is seeded with. These three are what KGModule::seedPhysicsConstants writes; they were undeclared properties until 2026-08-13. This is per-world KG configuration, not the solver constants registry: those are build-time inputs generated into the engine (INV-29), and the solver never reads the KG.
 struct PhysicsConstants : public Entity {
+    /// Gravitational acceleration along world Z, m/s2. Negative points down. Earth default -9.8. The world-Z framing is legacy: this is a seed value for a world, not a licence for solver code to assume an up axis, which INV-6 forbids.
+    std::optional<float> gravity_z = std::nullopt;
+    /// Global air drag coefficient, dimensionless. 0 disables it, which is the current default.
+    std::optional<float> air_resistance = std::nullopt;
+    /// Coulomb friction coefficient used where a pair declares none, dimensionless. Default 0.5.
+    std::optional<float> default_friction = std::nullopt;
 };
 
 

@@ -179,6 +179,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ParticleInteractionProfile", "field_fy", "float", false);
     reg.addProperty("ParticleInteractionProfile", "field_fz", "float", false);
     reg.addProperty("PerceptionEvent", "memory_layer", "enum", false);
+    reg.addProperty("PhysicsConstants", "gravity_z", "float", false);
+    reg.addProperty("PhysicsConstants", "air_resistance", "float", false, true, 0.0, false, 0.0);
+    reg.addProperty("PhysicsConstants", "default_friction", "float", false, true, 0.0, false, 0.0);
     reg.addProperty("RelationEvent", "relation_type", "string", false);
     reg.addProperty("Spatial", "position_x", "float", true);
     reg.addProperty("Spatial", "position_y", "float", true);

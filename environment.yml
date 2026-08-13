@@ -6,4 +6,7 @@ dependencies:
   - ninja
   - pkg-config
   - pyyaml
-  - linkml
+  # >=1.11.0 is the first release carrying linkml.generators.cppgen
+  # (upstream linkml#3332). scripts/gen_cpp_header.py imports it
+  # directly; below this floor, ontology codegen cannot run.
+  - linkml >=1.11.0

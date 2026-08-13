@@ -49,21 +49,45 @@ enums:
       LIGHT:
         description: Massless light emitter
       HEAVY_STATIC:
-        description: Immovable boundary material
+        description: >-
+          Deprecated, and never what its name says. It is a density of
+          10000 kg/m3 and nothing else: dense is not immovable, and a
+          structure held up by weight gives way once something heavy
+          enough leans on it. Only the turtle boundary is intrinsically
+          immovable (INV-1); to make a body genuinely immovable set
+          solver_authority KINEMATIC. For floor tiles use STONE plus
+          bonding, which is what the strata generator does. Marked
+          deprecated in src/materials.h and due to leave the enum;
+          retained so existing scenes still compile.
 
   GluonType:
-    description: Constraint type connecting two particles.
+    description: >-
+      Constraint type connecting two particles. These are the three bond
+      kinds the engine actually builds. The vocabulary is kept equal to
+      kg::KGGluonType (include/logosphere/kg/kg_types.h), which is what
+      the entity manager and every generator switch on.
+
+      Until 2026-08-13 this enum listed five values (NAIL, JOINT, CEMENT,
+      GLUE, MAGIC) that no code had ever produced or consumed, while the
+      three real kinds went unnamed. A schema reader learned a bond
+      palette the engine does not have, which is the failure mode the
+      ontology exists to prevent.
     permissible_values:
       NAIL:
-        description: Rigid connection with directional stiffness
-      JOINT:
-        description: Rotational connection with angle limits
-      CEMENT:
-        description: Brittle connection that breaks suddenly
-      GLUE:
-        description: Viscous connection resisting fast motion
-      MAGIC:
-        description: Force field with distance-based attraction
+        description: >-
+          Rigid connection holding a fixed relative pose, failing at a
+          declared breaking force. The default for assembled rigs.
+      ORGANIC:
+        description: >-
+          Cohesive bond whose strength is derived, never declared: the
+          breaking force is contact area times material tensile strength,
+          and the force law follows from material and geometry (INV-9).
+          This is what holds grown structures together.
+      ELASTIC:
+        description: >-
+          Compliant connection modelling a real elastic element (tendon,
+          ligament, knee). Compliance here is a physical model, not a
+          numerical patch; see INV-5.
 
   JointType:
     description: Anatomical joint degree-of-freedom classification.
@@ -654,7 +678,17 @@ classes:
 
   PhysicsConstants:
     is_a: Entity
-    description: Singleton entity holding global physics parameters.
+    description: >-
+      Singleton entity holding the global physics parameters a world is
+      seeded with. These three are what KGModule::seedPhysicsConstants
+      writes; they were undeclared properties until 2026-08-13. This is
+      per-world KG configuration, not the solver constants registry:
+      those are build-time inputs generated into the engine (INV-29),
+      and the solver never reads the KG.
+    slots:
+      - gravity_z
+      - air_resistance
+      - default_friction
 
   Constraint:
     is_a: Entity
@@ -908,6 +942,27 @@ slots:
     range: boolean
   species:
     range: string
+
+  # --- PhysicsConstants ---
+  gravity_z:
+    range: float
+    description: >-
+      Gravitational acceleration along world Z, m/s2. Negative points
+      down. Earth default -9.8. The world-Z framing is legacy: this is
+      a seed value for a world, not a licence for solver code to assume
+      an up axis, which INV-6 forbids.
+  air_resistance:
+    range: float
+    minimum_value: 0.0
+    description: >-
+      Global air drag coefficient, dimensionless. 0 disables it, which
+      is the current default.
+  default_friction:
+    range: float
+    minimum_value: 0.0
+    description: >-
+      Coulomb friction coefficient used where a pair declares none,
+      dimensionless. Default 0.5.
 
   # --- Entity-specific ---
   floor_type:
