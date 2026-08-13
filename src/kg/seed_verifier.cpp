@@ -640,6 +640,25 @@ struct Checker {
                         continue;
                     }
                 }
+                // A book can state a number without writing it: "An
+                // additional benefit is gained if the character held
+                // rank O4" is a count of one carried by the article.
+                // implied_by names the words that carry it, and they
+                // become the proof in place of a token - still pinned
+                // to the source, so a phrase that is not in the quote
+                // fails exactly as a wrong digit does.
+                const std::string implied =
+                    world.getProperty(id, "implied_by");
+                if (!implied.empty()) {
+                    if (quote.find(implied) == std::string::npos) {
+                        violate("value", static_cast<int>(i), alias,
+                                type + "." + key + " = " + value +
+                                ": implied_by \"" + preview(implied) +
+                                "\" does not appear in the entity's quote \"" +
+                                preview(quote) + "\"");
+                    }
+                    continue;
+                }
                 if (digits.empty() ||
                     std::find(tokens.begin(), tokens.end(), digits) ==
                         tokens.end()) {

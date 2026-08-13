@@ -697,6 +697,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Cited", "source_aliases", kg::PropertyValueKind::String, false);
     reg.addProperty("Cited", "source_defect", kg::PropertyValueKind::String, false);
     reg.addProperty("Cited", "suggested_reading", kg::PropertyValueKind::String, false);
+    reg.addProperty("Cited", "implied_by", kg::PropertyValueKind::String, false);
     reg.addProperty("Cited", "unmodelled", kg::PropertyValueKind::String, false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("CollisionEvent", "collision_force", kg::PropertyValueKind::Float, false);
