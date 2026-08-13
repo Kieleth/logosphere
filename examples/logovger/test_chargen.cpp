@@ -36,6 +36,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <algorithm>
 #include <set>
 #include <sstream>
@@ -135,6 +136,46 @@ kg::EntityID agent_training_table(kg::KGModule& world) {
 }
 
 // ------------------------------------------------------- the slice
+
+// Every skill the character holds, as name -> level, read from the
+// SkillRatings in the graph. What basic training did is a fact about
+// the character, not about how the grant was made, so a test written
+// this way survives the grant changing shape.
+std::map<std::string, int> skills_held(const kg::KGModule& world,
+                                       kg::EntityID character) {
+    std::map<std::string, int> out;
+    for (const auto part : world.getRelated(character, "HAS_PART")) {
+        const std::string ref = world.getProperty(part, "skill");
+        if (ref.empty()) continue;
+        const auto skill = static_cast<kg::EntityID>(std::stoul(ref));
+        const std::string level = world.getProperty(part, "skill_level");
+        out[world.getProperty(skill, "name")] =
+            level.empty() ? 0 : std::stoi(level);
+    }
+    return out;
+}
+
+// The skills a career's service table can grant, in table order.
+std::vector<std::string> service_skill_names(const kg::KGModule& world,
+                                             const std::string& career) {
+    std::vector<std::string> out;
+    for (const auto id : world.findByType("RollableTable")) {
+        if (world.getProperty(id, "name") != career + " Service Skills") {
+            continue;
+        }
+        for (const auto row : world.getRelated(id, "HAS_PART")) {
+            const std::string outcome = world.getProperty(row, "outcome");
+            if (outcome.empty()) continue;
+            const auto grant = static_cast<kg::EntityID>(
+                std::stoul(outcome));
+            const std::string skill = world.getProperty(grant, "skill");
+            if (skill.empty()) continue;
+            out.push_back(world.getProperty(
+                static_cast<kg::EntityID>(std::stoul(skill)), "name"));
+        }
+    }
+    return out;
+}
 
 void test_a_life_is_generated() {
     kg::KGModule kg(game_registry());
@@ -1805,6 +1846,86 @@ void test_a_training_answer_names_a_table_not_a_position() {
 // answer to the second question was read as an answer to the first: a
 // second mishap rolled, two more years added, no money taken, and the
 // characteristic left at 0.
+// "For your first term in your first career, you get every skill in the
+// service skills table at level 0. For your first term in subsequent
+// careers, you may pick any one skill from the service skills table at
+// level 0."
+//
+// Written BEFORE basic training's grant is converted from a hand-built
+// SkillRating to EnsureSkillLevel outcome data, and asserting only what
+// the book promises the CHARACTER, so it holds either way. A refactor
+// that changes what a character ends up with is not a refactor.
+void test_basic_training_grants_what_the_book_promises() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the basic-training world: " + why);
+    if (!why.empty()) return;
+
+    // ---- a first career gives every service skill, at level 0 ------
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    std::string error;
+    CHECK(session.begin(28, error), "the first-career life begins: " + error);
+    CHECK(session.choose("Navy", error),
+          "and takes the Navy: " + error);
+
+    const auto& sheet = session.sheet();
+    const auto expected = service_skill_names(world, "Navy");
+    CHECK(expected.size() == 6,
+          "the Navy service table grants six skills: " +
+              std::to_string(expected.size()));
+    const auto held = skills_held(world, sheet.id);
+    std::string missing, wrong_level;
+    for (const auto& name : expected) {
+        const auto found = held.find(name);
+        if (found == held.end()) {
+            missing += (missing.empty() ? "" : ", ") + name;
+        } else if (found->second != 0) {
+            wrong_level += (wrong_level.empty() ? "" : ", ") + name + "@" +
+                           std::to_string(found->second);
+        }
+    }
+    std::cout << "  [measure] first career holds " << held.size()
+              << " skills after basic training\n";
+    CHECK(missing.empty(),
+          "a first career grants EVERY skill on its service table; these "
+          "are absent: " + missing);
+    CHECK(wrong_level.empty(),
+          "and every one of them at level 0; these are not: " + wrong_level);
+
+    // ---- a later career gives exactly one ---------------------------
+    // Driven to a second career, where the book grants a choice of one
+    // rather than the lot.
+    logosphere::dice::DiceService second_dice;
+    logovger::ChargenSession second(world, second_dice);
+    CHECK(second.begin(95, error), "the multi-career life begins: " + error);
+    LongLife player(second);
+    player.leave_at_the_end_of_this_term();
+    if (!player.run_until("which service skill do they start you on",
+                          error)) {
+        std::cout << "  [measure] no life reached a second career's basic "
+                     "training in this seed; the first-career half stands\n";
+        return;
+    }
+    const auto before = skills_held(world, second.sheet().id);
+    const auto offered = second.choices();
+    CHECK(offered.size() == 6,
+          "the second career offers its six service skills: " +
+              std::to_string(offered.size()));
+    CHECK(second.choose(offered.front().key, error),
+          "one of them is taken: " + error);
+    const auto after = skills_held(world, second.sheet().id);
+    int gained = 0;
+    for (const auto& [name, level] : after) {
+        if (!before.count(name)) ++gained;
+    }
+    std::cout << "  [measure] second career granted " << gained
+              << " new skill(s)\n";
+    CHECK(gained <= 1,
+          "a later career grants at most ONE new skill, not the table: " +
+              std::to_string(gained));
+}
+
 void test_paying_for_an_injury_does_not_re_roll_the_mishap() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2204,6 +2325,7 @@ int main() {
     test_missing_rules_fail_loudly();
     test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
+    test_basic_training_grants_what_the_book_promises();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();
