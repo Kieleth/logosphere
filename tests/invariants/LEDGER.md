@@ -207,3 +207,24 @@ File now holds 28 invariants: 15 charter + INV-16 aspirational + these
 twelve. Coverage links for 17-28 are OWED (TEST_AUDIT proves/touches
 refer to 1-15 only); until linked they appear as coverage holes, which
 is correct and loud.
+
+### 2026-08-13 · CREATE · INV-29 constants-are-inputs (owner decree)
+
+Dictated by the owner as a true invariant of this engine: not one magic
+number in the physics engine. Constants are INPUTS that prepare and
+adjust the engine; tweaking/adding/deleting/grouping them is an
+explicit effort separated from writing the code that uses them, which
+keeps the code honest about pursuing underlying solutions rather than
+higher-level patches. Born aspirational: the code holds ~50 named
+constants and ~20 in-function literals today; the invariant flips to
+active when the extraction lands and the static gate proves zero
+remaining literals.
+
+Same ruling reversed the study's sequencing: the physics concept
+ontology (schema/physics.yaml) comes FIRST as the base where the
+validation/hardening work flourishes, drift fixes folded into its
+first stage; the constants registry is part of that schema. The
+study's Option 4 rejection is overruled with the resolving insight:
+constants as build-time INPUTS (schema -> generated header) do not
+violate physics' runtime blindness (INV-15) — the engine receives its
+configuration, it does not read the game's ontology.
