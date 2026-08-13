@@ -675,6 +675,51 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     for (const auto& gluon : gluon_constraints_v2_) {
         gluon_pairs.insert({gluon->particle_a, gluon->particle_b});
     }
+
+    // ==========================================================================
+    // BONDED-STRUCTURE COMPONENTS (union-find over the gluon graph)
+    // ==========================================================================
+    // The direct-pair skip below states the principle: gluons already
+    // constrain the pair, and a contact on top is a conflicting constraint.
+    // A bonded STRUCTURE is that statement transitively: a tree's crown is
+    // built with branches and foliage boxes deliberately crossing each other
+    // (test_foliage_stays_attached's own header: perfect separation at birth
+    // costs the complexity that is the point of the tree). Those crossings
+    // are the structure's internal geometry, held by its bonds; contact rows
+    // inside one structure fight the bonds — measured when the narrow phase
+    // became rotation-aware and first SAW the crossings: 0.80 m
+    // "penetrations" between a trunk and its own crown's foliage boxes,
+    // leaves ejected at 6.77 m/s against a 2.0 gate.
+    //
+    // Connectivity runs through DYNAMIC bodies only. An immovable anchor is
+    // ground, not structure: two plants rooted to the same KINEMATIC tile
+    // are two plants, and their blades still collide with each other.
+    // Rebuilt every step from the live gluon list (~one union per gluon),
+    // so torn bonds dissolve the component with no stale state.
+    std::vector<uint32_t> bond_root(count);
+    for (size_t i = 0; i < count; ++i) bond_root[i] = (uint32_t)i;
+    {
+        auto find_root = [&bond_root](uint32_t x) {
+            while (bond_root[x] != x) {
+                bond_root[x] = bond_root[bond_root[x]];   // path halving
+                x = bond_root[x];
+            }
+            return x;
+        };
+        for (const auto& gluon : gluon_constraints_v2_) {
+            const size_t a = gluon->particle_a, b = gluon->particle_b;
+            if (a >= count || b >= count) continue;
+            if (particles[a].solver_mode == ParticleSolverMode::KINEMATIC ||
+                particles[b].solver_mode == ParticleSolverMode::KINEMATIC)
+                continue;   // ground link, not structure
+            const uint32_t ra = find_root((uint32_t)a);
+            const uint32_t rb = find_root((uint32_t)b);
+            if (ra != rb) bond_root[ra] = rb;
+        }
+        // Flatten so the pair loop's comparison is one array read each.
+        for (size_t i = 0; i < count; ++i)
+            bond_root[i] = find_root((uint32_t)i);
+    }
     auto t_after_gluon_hash = std::chrono::high_resolution_clock::now();
 
     // Use BVH broad-phase to reduce O(n²) to O(n log n)
@@ -700,17 +745,39 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // Skip particles at rest (optimization)
         if (pi.is_at_rest) continue;
 
-        // Calculate particle bottom at predicted position
-        // WARNING: This uses thickness as WORLD Z-extent, IGNORING rotation_x/y/z!
-        // Particles must set width/height/thickness to match WORLD axes.
-        // See physics_tree_generator.cpp "CRITICAL WARNING" for full explanation.
-        float half_zi = pi.thickness * 0.5f;
-        float particle_bottom = z_predicted[i] - half_zi;
-
+        // Calculate particle bottom at predicted position. A rotated BOX's
+        // down-reach comes from its oriented bounds (the turtle is the z=0
+        // plane; its normal is +Z by definition — plane geometry, not a
+        // gravity assumption). Unrotated boxes and other shapes keep the
+        // raw thickness extent, which for them is exact. Must stay in
+        // lock-step with enforce_turtle_boundary below.
+        //
+        // Cost guard: no orientation can reach further than the half
+        // diagonal, so a body with more clearance than that needs no exact
+        // extent (quat + matrix) — and no extent choice could fire the
+        // threshold test anyway. Measured on Eden headless 1600px: without
+        // this, two full-particle turtle loops per substep re-derived
+        // orientations for thousands of resting canopy boxes.
         // V4.3 FIX: Create constraint for particles NEAR turtle, not just penetrating
         // This prevents "contact bouncing" where particles leave contact between frames.
         // Particles within 3mm of turtle surface maintain contact (prevents oscillation).
         constexpr float TURTLE_CONTACT_THRESHOLD = 0.003f;  // 3mm
+
+        float half_zi = pi.thickness * 0.5f;
+        if (pi.shape == ParticleShape::BOX && box_particle_is_rotated(pi)) {
+            const float hx = pi.width * 0.5f, hy = pi.height * 0.5f,
+                        hz = pi.thickness * 0.5f;
+            const float reach_sq = hx * hx + hy * hy + hz * hz;
+            const float clearance =
+                z_predicted[i] - (TURTLE_Z + TURTLE_CONTACT_THRESHOLD);
+            if (clearance <= 0.0f || clearance * clearance < reach_sq) {
+                const AABB6 w =
+                    aabb_of_obb(obb_of_box_particle(pi, z_predicted[i]));
+                half_zi = (w.max_z - w.min_z) * 0.5f;
+            }
+        }
+        float particle_bottom = z_predicted[i] - half_zi;
+
         if (particle_bottom < TURTLE_Z + TURTLE_CONTACT_THRESHOLD) {
             // Particle penetrating the Turtle!
             float penetration = TURTLE_Z - particle_bottom;
@@ -804,17 +871,32 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         LOGO_COUNT(::logosphere::telemetry::Counter::PhysActiveBodies);
 
         // Particle i AABB (using predicted Z)
-        // Particle dimensions: width=X, height=Y, thickness=Z
-        float half_xi = pi.width * 0.5f;
-        float half_yi = pi.height * 0.5f;
-        float half_zi = pi.thickness * 0.5f;
-
-        float min_xi = pi.x - half_xi;
-        float max_xi = pi.x + half_xi;
-        float min_yi = pi.y - half_yi;
-        float max_yi = pi.y + half_yi;
-        float min_zi = z_predicted[i] - half_zi;
-        float max_zi = z_predicted[i] + half_zi;
+        // Particle dimensions: width=X, height=Y, thickness=Z.
+        // A ROTATED box's raw extents under-cover its world span (a tilted
+        // blade's length leaves Z and enters Y), so its bounds come from the
+        // oriented box instead — exact for a box, never loose. Unrotated
+        // particles keep the raw arithmetic to the bit.
+        const bool obb_i = (pi.shape == ParticleShape::BOX) &&
+                           box_particle_is_rotated(pi);
+        OBB obb_i_box;   // valid only when obb_i
+        float min_xi, max_xi, min_yi, max_yi, min_zi, max_zi;
+        if (obb_i) {
+            obb_i_box = obb_of_box_particle(pi, z_predicted[i]);
+            const AABB6 w = aabb_of_obb(obb_i_box);
+            min_xi = w.min_x; max_xi = w.max_x;
+            min_yi = w.min_y; max_yi = w.max_y;
+            min_zi = w.min_z; max_zi = w.max_z;
+        } else {
+            const float half_xi = pi.width * 0.5f;
+            const float half_yi = pi.height * 0.5f;
+            const float half_zi = pi.thickness * 0.5f;
+            min_xi = pi.x - half_xi;
+            max_xi = pi.x + half_xi;
+            min_yi = pi.y - half_yi;
+            max_yi = pi.y + half_yi;
+            min_zi = z_predicted[i] - half_zi;
+            max_zi = z_predicted[i] + half_zi;
+        }
 
         // Query BVH for nearby candidates - O(log n) instead of O(n)
         // Expand query box by CONTACT_MARGIN in Z to catch speculative contacts
@@ -838,18 +920,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             const Particle& pj = particles[j];
 
-            // Particle j AABB (using predicted Z)
-            // Particle dimensions: width=X, height=Y, thickness=Z
-            float half_xj = pj.width * 0.5f;
-            float half_yj = pj.height * 0.5f;
-            float half_zj = pj.thickness * 0.5f;
-
-            float min_xj = pj.x - half_xj;
-            float max_xj = pj.x + half_xj;
-            float min_yj = pj.y - half_yj;
-            float max_yj = pj.y + half_yj;
-            float min_zj = z_predicted[j] - half_zj;
-            float max_zj = z_predicted[j] + half_zj;
+            // Particle j AABB (using predicted Z) — same oriented-bounds
+            // rule as particle i above.
+            const bool obb_j = (pj.shape == ParticleShape::BOX) &&
+                               box_particle_is_rotated(pj);
+            OBB obb_j_box;   // valid only when obb_j
+            float min_xj, max_xj, min_yj, max_yj, min_zj, max_zj;
+            if (obb_j) {
+                obb_j_box = obb_of_box_particle(pj, z_predicted[j]);
+                const AABB6 w = aabb_of_obb(obb_j_box);
+                min_xj = w.min_x; max_xj = w.max_x;
+                min_yj = w.min_y; max_yj = w.max_y;
+                min_zj = w.min_z; max_zj = w.max_z;
+            } else {
+                const float half_xj = pj.width * 0.5f;
+                const float half_yj = pj.height * 0.5f;
+                const float half_zj = pj.thickness * 0.5f;
+                min_xj = pj.x - half_xj;
+                max_xj = pj.x + half_xj;
+                min_yj = pj.y - half_yj;
+                max_yj = pj.y + half_yj;
+                min_zj = z_predicted[j] - half_zj;
+                max_zj = z_predicted[j] + half_zj;
+            }
 
             // Check 3D AABB overlap (must overlap on ALL axes)
             // V4.13: Added CONTACT_MARGIN_XY to X/Y to prevent edge contact jitter
@@ -889,6 +982,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_rejected",
                                  (int)i, (int)j, "gluon_owns_this_pair");
                     continue;  // Skip - gluon handles this pair
+                }
+                // Same principle, transitively: two bodies of ONE bonded
+                // structure (connected through dynamic bodies in the gluon
+                // graph) do not contact each other. Their overlap is the
+                // structure's internal geometry; the bonds own it.
+                // (KINEMATIC bodies are never unioned, so their components
+                // are singletons and this test cannot fire for them.)
+                if (bond_root[i] == bond_root[j]) {
+                    PHYS_TRACE_F(::logosphere::phystrace::Pair, "pair_rejected",
+                                 (int)i, (int)j, "bonded_structure_internal");
+                    continue;
                 }
 
                 // =============================================================
@@ -1042,12 +1146,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 AABB6 aabb_i = {min_xi, max_xi, min_yi, max_yi, min_zi, max_zi};
                 AABB6 aabb_j = {min_xj, max_xj, min_yj, max_yj, min_zj, max_zj};
 
+                bool both_box = (pi.shape == ParticleShape::BOX) &&
+                                (pj.shape == ParticleShape::BOX);
+                // Rotation-aware pairs bypass the AABB SAT below: a rotated
+                // box collided as its world-axis bounds produces axis-locked
+                // normals ((0,-1,0)/(0,0,-1) only on the grass-walk canary)
+                // and a tipped plate resting on the air where its unrotated
+                // slab would be.
+                const bool oriented_pair = both_box && (obb_i || obb_j);
+
                 // Surface continuity: if j is static, merge its AABB with
                 // adjacent coplanar static neighbors. Two adjacent floor tiles
                 // aren't two surfaces - they're one surface represented as
                 // two particles. Merging removes the data-structure artifact
                 // that makes SAT pick the phantom boundary axis.
-                if (pj.is_at_rest) {
+                // Axis-aligned seam fix; the oriented path doesn't read aabb_j.
+                if (pj.is_at_rest && !oriented_pair) {
                     for (int cand_k : candidates) {
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
@@ -1079,10 +1193,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
 
                 ContactManifold manifold;
-                bool both_box = (pi.shape == ParticleShape::BOX) &&
-                                (pj.shape == ParticleShape::BOX);
                 bool have_contact;
-                if (both_box) {
+                if (oriented_pair) {
+                    // Box-box with at least one rotated body: SAT over the
+                    // oriented boxes. The unrotated side degenerates to
+                    // identity axes, so mixed pairs are exact too.
+                    have_contact = narrow_phase_obb(
+                        obb_i ? obb_i_box : obb_of_box_particle(pi, z_predicted[i]),
+                        obb_j ? obb_j_box : obb_of_box_particle(pj, z_predicted[j]),
+                        i, j, CONTACT_MARGIN, manifold);
+                } else if (both_box) {
                     have_contact = narrow_phase_aabb(aabb_i, aabb_j, i, j,
                                                      CONTACT_MARGIN, manifold);
                 } else {
@@ -1209,11 +1329,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
                 // CANARY_DEBUG: Log manifold involving canary particle
                 if (canary_active && ((int)i == canary_pid || (int)j == canary_pid)) {
+                    float worst_pen = manifold.points[0].penetration;
+                    for (int cp = 1; cp < manifold.num_points; cp++)
+                        worst_pen = std::fmax(worst_pen, manifold.points[cp].penetration);
                     std::cout << "[CANARY F" << phys_frame << " CONTACT] P" << i << "<->P" << j
                               << " n=(" << manifold.normal_x << "," << manifold.normal_y << "," << manifold.normal_z << ")"
                               << " pen=" << (penetration*1000) << "mm"
+                              << " worst_pen=" << (worst_pen*1000) << "mm"
                               << " points=" << manifold.num_points << " corner=" << is_corner_contact
-                              << " zi=" << pi.z << " zj=" << pj.z << std::endl;
+                              << " zi=" << pi.z << " zj=" << pj.z
+                              << (oriented_pair ? " OBB" : " AABB") << std::endl;
+                    std::cout << "         Pi dims=(" << pi.width << "," << pi.height << "," << pi.thickness
+                              << ") rot=(" << pi.rotation_x << "," << pi.rotation_y << "," << pi.rotation_z
+                              << ") | Pj dims=(" << pj.width << "," << pj.height << "," << pj.thickness
+                              << ") rot=(" << pj.rotation_x << "," << pj.rotation_y << "," << pj.rotation_z
+                              << ")" << std::endl;
                 }
 
                 // Record collision event for game systems (combat, step climbing, etc.)
@@ -3712,7 +3842,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
                     c.jz * (pvz[c.body_a] - pvz[c.body_b]);
 
-                float imp = -(pv_rel - c.bias) * c.effective_mass;
+                // THE IMPULSE MUST BE PRICED IN THE MASSES IT IS SPENT ON.
+                // c.effective_mass came from the VELOCITY mass model, where
+                // sleep = infinite mass. This pass spends through the
+                // POSITIONAL model above, where sleep weighs its real mass.
+                // Pricing with one and spending with the other turned a
+                // foot-vs-sleeping-blade row (pair effective mass 1.25 kg,
+                // capture budget 6.2 N·s) into a 13.9 m position teleport
+                // of a 1.6 g blade in ONE substep — measured on the
+                // walk-through-grass canary, frame 934: displacement exactly
+                // along -normal, velocity (0,0,0) before and after, detector
+                // silent because nothing ever moved at velocity level.
+                // Recomputed against the same inverse masses the correction
+                // is applied with, that row moves the blade ~1 mm.
+                const float eff_pos = c.eff_mass_share / (inv_ma + inv_mb);
+                float imp = -(pv_rel - c.bias) * eff_pos;
 
                 // Same clamp the velocity rows obey, so a non-penetration row
                 // still cannot pull and a bond still cannot exceed its break
@@ -4345,8 +4489,24 @@ void PhysicsSystem::enforce_turtle_boundary(ParticleSystem::WriteView& particles
         // Skip massless particles (lights float)
         if (p.GetMass() == 0.0f) continue;
 
-        // Calculate particle bottom
+        // Calculate particle bottom. Rotated boxes reach down by their
+        // ORIENTED extent, not their raw thickness — a quarter-turned
+        // plate's down-reach is half its height. Kept in lock-step with
+        // the turtle contact build above; disagreeing extents would clamp
+        // a body one pass and contact it at another height the next.
+        // Same half-diagonal cost guard as the contact build: bodies that
+        // cannot reach the turtle at any orientation skip the exact extent.
         float half_thickness = p.thickness * 0.5f;
+        if (p.shape == ParticleShape::BOX && box_particle_is_rotated(p)) {
+            const float hx = p.width * 0.5f, hy = p.height * 0.5f,
+                        hz = p.thickness * 0.5f;
+            const float reach_sq = hx * hx + hy * hy + hz * hz;
+            const float clearance = p.z - (TURTLE_Z - SLOP);
+            if (clearance <= 0.0f || clearance * clearance < reach_sq) {
+                const AABB6 w = aabb_of_obb(obb_of_box_particle(p, p.z));
+                half_thickness = (w.max_z - w.min_z) * 0.5f;
+            }
+        }
         float particle_bottom = p.z - half_thickness;
 
         // THE BOUNDARY HAS THE SAME SLOP EVERY OTHER CONTACT HAS.

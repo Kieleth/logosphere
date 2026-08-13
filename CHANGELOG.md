@@ -46,8 +46,49 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   the solver (position + rotation_q) before descendants compose, so a
   forearm no longer hangs at the clip pose fighting the driven upper
   arm through the elbow weld.
+- **The turtle plane reads a rotated box's oriented down-reach.** The
+  world-boundary contact and clamp used raw thickness as the world-Z
+  extent, so a quarter-turned plate was held up by the length it no
+  longer spans: test_settling_flat measured 276 mm of air under a
+  resting plate (178 mm of it from the turtle alone after the narrow
+  phase fix). Rotated boxes now derive their bottom from oriented
+  bounds in both turtle sites (kept in lock-step), with a half-diagonal
+  clearance guard so bodies that cannot reach the plane skip the exact
+  extent. The plate now rests with 1 mm of air. The turtle's normal
+  stays +Z: that is the plane's own geometry, not a gravity assumption.
+- **Split-impulse position repair prices impulses in the masses it
+  spends them on.** The position pass computed pseudo-impulses with the
+  velocity solve's effective mass (sleep = infinite) but applied them
+  through positional inverse masses (sleep = real mass). A walker's
+  foot resting a contact row on a sleeping 1.6 g blade teleported the
+  blade 13.9 m in one substep - position only, velocity untouched, so
+  the explosion detector never fired and the blade was "at rest" a
+  field away. The pass now recomputes each row's effective mass
+  against the same inverse masses it applies the correction with;
+  the same row moves the blade ~1 mm.
 
 ### Changed
+- **Contacts skip a bonded structure's internal pairs.** The existing
+  rule (a gluoned pair gets no contact rows - the bond owns it) now
+  applies transitively across the gluon graph, connected through
+  DYNAMIC bodies only: a tree crown's deliberately-crossing branches
+  and foliage boxes no longer fight their own bonds with contact rows,
+  while two plants rooted to the same immovable tile remain separate
+  structures whose blades still collide. Components rebuild from the
+  live gluon list every step, so torn bonds dissolve them immediately.
+- **Box-box collision is rotation-aware.** Rotated boxes now collide as
+  their oriented shapes (SAT over 15 axes + reference-face clipping),
+  not as world-axis slabs of their raw extents. Contact normals follow
+  the bodies' actual orientations: a 30-degree-tipped plate resting on
+  a slab reports the slab's face normal with its low edge's true 5 mm
+  depth, a yawed blade's face contact carries both lateral components
+  (|nx/ny| = tan(yaw) exactly), and a quarter-turned plate settles ON
+  its support with 1 mm of air instead of hovering at its unrotated
+  height. Unrotated boxes keep the existing axis-aligned path bit for
+  bit, including the static-tile surface merging. Broad-phase bounds
+  (pair AABBs and BVH leaves) now enclose the oriented box, so rotated
+  overlaps the raw extents under-covered are no longer missed. New
+  regression test: `test_rotated_box_contact`.
 - **Phase C complete for organic bonds: bending derives too.** Angular
   stiffness K = I / (L_a/E_a + L_b/E_b) with I = A^2/(4*pi) from the
   bond's contact area (N*m/rad; a grass blade derives ~8e-4, an oak

@@ -1,4 +1,5 @@
 #include "logosphere/physics/bvh.h"
+#include "logosphere/physics/narrow_phase.h"  // oriented-box bounds for rotated BOX leaves
 #include "particle_geometry_v2.h"
 #include "lighting_metrics.h"
 #include "frame_metrics.h"
@@ -37,9 +38,22 @@ AABB BVH::particle_to_aabb(const Particle& p) const {
         }
         case ParticleShape::BOX:
         default:
-            half_x = p.width * 0.5f;
-            half_y = p.height * 0.5f;
-            half_z = p.thickness * 0.5f;
+            if (box_particle_is_rotated(p)) {
+                // A rotated box's raw extents under-cover its world span;
+                // bound the ORIENTED box instead (exact, never loose).
+                // Consumers exact-test after this cull (shadow rays hit
+                // surfaces, contacts run the narrow phase), so a tighter-
+                // correct leaf changes candidates, not results.
+                const OBB o = obb_of_box_particle(p, p.z);
+                const AABB6 w = aabb_of_obb(o);
+                half_x = (w.max_x - w.min_x) * 0.5f;
+                half_y = (w.max_y - w.min_y) * 0.5f;
+                half_z = (w.max_z - w.min_z) * 0.5f;
+            } else {
+                half_x = p.width * 0.5f;
+                half_y = p.height * 0.5f;
+                half_z = p.thickness * 0.5f;
+            }
             break;
     }
 
