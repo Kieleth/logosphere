@@ -99,6 +99,35 @@ TABLE_CITATIONS = {
 # the tables. It has to be the table's own citation, because the value
 # verifier proves requires_minimum = 8 against the quote the entity
 # carries, and the general sentence prints no 8.
+# Two modifiers the book states about BENEFIT ROLLS rather than about
+# any row of them. Written as RollRule entities hanging off the tables
+# they govern, so the procedure applies whatever rules the table it is
+# holding carries and never learns which table that is. Before this
+# they were a C++ conditional matching the table by the substring
+# "Cash Benefits" in its name and the skill by the literal "Gambling",
+# which is the book's assertion kept somewhere the graph cannot show
+# and a Referee cannot change.
+#
+# Both are +1 on a 1D6 table whose seventh row is otherwise
+# unreachable: 48 seeded rows, the Research Vessel and the Explorers'
+# Society among them, that no character could ever roll.
+CASH_BENEFIT_RULE = (
+    "Cash Benefits",
+    "Characters with Gambling skill or who have retired gain +1 on Cash "
+    "Benefit rolls.")
+MATERIAL_BENEFIT_RULE = (
+    "Material Benefits",
+    "Note that characters of rank O5 or O6 gain +1 on Material Benefit "
+    "rolls.")
+# "Who have retired" is not defined where the modifier is stated. The
+# book defines retirement once, in Reenlistment and Retirement, and
+# that is the reading taken: five or more terms in a single service.
+RETIREMENT_SECTION = "Reenlistment and Retirement"
+RETIREMENT_QUOTE = (
+    "A character who has served 5 or more terms in a single service "
+    "receives a yearly retirement pension, even if he or she later "
+    "becomes an adventurer.")
+
 ADV_EDUCATION_GATE = (
     "Skills and Training",
     "You may only roll on the Advanced Education table if your "
@@ -440,6 +469,59 @@ def main():
                     dice=builder.ref("DiceExpression", "d1d6"),
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote, **gate))
+                # What the book says about ROLLS on this table, as data
+                # hanging off the table itself.
+                if title in CASH_TABLES:
+                    rule_section, rule_quote = CASH_BENEFIT_RULE
+                    rule = f"@{tag}_dm"
+                    builder.add("RollRule", rule, dict(
+                        name=f"{canonical[career]} {title} modifier",
+                        dice_modifier="1",
+                        source_file=CHAPTER, source_section=rule_section,
+                        source_kind="sentence", source_quote=rule_quote))
+                    # Alternatives, not two modifiers: a gambling
+                    # retiree gains +1, not +2.
+                    builder.add("RollCondition", f"{rule}_gambling", dict(
+                        name="has Gambling",
+                        requires_skill=builder.skills["Gambling"],
+                        source_file=CHAPTER, source_section=rule_section,
+                        source_kind="sentence", source_quote=rule_quote))
+                    builder.add("RollCondition", f"{rule}_retired", dict(
+                        name="has retired",
+                        requires_attribute="terms_in_career",
+                        requires_minimum="5",
+                        source_file=CHAPTER,
+                        source_section=RETIREMENT_SECTION,
+                        source_kind="sentence",
+                        source_quote=RETIREMENT_QUOTE))
+                    builder.ops.append({"op": "set_relation", "from": rule,
+                                        "relation": "HAS_PART",
+                                        "to": f"{rule}_gambling"})
+                    builder.ops.append({"op": "set_relation", "from": rule,
+                                        "relation": "HAS_PART",
+                                        "to": f"{rule}_retired"})
+                    builder.ops.append({"op": "set_relation",
+                                        "from": f"@{tag}",
+                                        "relation": "HAS_PART", "to": rule})
+                elif title in MATERIAL_TABLES:
+                    rule_section, rule_quote = MATERIAL_BENEFIT_RULE
+                    rule = f"@{tag}_dm"
+                    builder.add("RollRule", rule, dict(
+                        name=f"{canonical[career]} {title} modifier",
+                        dice_modifier="1",
+                        source_file=CHAPTER, source_section=rule_section,
+                        source_kind="sentence", source_quote=rule_quote))
+                    builder.add("RollCondition", f"{rule}_rank", dict(
+                        name="rank O5 or higher",
+                        requires_attribute="rank", requires_minimum="5",
+                        source_file=CHAPTER, source_section=rule_section,
+                        source_kind="sentence", source_quote=rule_quote))
+                    builder.ops.append({"op": "set_relation", "from": rule,
+                                        "relation": "HAS_PART",
+                                        "to": f"{rule}_rank"})
+                    builder.ops.append({"op": "set_relation",
+                                        "from": f"@{tag}",
+                                        "relation": "HAS_PART", "to": rule})
                 # The training rule owns which tables a career offers,
                 # for the same reason the throw rules do: a career is
                 # created by an earlier seed and cannot be written to.

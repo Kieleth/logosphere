@@ -234,6 +234,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("ReadParameterStringCollectionExpression", "StringCollectionExpression", false);
     reg.addEntityType("ReadParameterStringExpression", "StringExpression", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("RollCondition", "Entity", false);
+    reg.addEntityType("RollRule", "Entity", false);
     reg.addEntityType("RollableTable", "Entity", false);
     reg.addEntityType("RuleConstant", "Entity", false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -459,6 +461,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("ReadParameterStringCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "ParameterReadExpression", "StringCollectionExpression", "Temporal"});
     reg.addAncestors("ReadParameterStringExpression", {"Describable", "Entity", "Expression", "Identifiable", "ParameterReadExpression", "ScalarExpression", "StringExpression", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addAncestors("RollCondition", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("RollRule", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("RollableTable", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("RuleConstant", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -544,6 +548,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("ProgressionStanding", {"rulebook"});
     reg.addFacets("ProgressionStep", {"rulebook"});
     reg.addFacets("ProgressionTrack", {"rulebook"});
+    reg.addFacets("RollCondition", {"rulebook"});
+    reg.addFacets("RollRule", {"rulebook"});
     reg.addFacets("RollableTable", {"rulebook"});
     reg.addFacets("RuleConstant", {"rulebook"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-skills");
@@ -827,6 +833,12 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("RelationEvent", "relation_type", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addProperty("RollCondition", "requires_attribute", kg::PropertyValueKind::String, false);
+    reg.addProperty("RollCondition", "requires_minimum", kg::PropertyValueKind::Integer, false);
+    reg.addRefProperty("RollCondition", "requires_skill", false, "Entity");
+    reg.addProperty("RollRule", "dice_modifier", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("RollRule", "scales_with_attribute", kg::PropertyValueKind::String, false);
+    reg.addProperty("RollRule", "natural_failure_at_or_below", kg::PropertyValueKind::Integer, false);
     reg.addProperty("RollableTable", "requires_attribute", kg::PropertyValueKind::String, false);
     reg.addProperty("RollableTable", "requires_minimum", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("RollableTable", "dice", true, "DiceExpression");

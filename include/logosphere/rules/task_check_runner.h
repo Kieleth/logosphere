@@ -30,6 +30,15 @@ struct TaskCheckOptions {
     // throw fails whatever the total came to. Unset means the throw is
     // decided by its total alone.
     std::optional<int64_t> natural_failure_at_or_below;
+
+    // A DM the SITUATION supplies rather than the check. Cepheus: "You
+    // suffer a DM-2 to qualification rolls for each previous career you
+    // have entered" - a modifier that belongs to the character's
+    // history, not to the Agent qualification row, and so cannot live
+    // on the check the way its characteristic DM does. Added on top of
+    // the check's own modifier, and reported separately on the
+    // execution so a timeline can show both.
+    int64_t situational_modifier = 0;
 };
 
 class TaskCheckExecution {
@@ -52,7 +61,12 @@ public:
     const std::string& modifier_property() const {
         return modifier_property_;
     }
+    // The DM from the check's own characteristic lookup.
     int64_t modifier() const { return modifier_; }
+    // The DM the caller supplied for this throw's circumstances, kept
+    // apart so "2D6 = 7 +1 DM -2 for prior careers" can be shown as the
+    // book states it rather than as one merged number.
+    int64_t situational_modifier() const { return situational_modifier_; }
     int64_t target_number() const { return target_number_; }
     const logosphere::dice::DiceRoll& roll() const { return roll_; }
     int64_t total() const { return total_; }
@@ -71,6 +85,7 @@ private:
                        std::string attribute, int64_t attribute_value,
                        std::optional<LookupTableSelection> lookup,
                        std::string modifier_property, int64_t modifier,
+                       int64_t situational_modifier,
                        int64_t target_number,
                        logosphere::dice::DiceRoll roll, int64_t total,
                        int64_t natural_total, bool failed_on_natural)
@@ -81,6 +96,7 @@ private:
           lookup_(std::move(lookup)),
           modifier_property_(std::move(modifier_property)),
           modifier_(modifier),
+          situational_modifier_(situational_modifier),
           target_number_(target_number),
           roll_(std::move(roll)),
           total_(total),
@@ -95,6 +111,7 @@ private:
     std::optional<LookupTableSelection> lookup_;
     std::string modifier_property_;
     int64_t modifier_ = 0;
+    int64_t situational_modifier_ = 0;
     int64_t target_number_ = 0;
     logosphere::dice::DiceRoll roll_;
     int64_t total_ = 0;

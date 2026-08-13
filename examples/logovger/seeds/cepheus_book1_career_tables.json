@@ -1451,6 +1451,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@athlete_material_benefits_dm",
+   "properties": {
+    "name": "Athlete Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@athlete_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@athlete_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@athlete_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@athlete_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@athlete_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_athlete_material_benefits",
    "properties": {
@@ -1763,6 +1802,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@aerospace_material_benefits_dm",
+   "properties": {
+    "name": "Aerospace Defense Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@aerospace_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aerospace_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@aerospace_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aerospace_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@aerospace_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -2081,6 +2159,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@agent_material_benefits_dm",
+   "properties": {
+    "name": "Agent Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@agent_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@agent_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@agent_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@agent_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@agent_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_agent_material_benefits",
    "properties": {
@@ -2392,6 +2509,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@barbarian_material_benefits_dm",
+   "properties": {
+    "name": "Barbarian Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@barbarian_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@barbarian_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@barbarian_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@barbarian_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@barbarian_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -2709,6 +2865,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@belter_material_benefits_dm",
+   "properties": {
+    "name": "Belter Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@belter_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@belter_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@belter_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@belter_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@belter_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_belter_material_benefits",
    "properties": {
@@ -3022,6 +3217,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@bureaucrat_material_benefits_dm",
+   "properties": {
+    "name": "Bureaucrat Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@bureaucrat_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@bureaucrat_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@bureaucrat_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@bureaucrat_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@bureaucrat_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -3345,6 +3579,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@athlete_cash_benefits_dm",
+   "properties": {
+    "name": "Athlete Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@athlete_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@athlete_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@athlete_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@athlete_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@athlete_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@athlete_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@athlete_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@athlete_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_athlete_cash_benefits",
    "properties": {
@@ -3662,6 +3954,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@aerospace_cash_benefits_dm",
+   "properties": {
+    "name": "Aerospace Defense Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@aerospace_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@aerospace_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aerospace_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@aerospace_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aerospace_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@aerospace_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aerospace_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@aerospace_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -3985,6 +4335,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@agent_cash_benefits_dm",
+   "properties": {
+    "name": "Agent Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@agent_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@agent_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@agent_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@agent_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@agent_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@agent_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@agent_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@agent_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_agent_cash_benefits",
    "properties": {
@@ -4302,6 +4710,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@barbarian_cash_benefits_dm",
+   "properties": {
+    "name": "Barbarian Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@barbarian_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@barbarian_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@barbarian_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@barbarian_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@barbarian_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@barbarian_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@barbarian_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@barbarian_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -4625,6 +5091,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@belter_cash_benefits_dm",
+   "properties": {
+    "name": "Belter Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@belter_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@belter_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@belter_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@belter_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@belter_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@belter_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@belter_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@belter_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_belter_cash_benefits",
    "properties": {
@@ -4942,6 +5466,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@bureaucrat_cash_benefits_dm",
+   "properties": {
+    "name": "Bureaucrat Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@bureaucrat_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@bureaucrat_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@bureaucrat_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@bureaucrat_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@bureaucrat_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@bureaucrat_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@bureaucrat_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@bureaucrat_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -11217,6 +11799,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@colonist_material_benefits_dm",
+   "properties": {
+    "name": "Colonist Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@colonist_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@colonist_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@colonist_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@colonist_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@colonist_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_colonist_material_benefits",
    "properties": {
@@ -11532,6 +12153,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@diplomat_material_benefits_dm",
+   "properties": {
+    "name": "Diplomat Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@diplomat_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@diplomat_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@diplomat_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@diplomat_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@diplomat_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_diplomat_material_benefits",
    "properties": {
@@ -11842,6 +12502,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@drifter_material_benefits_dm",
+   "properties": {
+    "name": "Drifter Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@drifter_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@drifter_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@drifter_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@drifter_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@drifter_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -12159,6 +12858,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@entertainer_material_benefits_dm",
+   "properties": {
+    "name": "Entertainer Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@entertainer_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@entertainer_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@entertainer_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@entertainer_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@entertainer_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_entertainer_material_benefits",
    "properties": {
@@ -12470,6 +13208,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@hunter_material_benefits_dm",
+   "properties": {
+    "name": "Hunter Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@hunter_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@hunter_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@hunter_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@hunter_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@hunter_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -12785,6 +13562,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@marine_material_benefits_dm",
+   "properties": {
+    "name": "Marine Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@marine_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@marine_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@marine_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@marine_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@marine_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -13108,6 +13924,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@colonist_cost_benefits_dm",
+   "properties": {
+    "name": "Colonist Cost Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@colonist_cost_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@colonist_cost_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@colonist_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@colonist_cost_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@colonist_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@colonist_cost_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@colonist_cost_benefits",
+   "relation": "HAS_PART",
+   "to": "@colonist_cost_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_colonist_cost_benefits",
    "properties": {
@@ -13425,6 +14299,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@diplomat_cost_benefits_dm",
+   "properties": {
+    "name": "Diplomat Cost Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@diplomat_cost_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@diplomat_cost_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@diplomat_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@diplomat_cost_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@diplomat_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@diplomat_cost_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@diplomat_cost_benefits",
+   "relation": "HAS_PART",
+   "to": "@diplomat_cost_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -13748,6 +14680,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@drifter_cost_benefits_dm",
+   "properties": {
+    "name": "Drifter Cost Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@drifter_cost_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@drifter_cost_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@drifter_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@drifter_cost_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@drifter_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@drifter_cost_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@drifter_cost_benefits",
+   "relation": "HAS_PART",
+   "to": "@drifter_cost_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_drifter_cost_benefits",
    "properties": {
@@ -14065,6 +15055,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@entertainer_cost_benefits_dm",
+   "properties": {
+    "name": "Entertainer Cost Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@entertainer_cost_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@entertainer_cost_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@entertainer_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@entertainer_cost_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@entertainer_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@entertainer_cost_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@entertainer_cost_benefits",
+   "relation": "HAS_PART",
+   "to": "@entertainer_cost_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -14388,6 +15436,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@hunter_cost_benefits_dm",
+   "properties": {
+    "name": "Hunter Cost Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@hunter_cost_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@hunter_cost_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@hunter_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@hunter_cost_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@hunter_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@hunter_cost_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@hunter_cost_benefits",
+   "relation": "HAS_PART",
+   "to": "@hunter_cost_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_hunter_cost_benefits",
    "properties": {
@@ -14705,6 +15811,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@marine_cost_benefits_dm",
+   "properties": {
+    "name": "Marine Cost Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@marine_cost_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@marine_cost_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@marine_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@marine_cost_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@marine_cost_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@marine_cost_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@marine_cost_benefits",
+   "relation": "HAS_PART",
+   "to": "@marine_cost_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -21619,6 +22783,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@maritime_defense_material_benefits_dm",
+   "properties": {
+    "name": "Maritime Defense Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@maritime_defense_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@maritime_defense_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@maritime_defense_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@maritime_defense_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@maritime_defense_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_maritime_defense_material_benefits",
    "properties": {
@@ -21932,6 +23135,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@mercenary_material_benefits_dm",
+   "properties": {
+    "name": "Mercenary Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@mercenary_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@mercenary_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@mercenary_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@mercenary_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@mercenary_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -22250,6 +23492,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@merchant_material_benefits_dm",
+   "properties": {
+    "name": "Merchant Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@merchant_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@merchant_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@merchant_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@merchant_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@merchant_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_merchant_material_benefits",
    "properties": {
@@ -22562,6 +23843,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@navy_material_benefits_dm",
+   "properties": {
+    "name": "Navy Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@navy_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@navy_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@navy_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@navy_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@navy_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -22881,6 +24201,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@noble_material_benefits_dm",
+   "properties": {
+    "name": "Noble Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@noble_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@noble_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@noble_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@noble_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@noble_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_noble_material_benefits",
    "properties": {
@@ -23194,6 +24553,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@physician_material_benefits_dm",
+   "properties": {
+    "name": "Physician Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@physician_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@physician_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@physician_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@physician_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@physician_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -23517,6 +24915,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@maritime_defense_cash_benefits_dm",
+   "properties": {
+    "name": "Maritime Defense Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@maritime_defense_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@maritime_defense_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@maritime_defense_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@maritime_defense_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@maritime_defense_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@maritime_defense_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@maritime_defense_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@maritime_defense_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_maritime_defense_cash_benefits",
    "properties": {
@@ -23834,6 +25290,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@mercenary_cash_benefits_dm",
+   "properties": {
+    "name": "Mercenary Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@mercenary_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@mercenary_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@mercenary_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@mercenary_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@mercenary_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@mercenary_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@mercenary_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@mercenary_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -24157,6 +25671,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@merchant_cash_benefits_dm",
+   "properties": {
+    "name": "Merchant Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@merchant_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@merchant_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@merchant_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@merchant_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@merchant_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@merchant_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@merchant_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@merchant_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_merchant_cash_benefits",
    "properties": {
@@ -24474,6 +26046,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@navy_cash_benefits_dm",
+   "properties": {
+    "name": "Navy Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@navy_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@navy_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@navy_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@navy_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@navy_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@navy_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@navy_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@navy_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -24797,6 +26427,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@noble_cash_benefits_dm",
+   "properties": {
+    "name": "Noble Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@noble_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@noble_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@noble_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@noble_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@noble_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@noble_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@noble_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@noble_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_noble_cash_benefits",
    "properties": {
@@ -25114,6 +26802,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@physician_cash_benefits_dm",
+   "properties": {
+    "name": "Physician Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@physician_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@physician_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@physician_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@physician_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@physician_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@physician_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@physician_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@physician_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -31831,6 +33577,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@pirate_material_benefits_dm",
+   "properties": {
+    "name": "Pirate Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@pirate_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@pirate_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@pirate_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@pirate_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@pirate_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_pirate_material_benefits",
    "properties": {
@@ -32143,6 +33928,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@rogue_material_benefits_dm",
+   "properties": {
+    "name": "Rogue Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@rogue_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@rogue_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@rogue_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@rogue_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@rogue_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -32462,6 +34286,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@scientist_material_benefits_dm",
+   "properties": {
+    "name": "Scientist Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@scientist_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@scientist_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@scientist_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@scientist_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@scientist_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_scientist_material_benefits",
    "properties": {
@@ -32772,6 +34635,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@scout_material_benefits_dm",
+   "properties": {
+    "name": "Scout Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@scout_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@scout_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@scout_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@scout_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@scout_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -33090,6 +34992,45 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@surface_defense_material_benefits_dm",
+   "properties": {
+    "name": "Surface Defense Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@surface_defense_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@surface_defense_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@surface_defense_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@surface_defense_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@surface_defense_material_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_surface_defense_material_benefits",
    "properties": {
@@ -33403,6 +35344,45 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@technician_material_benefits_dm",
+   "properties": {
+    "name": "Technician Material Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@technician_material_benefits_dm_rank",
+   "properties": {
+    "name": "rank O5 or higher",
+    "requires_attribute": "rank",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Material Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Note that characters of rank O5 or O6 gain +1 on Material Benefit rolls."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@technician_material_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@technician_material_benefits_dm_rank"
+  },
+  {
+   "op": "set_relation",
+   "from": "@technician_material_benefits",
+   "relation": "HAS_PART",
+   "to": "@technician_material_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -33726,6 +35706,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@pirate_cash_benefits_dm",
+   "properties": {
+    "name": "Pirate Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@pirate_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@pirate_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@pirate_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@pirate_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@pirate_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@pirate_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@pirate_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@pirate_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_pirate_cash_benefits",
    "properties": {
@@ -34043,6 +36081,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@rogue_cash_benefits_dm",
+   "properties": {
+    "name": "Rogue Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@rogue_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@rogue_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@rogue_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@rogue_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@rogue_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@rogue_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@rogue_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@rogue_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -34366,6 +36462,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@scientist_cash_benefits_dm",
+   "properties": {
+    "name": "Scientist Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@scientist_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@scientist_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@scientist_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@scientist_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@scientist_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@scientist_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@scientist_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@scientist_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_scientist_cash_benefits",
    "properties": {
@@ -34683,6 +36837,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@scout_cash_benefits_dm",
+   "properties": {
+    "name": "Scout Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@scout_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@scout_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@scout_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@scout_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@scout_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@scout_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@scout_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@scout_cash_benefits_dm"
   },
   {
    "op": "create_entity",
@@ -35006,6 +37218,64 @@
   },
   {
    "op": "create_entity",
+   "type": "RollRule",
+   "as": "@surface_defense_cash_benefits_dm",
+   "properties": {
+    "name": "Surface Defense Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@surface_defense_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@surface_defense_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@surface_defense_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@surface_defense_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@surface_defense_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@surface_defense_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@surface_defense_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@surface_defense_cash_benefits_dm"
+  },
+  {
+   "op": "create_entity",
    "type": "CareerTableEntry",
    "as": "@benefit_opt_surface_defense_cash_benefits",
    "properties": {
@@ -35323,6 +37593,64 @@
     "source_kind": "sentence",
     "source_quote": "Characters who end their careers receive one benefit per term served in which they did not lose benefits."
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollRule",
+   "as": "@technician_cash_benefits_dm",
+   "properties": {
+    "name": "Technician Cash Benefits modifier",
+    "dice_modifier": "1",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@technician_cash_benefits_dm_gambling",
+   "properties": {
+    "name": "has Gambling",
+    "requires_skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Cash Benefits",
+    "source_kind": "sentence",
+    "source_quote": "Characters with Gambling skill or who have retired gain +1 on Cash Benefit rolls."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RollCondition",
+   "as": "@technician_cash_benefits_dm_retired",
+   "properties": {
+    "name": "has retired",
+    "requires_attribute": "terms_in_career",
+    "requires_minimum": "5",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Reenlistment and Retirement",
+    "source_kind": "sentence",
+    "source_quote": "A character who has served 5 or more terms in a single service receives a yearly retirement pension, even if he or she later becomes an adventurer."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@technician_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@technician_cash_benefits_dm_gambling"
+  },
+  {
+   "op": "set_relation",
+   "from": "@technician_cash_benefits_dm",
+   "relation": "HAS_PART",
+   "to": "@technician_cash_benefits_dm_retired"
+  },
+  {
+   "op": "set_relation",
+   "from": "@technician_cash_benefits",
+   "relation": "HAS_PART",
+   "to": "@technician_cash_benefits_dm"
   },
   {
    "op": "create_entity",

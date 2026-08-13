@@ -1915,6 +1915,31 @@ struct DiceExpression : public Entity, public Cited {
 };
 
 
+/// Something a book says about a ROLL rather than about a row: a modifier that applies when a condition on the roller holds, or a natural result that always fails. Attached with HAS_PART to the RollableTable or TaskCheck it governs, so a runner applies whatever rules the thing it is rolling carries and never learns which table or check it is holding.
+/// This class exists because those rules were being written as C++ conditionals - "if this is the cash table and the character has Gambling" - which puts the book's assertions somewhere a reader of the graph cannot see them and a Referee cannot change them. Four instances in Cepheus chapter 1 alone: +1 on Cash Benefits for Gambling or retirement, +1 on Material Benefits at rank O5, DM-2 on Qualification per previous career, and the natural 2 that always fails a Survival throw.
+/// A rule with no HAS_PART conditions always applies. A rule with conditions applies when ANY of them holds, which is how "with Gambling skill OR who have retired" is one +1 and not two.
+struct RollRule : public Entity, public Cited {
+    /// Signed modifier added to the dice sum.
+    std::optional<int32_t> dice_modifier = std::nullopt;
+    /// The rule's dice_modifier is multiplied by this attribute's value on the target, so one entity says "per". Cepheus: "You suffer a DM-2 to qualification rolls for each previous career you have entered" is dice_modifier -2 scaling with previous_careers. Absent means the modifier applies once. An attribute the target does not carry is a refusal, never a zero: a per-something rule that silently found nothing to count is a rule that stopped applying without saying so.
+    std::optional<std::string> scales_with_attribute = std::nullopt;
+    /// The throw fails when the dice, BEFORE any modifier, total this or less - whatever the modified total came to. Cepheus prints it for survival: "A natural 2 is always a failure", one sentence governing all 24 career survival throws, which is why it is its own entity rather than a slot on each check: a citation proves one entity against one quote, and "End 5+" prints no 2.
+    std::optional<int32_t> natural_failure_at_or_below = std::nullopt;
+};
+
+
+/// One way a RollRule can become applicable, tested against the entity being rolled for. Several hang off one rule and any of them is enough, the same shape OutcomeOption has under OutcomeChoice.
+/// Both forms are read off the target as the graph holds it, so a condition can only ask what the game has actually written there. That is deliberate: it is what stops a condition being a private arrangement between two pieces of code.
+struct RollCondition : public Entity, public Cited {
+    /// An attribute the chooser must have enough of before this table is even on offer. Cepheus: "You may only roll on the Advanced Education table if your character has Education 8+." Resolved against the target's declared slots exactly as attribute_ref is, never a bare label the graph cannot check.
+    std::optional<std::string> requires_attribute = std::nullopt;
+    /// The least the required attribute may be. Travels with requires_attribute: neither means anything alone, and a table carrying one without the other is malformed rather than permissive.
+    std::optional<int32_t> requires_minimum = std::nullopt;
+    /// The condition holds when the target holds a SkillRating for this skill, at any level. An entity reference into the game's skill vocabulary, like `skill` on SkillRating and for the same reason: the engine does not know which skills exist. Cepheus: "Characters with Gambling skill... gain +1 on Cash Benefit rolls." Referencing the entity rather than naming it means a renamed skill breaks loudly at load instead of quietly never matching again.
+    std::optional<Entity> requires_skill = std::nullopt;
+};
+
+
 /// A table keyed by a die result: roll the dice, land in a row. Rows are TableEntry entities attached with HAS_PART; each row claims a result band, and a well-formed table covers its dice range with no gaps and no overlaps (the ingestion verifier proves that per table).
 struct RollableTable : public Entity, public Cited {
     /// An attribute the chooser must have enough of before this table is even on offer. Cepheus: "You may only roll on the Advanced Education table if your character has Education 8+." Resolved against the target's declared slots exactly as attribute_ref is, never a bare label the graph cannot check.

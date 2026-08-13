@@ -1435,6 +1435,156 @@ std::vector<int> characteristics_of(const kg::KGModule& world,
     return out;
 }
 
+// "Characters with Gambling skill or who have retired gain +1 on Cash
+// Benefit rolls", and "characters of rank O5 or O6 gain +1 on Material
+// Benefit rolls." The benefit tables are 1D6 with seven rows, so
+// without the DMs the seventh row of all 48 of them is unreachable.
+void test_a_benefit_dm_reaches_the_seventh_row() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the benefit-DM world loads: " + why);
+    if (!why.empty()) return;
+
+    // Every benefit table has a row that only a +1 can select, and
+    // those rows are the point of the rule.
+    int seventh_rows = 0;
+    for (const auto table : world.findByType("RollableTable")) {
+        const std::string name = world.getProperty(table, "name");
+        if (name.find("Benefits") == std::string::npos) continue;
+        for (const auto row : world.getRelated(table, "HAS_PART")) {
+            if (world.getProperty(row, "roll_min") == "7") ++seventh_rows;
+        }
+    }
+    std::cout << "  [measure] " << seventh_rows
+              << " benefit rows sit at 7, out of reach of a bare 1D6\n";
+    CHECK(seventh_rows > 0,
+          "the seeded tables have rows a bare 1D6 cannot reach, which is "
+          "what the DM is for");
+
+    // Drive real lives and watch for a benefit roll that came out at 7.
+    int rolled_seven = 0, benefit_rolls = 0;
+    std::string first;
+    for (uint64_t seed = 1; seed <= 400 && rolled_seven == 0; ++seed) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        std::string error;
+        if (!session.begin(seed, error)) continue;
+        LongLife player(session);
+        player.run_until("no such prompt ever", error);
+        for (const auto& roll : dice.journal()) {
+            if (roll.purpose != "benefits") continue;
+            ++benefit_rolls;
+            if (roll.total < 7) continue;
+            ++rolled_seven;
+            if (first.empty()) {
+                first = "seed " + std::to_string(seed) + ": 1D6+" +
+                        std::to_string(roll.expression.modifier) + " = " +
+                        std::to_string(roll.total);
+            }
+        }
+    }
+    std::cout << "  [measure] " << benefit_rolls
+              << " benefit rolls, " << rolled_seven << " reached 7. "
+              << first << "\n";
+    CHECK(rolled_seven > 0,
+          "some benefit roll reaches the seventh row; none did, so the DM "
+          "is not being applied and 48 seeded rows are dead");
+}
+
+// "You suffer a DM-2 to qualification rolls for each previous career
+// you have entered." The constant sat cited in the seed, read by
+// nothing, so a fifth-career character was asked the same number as a
+// first-timer.
+void test_each_previous_career_makes_the_next_one_harder() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the prior-career world loads: " + why);
+    if (!why.empty()) return;
+
+    // A real session, not run_chargen: the auto-player takes at most
+    // two careers, and this rule only shows itself across several.
+    const auto penalty_on = [&](kg::KGModule& w, uint64_t seed,
+                                std::vector<int>& seen) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(w, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        std::string error;
+        if (!session.begin(seed, error)) return;
+        LongLife player(session);
+        player.leave_at_the_end_of_this_term();
+        // Runs to the end: the stop text never arrives, and what is
+        // wanted is the finished life rather than a moment in it.
+        player.run_until("no such prompt ever", error);
+        const auto& sheet = session.sheet();
+        for (const auto& event : sheet.life) {
+            if (event.what != "qualified" &&
+                event.what != "failed to qualify") {
+                continue;
+            }
+            const auto at = event.detail.find(" for circumstance");
+            if (at == std::string::npos) { seen.push_back(0); continue; }
+            const auto from = event.detail.rfind("DM ", at) + 3;
+            seen.push_back(std::stoi(event.detail.substr(from, at - from)));
+        }
+    };
+
+    // A life with several careers shows the penalty growing: 0 for the
+    // first, then -2, -4, and so on.
+    std::vector<int> ladder;
+    int longest = 0;
+    for (uint64_t seed = 1; seed <= 200 && longest < 3; ++seed) {
+        std::vector<int> seen;
+        penalty_on(world, seed, seen);
+        if (static_cast<int>(seen.size()) > longest) {
+            longest = static_cast<int>(seen.size());
+            ladder = seen;
+        }
+    }
+    std::string shown;
+    for (const int dm : ladder) {
+        shown += (shown.empty() ? "" : ", ") + std::to_string(dm);
+    }
+    std::cout << "  [measure] qualification DMs across one life: " << shown
+              << "\n";
+    CHECK(longest >= 3,
+          "some life tries for three careers, so the penalty can be seen "
+          "to grow");
+    CHECK(!ladder.empty() && ladder.front() == 0,
+          "the first career is unpenalised: " + shown);
+    bool grows = true;
+    for (size_t i = 1; i < ladder.size(); ++i) {
+        if (ladder[i] != ladder[i - 1] - 2) grows = false;
+    }
+    CHECK(grows, "and each one after costs another -2: " + shown);
+
+    // The number is the book's, not the code's: change it and the
+    // throws change with it.
+    kg::KGModule changed(game_registry());
+    CHECK(build_world(changed, why), "the changed-constant world loads: " + why);
+    for (const auto id : changed.findByType("RuleConstant")) {
+        if (changed.getProperty(id, "name") == "prior_career_dm") {
+            changed.setProperty(id, "constant_value", "-5");
+        }
+    }
+    std::vector<int> changed_ladder;
+    for (uint64_t seed = 1; seed <= 200 && changed_ladder.size() < 3; ++seed) {
+        std::vector<int> seen;
+        penalty_on(changed, seed, seen);
+        if (seen.size() > changed_ladder.size()) changed_ladder = seen;
+    }
+    std::string changed_shown;
+    for (const int dm : changed_ladder) {
+        changed_shown += (changed_shown.empty() ? "" : ", ") +
+                         std::to_string(dm);
+    }
+    std::cout << "  [measure] with the constant at -5: " << changed_shown
+              << "\n";
+    CHECK(changed_ladder.size() >= 2 && changed_ladder[1] == -5,
+          "the penalty is the RuleConstant, not a literal: " +
+              changed_shown);
+}
+
 // A training answer names a TABLE. It used to be resolved by position
 // into a list recomputed on resume, and the Advanced Education gate
 // made that list change shape mid-term: roll "+1 Edu" from 7 to 8 and
@@ -1851,15 +2001,21 @@ void test_the_aging_crisis_is_paid_for_or_kills() {
     }
     CHECK(still_ruined,
           "and nothing was restored: " + ruined_names + " are still 0");
+    // The cause is whichever crisis this seed reached. Naming it here
+    // pinned the test to aging, and it went red the day a rules fix
+    // changed which life seed N leads - a false alarm about the wrong
+    // thing. What matters is that the death is recorded and cites the
+    // bill.
     bool death_recorded = false;
+    std::string recorded;
     for (const auto& event : corpse.life) {
-        if (event.what == "died of the aging" &&
-            event.roll_id == priced->id) {
-            death_recorded = true;
-        }
+        if (event.what.rfind("died of the ", 0) != 0) continue;
+        recorded = event.what;
+        if (event.roll_id == priced->id) death_recorded = true;
     }
     CHECK(death_recorded,
-          "the life records the death, citing the bill that went unpaid");
+          "the life records the death, citing the bill that went unpaid: "
+          "recorded '" + recorded + "'");
     std::cout << "  [measure] refusing ended the life at term "
               << corpse.terms_served << " with Cr" << corpse.credits
               << " still in hand\n";
@@ -1887,6 +2043,7 @@ int main() {
     test_a_life_is_generated();
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
+    test_each_previous_career_makes_the_next_one_harder();
     test_a_training_answer_names_a_table_not_a_position();
     test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();

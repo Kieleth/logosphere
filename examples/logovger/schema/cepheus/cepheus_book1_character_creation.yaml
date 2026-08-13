@@ -48,6 +48,9 @@ classes:
       - upp
       - age_years
       - terms_served
+      - rank
+      - terms_in_career
+      - previous_careers
       - credits
       - qualification_barred
 
@@ -236,7 +239,33 @@ slots:
     description: Chargen starts at 18 [book1/character-creation.md].
   terms_served:
     range: integer
-    description: Completed terms of service.
+    description: Completed terms of service, across a whole life.
+  rank:
+    range: integer
+    description: >-
+      Rank in the CURRENT career, 0 until a commission. Reset on
+      entering a new one: rank belongs to the service, not the person.
+      In the graph because rules read it - "characters of rank O5 or O6
+      gain +1 on Material Benefit rolls" is a modifier that asks the
+      character a question, and it can only ask what the graph holds.
+  terms_in_career:
+    range: integer
+    description: >-
+      Completed terms in the CURRENT career, kept apart from
+      terms_served because the book pays benefits per career and counts
+      aging by a whole life. Also what "who have retired" is measured
+      against: "A character who has served 5 or more terms in a single
+      service receives a yearly retirement pension".
+  previous_careers:
+    range: integer
+    description: >-
+      How many careers the character had already entered BEFORE the one
+      they are being asked about. Written just before a Qualification
+      throw, because that is the only question that asks it: "You suffer
+      a DM-2 to qualification rolls for each previous career you have
+      entered." Derived rather than counted twice - the career being
+      attempted has already been recorded by then, and is not previous
+      to itself.
   credits:
     range: integer
     description: Money, in credits, from mustering out onward.

@@ -1,5 +1,6 @@
 #include "logosphere/rules/rollable_table_runner.h"
 #include "rule_entity_reader.h"
+#include "roll_rules.h"
 
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
@@ -137,7 +138,7 @@ bool covers_every_reachable_total(
 
 RollableTableResult RollableTableRunner::select(
     EntityID table, const std::string& dice_stream,
-    const std::string& purpose, int dice_modifier) const {
+    const std::string& purpose, int dice_modifier, EntityID roller) const {
     if (dice_stream.empty()) {
         return failure("RollableTable selection requires a dice stream");
     }
@@ -166,8 +167,32 @@ RollableTableResult RollableTableRunner::select(
     // this roll can actually reach, not the unmodified ones: aging is
     // "2D6 minus total terms", and at seven terms the reachable band
     // is -5..5, which is a different question from 2..12.
-    const int64_t combined =
-        static_cast<int64_t>(expression.modifier) + dice_modifier;
+    // Whatever the TABLE ITSELF says about rolls made on it, read off
+    // the table rather than known by the caller. A table carrying such
+    // a rule and rolled for nobody is refused: the alternative is a
+    // roll that quietly lost its modifier, which is exactly how row 7
+    // of every Cepheus benefit table became unreachable.
+    detail::RollRuleEffect rules;
+    bool carries_rules = false;
+    for (const EntityID part : kg_.getRelated(table, "HAS_PART")) {
+        if (kg_.getRegistry().isSubtypeOf(kg_.getType(part), "RollRule")) {
+            carries_rules = true;
+            break;
+        }
+    }
+    if (carries_rules) {
+        if (roller == kg::INVALID_ENTITY) {
+            return failure("RollableTable " + std::to_string(table) +
+                           " carries rules about who is rolling, and this "
+                           "roll named nobody");
+        }
+        if (!detail::evaluate_roll_rules(kg_, table, roller, rules, error)) {
+            return failure("RollableTable rule: " + error);
+        }
+    }
+
+    const int64_t combined = static_cast<int64_t>(expression.modifier) +
+                             dice_modifier + rules.dice_modifier;
     if (combined < std::numeric_limits<int>::min() ||
         combined > std::numeric_limits<int>::max()) {
         return failure("dice modifier overflows the table's expression");

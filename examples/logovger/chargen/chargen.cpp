@@ -88,7 +88,15 @@ std::string check_detail(
     detail << execution.roll().expression.to_string() << " = "
            << execution.roll().total
            << (execution.modifier() >= 0 ? " +" : " ")
-           << execution.modifier() << " DM -> " << execution.total()
+           << execution.modifier() << " DM";
+    // Shown apart from the characteristic DM, because the book states
+    // them apart: "Int 8+" is the check, "DM-2 for each previous
+    // career" is the character's history.
+    if (execution.situational_modifier() != 0) {
+        detail << (execution.situational_modifier() > 0 ? " +" : " ")
+               << execution.situational_modifier() << " for circumstance";
+    }
+    detail << " -> " << execution.total()
            << " vs " << execution.target_number() << "+";
     // A throw the dice killed says so, because the numbers alone read
     // as a pass and a reader would think the engine had miscounted.
@@ -119,6 +127,15 @@ void write_characteristics(kg::KGModule& kg, const CharacterSheet& s) {
 void write_sheet(kg::KGModule& kg, const CharacterSheet& s) {
     kg.setProperty(s.id, "age_years",       std::to_string(s.age_years));
     kg.setProperty(s.id, "terms_served",    std::to_string(s.terms_served));
+    // Rank, terms in this career and careers entered are in the graph
+    // because RULES ASK ABOUT THEM. "Characters of rank O5 or O6 gain
+    // +1 on Material Benefit rolls" is a condition on the character,
+    // and a condition held as data can only test what the graph holds.
+    // While these lived only in the session struct, every rule that
+    // asked about them had to be written in C++.
+    kg.setProperty(s.id, "rank",            std::to_string(s.rank));
+    kg.setProperty(s.id, "terms_in_career",
+                   std::to_string(s.terms_in_career));
 }
 
 // Read the characteristics back out of the graph, where they may have
@@ -165,6 +182,12 @@ void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
     value("intelligence", s.intelligence);
     value("education", s.education);
     value("social_standing", s.social_standing);
+    // Age is the graph's too. Mishap 5 is "Injured... and imprisoned
+    // for 4 years", and that ModifyAttribute lands on the entity like
+    // any other outcome - then the session wrote its own stale copy
+    // back over it, so four years of prison cost nothing and a
+    // character came out of it at 20 instead of 24.
+    value("age_years", s.age_years);
     s.upp = upp(s.strength, s.dexterity, s.endurance, s.intelligence,
                 s.education, s.social_standing);
     kg.getProperty(s.id, "upp") == s.upp
@@ -715,9 +738,29 @@ ChargenSession::PrimitiveResult ChargenSession::roll_qualification(
         return PrimitiveResult::failed("career '" + sheet_.career +
                                        "': " + error);
     }
+    // "You suffer a DM-2 to qualification rolls for each previous
+    // career you have entered." PREVIOUS: choose_career has already
+    // pushed the one being attempted, and it is not previous to
+    // itself, so it does not count. Nor does a career the character
+    // failed to qualify for - that entry is popped on the way out.
+    //
+    // The -2 is the book's number, held in the graph as a RuleConstant,
+    // and a missing one is a hard stop rather than a zero: a
+    // qualification that quietly lost its penalty lets a fifth-career
+    // character walk into anything.
+    int prior_career_dm = 0;
+    if (!constant("prior_career_dm", prior_career_dm, error)) {
+        return PrimitiveResult::failed(error);
+    }
+    const int64_t previous_careers =
+        sheet_.careers_served.empty()
+            ? 0
+            : static_cast<int64_t>(sheet_.careers_served.size()) - 1;
+    logosphere::rules::TaskCheckOptions options;
+    options.situational_modifier = prior_career_dm * previous_careers;
     logosphere::rules::TaskCheckRunner runner(kg_, dice_);
     const auto qualification = runner.run(
-        check.id, sheet_.id, "chargen", "qualification");
+        check.id, sheet_.id, "chargen", "qualification", options);
     if (!qualification.ok()) {
         return PrimitiveResult::failed(qualification.error);
     }
@@ -1191,19 +1234,28 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
     }
-    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    // The offer names a table, for the same reason the training offer
+    // does: an index into a list rebuilt on resume is an answer to a
+    // different question.
+    const kg::EntityID chosen = picked->subject;
     choices_.clear();
-    if (index >= tables.size()) {
-        return PrimitiveResult::failed("no such benefit table");
+    if (std::find(tables.begin(), tables.end(), chosen) == tables.end()) {
+        return PrimitiveResult::failed(
+            "'" + picked->label + "' is not a benefit table this career "
+            "offers");
     }
-    const kg::EntityID chosen = tables[index];
     if (is_cash(chosen) && cash_rolls_left_ <= 0) {
         return PrimitiveResult::failed(
             "the book allows at most three cash benefit rolls");
     }
 
+    // The benefit DMs the book states - +1 on Cash for Gambling or
+    // retirement, +1 on Material at rank O5 - are RollRule entities on
+    // the tables themselves, so nothing here knows they exist. Naming
+    // the character is what lets their conditions be asked.
     logosphere::rules::RollableTableRunner runner(kg_, dice_);
-    const auto selected = runner.select(chosen, "chargen", "benefits");
+    const auto selected = runner.select(chosen, "chargen", "benefits", 0,
+                                        sheet_.id);
     if (!selected.ok()) {
         return PrimitiveResult::failed("benefit selection failed: " +
                                        selected.error);

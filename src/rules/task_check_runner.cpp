@@ -3,6 +3,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "rule_entity_reader.h"
+#include "roll_rules.h"
 
 #include <cstdint>
 #include <limits>
@@ -140,31 +141,55 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
     if (roll.id == 0) {
         return failure("DiceService rejected the validated DiceExpression");
     }
-    if ((modifier > 0 &&
+    // Whatever the CHECK ITSELF says about throws made against it,
+    // read off the check rather than known by the caller: "You suffer a
+    // DM-2 to qualification rolls for each previous career you have
+    // entered", "A natural 2 is always a failure". The caller may still
+    // add a modifier of its own, and the two are summed.
+    detail::RollRuleEffect rules;
+    if (!detail::evaluate_roll_rules(kg_, check, target, rules, error)) {
+        return failure("TaskCheck rule: " + error);
+    }
+
+    // The check's own DM plus whatever the rules and the caller added.
+    // Kept apart on the execution, so the throw can be reported the way
+    // the book states it: one DM from the characteristic, one from the
+    // circumstances.
+    const int64_t situational =
+        rules.dice_modifier + options.situational_modifier;
+    const int64_t applied_modifier = modifier + situational;
+    if ((applied_modifier > 0 &&
          static_cast<int64_t>(roll.total) >
-             std::numeric_limits<int64_t>::max() - modifier) ||
-        (modifier < 0 &&
+             std::numeric_limits<int64_t>::max() - applied_modifier) ||
+        (applied_modifier < 0 &&
          static_cast<int64_t>(roll.total) <
-             std::numeric_limits<int64_t>::min() - modifier)) {
+             std::numeric_limits<int64_t>::min() - applied_modifier)) {
         return failure("TaskCheck total exceeds signed integer range");
     }
-    const int64_t total = static_cast<int64_t>(roll.total) + modifier;
+    const int64_t total =
+        static_cast<int64_t>(roll.total) + applied_modifier;
 
     // "A natural 2 is always a failure." The natural result is the dice
     // as they landed, so it is summed from the faces rather than taken
     // off a total that already carries the DM and the multiplier.
     int64_t natural_total = 0;
     for (const int face : roll.values) natural_total += face;
-    const bool failed_on_natural =
-        options.natural_failure_at_or_below.has_value() &&
-        natural_total <= *options.natural_failure_at_or_below;
+    // The floor comes from a rule the check carries. A caller may still
+    // impose one, and the stricter of the two stands.
+    bool failed_on_natural =
+        rules.has_natural_failure &&
+        natural_total <= rules.natural_failure_at_or_below;
+    if (options.natural_failure_at_or_below.has_value() &&
+        natural_total <= *options.natural_failure_at_or_below) {
+        failed_on_natural = true;
+    }
 
     TaskCheckResult result;
     result.execution = TaskCheckExecution(
         check, target, attribute, attribute_value,
         std::move(lookup), modifier_property, modifier,
-        target_number, std::move(roll), total, natural_total,
-        failed_on_natural);
+        situational, target_number, std::move(roll), total,
+        natural_total, failed_on_natural);
     dice_transaction.commit();
     return result;
 }

@@ -65,10 +65,16 @@ public:
     // table's own expression so the recorded dice fact shows the total
     // that actually selected the row. Cepheus rolls aging as "2D6 with
     // total terms as a negative DM"; the table itself is plain 2D6.
+    // `roller` is whoever this roll is for. A table may carry RollRule
+    // entities whose conditions ask about them - "Characters with
+    // Gambling skill or who have retired gain +1 on Cash Benefit
+    // rolls" - and rolling such a table with nobody named is refused,
+    // not quietly rolled without the modifier.
     RollableTableResult select(kg::EntityID table,
                                const std::string& dice_stream,
                                const std::string& purpose,
-                               int dice_modifier = 0) const;
+                               int dice_modifier = 0,
+                               kg::EntityID roller = kg::INVALID_ENTITY) const;
 
 private:
     const kg::KGModule& kg_;
