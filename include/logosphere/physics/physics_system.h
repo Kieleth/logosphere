@@ -122,8 +122,12 @@ public:
     size_t id;                  // For deferred removal
 
     // Physical properties (polymorphic per gluon type)
-    float stiffness;            // N/m (how rigid: nail=100000, elastic=10000)
-    float damping;              // Ns/m (energy absorption: nail=0, elastic=1000)
+    // Zero means UNDECLARED, and the engine refuses to build a force-bounded
+    // bond that way (ledger G6: an unset force law is a bond that exerts zero
+    // force at any error). Explicit initializers so "forgot to set it" is
+    // deterministic on every construction path, never indeterminate.
+    float stiffness = 0.0f;     // N/m (how rigid: nail=100000, elastic=10000)
+    float damping = 0.0f;       // Ns/m (energy absorption: nail=0, elastic=1000)
     float last_force_magnitude; // Stored for breaking check after convergence
 
     // OFFSET ROTATION CONTROL:

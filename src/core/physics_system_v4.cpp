@@ -4270,6 +4270,34 @@ Force* PhysicsSystem::get_force(size_t index) {
 // GLUON MANAGEMENT
 // ============================================================================
 
+// ============================================================================
+// REFUSE-TO-BUILD: a bond's force law must exist before the bond does
+// ============================================================================
+// G6: stiffness/damping had no initializer and the tree generator's branch
+// gluon never set them. Under force-bounded budgeting the per-substep
+// impulse budget is (k*err + d*vrel)*dt, so an unset k is not a default,
+// it is a bond that exerts ZERO force at any error: measured 3 m of
+// stretch, 80 kN of breaking budget available, allowed impulse [-0,0],
+// an entire canopy standing on nothing.
+//
+// The law (C-121): missing required data crashes loud at the door.
+// Zero damping is legal (bonds may ring); zero stiffness never is.
+// GLUON_LENIENT=1 downgrades to a printed violation for inventory sweeps.
+static void refuse_undeclared_bond(const GluonConstraintBase& g,
+                                   size_t a, size_t b) {
+    if (!g.force_bounded()) return;   // force law unused on rigid welds
+    const bool bad_k = !(g.stiffness > 0.0f);
+    const bool bad_d = g.damping < 0.0f;
+    if (!bad_k && !bad_d) return;
+    std::fprintf(stderr,
+        "[GLUON REFUSED] force-bounded bond P%zu<->P%zu born without a force "
+        "law: stiffness=%g damping=%g. k<=0 means zero force at any error "
+        "(ledger G6). Declare it or provide the materials Phase C derives "
+        "from (contact_area, Young's modulus, loss factor).\n",
+        a, b, g.stiffness, g.damping);
+    if (!std::getenv("GLUON_LENIENT")) std::abort();
+}
+
 size_t PhysicsSystem::add_particle_with_gluon_to(
     size_t particle_a_id,
     const Particle& particle_b_config,
@@ -4301,6 +4329,8 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     gluon->particle_a = particle_a_id;
     gluon->particle_b = particle_b_id;
     gluon->id = next_gluon_id_++;
+
+    refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
 
     // V4.4 Mass-scaled damping: heavier connections = more damping
     gluon->damping *= std::sqrt(pa.GetMass() * pb.GetMass());
@@ -4340,6 +4370,8 @@ void PhysicsSystem::add_gluon_between(
     gluon->particle_a = particle_a_id;
     gluon->particle_b = particle_b_id;
     gluon->id = next_gluon_id_++;
+
+    refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
 
     // V4.4 Mass-scaled damping: heavier connections = more damping
     Particle pa = particle_system_->get_particle_copy(particle_a_id);
