@@ -165,6 +165,12 @@ void read_characteristics(const kg::KGModule& kg, CharacterSheet& s) {
     value("intelligence", s.intelligence);
     value("education", s.education);
     value("social_standing", s.social_standing);
+    // Age is the graph's too. Mishap 5 is "Injured... and imprisoned
+    // for 4 years", and that ModifyAttribute lands on the entity like
+    // any other outcome - then the session wrote its own stale copy
+    // back over it, so four years of prison cost nothing and the
+    // character came out at 20 instead of 24.
+    value("age_years", s.age_years);
     s.upp = upp(s.strength, s.dexterity, s.endurance, s.intelligence,
                 s.education, s.social_standing);
     kg.getProperty(s.id, "upp") == s.upp
@@ -1191,12 +1197,17 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
     }
-    const size_t index = static_cast<size_t>(std::stoul(picked->key)) - 1;
+    // The answer names a TABLE, not a position, for the same reason
+    // the training answer does: this list is rebuilt between offers as
+    // cash rolls run out, so an index resolves against a list that is
+    // no longer the one the player was shown.
+    const kg::EntityID chosen = picked->subject;
     choices_.clear();
-    if (index >= tables.size()) {
-        return PrimitiveResult::failed("no such benefit table");
+    if (std::find(tables.begin(), tables.end(), chosen) == tables.end()) {
+        return PrimitiveResult::failed(
+            "'" + picked->label + "' is not a benefit table this career "
+            "offers");
     }
-    const kg::EntityID chosen = tables[index];
     if (is_cash(chosen) && cash_rolls_left_ <= 0) {
         return PrimitiveResult::failed(
             "the book allows at most three cash benefit rolls");
