@@ -108,3 +108,32 @@ unwitnessed while that test stays down.
   known_open single:seam-normals — it guards an open bug (26 horizontal
   seam normals on the sweep), not future design. test_body_coherence
   shares the same class.
+
+### 2026-08-13 · LINK · +17 phantom registry names: all dead, none audited
+
+The first validated sweep (head adaedb8) reported 17 registry tests as
+UNAUDITED that the audit's population did not contain. Root cause is an
+enumeration-method gap: physics_sweep.py's discover_registry() ran
+re.findall over the whole of src/unified_test_runner.cpp, which matches
+registrations inside FULL-LINE COMMENTS; the audit enumerated only
+uncommented `registry[` lines. The 17 are all commented out — a "TODO:
+Convert remaining tests to use TestContext" block (15 names) plus two
+tombstones ("REMOVED: dead feature" test_load_bearing, "FILE MISSING"
+test_gpu_multi_triangle).
+
+None is a runnable test. Their sweep rows prove it: every one FAILed
+with rc=1 in 0.1 s — the harness's "Unknown test" error branch, before
+any engine or test body exists. Fourteen exist only as `return false`
+stubs in tests/test_stubs.cpp (link fillers for the old grid API);
+test_load_bearing and test_gpu_multi_triangle have no function anywhere
+(the is_load_bearing_ field was removed from the engine — nothing here
+for the INV-2/INV-8 thin-coverage list); test_shadow_casting was only
+ever a commented alias for test_basic_shadow_casting.
+
+Resolution: the audit enumeration was right; the runner's was reading
+dead code. discover_registry() now strips full-line comments and
+returns exactly the audit's 170 registry names. No TEST_AUDIT.jsonl
+entries added — auditing ghosts would turn tombstones into obligations.
+If anyone uncomments the TODO block, those names instantly surface as
+UNAUDITED moles on the next sweep, which is the correct tripwire.
+Coverage numbers are unchanged.

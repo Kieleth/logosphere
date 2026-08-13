@@ -51,8 +51,14 @@ def load_jsonl(path):
 
 
 def discover_registry():
+    # Skip commented-out registrations: the runner's registry block carries
+    # 17 dead names as full-line comments (a TODO conversion block plus
+    # "REMOVED:" tombstones). Matching them made the first sweep report 17
+    # phantom UNAUDITED tests whose only behavior is the harness's
+    # "Unknown test" branch (rc=1 in 0.1 s, no engine, no test body).
     src = (REPO / "src/unified_test_runner.cpp").read_text()
-    return sorted(set(re.findall(r'registry\["([a-z0-9_]+)"\]', src)))
+    live = "\n".join(l for l in src.splitlines() if not l.lstrip().startswith("//"))
+    return sorted(set(re.findall(r'registry\["([a-z0-9_]+)"\]', live)))
 
 
 def discover_binaries():
