@@ -113,6 +113,14 @@ def main():
         print("SWEEP_VERDICT: BROKEN-SETUP (no INVARIANTS.jsonl)"); sys.exit(2)
     if not RUNNER.exists():
         print("SWEEP_VERDICT: BROKEN-SETUP (build logosphere-tests first)"); sys.exit(2)
+    # The invariants machine truth is validated before anything trusts it:
+    # id pattern + enums (from schema/physics.yaml), dangling/cyclic
+    # derives_from, audit links, mechanism symbols still in the tree.
+    val = subprocess.run([sys.executable,
+                          str(REPO / "scripts/validate_invariants.py")])
+    if val.returncode != 0:
+        print("SWEEP_VERDICT: BROKEN-SETUP (validate_invariants.py failed)")
+        sys.exit(2)
 
     tests = [(n, "registry") for n in discover_registry()]
     tests += [(n, "binary") for n in discover_binaries()]
