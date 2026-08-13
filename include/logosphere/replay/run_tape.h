@@ -99,7 +99,20 @@ private:
 // that finds something interesting can be replayed by seed alone.
 class RandomInput : public InputSource {
 public:
-    explicit RandomInput(uint64_t seed) : state_(seed ? seed : 1) {}
+    // A site with no offered set wants text, and inventing text is not
+    // something a generic engine can do: it has no idea what a
+    // plausible answer looks like in your game. So a game that fuzzes
+    // free-form sites (a model's reply, a typed command) supplies this
+    // and owns what a synthetic answer means. The roll is handed over
+    // so the stub can vary deterministically with the run.
+    //
+    // Without it, a free-form ask answers empty, which is honest and
+    // usually useless.
+    using FreeForm =
+        std::function<std::string(const Ask& ask, uint64_t roll)>;
+
+    explicit RandomInput(uint64_t seed, FreeForm free_form = {})
+        : state_(seed ? seed : 1), free_form_(std::move(free_form)) {}
 
     bool answer(const Ask& ask, std::string& out, std::string& error) override;
     uint64_t seed(const std::string& stream, uint64_t fallback) override;
@@ -107,6 +120,7 @@ public:
 private:
     uint64_t next();
     uint64_t state_;
+    FreeForm free_form_;
 };
 
 // Replays a recorded run, in order. Refuses anything that does not fit

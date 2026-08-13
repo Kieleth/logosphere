@@ -25,7 +25,11 @@
 
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
+#include "logosphere/events/event_bus.h"
+#include "logosphere/kg/kg_query.h"
+#include "logosphere/replay/run_recorder.h"
 #include "logosphere/replay/run_tape.h"
+#include "logosphere/telemetry/session.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -35,6 +39,7 @@
 #include "adjudicator.h"
 #endif
 
+#include <chrono>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -151,8 +156,11 @@ bool ask_the_player(const replay::Ask& ask, std::string& out,
 int main(int argc, char** argv) {
     std::string mode = "--random";
     std::string argument = "1";
+    uint64_t pinned = 0;                 // 0 = not pinned
     for (int i = 1; i + 1 < argc; ++i) {
-        if (std::strncmp(argv[i], "--", 2) == 0) {
+        if (std::strcmp(argv[i], "--seed") == 0) {
+            pinned = std::stoull(argv[i + 1]);
+        } else if (std::strncmp(argv[i], "--", 2) == 0) {
             mode = argv[i];
             argument = argv[i + 1];
         }
@@ -190,6 +198,17 @@ int main(int argc, char** argv) {
         return 1;
 #endif
     } else {
+        // --random N seeds the WHOLE run: the generator answers every
+        // question and hands out the dice seed too, so one number
+        // reproduces everything. --seed would have nothing left to do,
+        // and a flag that silently does nothing is worse than one that
+        // refuses.
+        if (pinned) {
+            std::cout << "--seed does nothing with --random: the N in "
+                         "--random N already seeds the dice and every "
+                         "answer. Use --random " << pinned << ".\n";
+            return 1;
+        }
         source = std::make_unique<replay::RandomInput>(
             std::stoull(argument));
         tape_path = "/tmp/logovger-" + argument + ".tape";
@@ -197,16 +216,46 @@ int main(int argc, char** argv) {
     replay::RunTape tape(*source, tape_path);
 
     kg::KGModule world(game_registry());
+
+    // The other half of a run. The tape holds what was DECIDED; this
+    // holds what HAPPENED, as JSONL, and the two answer different
+    // questions: replay the tape to get the same life, diff the facts
+    // to find out whether a change altered one.
+    //
+    // The bus is declared before the session so it outlives it: the
+    // recorder unsubscribes on the way out.
+    logosphere::EventBus bus;
+    logosphere::telemetry::Session telemetry;
+
     std::string why;
     if (!load_rules(world, why)) {
         std::cout << "the rules did not load: " << why << "\n";
         return 1;
     }
 
-    // The dice seed is a decision like any other, so it is taped. A
+    // Attached AFTER the rulebook is in. Loading the seeds writes tens
+    // of thousands of properties, and a trace of the library swamps
+    // the trace of the life: 35k facts before the first die is rolled.
+    // What a run is worth diffing over starts here.
+    world.set_event_bus(&bus);
+    auto* facts = static_cast<replay::RunRecorder*>(
+        telemetry.register_instrument(
+            std::make_unique<replay::RunRecorder>(bus)));
+
+    // The dice seed is a decision like any other, so it is taped and a
     // replayed run rolls the same dice as the run it came from.
+    //
+    // Live sources take the fallback, so a recorded run needs a real
+    // one or every recording starts on the same dice. Entropy by
+    // default and --seed to pin: the seed being taped is what keeps
+    // entropy compatible with exact replay.
     logosphere::dice::DiceService dice;
-    const uint64_t seed = tape.seed("chargen", 20260812ull);
+    const uint64_t fallback =
+        pinned ? pinned
+               : static_cast<uint64_t>(
+                     std::chrono::steady_clock::now()
+                         .time_since_epoch().count());
+    const uint64_t seed = tape.seed("chargen", fallback);
     dice.seed_stream("chargen", seed);
 
     logovger::ChargenSession session(world, dice);
@@ -280,6 +329,13 @@ int main(int argc, char** argv) {
     }
 
     tape.flush();
+    // Ids in a trace mean nothing without types, and creating an
+    // entity emits no event, so the world is written once at the end
+    // of the run alongside the facts.
+    kg::Query who;
+    who.types = {"Character", "SkillRating", "CurrencyBalance",
+                 "PossessionHolding"};
+    facts->snapshot_kg(world, who);
     std::cout << logovger::format_life(session.sheet());
     std::cout << "  [decisions] " << tape.entries() << "\n";
     if (!tape_path.empty()) {

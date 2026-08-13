@@ -78,9 +78,10 @@ uint64_t RandomInput::next() {
 
 bool RandomInput::answer(const Ask& ask, std::string& out, std::string&) {
     if (ask.offered.empty()) {
-        // Free-form. A generic engine has no business inventing prose,
-        // and an empty answer is honest about that.
-        out.clear();
+        // Free-form. The engine cannot know what a plausible answer
+        // looks like in someone's game, so it asks the game, and
+        // answers empty when the game did not say.
+        out = free_form_ ? free_form_(ask, next()) : std::string();
         return true;
     }
     out = ask.offered[next() % ask.offered.size()];
