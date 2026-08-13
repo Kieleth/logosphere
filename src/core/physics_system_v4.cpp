@@ -1980,9 +1980,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                            (int)pa.is_at_rest, (int)pb.is_at_rest);
             }
 
-            // Shared Baumgarte gain for all angular bias calculations
-            // (both the scalar Z path below and the 3-axis path above).
-            const float ANGULAR_BETA = 0.4f;
+            // ANGULAR_BETA: INV-29 registry (PositionCorrection group).
 
             // =============================================================
             // 3-AXIS QUATERNION DRIVE (rotational-DOF upgrade Stage 2)
@@ -4726,13 +4724,13 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         // peaks) without being velocity-starved into a steady-state
         // offset. Raise via config if future actors need faster
         // rotation.
-        const float MAX_OMEGA = 6.28f;
+        // MAX_OMEGA: INV-29 registry (GravityAndDrag group).
         if (p.omega_z > MAX_OMEGA) p.omega_z = MAX_OMEGA;
         if (p.omega_z < -MAX_OMEGA) p.omega_z = -MAX_OMEGA;
 
         // Apply angular damping (global damping to prevent infinite spin)
         // This is separate from gluon damping - it's general air resistance for rotation
-        const float ANGULAR_DRAG = 0.95f;  // 5% velocity loss per frame
+        // ANGULAR_DRAG: INV-29 registry (RestSleepDamping group).
         p.omega_z *= ANGULAR_DRAG;
 
         // Integrate rotation angle

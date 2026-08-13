@@ -115,6 +115,10 @@ constexpr float    MAX_BIAS_VELOCITY = 4.0f;   // unit: m/s
 // impulse-memory momentum cap.
 constexpr float    GLUON_MAX_BIAS_VELOCITY = 4.0f;   // unit: m/s
 
+// Shared Baumgarte gain for all angular bias calculations, both the
+// scalar Z path and the 3-axis quaternion-drive path.
+constexpr float    ANGULAR_BETA = 0.4f;   // unit: 1
+
 // The angular twin. An angle error at the pi wrap requests 0.4*pi*120
 // = 151 rad/s with an infinite budget: the walk-through-grass gate's
 // worst detonation measured exactly 151.2 m/s. A joint corrects toward
@@ -239,6 +243,12 @@ constexpr float    DRAG_CD = 1.5f;   // unit: 1
 // are skipped.
 constexpr float    MIN_DRAG_SPEED_SQ = 0.0001f;   // unit: m2/s2
 
+// Angular velocity clamp (~1 rev/s): headroom to swing a humanoid limb
+// (1-3 rad/s target peaks) without being velocity-starved into a
+// steady-state offset. Raise via config if future actors need faster
+// rotation.
+constexpr float    MAX_OMEGA = 6.28f;   // unit: rad/s
+
 // V4.14 safety net: velocity clamp at 100 m/s (~360 km/h) preventing
 // numerical instabilities from cascading into NaN propagation. The
 // comment's own words: root cause should still be investigated; this
@@ -282,6 +292,13 @@ constexpr float    REST_VELOCITY_THRESHOLD = 0.1f;   // unit: m/s
 
 // Exit rest above this (2x hysteresis).
 constexpr float    WAKE_VELOCITY_THRESHOLD = 0.2f;   // unit: m/s
+
+// Per-frame omega_z retention (5% loss per frame), applied to every
+// spinning body as "general air resistance for rotation". Same INV-19
+// exposure as DAMPING_FACTOR: absolute-motion damping whose
+// dissipation story is thin. Extracted as-is by decree; any retuning
+// is ledger follow-up.
+constexpr float    ANGULAR_DRAG = 0.95f;   // unit: 1
 
 // Frames below the rest threshold before resting.
 constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}

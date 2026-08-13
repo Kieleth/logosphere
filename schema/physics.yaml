@@ -963,6 +963,13 @@ classes:
           434 m requested a 434 m/s closing speed on a 2-gram body. A
           stretched bond pulls itself home at a bounded speed. Also the
           speed base of the impulse-memory momentum cap.
+      ANGULAR_BETA:
+        range: float
+        ifabsent: float(0.4)
+        unit: { ucum_code: "1" }
+        description: >-
+          Shared Baumgarte gain for all angular bias calculations, both
+          the scalar Z path and the 3-axis quaternion-drive path.
       MAX_ANGULAR_BIAS_VELOCITY:
         range: float
         ifabsent: float(4.0)
@@ -1175,6 +1182,15 @@ classes:
         description: >-
           Squared speed floor (1 cm/s) below which drag and structural
           damping are skipped.
+      MAX_OMEGA:
+        range: float
+        ifabsent: float(6.28)
+        unit: { ucum_code: rad/s }
+        description: >-
+          Angular velocity clamp (~1 rev/s): headroom to swing a
+          humanoid limb (1-3 rad/s target peaks) without being
+          velocity-starved into a steady-state offset. Raise via config
+          if future actors need faster rotation.
       MAX_VELOCITY:
         range: float
         ifabsent: float(100.0)
@@ -1245,6 +1261,16 @@ classes:
         ifabsent: float(0.2)
         unit: { ucum_code: m/s }
         description: Exit rest above this (2x hysteresis).
+      ANGULAR_DRAG:
+        range: float
+        ifabsent: float(0.95)
+        unit: { ucum_code: "1" }
+        description: >-
+          Per-frame omega_z retention (5% loss per frame), applied to
+          every spinning body as "general air resistance for rotation".
+          Same INV-19 exposure as DAMPING_FACTOR: absolute-motion
+          damping whose dissipation story is thin. Extracted as-is by
+          decree; any retuning is ledger follow-up.
       REST_FRAMES_REQUIRED:
         range: integer
         ifabsent: int(10)

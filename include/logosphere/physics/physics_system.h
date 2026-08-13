@@ -182,7 +182,7 @@ public:
     //   - Spine: ±20° - torso follows only when head hits neck limit
     //   - Hips: ±10° - hips rotate only when whole spine is at limit
     // Default M_PI = no limit (180° = effectively unlimited)
-    float max_relative_rotation = 3.14159f;  // radians (default: unlimited)
+    float max_relative_rotation = PhysicsV4::ANGULAR_LIMIT_UNLIMITED;  // radians (default: unlimited)
 
     virtual ~GluonConstraintBase() = default;
 
