@@ -147,8 +147,11 @@ bool test_multi_light_progressive() {
             p.shape = ParticleShape::BOX;
             p.x = (col - side / 2.0f) * spacing;
             p.y = (row - side / 2.0f) * spacing;
-            p.z = 0.2f;
             p.width = p.height = p.thickness = spacing * 0.55f;
+            // The grid is the scene's floor: rest each cube ON the turtle
+            // (bottom at z=0). The old fixed z=0.2 sank spacing-derived
+            // cubes 0.21 m under the world floor.
+            p.z = p.thickness * 0.5f;
             p.size = p.width;
             if (demo) {
                 // Dark, slightly varying blue-violet: near-black under no

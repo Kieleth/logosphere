@@ -26,7 +26,9 @@ bool test_soft_shadows(TestContext& ctx) {
             Particle tile = {};
             tile.x = x * 1.0f;
             tile.y = y * 1.0f;
-            tile.z = -0.05f;
+            // Rest the tile ON the turtle: bottom at z=0. The old z=-0.05
+            // sank it 0.125 m below the world floor (default thickness).
+            tile.z = tile.thickness * 0.5f;
             tile.size = 0.5f;
             tile.r = 0.8f;
             tile.g = 0.8f;
@@ -44,7 +46,7 @@ bool test_soft_shadows(TestContext& ctx) {
         Particle pillar = {};
         pillar.x = pillar_positions[i];
         pillar.y = 0.0f;
-        pillar.z = 1.5f;  // Center of pillar
+        pillar.z = 0.15f + 1.5f;  // rests on the tile tops (tile top at z=0.15)
         pillar.shape = ParticleShape::BOX;
         pillar.width = 0.5f;
         pillar.height = 0.5f;

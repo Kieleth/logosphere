@@ -73,9 +73,12 @@ bool test_shadow_edge_quantization() {
     // pillar, low offset light — a long hard shadow with straight
     // diagonal edges (world-straight lines stay screen-straight under
     // the isometric projection, which is what the line fit relies on).
-    add_box(engine, 0.0f, 0.0f, -0.25f, 30.0f, 30.0f, 0.5f, 0.8f, 0.8f, 0.8f); // floor slab
-    add_box(engine, 0.0f, 0.0f, 3.0f, 1.0f, 1.0f, 6.0f, 0.9f, 0.9f, 0.9f);     // tall pillar (bright: must not read as shadow)
-    engine.get_particle_system().queue_light(4.0f, -5.0f, 7.0f, 800000.0f, 80.0f,
+    // The slab RESTS ON the turtle (bottom at z=0); pillar and light ride
+    // 0.5 m up with it, so the scene is the pre-strict-turtle one rigidly
+    // translated — same relative geometry, no body below the world floor.
+    add_box(engine, 0.0f, 0.0f, 0.25f, 30.0f, 30.0f, 0.5f, 0.8f, 0.8f, 0.8f); // floor slab
+    add_box(engine, 0.0f, 0.0f, 3.5f, 1.0f, 1.0f, 6.0f, 0.9f, 0.9f, 0.9f);    // tall pillar (bright: must not read as shadow)
+    engine.get_particle_system().queue_light(4.0f, -5.0f, 7.5f, 800000.0f, 80.0f,
                                              1.0f, 1.0f, 1.0f);
     engine.get_particle_system().flush_pending_particles();
 

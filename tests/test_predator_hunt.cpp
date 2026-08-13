@@ -1053,8 +1053,11 @@ void test_kinematic_bodies_still_collide() {
     std::cout << "\n  Kinematic collision" << std::endl;
     Hunt3D h(false);
 
-    // Two kinematic bodies, overlapping on purpose.
-    const int rock = h.add(ParticleShape::BOX, 0.0f, 0.0f, 1.0f, 3.0f,
+    // Two kinematic bodies, overlapping on purpose. Both rest their
+    // bottoms ON the turtle (z = size/2): the old rock z=1.0 sank a 3 m
+    // cube half a metre below the world floor. Overlap region is
+    // x [0, 1.5], z [0, 2] — still a full-contact pair.
+    const int rock = h.add(ParticleShape::BOX, 0.0f, 0.0f, 1.5f, 3.0f,
                            0.5f, 0.5f, 0.5f);
     const int walker = h.add(ParticleShape::SPHERE, 1.0f, 0.0f, 1.0f, 2.0f,
                              0.9f, 0.3f, 0.2f);
