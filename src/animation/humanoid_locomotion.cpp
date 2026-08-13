@@ -2449,15 +2449,32 @@ bool HumanoidLocomotion::set_joint_physics_drive(
         // wake it.
         auto view = ps.lock_particles_for_write();
         if (joint->child_particle < view.size()) {
-            view[joint->child_particle].solver_mode = ParticleSolverMode::DYNAMIC;
-            view[joint->child_particle].is_at_rest = false;
-            view[joint->child_particle].frames_at_rest = 0;
+            Particle& p = view[joint->child_particle];
+            p.solver_mode = ParticleSolverMode::DYNAMIC;
+            p.is_at_rest = false;
+            p.frames_at_rest = 0;
             // Reset owner: FK will no longer write this particle
             // (physics_drive_children is gated), so leaving owner
             // at ANIMATION would cause shape_snap_to_hips to skip
             // it too — the particle would have nobody writing its
             // position and drift away whenever the humanoid walks.
-            view[joint->child_particle].owner = ParticleOwner::DYNAMICS;
+            p.owner = ParticleOwner::DYNAMICS;
+            // A body driven through a QUAT row must be a quat body. The
+            // quat path's omega is a CCW world vector (dq = exp(+w dt),
+            // Euler republished from q); the legacy scalar integrator adds
+            // omega_z to the CW rotation_z store directly. A scalar-enabled
+            // child on a use_quat_target gluon without this flag lands in
+            // the scalar integrator with quat-space omega: the Z component
+            // integrates SIGN-FLIPPED, and the drive rams the head away
+            // from its target at the full bias cap until the pi wrap
+            // (measured: head at -2.7328 = target - pi, pinned). The
+            // generation-time quat flag used to mask this; the FK stamp
+            // now clears it on FK bones, so the enable must restore it.
+            if (gluon->use_quat_target && !p.is_quat_driven) {
+                p.is_quat_driven = true;
+                p.rotation_q = logosphere::Quat::from_euler(
+                    p.rotation_x, p.rotation_y, p.rotation_z);
+            }
         }
         return true;
     }
@@ -2507,6 +2524,11 @@ bool HumanoidLocomotion::set_joint_physics_drive_q(
         gluon->enable_angular_constraint = true;
         gluon->angular_stiffness = stiffness;
         gluon->angular_damping = damping;
+        std::cout << "[PHYSICS_DRIVE_Q] '" << joint_name << "' on P"
+                  << gluon->particle_a << "<->P" << gluon->particle_b
+                  << " k_ang=" << stiffness << " c_ang=" << damping
+                  << " force_bounded=" << (gluon->force_bounded() ? 1 : 0)
+                  << std::endl;
 
         parts.physics_drive_children.insert(joint->child_particle);
         parts.physics_drive_static_targets.insert(joint->child_particle);
@@ -5361,6 +5383,78 @@ void HumanoidLocomotion::maintain_entity_shape(
     }
 
     // ========================================================================
+    // PHYSICS-DRIVE children: centre follows the JOINT, not the rest offset.
+    // ========================================================================
+    // The rest-offset snap above placed drive children at their standing
+    // pose regardless of the pose the drive has actually reached — a driven
+    // arm rotated 30 deg flex + 20 deg abduct still had its CENTRE at the
+    // hanging-arm offset, so the rotated box grazed the torso and fed the
+    // solver phantom contacts, and the elbow gluon fought the 5 mm/frame
+    // discrepancy forever (tracer: shape.snap_to_hips undoing the swing
+    // every frame; two-joints shoulder crept 0.018 -> 0.034 rad during
+    // hold on those contacts). Re-place each drive child from its joint:
+    // pivot = parent pose o pivot_offset, centre = pivot - R_child *
+    // child_offset. Hierarchy order is parents-before-children, so nested
+    // drive chains (shoulder -> elbow -> wrist) compose off the
+    // just-updated parent.
+    //
+    // EXPERIMENT, DEFAULT OFF (DRIVE_ANCHOR_SNAP=1 to enable). Measured
+    // WORSE than the rest-offset snap it replaces: the hybrid frame
+    // (parent FK Euler composed with child physics quat) is inconsistent
+    // mid-gait — walk-through-grass detonations 0 -> 22 (worst
+    // 92.5 m/s), two-joints hold spiked to 0.5156 on a single transient,
+    // arm-chain settle window 0.0060 -> 0.0939. Gating to "trusted"
+    // parents (KINEMATIC FK bones, drive children) measured identical,
+    // so the inconsistency is not the parent's trust class. The idea —
+    // a drive child's centre must swing about its joint pivot, not sit
+    // at the rest offset — still looks right; landing it needs ONE
+    // authoritative pose source at the drive boundary, not two frames
+    // blended. Kept as a lever for that follow-up.
+    static const bool drive_anchor_snap = std::getenv("DRIVE_ANCHOR_SNAP") != nullptr;
+    if (drive_anchor_snap)
+    for (const auto& joint : parts.joint_hierarchy.joints) {
+        unsigned int pid = joint.child_particle;
+        if (!parts.physics_drive_children.count(pid)) continue;
+        if (pid >= particles.size() ||
+            joint.parent_particle >= particles.size()) continue;
+        // Offsets are lazily cached from the gluon at FK init; all-zero
+        // means not yet cached — nothing trustworthy to anchor to.
+        if (joint.pivot_offset.x == 0.0f && joint.pivot_offset.y == 0.0f &&
+            joint.pivot_offset.z == 0.0f && joint.child_offset.x == 0.0f &&
+            joint.child_offset.y == 0.0f && joint.child_offset.z == 0.0f) continue;
+        const Particle& par = particles[joint.parent_particle];
+        // Only compose off a TRUSTWORTHY parent pose: a KINEMATIC FK bone
+        // (Euler fresh every frame) or another drive child (rotation_q
+        // solver-live). The hips and other non-stamped DYNAMIC bodies
+        // carry a rotation_q nobody maintains; anchoring a thigh to the
+        // hips' stale quat teleported legs mid-gait (walk-through-grass:
+        // 22 detonation events at 92.5 m/s, was 0). Untrusted parents
+        // keep the legacy rest-offset snap above.
+        const bool parent_trusted =
+            (par.solver_mode == ParticleSolverMode::KINEMATIC && !par.is_quat_driven) ||
+            parts.physics_drive_children.count(joint.parent_particle) != 0;
+        if (!parent_trusted) continue;
+        logosphere::Quat rp = par.is_quat_driven
+            ? par.rotation_q
+            : logosphere::Quat::from_euler(par.rotation_x, par.rotation_y,
+                                           par.rotation_z);
+        float px_, py_, pz_;
+        rp.rotate_vector(joint.pivot_offset.x, joint.pivot_offset.y,
+                         joint.pivot_offset.z, px_, py_, pz_);
+        Particle& ch = particles[pid];
+        float cx_, cy_, cz_;
+        ch.rotation_q.rotate_vector(joint.child_offset.x, joint.child_offset.y,
+                                    joint.child_offset.z, cx_, cy_, cz_);
+        float tx = par.x + px_ - cx_;
+        float ty = par.y + py_ - cy_;
+        float tz = par.z + pz_ - cz_;
+        TRACE_POS_WRITE(shape_tracer, static_cast<int>(pid),
+                        "shape.drive_child_anchor",
+                        ch.x, ch.y, ch.z, tx, ty, tz);
+        ch.x = tx; ch.y = ty; ch.z = tz;
+    }
+
+    // ========================================================================
     // INTEGRATED GROUND SUPPORT
     // ========================================================================
     // After snapping to rest positions, check if feet are below ground and
@@ -5770,6 +5864,24 @@ void HumanoidLocomotion::apply_fk_transforms(HumanoidParts& parts_ref, ParticleS
         joint.world_transform.rotation = child_world_rot;
         joint.local_transform.rotation = joint_rotation;
 
+        // PHYSICS-DRIVE READ-BACK: a drive child's pose belongs to the
+        // solver, and its FK DESCENDANTS must compose off the LIVE pose,
+        // not the clip pose. Without this the forearm hangs at the clip
+        // pose while the driven upper arm rotates away: the elbow weld
+        // row (rest target, unbounded) then fights the shoulder drive at
+        // the same capped bias and the drive stands off at their balance
+        // point — measured 0.456 rad frozen error on the two-joints gate
+        // once FK bones went KINEMATIC and the q-vs-Euler split-brain
+        // stopped hiding the seam. rotation_q is solver-owned on drive
+        // children (is_quat_driven) and lives in the same world space as
+        // world_transform.rotation (both bridge to the CW-Z Euler store
+        // through the same negation pair).
+        if (parts->physics_drive_children.count(joint.child_particle)) {
+            const Particle& pc = particles[joint.child_particle];
+            joint.world_transform.position = lm::Vec3{pc.x, pc.y, pc.z};
+            joint.world_transform.rotation = pc.rotation_q;
+        }
+
         // FK ARM DEBUG: trace right arm chain positions and lateral spread
         if (dyn.fk_arm_debug_frames > 0 &&
             (joint.name == "right_chest_shoulder" || joint.name == "right_shoulder" ||
@@ -5913,8 +6025,47 @@ void HumanoidLocomotion::apply_fk_transforms(HumanoidParts& parts_ref, ParticleS
         child.fk_rotation_y = joint.rotation_y;
         child.fk_rotation_z = joint.rotation_z;
 
-        // Mark as animation-owned
+        // Mark as animation-owned — and SAY SO to the solver. FK just wrote
+        // this bone's full pose, and it will again next frame: the bone is
+        // "external writer owns position", which is exactly what KINEMATIC
+        // means. Leaving it DYNAMIC handed the solver a set of featherweight
+        // free rotational DOFs threaded between the physics-drive joints:
+        // the 0.091 kg shoulder bone (I = 2.3e-5 kg*m^2 about the drive
+        // axis, 65x lighter than the upper arm it parents) absorbed ~98.5%
+        // of every angular impulse the shoulder drive row exchanged, and
+        // its two unbounded rows pumped it into a sustained ~3 rad/s
+        // precession that re-rotated the drive's error axis 30-45 deg per
+        // substep (CANARY P910, two-joints test: shoulder held 0.1368 rad
+        // standing error against an 0.0627 budget while the solver reported
+        // convergence). KINEMATIC routes the row's full authority to the
+        // actual drive child and freezes this bone's rotation_q (the
+        // integrator skips KINEMATIC) at its generation-seeded rest pose —
+        // a stable reference for the drive row's q_a instead of a
+        // precessing one. is_quat_driven stays SET, deliberately: clearing
+        // it routes q_a readers to this bone's Euler, which the yaw cascade
+        // rewrites every frame, and the head drive then chases the neck the
+        // cascade is steering toward the head — measured death spiral to
+        // the -pi wrap (neck_z -2.73, pinned) when both fields were
+        // flipped. Drive enables restore DYNAMIC on their child
+        // (set_joint_physics_drive_q, phase inits) — the two states are
+        // mutually exclusive and each write site declares its own.
         child.owner = ParticleOwner::ANIMATION;
+        // FK_KINEMATIC_OFF=1: diagnostic lever, restores the DYNAMIC
+        // shadow-skeleton behavior for A/B isolation.
+        static const bool fk_kin_off = std::getenv("FK_KINEMATIC_OFF") != nullptr;
+        if (!fk_kin_off) {
+        child.solver_mode = ParticleSolverMode::KINEMATIC;
+        child.is_quat_driven = false;
+        // Freezing a body mid-flight must not freeze a LIE into it: the
+        // solver reads a KINEMATIC side's omega when it measures relative
+        // angular velocity, and a stale ~2 rad/s left over from the
+        // pre-stamp precession sat exactly on the drive row's bias —
+        // the row believed itself satisfied and the shoulder held a hard
+        // 0.456 rad standing error, forever (measured). FK teleports this
+        // bone per frame; its honest velocity state is zero.
+        child.omega_x = child.omega_y = child.omega_z = 0.0f;
+        child.torque_x = child.torque_y = child.torque_z = 0.0f;
+        }
     }
 
     // Decrement FK debug counter

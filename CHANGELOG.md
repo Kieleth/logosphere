@@ -7,6 +7,46 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- **Physics-drive joints converge on humanoid rigs (the shoulder
+  standing error).** Four mechanisms, each measured on the two-joints
+  gate. (1) The solver's converged exits were blind to angular rows: a
+  drive impulse of 1.5e-4 N*m*s sat 60x under the 0.01 N*s door while
+  being 6.5 rad/s on the 2.3e-5 kg*m^2 shoulder-bridge bone, so drive
+  substeps exited after 1 iteration and the shoulder crawled at 1/65th
+  of its commanded rate. Both exit doors now also require the last
+  sweep's angular impulses to spin nothing faster than
+  `ANGULAR_RESIDUAL_FLOOR`. (2) FK-owned humanoid bones now declare what
+  they are: the FK write site stamps them KINEMATIC and clears
+  `is_quat_driven`. They were featherweight free rotational DOFs
+  threaded between the drive joints — the 0.091 kg shoulder bone
+  absorbed ~98.5% of every angular impulse the shoulder drive exchanged
+  and its two unbounded rows pumped it into a sustained ~3 rad/s
+  precession that re-rotated the drive's error axis 30-45 deg per
+  substep. (3) Angular rows get the split-impulse treatment the linear
+  rows already had: bias out of the velocity solve, orientation error
+  repaired by a discarded pseudo-omega position pass. Two scopes keep it
+  honest: force-bounded bonds keep their bias in momentum (a spring's
+  bias IS its force; splitting it catapulted a grass blade 27.80 m),
+  and a contact-coupled row whose bias sits at the cap keeps momentum
+  too (a saturated bias is motion, not repair, and motion against live
+  contacts must be negotiated — contacts carry no angular Jacobian to
+  answer a position-level rotation). (4) The scalar drive enable flips
+  its child to quat when the gluon carries a quat target: the scalar
+  Euler integrator adds omega_z to the CW store while quat-space rows
+  emit CCW omega, and that masked sign contradiction rammed the head to
+  target-minus-pi at the full bias cap once the FK stamp exposed it.
+  Numbers: two-joints shoulder hold 0.1368 -> 0.0274 rad (budget
+  0.0627), final 0.0721 -> 0.0181 (budget 0.0314), both tests PASS;
+  arm-chain all six assertions PASS with post-settle drift 0.2 -> 0.006
+  rad; walk-through-grass GREEN for the first time — worst blade drift
+  3.19 -> 1.81 m (< 2.0), hips advance 11.99 m, detonations 0.
+- **FK descendants of a physics-drive child ride the live pose.** The
+  joint-hierarchy world transform for a drive child is read back from
+  the solver (position + rotation_q) before descendants compose, so a
+  forearm no longer hangs at the clip pose fighting the driven upper
+  arm through the elbow weld.
+
 ### Changed
 - **Phase C complete for organic bonds: bending derives too.** Angular
   stiffness K = I / (L_a/E_a + L_b/E_b) with I = A^2/(4*pi) from the

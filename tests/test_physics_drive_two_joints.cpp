@@ -36,6 +36,7 @@
 #include "../src/materials.h"
 #include "../src/particle.h"
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <vector>
 
@@ -137,6 +138,32 @@ bool test_physics_drive_two_joints() {
         return false;
     }
 
+    // DIAG (TRACE_ARM=1): trace the right-arm chain so every dynamics
+    // write site that touches it names itself, and snapshot ownership.
+    int forearm_id = (eva.right_arm_ids.size() >= 3) ? eva.right_arm_ids[2] : -1;
+    int hand_id    = (eva.right_arm_ids.size() >= 4) ? eva.right_arm_ids[3] : -1;
+    const bool trace_arm = std::getenv("TRACE_ARM") != nullptr;
+    if (trace_arm) {
+        auto& tracer = engine.get_particle_tracer();
+        tracer.trace(shoulder_id,  "eva/r_shoulder");
+        tracer.trace(upper_arm_id, "eva/r_upper_arm");
+        if (forearm_id >= 0) tracer.trace(forearm_id, "eva/r_forearm");
+        if (hand_id >= 0)    tracer.trace(hand_id,    "eva/r_hand");
+        auto v = ps.lock_particles_for_read();
+        auto snap = [&](const char* n, int id) {
+            if (id < 0) return;
+            const Particle& p = v[id];
+            printf("  [OWN] %-14s P%d owner=%d solver=%d quat=%d rest=%d mass=%.3f\n",
+                   n, id, (int)p.owner, (int)p.solver_mode,
+                   (int)p.is_quat_driven, (int)p.is_at_rest, p.GetMass());
+        };
+        snap("shoulder", shoulder_id);
+        snap("upper_arm", upper_arm_id);
+        snap("forearm", forearm_id);
+        snap("hand", hand_id);
+        snap("head", head_id);
+    }
+
     // Run 3 s. Measure hold-phase in the last 1 s.
     constexpr int FRAMES = 180;
     constexpr int HOLD_START = 120;
@@ -182,6 +209,9 @@ bool test_physics_drive_two_joints() {
         if (f % 20 == 0) {
             printf("  [f%3d] neck_z=%+.4f (err %.4f)  shoulder err=%+.4f\n",
                    f, head.rotation_z, neck_err, sh_err);
+        }
+        if (trace_arm && f == 60) {
+            engine.get_particle_tracer().dump(std::cout, 3);
         }
     }
 
