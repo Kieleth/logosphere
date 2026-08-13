@@ -1426,6 +1426,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // scenes that were red, and never in the one that was green.
         size_t gluon_slot = SIZE_MAX;   // index into gluon_constraints_v2_
         size_t x_idx, y_idx, z_idx;
+        size_t ang_idx = SIZE_MAX;      // quat-drive angular row, when built
     };
     std::vector<GluonConstraintIndices> gluon_constraint_indices;
     gluon_constraint_indices.reserve(gluon_constraints_v2_.size());
@@ -2021,6 +2022,42 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                  (int)c_axis.body_a, (int)c_axis.body_b, "gluon_angular",
                                  c_axis.bias, c_axis.effective_mass, c_axis.jz);
                     constraints.push_back(c_axis);
+                    gluon_constraint_indices.back().ang_idx =
+                        constraints.size() - 1;
+
+                    // ANGULAR MEMORY apply: last frame's holding torque, up
+                    // front (linear twin at the warm_ix apply), so the drive
+                    // row corrects residuals instead of re-earning the load
+                    // from the angle error every frame.
+                    if (!impulse_memory_off()) {
+                        const float wmx = gluon->warm_ang_x;
+                        const float wmy = gluon->warm_ang_y;
+                        const float wmz = gluon->warm_ang_z;
+                        const float wmag2 = wmx * wmx + wmy * wmy + wmz * wmz;
+                        if (wmag2 > 0.0f) {
+                            const float wmag = std::sqrt(wmag2);
+                            const float axm = wmx / wmag, aym = wmy / wmag,
+                                        azm = wmz / wmag;
+                            Particle& wpa = particles[body_a];
+                            Particle& wpb = particles[body_b];
+                            const float Iwa = wpa.GetInertiaAboutAxis(axm, aym, azm);
+                            if (Iwa > 0.0f && !wpa.is_at_rest &&
+                                wpa.solver_mode != ParticleSolverMode::KINEMATIC) {
+                                const float inv = wmag / Iwa;
+                                wpa.omega_x += axm * inv;
+                                wpa.omega_y += aym * inv;
+                                wpa.omega_z += azm * inv;
+                            }
+                            const float Iwb = wpb.GetInertiaAboutAxis(axm, aym, azm);
+                            if (Iwb > 0.0f && !wpb.is_at_rest &&
+                                wpb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                                const float inv = wmag / Iwb;
+                                wpb.omega_x -= axm * inv;
+                                wpb.omega_y -= aym * inv;
+                                wpb.omega_z -= azm * inv;
+                            }
+                        }
+                    }
                 }
                 continue;  // quaternion path handled; skip the scalar branch below
             }
@@ -3553,6 +3590,49 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             gluon->warm_ix = upd(gluon->warm_ix, idx.x_idx, impulse_x);
             gluon->warm_iy = upd(gluon->warm_iy, idx.y_idx, impulse_y);
             gluon->warm_iz = upd(gluon->warm_iz, idx.z_idx, impulse_z);
+        }
+
+        // ANGULAR MEMORY store-back (quat-driven joints), the rotational
+        // twin of the block above. World-space vector, decayed, anti-windup
+        // on reversal, capped in angular-momentum units by the lighter-
+        // inertia endpoint at MAX_ANGULAR_BIAS_VELOCITY.
+        if (gluon->angular_drive_enabled && gluon->use_quat_target &&
+            !impulse_memory_off()) {
+            const float DECAY = 0.98f;
+            const float DECAY_REVERSED = 0.55f;
+            float mx = gluon->warm_ang_x, my = gluon->warm_ang_y,
+                  mz = gluon->warm_ang_z;
+            if (idx.ang_idx != SIZE_MAX && idx.ang_idx < constraints.size()) {
+                const Constraint& rc = constraints[idx.ang_idx];
+                const float acc = rc.accumulated_angular_impulse;
+                const float nx = rc.angular_axis_x, ny = rc.angular_axis_y,
+                            nz = rc.angular_axis_z;
+                const float dot = (mx * nx + my * ny + mz * nz) * acc;
+                const float d = (dot < 0.0f) ? DECAY_REVERSED : DECAY;
+                mx = d * (mx + acc * nx);
+                my = d * (my + acc * ny);
+                mz = d * (mz + acc * nz);
+                const Particle& ca = particles[gluon->particle_a];
+                const Particle& cb = particles[gluon->particle_b];
+                const float Ica = ca.GetInertiaAboutAxis(nx, ny, nz);
+                const float Icb = cb.GetInertiaAboutAxis(nx, ny, nz);
+                const float I_light = (Ica > 0.0f && Icb > 0.0f)
+                                        ? std::fmin(Ica, Icb)
+                                        : std::fmax(Ica, Icb);
+                const float cap = I_light * PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY;
+                const float mmag = std::sqrt(mx * mx + my * my + mz * mz);
+                if (mmag > cap && mmag > 0.0f) {
+                    const float sc = cap / mmag;
+                    mx *= sc; my *= sc; mz *= sc;
+                }
+            } else {
+                // No drive row this frame (error at zero): bleed the memory
+                // so a retargeted joint does not inherit last pose's torque.
+                mx *= DECAY; my *= DECAY; mz *= DECAY;
+            }
+            gluon->warm_ang_x = mx;
+            gluon->warm_ang_y = my;
+            gluon->warm_ang_z = mz;
         }
 
         // Total force magnitude
