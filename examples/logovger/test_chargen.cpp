@@ -935,6 +935,46 @@ void test_renaming_every_table_changes_nothing() {
               " lives differed");
 }
 
+// "This mishap is always enough to force you to leave the service
+// after half a term, or two years of service" is an effect the book
+// applies, so every mishap row carries it as an outcome rather than
+// the procedure adding it. Mishap 5 states its own four years of
+// imprisonment and carries no half-term two: the reading, recorded on
+// that row, is that the four INCLUDE them. Four years, not six.
+void test_a_mishap_costs_the_years_its_row_states() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the mishap-years world: " + why);
+    if (!why.empty()) return;
+
+    int two_years = 0, four_years = 0;
+    bool recorded = false;
+    for (const auto id : world.findByType("ModifyAttribute")) {
+        if (world.getProperty(id, "attribute_ref") != "age_years") continue;
+        const std::string delta = world.getProperty(id, "attribute_delta");
+        if (delta == "2") ++two_years;
+        if (delta != "4") continue;
+        // Two entities carry four years: this row, and the step that
+        // says a term lasts four. Only the mishap row is unsettled.
+        ++four_years;
+        if (world.getProperty(id, "unmodelled").find("imprisonment") !=
+            std::string::npos) {
+            recorded = true;
+        }
+    }
+    std::cout << "  [measure] year-outcomes: " << two_years
+              << " of two years, " << four_years << " of four\n";
+    CHECK(two_years == 5,
+          "five of the six mishap rows cost two years each: " +
+              std::to_string(two_years));
+    CHECK(four_years >= 1,
+          "and the prison row states its own four: " +
+              std::to_string(four_years));
+    CHECK(recorded,
+          "the prison row says on ITSELF that the book does not settle "
+          "this, and how it was read");
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2105,6 +2145,7 @@ int main() {
     test_missing_rule_constant_never_falls_back();
     test_the_books_numbers_are_all_data();
     test_a_step_can_declare_what_it_does();
+    test_a_mishap_costs_the_years_its_row_states();
     test_renaming_every_table_changes_nothing();
     test_a_natural_two_kills_however_good_the_endurance();
     test_character_facts_use_the_modifier_table();

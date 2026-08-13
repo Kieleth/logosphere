@@ -161,13 +161,24 @@ MISHAP_ROWS = {
               "@injury_2_c0"),
              ("roll twice, take the lower",
               "roll twice on the Injury table and take the lower result",
-              "twice")])], ""),
-    "2": ([("end_career",)], ""),
-    "3": ([("end_career",), ("money", -10000)], ""),
-    "4": ([("end_career",), ("forfeit",)], ""),
+              "twice")]),
+           ("half_term_years",)], ""),
+    "2": ([("end_career",), ("half_term_years",)], ""),
+    "3": ([("end_career",), ("money", -10000), ("half_term_years",)], ""),
+    "4": ([("end_career",), ("forfeit",), ("half_term_years",)], ""),
+    # No half-term years here. The row states its own four years of
+    # imprisonment, and the owner's reading is that they ABSORB the two
+    # a mishap costs rather than adding to them: four years total, not
+    # six. The book does not say, so it is recorded rather than assumed.
     "5": ([("end_career",), ("age", 4), ("forfeit",)], ""),
-    "6": ([("end_career",), ("table_roll", "Injury")], ""),
+    "6": ([("end_career",), ("table_roll", "Injury"), ("half_term_years",)],
+          ""),
 }
+MISHAP_YEARS_UNMODELLED = (
+    "The book does not say whether mishap 5's four years of "
+    "imprisonment include the two years a mishap costs on leaving, or "
+    "come on top of them. Read as including: four years total. Every "
+    "other mishap row carries the two years on its own.")
 
 
 COMMIT = ""
@@ -471,8 +482,20 @@ def main():
                 parts.append(b.add("GainFixedMoney", alias, props))
             elif clause[0] == "age":
                 props.update(attribute_ref="age_years",
-                             attribute_delta=str(clause[1]))
+                             attribute_delta=str(clause[1]),
+                             unmodelled=MISHAP_YEARS_UNMODELLED)
                 parts.append(b.add("ModifyAttribute", alias, props))
+            elif clause[0] == "half_term_years":
+                # "leave the service after half a term, or two years of
+                # service" - an effect the book applies, so it is an
+                # outcome on the row rather than an addition the
+                # procedure performs. Cited to the sentence that states
+                # it, which writes the two as a word.
+                parts.append(b.add("ModifyAttribute", alias, dict(
+                    name=alias.lstrip("@"), attribute_ref="age_years",
+                    attribute_delta="2",
+                    **b.cite(MISHAP_SECTION, None, None,
+                             MISHAP_END_CAREER_QUOTE, "sentence"))))
             elif clause[0] == "table_roll":
                 props["table"] = "@injury_table"
                 parts.append(b.add("GrantTableRoll", alias, props))
