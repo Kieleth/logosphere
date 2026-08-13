@@ -8,6 +8,16 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Fixed
+- **The turtle plane reads a rotated box's oriented down-reach.** The
+  world-boundary contact and clamp used raw thickness as the world-Z
+  extent, so a quarter-turned plate was held up by the length it no
+  longer spans: test_settling_flat measured 276 mm of air under a
+  resting plate (178 mm of it from the turtle alone after the narrow
+  phase fix). Rotated boxes now derive their bottom from oriented
+  bounds in both turtle sites (kept in lock-step), with a half-diagonal
+  clearance guard so bodies that cannot reach the plane skip the exact
+  extent. The plate now rests with 1 mm of air. The turtle's normal
+  stays +Z: that is the plane's own geometry, not a gravity assumption.
 - **Split-impulse position repair prices impulses in the masses it
   spends them on.** The position pass computed pseudo-impulses with the
   velocity solve's effective mass (sleep = infinite) but applied them

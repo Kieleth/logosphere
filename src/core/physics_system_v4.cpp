@@ -745,17 +745,39 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // Skip particles at rest (optimization)
         if (pi.is_at_rest) continue;
 
-        // Calculate particle bottom at predicted position
-        // WARNING: This uses thickness as WORLD Z-extent, IGNORING rotation_x/y/z!
-        // Particles must set width/height/thickness to match WORLD axes.
-        // See physics_tree_generator.cpp "CRITICAL WARNING" for full explanation.
-        float half_zi = pi.thickness * 0.5f;
-        float particle_bottom = z_predicted[i] - half_zi;
-
+        // Calculate particle bottom at predicted position. A rotated BOX's
+        // down-reach comes from its oriented bounds (the turtle is the z=0
+        // plane; its normal is +Z by definition — plane geometry, not a
+        // gravity assumption). Unrotated boxes and other shapes keep the
+        // raw thickness extent, which for them is exact. Must stay in
+        // lock-step with enforce_turtle_boundary below.
+        //
+        // Cost guard: no orientation can reach further than the half
+        // diagonal, so a body with more clearance than that needs no exact
+        // extent (quat + matrix) — and no extent choice could fire the
+        // threshold test anyway. Measured on Eden headless 1600px: without
+        // this, two full-particle turtle loops per substep re-derived
+        // orientations for thousands of resting canopy boxes.
         // V4.3 FIX: Create constraint for particles NEAR turtle, not just penetrating
         // This prevents "contact bouncing" where particles leave contact between frames.
         // Particles within 3mm of turtle surface maintain contact (prevents oscillation).
         constexpr float TURTLE_CONTACT_THRESHOLD = 0.003f;  // 3mm
+
+        float half_zi = pi.thickness * 0.5f;
+        if (pi.shape == ParticleShape::BOX && box_particle_is_rotated(pi)) {
+            const float hx = pi.width * 0.5f, hy = pi.height * 0.5f,
+                        hz = pi.thickness * 0.5f;
+            const float reach_sq = hx * hx + hy * hy + hz * hz;
+            const float clearance =
+                z_predicted[i] - (TURTLE_Z + TURTLE_CONTACT_THRESHOLD);
+            if (clearance <= 0.0f || clearance * clearance < reach_sq) {
+                const AABB6 w =
+                    aabb_of_obb(obb_of_box_particle(pi, z_predicted[i]));
+                half_zi = (w.max_z - w.min_z) * 0.5f;
+            }
+        }
+        float particle_bottom = z_predicted[i] - half_zi;
+
         if (particle_bottom < TURTLE_Z + TURTLE_CONTACT_THRESHOLD) {
             // Particle penetrating the Turtle!
             float penetration = TURTLE_Z - particle_bottom;
@@ -4212,8 +4234,24 @@ void PhysicsSystem::enforce_turtle_boundary(ParticleSystem::WriteView& particles
         // Skip massless particles (lights float)
         if (p.GetMass() == 0.0f) continue;
 
-        // Calculate particle bottom
+        // Calculate particle bottom. Rotated boxes reach down by their
+        // ORIENTED extent, not their raw thickness — a quarter-turned
+        // plate's down-reach is half its height. Kept in lock-step with
+        // the turtle contact build above; disagreeing extents would clamp
+        // a body one pass and contact it at another height the next.
+        // Same half-diagonal cost guard as the contact build: bodies that
+        // cannot reach the turtle at any orientation skip the exact extent.
         float half_thickness = p.thickness * 0.5f;
+        if (p.shape == ParticleShape::BOX && box_particle_is_rotated(p)) {
+            const float hx = p.width * 0.5f, hy = p.height * 0.5f,
+                        hz = p.thickness * 0.5f;
+            const float reach_sq = hx * hx + hy * hy + hz * hz;
+            const float clearance = p.z - (TURTLE_Z - SLOP);
+            if (clearance <= 0.0f || clearance * clearance < reach_sq) {
+                const AABB6 w = aabb_of_obb(obb_of_box_particle(p, p.z));
+                half_thickness = (w.max_z - w.min_z) * 0.5f;
+            }
+        }
         float particle_bottom = p.z - half_thickness;
 
         // THE BOUNDARY HAS THE SAME SLOP EVERY OTHER CONTACT HAS.
