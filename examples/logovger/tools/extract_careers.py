@@ -91,6 +91,36 @@ DRAFT_CAREERS = {
     "Surface System Defense (Planetary Army)": "Surface Defense",
 }
 
+# "Characters who end their careers receive one benefit per term served
+# in which they did not lose benefits. An additional benefit is gained
+# if the character held rank O4, and two for rank O5. A character with
+# rank O6 gains three extra benefits."
+#
+# Only the rank half is absorbed here. The per-term rate, the count of
+# eligible terms and the sum of the two need a rule language that today
+# ships a type system and no operators, so they stay in the procedure
+# and the muster step says so in `unmodelled`.
+#
+# The O4 row states its count with the indefinite article and no
+# number, so it carries implied_by and is proved by those words. The
+# other two write "two" and "three", which the verifier reads.
+RANK_BONUS_SECTION = "Mustering Out Benefits"
+RANK_BONUS_QUOTE = (
+    "An additional benefit is gained if the character held rank O4, and "
+    "two for rank O5. A character with rank O6 gains three extra "
+    "benefits.")
+RANK_BONUS_ROWS = [
+    (4, 1, "An additional benefit is gained"),
+    (5, 2, None),
+    (6, 3, None),
+]
+RANK_BONUS_UNMODELLED = (
+    "Only the rank half of this sentence is in the graph. The base "
+    "count - one benefit per term served in which benefits were not "
+    "lost - is a rate over a filtered count, which needs arithmetic "
+    "and a count the rule language does not yet have, so the procedure "
+    "still does it.")
+
 DM_SECTION = "Characteristic Modifiers"
 DM_TABLE = "Score Range"
 DM_COLUMN = "Characteristic Modifier"
@@ -357,6 +387,28 @@ def main():
             **b.cite(DRAFT_SECTION, DRAFT_TABLE, key, DRAFT_COLUMN, cell)))
         b.relate("@draft_table", entry)
         counts["draft"] += 1
+
+    # ---- extra benefits by rank -------------------------------------
+    b.add("LookupTable", "@rank_benefits", dict(
+        name="extra_benefits_by_rank",
+        entry_type="MusteringRankBonusEntry",
+        miss_is_nothing=True,
+        source_file=CHAPTER, source_section=RANK_BONUS_SECTION,
+        source_kind="sentence", source_quote=RANK_BONUS_QUOTE,
+        unmodelled=RANK_BONUS_UNMODELLED))
+    for rank, extra, implied in RANK_BONUS_ROWS:
+        alias = "@rank_bonus_o%d" % rank
+        props = dict(name="extra_benefits_rank_%d" % rank,
+                     key_min=rank, key_max=rank,
+                     extra_benefit_rolls=extra,
+                     source_file=CHAPTER,
+                     source_section=RANK_BONUS_SECTION,
+                     source_kind="sentence",
+                     source_quote=RANK_BONUS_QUOTE)
+        if implied:
+            props["implied_by"] = implied
+        b.add("MusteringRankBonusEntry", alias, props)
+        b.relate("@rank_benefits", alias)
 
     # ---- the eight numbers a human read out of the prose ------------
     for name, value, section, quote in RULE_CONSTANTS:

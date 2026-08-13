@@ -27,6 +27,7 @@
 
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
+#include "logosphere/rules/lookup_table_selector.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -973,6 +974,67 @@ void test_a_mishap_costs_the_years_its_row_states() {
     CHECK(recorded,
           "the prison row says on ITSELF that the book does not settle "
           "this, and how it was read");
+}
+
+// "An additional benefit is gained if the character held rank O4, and
+// two for rank O5. A character with rank O6 gains three extra
+// benefits." Four numbers the book prints, read from a table keyed by
+// rank rather than an if-ladder in the procedure. The O4 row states
+// its count with the indefinite article, so it is proved by those
+// words; the ranks the book never mentions have no row at all.
+void test_extra_benefits_by_rank_are_a_table() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the rank-bonus world: " + why);
+    if (!why.empty()) return;
+
+    kg::EntityID table = kg::INVALID_ENTITY;
+    for (const auto id : world.findByType("LookupTable")) {
+        if (world.getProperty(id, "name") == "extra_benefits_by_rank") {
+            table = id;
+        }
+    }
+    CHECK(table != kg::INVALID_ENTITY,
+          "the ladder is a table in the graph, not a branch in the code");
+    if (table == kg::INVALID_ENTITY) return;
+
+    logosphere::rules::LookupTableSelector selector(world);
+    const int expected[] = {0, 0, 0, 0, 1, 2, 3};
+    std::string measured;
+    for (int rank = 0; rank <= 6; ++rank) {
+        const auto row = selector.select(table, rank);
+        int got = 0;
+        if (row.ok()) {
+            got = std::stoi(world.getProperty(row.selection->row(),
+                                              "extra_benefit_rolls"));
+        }
+        measured += (rank ? " " : "") + std::to_string(rank) + ":" +
+                    (row.ok() ? std::to_string(got)
+                              : (row.missed ? "-" : "ERR"));
+        if (rank < 4) {
+            CHECK(!row.ok() && row.missed && row.error.empty(),
+                  "rank " + std::to_string(rank) + " is one the book says "
+                  "nothing about, so it misses rather than finding a zero");
+        } else {
+            CHECK(row.ok() && got == expected[rank],
+                  "rank " + std::to_string(rank) + " grants " +
+                      std::to_string(expected[rank]) + ": got " +
+                      std::to_string(got) + " " + row.error);
+        }
+    }
+    std::cout << "  [measure] extra benefits by rank: " << measured
+              << "  (- is a miss, where the book is silent)\n";
+
+    // The count the book states without writing carries the words that
+    // state it, so a reader can see the inference and argue with it.
+    bool implied = false;
+    for (const auto row : world.getRelated(table, "HAS_PART")) {
+        if (world.getProperty(row, "extra_benefit_rolls") != "1") continue;
+        implied = !world.getProperty(row, "implied_by").empty();
+    }
+    CHECK(implied,
+          "the O4 row says which words state its count, having no digit "
+          "and no number word to prove it");
 }
 
 void test_missing_rule_constant_never_falls_back() {
@@ -2143,6 +2205,7 @@ int main() {
     test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
     test_missing_rule_constant_never_falls_back();
+    test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();
     test_a_step_can_declare_what_it_does();
     test_a_mishap_costs_the_years_its_row_states();

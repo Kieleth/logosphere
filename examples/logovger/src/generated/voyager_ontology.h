@@ -2309,6 +2309,14 @@ struct CharacteristicModifierEntry : public LookupEntry {
 };
 
 
+/// One row of the extra-benefits-by-rank mapping [book1/character-creation.md "Mustering Out Benefits"]. The inherited key band is the rank held on leaving the career; the one result column is how many benefit rolls that rank adds on top of the per-term count.
+/// The book names three ranks of seven and says nothing of the rest, so the table has three rows and declares miss_is_nothing. A row for rank 0 saying "nothing" would put a figure in the graph the source never printed.
+struct MusteringRankBonusEntry : public LookupEntry {
+    /// Benefit rolls this rank adds to the per-term count [book1/character-creation.md "Mustering Out Benefits"]. One at O4, two at O5, three at O6. The minimum is 1 because the book only ever states this to grant something; a rank it says nothing about has no row at all.
+    int32_t extra_benefit_rolls = {};
+};
+
+
 /// One row of a per-career throw table: which career, and the throw it makes [book1/character-creation.md "Career Tables"]. The Commission, Advancement and Re-enlistment rows of the career tables are exactly this, one table per rule.
 /// A promotion row also carries the rank ladder it moves you along, because succeeding at the throw and taking the new rank's benefits are one rule, and a step consults one table.
 struct CareerThrowEntry : public SubjectLookupEntry {

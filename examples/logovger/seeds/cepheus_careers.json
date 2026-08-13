@@ -7,7 +7,7 @@
  "generated_by": "examples/logovger/tools/extract_careers.py",
  "invariants": {
   "count_of_type": {
-   "LookupTable": 1,
+   "LookupTable": 2,
    "CharacteristicModifierEntry": 12,
    "TaskCheck": 48,
    "Career": 24,
@@ -15,6 +15,7 @@
    "AdvanceSkill": 144,
    "TableEntry": 150,
    "EnterCareer": 6,
+   "MusteringRankBonusEntry": 3,
    "RuleConstant": 8
   },
   "unique_name_per_type": [
@@ -24,6 +25,7 @@
    "DiceExpression",
    "EnterCareer",
    "LookupTable",
+   "MusteringRankBonusEntry",
    "RollableTable",
    "RuleConstant",
    "TableEntry",
@@ -8143,6 +8145,85 @@
    "from": "@draft_table",
    "relation": "HAS_PART",
    "to": "@draft_row_6"
+  },
+  {
+   "op": "create_entity",
+   "type": "LookupTable",
+   "as": "@rank_benefits",
+   "properties": {
+    "name": "extra_benefits_by_rank",
+    "entry_type": "MusteringRankBonusEntry",
+    "miss_is_nothing": true,
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "An additional benefit is gained if the character held rank O4, and two for rank O5. A character with rank O6 gains three extra benefits.",
+    "unmodelled": "Only the rank half of this sentence is in the graph. The base count - one benefit per term served in which benefits were not lost - is a rate over a filtered count, which needs arithmetic and a count the rule language does not yet have, so the procedure still does it."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "MusteringRankBonusEntry",
+   "as": "@rank_bonus_o4",
+   "properties": {
+    "name": "extra_benefits_rank_4",
+    "key_min": 4,
+    "key_max": 4,
+    "extra_benefit_rolls": 1,
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "An additional benefit is gained if the character held rank O4, and two for rank O5. A character with rank O6 gains three extra benefits.",
+    "implied_by": "An additional benefit is gained"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@rank_benefits",
+   "relation": "HAS_PART",
+   "to": "@rank_bonus_o4"
+  },
+  {
+   "op": "create_entity",
+   "type": "MusteringRankBonusEntry",
+   "as": "@rank_bonus_o5",
+   "properties": {
+    "name": "extra_benefits_rank_5",
+    "key_min": 5,
+    "key_max": 5,
+    "extra_benefit_rolls": 2,
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "An additional benefit is gained if the character held rank O4, and two for rank O5. A character with rank O6 gains three extra benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@rank_benefits",
+   "relation": "HAS_PART",
+   "to": "@rank_bonus_o5"
+  },
+  {
+   "op": "create_entity",
+   "type": "MusteringRankBonusEntry",
+   "as": "@rank_bonus_o6",
+   "properties": {
+    "name": "extra_benefits_rank_6",
+    "key_min": 6,
+    "key_max": 6,
+    "extra_benefit_rolls": 3,
+    "source_file": "book1/character-creation.md",
+    "source_section": "Mustering Out Benefits",
+    "source_kind": "sentence",
+    "source_quote": "An additional benefit is gained if the character held rank O4, and two for rank O5. A character with rank O6 gains three extra benefits."
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@rank_benefits",
+   "relation": "HAS_PART",
+   "to": "@rank_bonus_o6"
   },
   {
    "op": "create_entity",

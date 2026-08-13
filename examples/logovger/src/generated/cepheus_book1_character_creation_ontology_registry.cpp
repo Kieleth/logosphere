@@ -176,6 +176,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("LookupTable", "Entity", false);
     reg.addEntityType("ModifyAttribute", "Outcome", false);
     reg.addEntityType("ModifyAttributesInGroup", "Outcome", false);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addEntityType("MusteringRankBonusEntry", "LookupEntry", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("NaturalFormation", "WorldEntity", true);
     reg.addEntityType("Neck", "BodyPart", false);
@@ -413,6 +415,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("LookupTable", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("ModifyAttribute", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("ModifyAttributesInGroup", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addAncestors("MusteringRankBonusEntry", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "LookupEntry", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("NaturalFormation", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Neck", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -556,6 +560,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("LookupTable", {"rulebook"});
     reg.addFacets("ModifyAttribute", {"rulebook"});
     reg.addFacets("ModifyAttributesInGroup", {"rulebook"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addFacets("MusteringRankBonusEntry", {"rulebook"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("NoEffect", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addFacets("OntologyMetaContext", {"ontology-meta"});
@@ -834,6 +841,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("ModifyAttributesInGroup", "attribute_delta", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_delta_dice", false, "DiceExpression");
     reg.addProperty("ModifyAttributesInGroup", "attribute_delta_reduces", kg::PropertyValueKind::Boolean, false);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addProperty("MusteringRankBonusEntry", "extra_benefit_rolls", kg::PropertyValueKind::Integer, true, true, 1.0, false, 0.0);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("OntologyClassMeta", "class_abstract", kg::PropertyValueKind::Boolean, true, true);
     reg.addProperty("OntologyClassMeta", "has_direct_parent", kg::PropertyValueKind::Boolean, true, true);

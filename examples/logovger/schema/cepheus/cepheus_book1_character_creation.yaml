@@ -98,6 +98,27 @@ classes:
       - pseudohex_max
       - characteristic_modifier
 
+  MusteringRankBonusEntry:
+    is_a: LookupEntry
+    description: >-
+      One row of the extra-benefits-by-rank mapping
+      [book1/character-creation.md "Mustering Out Benefits"]. The
+      inherited key band is the rank held on leaving the career; the
+      one result column is how many benefit rolls that rank adds on
+      top of the per-term count.
+
+      The book names three ranks of seven and says nothing of the rest,
+      so the table has three rows and declares miss_is_nothing. A row
+      for rank 0 saying "nothing" would put a figure in the graph the
+      source never printed.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      extra_benefit_rolls:
+        required: true
+    slots:
+      - extra_benefit_rolls
+
   CareerThrowEntry:
     is_a: SubjectLookupEntry
     description: >-
@@ -282,6 +303,15 @@ slots:
     description: >-
       The throw to survive a term in it
       [book1/character-creation.md "Career Tables" Survival row].
+  extra_benefit_rolls:
+    range: integer
+    minimum_value: 1
+    description: >-
+      Benefit rolls this rank adds to the per-term count
+      [book1/character-creation.md "Mustering Out Benefits"]. One at
+      O4, two at O5, three at O6. The minimum is 1 because the book
+      only ever states this to grant something; a rank it says nothing
+      about has no row at all.
   rollable_table:
     range: RollableTable
     description: >-

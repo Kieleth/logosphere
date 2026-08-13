@@ -1291,9 +1291,33 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
         // first two, so seven terms across three careers paid seven
         // rolls on leaving each of them.
         benefit_rolls_owed_ = sheet_.terms_in_career;
-        if (sheet_.rank >= 6)      benefit_rolls_owed_ += 3;
-        else if (sheet_.rank == 5) benefit_rolls_owed_ += 2;
-        else if (sheet_.rank == 4) benefit_rolls_owed_ += 1;
+        // "An additional benefit is gained if the character held rank
+        // O4, and two for rank O5. A character with rank O6 gains
+        // three extra benefits." Read from a table keyed by rank
+        // rather than written here. A rank the book says nothing about
+        // is a MISS, not a zero, and the table declares that, so no row
+        // has to be invented for the ranks it never mentions.
+        const auto bonus_table = find_named(kg_, "LookupTable",
+                                            "extra_benefits_by_rank");
+        if (bonus_table == kg::INVALID_ENTITY) {
+            return PrimitiveResult::failed(
+                "benefits: the extra-benefits-by-rank table is not in the "
+                "graph; load the careers seed");
+        }
+        logosphere::rules::LookupTableSelector ranks(kg_);
+        const auto bonus = ranks.select(bonus_table, sheet_.rank);
+        if (!bonus.ok() && !bonus.missed) {
+            return PrimitiveResult::failed("benefits: " + bonus.error);
+        }
+        if (bonus.ok()) {
+            const std::string extra = kg_.getProperty(
+                bonus.selection->row(), "extra_benefit_rolls");
+            if (extra.empty()) {
+                return PrimitiveResult::failed(
+                    "benefits: the rank row grants no extra_benefit_rolls");
+            }
+            benefit_rolls_owed_ += std::stoi(extra);
+        }
         // "Up to 3 benefit rolls can be taken on the Cash table."
         if (!constant("cash_benefit_roll_max", cash_rolls_left_, error)) {
             return PrimitiveResult::failed(error);
