@@ -4271,6 +4271,46 @@ Force* PhysicsSystem::get_force(size_t index) {
 // ============================================================================
 
 // ============================================================================
+// PHASE C: THE FORCE LAW IS DERIVED, NOT DECLARED (axial + damping)
+// ============================================================================
+// k = A / (L_a/E_a + L_b/E_b): a bond is two material spans in series
+// between its attachment points, each span the offset that reaches the
+// joint from its body's centre. c = eta * sqrt(k * mu): the loss factor
+// working against the reduced mass the bond actually drives. Every input
+// already exists: contact_area is geometry the generators compute, E and
+// eta live in the materials table, masses are on the particles.
+//
+// This exists because of G6: four creators declared three different
+// stiffnesses and a fourth declared none, and the undeclared one stood a
+// canopy on nothing. A derived law cannot be forgotten, and deleting the
+// declarations (C-116) means there is no second opinion to disagree with.
+static void derive_organic_force_law(OrganicGluon& g,
+                                     const Particle& pa, const Particle& pb) {
+    const float A  = g.contact_area;
+    const float Ea = Materials::GetYoungsModulus(pa.material_type);
+    const float Eb = Materials::GetYoungsModulus(pb.material_type);
+    if (!(A > 0.0f) || !(Ea > 0.0f) || !(Eb > 0.0f)) return;  // guard refuses
+    const float La = std::sqrt(g.offset_a.x * g.offset_a.x +
+                               g.offset_a.y * g.offset_a.y +
+                               g.offset_a.z * g.offset_a.z);
+    const float Lb = std::sqrt(g.offset_b.x * g.offset_b.x +
+                               g.offset_b.y * g.offset_b.y +
+                               g.offset_b.z * g.offset_b.z);
+    // Two coincident attachment points still join real material: floor the
+    // total span at 1 cm, split evenly, so k stays finite and material-true.
+    float la = La, lb = Lb;
+    const float total = la + lb;
+    if (total < 0.01f) { const float pad = (0.01f - total) * 0.5f; la += pad; lb += pad; }
+    g.stiffness = A / (la / Ea + lb / Eb);
+    const float ma = pa.GetMass(), mb = pb.GetMass();
+    const float mu = (ma > 0.0f && mb > 0.0f) ? (ma * mb) / (ma + mb)
+                                              : std::fmax(ma, mb);
+    const float eta = 0.5f * (Materials::GetLossFactor(pa.material_type) +
+                              Materials::GetLossFactor(pb.material_type));
+    g.damping = eta * std::sqrt(g.stiffness * std::fmax(mu, 1e-6f));
+}
+
+// ============================================================================
 // REFUSE-TO-BUILD: a bond's force law must exist before the bond does
 // ============================================================================
 // G6: stiffness/damping had no initializer and the tree generator's branch
@@ -4330,10 +4370,19 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     gluon->particle_b = particle_b_id;
     gluon->id = next_gluon_id_++;
 
+    if (auto* og = dynamic_cast<OrganicGluon*>(gluon.get())) {
+        const Particle sa = particle_system_->get_particle_copy(particle_a_id);
+        const Particle sb = particle_system_->get_particle_copy(particle_b_id);
+        derive_organic_force_law(*og, sa, sb);
+    }
     refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
 
-    // V4.4 Mass-scaled damping: heavier connections = more damping
-    gluon->damping *= std::sqrt(pa.GetMass() * pb.GetMass());
+    if (!gluon->force_bounded()) {
+        // V4.4 Mass-scaled damping: heavier connections = more damping.
+        // Derived organic damping is already mass-true (c = eta*sqrt(k*mu));
+        // scaling it again would double-count the masses.
+        gluon->damping *= std::sqrt(pa.GetMass() * pb.GetMass());
+    }
 
     gluon_constraints_v2_.push_back(std::move(gluon));
 
@@ -4371,12 +4420,18 @@ void PhysicsSystem::add_gluon_between(
     gluon->particle_b = particle_b_id;
     gluon->id = next_gluon_id_++;
 
-    refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
-
-    // V4.4 Mass-scaled damping: heavier connections = more damping
     Particle pa = particle_system_->get_particle_copy(particle_a_id);
     Particle pb = particle_system_->get_particle_copy(particle_b_id);
-    gluon->damping *= std::sqrt(pa.GetMass() * pb.GetMass());
+    if (auto* og = dynamic_cast<OrganicGluon*>(gluon.get())) {
+        derive_organic_force_law(*og, pa, pb);
+    }
+    refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
+
+    if (!gluon->force_bounded()) {
+        // V4.4 Mass-scaled damping: heavier connections = more damping.
+        // Derived organic damping is already mass-true (c = eta*sqrt(k*mu)).
+        gluon->damping *= std::sqrt(pa.GetMass() * pb.GetMass());
+    }
 
     gluon_constraints_v2_.push_back(std::move(gluon));
 

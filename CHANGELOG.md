@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Organic bonds derive their force law from materials (Phase C, axial).**
+  `k = A / (L_a/E_a + L_b/E_b)` (material spans in series between the
+  attachment points) and `c = eta * sqrt(k * mu)` (loss factor against the
+  reduced mass), computed at bond registration from contact area, the
+  materials table and the particles themselves. The declared stiffness/
+  damping constants in the tree, strata, rock and KG-organic paths are
+  deleted; a force-bounded bond can no longer be born hollow (ledger G6:
+  branch bonds with an unset force law stood a canopy on nothing).
+  The engine also refuses to register a force-bounded bond whose force law
+  is missing (loud crash naming both particles; `GLUON_LENIENT=1` for
+  inventory sweeps).
 - **Solver: one immovability predicate, one door for momentum.** "Can this
   body receive momentum?" (massless, sleeping, KINEMATIC: no) is now
   answered by a single function (`inv_mass_momentum`) used by gravity,

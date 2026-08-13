@@ -103,8 +103,7 @@ static void bond_tiles(PhysicsSystem& physics, ParticleSystem& ps,
     gluon->offset_b        = offset_b;
     gluon->target_distance = 0.0f;
     gluon->contact_area    = contact_area;
-    gluon->stiffness       = 50000.0f;
-    gluon->damping         = 1000.0f;
+    // Force law derived at registration from materials (Phase C).
 
     {
         auto wview = ps.lock_particles_for_write();

@@ -208,8 +208,7 @@ void PhysicsRockGenerator::create_rock_gluon(int box_a, int box_b, float materia
     gluon->offset_b = offset_b;
     gluon->target_distance = 0.0f;
     gluon->contact_area = contact_area;
-    gluon->stiffness = 50000.0f;  // Rock is rigid
-    gluon->damping = 1000.0f;
+    // Force law derived at registration from materials (Phase C).
 
     // Set material strength for breaking calculation (now safe - no read lock held)
     {

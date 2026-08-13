@@ -252,3 +252,13 @@ number that should not exist). It is the already-chosen law: bonds refuse
 to build undeclared, or Phase C derives k = E*A/L and d from the loss
 factor out of the materials the particles already carry. Owner decides
 which.
+
+**G6 status: FIXED** by guard + derivation (Phase C axial), same day.
+The engine refuses force-bounded bonds born without a force law, and
+OrganicGluon now derives k = A/(L_a/E_a + L_b/E_b) and
+c = eta*sqrt(k*mu) at registration; all declared organic constants
+deleted (tree x4, strata x2, rock, KG copy). Measured:
+test_foliage_stays_attached mean canopy drift 5.20 m -> 0.0101 m,
+worst leaf 8.14 -> 0.39 m, PASS. Harness 27/27, battery 9/9.
+Walk gate residual: worst blade 6.77 m (was 106 at the week's worst),
+zero detonations; separate mechanism, still open.

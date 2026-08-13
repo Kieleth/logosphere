@@ -119,8 +119,7 @@ void EntityManager::create_gluon_from_kg(kg::KGGluonID kg_gluon_id, int render_a
             gluon->offset_a = Vec3(data.offset_a_x, data.offset_a_y, data.offset_a_z);
             gluon->offset_b = Vec3(data.offset_b_x, data.offset_b_y, data.offset_b_z);
             gluon->target_distance = data.target_distance;
-            gluon->stiffness = data.stiffness;
-            gluon->damping = data.damping;
+            // Linear force law derived at registration (Phase C); KG values unused.
             gluon->rotate_offsets = data.rotate_offsets;
             gluon->angular_stiffness = data.angular_stiffness;
             gluon->angular_damping = data.angular_damping;

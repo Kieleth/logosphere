@@ -155,8 +155,7 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
     // Root system contact area (m²) - larger trees have more extensive roots
     // Ancient oak roots spread 2-3x crown radius underground
     root->contact_area = trunk_thickness * trunk_thickness * 4.0f;  // ~2-5 m² for typical trees
-    root->stiffness = 100000.0f;  // N/m - rigid like wood
-    root->damping = 1000.0f;      // Ns/m - absorb oscillations (prevents trunk wiggle)
+    // Force law derived at registration from materials (Phase C).
     // Breaking force = contact_area × avg_material_strength
     // With 2m² × 25MPa avg = 50MN (bulldozer territory)
 
@@ -328,8 +327,7 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     trunk_gluon->target_distance = 0.0f;
     // Large contact area for stability (root system)
     trunk_gluon->contact_area = trunk_thickness * trunk_thickness * 4.0f;
-    trunk_gluon->stiffness = 100000.0f;
-    trunk_gluon->damping = 1000.0f;
+    // Force law derived at registration from materials (Phase C).
 
     result.trunk_id = physics_->add_particle_with_gluon_to(
         root_plate_id, trunk, std::move(trunk_gluon));
@@ -679,8 +677,7 @@ int PhysicsTreeGenerator::generate_branch(
             leaf_gluon->offset_a = Vec3(0, 0, length * 0.5f);  // Branch tip
             leaf_gluon->offset_b = Vec3(0, 0, 0);  // Leaf center
             leaf_gluon->target_distance = actual_distance;  // Maintain placed distance (may have been jittered)
-            leaf_gluon->stiffness = 5000.0f;   // Flexible leaf stem
-            leaf_gluon->damping = 100.0f;
+            // Force law derived at registration from materials (Phase C).
             leaf_gluon->contact_area = 0.0001f;  // Tiny stem (1 cm²)
             leaf_gluon->angular_stiffness = 0.0f;  // Leaves swing freely
             leaf_gluon->enable_angular_constraint = false;
@@ -1111,8 +1108,7 @@ int PhysicsTreeGenerator::generate_root_system(
         root_gluon->offset_b = Vec3(inner_offset_x, inner_offset_y, inner_offset_z);
         root_gluon->target_distance = 0.0f;  // Touch attachment
         root_gluon->contact_area = root_thickness * root_thickness;  // Root cross-section
-        root_gluon->stiffness = 50000.0f;  // Rigid connection
-        root_gluon->damping = 500.0f;
+        // Force law derived at registration from materials (Phase C).
 
         // KEEP THE COMPUTED POSITION. root_center_x/y/z are worked out above
         // from the plate face and the root's direction, assigned to root.x/y/z,
