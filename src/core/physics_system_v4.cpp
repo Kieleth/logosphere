@@ -143,14 +143,13 @@ static EnergyBuckets measure_energy(
         ParticleSystem::WriteView& particles,
         const std::deque<std::unique_ptr<GluonConstraintBase>>& gluons) {
     EnergyBuckets e;
-    constexpr double G = 9.81;
     for (size_t i = 0; i < particles.size(); ++i) {
         const Particle& p = particles[i];
         const double m = p.GetMass();
         if (m <= 0.0) continue;
         if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
         e.kinetic += 0.5 * m * (double(p.vx)*p.vx + double(p.vy)*p.vy + double(p.vz)*p.vz);
-        e.gravity += m * G * double(p.z);
+        e.gravity += m * PhysicsV4::ENERGY_LEDGER_G * double(p.z);
     }
     // Elastic strain: 1/2 k x^2, x measured where the bond actually acts —
     // between its ATTACHMENT points, not between centres. Getting that wrong
@@ -761,7 +760,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // V4.3 FIX: Create constraint for particles NEAR turtle, not just penetrating
         // This prevents "contact bouncing" where particles leave contact between frames.
         // Particles within 3mm of turtle surface maintain contact (prevents oscillation).
-        constexpr float TURTLE_CONTACT_THRESHOLD = 0.003f;  // 3mm
 
         float half_zi = pi.thickness * 0.5f;
         if (pi.shape == ParticleShape::BOX && box_particle_is_rotated(pi)) {
@@ -1038,7 +1036,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // is a solver optimization, NOT immobility.
                 // KINEMATIC actors keep their own (effectively disabled)
                 // gate: locomotion must not wake the floor underfoot.
-                constexpr float WAKE_TRANSFER_SPEED       = 1.0f;   // m/s inherited
                 // A KINEMATIC body wakes a sleeper on APPROACH, not on raw
                 // speed. The old 100 m/s raw-speed gate protected gliding
                 // foot-plant pin anchors (fast but parallel to the floor,
@@ -1047,7 +1044,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // passed through a sleeping chain untouched, 32 contacts,
                 // zero displacement. Closing speed keeps both cases honest:
                 // anchors glide (closing ~0, silent), pushers close in.
-                constexpr float WAKE_KINEMATIC_APPROACH   = 0.5f;   // m/s closing
 
                 auto should_wake = [](const Particle& active,
                                       const Particle& sleeper,
@@ -1172,11 +1168,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         float ky_min = pk.y - half_yk, ky_max = pk.y + half_yk;
                         float kz_min = pk.z - half_zk, kz_max = pk.z + half_zk;
                         // Coplanar: same Z extent (same thin axis position)
-                        constexpr float COPLANAR_EPS = 0.005f;
                         if (std::abs(kz_min - min_zj) > COPLANAR_EPS ||
                             std::abs(kz_max - max_zj) > COPLANAR_EPS) continue;
                         // Adjacent: touching on X or Y (within epsilon)
-                        constexpr float ADJ_EPS = 0.01f;
                         bool y_touch = std::abs(ky_min - max_yj) < ADJ_EPS || std::abs(ky_max - min_yj) < ADJ_EPS;
                         bool x_touch = std::abs(kx_min - max_xj) < ADJ_EPS || std::abs(kx_max - min_xj) < ADJ_EPS;
                         // Same extent on the non-touching axis (forms a continuous surface)
@@ -2416,12 +2410,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     static int g_maxdv_body_a=-1, g_maxdv_body_b=-1, g_maxdv_type=-1;
     float prev_max_impulse = 1e10f;
     int low_improvement_count = 0;
-    constexpr float MIN_IMPROVEMENT_RATE = 0.05f;  // Need 5% improvement per iteration
-    constexpr int MIN_ITERATIONS = 6;              // At least 6 iterations before considering early stop
-    constexpr int PLATEAU_CONFIRM = 3;             // Need 3 consecutive low-improvement iters
-    // The residual velocity below which a plateau really is convergence. Same
-    // physical quantity whatever the body's mass, unlike an impulse or a rate.
-    constexpr float VELOCITY_PLATEAU_FLOOR = 0.001f;  // m/s
+    // MIN_IMPROVEMENT_RATE, MIN_ITERATIONS, PLATEAU_CONFIRM,
+    // VELOCITY_PLATEAU_FLOOR: INV-29 registry (ConvergenceExits group).
 
     // NOTE ON PLACEMENT: this runs BEFORE warm starting, and it must.
     // `warm_started_impulses` below is keyed by constraint INDEX and read back
@@ -2758,7 +2748,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     float jb_min_y = pj.y - pj.height * 0.5f, jb_max_y = pj.y + pj.height * 0.5f;
                     float jb_min_z = pj.z - pj.thickness * 0.5f, jb_max_z = pj.z + pj.thickness * 0.5f;
                     // Adjacent if AABBs touch or overlap (with small epsilon)
-                    constexpr float ADJ_EPS = 0.01f;  // 10mm tolerance
                     bool x_touch = (ia_max_x >= jb_min_x - ADJ_EPS) && (jb_max_x >= ia_min_x - ADJ_EPS);
                     bool y_touch = (ia_max_y >= jb_min_y - ADJ_EPS) && (jb_max_y >= ia_min_y - ADJ_EPS);
                     bool z_touch = (ia_max_z >= jb_min_z - ADJ_EPS) && (jb_max_z >= ia_min_z - ADJ_EPS);
@@ -3405,7 +3394,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // this term chased is cured at the mechanism now: the impulse-memory
         // cap is in momentum units and the force law is derived, and the
         // foliage gate is the regression tripwire. Impulse threshold alone.
-        constexpr float ABSOLUTE_THRESHOLD = 0.01f;   // N*s
+        // ABSOLUTE_THRESHOLD: INV-29 registry (ConvergenceExits group).
         // Angular AND-term: the impulse threshold is momentum-dimensioned and
         // blind to angular rows on light bodies (a 1.5e-4 N*m*s drive impulse
         // is 6.5 rad/s on a 2.3e-5 kg*m^2 bone — measured exiting at iters=1
@@ -3696,11 +3685,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         // Aged cleanup - only delete entries unused for 60 frames (1 second)
         // This allows brief oscillations where contact lifts off and reforms
-        constexpr int CACHE_AGE_LIMIT = 60;
         for (auto it = cached_impulses_.begin(); it != cached_impulses_.end(); ) {
             int last_used = it->second.second;  // (impulse, last_frame) pair
             int age = static_cast<int>(warm_debug_frame) - last_used;
-            if (age > CACHE_AGE_LIMIT) {
+            if (age > WARM_CACHE_AGE_LIMIT) {
                 it = cached_impulses_.erase(it);
             } else {
                 ++it;
@@ -4052,12 +4040,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         // IMPULSE MEMORY store-back (organic only, matching the apply).
         if (gluon->force_bounded() && !impulse_memory_off()) {
-            const float DECAY = 0.98f;
-            // Anti-windup (owner QA: the chain rang 5-8 swings): when the
-            // solver's fresh impulse OPPOSES the carried load, the spring
-            // has crossed rest and the memory is now driving the next
-            // swing — bleed it fast instead of carrying it through.
-            const float DECAY_REVERSED = 0.55f;
+            // IMPULSE_MEMORY_DECAY / _REVERSED (anti-windup): INV-29
+            // registry (WarmStartMemory group).
             // THE INTEGRAL'S AUTHORITY IS A MOMENTUM, NOT A FORCE.
             //
             // This cap used to be breaking_force * dt, which is a property of
@@ -4096,7 +4080,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     PhysicsV4::ENABLE_SPLIT_IMPULSE
                         ? acc
                         : (acc - rc.bias * rc.effective_mass);
-                const float d = (warm_old * velocity_part < 0.0f) ? DECAY_REVERSED : DECAY;
+                const float d = (warm_old * velocity_part < 0.0f) ? IMPULSE_MEMORY_DECAY_REVERSED
+                                                                  : IMPULSE_MEMORY_DECAY;
                 return std::clamp(d * (warm_old + velocity_part), -cap, cap);
             };
             gluon->warm_ix = upd(gluon->warm_ix, idx.x_idx, impulse_x);
@@ -4333,7 +4318,7 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
         // Prevents numerical instabilities from cascading into explosions
         // Root cause should still be investigated, but this prevents NaN propagation
         {
-            constexpr float MAX_VELOCITY = 100.0f;
+            // MAX_VELOCITY: INV-29 registry. Derived square kept local.
             constexpr float MAX_VEL_SQ = MAX_VELOCITY * MAX_VELOCITY;
             float clamp_vel_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
             if (clamp_vel_sq > MAX_VEL_SQ) {
@@ -4376,14 +4361,13 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
         if (p.GetMass() > 0.0f) {
             float speed_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
 
-            if (speed_sq > 0.0001f) {  // Only apply if moving (> 1cm/s)
+            if (speed_sq > MIN_DRAG_SPEED_SQ) {  // Only apply if moving (> 1cm/s)
                 float speed = std::sqrt(speed_sq);
 
                 // 1. QUADRATIC DRAG (air resistance) - applies to ALL particles
                 float cross_section = p.width * p.height;
-                constexpr float RHO_AIR = 1.225f;  // kg/m³
-                constexpr float CD = 1.5f;         // Drag coefficient (blunt objects)
-                float drag_coeff = 0.5f * RHO_AIR * CD * cross_section / p.GetMass();
+                // RHO_AIR, DRAG_CD: INV-29 registry (GravityAndDrag group).
+                float drag_coeff = 0.5f * RHO_AIR * DRAG_CD * cross_section / p.GetMass();
 
                 float damping_factor;
                 bool has_gluons = particles_with_gluons.count(i) > 0;
@@ -4582,9 +4566,8 @@ void PhysicsSystem::enforce_turtle_boundary(ParticleSystem::WriteView& particles
  *   - In-between: no state change (hysteresis band)
  */
 void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
-    constexpr float REST_VELOCITY_THRESHOLD = 0.1f;    // m/s - enter rest
-    constexpr float WAKE_VELOCITY_THRESHOLD = 0.2f;    // m/s - exit rest (2x for hysteresis)
-    constexpr uint8_t REST_FRAMES_REQUIRED = 10;       // frames at rest before resting
+    // REST_VELOCITY_THRESHOLD, WAKE_VELOCITY_THRESHOLD,
+    // REST_FRAMES_REQUIRED: INV-29 registry (RestSleepDamping group).
 
     const size_t count = particles.size();
 
