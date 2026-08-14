@@ -440,3 +440,20 @@ ancestors; it now loads the real earth pack.
 Prover: test_kg_property_gate (14 checks: three rejection classes
 observed as SIGABRT with the actionable message asserted, pass-path
 controls, lenient semantics, measured costs printed).
+
+## 2026-08-14 — Wake is solved physics (owner decree, machine catch #1)
+
+The Rube Goldberg machine's S3 red RCA'd to the contact wake gate:
+`(m_a/(m_a+m_s))·speed >= WAKE_TRANSFER_SPEED (1.0 m/s)`, a pre-solve
+guess. Below the gate a sleeper is priced immovable and the mover's
+momentum is destroyed (probe f271: ball+box0 at 1.67 m/s, 343 kg·m/s
+-> ~-24 in one frame against sleeping box1, equal mass, which never
+woke). Owner ruling, verbatim intent: "we need a smart solver with
+law-INV founded rules, not a simple 1 m/s interaction; the awake
+moment needs to be calculated, or even pre-calculated; a grain of
+sand hit by a 1 m/s particle is not the same as a castle wall hit by
+a grain at 1 m/s. A sleep-awake-resolver, ontology-INV driven."
+Becomes INV-31 (aspirational) + task #56. Red ladder first; mechanism
+behind a default-off lever; WAKE_TRANSFER_SPEED path deleted only
+after the resolver goes green through machine + sweep + Eden
+characterization.

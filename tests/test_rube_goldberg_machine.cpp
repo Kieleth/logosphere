@@ -690,6 +690,28 @@ bool run_machine() {
             break;
         }
 
+        // RUBE_PROBE=a,b: per-frame kinematics of the plow trio through
+        // an RCA window — 1-frame resolution where the 30-frame trace
+        // hid the mechanism.
+        static int probe_a = -1, probe_b = -1;
+        static bool probe_init = false;
+        if (!probe_init) {
+            probe_init = true;
+            if (const char* pv = std::getenv("RUBE_PROBE"))
+                sscanf(pv, "%d,%d", &probe_a, &probe_b);
+        }
+        if (frame >= probe_a && frame <= probe_b) {
+            const Particle b = w.read(w.ball);
+            const Particle a0 = w.read(w.alley[0]);
+            const Particle a1 = w.read(w.alley[1]);
+            printf("    [probe f%d] ball x=%.4f vx=%.4f vz=%.4f rest=%d | "
+                   "box0 x=%.4f vx=%.4f vz=%.4f rest=%d | "
+                   "box1 x=%.4f vx=%.4f rest=%d\n",
+                   frame, b.x, b.vx, b.vz, (int)b.is_at_rest,
+                   a0.x, a0.vx, a0.vz, (int)a0.is_at_rest,
+                   a1.x, a1.vx, (int)a1.is_at_rest);
+        }
+
         if (trace && (frame % 30) == 0) {
             const Particle b = w.read(w.ball);
             const Particle a0 = w.read(w.alley[0]);
