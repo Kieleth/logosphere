@@ -1078,6 +1078,70 @@ void test_extra_benefits_by_rank_are_a_table() {
           "and no number word to prove it");
 }
 
+// Every roll a rule made says WHICH rule made it, and that rule is in
+// the graph. This is the link an oracle derived from the KG needs:
+// with it, the journal plus the graph is enough to re-derive what a
+// rule permitted and compare it to what happened, so the rules become
+// their own acceptance test. `purpose` reads well in a timeline and
+// resolves to nothing.
+void test_a_roll_names_the_rule_that_made_it() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the provenance world: " + why);
+    if (!why.empty()) return;
+
+    logosphere::dice::DiceService dice;
+    logovger::ChargenRequest req;
+    req.career_name = "Agent";
+    req.seed = 28;
+    req.max_terms = 4;
+    req.attribute_selector =
+        [](const logosphere::rules::AttributeSelectionRequest& request,
+           std::vector<std::string>& chosen, std::string&) {
+            chosen.assign(request.eligible.begin(),
+                          request.eligible.begin() + request.count);
+            return true;
+        };
+    logovger::CharacterSheet sheet;
+    std::string error;
+    logovger::run_chargen(req, world, dice, sheet, error);
+
+    // The rules that go through a runner: throws and table rolls. Rolls
+    // a procedure makes directly - the crisis price, for one - name no
+    // rule yet, and are counted rather than asserted, so this says what
+    // is true today instead of overclaiming.
+    int with_rule = 0, without = 0, resolvable = 0;
+    std::map<std::string, int> unlinked;
+    for (const auto& roll : dice.journal()) {
+        if (roll.rule == 0) {
+            ++without;
+            ++unlinked[roll.purpose];
+            continue;
+        }
+        ++with_rule;
+        const auto rule = static_cast<kg::EntityID>(roll.rule);
+        if (!world.exists(rule)) continue;
+        const std::string type = world.getType(rule);
+        if (world.getRegistry().isSubtypeOf(type, "TaskCheck") ||
+            world.getRegistry().isSubtypeOf(type, "RollableTable")) {
+            ++resolvable;
+        }
+    }
+    std::string still;
+    for (const auto& [purpose, count] : unlinked) {
+        still += (still.empty() ? "" : ", ") + purpose + "x" +
+                 std::to_string(count);
+    }
+    std::cout << "  [measure] " << with_rule << " rolls name their rule, "
+              << without << " do not (" << still << ")\n";
+
+    CHECK(with_rule > 0, "some roll names the rule that made it");
+    CHECK(resolvable == with_rule,
+          "and every named rule is a TaskCheck or RollableTable actually "
+          "in the graph: " + std::to_string(resolvable) + " of " +
+              std::to_string(with_rule));
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2326,6 +2390,7 @@ int main() {
     test_a_career_pays_only_for_its_own_years();
     test_leaving_a_career_offers_another_one();
     test_basic_training_grants_what_the_book_promises();
+    test_a_roll_names_the_rule_that_made_it();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();
