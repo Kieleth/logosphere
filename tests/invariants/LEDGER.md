@@ -457,3 +457,21 @@ Becomes INV-31 (aspirational) + task #56. Red ladder first; mechanism
 behind a default-off lever; WAKE_TRANSFER_SPEED path deleted only
 after the resolver goes green through machine + sweep + Eden
 characterization.
+
+## 2026-08-14 — The rest damper is eradicated (owner decree)
+
+RCA of machine S3 / resolver R1 found the frame-gated damper
+(DAMPING_FACTOR 0.90/tick below 0.4 m/s, counter-gated, reset only
+above 0.8 m/s) destroying real coasting momentum: 72 kg*m/s -> 11 in
+17 frames on a mu=0.02 floor, with contacts ferrying neighbours'
+momentum into the sink. Owner: "we need to eradicate this, quick...
+this dampening is a hack, the same as spring-modeling. A dampening is
+a dampening if it's a dampening; anything else is energy transference
+between different materials and consequences of that — physics."
+Sequencing also owner-ruled: damper first, THEN the manifold pricing
+(INV-20 x0.75 cascade) and the wake gate (INV-31), because those
+calibrate against honest physics only after the artificial sink is
+gone. Evidence after removal: resolver R1 awake twin CONSERVES
+(85.5 -> 63.9 vs 30.1 budget); ringing 1044:1, settling flat/wiggle,
+idle pose, walk gate, battery, foliage all green. The damper's
+constants stay in the registry until the cleanup commit.

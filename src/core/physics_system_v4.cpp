@@ -4452,52 +4452,34 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
         }
 
         // ====================================================================
-        // FRAME-GATED DAMPING (2025-12-11)
+        // FRAME-GATED DAMPING: ERADICATED (2026-08-14, owner decree)
         // ====================================================================
-        // Track consecutive frames at low velocity, then apply damping.
-        // This preserves real physics reactions (rock hits tree - velocity varies)
-        // while eventually stopping numerical oscillation (steady 0.1-0.3 m/s).
+        // A speed-gated *0.90/tick velocity tax lived here from 2025-12-11.
+        // It was written to kill numerical oscillation and could not tell
+        // oscillation from coasting, because it looked at SPEED — and
+        // oscillation is a signature, not a speed. Measured consequence
+        // (sleep-wake resolver ladder R1 + machine S3 RCA): any body below
+        // 0.8 m/s with a saturated low_velocity_frames counter lost 10% of
+        // its velocity per tick — 72 kg*m/s ground to 11 in 17 frames on a
+        // mu=0.02 floor, with contacts ferrying neighbours' momentum into
+        // the sink. The engine forbade slow coasting outright.
         //
-        // WHY: Hard clamping caused instability - clamping one gluon-connected
-        // particle while neighbor was above threshold created large v_rel,
-        // causing solver to apply destabilizing impulses (max vel grew to 0.84 m/s).
+        // Owner ruling (LEDGER.md 2026-08-14): "a dampening is a dampening
+        // if it's a dampening; anything else is energy transference between
+        // materials and consequences of that — physics." Rest belongs to
+        // the sleep law (INV-18/24); dissipation belongs to modeled
+        // processes (INV-19). Nothing else may touch velocity.
         //
-        // RESULTS: 98% particles at rest (was 10%), max velocity 0.016 m/s (stable)
-        //
-        // Constants from physics_solver.h (see that file for full documentation)
-        // THE SLEEP LAW's corollary: a constraint-dissatisfied body's
-        // velocity is the correction in progress — the rest damper must
-        // not crush it.
-        if (i < constraint_dissatisfied_.size() && constraint_dissatisfied_[i]) {
-            p.low_velocity_frames = 0;
-        }
-        float vel_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
-
-        // Track low-velocity frames with hysteresis (V4.7)
-        // - Increment counter when below threshold
-        // - Only RESET counter if velocity is 2x above threshold (real motion, not oscillation)
-        // - Velocities in between don't change counter (hysteresis band)
-        constexpr float DAMPING_RESET_THRESHOLD_SQ = DAMPING_VELOCITY_THRESHOLD_SQ * 4.0f;  // 2x velocity = 4x squared
-
-        if (vel_sq < DAMPING_VELOCITY_THRESHOLD_SQ) {
-            if (p.low_velocity_frames < 65535) p.low_velocity_frames++;
-        } else if (vel_sq > DAMPING_RESET_THRESHOLD_SQ) {
-            p.low_velocity_frames = 0;  // Real motion - reset counter
-        }
-        // Velocity between threshold and 2x threshold: don't change counter (hysteresis)
-
-        // Apply damping only after sustained low velocity
-        if (p.low_velocity_frames >= DAMPING_FRAMES_REQUIRED) {
-            if (vel_sq < ZERO_VELOCITY_SQ) {
-                // Below noise floor: hard clamp to exactly zero
-                p.vx = p.vy = p.vz = 0.0f;
-                vel_sq = 0.0f;
-            } else {
-                // Apply gradual damping
-                p.vx *= DAMPING_FACTOR;
-                p.vy *= DAMPING_FACTOR;
-                p.vz *= DAMPING_FACTOR;
-                vel_sq *= DAMPING_FACTOR * DAMPING_FACTOR;
+        // The low_velocity_frames counter still ticks (wake sites reset
+        // it); its only remaining reader is diagnostics.
+        {
+            float vel_sq_track = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
+            constexpr float DAMPING_RESET_THRESHOLD_SQ =
+                DAMPING_VELOCITY_THRESHOLD_SQ * 4.0f;
+            if (vel_sq_track < DAMPING_VELOCITY_THRESHOLD_SQ) {
+                if (p.low_velocity_frames < 65535) p.low_velocity_frames++;
+            } else if (vel_sq_track > DAMPING_RESET_THRESHOLD_SQ) {
+                p.low_velocity_frames = 0;
             }
         }
 
