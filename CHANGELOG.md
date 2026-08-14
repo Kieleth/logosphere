@@ -393,6 +393,33 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ---
 
+## [0.4.5] - 2026-08-15
+
+### Fixed
+
+- `logovger-headless` finishes lives that reach a rule's printed fork.
+  Injury 3 offers Strength or Dexterity, mishap 1 offers "the same as a
+  result of 2" or "roll twice and take the lower", and the executor
+  refuses to guess between them by design. The headless driver wired
+  its attribute-selection seam to the answer source and never wired the
+  choice seam, so those lives ended at the fork: 19 seeds in 200, about
+  one life in ten. The choice now goes to the same source as every
+  other answer, so `--record` tapes which branch was taken and
+  `--replay` reproduces it.
+
+### Added
+
+- CI plays 200 lives end to end on the headless lane. The test suite
+  proves the rules behave; it cannot prove the binary that plays them
+  can finish. That gap is how a one-in-ten abort stayed green.
+
+### Note for anyone holding a tape
+
+A tape recorded before this release has no answers at the new
+`referee.choice` site. Replaying it through a life that reaches a fork
+is refused rather than guessed, which is the tape contract working.
+Re-record those lives.
+
 ## [0.4.4] - 2026-08-14
 
 A rule can now be asked whether the game ever ran it. Absorbing a
@@ -434,7 +461,6 @@ table, for all 24 careers. Three of the four training tables the book
 gives, 432 cited and verified outcomes, never once applied to a
 character. Varying the sweep's choices took that to zero and raised
 outcome coverage from 459 to 922 of 1173.
-
 ## [0.4.2] - 2026-08-14
 
 ### Fixed

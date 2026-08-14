@@ -300,6 +300,40 @@ int main(int argc, char** argv) {
             return true;
         });
 
+    // A rule that prints a fork asks it here. Injury 3 offers Strength
+    // or Dexterity; mishap 1 offers "the same as a result of 2" or
+    // "roll twice and take the lower". The executor refuses to guess,
+    // by design, so a driver that leaves this unanswered ends the life
+    // at the fork: measured at 19 of 200 seeds before this was wired.
+    //
+    // It goes to the same answer source as everything else rather than
+    // taking option 0, so --record tapes which branch was taken and
+    // --replay reproduces it. A silently collapsed fork would look
+    // identical on the sheet and be invisible in the tape.
+    session.set_choice_resolver(
+        [&tape](const logosphere::rules::PendingChoice& request,
+                int& option, std::string& error) {
+            if (request.options.empty()) {
+                error = "a rule offers a choice with no options";
+                return false;
+            }
+            replay::Ask ask;
+            ask.site = "referee.choice";
+            ask.prompt = "the rule prints a fork; which branch";
+            for (const auto& choice : request.options) {
+                ask.offered.push_back(std::to_string(choice.option_index));
+            }
+            std::string answer;
+            if (!tape.ask(ask, answer, error)) return false;
+            for (const auto& choice : request.options) {
+                if (std::to_string(choice.option_index) != answer) continue;
+                option = choice.option_index;
+                return true;
+            }
+            error = "'" + answer + "' is not a branch this rule offers";
+            return false;
+        });
+
     std::string error;
     if (!session.begin(seed, error)) {
         std::cout << "could not begin: " << error << "\n";

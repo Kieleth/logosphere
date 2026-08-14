@@ -137,6 +137,40 @@ jobs:
         working-directory: build
         run: ctest --output-on-failure -j $(nproc)
 
+      # ctest proves the rules behave. It does not prove the binary that
+      # plays them can finish a life. Those are different failures: a
+      # driver that leaves a rule's printed fork unanswered ends the run
+      # right there, and 19 seeds in 200 did exactly that while every
+      # test stayed green. Only a sweep sees it.
+      # SIXTY, and the number is argued rather than picked. Each life is
+      # its own process and reloads and re-verifies the whole rule graph,
+      # so a life costs about 1.5s: 200 of them ran past a five-minute
+      # cap on the dev machine before CI's slower hardware was even
+      # involved, which is how this step first failed.
+      #
+      # Sixty is enough because of what this gate is FOR. It proves the
+      # BINARY and its driver wiring can carry a life to the end. It is
+      # not the rule-space sweep; test_chargen already plays 288 lives
+      # in-process, loading the graph once. Against the 9.5% abort rate
+      # this was built to catch, sixty lives miss it 0.25% of the time,
+      # and a rarer failure is the in-process sweep's job to find.
+      - name: Play 60 lives end to end
+        timeout-minutes: 10
+        run: |
+          failed=""
+          for seed in $(seq 1 60); do
+            ./build/logovger-headless --random "$seed" >/tmp/life.txt 2>&1 \
+              || failed="$failed $seed"
+          done
+          if [ -n "$failed" ]; then
+            echo "lives that never finished:$failed"
+            set -- $failed
+            echo "--- seed $1, in full ---"
+            ./build/logovger-headless --random "$1" 2>&1 | tail -20
+            exit 1
+          fi
+          echo "60 lives, none abandoned"
+
       - name: Install package to a prefix
         run: cmake --install build --prefix "$PWD/_install"
 
