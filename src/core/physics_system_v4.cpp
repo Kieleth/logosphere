@@ -1360,13 +1360,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
 
                 // Record collision event for game systems (combat, step climbing, etc.)
-                // Use manifold's first contact point position, or compute from normal
-                float contact_x = (manifold.num_points > 0) ? manifold.points[0].px
-                                : pi.x - manifold.normal_x * (pi.width / 2.0f);
-                float contact_y = (manifold.num_points > 0) ? manifold.points[0].py
-                                : pi.y - manifold.normal_y * (pi.height / 2.0f);
-                float contact_z = (manifold.num_points > 0) ? manifold.points[0].pz
-                                : z_predicted[i] - manifold.normal_z * (pi.thickness / 2.0f);
+                // Every narrow-phase handler returns true only with
+                // num_points >= 1 (their contract), so the old
+                // invented-from-normal else-arm here was a dead fallback
+                // (inventory B6). Read the manifold directly.
+                float contact_x = manifold.points[0].px;
+                float contact_y = manifold.points[0].py;
+                float contact_z = manifold.points[0].pz;
                 // ORIENT THE REPORTED NORMAL: from A toward B, which is
                 // what CollisionEvent has always documented and what every
                 // consumer was written against.
@@ -1979,7 +1979,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             if (inv_inertia_sum > 0.0f) {
                 c_ang.effective_inertia = 1.0f / inv_inertia_sum;
             } else {
-                continue;  // Zero inertia (shouldn't happen), skip
+                // Was a silent `continue // shouldn't happen` (inventory B2):
+                // catch-and-continue on a state this code called impossible.
+                // Both-KINEMATIC pairs exited above, so reaching here means a
+                // dynamic endpoint with I <= 0 — broken particle data whose
+                // joint would silently never couple. Refuse loud.
+                std::fprintf(stderr,
+                    "[PHYSICS REFUSED] angular row P%zu<->P%zu with no "
+                    "positive inertia (I_a=%g mode_a=%d, I_b=%g mode_b=%d). "
+                    "A dynamic endpoint with I<=0 is corrupted particle data "
+                    "(mass or dimensions).\n",
+                    body_a, body_b, I_a, (int)pa.solver_mode,
+                    I_b, (int)pb.solver_mode);
+                if (!std::getenv("PHYSICS_LENIENT")) std::abort();
+                continue;   // lenient: drop the row, never invent an inertia
             }
 
             // Angular limit (dead zone)
@@ -4344,10 +4357,23 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
                 p.vy *= scale;
                 p.vz *= scale;
             }
-            // Also check for NaN/Inf and reset to zero
-            if (!std::isfinite(p.vx)) p.vx = 0.0f;
-            if (!std::isfinite(p.vy)) p.vy = 0.0f;
-            if (!std::isfinite(p.vz)) p.vz = 0.0f;
+            // A NaN/Inf velocity is a solver defect, and zeroing it silently
+            // was how detonation-class bugs stayed invisible (inventory B4 —
+            // the old comment here admitted it: "Root cause should still be
+            // investigated"). Refuse loud, naming the body. PHYSICS_LENIENT
+            // keeps the zero-reset so inventory sweeps can complete.
+            if (!std::isfinite(p.vx) || !std::isfinite(p.vy) ||
+                !std::isfinite(p.vz)) {
+                std::fprintf(stderr,
+                    "[PHYSICS REFUSED] P%zu velocity is not finite: "
+                    "(%g, %g, %g) at pos (%g, %g, %g), mass %g. A NaN "
+                    "velocity is a solver defect upstream of this line.\n",
+                    i, p.vx, p.vy, p.vz, p.x, p.y, p.z, p.GetMass());
+                if (!std::getenv("PHYSICS_LENIENT")) std::abort();
+                if (!std::isfinite(p.vx)) p.vx = 0.0f;
+                if (!std::isfinite(p.vy)) p.vy = 0.0f;
+                if (!std::isfinite(p.vz)) p.vz = 0.0f;
+            }
         }
 
         if (p.vx != 0.0f || p.vy != 0.0f || p.vz != 0.0f) {
@@ -4723,10 +4749,23 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
 
         // Get moment of inertia (calculate if not cached)
+        //
+        // Was `if (I <= 0) I = 0.01f` (inventory B3): an INVENTED inertia
+        // integrating real torque on a body whose inertia is unknown. Split
+        // honestly: a massless body carries no angular momentum — same door
+        // predicate as inv_mass_momentum on the linear side — so it skips
+        // angular integration entirely. A MASSIVE body with I <= 0 is
+        // corrupted particle data (degenerate dimensions): refuse loud.
         float I = p.GetMomentOfInertia();
         if (I <= 0.0f) {
-            // Fallback for invalid inertia
-            I = 0.01f;
+            if (p.GetMass() <= 0.0f) continue;   // massless: no angular dynamics
+            std::fprintf(stderr,
+                "[PHYSICS REFUSED] P%zu has mass %g but inertia %g — "
+                "corrupted particle data (dimensions %g x %g x %g). No "
+                "inertia will be invented for it.\n",
+                i, p.GetMass(), I, p.width, p.height, p.thickness);
+            if (!std::getenv("PHYSICS_LENIENT")) std::abort();
+            continue;   // lenient: skip integration, never invent an inertia
         }
 
         // Angular acceleration = torque / moment_of_inertia
