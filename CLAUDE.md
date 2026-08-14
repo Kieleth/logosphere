@@ -148,3 +148,7 @@ Commit failed experiments with honest messages rather than erasing them.
 
 The same applies to deleting files, dropping branches, resetting, and
 force-pushing.
+
+## Ordo Malleus
+
+An Ordo Malleus inquisition is on file: MALLEUS_INQUISITION.md. Consult it before touching schema or KG code.
