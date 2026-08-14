@@ -7,6 +7,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+*No changes yet. Add entries here as you merge.*
+
+---
+
+## [0.4.0] - 2026-08-14
+
+The rules a game plays by can now live in the graph and check
+themselves. A published rulebook is read in as cited data, every roll
+records which rule made it, and the graph plus the dice journal is
+enough to re-derive what a rule permitted and compare it to what
+happened. Guide: docs/RULES_AS_DATA.md.
+
+From here the project releases per merged PR, so a reader can tell
+which release introduced what. See docs/RELEASING.md.
+
 ### Added
 
 - **Rules as Data** (`docs/RULES_AS_DATA.md`): how to absorb an existing

@@ -15,7 +15,7 @@ project(logosphere-consumer-smoke CXX)
 # Tracks the current MINOR. The package is exported SameMinorVersion on
 # the 0.x line, so this pin moves with every minor bump: a 0.2 pin does
 # not accept a 0.3 install. See docs/RELEASING.md.
-find_package(logosphere 0.3 REQUIRED)
+find_package(logosphere 0.4 REQUIRED)
 
 add_executable(consumer-smoke main.cpp)
 target_link_libraries(consumer-smoke PRIVATE logosphere::core)
