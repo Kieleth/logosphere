@@ -978,6 +978,17 @@ std::vector<std::string> ChargenSession::characteristic_slots(
     return {};
 }
 
+// How many skills the character holds. Counted before and after a
+// grant so the timeline can say how many were NEW, which is what a
+// reader of a life wants to know and what the outcome does not report.
+size_t ChargenSession::held_skills() const {
+    size_t count = 0;
+    for (const auto part : kg_.getRelated(sheet_.id, "HAS_PART")) {
+        if (!kg_.getProperty(part, "skill").empty()) ++count;
+    }
+    return count;
+}
+
 // The tables this character may roll on RIGHT NOW. Recomputed every
 // time it is asked, because a training roll can change the answer: a
 // table may ask something of whoever rolls on it ("You may only roll
@@ -1134,24 +1145,6 @@ std::vector<std::pair<kg::EntityID, std::string>> service_skills(
     return out;
 }
 
-// Give a skill at the level basic training grants, if it is not held
-// at all. The level is the book's number and arrives from the graph;
-// this function does not know what it is.
-bool know_at_level_zero(kg::KGModule& kg, kg::EntityID character,
-                        kg::EntityID skill, int level) {
-    for (auto part : kg.getRelated(character, "HAS_PART")) {
-        if (kg.getProperty(part, "skill") == std::to_string(skill)) {
-            return false;
-        }
-    }
-    const auto rating = kg.createEntity("SkillRating");
-    if (rating == kg::INVALID_ENTITY) return false;
-    kg.setProperty(rating, "skill", std::to_string(skill));
-    kg.setProperty(rating, "skill_level", std::to_string(level));
-    kg.createRelation(character, "HAS_PART", rating);
-    return true;
-}
-
 // Step 4. "For your first term in your first career, you get every
 // skill in the service skills table at level 0. For your first term in
 // subsequent careers, you may pick any one skill from the service
@@ -1186,21 +1179,30 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
             "basic training: the service table grants no skills");
     }
 
-    // "you get every skill in the service skills table at level 0"
-    int basic_level = 0;
-    std::string level_error;
-    if (!constant("basic_training_level", basic_level, level_error)) {
-        return PrimitiveResult::failed(level_error);
+    // What joining this career teaches is the CAREER's: one
+    // EnsureSkillLevel per skill on its service table, gathered in a
+    // sequence. It used to be a SkillRating this function built by
+    // hand, which wrote the graph outside the one validated path and
+    // kept the level in a constant the procedure read.
+    const std::string training_ref =
+        kg_.getProperty(career_, "basic_training");
+    if (training_ref.empty()) {
+        return PrimitiveResult::failed(
+            "basic training: this career carries none");
     }
+    const auto training =
+        static_cast<kg::EntityID>(std::stoul(training_ref));
 
     const bool first_career = sheet_.careers_served.size() <= 1;
     if (first_career) {
-        int granted = 0;
-        for (const auto& [id, name] : skills) {
-            if (know_at_level_zero(kg_, sheet_.id, id, basic_level)) {
-                ++granted;
-            }
+        const size_t before = held_skills();
+        const auto applied = executor_.apply(
+            training, {sheet_.id, "chargen", "basic training"});
+        if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+            return PrimitiveResult::failed("basic training: " +
+                                           outcome_failure(applied));
         }
+        const int granted = static_cast<int>(held_skills() - before);
         sheet_.life.push_back(
             {sheet_.terms_served, "basic training",
              "every service skill at level 0 (" +
@@ -1243,7 +1245,32 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
     if (index >= skills.size()) {
         return PrimitiveResult::failed("no such skill");
     }
-    know_at_level_zero(kg_, sheet_.id, skills[index].first, basic_level);
+    // "you may pick any one skill listed in the Service Skills table at
+    // Level 0". The one picked, applied from the same data the whole
+    // sequence is made of: its steps are reachable individually, which
+    // is why they are steps and not one grant of six.
+    kg::EntityID grant = kg::INVALID_ENTITY;
+    for (const auto step : kg_.getRelated(training, "HAS_PART")) {
+        const std::string outcome = kg_.getProperty(step, "outcome");
+        if (outcome.empty()) continue;
+        const auto candidate =
+            static_cast<kg::EntityID>(std::stoul(outcome));
+        if (kg_.getProperty(candidate, "skill") ==
+            std::to_string(skills[index].first)) {
+            grant = candidate;
+        }
+    }
+    if (grant == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(
+            "basic training: this career teaches no '" +
+            skills[index].second + "'");
+    }
+    const auto applied = executor_.apply(
+        grant, {sheet_.id, "chargen", "basic training"});
+    if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+        return PrimitiveResult::failed("basic training: " +
+                                       outcome_failure(applied));
+    }
     sheet_.life.push_back({sheet_.terms_served, "basic training",
                            skills[index].second + " at level 0", 0});
     return PrimitiveResult::advance();

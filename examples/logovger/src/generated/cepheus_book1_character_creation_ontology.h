@@ -2282,6 +2282,8 @@ struct Career : public Entity, public Cited {
     std::optional<TaskCheck> qualification_check = std::nullopt;
     /// The throw to survive a term in it [book1/character-creation.md "Career Tables" Survival row].
     std::optional<TaskCheck> survival_check = std::nullopt;
+    /// What joining this career teaches, as one outcome per skill on its service table, at the level the book sets [book1/character-creation.md "Basic Training"]. A first career applies the whole sequence; a subsequent one applies the single step the player picks, which is why the steps are reachable individually rather than being one grant of six.
+    std::optional<Outcome> basic_training = std::nullopt;
 };
 
 
@@ -2343,7 +2345,7 @@ struct CareerTrackEntry : public SubjectLookupEntry {
 };
 
 
-/// Leave the current career as a consequence of a Survival Mishap [book1/character-creation.md "Survival"]. Mishap rows 2 and 3 are the first instances. The executor handler is game policy; the engine only dispatches the typed Outcome.
+/// Leave the current career as a consequence of a Survival Mishap [book1/character-creation.md "Basic Training"]. Mishap rows 2 and 3 are the first instances. The executor handler is game policy; the engine only dispatches the typed Outcome.
 struct EndCareer : public Outcome {
 };
 

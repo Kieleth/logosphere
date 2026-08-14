@@ -794,13 +794,13 @@ void test_the_books_numbers_are_all_data() {
     // advance_term STEP declares, and the step-outcome test below
     // proves it the same way.
     const char* const constants[] = {
-        "aging_start_age", "basic_training_level",
-        "cash_benefit_roll_max", "reenlistment_forced_natural",
+        "aging_start_age", "cash_benefit_roll_max",
+        "reenlistment_forced_natural",
     };
     // Values chosen to be unmistakable in a finished life: aging that
-    // never starts, basic training at level 3, no cash rolls at all,
-    // and re-enlistment forced on a natural 2.
-    const char* const changed_to[] = {"99", "3", "0", "2"};
+    // never starts, no cash rolls at all, and re-enlistment forced on
+    // a natural 2.
+    const char* const changed_to[] = {"99", "0", "2"};
 
     const auto life_under = [](kg::KGModule& world, uint64_t seed) {
         logosphere::dice::DiceService dice;
