@@ -21,6 +21,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   game-registered capabilities, so `CapabilityStore::write_back`
   passes the setProperty gate.
 
+### Added (engine instrumentation)
+- Frame-chain guard: `Engine::render()` warns loudly when a display
+  exists, 60 frames have rendered, and `present()` was never called
+  (the window silently shows an unpainted white surface otherwise);
+  `renders_completed()` / `presents_completed()` counters let tests
+  assert the windowed chain directly.
+
 ### Fixed
 - Build on toolchains without `<execinfo.h>` (MSVC): the
   TURTLE_TRACE caller backtrace in `particle_system.cpp` is now

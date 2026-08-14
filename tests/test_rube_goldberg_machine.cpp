@@ -37,9 +37,11 @@
 #include "../src/particle.h"
 #include "logosphere/physics/physics_system.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
 #include <functional>
 #include <string>
 #include <vector>
@@ -175,6 +177,44 @@ struct World {
         T::set_enabled(true);
         T::set_residual_enabled(true);
 
+        // RENDER BISECT: swap in the boulder test's known-good scene
+        // (dark KINEMATIC grid at origin) under THIS test's loop and
+        // camera code. Renders -> my scene content is the white-maker;
+        // white -> my harness code is.
+        if (std::getenv("RUBE_BOULDER_SCENE")) {
+            for (int row = 0; row < 12; ++row)
+                for (int col = 0; col < 12; ++col) {
+                    Particle p = {};
+                    p.shape = ParticleShape::BOX;
+                    p.x = (col - 6.0f) * 1.5f;
+                    p.y = (row - 6.0f) * 1.5f;
+                    p.width = p.height = p.thickness = 0.8f;
+                    p.z = 0.4f;
+                    p.size = 0.8f;
+                    float t = (float)((row * 7 + col * 13) % 11) / 11.0f;
+                    p.r = 0.06f + 0.05f * t;
+                    p.g = 0.07f + 0.04f * t;
+                    p.b = 0.16f + 0.10f * t;
+                    p.a = 1.0f;
+                    p.SetMaterial(Materials::Type::STONE);
+                    pending_kinematic.push_back(engine.add_particle(p));
+                }
+            ball = add_box(0.0f, 0.0f, 3.0f, BALL, BALL, BALL,
+                           Materials::Type::STONE, 0.0f, 0.9f, 0.2f, 0.2f);
+            ps().flush_pending_particles();
+            for (int id : pending_kinematic) make_kinematic(id);
+            make_kinematic(ball);
+            if (interactive) {
+                auto& cam = engine.get_camera_system();
+                cam.set_pixels_per_unit(90.0f);
+                cam.set_camera_deadzone(0.0f);
+                ps().queue_light(0.0f, 0.0f, 8.0f, 60000.0f, 60.0f,
+                                 1.0f, 0.95f, 0.85f);
+            }
+            ok = true;
+            return true;
+        }
+
         // terrain: alley deck, split main deck with a gap, basement below
         platform(2.9f, 6.0f, DECK_ALLEY_TOP);
         platform(5.9f, 8.0f, DECK_MAIN_TOP);    // west of the gap
@@ -182,7 +222,9 @@ struct World {
         platform(7.5f, 12.9f, BASEMENT_TOP);    // basement
 
         // the ramp: one rotated KINEMATIC box (INV-12 territory)
-        {
+        // RENDER BISECT: no other visual test draws a rotation_y box;
+        // temporarily excluded to test whether it whites the frame.
+        if (!std::getenv("RUBE_NO_RAMP")) {
             int ramp = add_box(RAMP_CX, 0.0f, RAMP_CZ, RAMP_LEN, 1.6f, 0.2f,
                                Materials::Type::STONE, RAMP_TILT,
                                0.4f, 0.55f, 0.4f);
@@ -301,12 +343,24 @@ struct World {
 
         bonds_at_start = phys().get_total_gluon_count();
 
-        if (interactive) {
+        // Light and camera are unconditional: the RUBE_DUMP self-check
+        // renders headlessly and needs both (the frame-200 dump with
+        // these under `if (interactive)` was a black frame with a tiny
+        // unlit machine — proof the renderer was fine all along; the
+        // interactive whiteout was the missing engine.render() call).
+        {
             auto& cam = engine.get_camera_system();
-            cam.set_position(4.0f, -11.0f, 4.5f);
-            cam.look_at(6.5f, 0.0f, 2.0f);
-            ps().queue_light(6.0f, -8.0f, 14.0f, 500000.0f, 60.0f,
+            cam.set_pixels_per_unit(90.0f);
+            cam.set_camera_deadzone(0.0f);   // immediate follow
+            // Three lights strung along the chain, close enough to
+            // matter (one 60k light 14 m up left the whole machine in
+            // the dark — inverse square is not a suggestion).
+            ps().queue_light(1.5f, -2.5f, 8.5f, 250000.0f, 40.0f,
                              1.0f, 0.95f, 0.85f);
+            ps().queue_light(6.5f, -2.5f, 7.0f, 250000.0f, 40.0f,
+                             1.0f, 0.95f, 0.85f);
+            ps().queue_light(11.0f, -2.5f, 5.5f, 250000.0f, 40.0f,
+                             1.0f, 0.92f, 0.8f);
         }
         ok = true;
         return true;
@@ -501,6 +555,24 @@ bool run_machine() {
     w.trace = trace;
     if (!w.build()) { printf("  ERROR: engine init failed\n"); return false; }
 
+    // Bisect mode: no stages, just render the known-good scene under
+    // this loop for 30 s, camera following the held ball at origin.
+    if (std::getenv("RUBE_BOULDER_SCENE")) {
+        for (int frame = 0; frame < 1800 && w.engine.is_running(); ++frame) {
+            const auto t0 = std::chrono::steady_clock::now();
+            const Particle b = w.read(w.ball);
+            w.engine.get_camera_system().update_follow_target(b.x, b.y, b.z);
+            w.engine.update(1.0 / 60.0);
+            w.engine.render();
+            if (interactive) w.engine.present();
+            if (interactive)
+                std::this_thread::sleep_until(t0 +
+                    std::chrono::microseconds(16667));
+        }
+        printf("  BISECT MODE: boulder scene under machine harness — done\n");
+        return true;
+    }
+
     std::vector<Stage> stages = make_stages();
     const int total = (int)stages.size();
     int completed = 0, current = 0;
@@ -510,9 +582,64 @@ bool run_machine() {
     printf("  stages: %d   expected today: %d   trigger at frame %d\n\n",
            total, EXPECTED_COMPLETED, PREROLL);
 
+    const int dump_frame = std::getenv("RUBE_DUMP")
+        ? std::atoi(std::getenv("RUBE_DUMP")) : -1;
     for (int frame = 0; frame < MAX_FRAME && current < total; ++frame) {
         if (frame == PREROLL) w.release(w.ball);
+        // Interactive runs in real time; headless runs flat out. Without
+        // this the whole show plays in milliseconds (measured: 798k frames
+        // before the first human look).
+        const auto frame_start = std::chrono::steady_clock::now();
+        if (interactive || dump_frame >= 0) {
+            // Direct centering: iso_x=(vx-vy)*.866, iso_y=(vx+vy)*.5+vz
+            // with view = world - camera, so camera AT the subject puts
+            // it at exact screen center. update_follow_target applies a
+            // diagonal offset tuned for Eden's camera height and never
+            // writes camera z — at z=0 it centered a point ~30 world
+            // units off-frame (measured: an all-black dump).
+            const Particle b = w.read(w.ball);
+            w.engine.get_camera_system().set_position(b.x, b.y, b.z);
+        }
         w.engine.update(1.0 / 60.0);
+        // update() simulates; render() paints; present() puts the paint
+        // on the window. All three, every frame, or the user sees an
+        // unpainted (white) surface while the framebuffer is perfect.
+        if (interactive || dump_frame >= 0) w.engine.render();
+        if (interactive) {
+            w.engine.present();
+            if (frame == 60 && w.engine.presents_completed() == 0) {
+                printf("  MACHINE RED: window shown but nothing presented "
+                       "(frame-chain broken)\n");
+                return false;
+            }
+        }
+        if (frame == dump_frame) {
+            w.engine.get_renderer().wait_for_completion();
+            int fw = w.engine.get_render_buffer().width();
+            int fh = w.engine.get_render_buffer().height();
+            std::vector<uint32_t> px((size_t)fw * fh);
+            if (w.engine.read_latest_framebuffer(px.data(), fw, fh)) {
+                FILE* f = fopen("/tmp/rube_dump.ppm", "wb");
+                if (f) {
+                    fprintf(f, "P6\n%d %d\n255\n", fw, fh);
+                    for (int i = 0; i < fw * fh; ++i) {
+                        unsigned char rgb[3] = {
+                            (unsigned char)((px[i] >> 16) & 0xFF),
+                            (unsigned char)((px[i] >> 8) & 0xFF),
+                            (unsigned char)(px[i] & 0xFF)};
+                        fwrite(rgb, 1, 3, f);
+                    }
+                    fclose(f);
+                    printf("  [dump] frame %d -> /tmp/rube_dump.ppm (%dx%d)\n",
+                           frame, fw, fh);
+                }
+            } else {
+                printf("  [dump] framebuffer readback FAILED\n");
+            }
+        }
+        if (interactive)
+            std::this_thread::sleep_until(frame_start +
+                std::chrono::microseconds(16667));
 
         // global watchdogs: any violation is an instant red
         {
@@ -579,6 +706,20 @@ bool run_machine() {
     printf("\n  COMPLETION: %d/%d stages (%.1f%%)", completed, total, pct);
     if (!halt_reason.empty()) printf("  — halted: %s", halt_reason.c_str());
     printf("\n");
+
+    // Interactive: hold the window on the final state so the wreck can be
+    // inspected. The machine is already scored; close the window to end.
+    if (interactive) {
+        printf("  (window stays on the final state — close it or ESC to end)\n");
+        while (w.engine.is_running()) {
+            const auto t0 = std::chrono::steady_clock::now();
+            w.engine.update(1.0 / 60.0);
+            w.engine.render();
+            w.engine.present();
+            std::this_thread::sleep_until(t0 +
+                std::chrono::microseconds(16667));
+        }
+    }
 
     if (regression) {
         printf("  VERDICT: RED — regression before the ratchet "
