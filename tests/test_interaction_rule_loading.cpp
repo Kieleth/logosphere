@@ -35,6 +35,8 @@
 #include <iostream>
 #include <string>
 
+#include "test_env_portable.h"
+
 static int tests_passed = 0;
 static int tests_failed = 0;
 
@@ -71,20 +73,8 @@ struct Fixture {
 // violation, the write lands, the loader's door gets exercised, and
 // every other test in this binary stays strict.
 struct GateLeniency {
-    GateLeniency() {
-#ifdef _WIN32
-        _putenv_s("KG_GATE_LENIENT", "1");
-#else
-        setenv("KG_GATE_LENIENT", "1", 1);
-#endif
-    }
-    ~GateLeniency() {
-#ifdef _WIN32
-        _putenv_s("KG_GATE_LENIENT", "");
-#else
-        unsetenv("KG_GATE_LENIENT");
-#endif
-    }
+    GateLeniency() { test_env::set("KG_GATE_LENIENT", "1"); }
+    ~GateLeniency() { test_env::unset("KG_GATE_LENIENT"); }
 };
 
 // ------------------------------------------------------- the vocabulary

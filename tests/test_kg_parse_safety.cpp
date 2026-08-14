@@ -24,6 +24,8 @@
 #include <iostream>
 #include <string>
 
+#include "test_env_portable.h"
+
 #define ASSERT(cond, msg) do { \
     if (!(cond)) { \
         std::cerr << "FAIL: " << msg << std::endl; \
@@ -180,7 +182,7 @@ int main() {
     // reached a reader, so run the writes in lenient mode — the layer
     // under test is precisely the defense below the gate (old saves,
     // lenient-mode inventory runs, direct map access).
-    setenv("KG_GATE_LENIENT", "1", 1);
+    test_env::set("KG_GATE_LENIENT", "1");
 
     test_malformed_trigger_does_not_crash();
     test_malformed_effect_does_not_crash();
