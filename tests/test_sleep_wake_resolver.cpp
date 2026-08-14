@@ -134,12 +134,22 @@ Outcome run_impact(const Impact& im, bool target_sleeps) {
     }
     out.p_before = striker_mass * im.strike_speed;
 
+    const bool probe = std::getenv("SWR_PROBE") != nullptr;
     for (int f = 0; f < 90; ++f) {
         if (!target_sleeps) {
             auto v = ps.lock_particles_for_write();
             v[target].is_at_rest = false;
         }
         engine.update(1.0 / 60.0);
+        if (probe && !target_sleeps && f >= 48 && f <= 70) {
+            auto v = ps.lock_particles_for_write();
+            printf("      [swr f%d] striker vx=%+.4f lvf=%u | "
+                   "target vx=%+.4f lvf=%u | p=%.2f\n",
+                   f, v[striker].vx, (unsigned)v[striker].low_velocity_frames,
+                   v[target].vx, (unsigned)v[target].low_velocity_frames,
+                   v[striker].GetMass() * v[striker].vx +
+                   v[target].GetMass() * v[target].vx);
+        }
     }
     {
         auto v = ps.lock_particles_for_write();
