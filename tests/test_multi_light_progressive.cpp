@@ -17,6 +17,13 @@
 //   LIGHTS=N        number of phases/lights (default 4)
 //   MLP_SPAWN_RATE= bodies dropped per second (ramp); 0 = none
 //   MLP_DEMO=1      demo dressing: coloured floor, pillars, walls, bodies
+//   MLP_SIZE_DIST=normal  rained bodies draw their size from a seeded
+//                   normal distribution, tiny pebble to boulder (clamped
+//                   0.05..1.2 m, mu 0.35, sigma 0.25). Mass follows size
+//                   through the material, so the pile spans ~4 orders of
+//                   magnitude of mass — a live stress of the solver's
+//                   mass-ratio hardening. Seed: MLP_SEED (default 42),
+//                   a declared seeded channel per INV-27.
 //   INTERACTIVE=1   windowed, watchable (phases auto-advance)
 //   MLP_DUMP_DIR=/x per-phase PPM dump dir (default /tmp; headless only)
 //
@@ -37,6 +44,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -350,7 +358,28 @@ bool test_multi_light_progressive() {
                     p.x = r * std::cos(a);
                     p.y = r * std::sin(a);
                     p.z = 14.0f;
-                    p.width = p.height = p.thickness = spacing * 0.6f;
+                    float body_size = spacing * 0.6f;
+                    // MLP_SIZE_DIST=normal: tiny-to-boulder sizes from a
+                    // SEEDED normal draw (INV-27: randomness only through
+                    // declared seeded channels). Box-Muller on a fixed-seed
+                    // mt19937; mass follows size^3 via the material, so the
+                    // resulting pile spans pebble (~0.3 kg) to boulder
+                    // (~2.6 t) — the mass-ratio ladder, live.
+                    {
+                        static const bool size_dist_normal = [] {
+                            const char* e = std::getenv("MLP_SIZE_DIST");
+                            return e && std::string(e) == "normal";
+                        }();
+                        if (size_dist_normal) {
+                            static std::mt19937 size_rng(
+                                (unsigned)env_int("MLP_SEED", 42));
+                            static std::normal_distribution<float>
+                                size_draw(0.35f, 0.25f);
+                            body_size = std::clamp(size_draw(size_rng),
+                                                   0.05f, 1.2f);
+                        }
+                    }
+                    p.width = p.height = p.thickness = body_size;
                     p.size = p.width;
                     p.r = 0.88f; p.g = 0.90f; p.b = 0.95f; p.a = 1.0f;
                     p.SetMaterial(Materials::Type::STONE);
