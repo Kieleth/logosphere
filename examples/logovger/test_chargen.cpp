@@ -1343,9 +1343,14 @@ void test_the_rules_are_data() {
     std::string error;
     logovger::run_chargen(req, kg, dice, sheet, error);
 
-    CHECK(!sheet.qualified && sheet.terms_served == 0,
-          "the same seed that served four terms now never joins: raising "
-          "the target in the KG alone ended the career, and the runner "
+    // The claim is about QUALIFYING, not about the life ending. A
+    // refused character goes to the Draft or the Drifter, and the
+    // auto-player now takes one rather than giving up, so the life
+    // continues past the refusal. Asserting terms_served == 0 was
+    // asserting that the harness stopped.
+    CHECK(!sheet.qualified,
+          "the same seed that qualified a moment ago now does not: raising "
+          "the target in the KG alone turned it away, and the runner "
           "reads the rule rather than knowing it");
 }
 
@@ -1377,12 +1382,16 @@ void test_characteristic_modifier_table_drives_checks() {
             cited_changed_modifier = true;
         }
     }
-    CHECK(control_ok && control_sheet.qualified && !changed_ok &&
-              !changed_sheet.qualified && cited_changed_modifier &&
-              error.find("Draft or Drifter") != std::string::npos,
+    // The claim is that a row of the modifier table drives the throw,
+    // and the throw cites the DM it used. It USED to also assert the
+    // run stopped at Draft-or-Drifter, which was asserting a limit of
+    // the harness rather than anything about the rule: the auto-player
+    // answers that question now, so a refused character carries on.
+    CHECK(control_ok && control_sheet.qualified &&
+              !changed_sheet.qualified && cited_changed_modifier,
           "changing only characteristic_modifier data changes the same "
-          "qualification throw and stops at the unresolved authority "
-          "choice: " + error);
+          "qualification throw, and the throw cites the DM that changed "
+          "it: " + error);
 
     kg::KGModule incomplete(game_registry());
     why.clear();
