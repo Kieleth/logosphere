@@ -370,3 +370,36 @@ Owner rulings, second round:
 - Eden/logotron merge verdict: keyboard is OS-level (other session
   owns it); owner satisfied in principle pending the fallback
   destruction, which now gates the merge.
+
+### 2026-08-13 · LINK · Malleus H1 closed — the KG property door
+
+`KGCore::setProperty` validated nothing while the LLM KGOp path ran
+full validation; ontology_registry.h:46 claimed otherwise. Closed with
+the shared check (`kg::validate_property_write`: declared-on-type +
+value-type coercion + schema min/max) now run by BOTH paths — one
+implementation, no drift. Strict by default (print + abort, turtle-door
+pattern); `KG_GATE_LENIENT=1` prints and allows (inventory mode).
+Empty registry (no ontology loaded) skips, same guard createEntity has
+had since the registry existed. Cost measured by
+`test_kg_property_gate`: 153 ns/call for the check, 193 ns for full
+setProperty; the full KGOp validator was rejected for the engine side
+because its type-resolution walk is O(entities) — 744 ns/call at only
+2001 entities and growing linearly.
+
+The lenient inventory across the harness + ctest + gate battery found
+49 distinct (type,key) violators, all missing declarations, none
+wrong-typed. All engine writes are now declared (~130 new slots across
+schema/logosphere.yaml + packs/earth.yaml, including the dotted
+`cap.*` and bounded `rule.0-7.*` namespaces via the new `kg_key` slot
+annotation). Wrong writes destroyed instead of declared: five
+redundant `type` property stamps (shadowing Entity::type, zero
+readers), the humanoid's write-only `behavior` stamp, the organic
+generator's `growth_is_mature` drift (declared name is `is_mature`),
+and the butterfly's unbounded `thorax_<i>`/`*_wing_<i>` keys
+(refactored to comma lists, the humanoid limb-chain pattern).
+test_walk_through_grass extended the ontology by hand with mixin-less
+ancestors; it now loads the real earth pack.
+
+Prover: test_kg_property_gate (14 checks: three rejection classes
+observed as SIGABRT with the actionable message asserted, pass-path
+controls, lenient semantics, measured costs printed).

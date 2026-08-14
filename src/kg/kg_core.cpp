@@ -1,9 +1,12 @@
 #include "logosphere/kg/kg_core.h"
+#include "logosphere/kg/ontology_validator.h"
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
 #include <functional>
 #include <cmath>
+#include <cstdlib>
+#include <set>
 #include <string>
 
 namespace kg {
@@ -258,12 +261,54 @@ std::vector<EntityID> KGCore::getRelatedReverse(EntityID id, const std::string& 
 
 // === Property Management ===
 
+// THE PROPERTY DOOR (Malleus H1). createEntity has gated types since the
+// registry existed; property writes had no gate at all, so any engine
+// system could stamp an undeclared key or a wrong-typed value and the
+// KG would silently absorb it — the exact silent-fallback disease the
+// 2026-08-13 ruling ordered destroyed. The check is the SAME
+// validate_property_write the LLM KGOp path runs (declared-on-type,
+// value-type coercion, schema min/max); the two paths cannot drift.
+//
+// Strict by default: violation prints an actionable message and aborts,
+// same as the turtle doors. KG_GATE_LENIENT=1 downgrades to a printed
+// violation and lets the write proceed (inventory mode). Lenient
+// printing dedups on type.key so a per-frame writer cannot flood the log.
+static void kg_property_gate_violation(EntityID id, const std::string& type,
+                                       const std::string& key,
+                                       const PropertyValue& value,
+                                       const std::string& reason) {
+    const bool lenient = std::getenv("KG_GATE_LENIENT") != nullptr;
+    if (lenient) {
+        static std::set<std::string> reported;
+        if (!reported.insert(type + "." + key).second) return;
+    }
+    std::cerr << "[KG GATE VIOLATION] setProperty(entity " << id
+              << " [" << type << "], '" << key << "' = '" << value
+              << "'): " << reason
+              << ". Declare the property in the schema (schema/*.yaml, then"
+              << " scripts/generate_ontology.py) or fix the write."
+              << (lenient ? " [KG_GATE_LENIENT: write allowed]" : "")
+              << std::endl;
+    if (!lenient) std::abort();
+}
+
 void KGCore::setProperty(EntityID id, const std::string& key, const PropertyValue& value) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     Entity* entity = getEntity(id);
-    if (entity) {
-        entity->properties[key] = value;
+    if (!entity) {
+        return;
     }
+    // Empty registry = no ontology loaded (same guard createEntity has
+    // used since the registry existed): with no TBox there is nothing
+    // to validate against.
+    if (!registry_.empty()) {
+        ValidationResult r =
+            validate_property_write(registry_, entity->type, key, value);
+        if (!r.ok) {
+            kg_property_gate_violation(id, entity->type, key, value, r.reason);
+        }
+    }
+    entity->properties[key] = value;
 }
 
 PropertyValue KGCore::getProperty(EntityID id, const std::string& key) const {

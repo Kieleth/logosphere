@@ -125,33 +125,12 @@ ValidationResult validate_create(const KGOpCreateEntity& op,
         return fail("create_entity: type '" + op.type
                     + "' is abstract; cannot instantiate");
     }
-    // Each named property must exist on the type (or an ancestor)
-    // AND pass the same value-type + range checks set_property gets
+    // Each named property must pass the exact checks set_property gets
     // — otherwise create_entity is a validation bypass (an LLM could
     // seed a 999 m tree that set_property would refuse).
     for (const auto& [k, v] : op.properties) {
-        if (!ont.hasProperty(op.type, k)) {
-            return fail("create_entity: '" + op.type
-                        + "' has no property '" + k + "'");
-        }
-        const PropertyDef* def = find_property_def(ont, op.type, k);
-        if (!def) continue;
-        auto coerce = coerce_property_value(def->value_type, v);
-        if (!coerce.ok) {
-            return fail("create_entity '" + op.type + "." + k + "': "
-                        + coerce.reason);
-        }
-        if (coerce.numeric) {
-            if (def->has_min && coerce.number < def->min_value) {
-                return fail("create_entity '" + op.type + "." + k
-                            + "': value " + v + " below schema minimum "
-                            + std::to_string(def->min_value));
-            }
-            if (def->has_max && coerce.number > def->max_value) {
-                return fail("create_entity '" + op.type + "." + k
-                            + "': value " + v + " above schema maximum "
-                            + std::to_string(def->max_value));
-            }
+        if (auto r = validate_property_write(ont, op.type, k, v); !r.ok) {
+            return fail("create_entity: " + r.reason);
         }
     }
     return ValidationResult{};
@@ -162,35 +141,8 @@ ValidationResult validate_set_property(const KGOpSetProperty& op,
                                        const OntologyRegistry& ont) {
     std::string t;
     if (auto r = resolve_type(op.target, kg, t); !r.ok) return r;
-    if (op.property.empty()) return fail("set_property: empty property name");
-    if (!ont.hasProperty(t, op.property)) {
-        return fail("set_property: '" + t + "' has no property '"
-                    + op.property + "'");
-    }
-
-    // Value-type + range checks (C.3). Look up the PropertyDef
-    // for the schema-declared value_type + min/max.
-    const PropertyDef* def = find_property_def(ont, t, op.property);
-    if (def) {
-        auto coerce = coerce_property_value(def->value_type, op.value);
-        if (!coerce.ok) {
-            return fail("set_property '" + t + "." + op.property + "': "
-                        + coerce.reason);
-        }
-        if (coerce.numeric) {
-            if (def->has_min && coerce.number < def->min_value) {
-                return fail("set_property '" + t + "." + op.property
-                            + "': value " + op.value
-                            + " below schema minimum "
-                            + std::to_string(def->min_value));
-            }
-            if (def->has_max && coerce.number > def->max_value) {
-                return fail("set_property '" + t + "." + op.property
-                            + "': value " + op.value
-                            + " above schema maximum "
-                            + std::to_string(def->max_value));
-            }
-        }
+    if (auto r = validate_property_write(ont, t, op.property, op.value); !r.ok) {
+        return fail("set_property: " + r.reason);
     }
     return ValidationResult{};
 }
@@ -214,6 +166,45 @@ ValidationResult validate_set_relation(const KGOpSetRelation& op,
 }
 
 }  // namespace
+
+ValidationResult validate_property_write(const OntologyRegistry& ont,
+                                         const std::string& entity_type,
+                                         const std::string& property,
+                                         const std::string& value) {
+    if (property.empty()) return fail("empty property name");
+    if (!ont.hasProperty(entity_type, property)) {
+        // Declared open namespaces (e.g. rule.<i>.payload.*) accept any
+        // key under their prefix, untyped — see hasPropertyNamespace.
+        if (ont.hasPropertyNamespace(entity_type, property)) {
+            return ValidationResult{};
+        }
+        return fail("'" + entity_type + "' has no property '"
+                    + property + "'");
+    }
+    const PropertyDef* def = find_property_def(ont, entity_type, property);
+    if (def) {
+        auto coerce = coerce_property_value(def->value_type, value);
+        if (!coerce.ok) {
+            return fail("'" + entity_type + "." + property + "': "
+                        + coerce.reason);
+        }
+        if (coerce.numeric) {
+            if (def->has_min && coerce.number < def->min_value) {
+                return fail("'" + entity_type + "." + property
+                            + "': value " + value
+                            + " below schema minimum "
+                            + std::to_string(def->min_value));
+            }
+            if (def->has_max && coerce.number > def->max_value) {
+                return fail("'" + entity_type + "." + property
+                            + "': value " + value
+                            + " above schema maximum "
+                            + std::to_string(def->max_value));
+            }
+        }
+    }
+    return ValidationResult{};
+}
 
 ValidationResult validate_kg_op(const KGOp& op,
                                 const KGModule& kg,
