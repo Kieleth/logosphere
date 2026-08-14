@@ -65,6 +65,21 @@ struct DiceRoll {
     int total = 0;                   // (sum + modifier) * multiplier
     std::string stream;
     std::string purpose;             // the roller's words
+    // WHICH RULE MADE THIS ROLL: the entity id of the check, table or
+    // other rule the caller was executing. 0 when none was named.
+    //
+    // A plain integer rather than a kg::EntityID, because this service
+    // knows nothing about knowledge graphs and should not start now.
+    // What it holds is an opaque handle its caller can resolve.
+    //
+    // It exists so a recorded roll can be checked against the rule
+    // that produced it. `purpose` is a word a human wrote - "survival",
+    // "benefits" - which reads well in a timeline and resolves to
+    // nothing. With the id, the journal plus the graph is enough to
+    // re-derive what the rule PERMITTED and compare it to what
+    // happened: the rules become their own acceptance test, and a rule
+    // added to the graph is checked without anyone writing a test.
+    uint64_t rule = 0;
 };
 
 class DiceService {
@@ -88,13 +103,17 @@ public:
     // touching the stream, journal, id sequence, or event bus. Valid
     // rolls emit DiceRollEvent when a bus is wired and are recorded in
     // the in-memory journal either way.
+    // `rule` is the entity the caller is executing, recorded on the
+    // roll so it can later be checked against what that rule allows.
+    // Defaulted, so a caller with no rule to name says nothing rather
+    // than inventing one.
     DiceRoll roll(const DiceExpression& expr, const std::string& stream,
-                  const std::string& purpose);
+                  const std::string& purpose, uint64_t rule = 0);
     // Convenience: parse + roll. Returns a roll with id 0 and empty
     // values when the expression is malformed; a zero id is never a
     // real roll, so callers can test for it.
     DiceRoll roll(const std::string& expr, const std::string& stream,
-                  const std::string& purpose);
+                  const std::string& purpose, uint64_t rule = 0);
 
     // The journal: every roll this session, oldest first.
     const std::vector<DiceRoll>& journal() const { return journal_; }

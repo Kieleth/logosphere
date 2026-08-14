@@ -136,7 +136,8 @@ TaskCheckResult TaskCheckRunner::run(EntityID check, EntityID target,
     }
 
     auto dice_transaction = dice_.begin_transaction();
-    auto roll = dice_.roll(expression, dice_stream, purpose);
+    auto roll = dice_.roll(expression, dice_stream, purpose,
+                           static_cast<uint64_t>(check));
     if (roll.id == 0) {
         return failure("DiceService rejected the validated DiceExpression");
     }

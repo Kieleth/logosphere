@@ -72,6 +72,25 @@ SERVICE_TABLE_QUOTE = (
     "In each term you spend in a career, pick one of these tables and "
     "roll 1D6 to see which skill you increase.")
 
+# "For your first career only, you get all the skills listed in the
+# Service Skills table at Level 0 as your basic training. For any
+# subsequent careers, you may pick any one skill listed in the Service
+# Skills table at Level 0 as your basic training."
+#
+# One EnsureSkillLevel per skill, gathered into a sequence the career
+# points at. A first career applies the sequence; a later one applies
+# the single step the player picks. The level lives on the outcome
+# rather than in a constant the procedure reads, because it is what the
+# book DOES to a character, not a threshold the procedure tests.
+BASIC_TRAINING_SECTION = "Basic Training"
+BASIC_TRAINING_QUOTE = (
+    "On the first term of a new career, you gain Basic Training as you "
+    "learn the basics for your chosen career. For your first career "
+    "only, you get all the skills listed in the Service Skills table at "
+    "Level 0 as your basic training. For any subsequent careers, you "
+    "may pick any one skill listed in the Service Skills table at Level "
+    "0 as your basic training.")
+
 DRAFT_SECTION = "Qualifying and the Draft"
 DRAFT_TABLE = "Roll"
 DRAFT_COLUMN = "Draft Career"
@@ -148,9 +167,6 @@ RULE_CONSTANTS = [
     ("crisis_restore_value", "1", "Aging Crisis",
      "The character dies unless he can pay 1D6×10,000 Credits for "
      "medical care, which will bring any characteristics back up to 1."),
-    ("basic_training_level", "0", "Character Creation Checklist",
-     "For your first term in your first career, you get every skill in "
-     "the service skills table at level 0."),
     ("survival_natural_failure", "2", "Survival",
      "A natural 2 is always a failure."),
 ]
@@ -211,6 +227,23 @@ def main():
 
     careers = {}
     counts = {"career": 0, "check": 0, "service_row": 0, "draft": 0, "dm": 0}
+
+    # The service skills, read before anything is emitted: a Career
+    # points at its basic training, so the training has to exist first,
+    # and the training is made of the skills on a table that appears
+    # further down the chapter than the career block does.
+    service = {}
+    block = []
+    for table in tables:
+        if table["title"] == "Career":
+            block = list(table["columns"])
+            continue
+        if table["title"] != "Service Skills":
+            continue
+        for index, printed in enumerate(table["columns"]):
+            career = block[index] if index < len(block) else printed
+            service[career] = (printed,
+                               [(r[0], r[index + 1]) for r in table["rows"]])
 
     # ---- characteristic modifiers, first ----------------------------
     # Before the throws, because every throw references this table and
@@ -295,10 +328,44 @@ def main():
                     modifier_property="characteristic_modifier"))
                 checks[suffix] = check
                 counts["check"] += 1
+            # Basic training, before the Career that points at it.
+            if career not in service:
+                print("REFUSED: %r has no Service Skills table" % career)
+                return 1
+            training = alias + "_basic"
+            steps = []
+            for key, skill_name in service[career][1]:
+                if skill_name not in b.skills:
+                    print("REFUSED: %s service %s reads %r, which resolves "
+                          "to no skill" % (career, key, skill_name))
+                    return 1
+                grant = "%s_at0_%s" % (alias, key)
+                b.add("EnsureSkillLevel", grant, dict(
+                    name="%s: %s at level 0" % (career, skill_name),
+                    skill=b.skills[skill_name], skill_level="0",
+                    source_file=CHAPTER,
+                    source_section=BASIC_TRAINING_SECTION,
+                    source_kind="sentence",
+                    source_quote=BASIC_TRAINING_QUOTE))
+                steps.append(grant)
+            b.add("OutcomeSequence", training, dict(
+                name="%s basic training" % career, source_file=CHAPTER,
+                source_section=BASIC_TRAINING_SECTION,
+                source_kind="sentence", source_quote=BASIC_TRAINING_QUOTE))
+            for order, grant in enumerate(steps):
+                step = "%s_s%d" % (training, order)
+                b.add("OutcomeStep", step, dict(
+                    name=step.lstrip("@"), step_index=str(order),
+                    outcome=grant, source_file=CHAPTER,
+                    source_section=BASIC_TRAINING_SECTION,
+                    source_kind="sentence",
+                    source_quote=BASIC_TRAINING_QUOTE))
+                b.relate(training, step)
             b.add("Career", alias, dict(
                 name=career,
                 qualification_check=checks["qual"],
                 survival_check=checks["surv"],
+                basic_training=training,
                 **b.cite(SECTION, "Career", CAREER_CITATION_ROW, career,
                          rows[CAREER_CITATION_ROW][index + 1])))
             counts["career"] += 1

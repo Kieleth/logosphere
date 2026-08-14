@@ -665,6 +665,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addRefProperty("Career", "qualification_check", false, "TaskCheck");
     reg.addRefProperty("Career", "survival_check", false, "TaskCheck");
+    reg.addRefProperty("Career", "basic_training", false, "Outcome");
     reg.addRefProperty("CareerTableEntry", "rollable_table", true, "RollableTable");
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("CareerTableEntry", "table_role", kg::PropertyValueKind::String, false);

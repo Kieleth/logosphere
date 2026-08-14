@@ -166,7 +166,7 @@ uint64_t DiceService::next_u64(const std::string& stream) {
 
 DiceRoll DiceService::roll(const DiceExpression& expr,
                            const std::string& stream,
-                           const std::string& purpose) {
+                           const std::string& purpose, uint64_t rule) {
     if (!expr.is_valid()) return DiceRoll{};
 
     DiceRoll r;
@@ -174,6 +174,7 @@ DiceRoll DiceService::roll(const DiceExpression& expr,
     r.expression = expr;
     r.stream = stream;
     r.purpose = purpose;
+    r.rule = rule;
     r.total = expr.modifier;
     for (int i = 0; i < expr.count; ++i) {
         // Rejection-free modulo is fine here: sides are tiny against
@@ -192,12 +193,12 @@ DiceRoll DiceService::roll(const DiceExpression& expr,
 
 DiceRoll DiceService::roll(const std::string& expr_text,
                            const std::string& stream,
-                           const std::string& purpose) {
+                           const std::string& purpose, uint64_t rule) {
     DiceExpression expr;
     if (!DiceExpression::parse(expr_text, expr)) {
         return DiceRoll{};           // id 0: never a real roll
     }
-    return roll(expr, stream, purpose);
+    return roll(expr, stream, purpose, rule);
 }
 
 const DiceRoll* DiceService::find(uint64_t id) const {

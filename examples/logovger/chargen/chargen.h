@@ -173,6 +173,9 @@ private:
     // The characteristics as the book groups them, from the graph.
     // Rules about "any characteristic" ask this instead of naming six.
     std::vector<std::string> characteristic_slots(std::string& error) const;
+    // How many skills the character holds, for reporting how many a
+    // grant actually added.
+    size_t held_skills() const;
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
