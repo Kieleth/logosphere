@@ -453,6 +453,21 @@ classes:
       - emission_strength
       - emission_radius
 
+  HasSimpleAppearance:
+    mixin: true
+    description: >-
+      The simple-entity contract read by the engine's
+      simple_entity_activator (src/entities/simple_entity.cpp): one
+      particle built from a uniform size plus RGB color. Runtime keys
+      are the slot names verbatim. Known drift siblings, unification
+      pending an owner ruling: PhysicsRock.color_r/g/b and
+      CelestialBody.moon_r/g/b.
+    slots:
+      - size
+      - r
+      - g
+      - b
+
   HasPhysicalCapability:
     mixin: true
     description: Physical performance attributes of a body component or agent.
@@ -535,11 +550,25 @@ classes:
     is_a: WorldEntity
     description: An entity that is alive and can take damage.
     abstract: true
+    annotations:
+      # Open by design: CapabilityStore::write_back publishes one key
+      # per game-registered capability (capability.<name>); what
+      # capabilities exist is game policy, so the vocabulary cannot be
+      # closed here. The five aggregates the engine itself always
+      # writes are exact typed slots below, not namespace passengers.
+      kg_key_namespaces: "capability."
     mixins:
       - HasHealth
       - HasMaterial
       - HasOdor
     slots:
+      # Aggregated capability profile, written back to the creature
+      # entity by CapabilityStore::write_back (capability_store.cpp).
+      - capability_speed_cap
+      - capability_locomotion
+      - capability_manipulation
+      - capability_rotation
+      - capability_perception
       # FORGE capability aggregation, written by the generators and
       # body_plan on the creature entity. The runtime keys are dotted
       # (cap.<name>.<field>); the slot names carry the kg_key
@@ -675,6 +704,7 @@ classes:
     description: Entity that emits light.
     mixins:
       - EmitsLight
+      - HasSimpleAppearance
 
   BodyPart:
     is_a: WorldEntity
@@ -1336,6 +1366,45 @@ slots:
       Legacy sibling of body_part_name written by one humanoid
       generator path and read by KGModule's part lookup. Declared as
       written (Malleus H1); collapsing the two keys is follow-up work.
+
+  # --- Simple-entity appearance (HasSimpleAppearance) ---
+  size:
+    range: float
+    description: >-
+      Uniform particle size in meters (width = height = thickness for
+      simple entities; also the rock spec's characteristic size).
+  r:
+    range: float
+    description: Red color component, 0..1.
+  g:
+    range: float
+    description: Green color component, 0..1.
+  b:
+    range: float
+    description: Blue color component, 0..1.
+
+  # --- Aggregated capability profile (CapabilityStore::write_back) ---
+  # Same dotted-key mechanism as the FORGE keys below.
+  capability_speed_cap:
+    range: float
+    annotations:
+      kg_key: capability.speed_cap
+  capability_locomotion:
+    range: float
+    annotations:
+      kg_key: capability.locomotion
+  capability_manipulation:
+    range: float
+    annotations:
+      kg_key: capability.manipulation
+  capability_rotation:
+    range: float
+    annotations:
+      kg_key: capability.rotation
+  capability_perception:
+    range: float
+    annotations:
+      kg_key: capability.perception
 
   # --- FORGE capability keys ---
   # The runtime keys are dotted (cap.<capability>.<field>); a dot is

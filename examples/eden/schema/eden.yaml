@@ -93,6 +93,7 @@ classes:
     description: Simple test cube entity.
     mixins:
       - HasMaterial
+      - HasSimpleAppearance
 
 # -------------------------------------------------------------------
 # Eden relations

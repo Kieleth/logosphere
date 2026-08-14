@@ -262,22 +262,30 @@ slots:
             rendered,
         )
 
-    def test_vendored_generator_loads_its_vendored_templates(self):
+    def test_generator_delta_overrides_are_installed(self):
+        # scripts/cppgen/ (the vendored copy) is gone; the generator is
+        # upstream linkml.generators.cppgen with this repo's two fixes
+        # layered on at import by scripts/gen_cpp_header.py. When
+        # upstream adopts them, this test fails and gets deleted along
+        # with the overrides.
         scripts_dir = str(Path(__file__).resolve().parent)
         if scripts_dir not in sys.path:
             sys.path.insert(0, scripts_dir)
 
-        from cppgen.template import CppField
+        import gen_cpp_header
 
-        rendered = CppField(name="score", cpp_type="float").render()
-        self.assertIn("float score", rendered)
+        gen = gen_cpp_header.CppGenerator
+        self.assertEqual(gen.sort_classes.__module__, "gen_cpp_header")
+        self.assertEqual(gen.generate_field.__module__, "gen_cpp_header")
 
     def test_required_fields_are_value_initialized(self):
         scripts_dir = str(Path(__file__).resolve().parent)
         if scripts_dir not in sys.path:
             sys.path.insert(0, scripts_dir)
 
-        from cppgen.cppgen import CppGenerator
+        # The value-init fix lives in the gen_cpp_header delta, not
+        # upstream — import through the wrapper so it is applied.
+        from gen_cpp_header import CppGenerator
 
         with tempfile.TemporaryDirectory() as td:
             schema = Path(td) / "required.yaml"
