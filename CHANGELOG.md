@@ -7,7 +7,60 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
-*No changes yet. Add entries here as you merge.*
+### Added
+
+- **Rules as Data** (`docs/RULES_AS_DATA.md`): how to absorb an existing
+  body of rules so the graph can check the game obeys them. Where the
+  data/code line falls, why a rule must never be found by its printed
+  name, how a value proves itself against the text stating it, and the
+  failure modes we hit.
+- A `DiceRoll` records the rule entity that produced it, so the dice
+  journal plus the graph is enough to re-derive what a rule permitted
+  and compare it to what happened.
+- `ProcedureStep` may declare an `outcome` — something the book says
+  happens when the step is taken, applied through the executor rather
+  than computed by the primitive — and may name a single `table`.
+- `implied_by`: proof for a number the text states without writing, such
+  as a count carried by an indefinite article. The phrase must appear in
+  the quote, so an invented marker fails as a wrong digit does.
+- `miss_is_nothing` on `LookupTable`: a key with no row means the rule
+  does not apply rather than being an error. `LookupTableResult` gains
+  `missed`, distinct from a match and from a failure.
+- `ChoiceResolver` on `OutcomeExecutor`, the sibling of
+  `AttributeSelector`: answers a branch the book prints and does not
+  decide. No default — a rule with nobody to answer it stops the run.
+- `TaskCheckOptions`: a natural-result floor ("a natural 2 is always a
+  failure") and a situational modifier, both reported on the execution.
+- `roll_min_unbounded` on `TableEntry`, the mirror of
+  `roll_max_unbounded`, for a band written "N or less".
+- Seed extractors own their output: `generated_by` names the script,
+  `regenerate_seeds.sh` rebuilds every generated seed, and CI fails on
+  any diff.
+
+### Fixed
+
+- Rules the book states that chapter 1 got wrong: the Advanced Education
+  gate, a natural 2 always failing survival, a promotion's extra
+  training roll adding to the term's own rather than replacing it, and
+  the years a mishap costs.
+- Outcomes that ask a question no longer abort the run. Two rows of the
+  mishap and injury tables were killing 8% of generated lives.
+- An answer reaches the question that was asked: a crisis raised inside
+  the mishap step read "pay for care" as "take the mishap".
+- Table and benefit choices resolve by entity, not by position in a list
+  that can be rebuilt between the offer and the answer.
+- The character sheet's money is re-derived wherever it is read, so a
+  rule moving money between muster-outs cannot leave it stale.
+
+### Changed
+
+- The book's numbers moved out of the procedure into the graph, as cited
+  constants or — where they are effects rather than thresholds — as
+  outcomes.
+- Basic training grants skills through `EnsureSkillLevel` outcomes
+  instead of writing `SkillRating` by hand.
+- Nothing in a run reads a table's printed name. Renaming every table in
+  the graph produces identical lives.
 
 ---
 

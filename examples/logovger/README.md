@@ -93,6 +93,13 @@ proves. All were reported upstream rather than silently corrected.
   roll 2D6. Divergences between source texts are recorded per section
   with the choice and the reason.
 
+Absorbing a different book? **[Rules as
+Data](../../docs/RULES_AS_DATA.md)** is what this cost us to learn:
+where the line between data and code actually falls, why a rule must
+never be found by its printed name, how a value proves itself against
+the text that states it, how the rules come to check themselves, and
+the failure modes we hit so you can skip them.
+
 ## Sources and licenses
 
 | Source | License | Role |
