@@ -335,6 +335,37 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ---
 
+## [0.4.2] - 2026-08-14
+
+### Fixed
+
+- Joining a career grants the skill its rank 0 row prints. Twenty-three
+  of Cepheus' twenty-four careers start a character on something (the
+  Navy on Zero-G-1, a Physician on Medicine-1); those grants were in
+  the graph, cited to the cell they came from, and nothing read them,
+  because promotion consulted the rank track only from rank 1 up.
+  Every character finished a skill level short, and a Navy character
+  never held Zero-G at all, since it is not on the service table
+  either. The graph now drives a `grant_rank_zero` procedure step, and
+  the test derives the expected skill per career from the rank tracks
+  rather than from a list, so all twenty-three are checked.
+- Timelines print what a rule's cell says, not the markdown that
+  carries it: `[Athletics-1]` instead of `\[Athletics-1\]`. The stored
+  citation is untouched, so the verifier still compares against the
+  source text byte for byte.
+
+## [0.4.1] - 2026-08-14
+
+### Fixed
+
+- The character-generation auto-player answers the Draft-versus-Drifter
+  question the book asks a refused character, alternating on the seed
+  so both paths are exercised and a given seed still replays exactly.
+  It previously refused, and about 29% of swept seeds produced no life
+  at all: a third of the space the sweeps exist to search went
+  unsearched. Sweeps now generate 330 lives where they generated 210,
+  with none abandoned mid-question.
+
 ## [0.4.0] - 2026-08-14
 
 The rules a game plays by can now live in the graph and check

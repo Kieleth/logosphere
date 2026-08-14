@@ -180,6 +180,9 @@ private:
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
     PrimitiveResult basic_training(const PrimitiveContext& context);
+    // "You begin as a Rank 0 character." Most careers print a title
+    // and a skill in that row, and both are the career's to give.
+    PrimitiveResult grant_rank_zero(const PrimitiveContext& context);
     PrimitiveResult muster_out(const PrimitiveContext& context);
     PrimitiveResult advance_term(const PrimitiveContext& context);
     PrimitiveResult roll_aging(const PrimitiveContext& context);

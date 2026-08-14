@@ -538,6 +538,9 @@ void ChargenSession::bind_primitives() {
     bind("basic_training", [this](const PrimitiveContext& context) {
         return basic_training(context);
     });
+    bind("grant_rank_zero", [this](const PrimitiveContext& context) {
+        return grant_rank_zero(context);
+    });
     bind("roll_commission", [this](const PrimitiveContext& context) {
         return roll_promotion(context, true);
     });
@@ -1276,6 +1279,55 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
     return PrimitiveResult::advance();
 }
 
+std::string row_text(const kg::KGModule& kg, kg::EntityID outcome);
+
+// "You begin as a Rank 0 character." Twenty-three of the twenty-four
+// careers print something in that row of their Ranks and Skills table
+// - Aerospace an Airman with Aircraft-1, Navy a Starman with Zero-G-1 -
+// and every one of those grants was in the graph, cited to the cell it
+// came from, read by nothing. Every character finished a skill level
+// short, and a Navy character never held Zero-G at all, because it is
+// not on the service table either.
+//
+// It reaches the ladder through @rank_tracks rather than through the
+// commission table: seven careers have no commission or advancement
+// row, so the promotion rule's table cannot see them, and those seven
+// have rank 0 rows like everyone else.
+ChargenSession::PrimitiveResult ChargenSession::grant_rank_zero(
+    const PrimitiveContext& context) {
+    std::string error;
+    const auto track = subject_row(kg_, context.step, career_, "track",
+                                   error);
+    if (track == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed("rank 0: " + error);
+    }
+    for (const auto rung : kg_.getRelated(track, "HAS_PART")) {
+        if (kg_.getProperty(rung, "step_index") != "0") continue;
+        // The title is the career's word for a new recruit, and the
+        // book prints one for most of them but not all.
+        const std::string title = kg_.getProperty(rung, "step_title");
+        if (!title.empty()) sheet_.rank_title = title;
+        const std::string grant = kg_.getProperty(rung, "grants");
+        if (grant.empty()) break;
+        const auto applied = executor_.apply(
+            static_cast<kg::EntityID>(std::stoul(grant)),
+            {sheet_.id, "chargen", "rank 0"});
+        if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+            return PrimitiveResult::failed("rank 0: " +
+                                           outcome_failure(applied));
+        }
+        read_characteristics(kg_, sheet_);
+        sheet_.life.push_back(
+            {sheet_.terms_served,
+             title.empty() ? "starts at rank 0" : "starts as " + title,
+             row_text(kg_, static_cast<kg::EntityID>(std::stoul(grant))),
+             0});
+        break;
+    }
+    write_sheet(kg_, sheet_);
+    return PrimitiveResult::advance();
+}
+
 // Step 10. "Characters who end their careers receive one benefit per
 // term served in which they did not lose benefits. An additional
 // benefit is gained if the character held rank O4, and two for rank
@@ -1811,7 +1863,20 @@ std::string row_text(const kg::KGModule& kg, kg::EntityID outcome) {
     // rest and the roll id points at it.
     const auto stop = text.find(". ");
     if (stop != std::string::npos) text = text.substr(0, stop + 1);
-    return text;
+    // The source is markdown, so a cell that reads [Athletics-1] in
+    // the book is stored as \[Athletics-1\]. The backslash belongs to
+    // the file format, not to the rule, and the verifier compares
+    // against the stored quote rather than this.
+    std::string shown;
+    shown.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '\\' && i + 1 < text.size() &&
+            std::string("[]*_`").find(text[i + 1]) != std::string::npos) {
+            continue;
+        }
+        shown.push_back(text[i]);
+    }
+    return shown;
 }
 
 // A rule can say "roll on the Injury table" as part of its outcome.
@@ -2320,6 +2385,47 @@ bool run_chargen(const ChargenRequest& request,
                 return false;
             }
             if (!session.choose(service, error)) return false;
+            continue;
+        }
+        // "You must either submit to the Draft or take the Drifter
+        // career for this term." A real decision with real
+        // consequences, and the auto-player used to refuse it: about
+        // 29% of swept seeds produced no life at all, so a third of
+        // the space the sweeps exist to search went unsearched.
+        //
+        // It alternates on the seed instead. Both paths get exercised
+        // - the Draft rolls a table and six EnterCareer outcomes that
+        // nothing else reaches - and a given seed always does the same
+        // thing, so a finding still replays exactly. This is the
+        // HARNESS choosing where the book leaves a choice open, which
+        // is why it lives here and not in the session.
+        // "For any subsequent careers, you may pick any one skill
+        // listed in the Service Skills table at Level 0." Only reached
+        // once the auto-player started taking second careers, which is
+        // what answering Draft-or-Drifter above made possible. It
+        // takes the first, for the same reason it takes Service
+        // Skills: deterministic, and it has no taste.
+        if (session.prompt().find("which service skill do they start you "
+                                  "on") != std::string::npos) {
+            if (choices.empty()) {
+                error = "no service skill offered on joining";
+                return false;
+            }
+            if (!session.choose(choices.front().key, error)) return false;
+            continue;
+        }
+        const auto drafted = std::find_if(
+            choices.begin(), choices.end(), [](const Choice& choice) {
+                return choice.label == "Submit to the Draft";
+            });
+        const auto drifter = std::find_if(
+            choices.begin(), choices.end(), [](const Choice& choice) {
+                return choice.label == "Take the Drifter career";
+            });
+        if (drafted != choices.end() && drifter != choices.end()) {
+            const auto& taken =
+                (request.seed % 2) == 0 ? *drafted : *drifter;
+            if (!session.choose(taken.key, error)) return false;
             continue;
         }
         break;
