@@ -317,3 +317,27 @@ test_humanoid_movement reclassified single:locomotion-calibration
 12.6 mm below turtle and a never-built KG body graph zeroing
 capability — both fixed). New prover: test_turtle_ground_support
 (INV-2 for walkers). test_soft_shadows recorded as VACUOUS.
+
+### 2026-08-13 · RULINGS · gravity, INV-12 widened, INV-30, order-capture
+
+Owner rulings, second round:
+
+- GRAVITY IS NOT A CONSTANT. It is a gameplay lever available to games:
+  a configurable engine INPUT (PhysicsConfig at init), one value read by
+  solver and energy ledger alike. The 9.8-vs-9.81 split dissolves into
+  one injected value with 9.81 as the documented default. The registry
+  documents defaults, never truths. (Task #48.)
+- INV-12 WIDENED with bounds-never-under-cover (miner candidate 16),
+  per the merge ruling.
+- INV-30 external-writers-place-nothing-illegal CREATED, enforcement
+  strict-first: "harden first to catch issues and incorporate fast."
+- Order/dependency capture between physics processes ruled a
+  foundational micro-project: "if we do not capture order/dependence
+  between physics, we'll not be able to build anything properly" —
+  possibly via the ontology's process concepts + RDF export for logical
+  automation. Study commissioned before any build.
+- Doctrine recorded for lane priority: foundations before symptom
+  fixes. The waste in physics work is not building foundation, metrics,
+  assertions, laws, order-capture and enforcement — hacking on top is
+  the failure mode. Coverage work (provers, INV-6 witnesses, audit
+  links) outranks the known-open singles.
