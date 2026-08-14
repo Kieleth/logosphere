@@ -1684,6 +1684,24 @@ struct Cycle : public WorldEntity {
     std::optional<float> current_speed = std::nullopt;
     /// Seconds elapsed since the last direction change. Drives the speed ramp; reset to 0 by `turn()`.
     std::optional<float> time_since_turn = std::nullopt;
+    /// Current cardinal direction of movement.
+    std::optional<Direction> direction = std::nullopt;
+    /// Lifecycle state of a cycle.
+    std::optional<CycleState> cycle_state = std::nullopt;
+    /// World x where the current run (straight segment since the last turn) began; trail segments span run_start to current position.
+    std::optional<float> run_start_x = std::nullopt;
+    /// World y where the current run began.
+    std::optional<float> run_start_y = std::nullopt;
+    /// World x of the crash, written once when the cycle crashes.
+    std::optional<float> crash_x = std::nullopt;
+    /// World y of the crash.
+    std::optional<float> crash_y = std::nullopt;
+    /// What the cycle hit (trail, wall, cycle), written at crash.
+    std::optional<std::string> crash_cause = std::nullopt;
+    /// Entity id of what was hit, when the cause is an entity.
+    std::optional<int32_t> crash_hit_entity = std::nullopt;
+    /// Age in seconds of the trail segment that was hit (AI post-mortem telemetry).
+    std::optional<float> crash_hit_age = std::nullopt;
 };
 
 

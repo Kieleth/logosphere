@@ -270,6 +270,15 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Cycle", "speed_ramp_rate", "float", false);
     reg.addProperty("Cycle", "current_speed", "float", false);
     reg.addProperty("Cycle", "time_since_turn", "float", false);
+    reg.addProperty("Cycle", "direction", "enum", false);
+    reg.addProperty("Cycle", "cycle_state", "enum", false);
+    reg.addProperty("Cycle", "run_start_x", "float", false);
+    reg.addProperty("Cycle", "run_start_y", "float", false);
+    reg.addProperty("Cycle", "crash_x", "float", false);
+    reg.addProperty("Cycle", "crash_y", "float", false);
+    reg.addProperty("Cycle", "crash_cause", "string", false);
+    reg.addProperty("Cycle", "crash_hit_entity", "integer", false);
+    reg.addProperty("Cycle", "crash_hit_age", "float", false);
     reg.addProperty("DamageEvent", "damage_type", "enum", false);
     reg.addProperty("DamageEvent", "damage_amount", "float", false);
     reg.addProperty("Describable", "description", "string", false);

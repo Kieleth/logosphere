@@ -126,6 +126,15 @@ classes:
       - speed_ramp_rate
       - current_speed
       - time_since_turn
+      - direction
+      - cycle_state
+      - run_start_x
+      - run_start_y
+      - crash_x
+      - crash_y
+      - crash_cause
+      - crash_hit_entity
+      - crash_hit_age
 
   PlayerCycle:
     is_a: Cycle
@@ -278,6 +287,29 @@ slots:
   grid_y:
     range: integer
     description: Row in the arena grid.
+  run_start_x:
+    range: float
+    description: World x where the current run (straight segment since the
+      last turn) began; trail segments span run_start to current position.
+  run_start_y:
+    range: float
+    description: World y where the current run began.
+  crash_x:
+    range: float
+    description: World x of the crash, written once when the cycle crashes.
+  crash_y:
+    range: float
+    description: World y of the crash.
+  crash_cause:
+    range: string
+    description: What the cycle hit (trail, wall, cycle), written at crash.
+  crash_hit_entity:
+    range: integer
+    description: Entity id of what was hit, when the cause is an entity.
+  crash_hit_age:
+    range: float
+    description: Age in seconds of the trail segment that was hit (AI
+      post-mortem telemetry).
   direction:
     range: Direction
     description: Current cardinal direction of movement.
