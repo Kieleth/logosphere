@@ -4935,6 +4935,22 @@ void PhysicsSystem::load_constraints_from_kg() {
 
 void PhysicsSystem::add_force(std::unique_ptr<Force> force) {
     if (!force) return;
+    // THE REGISTRY IS NOT APPLIED (inventory B13). apply_registry_forces is
+    // an empty stub: the V4 solver hardcodes gravity (get_solver_gravity)
+    // and never integrates registered forces. Callers registering a force
+    // and expecting it to act were silently wrong. State the contract loud,
+    // once: the registry is direction/query DATA (get_gravity_vector), not
+    // a force input. Full cure (implement or delete) is an owner decision —
+    // see the inventory.
+    static bool warned = false;
+    if (!warned) {
+        warned = true;
+        std::fprintf(stderr,
+            "[PHYSICS CONTRACT] add_force: the V4 solver does NOT apply "
+            "registry forces (apply_registry_forces is a stub; gravity is "
+            "PhysicsV4::GRAVITY). Registered forces are query data only "
+            "(get_gravity_vector).\n");
+    }
     forces_.push_back(std::move(force));
 }
 

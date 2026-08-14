@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 
 namespace logosphere {
 namespace expdet {
@@ -32,6 +33,14 @@ bool g_speed_from_env = [] {
     if (const char* e = std::getenv("LOGOSPHERE_EXPLOSION_SPEED")) {
         const float v = (float)std::atof(e);
         if (v > 0.0f) { g_speed_ceiling = v; return true; }
+        // An unparseable/nonpositive ceiling used to be SILENTLY ignored
+        // (inventory D2): the operator flew with a different instrument
+        // than they believed armed. Operator-input validation: refuse.
+        std::fprintf(stderr,
+            "[EXPDET REFUSED] LOGOSPHERE_EXPLOSION_SPEED='%s' does not parse "
+            "to a positive m/s ceiling. Fix the value or unset it; the "
+            "default is %g m/s.\n", e, (double)PhysicsV4::EXPDET_SPEED_CEILING);
+        std::abort();
     }
     return false;
 }();
@@ -135,11 +144,15 @@ void end_frame() {
         g_ke - g_ke_prev > g_ke_abs_rise_j &&
         g_ke - g_ke_prev > 2.0 * ke_fastest) {
         if (g_last_warn_ke == 0 || g_frame - g_last_warn_ke >= WARN_EVERY_FRAMES) {
+            // Ratio from a zero base is infinite; print the honest inf
+            // instead of the old invented 999.0 (inventory D1) — an
+            // invented number has no place in a safety instrument's output.
             std::fprintf(stderr,
                 "[EXPLOSION WARNING] energy: total KE jumped %.1f kJ -> %.1f kJ "
                 "(%.0fx) in one frame; fastest body is particle %d at %.1f m/s\n",
                 g_ke_prev / 1000.0, g_ke / 1000.0,
-                g_ke_prev > 0.0 ? g_ke / g_ke_prev : 999.0,
+                g_ke_prev > 0.0 ? g_ke / g_ke_prev
+                                : std::numeric_limits<double>::infinity(),
                 g_max_id, max_speed);
             g_last_warn_ke = g_frame;
             g_stats.energy_warnings++;

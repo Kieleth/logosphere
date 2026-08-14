@@ -207,7 +207,11 @@ struct Constraint {
         , body_b(0)
         , jx(0.0f)
         , jy(0.0f)
-        , jz(1.0f)              // Default to Z axis
+        // Was 1.0f ("Default to Z axis") — a row nobody finished building
+        // silently pushed along +Z: an axis bias on top of a phantom
+        // (fallback inventory E1). Every real builder sets its jacobian
+        // explicitly; an unset row is now INERT, not secretly vertical.
+        , jz(0.0f)
         , effective_mass(0.0f)
         , compliance(0.0f)
         , bias(0.0f)
