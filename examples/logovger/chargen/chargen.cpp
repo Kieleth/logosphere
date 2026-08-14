@@ -459,6 +459,13 @@ void ChargenSession::register_outcome_handlers() {
     };
     report("EndCareer");
     report("ForfeitBenefits");
+    // The Draft's six services. Registered late: the draft primitive
+    // reached into the outcome entity for its drafted_career slot and
+    // never applied it, so the one absorbed rule that changes which
+    // career you are in was the one rule the executor never ran. It
+    // worked, and it was invisible to everything that watches what the
+    // rules do. The coverage sweep is what found it.
+    report("EnterCareer");
 }
 
 void ChargenSession::bind_primitives() {
@@ -860,6 +867,17 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
         if (!drafted.ok()) {
             return PrimitiveResult::failed("the Draft failed: " +
                                            drafted.error);
+        }
+        // Applied, not merely read. The career still comes off the
+        // outcome's own slot below, but the rule now runs like every
+        // other rule in the book, which is what makes it visible to
+        // anything asking which rules a life received.
+        const auto applied = executor_.apply(
+            drafted.selection->outcome(),
+            {sheet_.id, "chargen", "the Draft"});
+        if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+            return PrimitiveResult::failed("the Draft: " +
+                                           outcome_failure(applied));
         }
         std::string error;
         if (!entity_reference(kg_, drafted.selection->outcome(),
@@ -2249,8 +2267,22 @@ bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
                  logosphere::dice::DiceService& dice,
                  CharacterSheet& out,
-                 std::string& error) {
+                 std::string& error,
+                 std::set<kg::EntityID>* rules_reached) {
     ChargenSession session(kg, dice);
+    // Reported from every exit this function has, the failures
+    // included: a life that stopped early still received whatever it
+    // received, and a coverage sweep that only counted the tidy
+    // lives would understate what the rules do.
+    struct Reach {
+        const ChargenSession& session;
+        std::set<kg::EntityID>* out;
+        ~Reach() {
+            if (!out) return;
+            const auto& reached = session.rules_reached();
+            out->insert(reached.begin(), reached.end());
+        }
+    } reach{session, rules_reached};
     if (request.attribute_selector) {
         session.set_attribute_selector(request.attribute_selector);
     }
@@ -2295,6 +2327,14 @@ bool run_chargen(const ChargenRequest& request,
     int guard = 0;
     while (!session.finished()) {
         const auto& choices = session.choices();
+        // Consulted only where the book leaves the answer open. An
+        // absent hook, or one that declines, gets the standing answer.
+        const auto tasted = [&](const std::string& standing) {
+            if (!request.taste) return standing;
+            const std::string picked = request.taste(session.prompt(),
+                                                     choices);
+            return picked.empty() ? standing : picked;
+        };
         const bool career_offered = std::any_of(
             choices.begin(), choices.end(), [&](const Choice& choice) {
                 return choice.label == request.career_name;
@@ -2332,8 +2372,9 @@ bool run_chargen(const ChargenRequest& request,
             // - the three-cash-roll cap, and the crisis pay path that
             // needs money in hand.
             const std::string cash = choice_with_role(kg, choices, "cash");
-            if (!session.choose(cash.empty() ? choices.front().key : cash,
-                                error)) {
+            if (!session.choose(
+                    tasted(cash.empty() ? choices.front().key : cash),
+                    error)) {
                 return false;
             }
             continue;
@@ -2384,7 +2425,7 @@ bool run_chargen(const ChargenRequest& request,
                 error = "no Service Skills table offered for this career";
                 return false;
             }
-            if (!session.choose(service, error)) return false;
+            if (!session.choose(tasted(service), error)) return false;
             continue;
         }
         // "You must either submit to the Draft or take the Drifter
@@ -2411,7 +2452,9 @@ bool run_chargen(const ChargenRequest& request,
                 error = "no service skill offered on joining";
                 return false;
             }
-            if (!session.choose(choices.front().key, error)) return false;
+            if (!session.choose(tasted(choices.front().key), error)) {
+                return false;
+            }
             continue;
         }
         const auto drafted = std::find_if(

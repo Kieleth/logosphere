@@ -31,6 +31,8 @@
 #include "logosphere/rules/outcome_executor.h"
 #include "logosphere/rules/procedure_runner.h"
 
+#include <functional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -104,6 +106,11 @@ public:
     bool choose(const std::string& answer, std::string& error);
 
     const CharacterSheet& sheet() const { return sheet_; }
+    // Which absorbed rules this life actually reached. A sweep unions
+    // these to find rules the book prints that no life ever receives.
+    const std::set<kg::EntityID>& rules_reached() const {
+        return executor_.rules_reached();
+    }
     // Events since the last drain, for incremental display.
     std::vector<LifeEvent> drain();
 
@@ -268,12 +275,30 @@ struct ChargenRequest {
     // says so in the timeline so a reader can see a choice was made
     // and by whom. A caller that wants taste supplies its own.
     logosphere::rules::ChoiceResolver choice_resolver;
+    // Where the BOOK leaves a choice open and the auto-player has no
+    // taste. Returning a key takes that option; returning empty keeps
+    // the standing answer, which is what every existing caller gets,
+    // so an empty hook changes no measurement anywhere.
+    //
+    // It exists because fixed taste is invisible in a green suite. The
+    // auto-player always trained on Service Skills and always took
+    // cash, so Personal Development, Specialist and Advanced Education
+    // - three of the four tables the book gives every career, 72
+    // tables, 432 absorbed outcomes - were never executed by any test
+    // in any release. A sweep measuring coverage supplies a hook that
+    // varies, and only then does the number mean anything.
+    std::function<std::string(const std::string& prompt,
+                              const std::vector<Choice>& choices)> taste;
 };
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
                  logosphere::dice::DiceService& dice,
                  CharacterSheet& out,
-                 std::string& error);
+                 std::string& error,
+                 // Optional: the absorbed rules this life reached,
+                 // merged into whatever is already there so a sweep can
+                 // accumulate across lives.
+                 std::set<kg::EntityID>* rules_reached = nullptr);
 
 // The life as a timeline, one line per event, with roll citations.
 std::string format_life(const CharacterSheet& sheet);
