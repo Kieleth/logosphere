@@ -10,9 +10,10 @@
 #include "logosphere/kg/kg_ops.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/ontology_validator.h"
+#include "generated/logosphere_ontology_registry.h"
 
-#include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -34,12 +35,25 @@ static kg::OntologyRegistry make_registry() {
     r.addEntityType("Cycle",       "Vehicle", false);
     r.addAncestors("Cycle", {"Vehicle"});
     r.addEntityType("TrailSegment","",        false);
-    r.addProperty("Cycle",        "max_speed", "float", false,
+    r.addEntityType("Record",      "",        true);
+    r.addEntityType("RequiredRecord", "Record", false);
+    r.addAncestors("RequiredRecord", {"Record"});
+    r.addProperty("Cycle", "max_speed", kg::PropertyValueKind::Float, false,
                   /*has_min=*/true, 0.1, /*has_max=*/true, 25.0);
-    r.addProperty("Cycle",        "x",         "float", false);
-    r.addProperty("Cycle",        "lap_count", "integer", false);
-    r.addProperty("Cycle",        "is_user",   "boolean", false);
-    r.addProperty("TrailSegment", "start_x",   "float", false);
+    r.addProperty("Cycle", "x", kg::PropertyValueKind::Float, false);
+    r.addProperty("Cycle", "lap_count", kg::PropertyValueKind::Integer,
+                  false);
+    r.addProperty("Cycle", "is_user", kg::PropertyValueKind::Boolean,
+                  false);
+    r.addProperty("TrailSegment", "start_x", kg::PropertyValueKind::Float,
+                  false);
+    r.addRefProperty("Cycle",     "trail",     false, "TrailSegment");
+    r.addEnumType("Mood", {"CALM", "COMMON"});
+    r.addEnumType("Access", {"OPEN", "COMMON"});
+    r.addEnumProperty("Cycle", "mood", "Mood", false);
+    r.addEnumProperty("Cycle", "access", "Access", false);
+    r.addProperty("Record", "code", kg::PropertyValueKind::String, true);
+    r.addRefProperty("RequiredRecord", "owner", true, "TrailSegment");
     r.addRelationType("PARENT_OF",
         std::unordered_set<std::string>{"Cycle"},
         std::unordered_set<std::string>{"TrailSegment"});
@@ -85,6 +99,46 @@ void create_with_unknown_property_rejected() {
     ASSERT_TRUE(!r.ok, "unknown property must reject");
     ASSERT_TRUE(r.reason.find("color_of_helmet") != std::string::npos,
         "reason names the bad property");
+}
+
+void create_with_duplicate_property_rejected() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{
+        "Cycle", {{"max_speed", "10"}, {"max_speed", "20"}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "duplicate create properties must reject");
+    ASSERT_TRUE(r.reason.find("duplicate property 'max_speed'") !=
+                    std::string::npos,
+        "reason names the duplicate property");
+}
+
+void create_missing_inherited_required_property_rejected() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{"RequiredRecord", {}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "missing inherited required property must reject");
+    ASSERT_TRUE(r.reason.find("RequiredRecord.code") != std::string::npos,
+        std::string("reason names the missing property; got '") + r.reason + "'");
+}
+
+void create_missing_required_entity_ref_rejected() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{
+        "RequiredRecord", {{"code", "alpha"}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "missing required entity reference must reject");
+    ASSERT_TRUE(r.reason.find("RequiredRecord.owner") != std::string::npos,
+        std::string("reason names the missing reference; got '") + r.reason + "'");
+}
+
+void create_with_all_required_properties_ok() {
+    Fixture f;
+    const auto owner = f.kg.createEntity("TrailSegment");
+    kg::KGOp op = kg::KGOpCreateEntity{
+        "RequiredRecord",
+        {{"code", "alpha"}, {"owner", std::to_string(owner)}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("expected ok; got: ") + r.reason);
 }
 
 void destroy_existing_entity_ok() {
@@ -207,16 +261,168 @@ void set_property_boolean_value_ok() {
     ASSERT_TRUE(r.ok, std::string("expected ok; got: ") + r.reason);
 }
 
-int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
+void create_with_exact_enum_member_ok() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{"Cycle", {{"mood", "CALM"}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("expected exact enum member; got: ") +
+                          r.reason);
+}
+
+void create_with_member_from_other_enum_rejected() {
+    Fixture f;
+    kg::KGOp op = kg::KGOpCreateEntity{"Cycle", {{"mood", "OPEN"}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "member from another enum must reject on create");
+    ASSERT_TRUE(r.reason.find("OPEN") != std::string::npos &&
+                    r.reason.find("Mood") != std::string::npos,
+                std::string("reason names member and exact enum; got: ") +
+                    r.reason);
+}
+
+void set_property_with_shared_exact_enum_member_ok() {
+    Fixture f;
+    auto e = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{e, ""}, "mood", "COMMON"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("shared token declared by Mood is valid; got: ") +
+                          r.reason);
+}
+
+void set_property_with_member_from_other_enum_rejected() {
+    Fixture f;
+    auto e = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{e, ""}, "access", "CALM"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "member from another enum must reject on set");
+    ASSERT_TRUE(r.reason.find("CALM") != std::string::npos &&
+                    r.reason.find("Access") != std::string::npos,
+                std::string("reason names member and exact enum; got: ") +
+                    r.reason);
+}
+
+// Entity-reference properties (class-ranged slots): the value must be
+// the id of an existing entity of the declared class or a subtype.
+
+void set_ref_property_right_class_ok() {
+    Fixture f;
+    auto cyc = f.kg.createEntity("Cycle");
+    auto seg = f.kg.createEntity("TrailSegment");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", std::to_string(seg)};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(r.ok, std::string("expected ok; got: ") + r.reason);
+}
+
+void set_ref_property_wrong_class_rejected() {
+    Fixture f;
+    auto cyc   = f.kg.createEntity("Cycle");
+    auto other = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", std::to_string(other)};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "a Cycle where a TrailSegment belongs must reject");
+    ASSERT_TRUE(r.reason.find("not a TrailSegment") != std::string::npos,
+        std::string("reason names the expected class; got '") + r.reason + "'");
+}
+
+void set_ref_property_junk_rejected() {
+    Fixture f;
+    auto cyc = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", "banana"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "a non-id value must reject");
+}
+
+void set_ref_property_missing_entity_rejected() {
+    Fixture f;
+    auto cyc = f.kg.createEntity("Cycle");
+    kg::KGOp op = kg::KGOpSetProperty{
+        kg::EntityRef{cyc, ""}, "trail", "999"};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "a dangling id must reject");
+}
+
+void create_with_ref_property_validated() {
+    Fixture f;
+    kg::KGOp bad = kg::KGOpCreateEntity{"Cycle", {{"trail", "banana"}}};
+    auto r = kg::validate_kg_op(bad, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "create_entity must not bypass the ref check");
+
+    auto seg = f.kg.createEntity("TrailSegment");
+    kg::KGOp ok = kg::KGOpCreateEntity{"Cycle",
+                                       {{"trail", std::to_string(seg)}}};
+    auto r2 = kg::validate_kg_op(ok, f.kg, f.registry);
+    ASSERT_TRUE(r2.ok, std::string("expected ok; got: ") + r2.reason);
+}
+
+void oversized_ref_cannot_wrap_to_a_live_entity() {
+    Fixture f;
+    const auto seg = f.kg.createEntity("TrailSegment");
+    ASSERT_TRUE(seg == 1, "control entity uses the first live id");
+    const auto wrapped =
+        static_cast<unsigned long long>(
+            std::numeric_limits<kg::EntityID>::max()) + 2ULL;
+    kg::KGOp op = kg::KGOpCreateEntity{
+        "Cycle", {{"trail", std::to_string(wrapped)}}};
+    auto r = kg::validate_kg_op(op, f.kg, f.registry);
+    ASSERT_TRUE(!r.ok, "an out-of-range entity id must not wrap to id 1");
+}
+
+void generated_identifier_is_engine_managed() {
+    const auto& registry = logosphere::ontology::registry();
+    const auto* identifier = registry.findProperty("SystemEntity", "id");
+    ASSERT_TRUE(identifier && identifier->identifier,
+        "the generated registry preserves LinkML identifier metadata");
+
+    kg::KGModule world(registry);
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::KGOp create = kg::KGOpCreateEntity{"SystemEntity", {}};
+    auto valid = kg::validate_kg_op(create, world, registry);
+    ASSERT_TRUE(valid.ok,
+        std::string("the engine-managed id is not reported missing: ") +
+        valid.reason);
+
+    const auto id = world.createEntity("SystemEntity");
+    ASSERT_TRUE(world.getProperty(id, "id") == std::to_string(id),
+        "entity creation materializes the schema identifier");
+
+    kg::KGOp rewrite = kg::KGOpSetProperty{
+        kg::EntityRef{id, ""}, "id", "someone-else"};
+    auto rejected = kg::validate_kg_op(rewrite, world, registry);
+    ASSERT_TRUE(!rejected.ok, "validated writes cannot replace identity");
+
+    bool set_threw = false;
+    bool remove_threw = false;
+    try {
+        world.setProperty(id, "id", "someone-else");
+    } catch (const std::invalid_argument&) {
+        set_threw = true;
     }
+    try {
+        world.removeProperty(id, "id");
+    } catch (const std::invalid_argument&) {
+        remove_threw = true;
+    }
+    ASSERT_TRUE(set_threw && remove_threw,
+        "trusted writes cannot replace or remove engine identity");
+    ASSERT_TRUE(world.getProperty(id, "id") == std::to_string(id),
+        "failed identity writes leave the original identifier intact");
+}
+
+int main() {
     std::cout << "=== test_ontology_validator ===" << std::endl;
     TEST(create_known_concrete_type_ok);
     TEST(create_unknown_type_rejected);
     TEST(create_abstract_type_rejected);
     TEST(create_with_unknown_property_rejected);
+    TEST(create_with_duplicate_property_rejected);
+    TEST(create_missing_inherited_required_property_rejected);
+    TEST(create_missing_required_entity_ref_rejected);
+    TEST(create_with_all_required_properties_ok);
     TEST(destroy_existing_entity_ok);
     TEST(destroy_missing_entity_rejected);
     TEST(unresolved_symbolic_ref_rejected);
@@ -229,6 +435,17 @@ int main() {
     TEST(set_property_below_min_rejected);
     TEST(set_property_wrong_value_type_rejected);
     TEST(set_property_boolean_value_ok);
+    TEST(create_with_exact_enum_member_ok);
+    TEST(create_with_member_from_other_enum_rejected);
+    TEST(set_property_with_shared_exact_enum_member_ok);
+    TEST(set_property_with_member_from_other_enum_rejected);
+    TEST(set_ref_property_right_class_ok);
+    TEST(set_ref_property_wrong_class_rejected);
+    TEST(set_ref_property_junk_rejected);
+    TEST(set_ref_property_missing_entity_rejected);
+    TEST(create_with_ref_property_validated);
+    TEST(oversized_ref_cannot_wrap_to_a_live_entity);
+    TEST(generated_identifier_is_engine_managed);
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;
     return tests_failed > 0 ? 1 : 0;

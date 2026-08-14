@@ -56,6 +56,16 @@ name in engine code; make it data-driven through the ontology.
 - **Changelog duty.** User-facing changes add a line to
   CHANGELOG.md under `[Unreleased]`, written for the library user,
   not the committer.
+- **One owner per thing; nobody edits another owner's content.**
+  Ingested entities carry the document and revision they came from,
+  and that origin is sealed: a seed may point at what another owns,
+  never write onto it. When something is partial, the fix is never
+  "edit the file that owns it" but "decide who owns the complete
+  thing". Check who actually depends on it first; a thing nothing
+  references can simply change hands. This is invariant 8 in
+  ENGINE_INVARIANTS.md, and it has been paid for three times: two
+  seeds each creating a `Gun Combat`, two each creating a `1D6`, and
+  a sampler seed holding three rows hostage.
 
 ## Ontology changes
 

@@ -97,6 +97,18 @@ back here.
   event types: declared in the ontology or registered at startup.
   Engine logic dispatches through lookup tables, not hardcoded
   switches.
+- **Rules that check themselves.** A published rulebook can be read
+  into the graph as cited data: every value proves itself against the
+  sentence or table cell that states it, and every roll records the
+  rule entity that made it. The graph plus the dice journal is then
+  enough to re-derive what a rule permitted and compare it to what
+  happened, so a rule added tomorrow is checked without anyone writing
+  a test for it. See [Rules as Data](docs/RULES_AS_DATA.md).
+- **Runs you can replay exactly.** Any game runs headless, with no
+  window and no clock, and what happened is kept separate from what was
+  decided. A run records to a tape and replays byte for byte, so a bug
+  found by sweeping thousands of runs arrives as a seed rather than a
+  description. See [Record and Replay](docs/RECORD_AND_REPLAY.md).
 - **Opt-in subsystems.** Damage, LLM, capabilities. A puzzle game
   uses none of them, a combat game uses all of them, the engine does
   not care either way.
@@ -150,6 +162,36 @@ remote providers (OpenAI, Anthropic) or a local server.
 
 [`examples/logotron/LOGOTRON.md`](examples/logotron/LOGOTRON.md)
 
+### Logovger, a Rulebook Read Into the Graph
+
+A published tabletop RPG rulebook, ingested until it is playable. The
+Cepheus Engine SRD goes in as markdown; what comes out is a character
+generator you sit at, where every value on the sheet can be clicked
+and the book answers with the table cell it came from.
+
+None of the rules are written in C++. Careers, throws, skill tables,
+rank ladders and mustering-out benefits are entities in the knowledge
+graph, loaded from seed files that must prove themselves first: an
+ingestion verifier resolves every citation back into the source text
+and refuses the seed when a quote, a number or a table address does
+not match. Dice are engine-side, seeded and journalled, so a life
+replays exactly and every result cites the roll that made it.
+
+That discipline is not decoration. Reading three thousand rule
+entities out of one chapter surfaced four defects in the published
+book, including a skill that two career tables grant and the rules
+never define. Each was reported upstream rather than quietly
+corrected, and the ones the book's own text proves wrong are fixed at
+source with the divergence recorded.
+
+An LLM narrates what the dice already decided and cannot contradict
+them, because it is handed facts and asked only for prose. It runs
+against a hosted model or a local one; same rules, same character,
+either way.
+
+[`examples/logovger/README.md`](examples/logovger/README.md) ·
+[`docs/RPG_MODULE.md`](docs/RPG_MODULE.md)
+
 ## Platform
 
 Three build profiles, selected with `-DLOGOSPHERE_PROFILE=<full|physics|core>`:
@@ -182,6 +224,7 @@ cmake --build build --config Release
 ./build/eden/eden                    # the knowledge-garden example
 ./build/logotron/logotron            # the light-cycle example
 ./build/logogenesis/logogenesis      # conversational world creation
+./build/logovger/logovger            # character creation from a rulebook
 ./build/logosphere-tests --no-head   # the combined test harness
 ```
 
@@ -225,6 +268,8 @@ and `headless-linux` jobs).
 | `eden` | `build/eden/` | full | Eden example game |
 | `logotron` | `build/logotron/` | full | Logotron example game |
 | `logogenesis` | `build/logogenesis/` | full | Logogenesis example game |
+| `logovger` | `build/logovger/` | full | Logovger, character creation from an ingested rulebook |
+| `logovger-bench-narrator` | `build/examples/logovger/` | full | Measures the wait between a decision and its narration |
 | Standalone headless tests | `build/test_*` | both | 46 standalone executables (KG, capability, damage, events, ontology, physics guards) |
 | Other standalone tests | `build/test_*` | full | Physics, rendering, animation, etc. |
 
@@ -241,6 +286,13 @@ bus, capability rules).
 holds the invariants every change must honor;
 **[Module Architecture](docs/MODULE_ARCHITECTURE.md)** maps the
 Core / Modules / Plugins organization.
+
+**Bringing an existing rulebook?** Read **[Rules as
+Data](docs/RULES_AS_DATA.md)** before you start. It covers where the
+line between rule-as-data and rule-as-code actually falls, why a rule
+must never be found by its printed name, how a value proves itself
+against the text that states it, and the failure modes we hit absorbing
+the Cepheus Engine SRD.
 
 **Contributing to the engine?** See **[docs/INDEX.md](docs/INDEX.md)**
 for the full documentation table of contents organized by audience,

@@ -9,7 +9,6 @@
 #include "logosphere/effects/mutation_playback.h"
 #include "logosphere/kg/kg_ops.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -154,10 +153,6 @@ void play_cinematic_dispatches_on_name() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_mutation_playback ===" << std::endl;
     TEST(create_dispatches_to_registered_handler);
     TEST(unregistered_create_falls_back_to_default);

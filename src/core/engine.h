@@ -47,6 +47,7 @@ typedef struct GLFWwindow GLFWwindow;
 #include "spatial/entity_spatial.h"  // Entity-aware spatial queries
 #include "player_controller.h"  // Player input handling (mouse look, WASD, abilities)
 #include "logosphere/events/event_bus.h"  // Two-tier event system (signals + log)
+#include "logosphere/capability/capability_store.h"
 #include "logosphere/interaction/particle_interaction_system.h"
 #include "logosphere/kg/entity_physical_state.h"
 #include "logosphere/core/ground_locator.h"  // KG-declared contact policy
@@ -171,6 +172,11 @@ public:
     CameraSystem& get_camera_system() { return camera_system_; }
     CameraDirector& get_camera_director() { return camera_director_; }
     TimeSystem& get_time_system() { return time_system_; }
+
+    // How many times THIS engine has been updated. Public because it
+    // is the only way to observe that two engines in one process are
+    // independent, which they were not until recently.
+    uint64_t update_count() const { return update_count_; }
     EntitySystem& get_entity_system() { return *entity_system_; }
     // Renderer/Display split (Phase 4). Engine composes both; headless
     // mode is simply display_ == nullptr. Accessors return by
@@ -246,6 +252,12 @@ public:
     // the physics broad phase consults it (empty = today's behavior).
     logosphere::interaction::ParticleInteractionSystem& get_interaction_system() {
         return interaction_system_;
+    }
+
+    // Capability store: tracked entities' profiles, recomputed on
+    // state change, written back to the KG as capability.* (#37).
+    capability::CapabilityStore& get_capability_store() {
+        return capability_store_;
     }
     // Where a body can be. Ask this instead of assuming a height:
     // there is no floor at zero, the ground is particles, and it
@@ -579,10 +591,18 @@ private:
     // Event bus - Two-tier event system (synchronous signals + append-only log)
     logosphere::EventBus event_bus_;
     logosphere::interaction::ParticleInteractionSystem interaction_system_;
+    capability::CapabilityStore capability_store_;
     logosphere::EntityPhysicalState entity_physical_state_;
     logosphere::GroundLocator ground_locator_;
     Logosphere::HumanoidIntegrityMonitor humanoid_integrity_monitor_;
     Logosphere::DeepProbeManager        deep_probe_manager_;
+    // How many times THIS engine has been updated. It was a
+    // function-local static, which made it shared by every Engine in
+    // the process: a second engine started at the first one's frame
+    // number, and it is handed to the integrity monitor and the deep
+    // probes, so their windows landed somewhere arbitrary. Any test
+    // that builds two engines in one process hit this.
+    uint64_t                            update_count_ = 0;
     ParticleTracer                      particle_tracer_;
 
     // Timing

@@ -12,6 +12,8 @@
 #include "generated/logosphere_ontology_registry.h"
 #include <iostream>
 #include <cassert>
+#include <exception>
+#include <unordered_set>
 
 #define ASSERT(cond, msg) do { \
     if (!(cond)) { \
@@ -34,15 +36,16 @@ static int tests_failed = 0;
 static kg::OntologyRegistry build_farming_ontology() {
     kg::OntologyRegistry reg;
 
-    // Plant is already in the engine ontology (abstract). Extend it with
-    // domain-specific concrete types. Note that extend() is additive, so
-    // we only need to add the *new* things.
+    // The game introduces an abstract Plant branch under the engine's
+    // LivingEntity type, then adds its domain-specific concrete types.
+    reg.addEntityType("Plant",    "LivingEntity", true);
     reg.addEntityType("Crop",     "Plant", /*is_abstract=*/false);
     reg.addEntityType("Carrot",   "Crop",  false);
     reg.addEntityType("Tomato",   "Crop",  false);
     reg.addEntityType("Soil",     "Entity", false);
 
     // Ancestors must be declared explicitly for isSubtypeOf() to work.
+    reg.addAncestors("Plant",  {"LivingEntity", "WorldEntity", "Entity"});
     reg.addAncestors("Crop",   {"Plant", "LivingEntity", "WorldEntity", "Entity"});
     reg.addAncestors("Carrot", {"Crop", "Plant", "LivingEntity", "WorldEntity", "Entity"});
     reg.addAncestors("Tomato", {"Crop", "Plant", "LivingEntity", "WorldEntity", "Entity"});
@@ -54,10 +57,14 @@ static kg::OntologyRegistry build_farming_ontology() {
         /*targets=*/{"Soil"});
 
     // Custom properties
-    reg.addProperty("Crop", "growth_stage",  "integer", /*required=*/false);
-    reg.addProperty("Crop", "water_level",   "float",   false);
-    reg.addProperty("Soil", "fertility",     "float",   false);
-    reg.addProperty("Soil", "moisture",      "float",   false);
+    reg.addProperty("Crop", "growth_stage", kg::PropertyValueKind::Integer,
+                    /*required=*/false);
+    reg.addProperty("Crop", "water_level", kg::PropertyValueKind::Float,
+                    false);
+    reg.addProperty("Soil", "fertility", kg::PropertyValueKind::Float,
+                    false);
+    reg.addProperty("Soil", "moisture", kg::PropertyValueKind::Float,
+                    false);
 
     return reg;
 }
@@ -158,11 +165,276 @@ void test_reextending_is_idempotent() {
 
     auto farming = build_farming_ontology();
     kg.extendOntology(farming);
+    const size_t properties_after_first =
+        kg.getRegistry().propertiesOf("Crop").size();
     kg.extendOntology(farming);  // second call, same registry
 
-    // No duplication, still works
+    ASSERT(properties_after_first == 2,
+           "the farming extension declares two Crop properties");
+    ASSERT(kg.getRegistry().propertiesOf("Crop").size() ==
+               properties_after_first,
+           "re-extension does not duplicate identical properties");
+
     auto crop = kg.createEntity("Crop");
     ASSERT(kg.exists(crop), "entity creation works after re-extension");
+}
+
+void test_conflicting_entity_type_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Thing", "Entity", false);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addEntityType("Thing", "WorldEntity", false);
+
+    bool threw = false;
+    bool provenance_is_exact = false;
+    try {
+        base.extend(extension);
+    } catch (const kg::OntologyCollision& collision) {
+        threw = true;
+        provenance_is_exact =
+            collision.kind() == "entity type" &&
+            collision.definition() == "Thing" &&
+            collision.existing_source() == "schema://base" &&
+            collision.incoming_source() == "schema://incoming";
+    }
+
+    ASSERT(threw, "a conflicting entity definition throws");
+    ASSERT(provenance_is_exact,
+           "the collision identifies both schema sources");
+    ASSERT(base.entityTypes().at("Thing").parent == "Entity",
+           "the existing entity definition survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "a conflicting extension lands no earlier definitions");
+}
+
+void test_conflicting_relation_type_fails_atomically() {
+    kg::OntologyRegistry base;
+    base.addRelationType("LINKS", {"Entity"}, {"Entity"});
+
+    kg::OntologyRegistry extension;
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addRelationType("LINKS", {"WorldEntity"}, {"Entity"});
+
+    bool threw = false;
+    try {
+        base.extend(extension);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+
+    ASSERT(threw, "a conflicting relation definition throws");
+    ASSERT(base.relationTypes().at("LINKS").valid_source_types ==
+               std::unordered_set<std::string>{"Entity"},
+           "the existing relation definition survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "a relation conflict leaves the whole extension unapplied");
+}
+
+void test_conflicting_property_fails_atomically() {
+    kg::OntologyRegistry base;
+    base.addEntityType("Thing", "Entity", false);
+    base.addProperty("Thing", "score", kg::PropertyValueKind::Integer,
+                     false);
+
+    kg::OntologyRegistry extension;
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addProperty("Thing", "score", kg::PropertyValueKind::String,
+                          false);
+
+    bool threw = false;
+    try {
+        base.extend(extension);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+
+    ASSERT(threw, "a conflicting property definition throws");
+    ASSERT(base.propertiesOf("Thing").size() == 1 &&
+               base.propertiesOf("Thing")[0].value_kind ==
+                   kg::PropertyValueKind::Integer,
+           "the existing property definition survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "a property conflict leaves the whole extension unapplied");
+}
+
+void test_unknown_property_ref_target_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Entity", "", true);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addRefProperty("NewType", "owner", true, "MissingType");
+
+    bool threw = false;
+    std::string reason;
+    try {
+        base.extend(extension);
+    } catch (const std::exception& error) {
+        threw = true;
+        reason = error.what();
+    }
+
+    ASSERT(threw, "a property targeting an unknown entity type throws");
+    ASSERT(reason.find("NewType.owner") != std::string::npos &&
+               reason.find("MissingType") != std::string::npos &&
+               reason.find("schema://incoming") != std::string::npos,
+           "the reference error names property, target, and source");
+    ASSERT(!base.hasEntityType("NewType"),
+           "an invalid reference leaves the whole extension unapplied");
+}
+
+void test_unknown_entity_parent_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Entity", "", true);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("Orphan", "MissingParent", false);
+
+    bool threw = false;
+    std::string reason;
+    try {
+        base.extend(extension);
+    } catch (const std::exception& error) {
+        threw = true;
+        reason = error.what();
+    }
+
+    ASSERT(threw, "an entity with an unknown parent throws");
+    ASSERT(reason.find("Orphan") != std::string::npos &&
+               reason.find("MissingParent") != std::string::npos,
+           "the parent error names the child and missing parent");
+    ASSERT(!base.hasEntityType("Orphan"),
+           "an invalid parent leaves the whole extension unapplied");
+}
+
+void test_unknown_relation_endpoint_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEntityType("Entity", "", true);
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "Entity", false);
+    extension.addRelationType("OWNS", {"NewType"}, {"MissingType"});
+
+    bool threw = false;
+    try {
+        base.extend(extension);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+
+    ASSERT(threw, "a relation targeting an unknown entity type throws");
+    ASSERT(!base.hasEntityType("NewType") &&
+               !base.hasRelationType("OWNS"),
+           "an invalid relation leaves the whole extension unapplied");
+}
+
+void test_invalid_base_registry_is_rejected_when_used() {
+    kg::OntologyRegistry invalid("schema://invalid");
+    invalid.addEntityType("Thing", "", false);
+    invalid.addRefProperty("Thing", "owner", false, "MissingType");
+
+    bool threw = false;
+    try {
+        kg::KGModule world(invalid);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    ASSERT(threw, "KG construction rejects an invalid registry");
+}
+
+void test_identical_enum_definitions_compose_idempotently() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEnumType("Mood", {"CALM", "ANGRY"});
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEnumType("Mood", {"ANGRY", "CALM"});
+    extension.addEnumProperty("Character", "mood", "Mood", false);
+
+    base.extend(extension);
+
+    ASSERT(base.enumTypes().size() == 1,
+           "an identical enum definition composes once");
+    ASSERT(base.enumTypes().at("Mood").members ==
+               std::unordered_set<std::string>({"CALM", "ANGRY"}),
+           "the composed enum retains its members");
+    ASSERT(base.enumTypes().at("Mood").source == "schema://base",
+           "the original enum provenance survives idempotent composition");
+    ASSERT(base.findProperty("Character", "mood")->enum_type == "Mood",
+           "the property retains its exact enum refinement");
+}
+
+void test_distinct_enum_names_remain_nominal_with_identical_members() {
+    kg::OntologyRegistry registry("schema://nominal");
+    registry.addEnumType("Mood", {"SHARED"});
+    registry.addEnumType("Access", {"SHARED"});
+    registry.addEnumProperty("Character", "mood", "Mood", false);
+    registry.addEnumProperty("Character", "access", "Access", false);
+    registry.validateReferences();
+
+    ASSERT(registry.enumTypes().size() == 2,
+           "identical member sets do not merge distinct enum names");
+    ASSERT(registry.findProperty("Character", "mood")->enum_type == "Mood" &&
+               registry.findProperty("Character", "access")->enum_type ==
+                   "Access",
+           "properties retain nominal refinements despite identical members");
+}
+
+void test_conflicting_enum_definition_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+    base.addEnumType("Mood", {"CALM", "ANGRY"});
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("NewType", "", false);
+    extension.addEnumType("Mood", {"CALM", "AFRAID"});
+
+    bool threw = false;
+    bool provenance_is_exact = false;
+    try {
+        base.extend(extension);
+    } catch (const kg::OntologyCollision& collision) {
+        threw = true;
+        provenance_is_exact =
+            collision.kind() == "enum type" &&
+            collision.definition() == "Mood" &&
+            collision.existing_source() == "schema://base" &&
+            collision.incoming_source() == "schema://incoming";
+    }
+
+    ASSERT(threw, "an incompatible enum definition throws");
+    ASSERT(provenance_is_exact,
+           "the enum collision identifies both schema sources");
+    ASSERT(base.enumTypes().at("Mood").members.count("ANGRY") == 1,
+           "the existing enum survives the conflict");
+    ASSERT(!base.hasEntityType("NewType"),
+           "an enum conflict lands no earlier definitions");
+}
+
+void test_unknown_enum_refinement_fails_atomically() {
+    kg::OntologyRegistry base("schema://base");
+
+    kg::OntologyRegistry extension("schema://incoming");
+    extension.addEntityType("Character", "", false);
+    extension.addEnumProperty(
+        "Character", "mood", "MissingMood", false);
+
+    bool threw = false;
+    std::string reason;
+    try {
+        base.extend(extension);
+    } catch (const std::exception& error) {
+        threw = true;
+        reason = error.what();
+    }
+
+    ASSERT(threw, "a property refined by an unknown enum throws");
+    ASSERT(reason.find("Character.mood") != std::string::npos &&
+               reason.find("MissingMood") != std::string::npos &&
+               reason.find("schema://incoming") != std::string::npos,
+           "the enum reference error names property, enum, and source");
+    ASSERT(!base.hasEntityType("Character"),
+           "an invalid enum reference leaves the extension unapplied");
 }
 
 int main() {
@@ -174,6 +446,17 @@ int main() {
     test_custom_relations_validated();
     test_custom_properties();
     test_reextending_is_idempotent();
+    test_conflicting_entity_type_fails_atomically();
+    test_conflicting_relation_type_fails_atomically();
+    test_conflicting_property_fails_atomically();
+    test_unknown_property_ref_target_fails_atomically();
+    test_unknown_entity_parent_fails_atomically();
+    test_unknown_relation_endpoint_fails_atomically();
+    test_invalid_base_registry_is_rejected_when_used();
+    test_identical_enum_definitions_compose_idempotently();
+    test_distinct_enum_names_remain_nominal_with_identical_members();
+    test_conflicting_enum_definition_fails_atomically();
+    test_unknown_enum_refinement_fails_atomically();
 
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;

@@ -77,7 +77,12 @@ game, it's engine. If it only makes sense in one genre, it's game.
 - Engine: capability aggregation across body parts. Game: which
   capabilities exist and what damage means.
 - Engine: event bus with typed channels. Game: what to emit and
-  when to react.
+  when to react. Events are **transactional**: a batch that rolls back
+  emits nothing, and nothing is announced part-way through one, so the
+  bus only ever speaks about facts. That makes it the right tool for
+  reacting to what happened and the wrong one for watching a change in
+  progress; for that, a rule reads `PlannedWorld`. See
+  [OBSERVING_CHANGE.md](OBSERVING_CHANGE.md).
 - Engine: physics, animation, worldgen generators. Game: what
   entities exist and why.
 

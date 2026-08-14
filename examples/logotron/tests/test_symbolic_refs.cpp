@@ -4,7 +4,6 @@
 
 #include "director/symbolic_refs.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -80,10 +79,6 @@ void empty_refs_yield_empty_prompt() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_symbolic_refs ===" << std::endl;
     TEST(resolve_with_or_without_at_prefix);
     TEST(unknown_alias_returns_invalid);

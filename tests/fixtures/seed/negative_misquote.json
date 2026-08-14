@@ -1,0 +1,23 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": { "RuleConstant": 1 }
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@age_of_majority",
+      "properties": {
+        "name": "age_of_majority",
+        "constant_value": 18,
+        "source_section": "Chapter 1: Character Creation",
+        "source_quote": "All characters begin at the age of majority, typicaly 18."
+      }
+    }
+  ]
+}

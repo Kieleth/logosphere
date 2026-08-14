@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(logosphere VERSION 0.2.0)
+project(logosphere VERSION 0.4.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -111,7 +111,30 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/kg_query.cpp
     src/kg/kg_ops_parse.cpp
     src/kg/kg_ops_apply.cpp
+    src/kg/kg_ops_transaction.cpp
+    src/kg/finite_float.cpp
+    src/kg/qualified_reference.cpp
+    src/kg/ontology_meta_graph.cpp
     src/kg/ontology_validator.cpp
+    # Source locators: address a piece of a rulebook, resolve it back
+    src/text/source_document.cpp
+    src/text/source_locator.cpp
+    # Seed files: envelope + aliased KG-ops loaded through the
+    # validated write path, and the ingestion verifier (verbatim /
+    # schema / value / semantic / invariants). docs/RPG_MODULE.md.
+    src/kg/seed_loader.cpp
+    src/kg/seed_verifier.cpp
+    src/rules/outcome_executor.cpp
+    src/rules/planned_world.cpp
+    src/replay/run_recorder.cpp
+    src/replay/run_tape.cpp
+    src/rules/procedure_runner.cpp
+    src/rules/rollable_table_runner.cpp
+    src/rules/lookup_table_selector.cpp
+    src/rules/task_check_runner.cpp
+    src/rules/rule_fork.cpp
+    src/rules/rule_static_type.cpp
+    src/rules/rule_program_validator.cpp
     # Generated ontology registry (pure data)
     src/generated/logosphere_ontology_registry.cpp
     # Setting packs (schema/packs/*.yaml). Compiling a pack is NOT
@@ -119,8 +142,12 @@ set(LOGOSPHERE_CORE_SOURCES
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
     src/generated/earth_ontology_registry.cpp
+    src/generated/rule_language_ontology_registry.cpp
+    src/generated/rulebook_ontology_registry.cpp
     # Capability system (engine aggregation + dynamics params + rules)
     src/capability/capability_profile.cpp
+    src/capability/capability_store.cpp
+    src/core/dice_service.cpp
     src/capability/dynamics_params.cpp
     src/capability/trigger_registry.cpp
     src/capability/effect_registry.cpp
@@ -223,7 +250,8 @@ target_include_directories(logosphere_core PUBLIC
     $<INSTALL_INTERFACE:include>
     $<INSTALL_INTERFACE:include/logosphere/internal>
 )
-# nlohmann/json is header-only; only kg_ops_parse.cpp uses it.
+# nlohmann/json is header-only; only kg_ops_parse.cpp and
+# seed_loader.cpp use it.
 target_include_directories(logosphere_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
@@ -303,11 +331,15 @@ install(FILES
 # standards-compliant C++17 toolchain. No engine state, no GPU, no GLFW.
 enable_testing()
 
+function(register_headless_test name)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
 function(add_headless_test name)
     add_executable(${name} tests/${name}.cpp)
     target_link_libraries(${name} PRIVATE logosphere_core)
     target_compile_features(${name} PRIVATE cxx_std_17)
-    add_test(NAME ${name} COMMAND ${name})
+    register_headless_test(${name})
 endfunction()
 
 # The predator example's AT. Not add_headless_test because the example's
@@ -327,6 +359,9 @@ add_test(NAME at_predator_hunger COMMAND at_predator_hunger)
 add_headless_test(test_goap_planner)  # the NPC planner, previously untested
 add_headless_test(test_navgrid_pathfinding)  # the NPC A* grid, previously untested
 add_headless_test(test_event_log)
+add_headless_test(test_planned_world)  # reading a plan before it commits
+add_headless_test(test_run_recorder)   # the run, as a diffable trace
+add_headless_test(test_run_tape)       # recorded, replayed, or invented
 add_headless_test(test_signal)
 add_headless_test(test_event_channel)
 add_headless_test(test_event_bus)
@@ -339,6 +374,16 @@ add_headless_test(test_kg_ops_parse)
 add_headless_test(test_ontology_validator)
 add_headless_test(test_kg_ops_apply)
 add_headless_test(test_kg_property_gate)  # Malleus H1: setProperty ontology gate
+add_headless_test(test_kg_ops_transaction)
+add_headless_test(test_qualified_reference)
+add_headless_test(test_ontology_meta_graph)
+add_headless_test(test_rule_static_type)
+add_headless_test(test_rule_bindings)
+add_headless_test(test_outcome_executor)
+add_headless_test(test_procedure_runner)
+add_headless_test(test_rollable_table_runner)
+add_headless_test(test_lookup_table_selector)
+add_headless_test(test_task_check_runner)
 # test_mutation_playback links logosphere_core only (no Engine
 # dereferencing in the tests; dummy pointers in fixtures).
 add_executable(test_mutation_playback
@@ -347,6 +392,7 @@ add_executable(test_mutation_playback
 )
 target_link_libraries(test_mutation_playback PRIVATE logosphere_core)
 target_compile_features(test_mutation_playback PRIVATE cxx_std_17)
+register_headless_test(test_mutation_playback)
 add_headless_test(test_body_plan)
 add_headless_test(test_game_time)
 add_headless_test(test_material_properties)  # mechanical constants must be physically possible
@@ -363,6 +409,149 @@ add_headless_test(test_entity_type_strings)
 # ctest runs from the build directory, not the repo root.
 target_compile_definitions(test_entity_type_strings
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_source_locator)
+# Resolves locators against the vendored SRD in the tree.
+target_compile_definitions(test_source_locator
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_rulebook_pack)
+add_headless_test(test_rule_fork)
+# Verbatim-checks its citations against the vendored SRD in the tree.
+target_compile_definitions(test_rulebook_pack
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_executable(test_seed_verifier
+    tests/test_seed_verifier.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_seed_verifier PRIVATE logosphere_core)
+target_compile_features(test_seed_verifier PRIVATE cxx_std_17)
+target_include_directories(test_seed_verifier PRIVATE examples/logovger/src)
+register_headless_test(test_seed_verifier)
+# Reads its seed fixtures + the vendored SRD from the source tree.
+target_compile_definitions(test_seed_verifier
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# The ingestion verifier CLI: logosphere-verify <seed.json> <source-root>.
+# Links the ENGINE registries only (core + rulebook + earth + space,
+# merged); game seed files with game types verify through game-side
+# targets calling kg::verify_seed with their own registry.
+add_executable(logosphere-verify tools/logosphere_verify.cpp)
+target_link_libraries(logosphere-verify PRIVATE logosphere_core)
+target_compile_features(logosphere-verify PRIVATE cxx_std_17)
+# The CLI under ctest, both directions: the positive fixture must
+# verify clean (exit 0), the misquote fixture must fail (exit 1,
+# expressed as WILL_FAIL).
+add_test(NAME logosphere_verify_positive
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/rulebook_smoke.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+add_test(NAME logosphere_verify_negative
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
+
+# Logovger with no window: a life played by an InputSource. Proves the
+# replay harness on a real game, and gives a fuzzing entry point that
+# needs no API key.
+add_executable(logovger-headless
+    examples/logovger/logovger_headless.cpp
+    examples/logovger/chargen/chargen.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(logovger-headless PRIVATE logosphere_core)
+target_compile_features(logovger-headless PRIVATE cxx_std_17)
+target_include_directories(logovger-headless PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(logovger-headless PRIVATE
+    LOGOVGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger")
+
+# Logovger: the referee's answer, held to the rule that asked for it.
+# Deliberately free of any LLM dependency (logosphere_llm is defined
+# below the headless short-circuit), because this is the check that
+# stops a loose reply widening a rule, and it has to run everywhere.
+add_executable(test_judgment_answer
+    examples/logovger/test_judgment_answer.cpp
+    examples/logovger/src/judgment_answer.cpp
+)
+target_compile_features(test_judgment_answer PRIVATE cxx_std_17)
+target_include_directories(test_judgment_answer PRIVATE examples/logovger)
+register_headless_test(test_judgment_answer)
+
+# Logovger: absorbed rules proven against the book's own numbers.
+# Game sources compiled into the test, engine as a library.
+add_executable(test_logovger_rules_book1
+    examples/logovger/test_rules_book1.cpp
+)
+target_link_libraries(test_logovger_rules_book1 PRIVATE logosphere_core)
+target_compile_features(test_logovger_rules_book1 PRIVATE cxx_std_17)
+target_include_directories(test_logovger_rules_book1 PRIVATE examples/logovger)
+add_test(NAME test_logovger_rules_book1 COMMAND test_logovger_rules_book1)
+# Skills pack contract: game registries compiled into the test, engine
+# as a library; reads the vendored SRD for citation checks.
+add_executable(test_skills_pack
+    examples/logovger/test_skills_pack.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_skills_pack PRIVATE logosphere_core)
+target_compile_features(test_skills_pack PRIVATE cxx_std_17)
+target_include_directories(test_skills_pack PRIVATE examples/logovger
+    examples/logovger/src)
+target_compile_definitions(test_skills_pack
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_skills_pack COMMAND test_skills_pack)
+# Typed lookup rows and rollable outcomes: game-declared result columns,
+# verified through the same merged registry Logovger loads.
+add_executable(test_logovger_table_results
+    examples/logovger/test_table_results.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_logovger_table_results PRIVATE logosphere_core)
+target_compile_features(test_logovger_table_results PRIVATE cxx_std_17)
+target_include_directories(test_logovger_table_results PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(test_logovger_table_results
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_logovger_table_results COMMAND test_logovger_table_results)
+# The first playable slice: a life generated from seeded rules.
+add_executable(test_chargen
+    examples/logovger/test_chargen.cpp
+    examples/logovger/chargen/chargen.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_chargen PRIVATE logosphere_core)
+target_compile_features(test_chargen PRIVATE cxx_std_17)
+target_include_directories(test_chargen PRIVATE examples/logovger
+    examples/logovger/src)
+target_compile_definitions(test_chargen
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_chargen COMMAND test_chargen)
+
+# Pure arithmetic: where the panels sit. No engine, no GPU, no window.
+# It catches the failures a screenshot cannot, starting with a window
+# too wide for the display to show at all.
+add_executable(test_screen_layout examples/logovger/test_screen_layout.cpp)
+target_compile_features(test_screen_layout PRIVATE cxx_std_17)
+target_include_directories(test_screen_layout PRIVATE examples/logovger)
+add_test(NAME test_screen_layout COMMAND test_screen_layout)
+
+# The classification audit cannot be quietly skipped: this compares the
+# shipped seed against the shipped audit and fails when extraction has
+# moved and the audit has not been re-run. No network; it reads two
+# files that are both in the repository.
+add_executable(test_classification_audit
+    examples/logovger/test_classification_audit.cpp)
+target_compile_features(test_classification_audit PRIVATE cxx_std_17)
+target_compile_definitions(test_classification_audit
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME test_classification_audit COMMAND test_classification_audit)
+
+add_headless_test(test_dice_service)
+add_headless_test(test_capability_store)
 add_headless_test(test_kg_reverse_relations)
 add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
@@ -411,6 +600,11 @@ endfunction()
 
 if(LOGOSPHERE_FULL)
     add_engine_at(test_engine_headless_render)
+    # Parallel-safety guard: a headless Engine must never call
+    # glfwInit(), because on Cocoa that runs [NSApp run] and blocks on
+    # the session-global window-server launch handshake. That is what
+    # made `ctest -j 8` deadlock on a different test each run.
+    add_engine_at(test_headless_no_window_server)
     add_engine_at(test_trail_fade_render)
     add_engine_at(test_celestial_moon)   # moon factory preset (pure config)
     add_engine_at(test_strata_earth_impact)  # earth preset + boulder crater contract
@@ -447,6 +641,32 @@ if(LOGOSPHERE_FULL)
     )
     target_compile_features(at_predator_hunger_visual PRIVATE cxx_std_17)
     add_test(NAME at_predator_hunger_visual COMMAND at_predator_hunger_visual)
+
+    # The search: walls, meander, smell, getting lost — the full NPC
+    # loop (senses -> facts -> plan -> executors -> replan) on screen.
+    add_executable(at_predator_search
+        examples/predator/at_predator_search.cpp
+        examples/predator/ai/eat_executor.cpp
+        examples/predator/ai/grab_prey_executor.cpp
+        examples/predator/ai/meander_executor.cpp
+        examples/predator/src/generated/predator_ontology_registry.cpp
+    )
+    target_link_libraries(at_predator_search
+        PRIVATE
+            logosphere
+            "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+            "-framework CoreGraphics" "-framework AppKit"
+            "-framework Foundation" "-framework QuartzCore"
+            "-framework Metal" "-framework MetalKit"
+            "-framework MetalPerformanceShaders"
+    )
+    target_include_directories(at_predator_search PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/predator
+    )
+    target_compile_features(at_predator_search PRIVATE cxx_std_17)
+    add_test(NAME at_predator_search COMMAND at_predator_search)
     add_engine_at(test_knockback_scene)  # contact rule -> knockback against the REAL solver (#36)
     add_engine_at(test_tree_collapse_threshold)  # small trees must not be bare poles (#21)
     add_engine_at(test_tree_collapse_demo)  # shows WHY small trees collapsed (#21)
@@ -484,6 +704,20 @@ if(LOGOSPHERE_FULL)
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
     )
     target_compile_features(at_program_actor PRIVATE cxx_std_17)
+
+    # at_headless_run — the fixed-step, no-window driver every recorded
+    # or repeatable run uses.
+    add_executable(at_headless_run tests/at_headless_run.cpp)
+    target_link_libraries(at_headless_run PRIVATE logosphere)
+    target_compile_features(at_headless_run PRIVATE cxx_std_17)
+    add_test(NAME at_headless_run COMMAND at_headless_run)
+
+    # test_determinism_guards — three ways the engine used to answer the
+    # same question differently. Full engine: Engine + worldgen.
+    add_executable(test_determinism_guards tests/test_determinism_guards.cpp)
+    target_link_libraries(test_determinism_guards PRIVATE logosphere)
+    target_compile_features(test_determinism_guards PRIVATE cxx_std_17)
+    add_test(NAME test_determinism_guards COMMAND test_determinism_guards)
 
     # at_cinematic — same pattern as at_program_actor; needs both
     # program_actor.cpp and cinematic.cpp linked in.
@@ -635,6 +869,7 @@ target_include_directories(test_logotron_cycle PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src
 )
 target_compile_features(test_logotron_cycle PRIVATE cxx_std_17)
+register_headless_test(test_logotron_cycle)
 
 # v0.4 — KG-backed cycles and trails. Needs the KG module + the
 # logotron-side ontology registry (an example-local generated file)
@@ -652,6 +887,7 @@ target_include_directories(test_logotron_trails PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_trails PRIVATE cxx_std_17)
+register_headless_test(test_logotron_trails)
 
 # v0.5 — Collision detection. Same source set as test_logotron_trails.
 add_executable(test_logotron_collision
@@ -666,6 +902,7 @@ target_include_directories(test_logotron_collision PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_collision PRIVATE cxx_std_17)
+register_headless_test(test_logotron_collision)
 
 # v0.6 — Round status: pure function of two cycles' KG state.
 add_executable(test_logotron_round
@@ -681,6 +918,7 @@ target_include_directories(test_logotron_round PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_round PRIVATE cxx_std_17)
+register_headless_test(test_logotron_round)
 
 # v0.9 — Weirden Director: KG-side primitives (respawn_ai today,
 # mutations + prompt + parser as they land). Headless: links only
@@ -711,6 +949,7 @@ target_include_directories(test_logotron_director PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(test_logotron_director PRIVATE cxx_std_17)
+register_headless_test(test_logotron_director)
 
 # Pure-logic logotron test for the SymbolicRefs helper.
 add_executable(test_symbolic_refs
@@ -722,6 +961,7 @@ target_include_directories(test_symbolic_refs PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src
 )
 target_compile_features(test_symbolic_refs PRIVATE cxx_std_17)
+register_headless_test(test_symbolic_refs)
 
 # Pure-logic logotron test for the narrative_hint formatter.
 add_executable(test_narrative_hint
@@ -733,6 +973,7 @@ target_include_directories(test_narrative_hint PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src
 )
 target_compile_features(test_narrative_hint PRIVATE cxx_std_17)
+register_headless_test(test_narrative_hint)
 
 # v0.7 — AI driver: tactics + head rotation + perception contract.
 # Headless: links only logosphere_core + cycle.cpp / arena.cpp /
@@ -759,6 +1000,7 @@ target_include_directories(test_logotron_ai PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/src/generated
 )
 target_compile_features(test_logotron_ai PRIVATE cxx_std_17)
+register_headless_test(test_logotron_ai)
 
 # ============================================================================
 # Logotron Acceptance Tests (ATs) — feature-level, headless by default,
@@ -785,6 +1027,7 @@ function(add_logotron_at name)
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logotron/tests/at
     )
     target_compile_features(at_logotron_${name} PRIVATE cxx_std_17)
+    register_headless_test(at_logotron_${name})
 endfunction()
 
 add_logotron_at(vision_memory_excludes_dynamic)
@@ -810,6 +1053,7 @@ target_include_directories(at_logotron_director_random_apply PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(at_logotron_director_random_apply PRIVATE cxx_std_17)
+register_headless_test(at_logotron_director_random_apply)
 
 # Director ↔ MLX smoke AT — same Director sources as the random AT,
 # plus LLMSystemHTTP for the live HTTP round trip. Auto-skips with
@@ -866,6 +1110,7 @@ target_include_directories(at_logotron_wall_visibility PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
 )
 target_compile_features(at_logotron_wall_visibility PRIVATE cxx_std_17)
+register_headless_test(at_logotron_wall_visibility)
 
 # ============================================================================
 # Short-circuit for LOGOSPHERE_HEADLESS_ONLY=ON builds (Linux / Windows CI)
@@ -874,6 +1119,15 @@ target_compile_features(at_logotron_wall_visibility PRIVATE cxx_std_17)
 # platform, worldgen, Metal shaders, examples, and their tests). Skipped
 # entirely when HEADLESS is set.
 if(LOGOSPHERE_CORE_ONLY)
+    get_property(_headless_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    get_property(_headless_tests DIRECTORY PROPERTY TESTS)
+    foreach(_target IN LISTS _headless_targets)
+        if(_target MATCHES "^(test_|at_)" AND
+           NOT _target IN_LIST _headless_tests)
+            message(FATAL_ERROR
+                "Headless test target '${_target}' is not registered with CTest")
+        endif()
+    endforeach()
     return()
 endif()
 
@@ -1022,6 +1276,7 @@ set(LOGOSPHERE_SOURCES
     # InputSystem references out of logosphere_dynamics (B26).
     src/animation/serpent_locomotion_engine.cpp
     src/core/engine.cpp
+    src/replay/headless_run.cpp
     src/assembly/rigid_assembly.cpp  # Rigid multi-particle entity primitive
     # LLM sources now live in the logosphere_llm STATIC target (see below).
     src/core/telemetry.cpp
@@ -1098,6 +1353,7 @@ set(LOGOSPHERE_SOURCES
     # vocabulary exists in a world. Pure generated data, headless-safe.
     src/generated/space_ontology_registry.cpp
     src/generated/earth_ontology_registry.cpp
+    src/generated/rulebook_ontology_registry.cpp
     # Spatial query module
     src/spatial/entity_spatial.cpp
     # Damage system
@@ -1294,6 +1550,19 @@ target_include_directories(logosphere_llm PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor  # nlohmann/json for tool registry
 )
+
+# The headless Logovger gains an LLM PLAYER where the LLM library
+# exists. Added to the existing target rather than duplicating it, so
+# the core profile keeps a full life that plays with no API key at all
+# (--random) and the full profile also gets --record, where the model
+# plays the character and every answer is taped.
+target_sources(logovger-headless PRIVATE
+    examples/logovger/src/adjudicator.cpp
+    examples/logovger/src/judgment_answer.cpp
+)
+target_compile_definitions(logovger-headless PRIVATE LOGOVGER_WITH_LLM)
+target_link_libraries(logovger-headless PRIVATE logosphere_llm)
+
 if(LLAMA_INCLUDE)
     target_include_directories(logosphere_llm PUBLIC
         ${LLAMA_INCLUDE}
@@ -1731,6 +2000,7 @@ endif()
 add_subdirectory(examples/eden)
 add_subdirectory(examples/logotron)
 add_subdirectory(examples/logogenesis)
+add_subdirectory(examples/logovger)
 
 if(LOGOSPHERE_FULL)
     # at_logogenesis_creation — chat text -> LLM ops -> seeds ->
@@ -2073,3 +2343,28 @@ target_include_directories(test-http-after-engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(test-http-after-engine PRIVATE cxx_std_17)
+
+# ---------------------------------------------------------------------------
+# A hung test must FAIL, not wait forever.
+#
+# Written from an actual incident: three ctest runs sat wedged on engine
+# acceptance tests for up to three hours, and a fourth wedged on a
+# different one. The whole suite finishes in about twelve seconds, so any
+# single test still running after two minutes is not slow, it is stuck.
+#
+# Nothing here had a TIMEOUT property and ctest's Linux lane has no step
+# timeout either, so in CI the same hang would hold a runner until
+# GitHub's six-hour ceiling and report nothing useful. Two minutes is
+# roughly ten times the entire suite: generous for a slow machine,
+# decisive against a deadlock.
+#
+# Applied last, so it covers every test registered above however it was
+# added, and it never overrides a timeout a test set deliberately.
+# ---------------------------------------------------------------------------
+get_property(logosphere_all_tests DIRECTORY PROPERTY TESTS)
+foreach(logosphere_test IN LISTS logosphere_all_tests)
+    get_test_property(${logosphere_test} TIMEOUT logosphere_existing_timeout)
+    if(NOT logosphere_existing_timeout)
+        set_tests_properties(${logosphere_test} PROPERTIES TIMEOUT 120)
+    endif()
+endforeach()

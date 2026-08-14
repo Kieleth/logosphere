@@ -54,6 +54,12 @@ void TimeSystem::reset() {
     fps_ = 0.0;
     frame_count_ = 0;
     fps_accumulator_ = 0.0;
+    // The physics accumulator is time OWED to the next fixed step.
+    // Leaving it set means a reset system resumes part-way through a
+    // substep and takes a different number of them on its first frame
+    // than a fresh one would, so the same inputs give different physics
+    // depending on what ran before the reset. Reset has to mean reset.
+    physics_accumulator_ = 0.0;
 }
 
 void TimeSystem::calculate_fps() {

@@ -122,6 +122,13 @@ rows.insert(rows.end(), tr.begin(), tr.end());
 hurt, say so — that is exactly the signal that promotes it into the
 engine. See the iteration protocol at the bottom.)
 
+`kg::Query` is a host API for reading state. It is not the persistence
+format, type system, or public syntax of executable rules. Applications that
+author rules in the KG use the ontology-native graph language described in
+[RULE_LANGUAGE.md](RULE_LANGUAGE.md). Its programs refer to immutable
+registry-backed ontology metadata and may reuse query mechanisms internally,
+but they are not serialized `kg::Query` structs.
+
 ## 3. Read history: the journal
 
 Every `EventChannel` (see `GAME_LAYER.md` §3 for the channel list)

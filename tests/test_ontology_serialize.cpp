@@ -2,7 +2,7 @@
 // stable, compact JSON for a slice of the ontology. Catches
 // regressions in:
 //   * unknown types not silently corrupting JSON shape
-//   * properties losing their value_type or required flag
+//   * properties losing their value kind or required flag
 //   * string escaping leaking quotes/backslashes through
 //   * abstract / concrete flag round-trip
 
@@ -21,7 +21,6 @@ static std::string snapshot_via_query(const kg::KGModule& kg,
     return kg::render_query_json(kg::run_query(kg, q));
 }
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -47,9 +46,12 @@ static bool contains(const std::string& haystack, const std::string& needle) {
 void emits_basic_type_with_properties() {
     kg::OntologyRegistry r;
     r.addEntityType("Cycle", "PhysicsEntity", /*abstract=*/false);
-    r.addProperty("Cycle", "max_speed", "float", /*required=*/false);
-    r.addProperty("Cycle", "x",         "float", /*required=*/true);
-    r.addProperty("Cycle", "name",      "string", /*required=*/false);
+    r.addProperty("Cycle", "max_speed", kg::PropertyValueKind::Float,
+                  /*required=*/false);
+    r.addProperty("Cycle", "x", kg::PropertyValueKind::Float,
+                  /*required=*/true);
+    r.addProperty("Cycle", "name", kg::PropertyValueKind::String,
+                  /*required=*/false);
 
     std::string out = kg::serialize_ontology_slice(r, {"Cycle"});
 
@@ -130,7 +132,8 @@ void empty_type_list_yields_empty_object() {
 void string_escaping_handles_quotes_and_backslashes() {
     kg::OntologyRegistry r;
     r.addEntityType("Weird", "", false);
-    r.addProperty("Weird", "name\"with\\quote", "string", false);
+    r.addProperty("Weird", "name\"with\\quote",
+                  kg::PropertyValueKind::String, false);
 
     std::string out = kg::serialize_ontology_slice(r, {"Weird"});
     ASSERT_TRUE(contains(out, "name\\\"with\\\\quote"),
@@ -148,9 +151,9 @@ void snapshot_lists_entities_of_requested_types() {
     r.addEntityType("Other", "", false);
     // Runtime registries declare what they write: setProperty is
     // ontology-gated (Malleus H1).
-    r.addProperty("Wall",  "x", "float", false);
-    r.addProperty("Wall",  "y", "float", false);
-    r.addProperty("Light", "intensity", "float", false);
+    r.addProperty("Wall", "x", kg::PropertyValueKind::Float, false);
+    r.addProperty("Wall", "y", kg::PropertyValueKind::Float, false);
+    r.addProperty("Light", "intensity", kg::PropertyValueKind::Float, false);
 
     kg::KGModule kg(r);
     kg.setMode(kg::KGMode::MINIMAL);
@@ -215,9 +218,9 @@ void snapshot_empty_filter_yields_empty() {
 void snapshot_is_deterministic() {
     kg::OntologyRegistry r;
     r.addEntityType("Wall", "", false);
-    r.addProperty("Wall", "a", "string", false);
-    r.addProperty("Wall", "m", "string", false);
-    r.addProperty("Wall", "z", "string", false);
+    r.addProperty("Wall", "a", kg::PropertyValueKind::String, false);
+    r.addProperty("Wall", "m", kg::PropertyValueKind::String, false);
+    r.addProperty("Wall", "z", kg::PropertyValueKind::String, false);
     kg::KGModule kg(r);
     kg.setMode(kg::KGMode::MINIMAL);
     auto w = kg.createEntity("Wall");
@@ -239,10 +242,6 @@ void snapshot_is_deterministic() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_ontology_serialize ===" << std::endl;
     TEST(emits_basic_type_with_properties);
     TEST(emits_multiple_types_and_abstract_flag);

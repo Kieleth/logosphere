@@ -1,0 +1,1189 @@
+id: https://logosphere.dev/packs/rulebook
+name: rulebook
+title: Rulebook — what any book of rules is made of
+description: >-
+  The meta-ontology for tabletop-derived rulesets: checks you throw
+  dice against, tables you roll on, tables you look up by what you
+  already are, outcomes that change the world, constants buried in
+  prose, procedures with steps and gotos, and the spots where the
+  book hands judgment to a referee.
+
+  This is a MODULE PACK, not part of the universe core, and it is not
+  any one game's rules. A game supplies WHICH book it plays by as
+  data: instances of these classes, ingested from the book's own text
+  and cited back to it. Design record: docs/RPG_MODULE.md. Classes
+  here earn existence by the rule of two - no meta-class exists
+  without two concrete instances from real text needing it; the first
+  instances come from the Cepheus Engine SRD chapter 1
+  (examples/logovger).
+
+  Logic stays in code. A ProcedureStep names a primitive, it never
+  computes. Outcomes are typed data executed through the one
+  validated KG write path. Nothing in this pack rolls, adds, or
+  decides; it describes what the book says so that engine code and
+  LLM referees can.
+
+  Load it with kg.extendOntology(rulebook::ontology::registry()).
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  rulebook: https://logosphere.dev/packs/rulebook/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+  - rule_language
+
+# -------------------------------------------------------------------
+# Classes
+# -------------------------------------------------------------------
+
+classes:
+  Cited:
+    mixin: true
+    mixins:
+      - Addressable
+    description: >-
+      Provenance back to the book. Every rule entity ingested from a
+      source text carries the file it came from, the section heading
+      under it, and the verbatim quote it was extracted from; the
+      ingestion verifier string-matches the quote into the source and
+      rejects what does not match. The slots are optional at the KG
+      layer because referee-improvised entities have no book to cite;
+      the rulebook verifier requires them on ingested data. Every cited
+      entity has an origin context even when it has no book citation: a
+      runtime-authored rule points to the RuntimeContext where it arose.
+    slot_usage:
+      origin_context:
+        required: true
+    slots:
+      - origin_context
+      - fork_of
+      - source_file
+      - source_section
+      - source_quote
+      - source_kind
+      - source_table
+      - source_row
+      - source_column
+      - source_aliases
+      - source_defect
+      - suggested_reading
+      - implied_by
+      - unmodelled
+
+  DiceExpression:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A dice expression as the book writes it: count, sides, modifier,
+      multiplier. "2D6" is count 2 sides 6; "1D6x10000" is the
+      Cepheus medical bill. Mirrors logosphere::dice::DiceExpression
+      field for field, so an entity of this type can be handed to the
+      DiceService and rolled; total = (dice sum + modifier) *
+      multiplier.
+    annotations:
+      facets: rulebook
+    slots:
+      - dice_count
+      - dice_sides
+      - dice_modifier
+      - dice_multiplier
+
+  TaskCheck:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A throw against a target: roll the dice, add the DM derived
+      from the named attribute, succeed on target or more. The book's
+      "Int 8+". The attribute is a reference resolved against the
+      target class's declared slots, never a bare label the graph
+      cannot check. The attribute and its modifier lookup are OPTIONAL
+      and travel together: Cepheus prints re-enlistment as a bare
+      "6+", a throw no characteristic modifies, and a throw with no
+      characteristic has no modifier table to consult either. What a
+      throw cannot do without is dice and a target. modifier_table names the typed lookup that maps the
+      current attribute value to a row; modifier_property names the integer
+      result column on that table's declared entry type. The runner resolves
+      both through the ontology before rolling.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      target_number:
+        required: true
+      dice:
+        required: true
+    slots:
+      - attribute_ref
+      - target_number
+      - dice
+      - modifier_table
+      - modifier_property
+
+  RollableTable:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A table keyed by a die result: roll the dice, land in a row.
+      Rows are TableEntry entities attached with HAS_PART; each row
+      claims a result band, and a well-formed table covers its dice
+      range with no gaps and no overlaps (the ingestion verifier
+      proves that per table).
+    annotations:
+      facets: rulebook
+    slot_usage:
+      dice:
+        required: true
+    slots:
+      - requires_attribute
+      - requires_minimum
+      - dice
+
+  TableEntry:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One row of a RollableTable: the band of results it claims
+      (a single-value row has roll_min = roll_max) and the outcome
+      it applies. The outcome is one required root. A row with several
+      consequences points to an OutcomeSequence; a row that deliberately
+      changes nothing points to NoEffect.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      roll_min:
+        required: true
+    slots:
+      - roll_min
+      - roll_max
+      - roll_max_unbounded
+      - roll_min_unbounded
+      - outcome
+
+  LookupTable:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A table keyed by what the character already is, not by a die:
+      characteristic modifier by score, title by social standing,
+      rank ladder by earned rank, retirement pay by terms served.
+      The matching LookupEntry is itself the typed answer. entry_type
+      names the concrete game-declared LookupEntry subtype this table
+      contains; the verifier resolves that type and rejects mismatched
+      rows. The executor reads attribute_ref when one is declared, or
+      receives the lookup key directly.
+    annotations:
+      facets: rulebook
+    slots:
+      - attribute_ref
+      - entry_type
+      - miss_is_nothing
+
+  LookupEntry:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Cited
+    description: >-
+      Abstract base for one row of a LookupTable. The key band selects
+      the row (a single-key row has key_min = key_max); a concrete
+      game-declared subtype carries the table's typed result columns.
+      Lookup rows return information and do not carry Outcome.
+    annotations:
+      facets: rulebook
+    slots:
+      - key_min
+      - key_max
+      - key_min_unbounded
+      - key_max_unbounded
+
+  SubjectLookupTable:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A table whose row is chosen by WHICH subject the rule concerns,
+      not by a die roll or a score. LookupTable answers "score 12 gives
+      +2"; this answers "the Navy row". Rules that vary by career,
+      class, species or faction all have this shape, which is why it
+      lives here rather than in a game pack.
+
+      The rule owns the table. A career does not carry a pointer to its
+      re-enlistment throw; the re-enlistment RULE carries a table that
+      maps each career to its throw. That direction matters: a seed may
+      point at book content another seed created, but may never write
+      onto it, and the careers are created before their throws.
+
+      Rows hang off it by HAS_PART, each a SubjectLookupEntry subtype
+      declared by the game with the result columns it needs.
+    annotations:
+      facets: rulebook
+    slots: []
+
+  SubjectLookupEntry:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Cited
+    description: >-
+      Abstract base for one row of a SubjectLookupTable, keyed by the
+      entity the row is about. A concrete game-declared subtype carries
+      the result columns.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      subject:
+        required: true
+    slots:
+      - subject
+
+  Outcome:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Cited
+    description: >-
+      The mechanical consequence a rule applies. Abstract: each kind
+      of consequence is a concrete subclass with typed slots, and the
+      executor pairs one registered handler per subclass; the handler
+      performs the actual writes through the validated KG-ops path.
+      Games add outcome kinds by declaring a subclass in their own
+      pack and registering a handler. New subclasses obey the rule
+      of two like everything else here.
+
+  NoEffect:
+    is_a: Outcome
+    description: >-
+      An explicit rule result that deliberately changes no state. It
+      distinguishes a complete "No effect" row from a row whose outcome
+      was never captured. First instances are Injury 6 and Aging 1+.
+    annotations:
+      facets: rulebook
+
+  OutcomeSequence:
+    is_a: Outcome
+    description: >-
+      One outcome made of several ordered consequences. OutcomeStep
+      entities attach through HAS_PART and carry explicit step_index
+      values. The executor validates every child result before applying
+      the complete sequence atomically. First instances are Survival
+      Mishaps 3 and 5.
+    annotations:
+      facets: rulebook
+
+  OutcomeStep:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One explicitly ordered child of an OutcomeSequence. The outcome
+      reference is typed; insertion order is not part of the contract.
+    annotations:
+      facets: rulebook
+    slots:
+      - step_index
+      - outcome
+
+  EnsureSkillLevel:
+    is_a: Outcome
+    description: >-
+      Ensure that the target holds a skill at no less than the stated
+      level. If no rating exists, create one at that level; if a lower
+      rating exists, raise it; a higher rating is unchanged. Basic
+      training at Level 0 is the first instance. The skill is an entity
+      reference into the game's vocabulary, never a name string.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      skill:
+        required: true
+      skill_level:
+        required: true
+    slots:
+      - skill
+      - skill_level
+
+  AdvanceSkill:
+    is_a: Outcome
+    description: >-
+      Advance a skill using both branches printed by the rule. If the
+      target has no rating, create one at initial_skill_level; otherwise
+      add existing_skill_delta. Cepheus training uses initial level 1
+      and existing delta 1. These values are rule data, not executor
+      constants.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      skill:
+        required: true
+      initial_skill_level:
+        required: true
+      existing_skill_delta:
+        required: true
+    slots:
+      - skill
+      - initial_skill_level
+      - existing_skill_delta
+
+  ModifyAttribute:
+    is_a: Outcome
+    description: >-
+      Change a numeric attribute by a delta: "+1 Int" on a skill
+      table, "Reduce Strength or Dexterity by 2" on the injury
+      table. The attribute is a verifier-resolved reference, the
+      delta is signed.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      attribute_ref:
+        required: true
+      attribute_delta:
+        required: true
+    slots:
+      - attribute_ref
+      - attribute_delta
+
+  GainMoney:
+    is_a: Outcome
+    abstract: true
+    description: >-
+      Abstract base for a currency-denominated change. Fixed and rolled
+      amounts are different concrete outcome types, so an instance
+      cannot omit both or carry both. The currency is an entity
+      reference into the game's monetary vocabulary; the engine does
+      not know which currencies exist.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      currency:
+        required: true
+    slots:
+      - currency
+
+  GainFixedMoney:
+    is_a: GainMoney
+    description: >-
+      Change a balance by the stated fixed amount. Positive values add
+      money; negative values record debt. Cr10,000 debt and fixed
+      mustering benefits are the first instances.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      amount:
+        required: true
+    slots:
+      - amount
+
+  GainRolledMoney:
+    is_a: GainMoney
+    description: >-
+      Change a balance by an amount produced by the referenced
+      DiceExpression. The 1D6x10000 medical bill is the first instance.
+      The executor journals the roll and applies its total.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      amount_dice:
+        required: true
+    slots:
+      - amount_dice
+
+  GrantTableRoll:
+    is_a: Outcome
+    description: >-
+      Gain extra rolls on a named table: a successful commission or
+      advancement grants an extra roll on the career's skill tables.
+      An ABSENT roll_count means one, because the book writes a bare
+      instruction for a single roll: "Roll on the Injury table" states
+      no number, and putting a 1 there would be a figure the source
+      never printed.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      table:
+        required: true
+    slots:
+      - table
+      - roll_count
+      - roll_selection
+
+  OutcomeChoice:
+    is_a: Outcome
+    description: >-
+      A consequence that cannot proceed until one attached OutcomeOption
+      is selected. choice_authority is exactly player, referee, or
+      procedure. The executor returns the ordered options without
+      mutation and reruns the complete root outcome after a selection,
+      preserving sequence atomicity.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      choice_authority:
+        required: true
+    slots:
+      - choice_authority
+
+  OutcomeOption:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One labeled alternative attached to an OutcomeChoice through
+      HAS_PART. option_index is contiguous and zero-based; outcome is
+      the typed consequence selected by this alternative.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      option_index:
+        required: true
+      option_label:
+        required: true
+    slots:
+      - option_index
+      - option_label
+      - outcome
+
+  RuleConstant:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A number the book fixes in prose: the age of majority is 18,
+      each prior career is DM-2 on qualification, seven terms is the
+      cap. Captured as data so a rule can point at it and the quote
+      can prove it; code primitives read it, never re-hardcode it.
+    annotations:
+      facets: rulebook
+    slots:
+      - constant_value
+
+  SkillRating:
+    is_a: Entity
+    description: >-
+      A held skill at a level: Slug Rifle at 2. Game STATE, not book
+      content, which is why it is the one class here without Cited (a
+      rating has no quote; the chargen journal is its provenance).
+      Attached to its holder with HAS_PART; the skill is an entity
+      reference into the game's skill vocabulary. EnsureSkillLevel and
+      AdvanceSkill handlers create and update these through the validated
+      write path.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      skill:
+        required: true
+      skill_level:
+        required: true
+    slots:
+      - skill
+      - skill_level
+
+  CurrencyBalance:
+    is_a: Entity
+    description: >-
+      One holder's balance in one currency. Game state, not cited book
+      content. Attached to its holder with HAS_PART; currency points into
+      the game's monetary vocabulary and balance_amount may be negative.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      currency:
+        required: true
+      balance_amount:
+        required: true
+    slots:
+      - currency
+      - balance_amount
+
+  Procedure:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      An ordered sequence the book walks you through: the character
+      creation checklist, the characteristic generation steps. Steps
+      are ProcedureStep entities attached with HAS_PART, ordered by
+      step_index; flow falls through to the next index unless a
+      route redirects it.
+    annotations:
+      facets: rulebook
+
+  ProcedureStep:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One step of a Procedure. It NAMES a code primitive through
+      primitive_ref (resolved against the executor's registry, never
+      computed in data) and carries its routes as StepRoute parts:
+      the book's own gotos, transcribed as routing data.
+
+      A step may also declare an OUTCOME: something the book says
+      happens when the step is taken, as against something the
+      primitive computes. Cepheus "Increase your age by 4 years" is the
+      whole of what its checklist step does, and writing it as
+      `age_years += 4` in the primitive put a rule the graph could hold
+      into code, where nobody reading the procedure could see it. The
+      outcome is applied through the same executor and the same
+      validated write path as any other, before the primitive runs.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      step_index:
+        required: true
+      primitive_ref:
+        required: true
+      # Most steps only name a primitive. An outcome is what the book
+      # states a step DOES, and few steps state one.
+      outcome:
+        required: false
+    slots:
+      - step_index
+      - primitive_ref
+      - subject_table
+      - table
+      - outcome
+
+  StepRoute:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One goto: when the step's primitive reports route_label, flow
+      continues at next_step instead of falling through. "Fail
+      survival, go to the mishap step" and the natural-12 forced
+      reenlistment are both this.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      route_label:
+        required: true
+      next_step:
+        required: true
+    slots:
+      - route_label
+      - next_step
+
+  ProgressionTrack:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      An ordered ladder of standing within a profession: the ranks of
+      a career, and whatever a book calls the same idea elsewhere. The
+      track is the ladder itself; its ProgressionStep parts are the
+      rungs, held by HAS_PART. Cepheus prints one table per career
+      covering ranks 0 to 6, where rank 0 is the enlisted entry and
+      ranks 1 and above are the commissioned ones.
+    annotations:
+      facets: rulebook
+    slots: []
+
+  ProgressionStep:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One rung: its position, what the book calls someone standing
+      there, and what reaching it grants. Every part is optional
+      except the position, because the source uses all four
+      combinations. Cepheus writes "Lt Commander [Tactics-1]" for a
+      title that also grants a skill, "Midshipman" for a title alone,
+      "[Athletics-1]" for a grant with no title, and an em dash for a
+      rung a career does not have.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      step_index:
+        required: true
+    slots:
+      - step_index
+      - step_title
+      - grants
+
+  ProgressionStanding:
+    is_a: Entity
+    description: >-
+      Where a character currently stands on a track. STATE, not book
+      content, so it carries no citation: the rung is cited, standing
+      on it is something that happened. Same shape as SkillRating and
+      CurrencyBalance, for the same reason.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      track:
+        required: true
+      standing_index:
+        required: true
+    slots:
+      - track
+      - standing_index
+
+  AttributeGroup:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A set of attributes the book treats as one thing, named in the
+      book's own words. Cepheus: "Strength, Dexterity, and Endurance
+      are called physical abilities, whereas Intelligence, Education,
+      and Social Standing are loosely termed mental abilities." The
+      grouping is quoted rather than assumed, because a rule that
+      reduces "three physical characteristics" has to know which
+      three are eligible.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      attribute_refs:
+        required: true
+    slots:
+      - attribute_refs
+
+  ModifyAttributesInGroup:
+    is_a: Outcome
+    description: >-
+      Change several attributes chosen from a group, by the same
+      delta: the aging table's "Reduce three physical characteristics
+      by 2". Distinct from ModifyAttribute, which names the one
+      attribute it touches. Here the book fixes how many and by how
+      much while leaving WHICH to whoever applies it, so the choice
+      belongs to the character, not to the rule.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      attribute_group:
+        required: true
+      affected_count:
+        required: true
+    slots:
+      - attribute_group
+      - affected_count
+      - attribute_delta
+      - attribute_delta_dice
+      - attribute_delta_reduces
+
+  ForfeitBenefits:
+    is_a: Outcome
+    description: >-
+      Everything this career would have paid is lost. Cepheus:
+      "Dishonorably discharged from the service. Lose all benefits."
+      It is not a debt and not a reduction; it cancels a payout that
+      has not happened yet, which no other outcome can say.
+    annotations:
+      facets: rulebook
+    slots: []
+
+  Possession:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      Something a character can come to hold that the book names and
+      describes: a Low Passage ticket, a weapon, ship shares, an
+      Explorers' Society membership, a Courier Vessel. The prose the
+      book attaches is kept, because most of these carry rules that
+      matter later even when nothing reads them yet.
+    annotations:
+      facets: rulebook
+    slots:
+      - possession_text
+
+  GainPossession:
+    is_a: Outcome
+    description: >-
+      Receive one or more of a named possession. The count is fixed or
+      rolled, because the material benefits tables print both "Weapon"
+      and "1D6 Ship Shares". An ABSENT count means one: the book
+      writes a bare name for a single item, and writing an explicit 1
+      would assert a number the source never printed.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      possession:
+        required: true
+    slots:
+      - possession
+      - possession_count
+      - possession_count_dice
+
+  PossessionHolding:
+    is_a: Entity
+    description: >-
+      What a character holds, and how many. STATE, so uncited, for the
+      same reason as ProgressionStanding.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      possession:
+        required: true
+      possession_count:
+        required: true
+    slots:
+      - possession
+      - possession_count
+
+  JudgmentPoint:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A spot where the book hands the decision to the Referee: "the
+      Referee may want to change the maximum number of terms", "with
+      the Referee's approval". prompt_text is what the referee is
+      asked to judge, in the book's own words; the LLM referee
+      receives it as its brief for that judgment.
+    annotations:
+      facets: rulebook
+    slots:
+      - prompt_text
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  origin_context:
+    range: KnowledgeContext
+    annotations:
+      create_only: true
+    description: >-
+      Context in which this rule entity was created. Seed ingestion and
+      runtime rule creation set it once; moving an entity between contexts
+      requires a fork.
+  fork_of:
+    range: Entity
+    annotations:
+      create_only: true
+    description: Immediate source entity copied to create this rule fork.
+  source_section:
+    range: string
+    description: The nearest heading above the quote in the source.
+  source_quote:
+    range: string
+    description: >-
+      What the addressed piece of the source says. For a cell this is
+      the CELL, not the line it sits on, which is the difference
+      between proving a value and merely being near it: a career-table
+      row carries six careers' numbers, so a value cited to the row can
+      borrow a neighbour's. See docs/SOURCE_LOCATORS.md.
+  source_kind:
+    range: string
+    description: >-
+      What shape of thing is addressed: cell, row, sentence, heading or
+      list_item. Absent means sentence, the usual home of a stated
+      rule.
+  source_table:
+    range: string
+    description: >-
+      The table's label (the first cell of its header row). Required
+      for cell and row citations, and it is what tells apart six
+      different tables that each have a row keyed "1".
+  source_row:
+    range: string
+    description: The row's key, its first cell ("1", "Qualifications").
+  source_column:
+    range: string
+    description: >-
+      The column's header ("Scout"). Required for a cell; optional on a
+      row, where it serves only to say which of several like-labelled
+      tables is meant.
+  source_aliases:
+    range: string
+    description: >-
+      Other names the source itself uses for this thing, separated by
+      "; ". The skills chapter defines "Jack-of-All-Trades (Jack o'
+      Trades or JoT)" while the career tables write "Jack o' Trades",
+      and both name one skill. Aliases are the source's own words, not
+      convenience synonyms we invented, so a reference through an alias
+      is still a reference the book can prove.
+  source_defect:
+    range: string
+    description: >-
+      What is wrong with the source at this citation, in plain words.
+      Absorbing a book finds holes in it: the Cepheus career tables
+      grant a "Perception" skill that appears once in the entire SRD
+      and is defined nowhere. Such an entity enters the graph as the
+      book writes it, marked, rather than being silently corrected or
+      silently dropped. Empty means the citation is sound.
+  miss_is_nothing:
+    range: boolean
+    description: >-
+      A key this table has no row for is not an error; it means the
+      rule does not apply. Books state a bonus for some keys and say
+      nothing about the rest, and saying nothing is the answer.
+      Cepheus: "An additional benefit is gained if the character held
+      rank O4, and two for rank O5. A character with rank O6 gains
+      three extra benefits" prints three of the seven ranks, and
+      "characters of rank O5 or O6 gain +1 on Material Benefit rolls"
+      prints two.
+
+      The alternative was seeding a row for the ranks the book never
+      mentions, which puts figures in the graph the source does not
+      contain, or letting a primitive read the selector's error as a
+      zero, which is a default invented from a failure. This is the
+      LookupEntry sibling of roll_max_unbounded: the hole is the
+      book's, and the table says so instead of a reader guessing.
+
+      Absent, a miss stays an error. A table whose rows must cover
+      every key is the common case and is unchanged.
+  implied_by:
+    range: string
+    description: >-
+      The words that state a number WITHOUT writing it, quoted from the
+      entity's own citation. Cepheus: "An additional benefit is gained
+      if the character held rank O4" states a count of one, carried by
+      the indefinite article; the very next clause writes "two for rank
+      O5" and the one after "three extra benefits", and only the first
+      is unwritable as a token.
+
+      This is not source_defect - the English is correct, there is
+      nothing wrong to report upstream. It is not unmodelled - the rule
+      IS expressed. It is the third case: a value the text asserts and
+      does not spell, where the inference deserves to be visible and
+      arguable rather than silent.
+
+      The value verifier treats it as the proof. A number carrying
+      implied_by is checked against this phrase appearing verbatim in
+      the quote, instead of against the quote's number tokens, so the
+      reading is still pinned to the source and a phrase that is not
+      there still fails. Absent, a number proves itself the ordinary
+      way and this changes nothing.
+  suggested_reading:
+    range: string
+    description: >-
+      A human's best guess at what a defective citation was meant to
+      say, recorded so the reasoning is not lost, and deliberately
+      consumed by nothing. Rules read the book; they never read a
+      guess. If the guess were safe to act on it would be a fix in the
+      source, not a suggestion here.
+  dice_count:
+    range: integer
+    minimum_value: 1
+    maximum_value: 100
+    description: How many dice.
+  dice_sides:
+    range: integer
+    minimum_value: 2
+    maximum_value: 1000
+    description: Sides per die.
+  dice_modifier:
+    range: integer
+    description: Signed modifier added to the dice sum.
+  dice_multiplier:
+    range: integer
+    minimum_value: 1
+    maximum_value: 1000000
+    description: >-
+      Multiplier applied to (dice sum + modifier); 1 when the book
+      writes none.
+  constant_value:
+    range: integer
+    description: The value the book fixes; signed.
+  attribute_ref:
+    range: string
+    description: >-
+      Reference to an attribute: the name of a declared slot on the
+      class the rule applies to (e.g. a characteristic score slot on
+      the game's Character). Resolved and rejected-if-unresolvable by
+      the ingestion verifier; never a free label.
+  target_number:
+    range: integer
+    description: Succeed on this or more.
+  modifier_table:
+    range: LookupTable
+    description: >-
+      Typed lookup table that maps the TaskCheck target's named attribute
+      value to the row containing its modifier. Optional, and only
+      meaningful alongside an attribute: a throw the book prints as a
+      bare "6+" has no characteristic and therefore nothing to look up.
+  modifier_property:
+    range: string
+    description: >-
+      Required integer property on modifier_table's declared entry_type.
+      The runner reads this column from the selected typed row.
+  dice:
+    range: DiceExpression
+    description: The dice this check or table is rolled with.
+  roll_min:
+    range: integer
+    required: true
+    description: Lowest die result this row claims, inclusive.
+  roll_max:
+    range: integer
+    description: >-
+      Highest die result this row claims, inclusive. Absent only when
+      roll_max_unbounded says the row has no top.
+  roll_min_unbounded:
+    range: boolean
+    description: >-
+      This row is the open BOTTOM of its table: every total at or below
+      its roll_min selects it. The mirror of roll_max_unbounded, and it
+      exists for a hole the book leaves. Cepheus prints its worst aging
+      result as a plain "-6", not "-6 or less", but the aging DM is the
+      character's total terms and a natural 12 on re-enlistment outranks
+      the seven-term cap. Two of those and 2D6 minus nine reaches -7,
+      which lands on no row at all. Someone has to decide what -7 does;
+      this is where that decision is written down, as data a reader can
+      see and a Referee can change, rather than a clamp buried in code.
+  roll_max_unbounded:
+    range: boolean
+    description: >-
+      This row claims everything at or above roll_min. The aging table
+      ends at "1+", and writing a number there would put a figure in
+      the graph that the book does not print. The same need already
+      exists one class over, as key_max_unbounded on LookupEntry.
+  key_min:
+    range: integer
+    description: Lowest key value this row claims, inclusive.
+  key_max:
+    range: integer
+    description: Highest key value this row claims, inclusive.
+  key_min_unbounded:
+    range: boolean
+    description: >-
+      True only when this row has no lower key bound. Exactly one of
+      key_min and key_min_unbounded=true must describe the lower side.
+  key_max_unbounded:
+    range: boolean
+    description: >-
+      True only when this row has no upper key bound. Exactly one of
+      key_max and key_max_unbounded=true must describe the upper side.
+  entry_type:
+    range: string
+    required: true
+    description: >-
+      Resolved ontology name of the concrete LookupEntry subtype carried
+      by this table. The verifier rejects unknown, abstract, non-entry,
+      and incompatible row types.
+  outcome:
+    range: Outcome
+    required: true
+    description: >-
+      The typed root outcome a rollable row applies, or the typed child
+      outcome held by an OutcomeStep.
+  skill:
+    range: Entity
+    description: >-
+      The skill granted, as an entity reference into the game's
+      skill vocabulary (the engine does not know which skills exist).
+  skill_level:
+    range: integer
+    minimum_value: 0
+    description: The level granted.
+  initial_skill_level:
+    range: integer
+    minimum_value: 0
+    description: Level created when the target does not hold the skill.
+  existing_skill_delta:
+    range: integer
+    description: Signed level change when the target already holds the skill.
+  attribute_delta:
+    range: integer
+    description: Signed change applied to the referenced attribute.
+  currency:
+    range: Entity
+    description: >-
+      The currency the amount is denominated in, as a reference into
+      the game's monetary vocabulary.
+  amount:
+    range: integer
+    description: Fixed amount; negative is a debt.
+  amount_dice:
+    range: DiceExpression
+    description: Rolled amount, when the book rolls for the money.
+  balance_amount:
+    range: integer
+    description: Current balance in the referenced currency; may be negative.
+  table:
+    range: RollableTable
+    description: >-
+      One named table. On GrantTableRoll, the table the extra rolls are
+      granted on. On a ProcedureStep, the single table that step rolls
+      on when the rule names one rather than choosing among a subject's
+      own: subject_table answers "the Navy row", this answers "the
+      Aging Table", which has no subject and only ever needs finding.
+
+      The step case exists because the alternative was
+      find_named(kg, "RollableTable", "Effects of Aging") - three rules
+      locating their table by the English words the book prints, so
+      renaming one in the seed broke the rule silently and a translated
+      book could not work at all.
+  roll_count:
+    range: integer
+    minimum_value: 1
+    description: How many extra rolls.
+  choice_authority:
+    range: string
+    description: >-
+      Who resolves the choice: player, referee, or procedure. The semantic
+      verifier and executor reject every other value.
+  option_index:
+    range: integer
+    minimum_value: 0
+    description: Zero-based order of an option inside an OutcomeChoice.
+  option_label:
+    range: string
+    description: Cited label presented for this alternative.
+  subject:
+    range: Entity
+    description: >-
+      The entity this row is about: the career, class or species whose
+      values the row carries.
+  subject_table:
+    range: SubjectLookupTable
+    description: >-
+      A table this step consults, keyed by the subject in play. Named
+      here so the step reaches its data through the schema rather than
+      by matching a name in code.
+  step_title:
+    range: string
+    description: >-
+      What the book calls someone standing on this rung, verbatim:
+      "Midshipman", "Lt Commander". Narrative, and deliberately so; no
+      rule reads a title.
+  grants:
+    range: Entity
+    description: >-
+      What reaching this rung gives, as an Outcome. Absent when the
+      rung grants nothing, which the source writes as an em dash.
+  track:
+    range: Entity
+    description: The ProgressionTrack this standing is on.
+  standing_index:
+    range: integer
+    minimum_value: 0
+    description: Which rung of the track is currently held.
+  attribute_refs:
+    range: string
+    multivalued: true
+    description: >-
+      The attributes in this group, each resolved against the target
+      class's declared slots exactly as attribute_ref is, never a bare
+      label the graph cannot check.
+  attribute_group:
+    range: Entity
+    description: The AttributeGroup the affected attributes are drawn from.
+  affected_count:
+    range: integer
+    minimum_value: 1
+    description: >-
+      How many attributes from the group the change applies to. The
+      book fixes the count; the choice of which is made when the
+      outcome is applied.
+  possession:
+    range: Entity
+    description: The Possession gained or held.
+  possession_count:
+    range: integer
+    description: How many are gained or held.
+  possession_count_dice:
+    range: DiceExpression
+    description: >-
+      Rolled count, when the book rolls for it: "1D6 Ship Shares".
+  table_role:
+    range: string
+    description: >-
+      What part this table plays where several are offered together,
+      when a rule treats them differently. Cepheus caps CASH benefit
+      rolls at three and lets the others run; it grants every SERVICE
+      skill at level 0 on a first career. Both are rules about a
+      table's role, and both were written as C++ matching the table's
+      printed name - "Cash Benefits" by substring, "Service Skills" by
+      a fourteen-character suffix compare - so renaming a table in the
+      seed broke the rule silently and a translated book could not work
+      at all. The values are the game's; the engine only ever compares
+      what the row says against what a step asked for.
+  requires_attribute:
+    range: string
+    description: >-
+      An attribute the chooser must have enough of before this table is
+      even on offer. Cepheus: "You may only roll on the Advanced
+      Education table if your character has Education 8+." Resolved
+      against the target's declared slots exactly as attribute_ref is,
+      never a bare label the graph cannot check.
+  requires_minimum:
+    range: integer
+    description: >-
+      The least the required attribute may be. Travels with
+      requires_attribute: neither means anything alone, and a table
+      carrying one without the other is malformed rather than
+      permissive.
+  roll_selection:
+    range: string
+    description: >-
+      Which of several rolls on a table actually counts, when a rule
+      rolls more than once. Cepheus: "roll twice on the Injury table
+      and take the lower result." Permitted values are EACH, LOWEST and
+      HIGHEST, and an ABSENT value means EACH, because a bare "roll on
+      the table" says nothing about picking between results and the
+      source prints nothing to store. LOWEST and HIGHEST name the
+      lowest or highest dice TOTAL, not the better or worse result: on
+      the Injury table 1 is the worst outcome and 6 the mildest, so
+      which end is kind is a fact about the table, not about the rule.
+  attribute_delta_reduces:
+    range: boolean
+    description: >-
+      Which way a rolled change goes. Dice say how much and never which
+      way: "reduce one physical characteristic by 1D6" prints no minus
+      sign, and a rule that rolled a gain would print none either.
+      Required whenever attribute_delta_dice is used, because the
+      alternative is the engine assuming a direction from whichever
+      table it met first. The fixed case needs no such slot, since
+      attribute_delta carries its own sign.
+  attribute_delta_dice:
+    range: DiceExpression
+    description: >-
+      Rolled change, when the book rolls for how much: the injury
+      table's "reduce one physical characteristic by 1D6". The fixed
+      case is attribute_delta; a rule uses one or the other.
+  unmodelled:
+    range: string
+    description: >-
+      The part of this rule the graph does not yet express, in plain
+      words. Absorption is sometimes partial: a clause may depend on a
+      choice made earlier in the same outcome ("reduce both OTHER
+      physical characteristics"), or offer a re-roll policy the
+      outcome vocabulary cannot say. Recording the gap keeps a partial
+      rule honest, because the alternative is a rule that looks whole
+      and quietly is not. Empty means fully expressed.
+  possession_text:
+    range: string
+    description: >-
+      The book's own description of the thing, kept because these
+      carry rules that outlive character creation.
+  step_index:
+    range: integer
+    required: true
+    minimum_value: 0
+    description: >-
+      Explicit position in a procedure or outcome sequence. Procedure
+      flow falls through in index order unless a route redirects it;
+      outcome sequences apply their children in index order.
+  primitive_ref:
+    range: string
+    description: >-
+      Name of the code primitive this step invokes, resolved against
+      the executor's primitive registry. The step never computes;
+      the primitive does.
+  route_label:
+    range: string
+    description: >-
+      The primitive-reported outcome label this route fires on
+      (e.g. failed, natural_12). Labels come from the primitive's
+      declared vocabulary; the verifier rejects labels the named
+      primitive cannot report.
+  next_step:
+    range: ProcedureStep
+    description: Where flow continues when this route fires.
+  prompt_text:
+    range: string
+    description: What the referee is asked to judge, in the book's
+      own words.

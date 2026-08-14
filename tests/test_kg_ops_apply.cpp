@@ -14,7 +14,6 @@
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/ontology_validator.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -36,11 +35,12 @@ static kg::OntologyRegistry make_registry() {
     r.addEntityType("Cycle",        "", false);
     r.addEntityType("TrailSegment", "", false);
     r.addEntityType("Wormhole",     "", false);
-    r.addProperty("Cycle",     "max_speed", "float",  false,
+    r.addProperty("Cycle", "max_speed", kg::PropertyValueKind::Float, false,
                   /*has_min=*/true, 0.1, /*has_max=*/true, 25.0);
-    r.addProperty("Wormhole",  "x",         "float",  false);
-    r.addProperty("Wormhole",  "y",         "float",  false);
-    r.addProperty("Wormhole",  "pair_id",   "string", false);
+    r.addProperty("Wormhole", "x", kg::PropertyValueKind::Float, false);
+    r.addProperty("Wormhole", "y", kg::PropertyValueKind::Float, false);
+    r.addProperty("Wormhole", "pair_id", kg::PropertyValueKind::String,
+                  false);
     r.addRelationType("PARENT_OF",
         std::unordered_set<std::string>{"Cycle"},
         std::unordered_set<std::string>{"TrailSegment"});
@@ -147,10 +147,6 @@ void e2e_wormhole_pair_landed_with_no_cpp_change() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_kg_ops_apply ===" << std::endl;
     TEST(create_entity_writes_type_and_properties);
     TEST(destroy_entity_removes_from_kg);

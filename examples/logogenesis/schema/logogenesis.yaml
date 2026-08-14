@@ -124,10 +124,18 @@ classes:
       - x
       - y
       - count
-      - wing_span
       - wing_r
       - wing_g
       - wing_b
+    # Class-local: the earth pack owns the global wing_span (the
+    # engine-written stamp on Butterfly); this is the seed request's
+    # own bounded knob, so it lives on the class.
+    attributes:
+      wing_span:
+        range: float
+        minimum_value: 0.2
+        maximum_value: 2.0
+        description: Wingspan in meters. 0.5 is natural; 2.0 is a dream.
 
   GroundSeed:
     is_a: WorldEntity
@@ -223,14 +231,33 @@ classes:
     slots:
       - x
       - y
-      - patch_width
-      - patch_depth
-      - blade_count
       - spread
       - organic
       - blade_r
       - blade_g
       - blade_b
+    # Class-local: the earth pack owns the global patch_width /
+    # patch_depth / blade_count (engine-written stamps on GrassPatch);
+    # these are the seed request's own bounded knobs, so they live on
+    # the class.
+    attributes:
+      patch_width:
+        range: float
+        minimum_value: 0.5
+        maximum_value: 30.0
+        description: Grass patch width in meters (east-west extent).
+      patch_depth:
+        range: float
+        minimum_value: 0.5
+        maximum_value: 30.0
+        description: Grass patch depth in meters (north-south extent).
+      blade_count:
+        range: integer
+        minimum_value: 5
+        maximum_value: 1000
+        description: >-
+          Number of grass blades in the patch. Bounded: enough for a
+          lush patch, not enough to melt the frame budget.
 
   RockSeed:
     is_a: WorldEntity
@@ -240,10 +267,15 @@ classes:
       Request for a rock at (x, y). With drop_height it becomes a
       BOULDER FALLING FROM THE SKY: born high, it plummets, and on
       LAYERED ground the impact shoves the topsoil aside.
+    attributes:
+      rock_size:
+        range: float
+        minimum_value: 0.2
+        maximum_value: 6.0
+        description: Rock characteristic size in meters.
     slots:
       - x
       - y
-      - rock_size
       - rock_r
       - rock_g
       - rock_b
@@ -551,11 +583,6 @@ slots:
     minimum_value: 1
     maximum_value: 12
     description: How many butterflies in this flock.
-  wing_span:
-    range: float
-    minimum_value: 0.2
-    maximum_value: 2.0
-    description: Wingspan in meters. 0.5 is natural; 2.0 is a dream.
   wing_r:
     range: float
     minimum_value: 0.0
@@ -631,12 +658,10 @@ slots:
     minimum_value: 0.0
     maximum_value: 1.0
     description: Light color, blue channel (0..1).
-  x:
-    range: float
-    description: World-x position (m). Stage center is 0.
-  y:
-    range: float
-    description: World-y position (m). Stage center is 0.
+  # x / y come from the engine schema (logosphere.yaml declares the
+  # world-position stamps globally for the Malleus H1 property gate);
+  # redefining them here would shadow an imported global, which the
+  # registry generator rejects.
   grow_seconds:
     range: float
     minimum_value: 0.0
@@ -675,23 +700,6 @@ slots:
     minimum_value: 0.0
     maximum_value: 1.0
     description: Foliage color, blue channel (0..1).
-  patch_width:
-    range: float
-    minimum_value: 0.5
-    maximum_value: 30.0
-    description: Grass patch width in meters (east-west extent).
-  patch_depth:
-    range: float
-    minimum_value: 0.5
-    maximum_value: 30.0
-    description: Grass patch depth in meters (north-south extent).
-  blade_count:
-    range: integer
-    minimum_value: 5
-    maximum_value: 1000
-    description: >-
-      Number of grass blades in the patch. Bounded: enough for a
-      lush patch, not enough to melt the frame budget.
   spread:
     range: GrassSpread
     description: Dab shape. SOFT (default) is the painter's splat.
@@ -718,11 +726,6 @@ slots:
     minimum_value: 0.0
     maximum_value: 1.0
     description: Blade foliage color, blue channel (0..1).
-  rock_size:
-    range: float
-    minimum_value: 0.2
-    maximum_value: 6.0
-    description: Rock characteristic size in meters.
   cloth_r:
     range: float
     minimum_value: 0.0

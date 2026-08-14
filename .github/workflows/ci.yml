@@ -1,8 +1,59 @@
 name: CI
 
-on: [push, pull_request]
+# Pull requests are the gate, so the matrix runs on the PR ref. Pushes are
+# only watched on main, which keeps the release branch guarded without
+# firing a second identical matrix for every branch push behind a PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One live run per PR (or per main push). A force-push supersedes its own
+# earlier run instead of leaving it to burn a runner to completion. main is
+# exempt from cancellation: every commit that lands there keeps its own
+# verdict.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Ontology generation: schema import safety, vendored generator integrity,
+  # and committed-output drift. Uses the same pinned environment developers use.
+  # ---------------------------------------------------------------------------
+  ontology-generation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up generator environment
+        uses: conda-incubator/setup-miniconda@v3
+        with: { environment-file: environment.yml }
+
+      - name: Run generator contract tests
+        run: python -m unittest scripts/test_generate_registry.py
+
+      # The seed extractors have contract tests too, and nothing ran
+      # them. Written when the career extractor was, never wired up.
+      - name: Run seed extractor contract tests
+        run: python -m unittest discover -s examples/logovger/tools -p 'test_*.py'
+
+      - name: Regenerate ontology outputs
+        run: python scripts/generate_ontology.py
+
+      # The same gate, for the other family of generated files. Seeds
+      # marked "generated_by" are their extractor's output; two PRs
+      # hand-edited one because nothing said so and nothing checked.
+      # Regenerating it would have dropped fifteen ops in silence.
+      - name: Regenerate rule seeds from the vendored SRD
+        run: ./examples/logovger/tools/regenerate_seeds.sh
+
+      - name: Reject generated-output drift
+        run: git diff --exit-code
+
   # ---------------------------------------------------------------------------
   # Linux: headless-physics profile (core + physics + dynamics + worldgen,
   # no rendering / GLFW / Metal). Builds the solver, gluons, locomotion and
@@ -29,6 +80,7 @@ jobs:
         run: cmake --build build -j $(nproc)
 
       - name: Run physics smoke tests
+        timeout-minutes: 10
         run: |
           set -e
           for t in test_humanoid_headless test_pin_gluon_lifecycle; do
@@ -43,8 +95,7 @@ jobs:
         run: ./build/test_deep_probe_halt
 
   # ---------------------------------------------------------------------------
-  # Linux: headless subset (logosphere_core + the standalone test executables).
-  # Cheap runner, cheap build. This is the gating CI for PRs.
+  # Linux: all CTest-registered headless tests. This is the gating CI for PRs.
   # ---------------------------------------------------------------------------
   headless-linux:
     runs-on: ubuntu-latest
@@ -65,24 +116,15 @@ jobs:
       - name: Build logosphere_core + headless tests
         run: cmake --build build -j $(nproc)
 
+      # Every test registered in this profile, through ctest.
+      # Deliberately NOT a hand-maintained list: the list this replaced
+      # had gone stale, so tests added after it was written were built
+      # but never run and the gate silently checked compilation alone.
+      # A new add_headless_test() is gated the moment it exists.
       - name: Run headless test suite
-        run: |
-          set -e
-          fail=0
-          for t in \
-            test_event_log test_signal test_event_channel test_event_bus \
-            test_damage_events test_capability_system test_ontology_extension \
-            test_body_plan test_game_time test_kg_setproperty_events \
-            test_relation_events test_kg_parse_safety \
-            test_logotron_cycle test_logotron_trails test_logotron_collision \
-            test_logotron_round test_logotron_director \
-            test_particle_shapes \
-            test_interaction_ontology test_interaction_events test_interaction_profiles
-          do
-            echo "=== $t ==="
-            ./build/$t || fail=1
-          done
-          exit $fail
+        timeout-minutes: 10
+        working-directory: build
+        run: ctest --output-on-failure -j $(nproc)
 
       - name: Install package to a prefix
         run: cmake --install build --prefix "$PWD/_install"
@@ -106,17 +148,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with: { environment-file: environment.yml }
-
+      # No conda here. setup-miniconda only puts condabin on PATH for
+      # non-login shells, so the pinned env was never active for the build:
+      # cmake came from the runner image and no build step runs python.
+      # The ontology-generation lane (which does use the env, via a login
+      # shell) still covers the generator contract.
       - name: Install system libraries
         run: brew install glfw
 
       - name: CMake configure & build
         run: |
-          cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64"
-          cmake --build build --config Release
+          cmake -S . -B build \
+            -DCMAKE_OSX_ARCHITECTURES="arm64" \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j $(sysctl -n hw.ncpu)
 
       - name: Run unit tests
         timeout-minutes: 1
@@ -139,4 +184,5 @@ jobs:
         run: cmake --build build --config Release -j 4
 
       - name: Run headless test suite
+        timeout-minutes: 15
         run: ctest --test-dir build -C Release --output-on-failure

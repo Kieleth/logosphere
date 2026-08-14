@@ -12,6 +12,7 @@ KGModule::KGModule(const OntologyRegistry& registry)
     : registry_(registry)
     , current_mode(KGMode::DISABLED)
     , core(nullptr) {
+    registry_.validateReferences();
 }
 
 KGModule::~KGModule() {
@@ -19,6 +20,15 @@ KGModule::~KGModule() {
 
 void KGModule::extendOntology(const OntologyRegistry& extension) {
     registry_.extend(extension);
+    ontology_meta_current_ = false;
+}
+
+EntityID KGModule::findOntologyMetaEntity(
+    const std::string& canonical_key) const {
+    if (!ontology_meta_current_) return INVALID_ENTITY;
+    const auto found = ontology_meta_index_.find(canonical_key);
+    return found == ontology_meta_index_.end() ? INVALID_ENTITY
+                                               : found->second;
 }
 
 void KGModule::setMode(KGMode mode) {
@@ -31,6 +41,10 @@ void KGModule::setMode(KGMode mode) {
     if (mode == KGMode::DISABLED) {
         // Free all memory when disabled
         core.reset();
+        ontology_meta_current_ = false;
+        ontology_meta_context_ = INVALID_ENTITY;
+        ontology_meta_index_.clear();
+        ontology_meta_entities_.clear();
         std::cout << "[KG] Mode set to DISABLED - all memory freed\n";
     } else {
         if (!core) {
@@ -185,6 +199,26 @@ PropertyValue KGModule::getProperty(EntityID id, const std::string& key) const {
         return "";
     }
     return core->getProperty(id, key);
+}
+
+bool KGModule::hasProperty(EntityID id, const std::string& key) const {
+    return checkEnabled("hasProperty") && core->hasProperty(id, key);
+}
+
+void KGModule::removeProperty(EntityID id, const std::string& key) {
+    if (!checkEnabled("removeProperty") || !core->hasProperty(id, key)) {
+        return;
+    }
+    const std::string previous = core->getProperty(id, key);
+    core->removeProperty(id, key);
+    if (event_bus_) {
+        logosphere::ontology::WorldEvent evt;
+        evt.target_entity_id = std::to_string(id);
+        evt.event_type = "STATE_CHANGE";
+        evt.payload_keys = {"property", "value", "prev"};
+        evt.payload_values = {key, "", previous};
+        event_bus_->state_changes().emit(std::move(evt));
+    }
 }
 
 std::vector<std::pair<std::string, PropertyValue>>

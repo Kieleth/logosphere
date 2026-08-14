@@ -40,10 +40,10 @@ std::unique_ptr<kg::KGModule> make_kg() {
     ext.addFacets("QMenu", {"ui"});
     // A runtime extension declares its properties like any schema
     // does: setProperty is ontology-gated (Malleus H1).
-    ext.addProperty("QTrail", "len", "integer", false);
-    ext.addProperty("QTrail", "note", "string", false);
-    ext.addProperty("QCrop", "state", "string", false);
-    ext.addProperty("QCrop", "kind", "string", false);
+    ext.addProperty("QTrail", "len", kg::PropertyValueKind::Integer, false);
+    ext.addProperty("QTrail", "note", kg::PropertyValueKind::String, false);
+    ext.addProperty("QCrop", "state", kg::PropertyValueKind::String, false);
+    ext.addProperty("QCrop", "kind", kg::PropertyValueKind::String, false);
 
     auto kg = std::make_unique<kg::KGModule>(logosphere::ontology::registry());
     kg->extendOntology(ext);

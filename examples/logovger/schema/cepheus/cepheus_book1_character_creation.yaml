@@ -1,0 +1,353 @@
+id: https://logosphere.dev/logovger/cepheus/book1-character-creation
+name: cepheus_book1_character_creation
+title: Cepheus layer — Book 1, Character Creation
+description: >-
+  The data model of srd/cepheus/book1/character-creation.md, transcribed
+  faithfully. LAYER RULE (100% separation): nothing in this file is
+  ours. Every class and slot is the book's, cited to its section; the
+  game's corrections, tweaks and expansions live in the voyager layer,
+  which cherry-picks from these packs. One pack per SRD chapter file,
+  one to one, so 100% capture is auditable by file listing.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  cepheus: https://logosphere.dev/logovger/cepheus/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+  - rulebook
+
+classes:
+  Character:
+    is_a: LivingEntity
+    description: >-
+      The book's own word and the book's own concept: seven
+      characteristic scores in fixed order, summarized as a UPP string
+      [srd/cepheus book1/character-creation.md "Characteristics", "The
+      Universal Persona Profile (UPP)"]. This class is the BOOK's;
+      the game's character is Voyager, in the voyager layer, extending
+      this one.
+    attributes:
+      strength:
+        range: integer
+        minimum_value: 0
+        maximum_value: 33
+        description: Str, position 1 of the UPP.
+    slots:
+      - dexterity
+      - endurance
+      - intelligence
+      - education
+      - social_standing
+      - psionic_strength
+      - upp
+      - age_years
+      - terms_served
+      - credits
+      - qualification_barred
+
+  Career:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One career the book offers, with its chargen targets
+      [book1/character-creation.md "Careers", "Qualifying and the
+      Draft", "Survival", "Commission and Advancement"]. The per-career
+      skill tables are table DATA (rules/), not schema.
+
+      Cited because its INSTANCES are the book's: the 24 careers and
+      their throws are printed in the career tables, and each must be
+      able to prove its numbers against the row it came from. Character
+      and ServiceTerm are deliberately NOT Cited, and that difference
+      is the rule: a class carries Cited when its instances come out of
+      the book, not when the class itself is described there. A
+      character is a player's, not the book's.
+    slots:
+      - qualification_check
+      - survival_check
+      - basic_training
+
+  ServiceTerm:
+    is_a: Event
+    description: >-
+      One four-year term of service actually lived by a Voyager during
+      character generation [book1/character-creation.md "Terms of
+      Service"]. The KG accumulates these; the referee narrates them.
+    slots:
+      - term_number
+      - term_career
+      - survived
+      - commissioned
+
+  CharacteristicModifierEntry:
+    is_a: LookupEntry
+    description: >-
+      One row of the Characteristic Modifier by Score Range table
+      [book1/character-creation.md "Characteristic Modifiers"]. The
+      inherited key band is the score range; these fields are the two
+      result columns printed by the book.
+    annotations:
+      facets: rulebook
+    slots:
+      - pseudohex_min
+      - pseudohex_max
+      - characteristic_modifier
+
+  MusteringRankBonusEntry:
+    is_a: LookupEntry
+    description: >-
+      One row of the extra-benefits-by-rank mapping
+      [book1/character-creation.md "Mustering Out Benefits"]. The
+      inherited key band is the rank held on leaving the career; the
+      one result column is how many benefit rolls that rank adds on
+      top of the per-term count.
+
+      The book names three ranks of seven and says nothing of the rest,
+      so the table has three rows and declares miss_is_nothing. A row
+      for rank 0 saying "nothing" would put a figure in the graph the
+      source never printed.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      extra_benefit_rolls:
+        required: true
+    slots:
+      - extra_benefit_rolls
+
+  CareerThrowEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of a per-career throw table: which career, and the throw
+      it makes [book1/character-creation.md "Career Tables"]. The
+      Commission, Advancement and Re-enlistment rows of the career
+      tables are exactly this, one table per rule.
+
+      A promotion row also carries the rank ladder it moves you along,
+      because succeeding at the throw and taking the new rank's
+      benefits are one rule, and a step consults one table.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      throw_check:
+        required: true
+    slots:
+      - throw_check
+      - track
+
+  CareerTableEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of a per-career table mapping: which career, and the
+      table it rolls on for that kind of training
+      [book1/character-creation.md "Skills and Training"]. The book
+      prints Personal Development, Service Skills, Specialist and Adv
+      Education per career; the character picks one each term.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      rollable_table:
+        required: true
+    slots:
+      - rollable_table
+      # "cash", "material" or "service" where a Cepheus rule treats one
+      # kind of table differently from another. Absent on the training
+      # tables, which the book treats alike.
+      - table_role
+
+  CareerTrackEntry:
+    is_a: SubjectLookupEntry
+    description: >-
+      One row of the rank-track mapping: which career, and the ladder
+      of ranks it has [book1/character-creation.md "Career Tables"
+      Ranks and Skills].
+    annotations:
+      facets: rulebook
+    slot_usage:
+      track:
+        required: true
+    slots:
+      - track
+
+  EndCareer:
+    is_a: Outcome
+    description: >-
+      Leave the current career as a consequence of a Survival Mishap
+      [book1/character-creation.md "Basic Training"]. Mishap rows 2 and 3
+      are the first instances. The executor handler is game policy;
+      the engine only dispatches the typed Outcome.
+    annotations:
+      facets: rulebook
+
+  EnterCareer:
+    is_a: Outcome
+    description: >-
+      Enter a named career as the result of a roll rather than a
+      choice: the Draft table's six services
+      [book1/character-creation.md "Qualifying and the Draft"]. The
+      career is an entity reference, so a draft row cannot name a
+      career the game does not have.
+    annotations:
+      facets: rulebook
+    slots:
+      - drafted_career
+
+  Currency:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A unit of money named by the book. Credits are the first instance
+      [book1/character-creation.md "Injury Crisis"]. GainMoney points
+      to this vocabulary rather than baking a currency into the engine.
+    annotations:
+      facets: rulebook
+
+slots:
+  # Characteristic scores. 2D6 at creation, PC max "typically" 15;
+  # the modifier table runs to 33+ for non-PC cases, so the slot range
+  # is the table's, not the PC cap
+  # [book1/character-creation.md "Generating Characteristic Scores",
+  #  "Characteristic Modifiers"].
+  dexterity:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Dex, position 2 of the UPP.
+  endurance:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: End, position 3 of the UPP.
+  intelligence:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Int, position 4 of the UPP.
+  education:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Edu, position 5 of the UPP.
+  social_standing:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: >-
+      Soc, position 6 of the UPP. Values 10+ map to noble titles
+      [book1/character-creation.md "Social Standing and Noble Titles"].
+  psionic_strength:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: >-
+      Psi, the seventh characteristic; only exists once psionics are
+      learned, never rolled at creation without the Referee
+      [book1/character-creation.md "Psionic Strength, the Seventh
+      Characteristic"]. Absent means untested.
+  upp:
+    range: string
+    description: >-
+      Pseudo-hex summary, "687B9C" or "687B9C-4" with Psi
+      [book1/character-creation.md "The Universal Persona Profile"].
+      DERIVED from the seven scores by rules/ehex; stored for the
+      referee and the journal to read.
+  age_years:
+    range: integer
+    description: Chargen starts at 18 [book1/character-creation.md].
+  terms_served:
+    range: integer
+    description: Completed terms of service.
+  credits:
+    range: integer
+    description: Money, in credits, from mustering out onward.
+  qualification_barred:
+    range: boolean
+    description: >-
+      This character automatically fails every Qualification check from
+      now on. Cepheus sets it when a crisis, from aging or from injury,
+      takes a characteristic to 0 and the character survives it: "The
+      character automatically fails any Qualification checks from now
+      on - he must either continue in the career he is in or become a
+      Drifter if he wishes to take any more terms." It is permanent,
+      which is why it is a mark on the character and not a modifier on
+      one throw.
+  term_number:
+    range: integer
+    description: 1-based index of the term in the Voyager's life.
+  term_career:
+    range: string
+    description: Career name this term was served in.
+  survived:
+    range: boolean
+    description: The survival roll's outcome, engine-rolled.
+  commissioned:
+    range: boolean
+    description: Whether a commission was earned this term.
+  # Each throw is its own TaskCheck, so it can cite the row it was
+  # printed on. A career's qualification and survival come from
+  # DIFFERENT rows of the career table; one entity carrying both
+  # numbers could only ever prove one of them, and the ingestion
+  # verifier caught exactly that.
+  qualification_check:
+    range: TaskCheck
+    description: >-
+      The throw to enter this career
+      [book1/character-creation.md "Career Tables" Qualifications row].
+  survival_check:
+    range: TaskCheck
+    description: >-
+      The throw to survive a term in it
+      [book1/character-creation.md "Career Tables" Survival row].
+  basic_training:
+    range: Outcome
+    description: >-
+      What joining this career teaches, as one outcome per skill on its
+      service table, at the level the book sets
+      [book1/character-creation.md "Basic Training"]. A first career applies
+      the whole sequence; a subsequent one applies the single step the
+      player picks, which is why the steps are reachable individually
+      rather than being one grant of six.
+  extra_benefit_rolls:
+    range: integer
+    minimum_value: 1
+    description: >-
+      Benefit rolls this rank adds to the per-term count
+      [book1/character-creation.md "Mustering Out Benefits"]. One at
+      O4, two at O5, three at O6. The minimum is 1 because the book
+      only ever states this to grant something; a rank it says nothing
+      about has no row at all.
+  rollable_table:
+    range: RollableTable
+    description: >-
+      The table this row supplies for its career
+      [book1/character-creation.md "Career Tables"].
+  throw_check:
+    range: TaskCheck
+    description: >-
+      The throw this row supplies for its career
+      [book1/character-creation.md "Career Tables"].
+  pseudohex_min:
+    range: string
+    required: true
+    description: >-
+      First pseudohex symbol printed for the row's score band.
+  pseudohex_max:
+    range: string
+    required: true
+    description: >-
+      Last pseudohex symbol printed for the row's score band.
+  characteristic_modifier:
+    range: integer
+    required: true
+    description: Dice modifier returned for a score in this row.
+
+  drafted_career:
+    range: Career
+    required: true
+    description: The career this result puts the character into.

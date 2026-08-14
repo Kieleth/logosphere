@@ -1,0 +1,78 @@
+id: https://logosphere.dev/logovger/voyager
+name: voyager
+title: Voyager — the game layer
+description: >-
+  The game, 100% separate from the book. This layer cherry-picks from
+  the cepheus packs whatever the game wants, whenever it needs it, and
+  is the ONLY place corrections, tweaks and expansions may live. If a
+  definition is the book's, it belongs in schema/cepheus; if it is
+  ours, it belongs here. The diff between layers is the design document
+  of the game.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  voyager: https://logosphere.dev/logovger/voyager/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+  # Cherry-picked cepheus packs. Each import is a deliberate choice,
+  # added when the game first needs that chapter.
+  - cepheus/cepheus_book1_character_creation
+
+classes:
+  Voyager:
+    is_a: Character
+    description: >-
+      The game's character: the book's Character, extended. Exists so
+      that every deviation from the book has a place to live that is
+      not the book's class. Empty of tweaks so far, deliberately.
+
+  Narration:
+    is_a: Entity
+    description: >-
+      Prose about something that happened, written by a narrator that
+      reads the world and never changes it. Ours, not the book's, which
+      is why it lives in the voyager layer.
+
+      Deliberately NOT Cited. A citation means "the source says this";
+      narration says "this is how it looked". Keeping the two apart in
+      the schema is what stops a story being mistaken for a rule. Every
+      narration points at the facts it was written from, so a reader
+      can always get back to the cited numbers underneath.
+    slots:
+      - narrative_text
+      - narrates
+      - narration_kind
+      - narration_term
+      - narration_rolls
+
+slots:
+  narrative_text:
+    range: string
+    required: true
+    description: The prose itself.
+  narrates:
+    range: Entity
+    required: true
+    description: >-
+      What it is about: usually the Character, the one thing every
+      narration in a life has in common.
+  narration_kind:
+    range: string
+    description: >-
+      Which beat this is: bio, qualification, term, draft, refusal,
+      ending. Lets a reader assemble a life in order.
+  narration_term:
+    range: integer
+    description: The term it belongs to; 0 before service.
+  narration_rolls:
+    range: string
+    description: >-
+      The roll ids this beat was written from, comma separated. The
+      thread back from the story to the dice, and through them to the
+      rules.

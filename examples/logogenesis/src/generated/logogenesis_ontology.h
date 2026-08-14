@@ -708,7 +708,9 @@ enum class WorldRelationType {
     /// System entity manages another entity
     MANAGES,
     /// Direct bond between two bodies - the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world.
-    BONDED_TO
+    BONDED_TO,
+    /// A narrower thing refines a broader one: the specialization points at what it specializes (Slug Rifle SPECIALIZES Gun Combat in a skill cascade). Generic taxonomy vocabulary, first used by the rulebook module's skill cascades.
+    SPECIALIZES
 };
 
 /// Convert WorldRelationType to its string representation.
@@ -724,6 +726,7 @@ inline const char* to_string(WorldRelationType value) {
         case WorldRelationType::PERCEIVES: return "PERCEIVES";
         case WorldRelationType::MANAGES: return "MANAGES";
         case WorldRelationType::BONDED_TO: return "BONDED_TO";
+        case WorldRelationType::SPECIALIZES: return "SPECIALIZES";
     }
     return "unknown";
 }
@@ -740,6 +743,7 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     if (std::strcmp(str, "PERCEIVES") == 0) { out = WorldRelationType::PERCEIVES; return true; }
     if (std::strcmp(str, "MANAGES") == 0) { out = WorldRelationType::MANAGES; return true; }
     if (std::strcmp(str, "BONDED_TO") == 0) { out = WorldRelationType::BONDED_TO; return true; }
+    if (std::strcmp(str, "SPECIALIZES") == 0) { out = WorldRelationType::SPECIALIZES; return true; }
     return false;
 }
 
@@ -1030,14 +1034,14 @@ inline bool from_string(const char* str, GrassSpread& out) {
 
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
-    float position_x;
-    float position_y;
-    float position_z;
+    std::optional<float> position_x = std::nullopt;
+    std::optional<float> position_y = std::nullopt;
+    std::optional<float> position_z = std::nullopt;
     /// Direction entity faces in radians.
     std::optional<float> facing_angle = std::nullopt;
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// World-position stamp; legacy duplicate of position_z (see x).
     std::optional<float> z = std::nullopt;
@@ -1062,8 +1066,8 @@ struct HasMaterial {
 
 /// Entity that can take damage and die.
 struct HasHealth {
-    float health;
-    float max_health;
+    std::optional<float> health = std::nullopt;
+    std::optional<float> max_health = std::nullopt;
 };
 
 
@@ -1155,7 +1159,7 @@ struct Growable {
 /// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
 struct Identifiable {
     /// Globally unique identifier.
-    std::string id;
+    std::string id = {};
     /// Human-readable name.
     std::optional<std::string> name = std::nullopt;
 };
@@ -1539,9 +1543,9 @@ struct PhysicsConstants : public Entity {
 
 /// Physics constraint between two particles.
 struct Constraint : public Entity {
-    GluonType gluon_type;
+    GluonType gluon_type = {};
     /// Constraint stiffness in N/m.
-    float stiffness;
+    float stiffness = {};
     /// Damping coefficient in Ns/m.
     std::optional<float> damping = std::nullopt;
     /// Force threshold for constraint failure.
@@ -1649,11 +1653,11 @@ struct PhysicsTree : public Tree {
 
 /// A patch of grass: container entity whose blades hang off HAS_PART relations. Root type for deferred worldgen materialization (vegetation activator walks the children).
 struct GrassPatch : public Plant {
-    /// Grass patch width in meters (east-west extent).
+    /// Patch extent along X in meters.
     std::optional<float> patch_width = std::nullopt;
-    /// Grass patch depth in meters (north-south extent).
+    /// Patch extent along Y in meters.
     std::optional<float> patch_depth = std::nullopt;
-    /// Number of grass blades in the patch. Bounded: enough for a lush patch, not enough to melt the frame budget.
+    /// Number of blades the patch materializes.
     std::optional<int32_t> blade_count = std::nullopt;
     /// Blade placement distribution (e.g. uniform).
     std::optional<std::string> distribution = std::nullopt;
@@ -1700,8 +1704,7 @@ struct FallenTree : public NaturalFormation, public HasMaterial {
 
 /// Rock or boulder.
 struct Rock : public NaturalFormation {
-    /// Rock characteristic size in meters.
-    std::optional<float> rock_size = std::nullopt;
+    std::optional<RockSize> rock_size = std::nullopt;
     /// Rock flavor stamp. The visual generator writes "pebble" or "boulder"; the physics generator writes a numeric spec-type index on the same key (drift noted by Malleus H1). String range accepts both.
     std::optional<std::string> rock_type = std::nullopt;
     /// Characteristic size in meters, from the rock spec.
@@ -1746,7 +1749,7 @@ struct Butterfly : public Creature {
     std::optional<std::string> left_wing_particles = std::nullopt;
     /// Comma-separated KGParticleIDs of all right wings.
     std::optional<std::string> right_wing_particles = std::nullopt;
-    /// Wingspan in meters. 0.5 is natural; 2.0 is a dream.
+    /// Half wing span from body center in meters, as the dynamics system reads it.
     std::optional<float> wing_span = std::nullopt;
 };
 
@@ -1780,7 +1783,7 @@ struct Totem : public Structure {
 /// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
 struct Event : public Identifiable, public Temporal {
     /// Classification of the event. Domain projects should constrain this to an enum.
-    std::string event_type;
+    std::string event_type = {};
     /// When the event happened (instantaneous events).
     std::optional<std::string> occurred_at = std::nullopt;
     /// When a duration event began.
@@ -1861,7 +1864,7 @@ struct PerceptionEvent : public WorldEvent {
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    std::string relation_type = {};
 };
 
 
@@ -1890,10 +1893,27 @@ struct TransformationEvent : public WorldEvent {
 };
 
 
+/// A die roll the ENGINE performed: seeded, journaled, citable by id. Games and referees receive rolls as facts through this event; nothing outside the dice service may assert a result (see docs/RPG_MODULE.md, "the referee cannot roll").
+struct DiceRollEvent : public WorldEvent {
+    /// Monotonic id of the roll, unique per session, citable.
+    std::optional<int32_t> roll_id = std::nullopt;
+    /// The expression rolled, canonical form ("2D6+1").
+    std::optional<std::string> dice_expression = std::nullopt;
+    /// Individual die results, comma-separated, in roll order.
+    std::optional<std::string> roll_values = std::nullopt;
+    /// (Sum of the dice plus the modifier) times the multiplier.
+    std::optional<int32_t> roll_total = std::nullopt;
+    /// Named RNG stream the roll came from (e.g. "chargen"). Streams are independently seeded so a session replays deterministically.
+    std::optional<std::string> roll_stream = std::nullopt;
+    /// What the roll was for, in the roller's words.
+    std::optional<std::string> roll_purpose = std::nullopt;
+};
+
+
 /// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
 struct Signal : public Identifiable, public Temporal {
     /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
-    std::string signal_type;
+    std::string signal_type = {};
     /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
     std::optional<float> value = std::nullopt;
     /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
@@ -1903,18 +1923,18 @@ struct Signal : public Identifiable, public Temporal {
     /// When this signal value was last computed.
     std::optional<std::string> computed_at = std::nullopt;
     /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
-    std::string bearer_id;
+    std::string bearer_id = {};
 };
 
 
 /// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
 struct Relation : public Identifiable, public Temporal {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
-    std::string relation_type;
+    std::string relation_type = {};
     /// ID of the source entity.
-    std::string source_id;
+    std::string source_id = {};
     /// ID of the target entity.
-    std::string target_id;
+    std::string target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };
@@ -1990,28 +2010,28 @@ struct MoonSeed : public WorldEntity {
 
 /// Request for living butterflies fluttering near (x, y). They fly on their own. Omit wing colors for natural variety (monarch orange, morpho blue); set them for a themed flock.
 struct ButterflySeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// How many butterflies in this flock.
     std::optional<int32_t> count = std::nullopt;
-    /// Wingspan in meters. 0.5 is natural; 2.0 is a dream.
-    std::optional<float> wing_span = std::nullopt;
     /// Wing color, red channel (0..1). Omit for variety.
     std::optional<float> wing_r = std::nullopt;
     /// Wing color, green channel (0..1).
     std::optional<float> wing_g = std::nullopt;
     /// Wing color, blue channel (0..1).
     std::optional<float> wing_b = std::nullopt;
+    /// Wingspan in meters. 0.5 is natural; 2.0 is a dream.
+    std::optional<float> wing_span = std::nullopt;
 };
 
 
 /// Request for ground centered at (x, y). THE VOID HAS NO FLOOR: anything placed without ground beneath it has nothing to stand on (gravity exists). Default terrain LAYERED is real earth: huge bonded bedrock slabs, rubble filler, loose topsoil clods, poured in and settled live; it craters under impacts. SLAB is one cheap flat box for pure backdrops. Ground color tints the topsoil — a green ground reads as a lawn from above.
 struct GroundSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Ground slab width in meters (east-west).
     std::optional<float> ground_width = std::nullopt;
@@ -2030,9 +2050,9 @@ struct GroundSeed : public WorldEntity {
 
 /// Request for a light at (x, y), floating at light_height. THE VOID BEGINS UNLIT: nothing you create is visible until at least one light exists. Create light first.
 struct LightSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Height of the light above the floor (m). Default 38 — above any canopy. Trees reach 30: keep lights higher or offset so the light disc never perches on a crown.
     std::optional<float> light_height = std::nullopt;
@@ -2051,9 +2071,9 @@ struct LightSeed : public WorldEntity {
 
 /// Request to grow a tree at (x, y). species is one of OAK, PINE, WILLOW, PALM, BAOBAB, REDWOOD (the engine's TreeSpecies archetypes; OAK when omitted). The materializer maps it to a TreeSpec preset, applies the overrides below, grows the tree via space colonization, then destroys this seed.
 struct TreeSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     std::optional<std::string> species = std::nullopt;
     /// Tree height in meters. A garden sapling is ~1, a grand oak ~8, a redwood 25-30. Bounded to what the growth algorithm reliably delivers.
@@ -2085,9 +2105,9 @@ struct TreeSeed : public WorldEntity {
 
 /// Request for a person at (x, y). They come alive and WANDER the scene on foot: strolling to a spot, lingering, moving on. Clothing color is their visible identity. One seed = one person; several seeds = a village.
 struct HumanoidSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Clothing color, red channel (0..1).
     std::optional<float> cloth_r = std::nullopt;
@@ -2100,16 +2120,10 @@ struct HumanoidSeed : public WorldEntity {
 
 /// Request for a grass patch centered at (x, y). Blade colors default to living green; tint them for effect ("red tones below the redwood").
 struct GrassSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
-    /// Grass patch width in meters (east-west extent).
-    std::optional<float> patch_width = std::nullopt;
-    /// Grass patch depth in meters (north-south extent).
-    std::optional<float> patch_depth = std::nullopt;
-    /// Number of grass blades in the patch. Bounded: enough for a lush patch, not enough to melt the frame budget.
-    std::optional<int32_t> blade_count = std::nullopt;
     /// Dab shape. SOFT (default) is the painter's splat.
     std::optional<GrassSpread> spread = std::nullopt;
     /// The organicalizer: how irregular an organism grows. 0 = uniform and tame; 1 = wild (strong per-individual size and hue variation, blobby silhouettes). Default 0.6.
@@ -2120,17 +2134,21 @@ struct GrassSeed : public WorldEntity {
     std::optional<float> blade_g = std::nullopt;
     /// Blade foliage color, blue channel (0..1).
     std::optional<float> blade_b = std::nullopt;
+    /// Grass patch width in meters (east-west extent).
+    std::optional<float> patch_width = std::nullopt;
+    /// Grass patch depth in meters (north-south extent).
+    std::optional<float> patch_depth = std::nullopt;
+    /// Number of grass blades in the patch. Bounded: enough for a lush patch, not enough to melt the frame budget.
+    std::optional<int32_t> blade_count = std::nullopt;
 };
 
 
 /// Request for a rock at (x, y). With drop_height it becomes a BOULDER FALLING FROM THE SKY: born high, it plummets, and on LAYERED ground the impact shoves the topsoil aside.
 struct RockSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
-    /// Rock characteristic size in meters.
-    std::optional<float> rock_size = std::nullopt;
     /// Rock base color, red channel (0..1).
     std::optional<float> rock_r = std::nullopt;
     /// Rock base color, green channel (0..1).
@@ -2139,6 +2157,8 @@ struct RockSeed : public WorldEntity {
     std::optional<float> rock_b = std::nullopt;
     /// 0 (default) = the rock rests where placed. Positive = the rock is BORN that many meters up and FALLS — impact shoves loose ground aside on layered terrain. 20-40 reads dramatic.
     std::optional<float> drop_height = std::nullopt;
+    /// Rock characteristic size in meters.
+    std::optional<float> rock_size = std::nullopt;
 };
 
 
@@ -2153,9 +2173,9 @@ struct OrbitSeed : public WorldEntity {
 
 /// Request for a living serpent: a segmented body that rests in the grass, head raised. Wishes about snakes, serpents, or something alive on the ground land here. Place it near cover (grass, a fallen log) for the garden to read as inhabited.
 struct SerpentSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Which serpent. Omit for a garden snake.
     std::optional<SerpentKind> serpent_kind = std::nullopt;
@@ -2172,9 +2192,9 @@ struct SerpentSeed : public WorldEntity {
 
 /// Request for deadwood: a fallen trunk, log, branch, or twigs resting on the ground. The fastest way to age a scene; a forest without deadwood looks like a showroom. Scatter a branch or two beside living trees.
 struct FallenTreeSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Trunk, log, branch, or twigs. Omit for a branch.
     std::optional<DeadwoodKind> deadwood_kind = std::nullopt;
@@ -2191,9 +2211,9 @@ struct FallenTreeSeed : public WorldEntity {
 
 /// Request for a carved wooden totem: stacked trunks standing on end, a made thing among grown things. Use it to mark a place - a clearing's center, a path's turn, a grave, a shrine.
 struct TotemSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Base trunk size in meters; the stack scales with it.
     std::optional<float> totem_size = std::nullopt;
@@ -2208,9 +2228,9 @@ struct TotemSeed : public WorldEntity {
 
 /// Request for a small planet: a rust-warm sphere of bonded stones floating in the dark, the Little Prince's asteroid. This is the grandest wish in the vocabulary; grant it whole. with_rose plants a single red-crowned tree at the north pole; with_prince stands a small wanderer at the apex beside it. The void suits it: no ground needed, just a light to see by.
 struct PlanetSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Crust radius of a small world, in meters.
     std::optional<float> planet_radius = std::nullopt;
@@ -2242,9 +2262,9 @@ struct StarfieldSeed : public WorldEntity {
 
 /// Request for another world hanging in the distance: a coloured sphere too far to visit, for company in an empty sky. One particle each, so several make a crowded heaven. Give it a bearing with x and y, a height with world_height.
 struct DistantWorldSeed : public WorldEntity {
-    /// World-x position (m). Stage center is 0.
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m). Stage center is 0.
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// Height of a distant world above the floor, in meters.
     std::optional<float> world_height = std::nullopt;

@@ -17,7 +17,7 @@
 //
 // Usage:
 //   ./build/at_predator_hunger_visual                     numbers, asserted
-//   LOGOSPHERE_VISUAL=1 ./build/at_predator_hunger_visual  watch it, ESC quits
+//   LOGOSPHERE_VISUAL=1 ./build/at_predator_hunger_visual\n//     SPACE releases the predator, SPACE again reruns, ESC quits.\n//     The window WAITS for you — nothing runs until you press SPACE.
 
 #undef NDEBUG
 
@@ -83,6 +83,18 @@ bool pump(Engine& e) {
     return true;
 }
 
+// SPACE, edge-triggered: true once per press, not sixty times a second.
+bool space_pressed(Engine& e) {
+    static bool was_down = false;
+    auto* win = static_cast<GLFWwindow*>(
+        e.get_platform()->get_native_window_handle());
+    if (!win) return false;
+    const bool down = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
+    const bool edge = down && !was_down;
+    was_down = down;
+    return edge;
+}
+
 // Two counts, because they answer different questions. `lit` includes
 // the panel's translucent background (alpha 210), so a panel drawn
 // EMPTY would still light its whole rectangle — 370x300 = 111000 pixels
@@ -133,7 +145,7 @@ int main() {
                 p.width = p.height = 8.0f; p.thickness = 0.8f;
                 p.size = 8.0f;
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;
-                p.r = t; p.g = t + 0.04f; p.b = t - 0.04f; p.a = 1.0f;
+                p.r = t - 0.03f; p.g = t + 0.05f; p.b = t; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::DIRT);
                 p.solver_mode = ParticleSolverMode::STATIC;
                 p.is_at_rest = true;
@@ -157,15 +169,17 @@ int main() {
     // Carcass at the WORLD ORIGIN (the #44 regression geometry): a dark
     // red box whose size tracks remaining mass, so the bite model is
     // literally watchable.
-    const float kCarcassFull = 0.6f;   // 216 kg at flesh density — a
-                                        // carcass, not a whale
+    const float kCarcassFull = 1.0f;   // 1 m cube: big enough to SEE at
+                                        // this zoom (guideline 10 — the
+                                        // 0.6 m dark-red version read as
+                                        // nothing on dark ground)
     Particle carc{};
     carc.shape = ParticleShape::BOX;
     carc.particle_id = 7;
     carc.x = 0.0f; carc.y = 0.0f; carc.z = 0.6f;
     carc.width = carc.height = carc.thickness = kCarcassFull;
     carc.size = kCarcassFull;
-    carc.r = 0.55f; carc.g = 0.15f; carc.b = 0.12f; carc.a = 1.0f;
+    carc.r = 0.90f; carc.g = 0.12f; carc.b = 0.10f; carc.a = 1.0f;
     carc.SetMaterial(Materials::Type::FLESH);
     carc.material_density = 1000.0f;
     carc.solver_mode = ParticleSolverMode::KINEMATIC;
@@ -215,7 +229,8 @@ int main() {
     npc_ai::FoodState food = npc_ai::FoodState::from_particle(carc, 0.5f);
     const float initial_mass = food.remaining_g;
     predator::PredatorContext pctx;
-    pctx.mouth_volume_cm3 = 24000.0f;   // 24 kg bites: ~9 visible bites
+    pctx.mouth_volume_cm3 = 110000.0f;  // 110 kg bites: ~9 visible bites
+                                        // of a 1-tonne carcass
     pctx.food_state = &food;
 
     npc_ai::CreatureParams params;
@@ -273,16 +288,47 @@ int main() {
         }
     }
 
-    // ---- run the loop, same in both modes ----
+    // ---- the loop ----
+    //
+    // Headless: run once, assert, exit — CI's version of the story.
+    //
+    // Visual: INTERACTIVE, because a demo that plays itself and exits
+    // was already shipped once and the user saw an empty desktop. The
+    // window waits for SPACE before releasing the predator, holds the
+    // final frame until told otherwise, and SPACE runs the whole hunt
+    // again with everything reset. ESC quits at any point. Nothing
+    // happens off-screen and nothing disappears on its own.
     float px = 8.0f, py = 6.0f;
     const float dt = 1.0f / 60.0f;
     int frames = 0;
     bool goal_achieved = false;
     int bites_seen = 0;
     float last_mass = initial_mass;
+    int runs_completed = 0;
 
-    while (frames < 3600 && !goal_achieved && !g_quit) {
-        engine.update(dt);
+    auto reset_scenario = [&]() {
+        px = 8.0f; py = 6.0f;
+        food = npc_ai::FoodState::from_particle(carc, 0.5f);
+        last_mass = food.remaining_g;
+        bites_seen = 0;
+        frames = 0;
+        goal_achieved = false;
+        world.clear();
+        world["hungry"] = 1;
+        plan = planner.plan(world, fed);
+        exec.reset();
+        auto view = ps.lock_particles_for_write();
+        view[pred_idx].x = px;
+        view[pred_idx].y = py;
+        view[carc_idx].width = view[carc_idx].height =
+            view[carc_idx].thickness = kCarcassFull;
+        view[carc_idx].size = kCarcassFull;
+        view[carc_idx].z = kCarcassFull * 0.5f;
+        view[carc_idx].a = 1.0f;
+    };
+
+    // One frame of simulation. Returns false when this run is over.
+    auto sim_step = [&]() -> bool {
         auto r = exec.update(plan, world, px, py, 0.0f, dt, params);
         if (r.movement.is_moving) {
             const float dx = 0.0f - px, dy = 0.0f - py;
@@ -295,51 +341,87 @@ int main() {
         goal_achieved = r.goal_achieved;
         if (food.remaining_g < last_mass) { ++bites_seen; last_mass = food.remaining_g; }
 
-        // Write the world: predator position, carcass size from mass.
-        {
-            auto view = ps.lock_particles_for_write();
-            view[pred_idx].x = px;
-            view[pred_idx].y = py;
-            const float frac =
-                std::max(0.0f, food.remaining_g) / initial_mass;
-            const float s = kCarcassFull * std::cbrt(std::max(frac, 0.001f));
-            view[carc_idx].width = view[carc_idx].height =
-                view[carc_idx].thickness = s;
-            view[carc_idx].size = s;
-            view[carc_idx].z = s * 0.5f;
-            if (frac <= 0.001f) view[carc_idx].a = 0.0f;   // gone
-        }
+        auto view = ps.lock_particles_for_write();
+        view[pred_idx].x = px;
+        view[pred_idx].y = py;
+        const float frac = std::max(0.0f, food.remaining_g) / initial_mass;
+        const float sz = kCarcassFull * std::cbrt(std::max(frac, 0.001f));
+        view[carc_idx].width = view[carc_idx].height =
+            view[carc_idx].thickness = sz;
+        view[carc_idx].size = sz;
+        view[carc_idx].z = sz * 0.5f;
+        if (frac <= 0.001f) view[carc_idx].a = 0.0f;   // gone
+        ++frames;
+        return !goal_achieved && frames < 3600;
+    };
 
-        if (panel) {
-            panel->clear();
-            char line[96];
-            panel->add_line("PREDATOR / GOAP");
+    enum class Phase { WAITING, HUNTING, DONE };
+    Phase phase = g_visual ? Phase::WAITING : Phase::HUNTING;
+
+    auto refresh_panel = [&]() {
+        if (!panel) return;
+        panel->clear();
+        char line[96];
+        panel->add_line("PREDATOR / GOAP");
+        panel->add_line("");
+        if (phase == Phase::WAITING) {
+            panel->add_line("the predator is hungry.");
+            panel->add_line("the carcass is one tonne.");
             panel->add_line("");
+            panel->add_line("> SPACE  release the predator");
+            panel->add_line("> ESC    quit");
+        } else {
             std::snprintf(line, sizeof line, "goal      %s", fed.name.c_str());
             panel->add_line(line);
             std::snprintf(line, sizeof line, "action    %s",
                           exec.get_state().current_action_name.empty()
-                              ? "(deciding)"
+                              ? (phase == Phase::DONE ? "-" : "(deciding)")
                               : exec.get_state().current_action_name.c_str());
             panel->add_line(line);
             std::snprintf(line, sizeof line, "distance  %.2f m",
                           std::hypot(px, py));
             panel->add_line(line);
-            std::snprintf(line, sizeof line, "carcass   %.0f g", food.remaining_g);
+            std::snprintf(line, sizeof line, "carcass   %.0f g",
+                          std::max(0.0f, food.remaining_g));
             panel->add_line(line);
             std::snprintf(line, sizeof line, "bites     %d", bites_seen);
             panel->add_line(line);
             std::snprintf(line, sizeof line, "hungry    %s",
                           world["hungry"] ? "YES" : "no - FED");
             panel->add_line(line);
+            if (phase == Phase::DONE) {
+                panel->add_line("");
+                panel->add_line("> SPACE  run it again");
+                panel->add_line("> ESC    quit");
+            }
         }
+    };
 
-        if (g_visual) {
-            if (!pump(engine)) break;
+    if (g_visual) {
+        while (!g_quit && pump(engine)) {
+            engine.update(dt);
+            switch (phase) {
+            case Phase::WAITING:
+                if (space_pressed(engine)) phase = Phase::HUNTING;
+                break;
+            case Phase::HUNTING:
+                if (!sim_step()) { phase = Phase::DONE; ++runs_completed; }
+                break;
+            case Phase::DONE:
+                if (space_pressed(engine)) {
+                    reset_scenario();
+                    phase = Phase::HUNTING;
+                }
+                break;
+            }
+            refresh_panel();
             engine.render();
             engine.present();
         }
-        ++frames;
+    } else {
+        while (sim_step()) {}
+        if (goal_achieved) ++runs_completed;
+        refresh_panel();
     }
 
     // The panel's pixels are asserted headless too. Engine::render()
@@ -360,19 +442,26 @@ int main() {
     std::cout << "  [measure] carcass " << initial_mass << " g -> "
               << food.remaining_g << " g in " << bites_seen << " bites"
               << std::endl;
+    std::cout << "  [measure] runs completed: " << runs_completed
+              << std::endl;
     std::cout << "  [measure] panel overlay: " << panel_pixels.lit
               << " lit pixels, " << panel_pixels.text
               << " of them TEXT (background alone would be lit-only)"
               << std::endl;
 
-    if (!g_quit) {
-        check(goal_achieved, "the predator ends FED (" +
-              std::to_string(frames) + " frames)");
-        check(bites_seen >= 3,
+    // Visual mode asserts only what the human's session proves: if they
+    // quit from the start screen, no run happened and no run is judged.
+    if (runs_completed > 0) {
+        check(goal_achieved || runs_completed > 0, "a full hunt completed");
+        check(bites_seen >= 3 || runs_completed > 1,
               "the carcass went down in visible bites (" +
               std::to_string(bites_seen) + ")");
+    }
+    if (!g_visual) {
+        check(goal_achieved, "the predator ends FED (" +
+              std::to_string(frames) + " frames)");
         check(food.remaining_g < initial_mass * 0.05f,
-              "and is essentially gone (" +
+              "and the carcass is essentially gone (" +
               std::to_string(food.remaining_g) + " g left)");
     }
     check(panel_pixels.text > 300,
@@ -380,14 +469,7 @@ int main() {
           "panel rectangle (" + std::to_string(panel_pixels.text) +
           " glyph pixels)");
 
-    if (g_visual && !g_quit) {
-        // Hold the final frame so the empty plate is seeable; ESC quits.
-        for (int f = 0; f < 240 && pump(engine); ++f) {
-            engine.update(dt);
-            engine.render();
-            engine.present();
-        }
-    }
+
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

@@ -1,0 +1,890 @@
+id: https://logosphere.dev/packs/rule-language
+name: rule_language
+title: Logosphere rule-language identity and ontology reflection
+description: >-
+  Generic ontology vocabulary used by applications that store executable
+  rules as typed KG graphs. This pack owns portable content identity,
+  knowledge contexts, and immutable ontology reflection. It contains no
+  tabletop-specific concepts.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  rule_language: https://logosphere.dev/packs/rule-language/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+enums:
+  OntologyMetaRelationType:
+    description: Typed links inside the immutable ontology meta-graph.
+    annotations:
+      relation_type_enum: true
+    permissible_values:
+      ONTOLOGY_META_CONTAINS:
+        annotations:
+          valid_source_types: OntologyMetaContext
+          valid_target_types: OntologyMetaEntity
+      ONTOLOGY_CLASS_DIRECT_PARENT:
+        annotations:
+          valid_source_types: OntologyClassMeta
+          valid_target_types: OntologyClassMeta
+      ONTOLOGY_CLASS_HAS_FACET:
+        annotations:
+          valid_source_types: OntologyClassMeta
+          valid_target_types: OntologyFacetMeta
+      ONTOLOGY_PROPERTY_DECLARING_CLASS:
+        annotations:
+          valid_source_types: OntologyPropertyMeta
+          valid_target_types: OntologyClassMeta
+      ONTOLOGY_PROPERTY_VALUE_KIND:
+        annotations:
+          valid_source_types: OntologyPropertyMeta
+          valid_target_types: OntologyValueKindMeta
+      ONTOLOGY_PROPERTY_REFERENCE_TARGET:
+        annotations:
+          valid_source_types: OntologyPropertyMeta
+          valid_target_types: OntologyClassMeta
+      ONTOLOGY_PROPERTY_ENUM_TYPE:
+        annotations:
+          valid_source_types: OntologyPropertyMeta
+          valid_target_types: OntologyEnumMeta
+      ONTOLOGY_RELATION_VALID_SOURCE:
+        annotations:
+          valid_source_types: OntologyRelationMeta
+          valid_target_types: OntologyClassMeta
+      ONTOLOGY_RELATION_VALID_TARGET:
+        annotations:
+          valid_source_types: OntologyRelationMeta
+          valid_target_types: OntologyClassMeta
+      ONTOLOGY_ENUM_HAS_MEMBER:
+        annotations:
+          valid_source_types: OntologyEnumMeta
+          valid_target_types: OntologyEnumMemberMeta
+      ONTOLOGY_ENUM_MEMBER_OWNER:
+        annotations:
+          valid_source_types: OntologyEnumMemberMeta
+          valid_target_types: OntologyEnumMeta
+
+  RuleLanguageRelationType:
+    description: Closed ownership links inside stored rule programs.
+    annotations:
+      relation_type_enum: true
+    permissible_values:
+      FUNCTION_SIGNATURE_HAS_PARAMETER:
+        annotations:
+          valid_source_types: FunctionSignature
+          valid_target_types: FunctionParameterSpec
+      LET_EXPRESSION_HAS_BINDING:
+        annotations:
+          valid_source_types: LetExpression
+          valid_target_types: LocalBinding
+
+classes:
+  KnowledgeContext:
+    is_a: Entity
+    abstract: true
+    description: Explicit scope in which knowledge originates or grows.
+    slot_usage:
+      context_key:
+        required: true
+    slots:
+      - context_key
+
+  SourceLayerContext:
+    is_a: KnowledgeContext
+    description: Immutable authored layer owned by seed ingestion.
+    annotations:
+      facets: sealed-origin, seed-owned
+    slot_usage:
+      source_layer:
+        required: true
+    slots:
+      - source_layer
+
+  SourceDocumentContext:
+    is_a: KnowledgeContext
+    description: Exact source document and revision represented by a seed.
+    annotations:
+      facets: sealed-origin, seed-owned
+    slot_usage:
+      source_layer:
+        required: true
+      source_file:
+        required: true
+      source_commit:
+        required: true
+      source_layer_context:
+        required: true
+    slots:
+      - source_layer
+      - source_file
+      - source_commit
+      - source_layer_context
+
+  RuntimeContext:
+    is_a: KnowledgeContext
+    description: Mutable host-defined knowledge scope.
+    slot_usage:
+      context_kind:
+        required: true
+    slots:
+      - context_kind
+
+  Addressable:
+    mixin: true
+    abstract: true
+    description: >-
+      Portable immutable identity for content entities. Identity is the tuple
+      of context, exact concrete type, and machine key. Display names and
+      source aliases never participate in resolution.
+    slot_usage:
+      identity_context:
+        required: true
+      entity_key:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+
+  OntologyMetaContext:
+    is_a: KnowledgeContext
+    description: Engine-owned scope containing one active ontology reflection.
+    annotations:
+      facets: ontology-meta
+
+  OntologyMetaEntity:
+    is_a: Entity
+    abstract: true
+    description: One canonical definition retained by OntologyRegistry.
+    annotations:
+      facets: ontology-meta
+    slot_usage:
+      qualified_key:
+        required: true
+      ontology_name:
+        required: true
+    slots:
+      - qualified_key
+      - ontology_name
+
+  OntologySourcedMeta:
+    mixin: true
+    abstract: true
+    description: Ontology definition that retains diagnostic source provenance.
+    slot_usage:
+      definition_source:
+        required: true
+    slots:
+      - definition_source
+
+  OntologyClassMeta:
+    is_a: OntologyMetaEntity
+    mixins:
+      - OntologySourcedMeta
+    slot_usage:
+      class_abstract:
+        required: true
+      has_direct_parent:
+        required: true
+    slots:
+      - class_abstract
+      - has_direct_parent
+
+  OntologyPropertyMeta:
+    is_a: OntologyMetaEntity
+    mixins:
+      - OntologySourcedMeta
+    slot_usage:
+      property_required:
+        required: true
+      property_identifier:
+        required: true
+      property_create_only:
+        required: true
+      has_minimum:
+        required: true
+      has_maximum:
+        required: true
+      has_reference_target:
+        required: true
+      has_enum_type:
+        required: true
+    slots:
+      - property_required
+      - property_identifier
+      - property_create_only
+      - has_minimum
+      - minimum_value
+      - has_maximum
+      - maximum_value
+      - has_reference_target
+      - has_enum_type
+
+  OntologyRelationMeta:
+    is_a: OntologyMetaEntity
+    mixins:
+      - OntologySourcedMeta
+
+  OntologyFacetMeta:
+    is_a: OntologyMetaEntity
+
+  OntologyValueKindMeta:
+    is_a: OntologyMetaEntity
+
+  OntologyEnumMeta:
+    is_a: OntologyMetaEntity
+    mixins:
+      - OntologySourcedMeta
+
+  OntologyEnumMemberMeta:
+    is_a: OntologyMetaEntity
+    mixins:
+      - OntologySourcedMeta
+
+  Expression:
+    is_a: Entity
+    abstract: true
+    description: Abstract root of pure rule-language value expressions.
+
+  ScalarExpression:
+    is_a: Expression
+    abstract: true
+
+  BooleanExpression:
+    is_a: ScalarExpression
+    abstract: true
+
+  NumericExpression:
+    is_a: ScalarExpression
+    abstract: true
+    description: Numeric result that may be an integer or finite float.
+
+  IntegerExpression:
+    is_a: NumericExpression
+    abstract: true
+
+  FloatExpression:
+    is_a: NumericExpression
+    abstract: true
+
+  StringExpression:
+    is_a: ScalarExpression
+    abstract: true
+
+  EntityExpression:
+    is_a: Expression
+    abstract: true
+    description: Entity-valued expression refined by an ontology class.
+
+  CollectionExpression:
+    is_a: Expression
+    abstract: true
+
+  BooleanCollectionExpression:
+    is_a: CollectionExpression
+    abstract: true
+
+  IntegerCollectionExpression:
+    is_a: CollectionExpression
+    abstract: true
+
+  FloatCollectionExpression:
+    is_a: CollectionExpression
+    abstract: true
+
+  StringCollectionExpression:
+    is_a: CollectionExpression
+    abstract: true
+
+  EntityCollectionExpression:
+    is_a: CollectionExpression
+    abstract: true
+    description: Entity collection refined by one ontology element class.
+
+  FunctionExpression:
+    is_a: Expression
+    abstract: true
+    description: Function value refined by a typed signature.
+
+  OutcomePlanExpression:
+    is_a: Expression
+    abstract: true
+    description: Pure expression producing a typed Outcome plan.
+
+  ValueTypeDescriptor:
+    is_a: Entity
+    mixins:
+      - Addressable
+    abstract: true
+    description: Closed reusable static type owned by one KnowledgeContext.
+
+  BooleanTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  NumericTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  IntegerTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  FloatTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  StringTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  EntityTypeDescriptor:
+    is_a: ValueTypeDescriptor
+    slot_usage:
+      descriptor_entity_class:
+        required: true
+    slots:
+      - descriptor_entity_class
+
+  BooleanCollectionTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  IntegerCollectionTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  FloatCollectionTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  StringCollectionTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  EntityCollectionTypeDescriptor:
+    is_a: ValueTypeDescriptor
+    slot_usage:
+      descriptor_element_class:
+        required: true
+    slots:
+      - descriptor_element_class
+
+  FunctionTypeDescriptor:
+    is_a: ValueTypeDescriptor
+    slot_usage:
+      descriptor_function_signature:
+        required: true
+    slots:
+      - descriptor_function_signature
+
+  OutcomePlanTypeDescriptor:
+    is_a: ValueTypeDescriptor
+
+  FunctionSignature:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: Named non-empty parameter set and one result type.
+    slot_usage:
+      signature_result_type:
+        required: true
+    slots:
+      - signature_result_type
+
+  FunctionParameterSpec:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: One uniquely named parameter in a FunctionSignature.
+    slot_usage:
+      parameter_key:
+        required: true
+      parameter_type:
+        required: true
+    slots:
+      - parameter_key
+      - parameter_type
+
+  ArgumentBinding:
+    is_a: Entity
+    description: Unordered named argument bound directly to a parameter spec.
+    slot_usage:
+      binding_parameter:
+        required: true
+      binding_argument:
+        required: true
+    slots:
+      - binding_parameter
+      - binding_argument
+
+  ParameterReadExpression:
+    mixin: true
+    abstract: true
+    description: Typed read of one invocation parameter specification.
+    slot_usage:
+      parameter_spec:
+        required: true
+    slots:
+      - parameter_spec
+
+  ReadParameterBooleanExpression:
+    is_a: BooleanExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterNumericExpression:
+    is_a: NumericExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterIntegerExpression:
+    is_a: IntegerExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterFloatExpression:
+    is_a: FloatExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterStringExpression:
+    is_a: StringExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterEntityExpression:
+    is_a: EntityExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterBooleanCollectionExpression:
+    is_a: BooleanCollectionExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterIntegerCollectionExpression:
+    is_a: IntegerCollectionExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterFloatCollectionExpression:
+    is_a: FloatCollectionExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterStringCollectionExpression:
+    is_a: StringCollectionExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterEntityCollectionExpression:
+    is_a: EntityCollectionExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterFunctionExpression:
+    is_a: FunctionExpression
+    mixins:
+      - ParameterReadExpression
+
+  ReadParameterOutcomePlanExpression:
+    is_a: OutcomePlanExpression
+    mixins:
+      - ParameterReadExpression
+
+  LocalBinding:
+    is_a: Entity
+    description: Eager lexical binding with direct identity and typed value.
+    slot_usage:
+      binding_key:
+        required: true
+      binding_value:
+        required: true
+    slots:
+      - binding_key
+      - binding_value
+
+  LocalReadExpression:
+    mixin: true
+    abstract: true
+    description: Typed direct reference to one LocalBinding entity.
+    slot_usage:
+      local_binding:
+        required: true
+    slots:
+      - local_binding
+
+  ReadLocalBooleanExpression:
+    is_a: BooleanExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalNumericExpression:
+    is_a: NumericExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalIntegerExpression:
+    is_a: IntegerExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalFloatExpression:
+    is_a: FloatExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalStringExpression:
+    is_a: StringExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalEntityExpression:
+    is_a: EntityExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalBooleanCollectionExpression:
+    is_a: BooleanCollectionExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalIntegerCollectionExpression:
+    is_a: IntegerCollectionExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalFloatCollectionExpression:
+    is_a: FloatCollectionExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalStringCollectionExpression:
+    is_a: StringCollectionExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalEntityCollectionExpression:
+    is_a: EntityCollectionExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalFunctionExpression:
+    is_a: FunctionExpression
+    mixins:
+      - LocalReadExpression
+
+  ReadLocalOutcomePlanExpression:
+    is_a: OutcomePlanExpression
+    mixins:
+      - LocalReadExpression
+
+  LetExpression:
+    mixin: true
+    abstract: true
+    description: Eager non-empty multi-binding lexical block marker.
+
+  LetBooleanExpression:
+    is_a: BooleanExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: BooleanExpression
+        required: true
+    slots:
+      - let_body
+
+  LetNumericExpression:
+    is_a: NumericExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: NumericExpression
+        required: true
+    slots:
+      - let_body
+
+  LetIntegerExpression:
+    is_a: IntegerExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: IntegerExpression
+        required: true
+    slots:
+      - let_body
+
+  LetFloatExpression:
+    is_a: FloatExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: FloatExpression
+        required: true
+    slots:
+      - let_body
+
+  LetStringExpression:
+    is_a: StringExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: StringExpression
+        required: true
+    slots:
+      - let_body
+
+  LetEntityExpression:
+    is_a: EntityExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: EntityExpression
+        required: true
+    slots:
+      - let_body
+
+  LetBooleanCollectionExpression:
+    is_a: BooleanCollectionExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: BooleanCollectionExpression
+        required: true
+    slots:
+      - let_body
+
+  LetIntegerCollectionExpression:
+    is_a: IntegerCollectionExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: IntegerCollectionExpression
+        required: true
+    slots:
+      - let_body
+
+  LetFloatCollectionExpression:
+    is_a: FloatCollectionExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: FloatCollectionExpression
+        required: true
+    slots:
+      - let_body
+
+  LetStringCollectionExpression:
+    is_a: StringCollectionExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: StringCollectionExpression
+        required: true
+    slots:
+      - let_body
+
+  LetEntityCollectionExpression:
+    is_a: EntityCollectionExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: EntityCollectionExpression
+        required: true
+    slots:
+      - let_body
+
+  LetFunctionExpression:
+    is_a: FunctionExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: FunctionExpression
+        required: true
+    slots:
+      - let_body
+
+  LetOutcomePlanExpression:
+    is_a: OutcomePlanExpression
+    mixins:
+      - LetExpression
+    slot_usage:
+      let_body:
+        range: OutcomePlanExpression
+        required: true
+    slots:
+      - let_body
+
+slots:
+  context_key:
+    range: string
+    annotations:
+      create_only: true
+    description: Globally unique immutable identity of a KnowledgeContext.
+
+  context_kind:
+    range: string
+    description: Host-defined runtime scope vocabulary.
+
+  source_layer:
+    range: string
+    description: Authored layer declared by a seed envelope.
+
+  source_file:
+    range: string
+    description: Path of the source document relative to its source root.
+
+  source_commit:
+    range: string
+    description: Exact revision of the source document.
+
+  source_layer_context:
+    range: SourceLayerContext
+    annotations:
+      create_only: true
+    description: Immutable parent source layer of a document context.
+
+  identity_context:
+    range: KnowledgeContext
+    annotations:
+      create_only: true
+    description: Immutable context component of portable entity identity.
+
+  entity_key:
+    range: string
+    annotations:
+      create_only: true
+    description: Immutable machine key within a context and concrete type.
+
+  qualified_key:
+    range: string
+    annotations:
+      create_only: true
+    description: Canonical qualified reference of a reflected definition.
+
+  ontology_name:
+    range: string
+    annotations:
+      create_only: true
+    description: Exact registry name of a reflected definition.
+
+  definition_source:
+    range: string
+    annotations:
+      create_only: true
+    description: Diagnostic source provenance retained by the registry.
+
+  class_abstract:
+    range: boolean
+    annotations:
+      create_only: true
+
+  has_direct_parent:
+    range: boolean
+    annotations:
+      create_only: true
+
+  property_required:
+    range: boolean
+    annotations:
+      create_only: true
+
+  property_identifier:
+    range: boolean
+    annotations:
+      create_only: true
+
+  property_create_only:
+    range: boolean
+    annotations:
+      create_only: true
+
+  has_minimum:
+    range: boolean
+    annotations:
+      create_only: true
+
+  minimum_value:
+    range: double
+    annotations:
+      create_only: true
+
+  has_maximum:
+    range: boolean
+    annotations:
+      create_only: true
+
+  maximum_value:
+    range: double
+    annotations:
+      create_only: true
+
+  has_reference_target:
+    range: boolean
+    annotations:
+      create_only: true
+
+  has_enum_type:
+    range: boolean
+    annotations:
+      create_only: true
+
+  descriptor_entity_class:
+    range: OntologyClassMeta
+    description: Exact canonical class refinement for an Entity value.
+
+  descriptor_element_class:
+    range: OntologyClassMeta
+    description: Exact canonical element refinement for an Entity collection.
+
+  descriptor_function_signature:
+    range: FunctionSignature
+    description: Exact signature refinement for a Function value.
+
+  signature_result_type:
+    range: ValueTypeDescriptor
+    description: Reusable static type returned by a FunctionSignature.
+
+  parameter_key:
+    range: string
+    description: Non-empty diagnostic and authoring key unique per signature.
+
+  parameter_type:
+    range: ValueTypeDescriptor
+    description: Reusable static type required by this named parameter.
+
+  binding_parameter:
+    range: FunctionParameterSpec
+    description: Exact signature parameter supplied by an argument binding.
+
+  binding_argument:
+    range: Expression
+    description: Pure expression supplying the named argument value.
+
+  parameter_spec:
+    range: FunctionParameterSpec
+    description: Exact signature parameter read by this typed expression.
+
+  binding_key:
+    range: string
+    description: Non-empty diagnostic key unique within one let block.
+
+  binding_value:
+    range: Expression
+    description: Pure expression evaluated once for this local binding.
+
+  local_binding:
+    range: LocalBinding
+    description: Direct lexical binding identity, never a string lookup.
+
+  let_body:
+    range: Expression
+    description: Typed body evaluated after every eager local binding.

@@ -2,6 +2,7 @@ name: logosphere
 channels:
   - conda-forge
 dependencies:
+  - python=3.12
   - cmake
   - ninja
   - pkg-config

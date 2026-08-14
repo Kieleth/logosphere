@@ -11,7 +11,11 @@ Read in order:
 
 - **[Getting Started](GETTING_STARTED.md)** — step-by-step tutorial with Eden as reference
 - **[Game Layer](GAME_LAYER.md)** — IApplication, ontology extension, event bus, capability rules, DynamicsParams override, particle interaction model
+- **[Recording and Replaying a Run](RECORD_AND_REPLAY.md)** — run a game headless, capture what happened and what was decided, replay it exactly, or fuzz it with nobody at the keyboard. Facts and decisions are separate mechanisms, and the doc says why
+- **[Rules as Data](RULES_AS_DATA.md)** — putting an existing body of rules (a tabletop RPG, a published spec) into the graph so the graph can check the game obeys them. Where the line between data and code actually falls, why a rule must never be found by name, how a value proves itself against the text that states it, and how to make the rules their own acceptance test. Includes the failure modes we hit, so you can skip them
+- **[Observing Change](OBSERVING_CHANGE.md)** — the event bus and `PlannedWorld`: how to find out the world changed, or is about to. Which of the two to use, why events only ever describe committed facts, and the read-modify-write trap that silently loses data in outcome handlers
 - **[Knowledge Layer](KNOWLEDGE_LAYER.md)** — facets, queries, the event journal, history renderers, and the ops write-back loop: how any consumer (LLM director, AI, inspector, replay) reads meaning from the world
+- **[Ontology-native Rule Language](RULE_LANGUAGE.md)**: architecture contract for applications and games that store typed, executable rule programs in the KG
 
 ## Engine internals
 
@@ -41,6 +45,7 @@ For the rules on where to add new sources/tests so they work in both profiles, s
 - **[examples/logogenesis](../examples/logogenesis/README.md)** — conversational world creation: type a wish, an LLM authors validated KG operations, the engine grows the world
 - **[examples/eden](../examples/eden/EDEN.md)** — the knowledge-garden tableau exercising the KG and capability stack end to end
 - **[examples/logotron](../examples/logotron/LOGOTRON.md)** — light-cycle arena with an LLM Director that redesigns opponents between rounds
+- **[examples/logovger](../examples/logovger/README.md)** — a published RPG rulebook read into the graph until it plays: verified ingestion, rules that cite the cell they came from, engine dice, and a character generator where every value on the sheet answers where it came from. Design record in [RPG_MODULE.md](RPG_MODULE.md), addressing scheme in [SOURCE_LOCATORS.md](SOURCE_LOCATORS.md), and what we learned doing it in [RULES_AS_DATA.md](RULES_AS_DATA.md)
 
 
 ## Contributing
@@ -64,6 +69,10 @@ Each pattern is demonstrated by a dedicated test executable.
 | Damage → capability pipeline | `tests/test_damage_pipeline.cpp` |
 | Event bus subscription | `tests/test_damage_events.cpp` |
 | Event journal (ring, cursors, collect_since) | `tests/test_event_log.cpp` |
+| Reading an in-flight plan before it commits | `tests/test_planned_world.cpp` |
+| Headless fixed-step driving | `tests/at_headless_run.cpp` |
+| Recording a run as a diffable trace | `tests/test_run_recorder.cpp` |
+| Recording, replaying and fuzzing decisions | `tests/test_run_tape.cpp` |
 | KG query algebra + facets | `tests/test_kg_query.cpp` |
 | Journal renderers (compact, state deltas) | `tests/test_journal_render.cpp` |
 | KG relation events | `tests/test_relation_events.cpp` |

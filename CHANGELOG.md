@@ -287,24 +287,6 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   a bond between two immovable bodies now has effective mass zero
   instead of a phantom 1 kg that poisoned warm start and impulse memory
   and detonated light bodies on wake.
-- **Breaking (NPC layer): the engine/game AI boundary is now real.** The
-  engine keeps GOAP *mechanism* — planner, A* pathfinding,
-  `ExecutorRegistry`, `GOAPPlanExecutor`, and the generic executors
-  (PURSUE, SCAN, ESCAPE_BLOCK, GIVE_UP, INVESTIGATE_SMELL). Diet is
-  *policy* and left: `EatExecutor`, `GrabPreyExecutor` and `FoodState`
-  now live in `examples/predator/ai/`, registered like any game
-  behaviour, and `GOAPAction` in the ontology lost EAT and GRAB_PREY (a
-  game declares its own actions in its own schema — see
-  `examples/predator/schema`). `ExecutionContext` lost
-  `mouth_volume_cm3`/`food_state` and gained an opaque `game_data`
-  passthrough the engine never reads; `CreatureParams` likewise
-  (`eat_duration` is now `action_duration`).
-- **Breaking (NPC layer): targets route by declaration, not by name.**
-  `goap::Action` gains `target_key`; the brain publishes named targets in
-  `CreatureParams.targets` and the plan executor routes by the action's
-  declaration. The hardcoded PURSUE/EAT/INVESTIGATE_SMELL/ESCAPE_BLOCK
-  name ladder in `build_context` is gone, and with it the engine's last
-  knowledge of game action vocabulary.
 
 ### Added
 - **Bonds are honest spring-dampers, and they can rotate what they hold.**
@@ -322,6 +304,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   sleeping one on approach (closing speed, not raw speed, so gliding
   foot-plant anchors stay silent); a bond strained past 2 cm wakes its
   endpoints; a joint bent past its angular target wakes for recovery.
+- **Enums can declare case-insensitive membership** (`annotations:
+  case_insensitive: true` on the enum). The setProperty gate and the
+  KGOp validator then fold case when checking membership, matching
+  consumers that normalize on read (the interaction loader upper-cases
+  `TransformationRule.trigger`, and the schema has always promised that
+  "ON_CONTACT" and "on_contact" both resolve). Everything else keeps
+  exact, closed-enum matching.
 
 ### Fixed
 - **Solver: constraints can no longer create energy** (#47). Three
@@ -343,6 +332,345 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   5 MPa, ~60 N joints), and gluons gain a strain criterion
   (`max_strain_ratio`, organic default 2.0x rest) because force-based
   breaking is unreachable for gram-scale bodies regardless of load.
+
+---
+
+## [0.4.0] - 2026-08-14
+
+The rules a game plays by can now live in the graph and check
+themselves. A published rulebook is read in as cited data, every roll
+records which rule made it, and the graph plus the dice journal is
+enough to re-derive what a rule permitted and compare it to what
+happened. Guide: docs/RULES_AS_DATA.md.
+
+From here the project releases per merged PR, so a reader can tell
+which release introduced what. See docs/RELEASING.md.
+
+### Added
+
+- **Rules as Data** (`docs/RULES_AS_DATA.md`): how to absorb an existing
+  body of rules so the graph can check the game obeys them. Where the
+  data/code line falls, why a rule must never be found by its printed
+  name, how a value proves itself against the text stating it, and the
+  failure modes we hit.
+- A `DiceRoll` records the rule entity that produced it, so the dice
+  journal plus the graph is enough to re-derive what a rule permitted
+  and compare it to what happened.
+- `ProcedureStep` may declare an `outcome` — something the book says
+  happens when the step is taken, applied through the executor rather
+  than computed by the primitive — and may name a single `table`.
+- `implied_by`: proof for a number the text states without writing, such
+  as a count carried by an indefinite article. The phrase must appear in
+  the quote, so an invented marker fails as a wrong digit does.
+- `miss_is_nothing` on `LookupTable`: a key with no row means the rule
+  does not apply rather than being an error. `LookupTableResult` gains
+  `missed`, distinct from a match and from a failure.
+- `ChoiceResolver` on `OutcomeExecutor`, the sibling of
+  `AttributeSelector`: answers a branch the book prints and does not
+  decide. No default — a rule with nobody to answer it stops the run.
+- `TaskCheckOptions`: a natural-result floor ("a natural 2 is always a
+  failure") and a situational modifier, both reported on the execution.
+- `roll_min_unbounded` on `TableEntry`, the mirror of
+  `roll_max_unbounded`, for a band written "N or less".
+- Seed extractors own their output: `generated_by` names the script,
+  `regenerate_seeds.sh` rebuilds every generated seed, and CI fails on
+  any diff.
+
+### Fixed
+
+- Rules the book states that chapter 1 got wrong: the Advanced Education
+  gate, a natural 2 always failing survival, a promotion's extra
+  training roll adding to the term's own rather than replacing it, and
+  the years a mishap costs.
+- Outcomes that ask a question no longer abort the run. Two rows of the
+  mishap and injury tables were killing 8% of generated lives.
+- An answer reaches the question that was asked: a crisis raised inside
+  the mishap step read "pay for care" as "take the mishap".
+- Table and benefit choices resolve by entity, not by position in a list
+  that can be rebuilt between the offer and the answer.
+- The character sheet's money is re-derived wherever it is read, so a
+  rule moving money between muster-outs cannot leave it stale.
+
+### Changed
+
+- The book's numbers moved out of the procedure into the graph, as cited
+  constants or — where they are effects rather than thresholds — as
+  outcomes.
+- Basic training grants skills through `EnsureSkillLevel` outcomes
+  instead of writing `SkillRating` by hand.
+- Nothing in a run reads a table's printed name. Renaming every table in
+  the graph produces identical lives.
+
+---
+
+## [0.3.0] - 2026-08-11
+
+A published rulebook now plays: rules are read out of the book, verified
+against the cell they came from, and executed by the engine. The release
+also names the two ways to observe change, the event bus for what has
+happened and `PlannedWorld` for what a rule is about to do.
+
+### Added
+- **The ingestion verifier reads numbers written as words.** Books spell small
+  counts out, and "Reduce three physical characteristics by 2" states the
+  three as plainly as a numeral. Whole words only, one through twelve plus
+  "both"; a number the text does not state still fails.
+- **`N+` is a band the verifier understands**, the shorthand for "N or higher"
+  that the SRD prints three times. `TableEntry` gained `roll_max_unbounded`
+  to carry it, matching `key_max_unbounded` on `LookupEntry`.
+- **`unmodelled` on the `Cited` mixin**: the part of a rule the graph does not
+  yet express, in plain words. Absorption is sometimes partial, and a partial
+  rule that admits it is honest where one that looks whole is not.
+- **Aging, mishaps and injuries are absorbed.** Twenty rows across three
+  tables, each addressed to the cell it came from: the aging table with its
+  signed bands and its open-ended top, the survival-mishap table the Referee
+  may allow instead of death, and the injury table mishaps send you to. Two
+  clauses exceed what the outcome vocabulary can say and carry `unmodelled`
+  saying which and why.
+- `attribute_delta_dice` for rolled reductions ("reduce one physical
+  characteristic by 1D6") and `ForfeitBenefits` for "lose all benefits".
+- **Subject-keyed lookups** (`SubjectLookupTable`, `SubjectLookupEntry`).
+  `LookupTable` answers "score 12 gives +2"; this answers "the Navy row".
+  Rules that vary by career, class, species or faction all have that shape.
+  A `ProcedureStep` names the table it consults through a schema slot, so a
+  step reaches its data without matching a name in code.
+- **Progression, attribute groups and possessions in the rulebook meta-pack.**
+  `ProgressionTrack` / `ProgressionStep` / `ProgressionStanding` model a ladder
+  of standing within a profession and where a character stands on it;
+  `AttributeGroup` plus `ModifyAttributesInGroup` express "reduce three
+  physical characteristics by 2", which names a count and a group rather than
+  an attribute; `Possession` / `GainPossession` / `PossessionHolding` cover
+  what a book hands out that is neither money nor a skill. Standing and
+  holdings are state, so they carry no citation, matching `SkillRating`.
+- **`PlannedWorld`: read the world as your in-flight rule will leave it.**
+  A rule's operations are applied atomically at the very end, so until then
+  the graph reads as it did before the rule started and the event bus stays
+  silent. Both are guarantees, and the cost is that a handler which reads a
+  value, changes it and writes it back could silently discard an earlier step
+  of the same rule. Outcome handlers now receive the view on their context.
+  It answers `property`, `has_property`, `type_of`, `exists`, `related` and
+  `was_written`, the last being the question a value read cannot answer:
+  writing the number something already held is invisible to a comparison and
+  is still a write. Guide: `docs/OBSERVING_CHANGE.md`.
+- **The chooser of a grouped attribute change is told what the rule already
+  took.** `AttributeSelectionRequest` carries the planned value of every
+  eligible attribute and the names of those this outcome already changed, so
+  "reduce two physical characteristics by 2, reduce one physical
+  characteristic by 1" can hit three distinct attributes. Reported, not
+  enforced: a rule may legitimately strike the same attribute twice.
+- **`AttributeSelector`**, the seam where a game answers what a rule leaves
+  open. Where the count covers the whole group there is nothing to choose and
+  no selector is consulted; where it does not, the engine refuses to pick and
+  the game supplies a prompt, a roll, or a referee. An answer that is not
+  exactly the count the book set, distinct, and drawn from the group is
+  refused with nothing moved.
+- **`roll_selection` on `GrantTableRoll`** (`EACH`, `LOWEST`, `HIGHEST`) for
+  "roll twice on the table and take the lower result". Absent means `EACH`,
+  since a bare instruction to roll says nothing about choosing between
+  results. `LOWEST` names the lowest dice total, not the kinder outcome:
+  which end of a table is kind belongs to the table.
+- **`attribute_delta_reduces`.** Dice say how much, never which way. A fixed
+  delta spells out its sign and a rolled one printed nothing, so the engine
+  was inferring direction from the first table it met. A rolled change now
+  states it or is refused.
+- **A change past a schema bound lands on it and says so.** Reducing an
+  attribute below its declared minimum used to fail the whole rule; rulebooks
+  floor characteristics and then have rules about reaching the floor, so this
+  is expected play. `OutcomeResult::attributes_limited` reports what was asked
+  for against what was allowed, and what that means is the game's to decide.
+
+### Changed
+- **Logovger ages, and a referee decides what the years take.** Aging runs at
+  the end of the fourth term and every term after, with total terms as a
+  negative modifier folded into the recorded roll, so a life reads
+  "2D6-5 = -2 (5 terms as a negative DM)" and the row that hit you is provable
+  from the dice journal. Which characteristics decline is the referee's call,
+  answered by an LLM reading the character's history, with **no fallback**: no
+  model means the game refuses to run rather than quietly deciding for itself.
+  A crisis at zero prices medical care at 1D6x10,000 before asking, restores
+  to 1 if paid, and marks the survivor as failing every future qualification
+  check without spending a die.
+- **Documentation for observing change**, `docs/OBSERVING_CHANGE.md`: which of
+  the two mechanisms to reach for, the channels that exist, why events are
+  transactional, and the read-modify-write trap. The channel table in
+  `GAME_LAYER.md` listed an `animation_contacts()` channel that does not exist
+  and omitted four that do.
+- `TaskCheck`'s attribute and its modifier lookup are now optional, and
+  travel together: neither, or both. `TaskCheckRunner` throws unmodified
+  checks with a modifier of zero, and `TaskCheckExecution::lookup()` returns
+  a pointer that is null when there was nothing to look up.
+- **Logovger mustering out.** Leaving a career pays: one benefit roll per
+  term served, plus one at rank 4, two at 5 and three at 6, with at most
+  three taken as cash. `GainPossession` is now an outcome the executor
+  applies, so passages, weapons and ship shares are held in the graph with
+  their counts.
+- **Logovger basic training.** A first term in a first career grants every
+  skill on the career's service table at level 0; a first term in a later
+  career grants one of them, chosen. Both career entries route through it,
+  including the Draft.
+- **Logovger commission and advancement.** Rank 0 characters may try for a
+  commission, Rank 1 and above for advancement, once each per term and only
+  where the book gives the career a hierarchy. A promotion takes the new
+  rank's title and bonus skill and buys an extra training roll.
+- **Logovger training is a choice, not an automatic roll.** The book says
+  "choose one of the Skills and Training tables for this career and roll on
+  it", and offers four: Personal Development, Service Skills, Specialist and
+  Adv Education. Training also stopped assuming every row grants a skill,
+  since Personal Development grants characteristics.
+- **Logovger re-enlistment is a throw, not a decision.** At the end of a term
+  the book rolls first and honours the player's wish only if the roll allows
+  it: a failure forces them out of the career, and a natural 12 forces them
+  to stay, outranking the seven-term cap exactly as the book states. Cepheus prints re-enlistment as a
+  bare "6+", a throw no characteristic modifies, and a check without a
+  modifier source is still a check. Dice and a target remain required.
+- **`source_aliases`, `source_defect` and `suggested_reading` on the `Cited`
+  mixin.** Absorbing a book finds holes in it, and every absorbed book will
+  have some. A defective entity now enters the graph as the source writes
+  it, marked, with the reasoning recorded in a slot that nothing consumes:
+  rules read the book, never a guess. Aliases are the source's own alternate
+  names, so `@@Type:Name` resolves through them, exact names first.
+- **Verification follows dependency order.** `verify_seed` accepts the seeds
+  a seed depends on and loads them into the same scratch world, because a
+  seed that references what another owns cannot be verified alone.
+- **Cross-seed entity references.** A seed can now address an entity another
+  seed created, written `@@Type:Name` in any `entity_ref` property or op
+  target. Aliases remain file-local; this is the one way across that
+  boundary and it is deliberately narrow, requiring exactly one match.
+  Nothing found, or more than one, fails the load with an error naming what
+  it looked for. This is what lets one seed own a vocabulary (skills,
+  careers, constants) while others reference it instead of re-creating it.
+- **Logovger character creation is playable end to end**, with the sheet,
+  the personnel file, and the book's own citations on one screen. Careers
+  are a scrollable list you can read before you join; every value on the
+  sheet answers where it came from; skills and the service record grow
+  with the life instead of capping at a fixed number of rows.
+- **A narrated file, written live.** Each beat asks the narrator for the
+  scene and for one clipped clause, and the clause is appended to the
+  character's file as the life happens. Narration never names a die, a
+  target or a characteristic: the numbers are already on screen, and the
+  prose is the part they cannot say. Every narration is stored as a
+  `Narration` entity carrying the roll ids it was written from.
+- Two-phase rollable-table execution. `RollableTableRunner` validates a
+  complete table and every reachable dice total before consuming randomness,
+  then commits one citable selection containing the table, row, typed outcome,
+  and exact roll. Outcome application remains a separate explicit
+  `OutcomeExecutor` call, so failures and choices reuse the original
+  selection without rerolling. Logovger training now uses this engine path;
+  its handwritten dice parsing and row matching were deleted.
+- **Source locators** (`logosphere/text/source_document.h`,
+  `source_locator.h`): address a piece of a source text and resolve it
+  back, so captured data can be proven against the text it came from.
+  A source is normalized once into a document model (sections,
+  sentences, tables with keyed rows, list items); a locator addresses
+  that model by heading trail plus table/row/column or by sentence with
+  optional context. Closes a real hole: a value cited to a table LINE
+  could borrow a neighbouring column's number, and a claim that Scout
+  qualifies on 5+ passed verification because "5" was in the row as
+  Pirate's. A cell citation refuses it, with the source's own answer in
+  the failure. Markdown parses today; a new source format needs a
+  parser into the model and nothing else. Docs: docs/SOURCE_LOCATORS.md.
+- Data-driven procedure execution. `ProcedureRunner` validates a complete
+  Procedure graph against exact game-declared primitive and route contracts
+  before invoking handlers, follows seeded routes, suspends and resumes typed
+  choices, rejects cross-procedure jumps, and stops synchronous cycles. The
+  seed verifier applies the same primitive and routing contracts at ingestion.
+  Logovger's existing playable chargen slice now runs as an eight-step cited
+  Procedure instead of a handwritten control-flow chain.
+- Typed, atomic rulebook outcome execution. `OutcomeExecutor` resolves
+  ordered sequences and suspending choices, dispatches exact concrete
+  outcome types, validates one complete KG-operation plan, and commits its
+  KG and dice effects together. Built-in handlers cover attribute changes,
+  skill minimums and advances, fixed and rolled per-currency money, no-op,
+  and pending table-roll requests. Games can register exact concrete
+  handlers that return typed procedure signals. Unknown outcomes and
+  malformed or incomplete data fail without partial state or events.
+- Reusable atomic KG-operation batches and dice transactions. Failed KG
+  batches restore created entities, properties, and relations, while failed
+  dice transactions restore streams, roll IDs, and journal state. Events are
+  held until their transaction commits.
+- Typed rule-table results. `LookupEntry` is now an abstract selection
+  shape and games declare concrete result rows; `LookupTable.entry_type`
+  is verified against every attached row. Rollable rows require one typed
+  outcome, with `NoEffect` for intentional no-ops and ordered
+  `OutcomeSequence` / `OutcomeStep` composition for multi-effect results.
+  The seed verifier now rejects semantically incompatible tables and
+  malformed outcome sequences.
+- **`rulebook` ontology pack** (`schema/packs/rulebook.yaml`): the
+  meta-ontology for tabletop-derived rulesets, what any book of rules
+  is made of. `Cited` mixin (source file, section, verbatim quote on
+  every rule entity), `DiceExpression`, `TaskCheck`, `RollableTable` /
+  `TableEntry`, `LookupTable` / `LookupEntry` (state-keyed tables),
+  abstract `Outcome` with typed kinds (`EnsureSkillLevel`, `AdvanceSkill`,
+  `ModifyAttribute`, `GainFixedMoney`, `GainRolledMoney`, `GrantTableRoll`),
+  ordered sequences, typed choices, `RuleConstant`, `Procedure` /
+  `ProcedureStep` / `StepRoute` (the book's gotos as routing data), and
+  `JudgmentPoint`. Opt-in like every pack:
+  `kg.extendOntology(rulebook::ontology::registry())`. Classes earn
+  existence by the rule of two; first instances come from the Cepheus
+  SRD chapter 1 and are verbatim-checked against the vendored source in
+  `test_rulebook_pack`. Design record: docs/RPG_MODULE.md.
+- `SkillRating` in the rulebook pack: a held skill at a level (typed
+  `skill` ref + `skill_level`), game state rather than book content,
+  attached to its holder with `HAS_PART` and written by the generic skill
+  outcome handlers through the validated path.
+- `SPECIALIZES` relation in the core vocabulary: a narrower thing
+  refines a broader one (skill cascades, taxonomies).
+- **Typed entity references on the validated write path.** A
+  class-ranged slot (`TableEntry.outcome` ranging `Outcome`) now
+  generates `OntologyRegistry::addRefProperty` with the target class,
+  and `validate_kg_op` rejects any value that is not the id of an
+  existing entity of that class or a subtype. Previously such slots
+  validated as pass-through strings.
+- `DiceExpression` grammar gains an `xK` multiplier suffix
+  (`1D6x10000`): total = (dice sum + modifier) * multiplier, journaled
+  and event-carried like every roll.
+- `DiceService` (engine core): the only place randomness becomes fact.
+  Named, independently seeded streams replay deterministically (the
+  chargen stream replays the same life regardless of interleaving);
+  every roll is journaled and citable by monotonic id; a strict
+  expression grammar refuses anything malformed; `DiceRollEvent` on a
+  new `dice_rolls()` bus channel carries each roll as a fact. Built for
+  the RPG module's honesty rule, "the referee cannot roll"
+  (docs/RPG_MODULE.md), and generic to any game that wants provenance
+  on its randomness.
+
+### Changed
+- **Breaking (NPC layer): the engine/game AI boundary is now real.** The
+  engine keeps GOAP *mechanism* — planner, A* pathfinding,
+  `ExecutorRegistry`, `GOAPPlanExecutor`, and the generic executors
+  (PURSUE, SCAN, ESCAPE_BLOCK, GIVE_UP, INVESTIGATE_SMELL). Diet is
+  *policy* and left: `EatExecutor`, `GrabPreyExecutor` and `FoodState`
+  now live in `examples/predator/ai/`, registered like any game
+  behaviour, and `GOAPAction` in the ontology lost EAT and GRAB_PREY (a
+  game declares its own actions in its own schema — see
+  `examples/predator/schema`). `ExecutionContext` lost
+  `mouth_volume_cm3`/`food_state` and gained an opaque `game_data`
+  passthrough the engine never reads; `CreatureParams` likewise
+  (`eat_duration` is now `action_duration`).
+- **Breaking (NPC layer): targets route by declaration, not by name.**
+  `goap::Action` gains `target_key`; the brain publishes named targets in
+  `CreatureParams.targets` and the plan executor routes by the action's
+  declaration. The hardcoded PURSUE/EAT/INVESTIGATE_SMELL/ESCAPE_BLOCK
+  name ladder in `build_context` is gone, and with it the engine's last
+  knowledge of game action vocabulary.
+
+### Fixed
+- **A headless engine no longer starts a GUI application, which made the
+  test suite deadlock under `ctest -j`.** `PlatformMacOS` called
+  `glfwInit()` from its constructor, so `create_display = false` still
+  ran GLFW's Cocoa path, which ends in `[NSApp run]` and blocks on the
+  window server's launch handshake. That handshake is session-global and
+  serialized across processes: measured 63 ms for one process on an M4
+  Max and 550 ms with 32 asking at once, and under load some process
+  never received `applicationDidFinishLaunching:` and sat in `mach_msg`
+  forever. Every test passed alone; the suite hung on a different test
+  each parallel run. GLFW now comes up in `create_window()` and nowhere
+  else. `IPlatformSystem::get_time()` is monotonic seconds since the
+  platform was created (it was `glfwGetTime()`, same semantics) so that
+  reading a clock no longer forces a window server connection. On this
+  machine `ctest -j 8` went from intermittent 120 s timeouts to 12 s,
+  five runs green, and three concurrent `ctest -j 8` invocations against
+  one build directory now finish in 15 s.
 - **GOAP: a target at the world origin was mistaken for "no target"**
   (#44). Routing used `food_x != 0` per axis as a presence test, so a
   goal at the origin was silently swapped for the smell target, and a
@@ -364,6 +692,39 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   legitimately consume the state that admitted them).
 
 ### Added
+- `CapabilityStore` (engine): capability response rules evaluated for ANY
+  tracked entity, not just humanoids — the missing piece between
+  DamageSystem and the NPC layer (#36 finding, #37 roadmap). Opt-in per
+  entity; eager (recomputes on STATE_CHANGE, so emit_event effects fire
+  when the state changes); part writes resolve to their creature through
+  reverse HAS_PART. The profile is WRITTEN BACK into the KG as
+  `capability.*` properties, so a director or an LLM reads what an entity
+  can DO from the medium itself. The write-back emits the very event that
+  triggers recomputes; the two-layer loop guard is proven by count in
+  `test_capability_store` (five wounds = exactly six recomputes).
+- The search scene now carries the store's first consumer: a thorn patch
+  on the hunt's measured route. Crossing it fires an `on_contact` rule
+  (`with_type:Thorns -> wound_leg`), DamageSystem drives the leg below
+  the capability rule's threshold, the store recomputes off the bus, and
+  the predator finishes the pursuit at half pace — contact rules, damage,
+  capability rules, the store and GOAP in one unscripted chain, asserted
+  headless (a wounded pursuit never reaches 60% of the healthy sprint)
+  and watchable (panel shows leg hp and pace live).
+- `at_predator_search`: the full NPC loop in one watchable scene — walls,
+  meander, smell, getting lost, dinner. Sensors own the perception facts
+  and overwrite them every frame; the planner replans as information
+  arrives and the precondition gate breaks plans honestly when it leaves.
+  Nothing in the arc is scripted: quartering meander (game-side
+  `MeanderExecutor`) until the nose crosses the odor radius, scent
+  followed with casting when a wall blocks the line, losses at the radius
+  edge (the smell model's own dropout, with hysteresis), a myopic 9 m eye
+  so smell-first is geometry rather than script, and a proprioceptive
+  stuck-detector because an in-flight action is exempt from the
+  precondition gate and can push a wall forever. Headless asserts the
+  structure (meandered first, smelled before it saw, fed at the end) and
+  runs the control: an odorless carcass produces zero scent events and a
+  predator that stays lost. Interactive: SPACE releases / reruns, ESC
+  quits, event log with timestamps on the panel.
 - `at_predator_hunger_visual`: the hunger loop ON SCREEN — the predator
   walks in, the carcass shrinks bite by bite (FoodState mass driving
   particle scale), and the AI panel shows goal / action / distance /

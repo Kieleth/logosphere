@@ -419,12 +419,10 @@ slots:
       Control wall, magenta colour), absent / "0" otherwise.
 
   # --- Wormhole slots (Phase C KGOp authoring target) ---
-  x:
-    range: float
-    description: World-x position (m).
-  y:
-    range: float
-    description: World-y position (m).
+  # x / y come from the engine schema (logosphere.yaml declares the
+  # world-position stamps globally for the Malleus H1 property gate);
+  # redefining them here would shadow an imported global, which the
+  # registry generator rejects.
   pair_id:
     range: string
     description: >-

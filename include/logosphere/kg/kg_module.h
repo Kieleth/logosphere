@@ -14,6 +14,10 @@ namespace logosphere { class EventBus; }
 namespace kg {
 
 class KGCore;
+class KGModule;
+struct OntologyMetaGraphReport;
+bool materialize_ontology_meta_graph(KGModule& world,
+                                     OntologyMetaGraphReport& report);
 
 /**
  * Main Knowledge Graph Module
@@ -36,6 +40,11 @@ public:
 
     void extendOntology(const OntologyRegistry& extension);
     const OntologyRegistry& getRegistry() const { return registry_; }
+
+    bool hasCurrentOntologyMetaGraph() const {
+        return ontology_meta_current_;
+    }
+    EntityID findOntologyMetaEntity(const std::string& canonical_key) const;
 
     // === Mode Management ===
 
@@ -101,6 +110,12 @@ public:
     
     // Get a property from an entity
     PropertyValue getProperty(EntityID id, const std::string& key) const;
+
+    // Distinguish a missing property from a present empty string and
+    // remove it explicitly. Seed transactions use this to restore the
+    // exact pre-load state when a later operation fails.
+    bool hasProperty(EntityID id, const std::string& key) const;
+    void removeProperty(EntityID id, const std::string& key);
 
     // Return all (key, value) pairs on this entity where key starts with prefix.
     // Used for grouped property lookups (e.g., "rule.0.payload." scans all payload keys).
@@ -239,6 +254,9 @@ public:
     Stats getStats() const;
     
 private:
+    friend bool materialize_ontology_meta_graph(
+        KGModule& world, OntologyMetaGraphReport& report);
+
     OntologyRegistry registry_;
     KGMode current_mode;
     KGConfig config;
@@ -248,6 +266,11 @@ private:
 
     // Event bus for state change notifications (optional, null = no events)
     logosphere::EventBus* event_bus_ = nullptr;
+
+    bool ontology_meta_current_ = false;
+    EntityID ontology_meta_context_ = INVALID_ENTITY;
+    std::unordered_map<std::string, EntityID> ontology_meta_index_;
+    std::vector<EntityID> ontology_meta_entities_;
 
     // Helper to check if operation is valid in current mode
     bool checkEnabled(const char* operation) const;

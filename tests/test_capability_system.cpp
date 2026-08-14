@@ -234,12 +234,12 @@ void test_custom_capability_name() {
     // (tests/test_ontology_extension.cpp pattern). Branch has no
     // HasHealth mixin either, so its health keys are declared here too.
     kg::OntologyRegistry ext;
-    ext.addProperty("Tree", "cap.photosynthesis.expected_count", "integer", false);
-    ext.addProperty("Tree", "cap.photosynthesis.default_mode", "string", false);
-    ext.addProperty("Branch", "health", "float", false);
-    ext.addProperty("Branch", "max_health", "float", false);
-    ext.addProperty("Branch", "cap_list", "string", false);
-    ext.addProperty("Branch", "cap.photosynthesis.weight", "float", false);
+    ext.addProperty("Tree", "cap.photosynthesis.expected_count", kg::PropertyValueKind::Integer, false);
+    ext.addProperty("Tree", "cap.photosynthesis.default_mode", kg::PropertyValueKind::String, false);
+    ext.addProperty("Branch", "health", kg::PropertyValueKind::Float, false);
+    ext.addProperty("Branch", "max_health", kg::PropertyValueKind::Float, false);
+    ext.addProperty("Branch", "cap_list", kg::PropertyValueKind::String, false);
+    ext.addProperty("Branch", "cap.photosynthesis.weight", kg::PropertyValueKind::Float, false);
     kg->extendOntology(ext);
 
     kg::EntityID plant = kg->createEntity("Tree");
@@ -790,7 +790,7 @@ void test_custom_trigger_registration() {
     // rejects undeclared keys.
     {
         kg::OntologyRegistry ext;
-        ext.addProperty("Leg", "infected", "string", false);
+        ext.addProperty("Leg", "infected", kg::PropertyValueKind::String, false);
         kg->extendOntology(ext);
     }
     kg->setProperty(b.right_leg, "infected", "yes");

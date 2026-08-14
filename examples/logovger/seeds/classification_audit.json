@@ -1,0 +1,41 @@
+{
+ "adjudicated": {
+  "0": {
+   "audit_said": "NOTHING",
+   "because": "The Barbarian's first Cash Benefits row prints 0. The audit reads zero money as nothing, which is fair, but the cell is a cash result whose amount is zero and a benefit roll was spent to get it. Recording it as no effect would lose that.",
+   "kept": "MONEY"
+  }
+ },
+ "agreed": 23,
+ "checked": 23,
+ "classifications": {
+  "+1 Dex": "CHARACTERISTIC",
+  "+1 Edu": "CHARACTERISTIC",
+  "+1 End": "CHARACTERISTIC",
+  "+1 Int": "CHARACTERISTIC",
+  "+1 Soc": "CHARACTERISTIC",
+  "+1 Str": "CHARACTERISTIC",
+  "0": "MONEY",
+  "1000": "MONEY",
+  "10000": "MONEY",
+  "100000": "MONEY",
+  "1D6 Ship Shares": "POSSESSION",
+  "2000": "MONEY",
+  "20000": "MONEY",
+  "5000": "MONEY",
+  "50000": "MONEY",
+  "Courier Vessel": "POSSESSION",
+  "Explorers' Society": "POSSESSION",
+  "High Passage": "POSSESSION",
+  "Low Passage": "POSSESSION",
+  "Mid Passage": "POSSESSION",
+  "Research Vessel": "POSSESSION",
+  "Weapon": "POSSESSION",
+  "\u2014": "NOTHING"
+ },
+ "model": "claude-haiku-4-5-20251001",
+ "source": {
+  "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107",
+  "file": "book1/character-creation.md"
+ }
+}

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <set>
+#include <stdexcept>
 #include <string>
 
 namespace kg {
@@ -55,6 +56,10 @@ EntityID KGCore::createEntity(const std::string& type) {
     Entity& entity = entities[id];
     entity.id = id;
     entity.type = type;
+    if (const PropertyDef* identifier =
+            registry_.identifierPropertyOf(type)) {
+        entity.properties.emplace(identifier->name, std::to_string(id));
+    }
 
     // Update indices
     addToTypeIndex(id, type);
@@ -298,6 +303,16 @@ void KGCore::setProperty(EntityID id, const std::string& key, const PropertyValu
     if (!entity) {
         return;
     }
+    // Door 1 (origin/main): engine-managed identifiers can never be
+    // replaced. Throws — this is a programming error, not a schema gap.
+    if (const PropertyDef* property =
+            registry_.findProperty(entity->type, key);
+        property && property->identifier) {
+        throw std::invalid_argument(
+            "Cannot replace engine-managed identifier '" +
+            entity->type + "." + key + "'");
+    }
+    // Door 2 (Malleus H1): the ontology gate below.
     // Empty registry = no ontology loaded (same guard createEntity has
     // used since the registry existed): with no TBox there is nothing
     // to validate against.
@@ -321,6 +336,26 @@ PropertyValue KGCore::getProperty(EntityID id, const std::string& key) const {
         }
     }
     return "";
+}
+
+bool KGCore::hasProperty(EntityID id, const std::string& key) const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const Entity* entity = getEntity(id);
+    return entity && entity->properties.find(key) != entity->properties.end();
+}
+
+void KGCore::removeProperty(EntityID id, const std::string& key) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    Entity* entity = getEntity(id);
+    if (!entity) return;
+    if (const PropertyDef* property =
+            registry_.findProperty(entity->type, key);
+        property && property->identifier) {
+        throw std::invalid_argument(
+            "Cannot remove engine-managed identifier '" + entity->type +
+            "." + key + "'");
+    }
+    entity->properties.erase(key);
 }
 
 // === Stable Particle ID System ===

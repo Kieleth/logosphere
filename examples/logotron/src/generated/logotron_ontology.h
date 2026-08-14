@@ -736,7 +736,9 @@ enum class WorldRelationType {
     /// System entity manages another entity
     MANAGES,
     /// Direct bond between two bodies - the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world.
-    BONDED_TO
+    BONDED_TO,
+    /// A narrower thing refines a broader one: the specialization points at what it specializes (Slug Rifle SPECIALIZES Gun Combat in a skill cascade). Generic taxonomy vocabulary, first used by the rulebook module's skill cascades.
+    SPECIALIZES
 };
 
 /// Convert WorldRelationType to its string representation.
@@ -752,6 +754,7 @@ inline const char* to_string(WorldRelationType value) {
         case WorldRelationType::PERCEIVES: return "PERCEIVES";
         case WorldRelationType::MANAGES: return "MANAGES";
         case WorldRelationType::BONDED_TO: return "BONDED_TO";
+        case WorldRelationType::SPECIALIZES: return "SPECIALIZES";
     }
     return "unknown";
 }
@@ -768,6 +771,7 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     if (std::strcmp(str, "PERCEIVES") == 0) { out = WorldRelationType::PERCEIVES; return true; }
     if (std::strcmp(str, "MANAGES") == 0) { out = WorldRelationType::MANAGES; return true; }
     if (std::strcmp(str, "BONDED_TO") == 0) { out = WorldRelationType::BONDED_TO; return true; }
+    if (std::strcmp(str, "SPECIALIZES") == 0) { out = WorldRelationType::SPECIALIZES; return true; }
     return false;
 }
 
@@ -918,7 +922,7 @@ inline bool from_string(const char* str, LogotronEventType& out) {
 /// Anything with a stable, globally unique identity. Aligned with BFO Independent Continuant: exists on its own, bears qualities, participates in processes.
 struct Identifiable {
     /// Globally unique identifier.
-    std::string id;
+    std::string id = {};
     /// Human-readable name.
     std::optional<std::string> name = std::nullopt;
 };
@@ -964,7 +968,7 @@ struct Entity : public Identifiable, public Temporal, public Describable {
 /// Something that happens at a point or over an interval. Aligned with BFO:Occurrent / PROV:Activity. Instantaneous events use occurred_at. Processes with duration use started_at / ended_at (Allen's interval algebra).
 struct Event : public Identifiable, public Temporal {
     /// Classification of the event. Domain projects should constrain this to an enum.
-    std::string event_type;
+    std::string event_type = {};
     /// When the event happened (instantaneous events).
     std::optional<std::string> occurred_at = std::nullopt;
     /// When a duration event began.
@@ -979,7 +983,7 @@ struct Event : public Identifiable, public Temporal {
 /// A continuously derived quality that emerges from patterns of Events between Entities. Aligned with BFO:Specifically Dependent Continuant (Quality) and SSN/SOSA:Observation. A Signal inheres in its bearer(s) — it does not exist independently. It is computed, not asserted: derived on demand from the Event log and Entity graph via a named algorithm. Domain projects define signal types, algorithms, and interpretation semantics. The Signal class captures the universal pattern: something measurable that emerges from activity, has a current value, and is recomputable from the underlying data.
 struct Signal : public Identifiable, public Temporal {
     /// Classification of the signal. Domain projects should constrain this to an enum. Examples: trust_score, health_score, centrality.
-    std::string signal_type;
+    std::string signal_type = {};
     /// Current computed value. Interpretation is signal-type specific. Often 0.0–1.0 but not constrained at the root level (domain decides range and semantics).
     std::optional<float> value = std::nullopt;
     /// Name or reference of the computation that produces this signal. Domain projects should document algorithms and constrain this to an enum. Examples: appleseed, pagerank, ewma, linear_decay.
@@ -989,18 +993,18 @@ struct Signal : public Identifiable, public Temporal {
     /// When this signal value was last computed.
     std::optional<std::string> computed_at = std::nullopt;
     /// ID of the entity (or relationship) this signal inheres in. Required because a Signal cannot exist without a bearer (BFO: dependent continuant).
-    std::string bearer_id;
+    std::string bearer_id = {};
 };
 
 
 /// A typed, directed edge between two entities. Reified as a class so relations can carry metadata (strength, confidence, temporal validity).
 struct Relation : public Identifiable, public Temporal {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type = {};
     /// ID of the source entity.
-    std::string source_id;
+    std::string source_id = {};
     /// ID of the target entity.
-    std::string target_id;
+    std::string target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };
@@ -1008,14 +1012,14 @@ struct Relation : public Identifiable, public Temporal {
 
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
-    float position_x;
-    float position_y;
-    float position_z;
+    std::optional<float> position_x = std::nullopt;
+    std::optional<float> position_y = std::nullopt;
+    std::optional<float> position_z = std::nullopt;
     /// Direction entity faces in radians.
     std::optional<float> facing_angle = std::nullopt;
-    /// World-x position (m).
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m).
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// World-position stamp; legacy duplicate of position_z (see x).
     std::optional<float> z = std::nullopt;
@@ -1040,8 +1044,8 @@ struct HasMaterial {
 
 /// Entity that can take damage and die.
 struct HasHealth {
-    float health;
-    float max_health;
+    std::optional<float> health = std::nullopt;
+    std::optional<float> max_health = std::nullopt;
 };
 
 
@@ -1471,9 +1475,9 @@ struct PhysicsConstants : public Entity {
 
 /// Physics constraint between two particles.
 struct Constraint : public Entity {
-    GluonType gluon_type;
+    GluonType gluon_type = {};
     /// Constraint stiffness in N/m.
-    float stiffness;
+    float stiffness = {};
     /// Damping coefficient in Ns/m.
     std::optional<float> damping = std::nullopt;
     /// Force threshold for constraint failure.
@@ -1615,8 +1619,8 @@ struct PerceptionEvent : public WorldEvent {
 
 /// A relation between two entities was created or removed.
 struct RelationEvent : public WorldEvent {
-    /// Name of the relation type (e.g. "HAS_PART"). Stored as string for game extensibility.
-    std::optional<std::string> relation_type = std::nullopt;
+    /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
+    std::string relation_type = {};
 };
 
 
@@ -1642,6 +1646,23 @@ struct VolumeEvent : public WorldEvent {
 struct TransformationEvent : public WorldEvent {
     /// Name of the transformation rule that fired.
     std::optional<std::string> rule_name = std::nullopt;
+};
+
+
+/// A die roll the ENGINE performed: seeded, journaled, citable by id. Games and referees receive rolls as facts through this event; nothing outside the dice service may assert a result (see docs/RPG_MODULE.md, "the referee cannot roll").
+struct DiceRollEvent : public WorldEvent {
+    /// Monotonic id of the roll, unique per session, citable.
+    std::optional<int32_t> roll_id = std::nullopt;
+    /// The expression rolled, canonical form ("2D6+1").
+    std::optional<std::string> dice_expression = std::nullopt;
+    /// Individual die results, comma-separated, in roll order.
+    std::optional<std::string> roll_values = std::nullopt;
+    /// (Sum of the dice plus the modifier) times the multiplier.
+    std::optional<int32_t> roll_total = std::nullopt;
+    /// Named RNG stream the roll came from (e.g. "chargen"). Streams are independently seeded so a session replays deterministically.
+    std::optional<std::string> roll_stream = std::nullopt;
+    /// What the roll was for, in the roller's words.
+    std::optional<std::string> roll_purpose = std::nullopt;
 };
 
 
@@ -1756,9 +1777,9 @@ struct ArenaWall : public Structure {
 
 /// Teleporter linking two ArenaCells, created by the Weirden Director. Cycles entering one end emerge at the other. Director-authorable via the Phase C KGOp vocabulary — adding the type to the ontology with these slots is the ONLY change required to let the LLM spawn pairs.
 struct Wormhole : public WorldEntity {
-    /// World-x position (m).
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
     std::optional<float> x = std::nullopt;
-    /// World-y position (m).
+    /// World-position stamp; legacy duplicate of position_y (see x).
     std::optional<float> y = std::nullopt;
     /// String tag matching a paired Wormhole's pair_id. Cycles that enter one wormhole emerge at the other with the same tag.
     std::optional<std::string> pair_id = std::nullopt;

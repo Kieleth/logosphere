@@ -66,6 +66,8 @@ public:
     
     void setProperty(EntityID id, const std::string& key, const PropertyValue& value);
     PropertyValue getProperty(EntityID id, const std::string& key) const;
+    bool hasProperty(EntityID id, const std::string& key) const;
+    void removeProperty(EntityID id, const std::string& key);
     
     // === Stable Particle ID System ===
     // Two-tier system: KGParticleID (stable) → RenderIndex (temporary)

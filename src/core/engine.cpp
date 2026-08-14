@@ -432,6 +432,9 @@ int Engine::initialize(const EngineConfig& config) {
     // Initialize Knowledge Graph (core system)
     kg_module_.setMode(kg::KGMode::MINIMAL);
     kg_module_.set_event_bus(&event_bus_);
+    // Capability store rides the same bus the KG just joined: tracked
+    // entities recompute on STATE_CHANGE and write capability.* back.
+    capability_store_.initialize(&kg_module_, &event_bus_);
     DEBUG_LOG("Knowledge Graph initialized (MINIMAL mode)");
 
     // Particle interaction model: the solver consults the (game-filled)
@@ -1019,7 +1022,8 @@ void Engine::shutdown() {
 
 void Engine::update(double delta_time) {
     // FORENSICS: Log dt value passed to Engine::update() (detect if test is passing wrong value)
-    static int update_call_count = 0;
+    // Per-engine, not per-process: see update_count_ in engine.h.
+    uint64_t& update_call_count = update_count_;
     if constexpr (PhysicsSolver::ENABLE_FORENSIC_LOGGING && PhysicsSolver::LOG_ENGINE_UPDATE_DT) {
         std::cout << "[ENGINE_UPDATE_DT call #" << update_call_count << "] "
                   << "delta_time parameter = " << std::fixed << std::setprecision(10)

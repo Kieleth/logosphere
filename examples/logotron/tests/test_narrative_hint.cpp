@@ -9,7 +9,6 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -132,10 +131,6 @@ void head_on_message() {
 }
 
 int main() {
-    if (std::getenv("CI")) {
-        std::cout << "SKIP all (CI)" << std::endl;
-        return 0;
-    }
     std::cout << "=== test_narrative_hint ===" << std::endl;
     TEST(empty_when_no_crash_metadata);
     TEST(empty_when_invalid_entity);

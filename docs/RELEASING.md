@@ -7,8 +7,21 @@ How to cut a new release.
 [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`.
 
 While on the `0.x` line:
-- `0.x.0` — may include breaking API changes, documented in CHANGELOG
-- `0.x.y` — bug fixes only, no new features, no breaking changes
+- `0.x.0` — breaking API changes, documented in CHANGELOG
+- `0.x.y` — bug fixes AND small additions that break nothing
+
+**Release per PR.** A merged PR that changes anything a user can see
+gets its own version, so a reader of the changelog can tell which
+release introduced what and pin to it. Batching means the changelog
+becomes archaeology and nobody can react to a single change.
+
+That is why a patch may carry a small feature here, where stricter
+SemVer would want a minor. On a 0.x line the minor is the breaking
+signal, and that is the one worth protecting: upgrading `0.4.3` to
+`0.4.9` must never break a build, while `0.4.x` to `0.5.0` may. Judge
+by that, not by whether the word "feature" fits — a new defaulted
+parameter or a new struct field is a safe patch; changing an existing
+signature is not, whatever it is called.
 - `1.0.0` — first stable release. After this, breaking changes require
   a major version bump.
 
@@ -30,10 +43,32 @@ Every item must be true:
 
 Look at the `[Unreleased]` section in `CHANGELOG.md`.
 
-- Any entry under **Removed** or any `Changed` that breaks existing
-  callers? → bump MINOR (e.g. `0.1.0` → `0.2.0`)
-- Only `Fixed` / `Security`? → bump PATCH (e.g. `0.1.0` → `0.1.1`)
-- Only `Added` (backwards-compatible)? → bump MINOR
+One question decides it: **would a caller who compiles against the
+previous version still compile?**
+
+- No → bump MINOR (e.g. `0.4.3` → `0.5.0`). Anything under **Removed**,
+  a changed signature, a renamed slot, a narrowed type.
+- Yes → bump PATCH (e.g. `0.4.3` → `0.4.4`). `Fixed`, `Security`, and
+  `Added` that only adds: a defaulted parameter, a new struct field, a
+  new optional slot, a new class nothing existing refers to.
+
+### 1b. On a MINOR bump, move the version in two more places
+
+The package is exported `SameMinorVersion`, so a pin on the old minor
+stops resolving the moment the new one installs.
+
+1. `project(logosphere VERSION X.Y.Z)` in the root `CMakeLists.txt`.
+2. `find_package(logosphere X.Y REQUIRED)` in
+   `examples/consumer-smoke/CMakeLists.txt`.
+
+Miss the second and the `headless-linux` CI lane fails at the consumer
+smoke step with "Could not find a configuration file for package
+logosphere compatible with requested version", *after* every test has
+passed. The tests are green and the lane is red, which reads like a
+flake and is not one.
+
+`include/logosphere/build_info.h` needs no edit: it is generated from
+`git describe` at configure time and picks the tag up by itself.
 
 ### 2. Update `CHANGELOG.md`
 

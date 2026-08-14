@@ -1,0 +1,128 @@
+{
+ "source": {
+  "file": "book1/character-creation.md",
+  "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+ },
+ "layer": "cepheus",
+ "invariants": {
+  "count_of_type": {
+   "Currency": 1,
+   "DiceExpression": 2,
+   "DifficultyEntry": 2,
+   "LookupTable": 1
+  },
+  "unique_name_per_type": [
+   "DiceExpression",
+   "DifficultyEntry",
+   "LookupTable"
+  ],
+  "band_coverage": {
+   "@law_table": [
+    0,
+    3
+   ]
+  }
+ },
+ "ops": [
+  {
+   "op": "create_entity",
+   "type": "DiceExpression",
+   "as": "@d1d6",
+   "properties": {
+    "name": "1D6",
+    "dice_count": 1,
+    "dice_sides": 6,
+    "source_section": "Survival",
+    "source_quote": "| 1D6 | Mishaps |",
+    "source_kind": "table",
+    "source_table": "1D6"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "DiceExpression",
+   "as": "@d2d6",
+   "properties": {
+    "name": "2D6",
+    "dice_count": "2",
+    "dice_sides": "6",
+    "source_file": "book1/character-creation.md",
+    "source_section": "Careers",
+    "source_kind": "sentence",
+    "source_quote": "Most of these throws are characteristic throws \u2013 roll 2D6, add the DM from the listed characteristic, and try to get a total higher than the listed value."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "Currency",
+   "as": "@credits",
+   "properties": {
+    "name": "Credits",
+    "source_section": "Injury Crisis",
+    "source_quote": "he can pay 1D6\u00d710,000 Credits for medical care"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "LookupTable",
+   "as": "@law_table",
+   "properties": {
+    "name": "base_difficulty_by_law_level",
+    "entry_type": "DifficultyEntry",
+    "source_file": "book1/skills.md",
+    "source_section": "Local Law Level",
+    "source_quote": "| Law Level | Difficulty |",
+    "source_kind": "table",
+    "source_table": "Law Level"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "DifficultyEntry",
+   "as": "@law_row_0",
+   "properties": {
+    "name": "law_row_0",
+    "key_min": 0,
+    "key_max": 0,
+    "difficulty_name": "Routine",
+    "difficulty_modifier": 2,
+    "source_file": "book1/skills.md",
+    "source_section": "Local Law Level",
+    "source_quote": "| 0 | Routine (DM+2) |",
+    "source_kind": "row",
+    "source_table": "Law Level",
+    "source_row": "0"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "DifficultyEntry",
+   "as": "@law_row_1_3",
+   "properties": {
+    "name": "law_row_1_3",
+    "key_min": 1,
+    "key_max": 3,
+    "difficulty_name": "Average",
+    "difficulty_modifier": 0,
+    "source_file": "book1/skills.md",
+    "source_section": "Local Law Level",
+    "source_quote": "| 1-3 | Average (DM+0) |",
+    "source_kind": "row",
+    "source_table": "Law Level",
+    "source_row": "1-3"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@law_table",
+   "relation": "HAS_PART",
+   "to": "@law_row_0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@law_table",
+   "relation": "HAS_PART",
+   "to": "@law_row_1_3"
+  }
+ ]
+}
