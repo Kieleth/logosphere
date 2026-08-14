@@ -1,0 +1,608 @@
+// =============================================================================
+// THE RUBE GOLDBERG MACHINE: one continuous chain, every stage an invariant
+// =============================================================================
+// WHAT THIS IS.
+//
+// One scene, placed complete at frame zero, through which a single chain
+// reaction propagates: a ball drops onto a ramp, slides into a row of boxes,
+// the last box falls onto a sleeping stack, the woken stack loses its top
+// box, the wreck reaches a nailed bridge, the nails tear, the plank crashes
+// into the basement past a gram-scale bonded body, and the survivors slide
+// on toward a domino and a lever. Every stage names the invariants it
+// exercises and passes only on a MEASURED predicate. Nothing is isolated:
+// every mechanism runs in the presence of all the others, end to end.
+//
+// RED STOPS THE MACHINE. A stage that misses its window, or any global
+// watchdog (detonation, deep penetration, NaN), halts the run and prints the
+// stage, its invariants, and the measured values. GREEN CONTINUES. The score
+// is percent completion.
+//
+// THE FRONTIER RATCHET. Stages past EXPECTED_COMPLETED are the engine's
+// known missing mechanics — today, rotation (contact torque; the INV-16
+// pivot law). The machine is EXPECTED to halt at the first frontier stage.
+// Halting earlier is a regression and fails. Passing a frontier stage fails
+// LOUDLY too, so the ratchet is raised in the same commit that earned it.
+// The machine grows: every campaign slice should move the halt line further
+// down the chain, and new stages get appended behind it forever.
+//
+// Usage:
+//   ./build-release/logosphere-tests --test test_rube_goldberg_machine --no-head
+//   INTERACTIVE=1 ./build-release/logosphere-tests --test test_rube_goldberg_machine
+//   RUBE_TRACE=1  per-frame position of the chain's leading actor
+// =============================================================================
+
+#include "../src/core/engine.h"
+#include "../src/core/telemetry.h"
+#include "../src/materials.h"
+#include "../src/particle.h"
+#include "logosphere/physics/physics_system.h"
+
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <functional>
+#include <string>
+#include <vector>
+
+namespace T = ::logosphere::telemetry;
+
+namespace {
+namespace rube {
+
+// ---------------------------------------------------------------- layout
+// Scene design values (INV-29 governs the engine, not test scenery).
+// +X east: the chain flows east. +Z up. Everything above the turtle at z=0.
+constexpr float TILE    = 1.0f;
+constexpr float TILE_TH = 0.2f;
+constexpr float BALL    = 0.4f;
+constexpr float BOX     = 0.4f;
+constexpr float STACK_BOX = 0.5f;
+
+constexpr float DECK_ALLEY_TOP = 3.4f;
+constexpr float DECK_MAIN_TOP  = 1.5f;
+constexpr float BASEMENT_TOP   = 0.2f;
+
+// The engine's default Coulomb mu is 0.5 (physics_constants.h), so the
+// friction angle is 26.6 deg: a box on a shallower ramp SHOULD stick.
+// 40 deg clears it with margin.
+constexpr float RAMP_CX = 1.3f, RAMP_CZ = 4.44f;
+constexpr float RAMP_LEN = 3.2f, RAMP_TILT = 0.70f;   // ~40 deg about Y
+constexpr float BALL_X0 = 0.45f, BALL_Z0 = 6.6f;
+
+constexpr int PREROLL   = 120;
+constexpr int MAX_FRAME = 4000;
+
+// The ratchet: S0..S6 must pass today. S7+ is the rotation frontier.
+constexpr int EXPECTED_COMPLETED = 7;
+
+// Global watchdogs.
+constexpr float SPEED_CEILING = 50.0f;   // m/s (INV-11)
+constexpr float PEN_CEILING   = 0.05f;   // m    (INV-2, catastrophe scale)
+
+float g_feather_peak = 0.0f;   // highest speed the gram-scale body ever hits
+
+// ---------------------------------------------------------------- world
+struct World {
+    Engine engine;
+    bool interactive = false;
+    bool trace = false;
+    bool ok = false;
+
+    int ball = -1;
+    int alley[3] = {-1, -1, -1};
+    int stack_lo = -1, stack_hi = -1;
+    int plank = -1;
+    int heavy = -1, feather = -1;
+    int domino = -1;
+    int lever_arm = -1, lever_pebble = -1;
+
+    struct Tile { int id; float x, y, z_top; };
+    std::vector<Tile> tiles;
+    std::vector<int> pending_kinematic;
+    size_t bonds_at_start = 0;
+
+    PhysicsSystem& phys() { return engine.get_physics_system(); }
+    ParticleSystem& ps()  { return engine.get_particle_system(); }
+
+    Particle read(int id) {
+        auto v = ps().lock_particles_for_write();
+        return v[id];
+    }
+    void make_kinematic(int id) {
+        auto v = ps().lock_particles_for_write();
+        v[id].solver_mode = ParticleSolverMode::KINEMATIC;
+        v[id].owner = ParticleOwner::DYNAMICS;
+        v[id].is_at_rest = true;
+    }
+    void release(int id) {   // trigger latch -> live body
+        auto v = ps().lock_particles_for_write();
+        v[id].solver_mode = ParticleSolverMode::DYNAMIC;
+        v[id].is_at_rest = false;
+    }
+
+    int add_box(float x, float y, float z, float sx, float sy, float sz,
+                Materials::Type mat, float rot_y = 0.0f,
+                float r = 0.8f, float g = 0.5f, float b = 0.3f) {
+        Particle p = {};
+        p.shape = ParticleShape::BOX;
+        p.x = x; p.y = y; p.z = z;
+        p.width = sx; p.height = sy; p.thickness = sz;
+        p.size = std::max(sx, std::max(sy, sz));
+        p.rotation_y = rot_y;
+        p.r = r; p.g = g; p.b = b; p.a = 1.0f;
+        p.SetMaterial(mat);
+        return engine.add_particle(p);
+    }
+    void platform(float x0, float x1, float z_top) {
+        for (float x = x0 + TILE / 2; x < x1; x += TILE)
+            for (float y = -1.0f; y <= 1.0f; y += 1.0f) {
+                int id = add_box(x, y, z_top - TILE_TH / 2, TILE, TILE,
+                                 TILE_TH, Materials::Type::STONE, 0.0f,
+                                 0.45f, 0.45f, 0.5f);
+                tiles.push_back({id, x, y, z_top});
+                pending_kinematic.push_back(id);
+            }
+    }
+    // Nearest y=0 tile of a given deck to an x coordinate (bridge anchors).
+    int tile_near(float x, float z_top) {
+        int best = -1; float bd = 1e9f;
+        for (const Tile& t : tiles) {
+            if (std::fabs(t.z_top - z_top) > 0.01f || t.y != 0.0f) continue;
+            const float d = std::fabs(t.x - x);
+            if (d < bd) { bd = d; best = t.id; }
+        }
+        return best;
+    }
+
+    // A nail whose two anchor points COINCIDE at build time, computed from
+    // the actual placed positions — the bond is born unstrained (INV-4).
+    void nail_at(int a, int b, float wx, float wy, float wz, float force) {
+        const Particle pa = read(a), pb = read(b);
+        auto g = std::make_unique<NailGluon>();
+        g->offset_a = {wx - pa.x, wy - pa.y, wz - pa.z};
+        g->offset_b = {wx - pb.x, wy - pb.y, wz - pb.z};
+        g->target_distance = 0.0f;
+        g->breaking_force = force;
+        phys().add_gluon_between((size_t)a, (size_t)b, std::move(g));
+    }
+
+    bool build() {
+        EngineConfig cfg;
+        cfg.create_display = interactive;
+        cfg.enable_chat_window = false;
+        cfg.show_debug_overlay = false;
+        if (engine.initialize(cfg) != 0) return false;
+        T::set_enabled(true);
+        T::set_residual_enabled(true);
+
+        // terrain: alley deck, split main deck with a gap, basement below
+        platform(2.9f, 6.0f, DECK_ALLEY_TOP);
+        platform(5.9f, 8.0f, DECK_MAIN_TOP);    // west of the gap
+        platform(9.4f, 10.6f, DECK_MAIN_TOP);   // east of the gap
+        platform(7.5f, 12.9f, BASEMENT_TOP);    // basement
+
+        // the ramp: one rotated KINEMATIC box (INV-12 territory)
+        {
+            int ramp = add_box(RAMP_CX, 0.0f, RAMP_CZ, RAMP_LEN, 1.6f, 0.2f,
+                               Materials::Type::STONE, RAMP_TILT,
+                               0.4f, 0.55f, 0.4f);
+            pending_kinematic.push_back(ramp);
+        }
+
+        // the protagonist, latched KINEMATIC above the ramp's west end.
+        // STONE: the ball outweighs the wooden alley boxes ~3.5:1, so the
+        // relay is a plow, not a pendulum — with mu=0.5 eating momentum at
+        // every hop, equal masses die in the row (measured: last box never
+        // moved).
+        ball = add_box(BALL_X0, 0.0f, BALL_Z0, BALL, BALL, BALL,
+                       Materials::Type::STONE, 0.0f, 0.9f, 0.2f, 0.2f);
+
+        // Newton's alley: three boxes at rest on the alley deck
+        for (int i = 0; i < 3; ++i)
+            alley[i] = add_box(4.9f + 0.45f * i, 0.0f,
+                               DECK_ALLEY_TOP + BOX / 2 + 0.002f,
+                               BOX, BOX, BOX, Materials::Type::WOOD_HARD,
+                               0.0f, 0.85f, 0.65f, 0.2f);
+
+        // the sleeping stack on the main deck
+        stack_lo = add_box(6.6f, 0.0f, DECK_MAIN_TOP + STACK_BOX / 2 + 0.002f,
+                           STACK_BOX, STACK_BOX, STACK_BOX,
+                           Materials::Type::WOOD_SOFT, 0.0f,
+                           0.5f, 0.75f, 0.4f);
+        stack_hi = add_box(6.6f, 0.0f,
+                           DECK_MAIN_TOP + STACK_BOX * 1.5f + 0.006f,
+                           STACK_BOX, STACK_BOX, STACK_BOX,
+                           Materials::Type::WOOD_SOFT, 0.0f,
+                           0.55f, 0.8f, 0.45f);
+
+        // the nailed bridge across the gap: plank ends resting on the deck
+        plank = add_box(8.7f, 0.0f, DECK_MAIN_TOP + 0.075f + 0.002f,
+                        1.8f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
+                        0.0f, 0.7f, 0.55f, 0.3f);
+
+        // the featherweight station in the basement crash zone: the
+        // 1044:1 ringing scenario, embedded in the machine
+        heavy = add_box(8.7f, 0.0f, BASEMENT_TOP + 0.5f + 0.002f,
+                        1.0f, 1.0f, 1.0f, Materials::Type::STONE,
+                        0.0f, 0.4f, 0.4f, 0.42f);
+        feather = add_box(8.7f, 0.0f, BASEMENT_TOP + 1.0f + 0.02f + 0.004f,
+                          0.04f, 0.04f, 0.04f, Materials::Type::LEAVES,
+                          0.0f, 0.3f, 0.9f, 0.3f);
+
+        // FRONTIER — the domino: tall, thin, waiting for contact torque
+        domino = add_box(11.0f, 0.0f, BASEMENT_TOP + 0.75f + 0.002f,
+                         0.3f, 0.6f, 1.5f, Materials::Type::WOOD_HARD,
+                         0.0f, 0.9f, 0.9f, 0.3f);
+
+        // FRONTIER — the lever: plank nailed to a KINEMATIC pivot post,
+        // pebble on the long (east) end
+        {
+            int pivot_post = add_box(11.9f, 0.0f, BASEMENT_TOP + 0.3f,
+                                     0.2f, 0.6f, 0.6f,
+                                     Materials::Type::STONE);
+            pending_kinematic.push_back(pivot_post);
+            lever_arm = add_box(11.9f, 0.0f, BASEMENT_TOP + 0.675f + 0.002f,
+                                1.6f, 0.5f, 0.15f,
+                                Materials::Type::WOOD_HARD, 0.0f,
+                                0.8f, 0.7f, 0.5f);
+            lever_pebble = add_box(12.55f, 0.0f,
+                                   BASEMENT_TOP + 0.85f + 0.004f,
+                                   0.2f, 0.2f, 0.2f, Materials::Type::STONE,
+                                   0.0f, 0.9f, 0.3f, 0.9f);
+        }
+
+        ps().flush_pending_particles();
+        for (int id : pending_kinematic) make_kinematic(id);
+
+        // The alley is POLISHED: contact friction combines as min of the
+        // two surfaces (particle_core.h:152), so icing the deck tiles
+        // alone lets the ball and the relayed boxes coast where mu=0.5
+        // would kill 2.76 m/s in 0.78 m (measured).
+        {
+            auto v = ps().lock_particles_for_write();
+            for (const Tile& t : tiles)
+                if (std::fabs(t.z_top - DECK_ALLEY_TOP) < 0.01f)
+                    v[t.id].friction = 0.05f;
+        }
+        make_kinematic(ball);   // latched until the trigger frame
+
+        // bridge nails, at the exact plank-end/deck-edge contact points
+        {
+            const Particle pl = read(plank);
+            const float z_join = DECK_MAIN_TOP;   // deck top = plank bottom
+            const int west = tile_near(pl.x - 0.9f, DECK_MAIN_TOP);
+            const int east = tile_near(pl.x + 0.9f, DECK_MAIN_TOP);
+            nail_at(plank, west, pl.x - 0.85f, 0.0f, z_join, 2200.0f);
+            nail_at(plank, east, pl.x + 0.85f, 0.0f, z_join, 2200.0f);
+        }
+        // feather bond: the ringing-ladder recipe, verbatim (known good)
+        {
+            auto g = std::make_unique<OrganicGluon>();
+            g->offset_a = {0, 0, 0.51f};
+            g->offset_b = {0, 0, -0.02f};
+            g->target_distance = 0.0f;
+            g->rotate_offsets = false;
+            g->contact_area = 1e-4f;
+            g->stiffness = 5000.0f;
+            g->damping = 100.0f;
+            g->enable_angular_constraint = true;
+            g->angular_stiffness = 50.0f;
+            g->angular_damping = 5.0f;
+            phys().add_gluon_between((size_t)heavy, (size_t)feather,
+                                     std::move(g));
+        }
+        // lever nail: the pivot "hinge" — with scalar rows this is a rigid
+        // lock; the INV-16 full-Jacobian row is what will let it PIVOT
+        {
+            const Particle la = read(lever_arm);
+            nail_at(lever_arm, pending_kinematic.back(),   // pivot post
+                    la.x, 0.0f, la.z - 0.075f, 1e9f);
+        }
+
+        bonds_at_start = phys().get_total_gluon_count();
+
+        if (interactive) {
+            auto& cam = engine.get_camera_system();
+            cam.set_position(4.0f, -11.0f, 4.5f);
+            cam.look_at(6.5f, 0.0f, 2.0f);
+            ps().queue_light(6.0f, -8.0f, 14.0f, 500000.0f, 60.0f,
+                             1.0f, 0.95f, 0.85f);
+        }
+        ok = true;
+        return true;
+    }
+
+    ~World() { if (ok) engine.shutdown(); }
+};
+
+// ---------------------------------------------------------------- stages
+struct Stage {
+    const char* name;
+    const char* invs;
+    const char* frontier;   // nullptr = expected green today
+    int deadline;           // absolute frame
+    std::function<bool(World&, std::string&)> pass;
+};
+
+std::vector<Stage> make_stages() {
+    std::vector<Stage> st;
+
+    // S0: after the pre-roll every placed body is still and no bond tore
+    // under its own construction (INV-4 born at rest; INV-30 legal placing).
+    st.push_back({"S0 BORN AT REST", "INV-4 INV-30", nullptr, PREROLL + 1,
+        [](World& w, std::string& m) {
+            float vmax = 0.0f;
+            {
+                auto v = w.ps().lock_particles_for_write();
+                for (int id : {w.alley[0], w.alley[1], w.alley[2],
+                               w.stack_lo, w.stack_hi, w.plank, w.heavy,
+                               w.feather, w.domino, w.lever_pebble}) {
+                    const auto& p = v[id];
+                    const float s = std::sqrt(p.vx * p.vx + p.vy * p.vy +
+                                              p.vz * p.vz);
+                    if (s > vmax) vmax = s;
+                }
+            }
+            const size_t bonds = w.phys().get_total_gluon_count();
+            char buf[160];
+            snprintf(buf, sizeof buf, "vmax=%.4f m/s bonds=%zu/%zu",
+                     vmax, bonds, w.bonds_at_start);
+            m = buf;
+            return vmax < 0.05f && bonds == w.bonds_at_start;
+        }});
+
+    // S1: the released ball falls to ramp altitude (INV-3: the drop is the
+    // machine's entire energy budget; INV-11 watchdog covers the fall).
+    st.push_back({"S1 THE DROP", "INV-3 INV-11", nullptr, PREROLL + 90,
+        [](World& w, std::string& m) {
+            const Particle p = w.read(w.ball);
+            char buf[120];
+            snprintf(buf, sizeof buf, "ball z=%.2f vz=%.2f", p.z, p.vz);
+            m = buf;
+            return p.z < RAMP_CZ + 1.0f;
+        }});
+
+    // S2: slides east down the rotated ramp and leaves it with real speed
+    // inside the energy budget (INV-17: contacts never amplify).
+    st.push_back({"S2 THE RAMP", "INV-12 INV-17 INV-25", nullptr,
+                  PREROLL + 400,
+        [](World& w, std::string& m) {
+            const Particle p = w.read(w.ball);
+            const float sp2 = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
+            const float budget2 = 2.0f * 9.81f * (BALL_Z0 - p.z) * 1.10f;
+            char buf[160];
+            snprintf(buf, sizeof buf,
+                     "ball x=%.2f vx=%.2f |v|2=%.1f budget2=%.1f",
+                     p.x, p.vx, sp2, budget2);
+            m = buf;
+            return p.x > RAMP_CX + RAMP_LEN * 0.42f && p.vx > 0.5f &&
+                   sp2 <= budget2;
+        }});
+
+    // S3: momentum relays through the row; the last box leaves the deck.
+    st.push_back({"S3 NEWTON'S ALLEY", "INV-7 INV-2 INV-10", nullptr,
+                  PREROLL + 700,
+        [](World& w, std::string& m) {
+            const Particle last = w.read(w.alley[2]);
+            char buf[120];
+            snprintf(buf, sizeof buf, "last box x=%.2f z=%.2f",
+                     last.x, last.z);
+            m = buf;
+            return last.x > 6.0f && last.z < DECK_ALLEY_TOP - 0.3f;
+        }});
+
+    // S4: the stack slept through the pre-roll, wakes on impact, and its
+    // top box is displaced. Sleep is a cache, not a hiding place (INV-18);
+    // rows resize to the woken world (INV-8).
+    st.push_back({"S4 THE WAKE-UP", "INV-18 INV-8 INV-7", nullptr,
+                  PREROLL + 1000,
+        [](World& w, std::string& m) {
+            const Particle hi = w.read(w.stack_hi);
+            char buf[140];
+            snprintf(buf, sizeof buf, "top box x=%.2f z=%.2f at_rest=%d",
+                     hi.x, hi.z, (int)hi.is_at_rest);
+            m = buf;
+            return std::fabs(hi.x - 6.6f) > 0.35f;
+        }});
+
+    // S5: the arriving load tears both declared nails; the plank drops.
+    st.push_back({"S5 THE BRIDGE", "INV-14 INV-4", nullptr, PREROLL + 1400,
+        [](World& w, std::string& m) {
+            const size_t bonds = w.phys().get_total_gluon_count();
+            const Particle p = w.read(w.plank);
+            char buf[140];
+            snprintf(buf, sizeof buf, "bonds=%zu/%zu plank z=%.2f",
+                     bonds, w.bonds_at_start, p.z);
+            m = buf;
+            return bonds <= w.bonds_at_start - 2 &&
+                   p.z < DECK_MAIN_TOP - 0.5f;
+        }});
+
+    // S6: the gram-scale bonded body rides out the crash inside the
+    // momentum caps (INV-10) and never detonates (INV-11): peak tracked
+    // every frame by the watchdog loop, settled again by the deadline.
+    st.push_back({"S6 THE FEATHERWEIGHT", "INV-10 INV-11", nullptr,
+                  PREROLL + 1700,
+        [](World& w, std::string& m) {
+            const Particle f = w.read(w.feather);
+            const float s = std::sqrt(f.vx * f.vx + f.vy * f.vy +
+                                      f.vz * f.vz);
+            char buf[140];
+            snprintf(buf, sizeof buf, "feather |v|=%.2f peak=%.2f m/s",
+                     s, g_feather_peak);
+            m = buf;
+            return s < 0.25f && g_feather_peak < 5.0f;
+        }});
+
+    // ------------------------- THE FRONTIER ------------------------------
+    st.push_back({"S7 THE DOMINO",
+                  "contact torque (rotation campaign)",
+                  "contacts carry no torque: bodies slide, they do not tip",
+                  PREROLL + 2200,
+        [](World& w, std::string& m) {
+            const Particle d = w.read(w.domino);
+            const float tilt = std::max(std::fabs(d.rotation_x),
+                                        std::fabs(d.rotation_y));
+            char buf[120];
+            snprintf(buf, sizeof buf, "domino tilt=%.2f rad x=%.2f",
+                     tilt, d.x);
+            m = buf;
+            return tilt > 0.8f;
+        }});
+
+    st.push_back({"S8 THE LEVER", "INV-16 (aspirational)",
+                  "the anchor pivot law needs the full-Jacobian row",
+                  PREROLL + 2700,
+        [](World& w, std::string& m) {
+            const Particle peb = w.read(w.lever_pebble);
+            char buf[120];
+            snprintf(buf, sizeof buf, "pebble z=%.2f vz=%.2f",
+                     peb.z, peb.vz);
+            m = buf;
+            return peb.z > BASEMENT_TOP + 1.4f;
+        }});
+
+    st.push_back({"S9 THE QUIET END", "INV-24 INV-2 INV-18", nullptr,
+                  MAX_FRAME - 1,
+        [](World& w, std::string& m) {
+            float vmax = 0.0f;
+            {
+                auto v = w.ps().lock_particles_for_write();
+                for (size_t i = 0; i < v.size(); ++i) {
+                    const auto& p = v[i];
+                    if (p.solver_mode != ParticleSolverMode::DYNAMIC)
+                        continue;
+                    const float s = std::sqrt(p.vx * p.vx + p.vy * p.vy +
+                                              p.vz * p.vz);
+                    if (s > vmax) vmax = s;
+                }
+            }
+            const double pen = T::solve_residual().max_penetration;
+            char buf[120];
+            snprintf(buf, sizeof buf, "vmax=%.3f m/s pen=%.4f m",
+                     vmax, pen);
+            m = buf;
+            return vmax < 0.05f && pen < 0.002;
+        }});
+
+    return st;
+}
+
+bool run_machine() {
+    const bool interactive = std::getenv("INTERACTIVE") != nullptr;
+    const bool trace = std::getenv("RUBE_TRACE") != nullptr;
+    g_feather_peak = 0.0f;
+
+    printf("\n=== THE RUBE GOLDBERG MACHINE: every stage an invariant ===\n");
+    printf("  mode: %s\n", interactive ? "INTERACTIVE" : "HEADLESS");
+
+    World w;
+    w.interactive = interactive;
+    w.trace = trace;
+    if (!w.build()) { printf("  ERROR: engine init failed\n"); return false; }
+
+    std::vector<Stage> stages = make_stages();
+    const int total = (int)stages.size();
+    int completed = 0, current = 0;
+    bool regression = false;
+    std::string halt_reason;
+
+    printf("  stages: %d   expected today: %d   trigger at frame %d\n\n",
+           total, EXPECTED_COMPLETED, PREROLL);
+
+    for (int frame = 0; frame < MAX_FRAME && current < total; ++frame) {
+        if (frame == PREROLL) w.release(w.ball);
+        w.engine.update(1.0 / 60.0);
+
+        // global watchdogs: any violation is an instant red
+        {
+            auto v = w.ps().lock_particles_for_write();
+            for (size_t i = 0; i < v.size(); ++i) {
+                const auto& p = v[i];
+                if (p.solver_mode != ParticleSolverMode::DYNAMIC) continue;
+                const float s = std::sqrt(p.vx * p.vx + p.vy * p.vy +
+                                          p.vz * p.vz);
+                if ((int)i == w.feather && s > g_feather_peak)
+                    g_feather_peak = s;
+                if (s > SPEED_CEILING || std::isnan(p.x) ||
+                    std::isnan(p.z)) {
+                    char buf[160];
+                    snprintf(buf, sizeof buf,
+                             "WATCHDOG INV-11: body %zu |v|=%.1f m/s "
+                             "at frame %d", i, s, frame);
+                    halt_reason = buf;
+                }
+            }
+        }
+        if (halt_reason.empty()) {
+            const double pen = T::solve_residual().max_penetration;
+            if (pen > PEN_CEILING) {
+                char buf[160];
+                snprintf(buf, sizeof buf,
+                         "WATCHDOG INV-2: penetration %.3f m at frame %d",
+                         pen, frame);
+                halt_reason = buf;
+            }
+        }
+        if (!halt_reason.empty()) { regression = true; break; }
+
+        Stage& st = stages[current];
+        std::string measured;
+        if (st.pass(w, measured)) {
+            ++completed;
+            printf("  [%4d] GREEN  %-20s (%s)  %s\n", frame, st.name,
+                   st.invs, measured.c_str());
+            ++current;
+        } else if (frame >= st.deadline) {
+            printf("  [%4d] RED    %-20s (%s)\n", frame, st.name, st.invs);
+            if (st.frontier) printf("         frontier: %s\n", st.frontier);
+            printf("         measured: %s\n", measured.c_str());
+            halt_reason = std::string(st.frontier ? "frontier: "
+                                                  : "REGRESSION: ") + st.name;
+            if (!st.frontier) regression = true;
+            break;
+        }
+
+        if (trace && (frame % 30) == 0) {
+            const Particle b = w.read(w.ball);
+            const Particle a0 = w.read(w.alley[0]);
+            const Particle a2 = w.read(w.alley[2]);
+            printf("    f%-4d stage=%s ball=(%.2f,%.2f vx=%.2f) "
+                   "box0=(%.2f rest=%d vx=%.2f) box2=(%.2f rest=%d)\n",
+                   frame, stages[current].name, b.x, b.z, b.vx,
+                   a0.x, (int)a0.is_at_rest, a0.vx,
+                   a2.x, (int)a2.is_at_rest);
+        }
+    }
+
+    const float pct = 100.0f * completed / total;
+    printf("\n  COMPLETION: %d/%d stages (%.1f%%)", completed, total, pct);
+    if (!halt_reason.empty()) printf("  — halted: %s", halt_reason.c_str());
+    printf("\n");
+
+    if (regression) {
+        printf("  VERDICT: RED — regression before the ratchet "
+               "(expected %d)\n", EXPECTED_COMPLETED);
+        return false;
+    }
+    if (completed > EXPECTED_COMPLETED) {
+        printf("  VERDICT: RATCHET — a frontier stage went green. Raise "
+               "EXPECTED_COMPLETED to %d in this same commit.\n", completed);
+        return false;
+    }
+    if (completed < EXPECTED_COMPLETED) {
+        printf("  VERDICT: RED — completed %d, expected %d\n", completed,
+               EXPECTED_COMPLETED);
+        return false;
+    }
+    printf("  VERDICT: GREEN — the machine stands at its frontier "
+           "(%d/%d), waiting on rotation\n", completed, total);
+    return true;
+}
+
+}  // namespace rube
+}  // namespace
+
+bool test_rube_goldberg_machine() {
+    return rube::run_machine();
+}

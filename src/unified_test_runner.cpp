@@ -86,6 +86,7 @@ extern bool test_solver_residual();          // Is the answer good, not did the 
 extern bool test_constraint_order_matters();  // S19 re-run: does order change the residual? (STANDALONE)
 extern bool test_physics_battery();           // Ladder of scenarios, one mechanism each (STANDALONE)
 extern bool test_rotation_ladder();           // Rotation TDD ladder, red first (STANDALONE)
+extern bool test_rube_goldberg_machine();     // One chain, every stage an invariant (STANDALONE)
 extern bool test_grass_natures();             // Palette on real grass + human (STANDALONE)
 extern bool test_settling_wiggle();           // Focused: a carried body must stop (STANDALONE)
 extern bool test_settling_flat();             // Focused: at rest means ON the ground (STANDALONE)
@@ -293,6 +294,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_constraint_order_matters"] = [](TestContext&) { return test_constraint_order_matters(); };  // STANDALONE: own engine
     registry["test_physics_battery"] = [](TestContext&) { return test_physics_battery(); };  // STANDALONE: own engine
     registry["test_rotation_ladder"] = [](TestContext&) { return test_rotation_ladder(); };  // STANDALONE: own engine
+    registry["test_rube_goldberg_machine"] = [](TestContext&) { return test_rube_goldberg_machine(); };  // STANDALONE: own engine
     registry["test_grass_natures"] = [](TestContext&) { return test_grass_natures(); };  // STANDALONE: own engine
     registry["test_settling_wiggle"] = [](TestContext&) { return test_settling_wiggle(); };  // STANDALONE
     registry["test_settling_flat"] = [](TestContext&) { return test_settling_flat(); };  // STANDALONE
@@ -727,6 +729,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_constraint_order_matters",
         "test_physics_battery",
         "test_rotation_ladder",
+        "test_rube_goldberg_machine",
         "test_grass_natures",
         "test_settling_wiggle",
         "test_settling_flat",
@@ -845,6 +848,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_constraint_order_matters", test_constraint_order_matters},
         {"test_physics_battery", test_physics_battery},
         {"test_rotation_ladder", test_rotation_ladder},
+        {"test_rube_goldberg_machine", test_rube_goldberg_machine},
         {"test_grass_natures", test_grass_natures},
         {"test_settling_wiggle", test_settling_wiggle},
         {"test_settling_flat", test_settling_flat},
