@@ -45,6 +45,21 @@ ValidationResult validate_kg_op(const KGOp& op,
                                 const KGModule& kg,
                                 const OntologyRegistry& ont);
 
+// The property-write check itself, shared by every door that writes a
+// property: the KGOp path above (set_property + create_entity's
+// per-property checks) and the engine-side gate in KGCore::setProperty.
+// One implementation, so the LLM loop and the engine cannot drift.
+//
+// Checks: property is declared on entity_type or an ancestor; the value
+// coerces to the declared value_type (string/integer/float/boolean —
+// enum and entity_ref pass through); numeric values respect schema
+// min/max. The caller supplies the entity type; type resolution is the
+// caller's problem (KGCore has it in hand, the KGOp path resolves refs).
+ValidationResult validate_property_write(const OntologyRegistry& ont,
+                                         const std::string& entity_type,
+                                         const std::string& property,
+                                         const std::string& value);
+
 }  // namespace kg
 
 #endif  // LOGOSPHERE_KG_ONTOLOGY_VALIDATOR_H

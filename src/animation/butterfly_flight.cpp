@@ -191,15 +191,29 @@ bool ButterflyFlight::parse_butterfly_parts(kg::EntityID entity_id, ButterflyPar
     if (!left_wing_str.empty()) out_parts.left_wing = std::stoi(left_wing_str);
     if (!right_wing_str.empty()) out_parts.right_wing = std::stoi(right_wing_str);
 
-    for (int i = 0; i < 10; i++) {
-        auto thorax_i_str = kg_mod.getProperty(entity_id, "thorax_" + std::to_string(i));
-        auto left_wing_i_str = kg_mod.getProperty(entity_id, "left_wing_" + std::to_string(i));
-        auto right_wing_i_str = kg_mod.getProperty(entity_id, "right_wing_" + std::to_string(i));
-        if (thorax_i_str.empty()) break;
-        out_parts.all_thorax_segments.push_back(std::stoi(thorax_i_str));
-        if (!left_wing_i_str.empty()) out_parts.all_left_wings.push_back(std::stoi(left_wing_i_str));
-        if (!right_wing_i_str.empty()) out_parts.all_right_wings.push_back(std::stoi(right_wing_i_str));
-    }
+    // Segment chains come as comma-separated lists (thorax_particles,
+    // left_wing_particles, right_wing_particles) — same pattern as the
+    // humanoid's limb chains. Replaced the old per-index thorax_<i>
+    // keys whose unbounded names the ontology could not declare
+    // (Malleus H1).
+    auto parse_id_list = [](const std::string& csv, std::vector<unsigned int>& out) {
+        size_t start = 0;
+        while (start < csv.size()) {
+            size_t comma = csv.find(',', start);
+            if (comma == std::string::npos) comma = csv.size();
+            if (comma > start) {
+                out.push_back(static_cast<unsigned int>(
+                    std::stoul(csv.substr(start, comma - start))));
+            }
+            start = comma + 1;
+        }
+    };
+    parse_id_list(kg_mod.getProperty(entity_id, "thorax_particles"),
+                  out_parts.all_thorax_segments);
+    parse_id_list(kg_mod.getProperty(entity_id, "left_wing_particles"),
+                  out_parts.all_left_wings);
+    parse_id_list(kg_mod.getProperty(entity_id, "right_wing_particles"),
+                  out_parts.all_right_wings);
 
     if (!frequency_str.empty()) out_parts.wing_beat_frequency = std::stof(frequency_str);
     if (!amplitude_str.empty()) out_parts.wing_beat_amplitude = std::stof(amplitude_str);

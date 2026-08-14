@@ -338,6 +338,7 @@ add_headless_test(test_particle_self_emissive_field)
 add_headless_test(test_kg_ops_parse)
 add_headless_test(test_ontology_validator)
 add_headless_test(test_kg_ops_apply)
+add_headless_test(test_kg_property_gate)  # Malleus H1: setProperty ontology gate
 # test_mutation_playback links logosphere_core only (no Engine
 # dereferencing in the tests; dummy pointers in fixtures).
 add_executable(test_mutation_playback

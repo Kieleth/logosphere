@@ -394,9 +394,11 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         // schema spells enums upper (matching every other enum in the
         // file) while rules in the wild are authored lower.
         //
-        // This parse is the ONLY enforcement point. KGCore::setProperty
-        // validates nothing (ontology_registry.h:46 claims otherwise and
-        // is wrong for property writes), so an unknown trigger is caught
+        // This parse is the ONLY enforcement point for the trigger
+        // VOCABULARY. KGCore::setProperty now gates declared-property +
+        // value-type + range (Malleus H1), but the trigger slot's
+        // value_type is "enum", which the coercion passes through — so
+        // an unknown trigger string still gets stored and is caught
         // here or never.
         auto trig = kg.getProperty(id, "trigger");
         onto::TransformationTrigger parsed_trigger{};

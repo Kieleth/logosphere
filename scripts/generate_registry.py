@@ -77,6 +77,35 @@ def _get_ancestors(sv: SchemaView, class_name: str) -> set[str]:
     return ancestors
 
 
+def _get_kg_key_namespaces(sv: SchemaView, class_name: str) -> list:
+    """Open property-namespace prefixes from `annotations:
+    kg_key_namespaces:` — comma-separated. Keys under a declared prefix
+    pass the setProperty gate untyped; for engine surfaces open BY
+    DESIGN (rule.<i>.payload.*), never a shortcut around exact slots."""
+    cls = sv.get_class(class_name)
+    ann = getattr(cls, "annotations", None)
+    if not ann or "kg_key_namespaces" not in ann:
+        return []
+    raw = str(ann["kg_key_namespaces"].value)
+    return sorted(p.strip() for p in raw.split(",") if p.strip())
+
+
+def _kg_key(slot, slot_name: str) -> str:
+    """Registry key for a slot: the `kg_key` annotation when present,
+    else the slot name.
+
+    Why: some engine-written KG keys are dotted (`cap.locomotion.weight`),
+    which is not a legal C++ identifier, so the slot NAME must stay
+    identifier-safe for gen-cpp-header (which emits a struct field per
+    slot). The annotation carries the real runtime key into the registry
+    so the setProperty gate validates what the engine actually writes.
+    Same annotation mechanism as `facets` on classes."""
+    ann = getattr(slot, "annotations", None)
+    if ann and "kg_key" in ann:
+        return str(ann["kg_key"].value)
+    return slot_name
+
+
 def _linkml_range_to_value_type(sv: SchemaView, range_name: str | None) -> str:
     """Map a LinkML range to a simple value type string."""
     if not range_name:
@@ -181,6 +210,20 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
         lines.extend(facet_lines)
         lines.append("")
 
+    # Open property namespaces (annotations: kg_key_namespaces:).
+    # Emitted for mixins too — hasPropertyNamespace walks ancestors the
+    # same way hasProperty does.
+    ns_lines = []
+    for cn in sorted(sv.all_classes()):
+        if not (_is_entity_subtype(sv, cn) or _is_mixin(sv, cn)):
+            continue
+        for prefix in _get_kg_key_namespaces(sv, cn):
+            ns_lines.append(f'    reg.addPropertyNamespace("{cn}", "{prefix}");')
+    if ns_lines:
+        lines.append("    // Open property namespaces")
+        lines.extend(ns_lines)
+        lines.append("")
+
     # Event types
     lines.append("    // Event types")
     for cn in sorted(sv.all_classes()):
@@ -221,6 +264,7 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
 
         for sn in slot_names:
             slot = sv.induced_slot(sn, cn)
+            key = _kg_key(slot, sn)
             value_type = _linkml_range_to_value_type(sv, slot.range)
             required = "true" if slot.required else "false"
             # Range annotations (LinkML's minimum_value / maximum_value
@@ -240,12 +284,12 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
                     min_lit, max_lit = "0.0", "0.0"
                     has_min, has_max = "false", "false"
                 lines.append(
-                    f'    reg.addProperty("{cn}", "{sn}", "{value_type}", {required}, '
+                    f'    reg.addProperty("{cn}", "{key}", "{value_type}", {required}, '
                     f"{has_min}, {min_lit}, {has_max}, {max_lit});"
                 )
             else:
                 lines.append(
-                    f'    reg.addProperty("{cn}", "{sn}", "{value_type}", {required});'
+                    f'    reg.addProperty("{cn}", "{key}", "{value_type}", {required});'
                 )
 
     lines.append("")

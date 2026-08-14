@@ -20,6 +20,7 @@
 #include "logosphere/events/event_bus.h"
 #include "logosphere/kg/kg_module.h"
 #include "generated/logosphere_ontology_registry.h"
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
@@ -172,6 +173,14 @@ void test_well_formed_still_works() {
 int main() {
     std::cout << "=== KG Parse Safety Tests ===" << std::endl;
     std::cout << "(expect warnings on stderr — they're the feature)" << std::endl;
+
+    // This test exercises the READER safety net: kg_parse must warn and
+    // continue on malformed stored values. The setProperty gate (Malleus
+    // H1) would strictly reject e.g. health="broken" before it ever
+    // reached a reader, so run the writes in lenient mode — the layer
+    // under test is precisely the defense below the gate (old saves,
+    // lenient-mode inventory runs, direct map access).
+    setenv("KG_GATE_LENIENT", "1", 1);
 
     test_malformed_trigger_does_not_crash();
     test_malformed_effect_does_not_crash();

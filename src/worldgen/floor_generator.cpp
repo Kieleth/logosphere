@@ -94,7 +94,9 @@ ChunkData FloorGenerator::create_floor_chunk(const ChunkCoord& coord, float chun
         data.kg_entity = kg_->createEntity("FloorChunk");
         kg_->setProperty(data.kg_entity, "chunk_x", std::to_string(coord.x));
         kg_->setProperty(data.kg_entity, "chunk_y", std::to_string(coord.y));
-        kg_->setProperty(data.kg_entity, "type", "floor");
+        // floor_kind (declared) instead of the undeclared "type" shadow key:
+        // distinguishes this generator's chunks from the strata generator's.
+        kg_->setProperty(data.kg_entity, "floor_kind", "floor");
         std::cout << "[FloorGenerator] Created chunk entity " << data.kg_entity
                   << " for (" << coord.x << "," << coord.y << ")" << std::endl;
     }

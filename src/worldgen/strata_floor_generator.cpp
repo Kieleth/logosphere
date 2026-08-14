@@ -132,7 +132,8 @@ ChunkData StrataFloorGenerator::create_strata_chunk(const ChunkCoord& coord,
         data.kg_entity = kg_->createEntity("FloorChunk");
         kg_->setProperty(data.kg_entity, "chunk_x", std::to_string(coord.x));
         kg_->setProperty(data.kg_entity, "chunk_y", std::to_string(coord.y));
-        kg_->setProperty(data.kg_entity, "type", "strata");
+        // floor_kind (declared) instead of the undeclared "type" shadow key.
+        kg_->setProperty(data.kg_entity, "floor_kind", "strata");
     }
 
     const float grid_cx = coord.world_x(chunk_size);

@@ -42,6 +42,44 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   `docs/todo_plans/SILENT_FALLBACK_INVENTORY.md`.
 
 ### Added
+- **`setProperty` is gated by the ontology (Malleus H1).** Every KG
+  property write now runs the same declared-property + value-type +
+  schema-range check the LLM KGOp path always had, via the shared
+  `kg::validate_property_write`. A violation prints an actionable
+  `[KG GATE VIOLATION]` message and aborts; `KG_GATE_LENIENT=1`
+  downgrades to a printed violation (inventory mode) and lets the
+  write proceed. An empty registry (no ontology loaded) skips the
+  check, matching `createEntity`'s existing guard. Measured cost is
+  printed by `test_kg_property_gate`.
+- **Every property the engine writes is declared in the schema.** The
+  gate's inventory surfaced ~60 undeclared keys across the generators
+  (humanoid rig + gait, FORGE `cap.*` keys, constraint serialization,
+  grass/tree/rock/butterfly/snake/totem bookkeeping, chunk stamps
+  `x`/`y`/`z`/`chunk_x`/`chunk_y`, streaming config). All are now
+  declared in `schema/logosphere.yaml` and `schema/packs/earth.yaml`.
+  Dotted runtime keys (`cap.<name>.<field>`) are declared through a
+  new `kg_key` slot annotation that `generate_registry.py` prefers
+  over the (identifier-safe) slot name.
+
+### Changed
+- **Butterfly segment chains are comma-separated lists.** The
+  butterfly generator now writes `thorax_particles`,
+  `left_wing_particles`, `right_wing_particles` (same pattern as the
+  humanoid limb chains) instead of unbounded per-index keys
+  (`thorax_0`, `left_wing_1`, ...) that no schema could declare.
+  `ButterflyFlight` reads the new format.
+- **Floor generator provenance key renamed.** Floor and strata
+  generators stamp `floor_kind` = `floor` | `strata` (declared on
+  `Floor`) instead of the undeclared `type` shadow key.
+
+### Removed
+- **Redundant `type` property stamps.** Five generators (humanoid,
+  butterfly, snake, celestial, scene chunk) wrote a `type` property
+  duplicating `Entity::type`; nothing ever read it. Also removed the
+  humanoid's write-only `behavior` = `look_at_mouse` stamp (input
+  policy is game territory). The organic generator's
+  `growth_is_mature` write drifted from the declared
+  `Growable.is_mature` slot and now uses the declared name.
 - **Physics constants are engine inputs (INV-29).** Every named
   physics constant — solver schedule, position-correction gains and
   caps, contact tolerances, turtle boundary, gravity and drag,

@@ -153,7 +153,7 @@ kg::EntityID SnakeGenerator::generate_snake(float world_x, float world_y, float 
 
     // Create root entity
     kg::EntityID snake_entity = kg_->createEntity("Snake");
-    kg_->setProperty(snake_entity, "type", "Snake");
+    // "type" stamp removed (Malleus H1): Entity::type already carries it.
     kg_->setProperty(snake_entity, "length", std::to_string(spec.total_length));
     kg_->setProperty(snake_entity, "num_segments", std::to_string(spec.num_segments));
 

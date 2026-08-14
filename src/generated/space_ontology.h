@@ -901,6 +901,16 @@ struct Spatial {
     float position_z;
     /// Direction entity faces in radians.
     std::optional<float> facing_angle = std::nullopt;
+    /// World-position stamp written by createEntityAtPosition and the generators. Legacy duplicate of position_x; declared so the setProperty gate can validate what the engine actually writes (Malleus H1). Unification with position_* is follow-up work.
+    std::optional<float> x = std::nullopt;
+    /// World-position stamp; legacy duplicate of position_y (see x).
+    std::optional<float> y = std::nullopt;
+    /// World-position stamp; legacy duplicate of position_z (see x).
+    std::optional<float> z = std::nullopt;
+    /// Chunk-grid X coordinate, floor(world_x / chunk_size).
+    std::optional<int32_t> chunk_x = std::nullopt;
+    /// Chunk-grid Y coordinate, floor(world_y / chunk_size).
+    std::optional<int32_t> chunk_y = std::nullopt;
 };
 
 
@@ -993,6 +1003,18 @@ struct Growable {
     std::optional<int32_t> growth_iteration = std::nullopt;
     std::optional<bool> is_mature = std::nullopt;
     std::optional<std::string> species = std::nullopt;
+    /// Whether deferred growth simulation is active for this entity.
+    std::optional<bool> growth_enabled = std::nullopt;
+    /// Game-time seconds at which the organism was created.
+    std::optional<float> growth_time_created = std::nullopt;
+    /// Game-time seconds at which growth was last advanced.
+    std::optional<float> growth_time_last_simulated = std::nullopt;
+    /// Growth iterations accrued per game year.
+    std::optional<float> growth_rate_per_year = std::nullopt;
+    /// Iteration count at which the organism is mature.
+    std::optional<int32_t> growth_max_iterations = std::nullopt;
+    /// Generation algorithm provenance (e.g. space_colonization).
+    std::optional<std::string> method = std::nullopt;
 };
 
 
@@ -1003,11 +1025,82 @@ struct WorldEntity : public Entity, public Statusable, public Spatial, public Ha
 
 /// An entity that is alive and can take damage.
 struct LivingEntity : public WorldEntity, public HasHealth, public HasMaterial, public HasOdor {
+    std::optional<int32_t> cap_locomotion_expected_count = std::nullopt;
+    std::optional<std::string> cap_locomotion_default_mode = std::nullopt;
+    std::optional<int32_t> cap_manipulation_expected_count = std::nullopt;
+    std::optional<std::string> cap_manipulation_default_mode = std::nullopt;
+    std::optional<int32_t> cap_rotation_expected_count = std::nullopt;
+    std::optional<std::string> cap_rotation_default_mode = std::nullopt;
+    std::optional<int32_t> cap_perception_expected_count = std::nullopt;
+    std::optional<std::string> cap_perception_default_mode = std::nullopt;
+    std::optional<int32_t> cap_flight_expected_count = std::nullopt;
+    std::optional<std::string> cap_flight_default_mode = std::nullopt;
+    std::optional<int32_t> cap_undulation_expected_count = std::nullopt;
+    std::optional<std::string> cap_undulation_default_mode = std::nullopt;
+    std::optional<float> cap_undulation_normalize = std::nullopt;
+    std::optional<std::string> rule_group_0_name = std::nullopt;
+    std::optional<bool> rule_group_0_enabled = std::nullopt;
+    std::optional<std::string> rule_group_1_name = std::nullopt;
+    std::optional<bool> rule_group_1_enabled = std::nullopt;
+    std::optional<std::string> rule_group_2_name = std::nullopt;
+    std::optional<bool> rule_group_2_enabled = std::nullopt;
+    std::optional<std::string> rule_group_3_name = std::nullopt;
+    std::optional<bool> rule_group_3_enabled = std::nullopt;
+    std::optional<std::string> rule_group_4_name = std::nullopt;
+    std::optional<bool> rule_group_4_enabled = std::nullopt;
+    std::optional<std::string> rule_group_5_name = std::nullopt;
+    std::optional<bool> rule_group_5_enabled = std::nullopt;
+    std::optional<std::string> rule_group_6_name = std::nullopt;
+    std::optional<bool> rule_group_6_enabled = std::nullopt;
+    std::optional<std::string> rule_group_7_name = std::nullopt;
+    std::optional<bool> rule_group_7_enabled = std::nullopt;
+    /// Stable KGParticleID of the head particle.
+    std::optional<int32_t> head_particle = std::nullopt;
+    /// Stable KGParticleID of the abdomen particle.
+    std::optional<int32_t> abdomen_particle = std::nullopt;
 };
 
 
 /// Bipedal creature with full skeletal anatomy.
 struct Humanoid : public LivingEntity, public Agent {
+    /// Total height in meters.
+    std::optional<float> height = std::nullopt;
+    /// Walking pace in m/s.
+    std::optional<float> walk_speed = std::nullopt;
+    /// Running pace in m/s.
+    std::optional<float> run_speed = std::nullopt;
+    /// Walk-cycle step frequency in Hz.
+    std::optional<float> walk_frequency = std::nullopt;
+    /// Run-cycle step frequency in Hz.
+    std::optional<float> run_frequency = std::nullopt;
+    /// Lateral hip-to-hip leg spacing in meters.
+    std::optional<float> leg_spacing = std::nullopt;
+    /// Lateral shoulder offset from the spine in meters.
+    std::optional<float> shoulder_offset = std::nullopt;
+    /// Lateral ear offset from the head center in meters.
+    std::optional<float> ear_offset = std::nullopt;
+    /// Neural response latency in milliseconds.
+    std::optional<float> reflexes_ms = std::nullopt;
+    /// Sustained power output in watts.
+    std::optional<float> grit_W = std::nullopt;
+    /// Stable KGParticleID of the hips particle.
+    std::optional<int32_t> hips_particle = std::nullopt;
+    /// Stable KGParticleID of the body-center particle.
+    std::optional<int32_t> center_particle = std::nullopt;
+    /// Stable KGParticleID of the torso particle.
+    std::optional<int32_t> torso_particle = std::nullopt;
+    /// Stable KGParticleID the camera follows.
+    std::optional<int32_t> camera_follow_particle = std::nullopt;
+    /// Stable KGParticleID of the neck particle.
+    std::optional<int32_t> neck_particle = std::nullopt;
+    /// Comma-separated KGParticleIDs of the left arm chain.
+    std::optional<std::string> left_arm_particles = std::nullopt;
+    /// Comma-separated KGParticleIDs of the right arm chain.
+    std::optional<std::string> right_arm_particles = std::nullopt;
+    /// Comma-separated KGParticleIDs of the left leg chain.
+    std::optional<std::string> left_leg_particles = std::nullopt;
+    /// Comma-separated KGParticleIDs of the right leg chain.
+    std::optional<std::string> right_leg_particles = std::nullopt;
 };
 
 
@@ -1036,6 +1129,12 @@ struct Floor : public Structure {
     std::optional<FloorType> floor_type = std::nullopt;
     /// LAYERED is real settling earth; SLAB is one cheap flat box.
     std::optional<TerrainKind> terrain = std::nullopt;
+    /// Which generator produced this floor chunk: "floor" (uniform floor generator) or "strata" (layered settling earth). Replaces the undeclared `type` property stamp the two generators used to write (Malleus H1).
+    std::optional<std::string> floor_kind = std::nullopt;
+    /// Stratum index from the bottom, for strata layer groups.
+    std::optional<int32_t> layer_index = std::nullopt;
+    /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
+    std::optional<std::string> layer_name = std::nullopt;
 };
 
 
@@ -1063,6 +1162,78 @@ struct LightSource : public WorldEntity, public EmitsLight {
 struct BodyPart : public WorldEntity, public HasMaterial, public HasHealth, public HasPhysicalCapability, public HasTissue {
     /// Anatomical name of the body part.
     std::optional<std::string> body_part_name = std::nullopt;
+    /// Legacy sibling of body_part_name written by one humanoid generator path and read by KGModule's part lookup. Declared as written (Malleus H1); collapsing the two keys is follow-up work.
+    std::optional<std::string> body_part = std::nullopt;
+    /// Comma-separated capability names this body part contributes to.
+    std::optional<std::string> cap_list = std::nullopt;
+    std::optional<float> cap_locomotion_weight = std::nullopt;
+    std::optional<std::string> cap_locomotion_side = std::nullopt;
+    std::optional<float> cap_manipulation_weight = std::nullopt;
+    std::optional<std::string> cap_manipulation_side = std::nullopt;
+    std::optional<float> cap_rotation_weight = std::nullopt;
+    std::optional<std::string> cap_rotation_side = std::nullopt;
+    std::optional<float> cap_perception_weight = std::nullopt;
+    std::optional<std::string> cap_perception_side = std::nullopt;
+    std::optional<float> cap_flight_weight = std::nullopt;
+    std::optional<std::string> cap_flight_side = std::nullopt;
+    std::optional<float> cap_undulation_weight = std::nullopt;
+    std::optional<std::string> cap_undulation_side = std::nullopt;
+    std::optional<std::string> rule_0_trigger = std::nullopt;
+    std::optional<std::string> rule_0_effect = std::nullopt;
+    std::optional<std::string> rule_0_effect_2 = std::nullopt;
+    std::optional<std::string> rule_0_effect_3 = std::nullopt;
+    std::optional<std::string> rule_0_effect_4 = std::nullopt;
+    std::optional<std::string> rule_0_cascade = std::nullopt;
+    std::optional<std::string> rule_0_group = std::nullopt;
+    std::optional<std::string> rule_1_trigger = std::nullopt;
+    std::optional<std::string> rule_1_effect = std::nullopt;
+    std::optional<std::string> rule_1_effect_2 = std::nullopt;
+    std::optional<std::string> rule_1_effect_3 = std::nullopt;
+    std::optional<std::string> rule_1_effect_4 = std::nullopt;
+    std::optional<std::string> rule_1_cascade = std::nullopt;
+    std::optional<std::string> rule_1_group = std::nullopt;
+    std::optional<std::string> rule_2_trigger = std::nullopt;
+    std::optional<std::string> rule_2_effect = std::nullopt;
+    std::optional<std::string> rule_2_effect_2 = std::nullopt;
+    std::optional<std::string> rule_2_effect_3 = std::nullopt;
+    std::optional<std::string> rule_2_effect_4 = std::nullopt;
+    std::optional<std::string> rule_2_cascade = std::nullopt;
+    std::optional<std::string> rule_2_group = std::nullopt;
+    std::optional<std::string> rule_3_trigger = std::nullopt;
+    std::optional<std::string> rule_3_effect = std::nullopt;
+    std::optional<std::string> rule_3_effect_2 = std::nullopt;
+    std::optional<std::string> rule_3_effect_3 = std::nullopt;
+    std::optional<std::string> rule_3_effect_4 = std::nullopt;
+    std::optional<std::string> rule_3_cascade = std::nullopt;
+    std::optional<std::string> rule_3_group = std::nullopt;
+    std::optional<std::string> rule_4_trigger = std::nullopt;
+    std::optional<std::string> rule_4_effect = std::nullopt;
+    std::optional<std::string> rule_4_effect_2 = std::nullopt;
+    std::optional<std::string> rule_4_effect_3 = std::nullopt;
+    std::optional<std::string> rule_4_effect_4 = std::nullopt;
+    std::optional<std::string> rule_4_cascade = std::nullopt;
+    std::optional<std::string> rule_4_group = std::nullopt;
+    std::optional<std::string> rule_5_trigger = std::nullopt;
+    std::optional<std::string> rule_5_effect = std::nullopt;
+    std::optional<std::string> rule_5_effect_2 = std::nullopt;
+    std::optional<std::string> rule_5_effect_3 = std::nullopt;
+    std::optional<std::string> rule_5_effect_4 = std::nullopt;
+    std::optional<std::string> rule_5_cascade = std::nullopt;
+    std::optional<std::string> rule_5_group = std::nullopt;
+    std::optional<std::string> rule_6_trigger = std::nullopt;
+    std::optional<std::string> rule_6_effect = std::nullopt;
+    std::optional<std::string> rule_6_effect_2 = std::nullopt;
+    std::optional<std::string> rule_6_effect_3 = std::nullopt;
+    std::optional<std::string> rule_6_effect_4 = std::nullopt;
+    std::optional<std::string> rule_6_cascade = std::nullopt;
+    std::optional<std::string> rule_6_group = std::nullopt;
+    std::optional<std::string> rule_7_trigger = std::nullopt;
+    std::optional<std::string> rule_7_effect = std::nullopt;
+    std::optional<std::string> rule_7_effect_2 = std::nullopt;
+    std::optional<std::string> rule_7_effect_3 = std::nullopt;
+    std::optional<std::string> rule_7_effect_4 = std::nullopt;
+    std::optional<std::string> rule_7_cascade = std::nullopt;
+    std::optional<std::string> rule_7_group = std::nullopt;
 };
 
 
@@ -1168,6 +1339,10 @@ struct AutoParticle : public WorldEntity {
 
 /// Administrative entity representing an engine subsystem.
 struct SystemEntity : public Entity {
+    /// Streaming chunk edge length in meters (SystemEntity config).
+    std::optional<float> chunk_size = std::nullopt;
+    /// Chunk streaming load radius in meters (SystemEntity config).
+    std::optional<float> load_radius = std::nullopt;
 };
 
 
@@ -1191,6 +1366,30 @@ struct Constraint : public Entity {
     std::optional<float> damping = std::nullopt;
     /// Force threshold for constraint failure.
     std::optional<float> breaking_force = std::nullopt;
+    /// Stable KGParticleID of the first constraint endpoint.
+    std::optional<int32_t> particle_a = std::nullopt;
+    /// Stable KGParticleID of the second constraint endpoint.
+    std::optional<int32_t> particle_b = std::nullopt;
+    /// Rest length of the constraint in meters.
+    std::optional<float> rest_distance = std::nullopt;
+    /// Undamaged stiffness in N/m as serialized by the generators. Sibling of the required `stiffness` slot; the generators write this key today (schema/writer drift, noted by Malleus H1).
+    std::optional<float> base_stiffness = std::nullopt;
+    /// Semantic joint name (e.g. left_hip) when the constraint is a skeletal joint.
+    std::optional<std::string> joint_name = std::nullopt;
+    /// Owning-entity back-reference the totem generator serializes on its constraints. Relation-shaped data stored as a property; declared as written (Malleus H1), migration to a real relation is follow-up work.
+    std::optional<int32_t> entity_id = std::nullopt;
+    /// Attachment offset of endpoint A, local X, meters.
+    std::optional<float> offset_a_x = std::nullopt;
+    /// Attachment offset of endpoint A, local Y, meters.
+    std::optional<float> offset_a_y = std::nullopt;
+    /// Attachment offset of endpoint A, local Z, meters.
+    std::optional<float> offset_a_z = std::nullopt;
+    /// Attachment offset of endpoint B, local X, meters.
+    std::optional<float> offset_b_x = std::nullopt;
+    /// Attachment offset of endpoint B, local Y, meters.
+    std::optional<float> offset_b_y = std::nullopt;
+    /// Attachment offset of endpoint B, local Z, meters.
+    std::optional<float> offset_b_z = std::nullopt;
 };
 
 

@@ -43,8 +43,20 @@ struct PropertyDef {
 
 /// Runtime ontology registry. The KG is constructed FROM this.
 /// Contains all valid entity types, relation types, and property
-/// schemas. Every KG write operation validates against this registry
-/// as a precondition — invalid data never materializes.
+/// schemas.
+///
+/// What validates against it, and where (this comment used to claim
+/// "every KG write operation validates" — for years that was only true
+/// of createEntity; Malleus H1 closed the property hole):
+///  - createEntity rejects unknown and abstract types (kg_core.cpp).
+///  - setProperty gates every property write — declared-on-type,
+///    value-type coercion, schema min/max — through
+///    validate_property_write (kg_core.cpp; strict abort by default,
+///    KG_GATE_LENIENT=1 to inventory violations without dying).
+///  - The LLM KGOp path (ontology_validator.cpp) additionally checks
+///    entity existence and relation domain/range before ops apply.
+///  - Engine-side createRelation does NOT validate domain/range, and
+///    the generated domain/range is vacuous anyway (Malleus H2, open).
 ///
 /// This is the TBox. The KG instances are the ABox.
 class OntologyRegistry {
@@ -123,6 +135,23 @@ public:
         return false;
     }
 
+    // Open property namespaces: a declared key PREFIX under which a
+    // type accepts any property, untyped. For engine surfaces that are
+    // open BY DESIGN — e.g. rule.<i>.payload.* event payload bags the
+    // effect system forwards verbatim. Prefer exact slots (typed);
+    // namespaces are the escape hatch for genuinely open vocabularies,
+    // never a shortcut around declaring known keys.
+    bool hasPropertyNamespace(const std::string& entity_type,
+                              const std::string& key) const {
+        if (check_namespace(entity_type, key)) return true;
+        auto anc_it = ancestors_.find(entity_type);
+        if (anc_it == ancestors_.end()) return false;
+        for (const auto& ancestor : anc_it->second) {
+            if (check_namespace(ancestor, key)) return true;
+        }
+        return false;
+    }
+
     // --- Introspection ---
 
     const std::unordered_map<std::string, EntityTypeDef>& entityTypes() const { return entity_types_; }
@@ -158,6 +187,10 @@ public:
         }
         for (const auto& [k, v] : other.ancestors_) {
             ancestors_[k].insert(v.begin(), v.end());
+        }
+        for (const auto& [k, v] : other.property_namespaces_) {
+            auto& existing = property_namespaces_[k];
+            existing.insert(existing.end(), v.begin(), v.end());
         }
     }
 
@@ -201,6 +234,11 @@ public:
                                             has_min, has_max, min_value, max_value});
     }
 
+    void addPropertyNamespace(const std::string& entity_type,
+                              const std::string& prefix) {
+        property_namespaces_[entity_type].push_back(prefix);
+    }
+
 private:
     bool check_property(const std::string& entity_type, const std::string& prop) const {
         auto it = properties_.find(entity_type);
@@ -211,10 +249,21 @@ private:
         return false;
     }
 
+    bool check_namespace(const std::string& entity_type, const std::string& key) const {
+        auto it = property_namespaces_.find(entity_type);
+        if (it == property_namespaces_.end()) return false;
+        for (const auto& prefix : it->second) {
+            if (key.size() > prefix.size() &&
+                key.compare(0, prefix.size(), prefix) == 0) return true;
+        }
+        return false;
+    }
+
     std::unordered_map<std::string, EntityTypeDef> entity_types_;
     std::unordered_map<std::string, RelationTypeDef> relation_types_;
     std::unordered_map<std::string, std::vector<PropertyDef>> properties_;
     std::unordered_map<std::string, std::unordered_set<std::string>> ancestors_;
+    std::unordered_map<std::string, std::vector<std::string>> property_namespaces_;
 };
 
 } // namespace kg

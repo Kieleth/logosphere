@@ -159,7 +159,7 @@ ChunkData SceneChunkGenerator::create_scene_chunk(const ChunkCoord& coord, float
         data.kg_entity = kg_->createEntity("SceneChunk");
         kg_->setProperty(data.kg_entity, "chunk_x", std::to_string(coord.x));
         kg_->setProperty(data.kg_entity, "chunk_y", std::to_string(coord.y));
-        kg_->setProperty(data.kg_entity, "type", "scene");
+        // "type" stamp removed (Malleus H1): SceneChunk entity type already says it.
         SCENE_LOG << "[SceneChunkGenerator] Created new scene chunk entity " << data.kg_entity
                   << " for chunk (" << coord.x << "," << coord.y << ")" << std::endl;
     }

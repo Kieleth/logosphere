@@ -123,10 +123,17 @@ classes:
       - canopy_start
       - canopy_density
       - lower_branches
+      # Keys the tree generators write today (Malleus H1). `height`
+      # drifts from tree_height; declared as written, unification is
+      # follow-up work.
+      - height
+      - trunk_diameter
 
   PhysicsTree:
     is_a: Tree
     description: Physics-enabled tree with collision and breakage.
+    slots:
+      - branch_depth
 
   GrassPatch:
     is_a: Plant
@@ -134,16 +141,29 @@ classes:
       A patch of grass: container entity whose blades hang off
       HAS_PART relations. Root type for deferred worldgen
       materialization (vegetation activator walks the children).
+    slots:
+      - patch_width
+      - patch_depth
+      - blade_count
+      - distribution
 
   Grass:
     is_a: Plant
     description: A grass blade or tuft grown by the organic generator.
+    slots:
+      - tilt_angle
+      - parent_patch
 
   Branch:
     is_a: WorldEntity
     description: Tree branch segment.
     mixins:
       - HasMaterial
+    slots:
+      - level
+      - angle
+      - length
+      - floor_z
 
   Leaves:
     is_a: WorldEntity
@@ -156,28 +176,60 @@ classes:
       - HasMaterial
     slots:
       - log_type
+      - length
+      - diameter
 
   Rock:
     is_a: NaturalFormation
     description: Rock or boulder.
     slots:
       - rock_size
+      - rock_type
+      - size
 
   PhysicsRock:
     is_a: Rock
     description: Physics-enabled rock with full collision.
+    slots:
+      - density
+      - color_r
+      - color_g
+      - color_b
+      - color_variance
 
   Butterfly:
     is_a: Creature
     description: Flying insect creature.
+    slots:
+      - wing_beat_frequency
+      - wing_beat_amplitude
+      - flight_speed
+      - glide_probability
+      - thorax_particle
+      - left_wing_particle
+      - right_wing_particle
+      - thorax_particles
+      - left_wing_particles
+      - right_wing_particles
+      - wing_span
 
   Snake:
     is_a: Creature
     description: Limbless reptile creature.
+    slots:
+      - length
+      - num_segments
+      - body_segments
+      - segment_length
+      - segment_spacing
+      - tail_particle
 
   Totem:
     is_a: Structure
     description: Vertical totem structure with stacked segments.
+    slots:
+      - trunk_size
+      - trunk_mass
 
 
 # -------------------------------------------------------------------
@@ -222,6 +274,127 @@ slots:
     range: OrganicType
   rock_size:
     range: RockSize
+  rock_type:
+    range: string
+    description: >-
+      Rock flavor stamp. The visual generator writes "pebble" or
+      "boulder"; the physics generator writes a numeric spec-type
+      index on the same key (drift noted by Malleus H1). String range
+      accepts both.
+  size:
+    range: float
+    description: Characteristic size in meters, from the rock spec.
+  density:
+    range: float
+    description: >-
+      Rock density in kg/m3 as serialized by the physics rock
+      generator. Sibling of HasMaterial.material_density (drift noted
+      by Malleus H1).
+  color_r:
+    range: float
+    description: Base color red channel, 0-1.
+  color_g:
+    range: float
+    description: Base color green channel, 0-1.
+  color_b:
+    range: float
+    description: Base color blue channel, 0-1.
+  color_variance:
+    range: float
+    description: Per-particle color variation amplitude, 0-1.
+  trunk_diameter:
+    range: float
+    description: Trunk diameter in meters.
+  branch_depth:
+    range: integer
+    description: Recursive branching depth of the generated tree.
+  level:
+    range: integer
+    description: Branch level counted from the trunk (0 = trunk).
+  angle:
+    range: float
+    description: Branch direction angle in radians.
+  length:
+    range: float
+    description: Length in meters.
+  diameter:
+    range: float
+    description: Diameter in meters.
+  floor_z:
+    range: float
+    description: Ground height under the trunk at generation time, meters.
+  tilt_angle:
+    range: float
+    description: Blade tilt from vertical in degrees.
+  parent_patch:
+    range: integer
+    description: EntityID of the GrassPatch this blade belongs to.
+  patch_width:
+    range: float
+    description: Patch extent along X in meters.
+  patch_depth:
+    range: float
+    description: Patch extent along Y in meters.
+  blade_count:
+    range: integer
+    description: Number of blades the patch materializes.
+  distribution:
+    range: string
+    description: Blade placement distribution (e.g. uniform).
+  wing_beat_frequency:
+    range: float
+    description: Wing beat frequency in Hz.
+  wing_beat_amplitude:
+    range: float
+    description: Wing beat amplitude in radians.
+  flight_speed:
+    range: float
+    description: Cruise flight speed in m/s.
+  glide_probability:
+    range: float
+    description: Probability per decision of entering a glide, 0-1.
+  thorax_particle:
+    range: integer
+    description: Stable KGParticleID of the first thorax segment.
+  left_wing_particle:
+    range: integer
+    description: Stable KGParticleID of the first left wing.
+  right_wing_particle:
+    range: integer
+    description: Stable KGParticleID of the first right wing.
+  thorax_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of all thorax segments.
+  left_wing_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of all left wings.
+  right_wing_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of all right wings.
+  num_segments:
+    range: integer
+    description: Number of body segments.
+  body_segments:
+    range: string
+    description: Comma-separated KGParticleIDs of the body segments.
+  segment_length:
+    range: float
+    description: Length of one body segment in meters.
+  segment_spacing:
+    range: float
+    description: Spacing between segment centers in meters.
+  tail_particle:
+    range: integer
+    description: Stable KGParticleID of the tail particle.
+  wing_span:
+    range: float
+    description: Half wing span from body center in meters, as the dynamics system reads it.
+  trunk_size:
+    range: float
+    description: Trunk segment size in meters.
+  trunk_mass:
+    range: float
+    description: Trunk segment mass in kilograms.
   tree_height:
     range: float
     minimum_value: 0.5

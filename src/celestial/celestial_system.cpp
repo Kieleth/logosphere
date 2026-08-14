@@ -65,7 +65,7 @@ int CelestialSystem::add_body(const CelestialBodyConfig& config) {
     if (kg_module_) {
         body.entity_id = kg_module_->createEntity("CelestialBody");
         kg_module_->setProperty(body.entity_id, "name", config.name);
-        kg_module_->setProperty(body.entity_id, "type", "celestial");
+        // "type" stamp removed (Malleus H1): CelestialBody entity type already says it.
     }
 
     // Create light particle for this body
