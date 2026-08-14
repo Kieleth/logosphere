@@ -480,9 +480,27 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 // different question with a different predicate (inv_mass_positional in the
 // split-impulse position pass), on purpose: a sleeping body's overlap is as
 // real as an awake one's.
+// INV-31 (owner decree 2026-08-14): WAKE IS SOLVED PHYSICS. With the
+// resolver on, a sleeping body stops claiming immovability — INV-1 says
+// the turtle is the only immovable thing, and a 45 kg crate that has
+// been still for a second is not the turtle. It is priced at its TRUE
+// mass, the solver computes the interaction honestly, and the wake
+// decision is the RESULT: above the quietness bound that admitted it to
+// sleep it wakes and keeps what physics gave it; below, the cache
+// absorbs the residue (resolve_sleep_wakes, end of this file's solve).
+// Gravity is skipped for sleepers at its own site, on its own reason:
+// a resting body's weight is balanced by its support, so skipping the
+// pair is exact rather than an immovability claim.
+//
+// Default OFF until measured: WAKE_RESOLVER=1.
+static bool wake_resolver_on() {
+    static const bool on = std::getenv("WAKE_RESOLVER") != nullptr;
+    return on;
+}
+
 static inline float inv_mass_momentum(const Particle& p) {
     if (p.solver_mode == ParticleSolverMode::KINEMATIC) return 0.0f;
-    if (p.is_at_rest) return 0.0f;
+    if (p.is_at_rest && !wake_resolver_on()) return 0.0f;
     const float m = p.GetMass();
     return (m > 0.0f) ? (1.0f / m) : 0.0f;
 }
@@ -498,6 +516,46 @@ static inline void apply_pair_impulse(Particle& a, Particle& b,
     b.vx -= jx * ib;  b.vy -= jy * ib;  b.vz -= jz * ib;
 }
 
+// THE SLEEP-AWAKE RESOLVER (INV-31). Runs once per substep, after the
+// solve, before integration — so a body that stays asleep never
+// integrates a velocity it was not allowed to keep.
+//
+// Three outcomes per sleeping body, and the solved velocity decides:
+//   |v| > REST_VELOCITY_THRESHOLD  -> WAKE. The interaction was real;
+//        the body keeps exactly what the solver gave it and rejoins
+//        the world (gravity, integration, its own contacts).
+//   |v| <= bound, |v| > 0          -> the cache ABSORBS it. The residue
+//        is below the quietness that defines sleep, so zeroing it is
+//        the cache being a cache. Booked as dissipation (task #44).
+//   |v| == 0                       -> nothing happened. The common case:
+//        resting stacks whose rows see no approach cost nothing here.
+//
+// What this replaces: a pre-solve guess
+// ((m_a/(m_a+m_s))*v_a >= WAKE_TRANSFER_SPEED) that priced the sleeper
+// as immovable whenever it said no — which annihilated 343 kg*m/s
+// against a sleeping equal-mass crate in the Rube Goldberg machine
+// (probe f271) and made a grain of sand and a castle wall the same
+// question.
+static void resolve_sleep_wakes(ParticleSystem::WriteView& particles) {
+    const size_t count = particles.size();
+    for (size_t i = 0; i < count; ++i) {
+        Particle& p = particles[i];
+        if (!p.is_at_rest) continue;
+        if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+        const float v_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
+        if (v_sq == 0.0f) continue;
+        if (v_sq > REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
+            p.is_at_rest = false;
+            p.low_velocity_frames = 0;
+            PHYS_TRACE_F(::logosphere::phystrace::Pair, "resolver_wake",
+                         (int)i, -1, "solved_impulse",
+                         std::sqrt(v_sq), 0.0f, 0.0f);
+        } else {
+            p.vx = p.vy = p.vz = 0.0f;
+        }
+    }
+}
+
 void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float dt) {
     const size_t count = particles.size();
 
@@ -510,6 +568,11 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
         // Gravity is momentum input, and who may receive momentum is the
         // door's one question: massless, KINEMATIC and sleeping bodies no.
         if (inv_mass_momentum(p) == 0.0f) continue;
+        // THE SLEEP CACHE, stated: a resting body's weight is carried by
+        // its support, and skipping both sides of that balanced pair is
+        // exact. This is why sleep is cheap — not because the body is
+        // immovable (INV-1: only the turtle is).
+        if (p.is_at_rest) continue;
         if (const char* cenv = std::getenv("CANARY_PID"); cenv && (int)i == std::atoi(cenv)) {
             std::cout << "[CANARY GRAVITY] P" << i << " receives gravity, vz_pre=" << p.vz
                       << " at_rest=" << (int)p.is_at_rest << std::endl;
@@ -534,6 +597,11 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
 
     // Phase 2-4: Detect contacts, build constraints, solve
     solve_contacts_v3(particles, dt);
+
+    // Phase 5: THE SLEEP-AWAKE RESOLVER (INV-31). Every sleeping body
+    // that the solve actually moved is judged here, on the solved
+    // result, against the same bound that admitted it to sleep.
+    if (wake_resolver_on()) resolve_sleep_wakes(particles);
 }
 
 // IMPULSE_MEMORY_OFF=1 disables the bond integral term (warm_ix/iy/iz) at both
@@ -1230,8 +1298,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
 
                 // Effective mass (shared across all contact points in manifold)
-                float inv_ma = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
-                float inv_mb = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                // THE ONE PREDICATE (INV-7). These two lines carried
+                // their own opinion until 2026-08-14 — no KINEMATIC
+                // check, and a sleep test that contradicted the door
+                // once the resolver priced sleepers honestly (the
+                // striker stopped dead against a crate the door was
+                // simultaneously moving: priced in one model, spent in
+                // another, which is INV-20 exactly).
+                // Routing these through the door's predicate also fixes a
+                // real pricing/spending mismatch: a KINEMATIC body that is
+                // not at_rest was priced MOVABLE here while the apply site
+                // refused to move it. Both corrections ride the resolver
+                // lever together, because the KINEMATIC half shifts the
+                // effective mass of every kinematic contact and the
+                // ringing ladder + grass yield tests measure exactly that.
+                // Default path stays bit-identical until the flip.
+                float inv_ma, inv_mb;
+                if (wake_resolver_on()) {
+                    inv_ma = inv_mass_momentum(pi);
+                    inv_mb = inv_mass_momentum(pj);
+                } else {
+                    inv_ma = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
+                    inv_mb = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                }
                 float inv_mass_sum = inv_ma + inv_mb;
                 // inv_mass_sum == 0 means BOTH bodies are immovable (KINEMATIC,
                 // at rest, or the turtle). Their effective mass is infinite, so
@@ -1447,8 +1536,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             c.jz = normal_sign;
 
                             // at_rest particles act as infinite mass (don't move until woken)
-                            float inv_ma_spec = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
-                            float inv_mb_spec = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                            float inv_ma_spec, inv_mb_spec;
+                            if (wake_resolver_on()) {
+                                inv_ma_spec = inv_mass_momentum(pi);
+                                inv_mb_spec = inv_mass_momentum(pj);
+                            } else {
+                                inv_ma_spec = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
+                                inv_mb_spec = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                            }
                             float inv_mass_sum = inv_ma_spec + inv_mb_spec;
                             // 0, not 1: both bodies immovable means infinite
                             // effective mass, so this row's correct
@@ -3229,7 +3324,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             pa.vy += c.jy * impulse * inv_ma;
             pa.vz += c.jz * impulse * inv_ma;
 
-            if (!c.is_turtle_contact && !pb.is_at_rest && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+            // THE DOOR DECIDES, NOT THE CALL SITE (INV-7). This guard
+            // used to re-ask the immovability question inline
+            // (`!pb.is_at_rest && !KINEMATIC`) on top of inv_mb, which
+            // is exactly what the predicate already answered. Harmless
+            // while both agreed; the moment the resolver priced
+            // sleepers honestly it made body A pay an impulse body B
+            // never received — momentum destroyed at the door itself.
+            // inv_mb is 0 for anyone immovable, so multiplying is the
+            // whole guard.
+            if (!c.is_turtle_contact) {
                 pb.vx -= c.jx * impulse * inv_mb;
                 pb.vy -= c.jy * impulse * inv_mb;
                 pb.vz -= c.jz * impulse * inv_mb;

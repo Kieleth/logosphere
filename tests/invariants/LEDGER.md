@@ -502,3 +502,31 @@ time is a prover in the tree, not a resolution to be careful.
 
 Standing after this: defect 1 (rest damper) was real and is
 eradicated; defect 3 (the wake gate, INV-31) is real and open.
+
+## 2026-08-14 — Sleep-awake resolver: mechanism landed behind WAKE_RESOLVER
+
+INV-31's mechanism exists (physics_system_v4.cpp: predicate no longer
+claims sleep is immovability, gravity skips sleepers on the cache's
+own reason, resolve_sleep_wakes judges the SOLVED velocity against
+REST_VELOCITY_THRESHOLD). Measured with WAKE_RESOLVER=1:
+
+- Ladder R1: the sleeping target now behaves EXACTLY like the awake
+  twin (0.690/0.691 vs 0.690/0.691, delta 0.001; momentum 70.8 vs
+  70.7 against a 23.4 budget). The cache is invisible. 12/12 rungs.
+- Machine: 3/10 -> 5/10. S3 (Newton's alley) and S4 (the wake-up:
+  a two-second-asleep stack registers an arrival, wakes, carries it)
+  both green for the first time.
+- Two chased-down door bugs found on the way, both INV-7/INV-20
+  violations that predate the resolver: the contact row build carried
+  its own inline immovability opinion (no KINEMATIC check), and the
+  apply site re-asked the question with `!pb.is_at_rest` on top of an
+  inv_mb that already answered it — body A paying an impulse body B
+  never received.
+
+OPEN, and the reason the default is still OFF: with the resolver on,
+test_light_body_ringing and test_grass_yields go red. Both involve
+KINEMATIC anchors, and the resolver's pricing correction changes the
+effective mass of every kinematic contact (a KINEMATIC body that is
+not at_rest used to be priced MOVABLE while the apply refused to move
+it). Whether those two tests encode the old mismatch or a real
+regression is the next question, and it decides the flip.

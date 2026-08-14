@@ -46,7 +46,18 @@ using PhysicsV4::REST_VELOCITY_THRESHOLD;
 // sleep, plus numerical slop for two runs of a settled scene.
 constexpr float TOL = REST_VELOCITY_THRESHOLD + 0.05f;
 
+// The bodies start 1.4 m apart, so the strike lands around frame 53 at
+// 1.6 m/s (probe-measured). Snapshot at 70: impulses played out, before
+// the long slide turns the reading into a friction measurement.
+constexpr int SNAP_FRAME = 70;
+
 struct Outcome {
+    // The collision itself, snapshotted once the impulses have played
+    // out (25 frames) — the long tail is sliding, edge effects and
+    // re-sleeping, none of which is what these rungs ask about.
+    float striker_vx_post = 0.0f;
+    float target_vx_post  = 0.0f;
+    float p_post = 0.0f;
     float striker_vx_final = 0.0f;
     float target_vx_final  = 0.0f;
     float p_before = 0.0f, p_after = 0.0f;
@@ -88,7 +99,7 @@ Outcome run_impact(const Impact& im, bool target_sleeps) {
     // body whose bottom starts below z=0 (it caught this fixture's
     // first draft, which placed 1 m cubes at z=0.05).
     std::vector<int> floor_ids;
-    for (int c = -2; c <= 2; ++c)
+    for (int c = -5; c <= 5; ++c)
         for (int r = -1; r <= 1; ++r) {
             Particle t = {};
             t.shape = ParticleShape::BOX;
@@ -142,6 +153,13 @@ Outcome run_impact(const Impact& im, bool target_sleeps) {
             v[target].is_at_rest = false;
         }
         engine.update(1.0 / 60.0);
+        if (f == SNAP_FRAME) {
+            auto v = ps.lock_particles_for_write();
+            out.striker_vx_post = v[striker].vx;
+            out.target_vx_post  = v[target].vx;
+            out.p_post = striker_mass * v[striker].vx +
+                         target_mass * v[target].vx;
+        }
         if (probe && !target_sleeps && f >= 48 && f <= 70) {
             auto v = ps.lock_particles_for_write();
             printf("      [swr f%d] striker vx=%+.4f lvf=%u | "
@@ -176,18 +194,18 @@ bool rung(const char* name, const Impact& im, bool expect_red_today) {
     const Outcome awake  = run_impact(im, /*target_sleeps=*/false);
     if (!asleep.ok || !awake.ok) { check(false, "engine init"); return false; }
 
-    const float d_striker = std::fabs(asleep.striker_vx_final -
-                                      awake.striker_vx_final);
-    const float d_target  = std::fabs(asleep.target_vx_final -
-                                      awake.target_vx_final);
+    const float d_striker = std::fabs(asleep.striker_vx_post -
+                                      awake.striker_vx_post);
+    const float d_target  = std::fabs(asleep.target_vx_post -
+                                      awake.target_vx_post);
     const bool invisible = d_striker <= TOL && d_target <= TOL;
 
     printf("  %-28s asleep: striker %+7.3f target %+7.3f (was_asleep=%d)\n",
-           name, asleep.striker_vx_final, asleep.target_vx_final,
+           name, asleep.striker_vx_post, asleep.target_vx_post,
            (int)asleep.target_was_asleep_at_impact);
     printf("  %-28s awake:  striker %+7.3f target %+7.3f  "
            "| d=(%.3f, %.3f) tol=%.3f -> %s%s\n",
-           "", awake.striker_vx_final, awake.target_vx_final,
+           "", awake.striker_vx_post, awake.target_vx_post,
            d_striker, d_target, TOL, invisible ? "INVISIBLE" : "CACHE LEAK",
            expect_red_today && !invisible ? "  [expected red until INV-31]"
                                           : "");
@@ -196,13 +214,15 @@ bool rung(const char* name, const Impact& im, bool expect_red_today) {
     // may legitimately drink through friction over the 1.5 s window.
     // This caught what invisibility alone missed: R1's twins agreed
     // perfectly at zero — equal-mass annihilation in BOTH worlds.
+    // 25 frames of floor friction is all the collision snapshot can
+    // legitimately have lost.
     const float friction_budget = (awake.m_striker + awake.m_target) *
-                                  0.02f * 9.81f * 1.5f;
-    const bool conserves = std::fabs(awake.p_after) >=
+                                  0.02f * 9.81f * (SNAP_FRAME / 60.0f);
+    const bool conserves = std::fabs(awake.p_post) >=
                            awake.p_before - friction_budget - 5.0f;
-    printf("  %-28s momentum: before %.1f  after asleep %.1f  "
-           "after awake %.1f kg*m/s (floor budget %.1f) -> %s%s\n",
-           "", awake.p_before, asleep.p_after, awake.p_after,
+    printf("  %-28s momentum: before %.1f  collision asleep %.1f  "
+           "awake %.1f kg*m/s (budget %.1f) -> %s%s\n",
+           "", awake.p_before, asleep.p_post, awake.p_post,
            friction_budget, conserves ? "CONSERVED" : "DESTROYED",
            expect_red_today && !conserves ? "  [expected red]" : "");
     check(conserves, "momentum conserved through the awake impact");
@@ -255,15 +275,15 @@ bool test_sleep_wake_resolver() {
                         0.4f, Materials::Type::WOOD_HARD, 1.6f, 0.0f};
         const Outcome o = run_impact(im, /*target_sleeps=*/false);
         const float want = im.strike_speed * 0.5f;
-        const float ds = std::fabs(o.striker_vx_final - want);
-        const float dt_ = std::fabs(o.target_vx_final - want);
-        const float p_err = std::fabs(o.p_after - o.p_before) /
+        const float ds = std::fabs(o.striker_vx_post - want);
+        const float dt_ = std::fabs(o.target_vx_post - want);
+        const float p_err = std::fabs(o.p_post - o.p_before) /
                             std::max(1.0f, o.p_before);
         printf("  R5 analytic inelastic      striker %+7.4f target %+7.4f "
-               "(want %+.4f each)\n", o.striker_vx_final,
-               o.target_vx_final, want);
+               "(want %+.4f each)\n", o.striker_vx_post,
+               o.target_vx_post, want);
         printf("  %-28s momentum %.2f -> %.2f (%.2f%% error), "
-               "frictionless\n", "", o.p_before, o.p_after,
+               "frictionless\n", "", o.p_before, o.p_post,
                100.0f * p_err);
         check(ds < 0.08f && dt_ < 0.08f,
               "R5: equal masses share the approach speed exactly");
