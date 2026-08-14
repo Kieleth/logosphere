@@ -7,7 +7,7 @@
   "invariants": {
     "count_of_type": {
       "Procedure": 1,
-      "ProcedureStep": 16,
+      "ProcedureStep": 17,
       "StepRoute": 12,
       "ModifyAttribute": 1
     },
@@ -35,7 +35,7 @@
       "as": "@survival_mishap",
       "properties": {
         "name": "survival_mishap",
-        "step_index": "12",
+        "step_index": "13",
         "primitive_ref": "survival_mishap",
         "source_file": "book1/character-creation.md",
         "source_section": "Survival",
@@ -86,7 +86,7 @@
       "as": "@roll_survival",
       "properties": {
         "name": "roll_survival",
-        "step_index": "4",
+        "step_index": "5",
         "primitive_ref": "roll_survival",
         "source_section": "Character Creation Checklist",
         "source_quote": "Roll for survival, as indicated in the description of the career."
@@ -98,7 +98,7 @@
       "as": "@roll_training",
       "properties": {
         "name": "roll_training",
-        "step_index": "7",
+        "step_index": "8",
         "primitive_ref": "roll_training",
         "source_section": "Character Creation Checklist",
         "source_quote": "Choose one of the Skills and Training tables for this career and roll on it.",
@@ -123,7 +123,7 @@
       "as": "@advance_term",
       "properties": {
         "name": "advance_term",
-        "step_index": "8",
+        "step_index": "9",
         "primitive_ref": "advance_term",
         "outcome": "@advance_term_ages",
         "source_section": "Character Creation Checklist",
@@ -136,7 +136,7 @@
       "as": "@roll_aging",
       "properties": {
         "name": "roll_aging",
-        "step_index": "9",
+        "step_index": "10",
         "primitive_ref": "roll_aging",
         "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
@@ -151,7 +151,7 @@
       "as": "@choose_term_end",
       "properties": {
         "name": "choose_term_end",
-        "step_index": "11",
+        "step_index": "12",
         "primitive_ref": "choose_term_end",
         "source_section": "Reenlistment and Retirement",
         "source_quote": "At the end of each term, the character must decide that they wish to continue on their career path or if they wish to muster out."
@@ -163,7 +163,7 @@
       "as": "@finish_character",
       "properties": {
         "name": "finish_character",
-        "step_index": "14",
+        "step_index": "15",
         "primitive_ref": "finish_character",
         "source_section": "Character Creation Checklist",
         "source_quote": "If you wish to leave this career, go to step 10."
@@ -189,7 +189,7 @@
       "as": "@draft_or_drifter",
       "properties": {
         "name": "draft or drifter",
-        "step_index": "15",
+        "step_index": "16",
         "primitive_ref": "draft_or_drifter",
         "source_file": "book1/character-creation.md",
         "source_section": "Qualifying and the Draft",
@@ -214,6 +214,27 @@
       }
     },
     {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@grant_rank_zero",
+      "properties": {
+        "name": "grant_rank_zero",
+        "step_index": "4",
+        "primitive_ref": "grant_rank_zero",
+        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/rank_tracks",
+        "source_file": "book1/character-creation.md",
+        "source_section": "Character Creation Checklist",
+        "source_kind": "sentence",
+        "source_quote": "You begin as a Rank 0 character."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@basic_chargen",
+      "relation": "HAS_PART",
+      "to": "@grant_rank_zero"
+    },
+    {
       "op": "set_relation",
       "from": "@basic_chargen",
       "relation": "HAS_PART",
@@ -225,7 +246,7 @@
       "as": "@roll_benefits",
       "properties": {
         "name": "muster_out",
-        "step_index": "13",
+        "step_index": "14",
         "primitive_ref": "muster_out",
         "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/benefit_tables",
         "source_file": "book1/character-creation.md",
@@ -416,7 +437,7 @@
       "as": "@roll_reenlistment",
       "properties": {
         "name": "roll_reenlistment",
-        "step_index": "10",
+        "step_index": "11",
         "primitive_ref": "roll_reenlistment",
         "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/reenlistment_table",
         "source_file": "book1/character-creation.md",
@@ -497,7 +518,7 @@
       "as": "@roll_commission",
       "properties": {
         "name": "roll_commission",
-        "step_index": "5",
+        "step_index": "6",
         "primitive_ref": "roll_commission",
         "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/commission_table",
         "source_file": "book1/character-creation.md",
@@ -518,7 +539,7 @@
       "as": "@roll_advancement",
       "properties": {
         "name": "roll_advancement",
-        "step_index": "6",
+        "step_index": "7",
         "primitive_ref": "roll_advancement",
         "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/advancement_table",
         "source_file": "book1/character-creation.md",

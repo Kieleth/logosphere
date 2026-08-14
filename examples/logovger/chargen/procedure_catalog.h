@@ -25,6 +25,9 @@ make_chargen_procedure_registry() {
     // Turned away: the book gives exactly two ways to spend the term.
     add("draft_or_drifter", {"took_it"});
     add("basic_training");
+    // "You begin as a Rank 0 character", and the career's rank table
+    // prints what that rank knows.
+    add("grant_rank_zero");
     add("roll_survival", {"passed", "failed"});
     // Optional, once a term, and skipped entirely by the seven
     // careers the book says have no hierarchy.
