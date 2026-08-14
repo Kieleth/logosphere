@@ -1196,6 +1196,12 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
+    /// Ground red tint component, 0..1.
+    std::optional<float> ground_r = std::nullopt;
+    /// Ground green tint component, 0..1.
+    std::optional<float> ground_g = std::nullopt;
+    /// Ground blue tint component, 0..1.
+    std::optional<float> ground_b = std::nullopt;
 };
 
 

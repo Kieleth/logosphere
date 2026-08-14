@@ -45,6 +45,7 @@
 // two sides are not actually different in bonding, it says so and fails).
 // =============================================================================
 
+#include "generated/earth_ontology_registry.h"
 #include "../src/core/engine.h"
 #include "../src/core/explosion_detector.h"
 #include "../src/core/particle_system.h"
@@ -118,13 +119,10 @@ bool test_blockers_visual() {
     Engine engine;
     if (engine.initialize(cfg) != 0) { printf("  ERROR: engine init failed\n"); return false; }
 
-    {   // bare engines reject Grass; extend the ontology the sanctioned way
-        kg::OntologyRegistry reg;
-        reg.addEntityType("Grass",      "Plant", false);
-        reg.addEntityType("GrassPatch", "Plant", false);
-        reg.addAncestors("Grass",      {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        reg.addAncestors("GrassPatch", {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        engine.get_kg().extendOntology(reg);
+    {   // the CANONICAL grass vocabulary: the generated earth-pack
+        // registry. Hand-rolled fixture registries drifted from the
+        // generator's real writes 16 keys deep (2026-08-14).
+        engine.get_kg().extendOntology(earth::ontology::registry());
     }
 
     auto& camera = engine.get_camera_system();

@@ -53,6 +53,7 @@
 //   ./build-release/logosphere-tests --test test_grass_bends_not_tears --no-head
 // ============================================================================
 
+#include "generated/earth_ontology_registry.h"
 #include "../src/core/engine.h"
 #include "../src/core/particle_system.h"
 #include "../src/materials.h"
@@ -133,11 +134,13 @@ bool test_grass_bends_not_tears() {
     if (engine.initialize(cfg) != 0) { printf("  engine init failed\n  FAIL\n"); return false; }
     {
         kg::OntologyRegistry reg;
-        reg.addEntityType("Grass", "Plant", false);
-        reg.addEntityType("GrassPatch", "Plant", false);
-        reg.addAncestors("Grass", {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        reg.addAncestors("GrassPatch", {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        engine.get_kg().extendOntology(reg);
+        // The union-merged registry validates parents (malleus H2 made real):
+        // a runtime extension must declare the chain it claims.
+        // The CANONICAL grass vocabulary: the generated earth-pack
+        // registry. Hand-rolled fixture registries drifted from the
+        // generator's real writes 16 keys deep (2026-08-14).
+        (void)reg;
+        engine.get_kg().extendOntology(earth::ontology::registry());
     }
     auto& ps = engine.get_particle_system();
     auto& physics = engine.get_physics_system();

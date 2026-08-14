@@ -1337,6 +1337,12 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
+    /// Ground red tint component, 0..1.
+    std::optional<float> ground_r = std::nullopt;
+    /// Ground green tint component, 0..1.
+    std::optional<float> ground_g = std::nullopt;
+    /// Ground blue tint component, 0..1.
+    std::optional<float> ground_b = std::nullopt;
 };
 
 
@@ -1725,6 +1731,8 @@ struct Rock : public NaturalFormation, public HasSimpleAppearance {
     std::optional<RockSize> rock_size = std::nullopt;
     /// Rock flavor stamp. The visual generator writes "pebble" or "boulder"; the physics generator writes a numeric spec-type index on the same key (drift noted by Malleus H1). String range accepts both.
     std::optional<std::string> rock_type = std::nullopt;
+    /// Height a rock is released from at creation; with it the rock arrives as a falling body rather than a placed one.
+    std::optional<float> drop_height = std::nullopt;
 };
 
 
@@ -2053,11 +2061,11 @@ struct GroundSeed : public WorldEntity {
     std::optional<float> ground_width = std::nullopt;
     /// Ground slab depth in meters (north-south).
     std::optional<float> ground_depth = std::nullopt;
-    /// Ground color, red channel (0..1).
+    /// Ground red tint component, 0..1.
     std::optional<float> ground_r = std::nullopt;
-    /// Ground color, green channel (0..1).
+    /// Ground green tint component, 0..1.
     std::optional<float> ground_g = std::nullopt;
-    /// Ground color, blue channel (0..1).
+    /// Ground blue tint component, 0..1.
     std::optional<float> ground_b = std::nullopt;
     /// LAYERED is real settling earth; SLAB is one cheap flat box.
     std::optional<TerrainKind> terrain = std::nullopt;
@@ -2171,7 +2179,7 @@ struct RockSeed : public WorldEntity {
     std::optional<float> rock_g = std::nullopt;
     /// Rock base color, blue channel (0..1).
     std::optional<float> rock_b = std::nullopt;
-    /// 0 (default) = the rock rests where placed. Positive = the rock is BORN that many meters up and FALLS — impact shoves loose ground aside on layered terrain. 20-40 reads dramatic.
+    /// Height a rock is released from at creation; with it the rock arrives as a falling body rather than a placed one.
     std::optional<float> drop_height = std::nullopt;
     /// Rock characteristic size in meters.
     std::optional<float> rock_size = std::nullopt;

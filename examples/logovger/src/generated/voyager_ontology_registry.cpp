@@ -873,6 +873,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Floor", "floor_kind", kg::PropertyValueKind::String, false);
     reg.addProperty("Floor", "layer_index", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Floor", "layer_name", kg::PropertyValueKind::String, false);
+    reg.addProperty("Floor", "ground_r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_b", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("FunctionParameterSpec", "parameter_key", kg::PropertyValueKind::String, true);
     reg.addRefProperty("FunctionParameterSpec", "parameter_type", true, "ValueTypeDescriptor");

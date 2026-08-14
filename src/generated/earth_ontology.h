@@ -1266,6 +1266,12 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
+    /// Ground red tint component, 0..1.
+    std::optional<float> ground_r = std::nullopt;
+    /// Ground green tint component, 0..1.
+    std::optional<float> ground_g = std::nullopt;
+    /// Ground blue tint component, 0..1.
+    std::optional<float> ground_b = std::nullopt;
 };
 
 
@@ -1774,6 +1780,8 @@ struct Rock : public NaturalFormation, public HasSimpleAppearance {
     std::optional<RockSize> rock_size = std::nullopt;
     /// Rock flavor stamp. The visual generator writes "pebble" or "boulder"; the physics generator writes a numeric spec-type index on the same key (drift noted by Malleus H1). String range accepts both.
     std::optional<std::string> rock_type = std::nullopt;
+    /// Height a rock is released from at creation; with it the rock arrives as a falling body rather than a placed one.
+    std::optional<float> drop_height = std::nullopt;
 };
 
 

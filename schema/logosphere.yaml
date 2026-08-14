@@ -672,6 +672,12 @@ classes:
       - floor_kind
       - layer_index
       - layer_name
+      # Ground tint, stamped at creation by games (logogenesis) and
+      # free for terrain builders to consume. Shared class, shared
+      # vocabulary: every game colors its ground.
+      - ground_r
+      - ground_g
+      - ground_b
 
   FloorChunk:
     is_a: Floor
@@ -1366,6 +1372,17 @@ slots:
       Legacy sibling of body_part_name written by one humanoid
       generator path and read by KGModule's part lookup. Declared as
       written (Malleus H1); collapsing the two keys is follow-up work.
+
+  # --- Floor ground tint ---
+  ground_r:
+    range: float
+    description: Ground red tint component, 0..1.
+  ground_g:
+    range: float
+    description: Ground green tint component, 0..1.
+  ground_b:
+    range: float
+    description: Ground blue tint component, 0..1.
 
   # --- Simple-entity appearance (HasSimpleAppearance) ---
   size:
