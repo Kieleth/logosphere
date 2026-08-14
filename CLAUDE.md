@@ -18,6 +18,11 @@ they disagree, the docs win.
   or changing a test. Every rule in it has a real failure behind it,
   most of them tests that passed while the thing they were named after
   was broken.
+- Physics work: load the `physics` skill
+  ([.claude/skills/physics/SKILL.md](.claude/skills/physics/SKILL.md))
+  before touching solver, constraint, contact, or physics-ontology
+  code. It carries the operating discipline — invariants framework,
+  sweep semantics, ruling protocol, owner QA contract.
 
 ## The invariants, in one breath
 

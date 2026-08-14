@@ -69,4 +69,7 @@ __pycache__/
 # Contents are git-derived so versioning it would create churn on
 # every commit.
 include/logosphere/build_info.h
-.claude/
+# Session-local Claude state stays ignored; the skills directory is
+# versioned process documentation (see .claude/skills/physics/).
+.claude/*
+!.claude/skills/
