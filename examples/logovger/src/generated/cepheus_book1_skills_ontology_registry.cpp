@@ -569,6 +569,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addPropertyNamespace("BodyPart", "rule.5.payload.");
     reg.addPropertyNamespace("BodyPart", "rule.6.payload.");
     reg.addPropertyNamespace("BodyPart", "rule.7.payload.");
+    reg.addPropertyNamespace("LivingEntity", "capability.");
 
     // Event types
     reg.setSource("https://logosphere.dev/schema");
@@ -884,6 +885,11 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("LetStringCollectionExpression", "let_body", true, "StringCollectionExpression");
     reg.addRefProperty("LetStringExpression", "let_body", true, "StringExpression");
     reg.setSource("https://logosphere.dev/schema");
+    reg.addProperty("LivingEntity", "capability.speed_cap", kg::PropertyValueKind::Float, false);
+    reg.addProperty("LivingEntity", "capability.locomotion", kg::PropertyValueKind::Float, false);
+    reg.addProperty("LivingEntity", "capability.manipulation", kg::PropertyValueKind::Float, false);
+    reg.addProperty("LivingEntity", "capability.rotation", kg::PropertyValueKind::Float, false);
+    reg.addProperty("LivingEntity", "capability.perception", kg::PropertyValueKind::Float, false);
     reg.addProperty("LivingEntity", "cap.locomotion.expected_count", kg::PropertyValueKind::Integer, false);
     reg.addProperty("LivingEntity", "cap.locomotion.default_mode", kg::PropertyValueKind::String, false);
     reg.addProperty("LivingEntity", "cap.manipulation.expected_count", kg::PropertyValueKind::Integer, false);

@@ -1,12 +1,14 @@
 // Loading event rules out of the KG.
 //
 // A TransformationRule is authored as KG properties and parsed by
-// ParticleInteractionSystem::load_rules_from_kg. That parse is the ONLY
-// place a bad rule can be caught: KGCore::setProperty validates nothing
-// against the ontology (ontology_registry.h:46 claims every KG write
-// validates as a precondition, which is true for createEntity's type
-// check and false for property writes), so a typo either dies here or
-// becomes a rule that silently never fires.
+// ParticleInteractionSystem::load_rules_from_kg. Two doors stand
+// between a typo and a live rule: KGCore::setProperty's ontology gate
+// (malleus H1) refuses undeclared keys and non-member enum values at
+// write time, and this parse refuses whatever still arrives malformed
+// (lenient-gate content, pre-gate tapes, ops replay). This file pins
+// the SECOND door. The tests that manufacture bad trigger values open
+// the first door explicitly (GateLeniency below) so the second one can
+// be exercised at all.
 //
 // Issue #36 gave rules a third slot. The three are deliberately not
 // symmetric, and this file is where that asymmetry is pinned down:
@@ -29,6 +31,7 @@
 #include "logosphere/interaction/particle_interaction_system.h"
 #include "logosphere/kg/kg_module.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
@@ -58,6 +61,29 @@ struct Fixture {
         kg.setProperty(id, "effect", effect);
         if (condition) kg.setProperty(id, "condition", condition);
         return id;
+    }
+};
+
+// The write gate would abort this binary on a non-member trigger value
+// before the loader ever saw it — the right behavior everywhere except
+// in the two tests whose PURPOSE is to hand the loader malformed rules
+// and watch it refuse them. Scoped leniency: the gate still prints the
+// violation, the write lands, the loader's door gets exercised, and
+// every other test in this binary stays strict.
+struct GateLeniency {
+    GateLeniency() {
+#ifdef _WIN32
+        _putenv_s("KG_GATE_LENIENT", "1");
+#else
+        setenv("KG_GATE_LENIENT", "1", 1);
+#endif
+    }
+    ~GateLeniency() {
+#ifdef _WIN32
+        _putenv_s("KG_GATE_LENIENT", "");
+#else
+        unsetenv("KG_GATE_LENIENT");
+#endif
     }
 };
 
@@ -99,6 +125,7 @@ void test_case_does_not_change_meaning() {
 // "accept anything vaguely similar", this would pass too and the parse
 // would be worthless.
 void test_nonsense_is_still_rejected() {
+    GateLeniency open_first_door;
     Fixture fx;
     fx.rule("on_contract", "emit_event");     // one letter from on_contact
     fx.rule("on_timer", "explode");           // effect nobody registered
@@ -115,6 +142,7 @@ void test_nonsense_is_still_rejected() {
 
 // A bad rule must not take its neighbours down with it.
 void test_one_bad_rule_does_not_poison_the_batch() {
+    GateLeniency open_first_door;
     Fixture fx;
     fx.rule("on_contact", "emit_event");
     fx.rule("nonsense", "emit_event");

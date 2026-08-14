@@ -7,6 +7,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- `capability.*` writes are now declared in the ontology:
+  `LivingEntity` carries the five aggregated profile keys
+  (`capability.speed_cap/locomotion/manipulation/rotation/perception`)
+  as typed Float slots plus an open `capability.` namespace for
+  game-registered capabilities, so `CapabilityStore::write_back`
+  passes the setProperty gate.
+
+### Fixed
+- Build on toolchains without `<execinfo.h>` (MSVC): the
+  TURTLE_TRACE caller backtrace in `particle_system.cpp` is now
+  guarded by `__has_include`; the turtle violation itself still
+  reports and aborts everywhere.
+
 ### Changed
 - **Silent fallbacks destroyed across the physics layer** (owner
   order; blocks PR #75). Missing/unset physics data now refuses

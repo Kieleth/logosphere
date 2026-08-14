@@ -1138,6 +1138,11 @@ struct WorldEntity : public Entity, public Statusable, public Spatial, public Ha
 
 /// An entity that is alive and can take damage.
 struct LivingEntity : public WorldEntity, public HasHealth, public HasMaterial, public HasOdor {
+    std::optional<float> capability_speed_cap = std::nullopt;
+    std::optional<float> capability_locomotion = std::nullopt;
+    std::optional<float> capability_manipulation = std::nullopt;
+    std::optional<float> capability_rotation = std::nullopt;
+    std::optional<float> capability_perception = std::nullopt;
     std::optional<int32_t> cap_locomotion_expected_count = std::nullopt;
     std::optional<std::string> cap_locomotion_default_mode = std::nullopt;
     std::optional<int32_t> cap_manipulation_expected_count = std::nullopt;
