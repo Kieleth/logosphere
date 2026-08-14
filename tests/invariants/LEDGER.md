@@ -341,3 +341,32 @@ Owner rulings, second round:
   assertions, laws, order-capture and enforcement — hacking on top is
   the failure mode. Coverage work (provers, INV-6 witnesses, audit
   links) outranks the known-open singles.
+
+### 2026-08-13 · RULINGS · zero tolerance, silent fallbacks, malleus, order-capture build
+
+- INV-29 ruled ZERO TOLERANCE (option a): no bare numeric literal
+  anywhere in ENGINE code — not exempted as algebra, not as display.
+  Even 2^2 must carry its meaning, captured ontologically, in a
+  hierarchy of constants/config that makes sense; hidden/scattered
+  meaning is the disease. Tests exempt. The ontology-physics bridge is
+  the capture mechanism.
+- SILENT FALLBACKS: DESTROY ALL in physics, the hard way — every
+  default that fills in for missing/unset data, every silently
+  inherited class default, every catch-and-continue. Let physics break
+  loudly, then and only then flows are controlled. THIS BLOCKS THE PR
+  MERGE by owner order. The gluon class defaults (angular 100/10)
+  ruling is subsumed: destroyed, not derived, not registered. To be
+  repeated across the entire engine after physics.
+- MALLEUS_INQUISITION.md commands adhered to: H4 (materials 9-switch
+  table, 50e6 x34 vs table 50x disagreement) is the same work stream as
+  zero-tolerance + fallback destruction; H1 (setProperty validates
+  nothing) is the KG-gate fallback. H1-H4 join the compliance queue.
+- Order-capture: build approved per the study's Option 1 — sequenced in
+  slices to avoid rewrites, no time framing (owner: slices properly
+  sequenced, as slow as needed for fundamentals). D2: the schema's
+  process concepts get RECUT to true pipeline granularity. D3: the
+  layer-2 experiment runs; if the step-function holds, the conditional
+  order-independence invariant is adopted.
+- Eden/logotron merge verdict: keyboard is OS-level (other session
+  owns it); owner satisfied in principle pending the fallback
+  destruction, which now gates the merge.
