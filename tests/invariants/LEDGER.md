@@ -370,3 +370,41 @@ Owner rulings, second round:
 - Eden/logotron merge verdict: keyboard is OS-level (other session
   owns it); owner satisfied in principle pending the fallback
   destruction, which now gates the merge.
+
+### 2026-08-13 · EXECUTED · silent-fallback destruction, physics layer
+
+The owner's PR-gating order carried out. Map + breakage inventory:
+docs/todo_plans/SILENT_FALLBACK_INVENTORY.md (committed BEFORE the
+code, per method). Counts:
+
+- 40 candidate sites cataloged; 13 destroyed into loud refusals;
+  19 judged declared-mechanism and kept (each with a written
+  justification the review can veto); 8 catalogued for owner
+  decisions.
+- Destroyed, headline items: the GluonConstraintBase angular 100/10
+  class defaults (the subsumed ruling — destroyed, not derived, not
+  registered; 0/0 is now the UNDECLARED sentinel and the bond doors
+  refuse consumers without a law); a new breaking-force>0 door on
+  EVERY bond; the third copy of the S22 eff-mass phantom (turtle
+  row); the invented I=0.01 inertia; the silent NaN-velocity reset;
+  the INV-22 duplicate-pair overwrite; stale-gluon repair-and-
+  continue; silent bond drops at both creation doors; the +Z default
+  constraint jacobian; the detector's 999.0 display invention and
+  silently-ignored env ceiling.
+- Levers: GLUON_LENIENT (bond doors, existing), PHYSICS_LENIENT
+  (new, solver refusals). TURTLE_LENIENT untouched.
+- Breakage: full strict sweep (285 tests) found ONE real new red —
+  test_spirit_light_artifacts, SIGABRT at the duplicate-pair door,
+  root: ParticleSystem::clear_particles resets ids but never clears
+  bonds, so a respawned scene re-binds 28 stale bonds from the dead
+  world. Audit row reclassified fallback-destruction:GLUON_LENIENT;
+  the lifecycle fix is an owner decision. The other three moles:
+  the INV-29 ratchet's sanctioned drop (table shrunk 35 -> 31 in the
+  same effort, gate green) and two solo-unreproducible
+  infrastructure flakes (physics_battery HUNG at deadline, 2/2 PASS
+  solo at 0.19 s; async_prep_equivalence, PASS solo).
+- Every other new door fired in ZERO of 285 tests: those flows are
+  armed and today's fleet passes them clean.
+- test_humanoid_tuning_coverage stays red by the same disease it
+  always named, now stated honestly: 8 head bonds carrying 0/0
+  (absence) instead of 100/10 (a number pretending to be a choice).

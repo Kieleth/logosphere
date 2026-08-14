@@ -172,7 +172,7 @@ static const std::map<std::string, std::map<std::string, int>> KNOWN_RESIDUALS =
     {"src/core/physics_system_v4.cpp", {
         {"0.0001f", 3},  // 0.1 mm distance guards + canary print floor
         {"0.001f", 5},   // mm-scale gates: up-vz, degenerate normal, angular err, gravity/dist
-        {"0.01f", 6},    // canary floor, seg radius, fallback inertia, half-length pad x2, turtle support reach
+        {"0.01f", 5},    // canary floor, seg radius, half-length pad x2, turtle support reach (fallback inertia DESTROYED 2026-08-13, silent-fallback purge B3)
         {"0.05f", 1},    // wake check: mover-top vs sleeper-bottom gap (m)
         {"0.15f", 1},    // persistent-contact max gap 150 mm
         {"0.1f", 3},     // horizontal-normal classifier x2, elastic e_mag gate
@@ -186,12 +186,14 @@ static const std::map<std::string, std::map<std::string, int>> KNOWN_RESIDUALS =
     }},
     {"src/core/explosion_detector.cpp", {
         {"1000.0", 2},   // J -> kJ display conversion in the warning printf
-        {"999.0", 1},    // display fallback when previous KE was zero
+        // 999.0 display fallback DESTROYED 2026-08-13 (silent-fallback
+        // purge D1): the ratio off a zero base now prints the honest inf.
     }},
-    {"include/logosphere/physics/physics_system.h", {
-        {"10.0f", 1},    // GluonConstraint default angular_damping (declared, INV-9 tension)
-        {"100.0f", 1},   // GluonConstraint default angular_stiffness (declared, INV-9 tension)
-    }},
+    // GluonConstraint angular defaults 100/10 DESTROYED 2026-08-13
+    // (silent-fallback purge A1/A2, owner order): 0/0 is the UNDECLARED
+    // sentinel and the bond doors refuse undeclared consumers. The
+    // physics_system.h entry is gone because the header now carries no
+    // magic float at those sites.
 };
 
 static const char* SCAN_FILES[] = {

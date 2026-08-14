@@ -7,6 +7,40 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Changed
+- **Silent fallbacks destroyed across the physics layer** (owner
+  order; blocks PR #75). Missing/unset physics data now refuses
+  loudly instead of running on invented values. What changed for
+  callers:
+  - `GluonConstraintBase::angular_stiffness/angular_damping` class
+    defaults (100/10) are gone; 0/0 is the UNDECLARED sentinel.
+    Organic bonds get both derived from materials (Phase C); other
+    creators that consume the angular law must declare it.
+  - Every bond must be born with `calculate_breaking_force() > 0`;
+    `NailGluon::breaking_force` no longer defaults to indeterminate
+    memory. The bond doors (`add_particle_with_gluon_to`,
+    `add_gluon_between`) abort with an actionable message on an
+    undeclared bond, a null gluon, or an uninitialized system
+    (`GLUON_LENIENT=1` / `PHYSICS_LENIENT=1` downgrade to printed
+    violations for inventory sweeps).
+  - A second live bond for the same particle pair refuses (INV-22)
+    instead of a console warning; stale-gluon pruning aborts after
+    its diagnostics instead of repair-and-continue.
+  - The solver refuses instead of inventing: no more `eff_mass = 1`
+    for the turtle row, no `I = 0.01` for invalid inertia, no silent
+    NaN-velocity reset, no phantom contact point from an empty
+    manifold, no default +Z constraint jacobian.
+  - The explosion detector prints an honest `inf` KE ratio and
+    refuses an unparseable `LOGOSPHERE_EXPLOSION_SPEED`;
+    `PhysicsSystem::add_force` states loudly (once) that registry
+    forces are query data, not applied forces.
+  - `ElasticGluon::stiffness` (which shadowed the base field, so
+    declarations landed where nothing read them) and the dead
+    uninitialized `GluonConstraintBase::last_force_magnitude` are
+    deleted.
+  Full map and breakage inventory:
+  `docs/todo_plans/SILENT_FALLBACK_INVENTORY.md`.
+
 ### Added
 - **Physics constants are engine inputs (INV-29).** Every named
   physics constant — solver schedule, position-correction gains and

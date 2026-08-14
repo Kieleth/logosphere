@@ -151,6 +151,94 @@ normal-direction trap honestly.
 4. `structs+detector`: E1 D1 D2 B13-warn.
 5. Breakage inventory appended below + TEST_AUDIT/LEDGER updates.
 
-## Breakage inventory
+## Breakage inventory (post-destruction, 2026-08-13)
 
-(appended after the slices; see the bottom of this file)
+Instruments: the 12-gate battery per slice (baseline captured at HEAD
+5958ea4 before any change), then the full physics sweep (285 audited
+tests, strict doors, run alone, 9.5 min). Every mole reproduced solo
+before classification.
+
+### Baseline (before destruction)
+
+All 12 battery gates PASS except test_humanoid_tuning_coverage
+(pre-existing red: 8 bonds carrying the 100/10 class default).
+
+### New loud failures, classified by guilty flow
+
+1. **test_spirit_light_artifacts — SIGABRT at the INV-22
+   duplicate-pair door (B10). REAL, the campaign's catch.**
+   Guilty flow: `ParticleSystem::clear_particles()`
+   (src/core/particle_system.cpp:174) clears every particle and resets
+   the id counter but never clears physics bonds. The test's Test 6
+   respawns a humanoid after a bulk clear; new particles reuse ids
+   1, 2, ... and the FIRST scene's bonds re-bind to them — 28 stale
+   bonds counted under GLUON_LENIENT. Until today those 28 ghost bonds
+   silently acted on an unrelated world (same disease family as the
+   deferred-deletion stale-raw-index RCAs). Class: genuinely
+   uncontrolled flow — bond lifecycle across bulk particle clear.
+   NOT fixed here (a two-system lifecycle mechanism, not a one-line
+   declaration); owner decision. GLUON_LENIENT=1 completes the run and
+   the test PASSES (rendering was never affected — which is exactly
+   why nothing caught it).
+   Audit row updated: known_open "fallback-destruction:GLUON_LENIENT".
+
+2. **test_inv29_constants_gate — ratchet drop, by design.**
+   Destroying the header's 100.0f/10.0f, the solver's 0.01f invented
+   inertia and the detector's 999.0 shrank the pinned residual count
+   (35 -> 31 sites, 17 -> 14 token-groups). The gate demands its table
+   shrink in the same effort; done (tests/test_inv29_constants_gate.cpp),
+   gate green again. Class: sanctioned follow-through.
+
+3. **test_physics_battery — HUNG at the sweep's 240 s deadline.
+   NOT reproducible.** Solo: 2/2 PASS, full scenario ladder green,
+   0.19 s wall time. The sweep-time stall is the documented
+   phantom-mole class (engine/GPU init stall), not a physics refusal —
+   no REFUSED line in any battery output. Class: infrastructure flake.
+
+4. **test_async_prep_equivalence — FAIL rc 1 in the sweep, PASS solo.**
+   GPU pixel-equivalence test, known contention-sensitive. No physics
+   door involved. Class: infrastructure flake.
+
+### Loud lines that fire without failing (contract statements)
+
+- `[PHYSICS CONTRACT] add_force` (B13) fires in test_ancient_oak and
+  test_tree_wiggly: those fixtures register a GravityForce the V4
+  solver never applies. Guilty flow: force-registry callers believing
+  registration means application. Owner decision queued (implement or
+  delete the registry).
+
+### The flagship, restated in the new sentinel
+
+test_humanoid_tuning_coverage still FAILS (expected, pre-existing):
+8 bonds on the humanoid carry the UNDECLARED sentinel — now 0/0
+(absence) instead of 100/10 (a number pretending to be a choice).
+All 8 hang off the head particle (face/hair bond creation in
+humanoid_generator.cpp gives them no angular opinion). Guilty flow:
+missing declaration at a creation site; the fix is per-joint
+declarations or derivation, owner's tuning call. The other 20 joint
+bonds' generator declarations are all overwritten by
+humanoid_locomotion's 2000/60 init pass (dead declarations, listed
+in G).
+
+### Doors that did NOT fire anywhere in the fleet
+
+The breaking-force door (A5), the zero-inertia refusals (B2/B3), the
+NaN door (B4), the turtle eff-mass refusal (B1), the stale-gluon abort
+(B11), the creation-door refusals (B12) and the detector env guard
+(D2) fired in ZERO of 285 tests. Those flows are now provably
+controlled: the doors exist, armed, and today's fleet passes through
+them clean.
+
+### Bottom line
+
+- Provably controlled now: bond force laws (linear + angular +
+  breaking) at both creation doors; pair ownership at the index;
+  solver masses/inertias (no invented 1.0 kg / 0.01 kg*m^2); NaN
+  velocities; unset constraint jacobians; detector calibration input.
+- Uncontrolled, named, pending owner decisions: bond lifecycle across
+  bulk particle clear (the spirit-light flow); the inert force
+  registry (B13); ElasticGluon::max_strain silently ignored (A6);
+  enable_angular_constraint's per-bond default policy (A9); dead
+  PhysicsConfig::restitution (A13); the 5.0 structural-damping floor
+  overriding material declarations (B17); the humanoid 2000/60
+  overwrite + 8 opinion-less head bonds (creator side).
