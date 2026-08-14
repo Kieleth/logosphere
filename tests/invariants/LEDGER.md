@@ -475,3 +475,30 @@ gone. Evidence after removal: resolver R1 awake twin CONSERVES
 (85.5 -> 63.9 vs 30.1 budget); ringing 1044:1, settling flat/wiggle,
 idle pose, walk gate, battery, foliage all green. The damper's
 constants stay in the registry until the cleanup commit.
+
+## 2026-08-14 — WITHDRAWN: the "manifold overshoot" (defect 2)
+
+I reported the manifold rows as pricing with the UNSPLIT effective
+mass (INV-20 violation, "3.5x overshoot") from a level-5 trace
+showing eff=12.8 on all four rows of a face contact plus an exact
+x0.75 impulse decay. Both readings were wrong:
+
+- The traced field is `c.effective_mass`, which is ALREADY the split
+  share (physics_system_v4.cpp: `c.effective_mass = effective_mass *
+  c.eff_mass_share`, share = 1/N with SPLIT_OFF unset). eff_full was
+  51.2 (target priced immovable while asleep), 12.8 per row.
+- The x0.75 decay is the CORRECT Gauss-Seidel signature of a properly
+  split manifold: each of four rows removes 1/4 of the remaining
+  approach speed, and 1 + .75 + .5625 + ... converges to
+  eff_full * v_rel = 76.15 N*s — exactly the right total.
+
+Measured proof, now permanent as ladder rung R5 (equal masses,
+frictionless, both awake): both bodies end at +0.795/+0.796 m/s
+against an analytic +0.800, momentum conserved to 0.54%.
+
+Same failure class as the five withdrawn conclusions already in this
+ledger: a number read without checking its definition. The cure this
+time is a prover in the tree, not a resolution to be careful.
+
+Standing after this: defect 1 (rest damper) was real and is
+eradicated; defect 3 (the wake gate, INV-31) is real and open.

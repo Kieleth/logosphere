@@ -59,6 +59,7 @@ struct Impact {
     float striker_size; Materials::Type striker_mat;
     float target_size;  Materials::Type target_mat;
     float strike_speed;
+    float floor_friction = 0.02f;
 };
 
 Outcome run_impact(const Impact& im, bool target_sleeps) {
@@ -109,7 +110,7 @@ Outcome run_impact(const Impact& im, bool target_sleeps) {
             v[id].solver_mode = ParticleSolverMode::KINEMATIC;
             v[id].owner = ParticleOwner::DYNAMICS;
             v[id].is_at_rest = true;
-            v[id].friction = 0.02f;   // polished: min-combined per contact
+            v[id].friction = im.floor_friction;  // min-combined per contact
         }
     }
 
@@ -238,6 +239,36 @@ bool test_sleep_wake_resolver() {
     rung("R3 grain -> sleeping castle",
          {0.08f, Materials::Type::WOOD_SOFT, 1.2f, Materials::Type::STONE,
           1.0f}, /*expect_red_today=*/false);
+
+    // R5 — THE ANALYTIC PROVER (INV-7, INV-20). Equal masses, both
+    // awake, frictionless floor: a perfectly inelastic 1-D collision
+    // must leave BOTH bodies at exactly half the strike speed, and the
+    // momentum must be conserved outright. This rung exists because a
+    // trace misreading (2026-08-14) accused the manifold split of a
+    // 3.5x overshoot: the per-row eff logged is the ALREADY-SPLIT
+    // share, and four rows each removing 1/4 of the remaining approach
+    // is the correct Gauss-Seidel signature (1 + .75 + .5625 + ...
+    // converges to eff_full * v_rel). If pricing were ever wrong by a
+    // factor, this rung reports it as a velocity, not a suspicion.
+    {
+        const Impact im{0.4f, Materials::Type::WOOD_HARD,
+                        0.4f, Materials::Type::WOOD_HARD, 1.6f, 0.0f};
+        const Outcome o = run_impact(im, /*target_sleeps=*/false);
+        const float want = im.strike_speed * 0.5f;
+        const float ds = std::fabs(o.striker_vx_final - want);
+        const float dt_ = std::fabs(o.target_vx_final - want);
+        const float p_err = std::fabs(o.p_after - o.p_before) /
+                            std::max(1.0f, o.p_before);
+        printf("  R5 analytic inelastic      striker %+7.4f target %+7.4f "
+               "(want %+.4f each)\n", o.striker_vx_final,
+               o.target_vx_final, want);
+        printf("  %-28s momentum %.2f -> %.2f (%.2f%% error), "
+               "frictionless\n", "", o.p_before, o.p_after,
+               100.0f * p_err);
+        check(ds < 0.08f && dt_ < 0.08f,
+              "R5: equal masses share the approach speed exactly");
+        check(p_err < 0.03f, "R5: momentum conserved through the manifold");
+    }
 
     // R4 — the other side of the law: a resting stack STAYS asleep.
     // The resolver may not buy wake-correctness with wake-thrash.
