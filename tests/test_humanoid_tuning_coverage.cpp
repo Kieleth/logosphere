@@ -74,9 +74,11 @@ std::map<PairKey, AngularProfile> snapshot(const PhysicsSystem& physics,
 }
 
 // The GluonConstraintBase class defaults (physics_system.h). A gluon still
-// carrying these was never given an opinion by anybody.
-constexpr float CLASS_DEFAULT_STIFFNESS = 100.0f;
-constexpr float CLASS_DEFAULT_DAMPING   =  10.0f;
+// carrying these was never given an opinion by anybody. 2026-08-13: the old
+// silent defaults (100/10) were destroyed by owner order — the class now
+// carries the UNDECLARED sentinel (0/0), so "nobody's opinion" is 0/0.
+constexpr float CLASS_DEFAULT_STIFFNESS = 0.0f;
+constexpr float CLASS_DEFAULT_DAMPING   =  0.0f;
 
 } // namespace
 

@@ -793,7 +793,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             // Effective mass: only particle's mass (Turtle has infinite mass)
             // effective_mass = 1 / (1/ma + 0) = ma
-            c.effective_mass = pi.GetMass() > 0.0f ? pi.GetMass() : 1.0f;
+            //
+            // This was `mass > 0 ? mass : 1.0f` — the THIRD copy of the
+            // eff-mass phantom (S22 killed it at the contact build, the
+            // gluon build killed it again; inventory B1). Massless is
+            // skipped at the top of this loop, so the invented 1.0f was an
+            // unreachable arm waiting for that guard to change. If mass is
+            // not positive here, particle data is broken: refuse loud.
+            {
+                const float m_turtle = pi.GetMass();
+                if (!(m_turtle > 0.0f)) {
+                    std::fprintf(stderr,
+                        "[PHYSICS REFUSED] turtle row for P%zu with mass %g "
+                        "(massless bodies are skipped above; a non-positive "
+                        "mass reaching the row build is corrupted particle "
+                        "data).\n", i, m_turtle);
+                    if (!std::getenv("PHYSICS_LENIENT")) std::abort();
+                    continue;   // lenient: drop the row, never invent a mass
+                }
+                c.effective_mass = m_turtle;
+            }
 
             // Bias for position correction (Baumgarte)
             if (penetration > SLOP) {
@@ -4962,18 +4981,51 @@ static void derive_organic_force_law(OrganicGluon& g,
 // The law (C-121): missing required data crashes loud at the door.
 // Zero damping is legal (bonds may ring); zero stiffness never is.
 // GLUON_LENIENT=1 downgrades to a printed violation for inventory sweeps.
+//
+// EXTENDED 2026-08-13 (fallback destruction, inventory A1/A2/A5):
+//  - The angular law joins the linear one. GluonConstraintBase used to
+//    default angular_stiffness/damping to 100/10 — numbers nobody chose,
+//    silently inherited by every bond whose creator forgot (the red
+//    test_humanoid_tuning_coverage finding). The defaults are now the
+//    UNDECLARED sentinel (0/0); a force-bounded bond that consumes its
+//    angular law (angular constraint enabled) must have one, derived by
+//    Phase C or declared.
+//  - EVERY bond must have a positive breaking force. calculate_breaking_
+//    force() <= 0 is the G6 hollow-bond disease through the other factor:
+//    for organics the budget is min(breaking, spring force), so breaking 0
+//    is a zero-force bond however stiff; for welds it is an indeterminate
+//    contract (NailGluon::breaking_force was previously uninitialized).
 static void refuse_undeclared_bond(const GluonConstraintBase& g,
+                                   const Particle& pa, const Particle& pb,
                                    size_t a, size_t b) {
+    const float breaking = g.calculate_breaking_force(pa, pb);
+    if (!(breaking > 0.0f)) {
+        std::fprintf(stderr,
+            "[GLUON REFUSED] bond P%zu<->P%zu born with breaking force %g "
+            "(must be > 0). A weld: declare breaking_force at the creation "
+            "site. An organic: its breaking is contact_area * avg material "
+            "strength — contact_area=%s, strength_a=%g strength_b=%g; declare "
+            "the missing one.\n",
+            a, b, breaking,
+            g.force_bounded() ? "(see organic creator)" : "n/a",
+            pa.material_strength, pb.material_strength);
+        if (!std::getenv("GLUON_LENIENT")) std::abort();
+    }
     if (!g.force_bounded()) return;   // force law unused on rigid welds
     const bool bad_k = !(g.stiffness > 0.0f);
     const bool bad_d = g.damping < 0.0f;
-    if (!bad_k && !bad_d) return;
+    const bool bad_ak = g.enable_angular_constraint && !(g.angular_stiffness > 0.0f);
+    const bool bad_ad = g.enable_angular_constraint && g.angular_damping < 0.0f;
+    if (!bad_k && !bad_d && !bad_ak && !bad_ad) return;
     std::fprintf(stderr,
         "[GLUON REFUSED] force-bounded bond P%zu<->P%zu born without a force "
-        "law: stiffness=%g damping=%g. k<=0 means zero force at any error "
-        "(ledger G6). Declare it or provide the materials Phase C derives "
-        "from (contact_area, Young's modulus, loss factor).\n",
-        a, b, g.stiffness, g.damping);
+        "law: stiffness=%g damping=%g angular_stiffness=%g angular_damping=%g "
+        "(angular constraint %s). k<=0 means zero force at any error (ledger "
+        "G6); an enabled angular constraint with K<=0 is a joint with no "
+        "torque behind it. Declare it or provide the materials Phase C "
+        "derives from (contact_area, Young's modulus, loss factor).\n",
+        a, b, g.stiffness, g.damping, g.angular_stiffness, g.angular_damping,
+        g.enable_angular_constraint ? "enabled" : "disabled");
     if (!std::getenv("GLUON_LENIENT")) std::abort();
 }
 
@@ -4984,6 +5036,16 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     bool use_config_position)
 {
     if (!is_initialized_ || !gluon) {
+        // A requested bond must not silently vanish (inventory B12): the
+        // caller's world model now differs from the engine's. PHYSICS_LENIENT
+        // keeps the old error-code return for inventory sweeps.
+        std::fprintf(stderr,
+            "[PHYSICS REFUSED] add_particle_with_gluon_to(P%zu, ...): %s — the "
+            "bond was NOT created. Initialize physics before creating bonds / "
+            "pass a non-null gluon.\n",
+            particle_a_id, !is_initialized_ ? "physics not initialized"
+                                            : "null gluon");
+        if (!std::getenv("PHYSICS_LENIENT")) std::abort();
         return static_cast<size_t>(-1);
     }
 
@@ -5009,12 +5071,14 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     gluon->particle_b = particle_b_id;
     gluon->id = next_gluon_id_++;
 
-    if (auto* og = dynamic_cast<OrganicGluon*>(gluon.get())) {
+    {
         const Particle sa = particle_system_->get_particle_copy(particle_a_id);
         const Particle sb = particle_system_->get_particle_copy(particle_b_id);
-        derive_organic_force_law(*og, sa, sb);
+        if (auto* og = dynamic_cast<OrganicGluon*>(gluon.get())) {
+            derive_organic_force_law(*og, sa, sb);
+        }
+        refuse_undeclared_bond(*gluon, sa, sb, particle_a_id, particle_b_id);
     }
-    refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
 
     if (!gluon->force_bounded()) {
         // V4.4 Mass-scaled damping: heavier connections = more damping.
@@ -5051,6 +5115,15 @@ void PhysicsSystem::add_gluon_between(
     std::unique_ptr<GluonConstraintBase> gluon)
 {
     if (!is_initialized_ || !gluon) {
+        // Same door as add_particle_with_gluon_to (inventory B12): a
+        // requested bond must not silently vanish.
+        std::fprintf(stderr,
+            "[PHYSICS REFUSED] add_gluon_between(P%zu, P%zu): %s — the bond "
+            "was NOT created. Initialize physics before creating bonds / pass "
+            "a non-null gluon.\n",
+            particle_a_id, particle_b_id,
+            !is_initialized_ ? "physics not initialized" : "null gluon");
+        if (!std::getenv("PHYSICS_LENIENT")) std::abort();
         return;
     }
 
@@ -5064,7 +5137,7 @@ void PhysicsSystem::add_gluon_between(
     if (auto* og = dynamic_cast<OrganicGluon*>(gluon.get())) {
         derive_organic_force_law(*og, pa, pb);
     }
-    refuse_undeclared_bond(*gluon, particle_a_id, particle_b_id);
+    refuse_undeclared_bond(*gluon, pa, pb, particle_a_id, particle_b_id);
 
     if (!gluon->force_bounded()) {
         // V4.4 Mass-scaled damping: heavier connections = more damping.
@@ -5086,13 +5159,21 @@ void PhysicsSystem::add_gluon_between(
 
 void PhysicsSystem::index_gluon(GluonConstraintBase* gluon) {
     size_t key = make_gluon_pair_key(gluon->particle_a, gluon->particle_b);
-    // Debug: check if we're overwriting an existing entry
+    // TWO LIVE BONDS FOR ONE PAIR (inventory B10, INV-22): the deque solves
+    // BOTH (double dose) while queries see only the newer one. This used to
+    // be a cout WARNING scrolling past. Refuse loud; GLUON_LENIENT keeps the
+    // overwrite for inventory sweeps. Known suspect flow: pin-gluon respawn
+    // indexing the replacement while the old bond awaits deferred removal.
     auto existing = gluon_pair_index_.find(key);
     if (existing != gluon_pair_index_.end()) {
-        std::cout << "[GLUON_INDEX] WARNING: Overwriting existing gluon for pair ("
-                  << gluon->particle_a << "," << gluon->particle_b << ")"
-                  << " old_offset_a.z=" << existing->second->offset_a.z
-                  << " new_offset_a.z=" << gluon->offset_a.z << std::endl;
+        std::fprintf(stderr,
+            "[GLUON REFUSED] second live bond for pair P%zu<->P%zu "
+            "(old offset_a.z=%g, new offset_a.z=%g). One mechanism owns a "
+            "pair (INV-22): remove the old bond before creating its "
+            "replacement, or the pair is double-solved.\n",
+            gluon->particle_a, gluon->particle_b,
+            existing->second->offset_a.z, gluon->offset_a.z);
+        if (!std::getenv("GLUON_LENIENT")) std::abort();
     }
     gluon_pair_index_[key] = gluon;
 }
@@ -5215,6 +5296,11 @@ void PhysicsSystem::prune_invalid_gluons(size_t particle_count) {
         size_t removed = std::distance(it, gluon_constraints_v2_.end());
         std::cerr << "[GLUON] Pruned " << removed << " stale gluons - INVESTIGATE ROOT CAUSE!" << std::endl;
         gluon_constraints_v2_.erase(it, gluon_constraints_v2_.end());
+        // Repair-and-continue on corrupted bookkeeping was a silent fallback
+        // (inventory B11): this function's own header says finding anything
+        // is a bug in swap/removal. The diagnostics above stay; the run does
+        // not, unless GLUON_LENIENT for inventory sweeps.
+        if (!std::getenv("GLUON_LENIENT")) std::abort();
     }
 }
 

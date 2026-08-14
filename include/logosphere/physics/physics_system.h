@@ -128,7 +128,8 @@ public:
     // deterministic on every construction path, never indeterminate.
     float stiffness = 0.0f;     // N/m (how rigid: nail=100000, elastic=10000)
     float damping = 0.0f;       // Ns/m (energy absorption: nail=0, elastic=1000)
-    float last_force_magnitude; // Stored for breaking check after convergence
+    // last_force_magnitude deleted (fallback inventory A3): uninitialized,
+    // zero writers, zero readers — a dead field carrying indeterminate memory.
 
     // OFFSET ROTATION CONTROL:
     // - true (default): Offsets rotate with particle's rotation_z. All skeleton gluons
@@ -148,8 +149,16 @@ public:
     //   - Neck: 50 N·m/rad (loose - head turns independently)
     //   - Knee: 500 N·m/rad (rigid - knee doesn't twist)
     //   - Hair: 0 (disable - hair swings freely via position constraint only)
-    float angular_stiffness = 100.0f;       // N·m/rad - torque per radian of rotation difference
-    float angular_damping = 10.0f;          // N·m·s/rad - damping of relative angular velocity
+    //
+    // Zero means UNDECLARED, exactly like stiffness/damping above (the G6
+    // lesson, extended by owner ruling 2026-08-13: the old class defaults of
+    // 100/10 were numbers nobody chose, running on every bond whose creator
+    // forgot — destroyed, not derived, not registered). Organic bonds get
+    // both DERIVED by Phase C; every other consumer must declare. The bond
+    // doors refuse a force-bounded bond whose angular law is unset while
+    // the angular constraint is enabled (refuse_undeclared_bond).
+    float angular_stiffness = 0.0f;         // N·m/rad - torque per radian of rotation difference
+    float angular_damping = 0.0f;           // N·m·s/rad - damping of relative angular velocity
     float target_relative_rotation = 0.0f;  // Desired rotation difference (radians, usually 0)
     bool enable_angular_constraint = true;  // true=skeleton (rotation couples), false=hair (swings free)
 
@@ -278,7 +287,11 @@ public:
 // Nail: Rigid constraint with fixed breaking threshold
 class NailGluon : public GluonConstraintBase {
 public:
-    float breaking_force;       // Fixed threshold (e.g., 5000 N)
+    // Zero means UNDECLARED (fallback inventory A5): previously
+    // uninitialized, so a forgotten threshold was indeterminate memory.
+    // The bond doors refuse any bond whose calculate_breaking_force()
+    // is not positive.
+    float breaking_force = 0.0f;    // Fixed threshold (e.g., 5000 N)
 
     float calculate_breaking_force(const Particle& p_a, const Particle& p_b) const override {
         return breaking_force;
@@ -288,7 +301,11 @@ public:
 // Organic: Breaking force from contact area × material strength (trees, bones)
 class OrganicGluon : public GluonConstraintBase {
 public:
-    float contact_area;         // m² (larger particles = larger area)
+    // Zero means UNDECLARED (fallback inventory A4): previously
+    // uninitialized, so a forgotten area was indeterminate memory — and
+    // garbage > 0 would DERIVE A FORCE LAW FROM GARBAGE and sail past the
+    // refuse door. Deterministic zero makes "forgot" refuse instead.
+    float contact_area = 0.0f;  // m² (larger particles = larger area)
 
     float calculate_breaking_force(const Particle& p_a, const Particle& p_b) const override {
         // Average strength of both particles (oak vs pine, etc.)
@@ -310,9 +327,18 @@ public:
 // Elastic: Actual spring behavior (future - knees, tendons)
 class ElasticGluon : public GluonConstraintBase {
 public:
-    float breaking_force;       // Based on max strain
-    float stiffness;
-    float max_strain;
+    // Zero means UNDECLARED (fallback inventory A6). The old `float
+    // stiffness` member here SHADOWED the base field: creators wrote the
+    // shadow while the solver and energy ledger read the base — a
+    // declaration that silently landed nowhere. Deleted (C-116); creators
+    // now write the base field they always thought they were writing.
+    float breaking_force = 0.0f;    // Based on max strain
+    // CATALOGUED, not yet wired (inventory A6): max_strain is declared by
+    // creators (KG data) but ElasticGluon does not override
+    // max_strain_ratio(), so strain tearing ignores it. Wiring it changes
+    // tear behavior — owner decision pending. Kept initialized so the
+    // silent lie is at least deterministic.
+    float max_strain = 0.0f;
 
     float calculate_breaking_force(const Particle& p_a, const Particle& p_b) const override {
         return breaking_force;
