@@ -1080,6 +1080,19 @@ struct EmitsLight {
 };
 
 
+/// The simple-entity contract read by the engine's simple_entity_activator (src/entities/simple_entity.cpp): one particle built from a uniform size plus RGB color. Runtime keys are the slot names verbatim. Known drift siblings, unification pending an owner ruling: PhysicsRock.color_r/g/b and CelestialBody.moon_r/g/b.
+struct HasSimpleAppearance {
+    /// Uniform particle size in meters (width = height = thickness for simple entities; also the rock spec's characteristic size).
+    std::optional<float> size = std::nullopt;
+    /// Red color component, 0..1.
+    std::optional<float> r = std::nullopt;
+    /// Green color component, 0..1.
+    std::optional<float> g = std::nullopt;
+    /// Blue color component, 0..1.
+    std::optional<float> b = std::nullopt;
+};
+
+
 /// Physical performance attributes of a body component or agent.
 struct HasPhysicalCapability {
     /// Force production capacity in Newtons. 0 = non-functional.
@@ -1343,7 +1356,7 @@ struct NaturalFormation : public WorldEntity, public HasMaterial, public Destruc
 
 
 /// Entity that emits light.
-struct LightSource : public WorldEntity, public EmitsLight {
+struct LightSource : public WorldEntity, public EmitsLight, public HasSimpleAppearance {
 };
 
 
@@ -1708,12 +1721,10 @@ struct FallenTree : public NaturalFormation, public HasMaterial {
 
 
 /// Rock or boulder.
-struct Rock : public NaturalFormation {
+struct Rock : public NaturalFormation, public HasSimpleAppearance {
     std::optional<RockSize> rock_size = std::nullopt;
     /// Rock flavor stamp. The visual generator writes "pebble" or "boulder"; the physics generator writes a numeric spec-type index on the same key (drift noted by Malleus H1). String range accepts both.
     std::optional<std::string> rock_type = std::nullopt;
-    /// Characteristic size in meters, from the rock spec.
-    std::optional<float> size = std::nullopt;
 };
 
 
@@ -1951,7 +1962,7 @@ struct WorldRelation : public Relation {
 
 
 /// A body in the sky: sun, moon, star, or distant world. It is a particle at a real distance, not a backdrop - which matters under a parallel projection, where a body 300 m away is drawn 300 m away rather than at infinity, and can sit outside the frame entirely.
-struct CelestialBody : public WorldEntity, public EmitsLight {
+struct CelestialBody : public WorldEntity, public EmitsLight, public HasSimpleAppearance {
     /// Which sort of celestial body this is.
     std::optional<CelestialKind> celestial_kind = std::nullopt;
     /// Orbital period in game days.

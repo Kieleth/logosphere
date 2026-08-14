@@ -894,6 +894,19 @@ struct EmitsLight {
 };
 
 
+/// The simple-entity contract read by the engine's simple_entity_activator (src/entities/simple_entity.cpp): one particle built from a uniform size plus RGB color. Runtime keys are the slot names verbatim. Known drift siblings, unification pending an owner ruling: PhysicsRock.color_r/g/b and CelestialBody.moon_r/g/b.
+struct HasSimpleAppearance {
+    /// Uniform particle size in meters (width = height = thickness for simple entities; also the rock spec's characteristic size).
+    std::optional<float> size = std::nullopt;
+    /// Red color component, 0..1.
+    std::optional<float> r = std::nullopt;
+    /// Green color component, 0..1.
+    std::optional<float> g = std::nullopt;
+    /// Blue color component, 0..1.
+    std::optional<float> b = std::nullopt;
+};
+
+
 /// Physical performance attributes of a body component or agent.
 struct HasPhysicalCapability {
     /// Force production capacity in Newtons. 0 = non-functional.
@@ -1157,7 +1170,7 @@ struct NaturalFormation : public WorldEntity, public HasMaterial, public Destruc
 
 
 /// Entity that emits light.
-struct LightSource : public WorldEntity, public EmitsLight {
+struct LightSource : public WorldEntity, public EmitsLight, public HasSimpleAppearance {
 };
 
 

@@ -8,6 +8,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- `HasSimpleAppearance` mixin declaring the simple-entity contract
+  the engine's `simple_entity_activator` reads (`size`, `r`, `g`,
+  `b`), attached to `LightSource`, `Cube`, `CelestialBody`, and
+  `Rock`; the earth pack's duplicate `size` slot is removed in its
+  favor. Found by interactive QA: Eden aborted at startup on the
+  gate because its light writes were never declared.
 - `capability.*` writes are now declared in the ontology:
   `LivingEntity` carries the five aggregated profile keys
   (`capability.speed_cap/locomotion/manipulation/rotation/perception`)

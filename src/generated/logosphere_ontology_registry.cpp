@@ -62,6 +62,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("HasMaterial", "", true);
     reg.addEntityType("HasOdor", "", true);
     reg.addEntityType("HasPhysicalCapability", "", true);
+    reg.addEntityType("HasSimpleAppearance", "", true);
     reg.addEntityType("HasSolverAuthority", "", true);
     reg.addEntityType("HasTissue", "", true);
     reg.addEntityType("Head", "BodyPart", false);
@@ -121,7 +122,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Hips", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Humanoid", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Leg", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
-    reg.addAncestors("LightSource", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("LightSource", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSimpleAppearance", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("LivingEntity", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("NaturalFormation", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Neck", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -337,6 +338,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("HasPhysicalCapability", "part_flexibility", kg::PropertyValueKind::Float, false);
     reg.addProperty("HasPhysicalCapability", "part_responsiveness", kg::PropertyValueKind::Float, false);
     reg.addProperty("HasPhysicalCapability", "part_endurance", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "size", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "b", kg::PropertyValueKind::Float, false);
     reg.addEnumProperty("HasSolverAuthority", "solver_authority", "SolverAuthority", false);
     reg.addProperty("HasTissue", "muscle_health", kg::PropertyValueKind::Float, false);
     reg.addProperty("HasTissue", "nerve_health", kg::PropertyValueKind::Float, false);

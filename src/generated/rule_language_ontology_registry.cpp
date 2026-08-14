@@ -96,6 +96,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("HasMaterial", "", true);
     reg.addEntityType("HasOdor", "", true);
     reg.addEntityType("HasPhysicalCapability", "", true);
+    reg.addEntityType("HasSimpleAppearance", "", true);
     reg.addEntityType("HasSolverAuthority", "", true);
     reg.addEntityType("HasTissue", "", true);
     reg.addEntityType("Head", "BodyPart", false);
@@ -288,7 +289,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("LetStringCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "LetExpression", "StringCollectionExpression", "Temporal"});
     reg.addAncestors("LetStringExpression", {"Describable", "Entity", "Expression", "Identifiable", "LetExpression", "ScalarExpression", "StringExpression", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
-    reg.addAncestors("LightSource", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("LightSource", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSimpleAppearance", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("LivingEntity", {"Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("LocalBinding", {"Describable", "Entity", "Identifiable", "Temporal"});
@@ -605,6 +606,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("HasPhysicalCapability", "part_flexibility", kg::PropertyValueKind::Float, false);
     reg.addProperty("HasPhysicalCapability", "part_responsiveness", kg::PropertyValueKind::Float, false);
     reg.addProperty("HasPhysicalCapability", "part_endurance", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "size", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("HasSimpleAppearance", "b", kg::PropertyValueKind::Float, false);
     reg.addEnumProperty("HasSolverAuthority", "solver_authority", "SolverAuthority", false);
     reg.addProperty("HasTissue", "muscle_health", kg::PropertyValueKind::Float, false);
     reg.addProperty("HasTissue", "nerve_health", kg::PropertyValueKind::Float, false);

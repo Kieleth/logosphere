@@ -182,10 +182,11 @@ classes:
   Rock:
     is_a: NaturalFormation
     description: Rock or boulder.
+    mixins:
+      - HasSimpleAppearance
     slots:
       - rock_size
       - rock_type
-      - size
 
   PhysicsRock:
     is_a: Rock
@@ -281,9 +282,6 @@ slots:
       "boulder"; the physics generator writes a numeric spec-type
       index on the same key (drift noted by Malleus H1). String range
       accepts both.
-  size:
-    range: float
-    description: Characteristic size in meters, from the rock spec.
   density:
     range: float
     description: >-
