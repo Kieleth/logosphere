@@ -146,6 +146,11 @@ void snapshot_lists_entities_of_requested_types() {
     r.addEntityType("Wall",  "", false);
     r.addEntityType("Light", "", false);
     r.addEntityType("Other", "", false);
+    // Runtime registries declare what they write: setProperty is
+    // ontology-gated (Malleus H1).
+    r.addProperty("Wall",  "x", "float", false);
+    r.addProperty("Wall",  "y", "float", false);
+    r.addProperty("Light", "intensity", "float", false);
 
     kg::KGModule kg(r);
     kg.setMode(kg::KGMode::MINIMAL);
@@ -210,6 +215,9 @@ void snapshot_empty_filter_yields_empty() {
 void snapshot_is_deterministic() {
     kg::OntologyRegistry r;
     r.addEntityType("Wall", "", false);
+    r.addProperty("Wall", "a", "string", false);
+    r.addProperty("Wall", "m", "string", false);
+    r.addProperty("Wall", "z", "string", false);
     kg::KGModule kg(r);
     kg.setMode(kg::KGMode::MINIMAL);
     auto w = kg.createEntity("Wall");

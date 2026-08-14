@@ -228,6 +228,20 @@ void test_weighted_sum_serpent() {
 
 void test_custom_capability_name() {
     auto kg = create_kg();
+    // A custom capability comes WITH its declarations: the setProperty
+    // gate (Malleus H1) rejects undeclared keys, so a game inventing
+    // "photosynthesis" extends the ontology the documented way
+    // (tests/test_ontology_extension.cpp pattern). Branch has no
+    // HasHealth mixin either, so its health keys are declared here too.
+    kg::OntologyRegistry ext;
+    ext.addProperty("Tree", "cap.photosynthesis.expected_count", "integer", false);
+    ext.addProperty("Tree", "cap.photosynthesis.default_mode", "string", false);
+    ext.addProperty("Branch", "health", "float", false);
+    ext.addProperty("Branch", "max_health", "float", false);
+    ext.addProperty("Branch", "cap_list", "string", false);
+    ext.addProperty("Branch", "cap.photosynthesis.weight", "float", false);
+    kg->extendOntology(ext);
+
     kg::EntityID plant = kg->createEntity("Tree");
     kg->setProperty(plant, "cap.photosynthesis.expected_count", "3");
     kg->setProperty(plant, "cap.photosynthesis.default_mode", "average");
@@ -771,7 +785,14 @@ void test_custom_trigger_registration() {
     ASSERT_NEAR(p.locomotion_factor, 0.5f, 0.02f,
                 "custom always_true trigger fires");
 
-    // property_equals: fires on custom property match
+    // property_equals: fires on custom property match. The custom
+    // property is declared first — the setProperty gate (Malleus H1)
+    // rejects undeclared keys.
+    {
+        kg::OntologyRegistry ext;
+        ext.addProperty("Leg", "infected", "string", false);
+        kg->extendOntology(ext);
+    }
     kg->setProperty(b.right_leg, "infected", "yes");
     kg->setProperty(b.right_leg, "rule.0.trigger", "property_equals:infected=yes");
     kg->setProperty(b.right_leg, "rule.0.effect",  "cap_disable:locomotion");

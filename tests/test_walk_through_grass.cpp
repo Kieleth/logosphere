@@ -40,6 +40,7 @@
 #include "../src/ui/ui_system.h"
 #include "../src/ui/widgets.h"
 #include "logosphere/kg/ontology_registry.h"
+#include "generated/earth_ontology_registry.h"
 #include "logosphere/worldgen/grass_patch_spec.h"
 #include "logosphere/worldgen/humanoid_generator.h"
 #include "logosphere/worldgen/organic_generator.h"
@@ -71,14 +72,12 @@ bool test_walk_through_grass() {
     Engine engine;
     if (engine.initialize(cfg) != 0) { printf("  ERROR: engine init failed\n"); return false; }
 
-    {   // bare engines reject Grass; extend the ontology the sanctioned way
-        kg::OntologyRegistry reg;
-        reg.addEntityType("Grass",      "Plant", false);
-        reg.addEntityType("GrassPatch", "Plant", false);
-        reg.addAncestors("Grass",      {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        reg.addAncestors("GrassPatch", {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        engine.get_kg().extendOntology(reg);
-    }
+    // Bare engines reject Grass; extend with the earth setting pack —
+    // the real registry, not a hand-rolled subset. The old hand-rolled
+    // extension listed ancestors without the mixins (Growable, Spatial,
+    // Identifiable...), so every generator property write on a blade
+    // looked undeclared to the KG gate (Malleus H1).
+    engine.get_kg().extendOntology(earth::ontology::registry());
 
     auto& ps = engine.get_particle_system();
 

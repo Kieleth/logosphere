@@ -66,7 +66,7 @@ kg::EntityID OrganicGenerator::generate(float world_x, float world_y, float worl
     target_iteration = std::min(target_iteration, spec.max_iterations);  // Cap at maturity
 
     kg_->setProperty(entity, "growth_iteration", std::to_string(target_iteration));
-    kg_->setProperty(entity, "growth_is_mature", target_iteration >= spec.max_iterations ? "true" : "false");
+    kg_->setProperty(entity, "is_mature", target_iteration >= spec.max_iterations ? "true" : "false");  // Growable.is_mature (writer had drifted to growth_is_mature)
 
     std::cout << "[OrganicGenerator] MVP Growth: age=" << random_age_years << " years, iteration="
               << target_iteration << "/" << spec.max_iterations << std::endl;

@@ -408,6 +408,15 @@ classes:
       - position_y
       - position_z
       - facing_angle
+      # Legacy world-position + chunk stamps: createEntityAtPosition
+      # and the generators write these keys directly. Declared so the
+      # setProperty gate (Malleus H1) sees what the engine writes;
+      # unifying x/y/z with position_* is tracked follow-up work.
+      - x
+      - y
+      - z
+      - chunk_x
+      - chunk_y
 
   HasMaterial:
     mixin: true
@@ -489,6 +498,12 @@ classes:
       - growth_iteration
       - is_mature
       - species
+      - growth_enabled
+      - growth_time_created
+      - growth_time_last_simulated
+      - growth_rate_per_year
+      - growth_max_iterations
+      - method
 
 # -------------------------------------------------------------------
 # Entity type hierarchy
@@ -512,12 +527,78 @@ classes:
       - HasHealth
       - HasMaterial
       - HasOdor
+    slots:
+      # FORGE capability aggregation, written by the generators and
+      # body_plan on the creature entity. The runtime keys are dotted
+      # (cap.<name>.<field>); the slot names carry the kg_key
+      # annotation because dots are not legal C++ identifiers in the
+      # generated header. The six capability names are the engine's
+      # own; a game adding a capability declares its keys in its YAML.
+      - cap_locomotion_expected_count
+      - cap_locomotion_default_mode
+      - cap_manipulation_expected_count
+      - cap_manipulation_default_mode
+      - cap_rotation_expected_count
+      - cap_rotation_default_mode
+      - cap_perception_expected_count
+      - cap_perception_default_mode
+      - cap_flight_expected_count
+      - cap_flight_default_mode
+      - cap_undulation_expected_count
+      - cap_undulation_default_mode
+      - cap_undulation_normalize
+      # Rule-group gates: games bundle response rules into named groups
+      # and flip them as a set (capability_profile.cpp reads
+      # rule_group.0-7.{name,enabled} on the creature entity).
+      - rule_group_0_name
+      - rule_group_0_enabled
+      - rule_group_1_name
+      - rule_group_1_enabled
+      - rule_group_2_name
+      - rule_group_2_enabled
+      - rule_group_3_name
+      - rule_group_3_enabled
+      - rule_group_4_name
+      - rule_group_4_enabled
+      - rule_group_5_name
+      - rule_group_5_enabled
+      - rule_group_6_name
+      - rule_group_6_enabled
+      - rule_group_7_name
+      - rule_group_7_enabled
+      # Rig anchors shared across creature kinds (humanoid, butterfly,
+      # snake): stable KGParticleIDs of named body particles.
+      - head_particle
+      - abdomen_particle
 
   Humanoid:
     is_a: LivingEntity
     description: Bipedal creature with full skeletal anatomy.
     mixins:
       - Agent
+    slots:
+      # Body geometry + gait parameters the humanoid generator writes.
+      - height
+      - walk_speed
+      - run_speed
+      - walk_frequency
+      - run_frequency
+      - leg_spacing
+      - shoulder_offset
+      - ear_offset
+      - reflexes_ms
+      - grit_W
+      # Rig bookkeeping: stable KGParticleIDs of named skeleton
+      # particles, plus comma-separated limb chains.
+      - hips_particle
+      - center_particle
+      - torso_particle
+      - camera_follow_particle
+      - neck_particle
+      - left_arm_particles
+      - right_arm_particles
+      - left_leg_particles
+      - right_leg_particles
 
   Creature:
     is_a: LivingEntity
@@ -547,6 +628,9 @@ classes:
     slots:
       - floor_type
       - terrain
+      - floor_kind
+      - layer_index
+      - layer_name
 
   FloorChunk:
     is_a: Floor
@@ -584,6 +668,11 @@ classes:
     is_a: WorldEntity
     description: Anatomical part of a living entity.
     abstract: true
+    annotations:
+      # Open by design: emit_event forwards rule.<i>.payload.* verbatim
+      # as WorldEvent payload; the keys are the game's to choose. Keys
+      # under these prefixes pass the setProperty gate untyped.
+      kg_key_namespaces: "rule.0.payload., rule.1.payload., rule.2.payload., rule.3.payload., rule.4.payload., rule.5.payload., rule.6.payload., rule.7.payload."
     mixins:
       - HasMaterial
       - HasHealth
@@ -591,6 +680,79 @@ classes:
       - HasTissue
     slots:
       - body_part_name
+      - body_part
+      # FORGE capability contribution of this part, written by the
+      # generators and body_plan. Runtime keys are dotted (see the
+      # kg_key note on LivingEntity).
+      - cap_list
+      - cap_locomotion_weight
+      - cap_locomotion_side
+      - cap_manipulation_weight
+      - cap_manipulation_side
+      - cap_rotation_weight
+      - cap_rotation_side
+      - cap_perception_weight
+      - cap_perception_side
+      - cap_flight_weight
+      - cap_flight_side
+      - cap_undulation_weight
+      - cap_undulation_side
+      - rule_0_trigger
+      - rule_0_effect
+      - rule_0_effect_2
+      - rule_0_effect_3
+      - rule_0_effect_4
+      - rule_0_cascade
+      - rule_0_group
+      - rule_1_trigger
+      - rule_1_effect
+      - rule_1_effect_2
+      - rule_1_effect_3
+      - rule_1_effect_4
+      - rule_1_cascade
+      - rule_1_group
+      - rule_2_trigger
+      - rule_2_effect
+      - rule_2_effect_2
+      - rule_2_effect_3
+      - rule_2_effect_4
+      - rule_2_cascade
+      - rule_2_group
+      - rule_3_trigger
+      - rule_3_effect
+      - rule_3_effect_2
+      - rule_3_effect_3
+      - rule_3_effect_4
+      - rule_3_cascade
+      - rule_3_group
+      - rule_4_trigger
+      - rule_4_effect
+      - rule_4_effect_2
+      - rule_4_effect_3
+      - rule_4_effect_4
+      - rule_4_cascade
+      - rule_4_group
+      - rule_5_trigger
+      - rule_5_effect
+      - rule_5_effect_2
+      - rule_5_effect_3
+      - rule_5_effect_4
+      - rule_5_cascade
+      - rule_5_group
+      - rule_6_trigger
+      - rule_6_effect
+      - rule_6_effect_2
+      - rule_6_effect_3
+      - rule_6_effect_4
+      - rule_6_cascade
+      - rule_6_group
+      - rule_7_trigger
+      - rule_7_effect
+      - rule_7_effect_2
+      - rule_7_effect_3
+      - rule_7_effect_4
+      - rule_7_cascade
+      - rule_7_group
 
   Hips:
     is_a: BodyPart
@@ -675,6 +837,9 @@ classes:
   SystemEntity:
     is_a: Entity
     description: Administrative entity representing an engine subsystem.
+    slots:
+      - chunk_size
+      - load_radius
 
   PhysicsConstants:
     is_a: Entity
@@ -698,6 +863,20 @@ classes:
       - stiffness
       - damping
       - breaking_force
+      # Serialized joint description the generators write (totem,
+      # humanoid): endpoints, geometry and provenance.
+      - particle_a
+      - particle_b
+      - rest_distance
+      - base_stiffness
+      - joint_name
+      - entity_id
+      - offset_a_x
+      - offset_a_y
+      - offset_a_z
+      - offset_b_x
+      - offset_b_y
+      - offset_b_z
 
 # -------------------------------------------------------------------
 # Particle interaction model
@@ -879,6 +1058,25 @@ slots:
   facing_angle:
     range: float
     description: Direction entity faces in radians.
+  x:
+    range: float
+    description: >-
+      World-position stamp written by createEntityAtPosition and the
+      generators. Legacy duplicate of position_x; declared so the
+      setProperty gate can validate what the engine actually writes
+      (Malleus H1). Unification with position_* is follow-up work.
+  y:
+    range: float
+    description: World-position stamp; legacy duplicate of position_y (see x).
+  z:
+    range: float
+    description: World-position stamp; legacy duplicate of position_z (see x).
+  chunk_x:
+    range: integer
+    description: Chunk-grid X coordinate, floor(world_x / chunk_size).
+  chunk_y:
+    range: integer
+    description: Chunk-grid Y coordinate, floor(world_y / chunk_size).
 
   # --- HasMaterial mixin ---
   material_type:
@@ -942,6 +1140,24 @@ slots:
     range: boolean
   species:
     range: string
+  growth_enabled:
+    range: boolean
+    description: Whether deferred growth simulation is active for this entity.
+  growth_time_created:
+    range: float
+    description: Game-time seconds at which the organism was created.
+  growth_time_last_simulated:
+    range: float
+    description: Game-time seconds at which growth was last advanced.
+  growth_rate_per_year:
+    range: float
+    description: Growth iterations accrued per game year.
+  growth_max_iterations:
+    range: integer
+    description: Iteration count at which the organism is mature.
+  method:
+    range: string
+    description: Generation algorithm provenance (e.g. space_colonization).
 
   # --- PhysicsConstants ---
   gravity_z:
@@ -967,6 +1183,25 @@ slots:
   # --- Entity-specific ---
   floor_type:
     range: FloorType
+  floor_kind:
+    range: string
+    description: >-
+      Which generator produced this floor chunk: "floor" (uniform
+      floor generator) or "strata" (layered settling earth). Replaces
+      the undeclared `type` property stamp the two generators used to
+      write (Malleus H1).
+  layer_index:
+    range: integer
+    description: Stratum index from the bottom, for strata layer groups.
+  layer_name:
+    range: string
+    description: Stratum name (e.g. bedrock, subsoil), for strata layer groups.
+  chunk_size:
+    range: float
+    description: Streaming chunk edge length in meters (SystemEntity config).
+  load_radius:
+    range: float
+    description: Chunk streaming load radius in meters (SystemEntity config).
   # --- Constraint ---
   gluon_type:
     range: GluonType
@@ -981,6 +1216,51 @@ slots:
   breaking_force:
     range: float
     description: Force threshold for constraint failure.
+  particle_a:
+    range: integer
+    description: Stable KGParticleID of the first constraint endpoint.
+  particle_b:
+    range: integer
+    description: Stable KGParticleID of the second constraint endpoint.
+  rest_distance:
+    range: float
+    description: Rest length of the constraint in meters.
+  base_stiffness:
+    range: float
+    description: >-
+      Undamaged stiffness in N/m as serialized by the generators.
+      Sibling of the required `stiffness` slot; the generators write
+      this key today (schema/writer drift, noted by Malleus H1).
+  joint_name:
+    range: string
+    description: >-
+      Semantic joint name (e.g. left_hip) when the constraint is a
+      skeletal joint.
+  entity_id:
+    range: integer
+    description: >-
+      Owning-entity back-reference the totem generator serializes on
+      its constraints. Relation-shaped data stored as a property;
+      declared as written (Malleus H1), migration to a real relation
+      is follow-up work.
+  offset_a_x:
+    range: float
+    description: Attachment offset of endpoint A, local X, meters.
+  offset_a_y:
+    range: float
+    description: Attachment offset of endpoint A, local Y, meters.
+  offset_a_z:
+    range: float
+    description: Attachment offset of endpoint A, local Z, meters.
+  offset_b_x:
+    range: float
+    description: Attachment offset of endpoint B, local X, meters.
+  offset_b_y:
+    range: float
+    description: Attachment offset of endpoint B, local Y, meters.
+  offset_b_z:
+    range: float
+    description: Attachment offset of endpoint B, local Z, meters.
 
   # --- HasPhysicalCapability mixin ---
   part_strength:
@@ -1017,6 +1297,483 @@ slots:
   body_part_name:
     range: string
     description: Anatomical name of the body part.
+  body_part:
+    range: string
+    description: >-
+      Legacy sibling of body_part_name written by one humanoid
+      generator path and read by KGModule's part lookup. Declared as
+      written (Malleus H1); collapsing the two keys is follow-up work.
+
+  # --- FORGE capability keys ---
+  # The runtime keys are dotted (cap.<capability>.<field>); a dot is
+  # not a legal C++ identifier, so each slot carries the real key in
+  # a kg_key annotation, which generate_registry.py prefers over the
+  # slot name when emitting the ontology registry. The generated C++
+  # header keeps the underscored name.
+  cap_list:
+    range: string
+    description: Comma-separated capability names this body part contributes to.
+  cap_locomotion_weight:
+    range: float
+    annotations:
+      kg_key: cap.locomotion.weight
+  cap_locomotion_side:
+    range: string
+    annotations:
+      kg_key: cap.locomotion.side
+  cap_manipulation_weight:
+    range: float
+    annotations:
+      kg_key: cap.manipulation.weight
+  cap_manipulation_side:
+    range: string
+    annotations:
+      kg_key: cap.manipulation.side
+  cap_rotation_weight:
+    range: float
+    annotations:
+      kg_key: cap.rotation.weight
+  cap_rotation_side:
+    range: string
+    annotations:
+      kg_key: cap.rotation.side
+  cap_perception_weight:
+    range: float
+    annotations:
+      kg_key: cap.perception.weight
+  cap_perception_side:
+    range: string
+    annotations:
+      kg_key: cap.perception.side
+  cap_flight_weight:
+    range: float
+    annotations:
+      kg_key: cap.flight.weight
+  cap_flight_side:
+    range: string
+    annotations:
+      kg_key: cap.flight.side
+  cap_undulation_weight:
+    range: float
+    annotations:
+      kg_key: cap.undulation.weight
+  cap_undulation_side:
+    range: string
+    annotations:
+      kg_key: cap.undulation.side
+  cap_locomotion_expected_count:
+    range: integer
+    annotations:
+      kg_key: cap.locomotion.expected_count
+  cap_locomotion_default_mode:
+    range: string
+    annotations:
+      kg_key: cap.locomotion.default_mode
+  cap_manipulation_expected_count:
+    range: integer
+    annotations:
+      kg_key: cap.manipulation.expected_count
+  cap_manipulation_default_mode:
+    range: string
+    annotations:
+      kg_key: cap.manipulation.default_mode
+  cap_rotation_expected_count:
+    range: integer
+    annotations:
+      kg_key: cap.rotation.expected_count
+  cap_rotation_default_mode:
+    range: string
+    annotations:
+      kg_key: cap.rotation.default_mode
+  cap_perception_expected_count:
+    range: integer
+    annotations:
+      kg_key: cap.perception.expected_count
+  cap_perception_default_mode:
+    range: string
+    annotations:
+      kg_key: cap.perception.default_mode
+  cap_flight_expected_count:
+    range: integer
+    annotations:
+      kg_key: cap.flight.expected_count
+  cap_flight_default_mode:
+    range: string
+    annotations:
+      kg_key: cap.flight.default_mode
+  cap_undulation_expected_count:
+    range: integer
+    annotations:
+      kg_key: cap.undulation.expected_count
+  cap_undulation_default_mode:
+    range: string
+    annotations:
+      kg_key: cap.undulation.default_mode
+  cap_undulation_normalize:
+    range: float
+    annotations:
+      kg_key: cap.undulation.normalize
+
+  # --- Response-rule namespace ---
+  # The capability profile evaluates up to 8 response rules per
+  # body part, reading rule.<i>.{trigger, effect, effect_2..4,
+  # cascade, group} (capability_profile.cpp caps ri at 8 and ei
+  # at 4 — the bound here matches the code's, not a guess).
+  # Dotted runtime keys via kg_key, same as the cap.* family.
+  rule_0_trigger:
+    range: string
+    annotations:
+      kg_key: rule.0.trigger
+  rule_0_effect:
+    range: string
+    annotations:
+      kg_key: rule.0.effect
+  rule_0_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.0.effect_2
+  rule_0_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.0.effect_3
+  rule_0_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.0.effect_4
+  rule_0_cascade:
+    range: string
+    annotations:
+      kg_key: rule.0.cascade
+  rule_0_group:
+    range: string
+    annotations:
+      kg_key: rule.0.group
+  rule_1_trigger:
+    range: string
+    annotations:
+      kg_key: rule.1.trigger
+  rule_1_effect:
+    range: string
+    annotations:
+      kg_key: rule.1.effect
+  rule_1_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.1.effect_2
+  rule_1_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.1.effect_3
+  rule_1_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.1.effect_4
+  rule_1_cascade:
+    range: string
+    annotations:
+      kg_key: rule.1.cascade
+  rule_1_group:
+    range: string
+    annotations:
+      kg_key: rule.1.group
+  rule_2_trigger:
+    range: string
+    annotations:
+      kg_key: rule.2.trigger
+  rule_2_effect:
+    range: string
+    annotations:
+      kg_key: rule.2.effect
+  rule_2_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.2.effect_2
+  rule_2_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.2.effect_3
+  rule_2_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.2.effect_4
+  rule_2_cascade:
+    range: string
+    annotations:
+      kg_key: rule.2.cascade
+  rule_2_group:
+    range: string
+    annotations:
+      kg_key: rule.2.group
+  rule_3_trigger:
+    range: string
+    annotations:
+      kg_key: rule.3.trigger
+  rule_3_effect:
+    range: string
+    annotations:
+      kg_key: rule.3.effect
+  rule_3_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.3.effect_2
+  rule_3_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.3.effect_3
+  rule_3_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.3.effect_4
+  rule_3_cascade:
+    range: string
+    annotations:
+      kg_key: rule.3.cascade
+  rule_3_group:
+    range: string
+    annotations:
+      kg_key: rule.3.group
+  rule_4_trigger:
+    range: string
+    annotations:
+      kg_key: rule.4.trigger
+  rule_4_effect:
+    range: string
+    annotations:
+      kg_key: rule.4.effect
+  rule_4_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.4.effect_2
+  rule_4_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.4.effect_3
+  rule_4_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.4.effect_4
+  rule_4_cascade:
+    range: string
+    annotations:
+      kg_key: rule.4.cascade
+  rule_4_group:
+    range: string
+    annotations:
+      kg_key: rule.4.group
+  rule_5_trigger:
+    range: string
+    annotations:
+      kg_key: rule.5.trigger
+  rule_5_effect:
+    range: string
+    annotations:
+      kg_key: rule.5.effect
+  rule_5_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.5.effect_2
+  rule_5_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.5.effect_3
+  rule_5_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.5.effect_4
+  rule_5_cascade:
+    range: string
+    annotations:
+      kg_key: rule.5.cascade
+  rule_5_group:
+    range: string
+    annotations:
+      kg_key: rule.5.group
+  rule_6_trigger:
+    range: string
+    annotations:
+      kg_key: rule.6.trigger
+  rule_6_effect:
+    range: string
+    annotations:
+      kg_key: rule.6.effect
+  rule_6_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.6.effect_2
+  rule_6_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.6.effect_3
+  rule_6_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.6.effect_4
+  rule_6_cascade:
+    range: string
+    annotations:
+      kg_key: rule.6.cascade
+  rule_6_group:
+    range: string
+    annotations:
+      kg_key: rule.6.group
+  rule_7_trigger:
+    range: string
+    annotations:
+      kg_key: rule.7.trigger
+  rule_7_effect:
+    range: string
+    annotations:
+      kg_key: rule.7.effect
+  rule_7_effect_2:
+    range: string
+    annotations:
+      kg_key: rule.7.effect_2
+  rule_7_effect_3:
+    range: string
+    annotations:
+      kg_key: rule.7.effect_3
+  rule_7_effect_4:
+    range: string
+    annotations:
+      kg_key: rule.7.effect_4
+  rule_7_cascade:
+    range: string
+    annotations:
+      kg_key: rule.7.cascade
+  rule_7_group:
+    range: string
+    annotations:
+      kg_key: rule.7.group
+
+  rule_group_0_name:
+    range: string
+    annotations:
+      kg_key: rule_group.0.name
+  rule_group_0_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.0.enabled
+  rule_group_1_name:
+    range: string
+    annotations:
+      kg_key: rule_group.1.name
+  rule_group_1_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.1.enabled
+  rule_group_2_name:
+    range: string
+    annotations:
+      kg_key: rule_group.2.name
+  rule_group_2_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.2.enabled
+  rule_group_3_name:
+    range: string
+    annotations:
+      kg_key: rule_group.3.name
+  rule_group_3_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.3.enabled
+  rule_group_4_name:
+    range: string
+    annotations:
+      kg_key: rule_group.4.name
+  rule_group_4_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.4.enabled
+  rule_group_5_name:
+    range: string
+    annotations:
+      kg_key: rule_group.5.name
+  rule_group_5_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.5.enabled
+  rule_group_6_name:
+    range: string
+    annotations:
+      kg_key: rule_group.6.name
+  rule_group_6_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.6.enabled
+  rule_group_7_name:
+    range: string
+    annotations:
+      kg_key: rule_group.7.name
+  rule_group_7_enabled:
+    range: boolean
+    annotations:
+      kg_key: rule_group.7.enabled
+
+  # --- Creature rig bookkeeping ---
+  height:
+    range: float
+    description: Total height in meters.
+  walk_speed:
+    range: float
+    description: Walking pace in m/s.
+  run_speed:
+    range: float
+    description: Running pace in m/s.
+  walk_frequency:
+    range: float
+    description: Walk-cycle step frequency in Hz.
+  run_frequency:
+    range: float
+    description: Run-cycle step frequency in Hz.
+  leg_spacing:
+    range: float
+    description: Lateral hip-to-hip leg spacing in meters.
+  shoulder_offset:
+    range: float
+    description: Lateral shoulder offset from the spine in meters.
+  ear_offset:
+    range: float
+    description: Lateral ear offset from the head center in meters.
+  reflexes_ms:
+    range: float
+    description: Neural response latency in milliseconds.
+  grit_W:
+    range: float
+    description: Sustained power output in watts.
+  hips_particle:
+    range: integer
+    description: Stable KGParticleID of the hips particle.
+  center_particle:
+    range: integer
+    description: Stable KGParticleID of the body-center particle.
+  abdomen_particle:
+    range: integer
+    description: Stable KGParticleID of the abdomen particle.
+  torso_particle:
+    range: integer
+    description: Stable KGParticleID of the torso particle.
+  camera_follow_particle:
+    range: integer
+    description: Stable KGParticleID the camera follows.
+  neck_particle:
+    range: integer
+    description: Stable KGParticleID of the neck particle.
+  head_particle:
+    range: integer
+    description: Stable KGParticleID of the head particle.
+  left_arm_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of the left arm chain.
+  right_arm_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of the right arm chain.
+  left_leg_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of the left leg chain.
+  right_leg_particles:
+    range: string
+    description: Comma-separated KGParticleIDs of the right leg chain.
 
   # --- Event ---
   source_entity_id:

@@ -150,7 +150,7 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
 
     // Create root entity
     kg::EntityID butterfly_entity = kg_->createEntity("Butterfly");
-    kg_->setProperty(butterfly_entity, "type", "Butterfly");
+    // "type" stamp removed (Malleus H1): Entity::type already carries it.
 
     // Store base position
     kg_->setProperty(butterfly_entity, "position_x", std::to_string(world_x));
@@ -184,6 +184,13 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
     // THORAX SEGMENTS - Variable number (1-4), each with its own wing pair
     int num_thorax = spec.num_thorax_segments;
 
+    // Comma-separated particle lists (same pattern as the humanoid's
+    // left_arm_particles). Replaces the old per-index thorax_<i> /
+    // left_wing_<i> / right_wing_<i> keys, whose unbounded names the
+    // ontology could not declare and the KG gate (Malleus H1) rejects.
+    std::string thorax_list, left_wing_list, right_wing_list;
+    unsigned int first_thorax = 0, first_left_wing = 0, first_right_wing = 0;
+
     // Create each thorax segment with its own wing pair
     for (int i = 0; i < num_thorax; i++) {
         // Create thorax segment
@@ -194,7 +201,9 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
             butterfly_entity
         );
         all_particles.push_back(thorax);
-        kg_->setProperty(butterfly_entity, "thorax_" + std::to_string(i), std::to_string(thorax));
+        if (i == 0) first_thorax = thorax;
+        if (!thorax_list.empty()) thorax_list += ",";
+        thorax_list += std::to_string(thorax);
 
         float wing_attach_y = world_y + body_offset;
         float wing_attach_z = world_z + spec.thorax_size/2;
@@ -222,7 +231,9 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
             butterfly_entity
         );
         all_particles.push_back(left_wing);
-        kg_->setProperty(butterfly_entity, "left_wing_" + std::to_string(i), std::to_string(left_wing));
+        if (i == 0) first_left_wing = left_wing;
+        if (!left_wing_list.empty()) left_wing_list += ",";
+        left_wing_list += std::to_string(left_wing);
 
         // Right wing for this segment
         float right_wing_x = world_x + spec.wing_span / 2.0f;
@@ -235,7 +246,9 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
             butterfly_entity
         );
         all_particles.push_back(right_wing);
-        kg_->setProperty(butterfly_entity, "right_wing_" + std::to_string(i), std::to_string(right_wing));
+        if (i == 0) first_right_wing = right_wing;
+        if (!right_wing_list.empty()) right_wing_list += ",";
+        right_wing_list += std::to_string(right_wing);
 
         body_offset += spec.thorax_size;
     }
@@ -250,16 +263,17 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
     all_particles.push_back(abdomen);
     kg_->setProperty(butterfly_entity, "abdomen_particle", std::to_string(abdomen));
 
-    // Set primary particle references for dynamics system (use first segment)
-    // Dynamics system expects single particles with these property names
+    // Full segment lists plus primary references (first segment) for
+    // the dynamics system, which expects single particles under the
+    // *_particle names.
     if (num_thorax > 0) {
-        auto thorax_0_str = kg_->getProperty(butterfly_entity, "thorax_0");
-        auto left_wing_0_str = kg_->getProperty(butterfly_entity, "left_wing_0");
-        auto right_wing_0_str = kg_->getProperty(butterfly_entity, "right_wing_0");
+        kg_->setProperty(butterfly_entity, "thorax_particles", thorax_list);
+        kg_->setProperty(butterfly_entity, "left_wing_particles", left_wing_list);
+        kg_->setProperty(butterfly_entity, "right_wing_particles", right_wing_list);
 
-        kg_->setProperty(butterfly_entity, "thorax_particle", thorax_0_str);
-        kg_->setProperty(butterfly_entity, "left_wing_particle", left_wing_0_str);
-        kg_->setProperty(butterfly_entity, "right_wing_particle", right_wing_0_str);
+        kg_->setProperty(butterfly_entity, "thorax_particle", std::to_string(first_thorax));
+        kg_->setProperty(butterfly_entity, "left_wing_particle", std::to_string(first_left_wing));
+        kg_->setProperty(butterfly_entity, "right_wing_particle", std::to_string(first_right_wing));
     }
 
     // Store wing span for dynamics (distance between wing attach points)

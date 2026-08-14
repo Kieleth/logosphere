@@ -85,7 +85,10 @@ void test_event_carries_target_entity_id() {
         });
 
     auto e = kg.createEntity("Humanoid");
-    kg.setProperty(e, "foo", "bar");
+    // A declared property (Describable.description): setProperty is
+    // ontology-gated now (Malleus H1), and this test is about event
+    // payloads, not the gate.
+    kg.setProperty(e, "description", "gate-checked write");
 
     ASSERT(!captured_target.empty(), "target_entity_id populated");
     ASSERT(captured_target == std::to_string(e),

@@ -515,8 +515,9 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
     std::cout << "[HUMANOID] Generating humanoid at (" << world_x << ", " << world_y << ", " << world_z << ")" << std::endl;
 
     // Create root entity
+    // No "type" property: Entity::type already carries it, the KG
+    // gate (Malleus H1) rejects the shadow key, and nothing read it.
     kg::EntityID humanoid_entity = kg_->createEntity("Humanoid");
-    kg_->setProperty(humanoid_entity, "type", "Humanoid");
     kg_->setProperty(humanoid_entity, "height", std::to_string(spec.total_height));
 
     // Track this entity
@@ -526,7 +527,8 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
     kg_->setProperty(humanoid_entity, "position_x", std::to_string(world_x));
     kg_->setProperty(humanoid_entity, "position_y", std::to_string(world_y));
     kg_->setProperty(humanoid_entity, "position_z", std::to_string(world_z));
-    kg_->setProperty(humanoid_entity, "behavior", "look_at_mouse");
+    // "behavior" = "look_at_mouse" removed (Malleus H1): input policy
+    // is game territory, no engine or game code ever read the key.
 
     // ONLY CREATE FEET + SHINS
     std::vector<unsigned int> all_particles;
