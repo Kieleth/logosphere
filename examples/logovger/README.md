@@ -48,8 +48,37 @@ LOGOVGER_LLM_MODEL=mlx-community/Qwen2.5-14B-Instruct-4bit \
 `logovger-bench-narrator` measures what that choice costs: the pause
 between a decision and being allowed the next one.
 
-Not yet absorbed: aging, the survival-mishap table, and injuries. A
-failed survival roll still ends the character outright.
+It also plays with nobody at the keyboard, which is where the rules get
+tested at scale:
+
+```bash
+# One life, no window, no model. The number seeds the dice AND every
+# answer, so it reproduces exactly, forever.
+./build/logovger-headless --random 28
+
+# Let the model play a character, and tape every answer it gives.
+./build/logovger-headless --record /tmp/life.tape
+
+# Replay that tape without calling the model again.
+./build/logovger-headless --replay /tmp/life.tape
+
+# Sweep lives and ask a model which of them the book does not allow.
+# Findings carry their seed, so checking one costs a replay.
+python3 examples/logovger/tools/audit_lives.py \
+    ./build/logovger-headless 1 40 examples/logovger/audits/lives.json
+```
+
+Aging, the survival-mishap table and injuries all play: a failed
+survival roll is death unless the Referee allows the mishap table, a
+mishap can end a career and cost years, and a characteristic driven to
+zero raises a crisis that is paid for or fatal.
+
+Not yet absorbed, and each knowingly so: anagathics, the retirement
+pension, medical care costs and coverage, noble titles, and cascade
+skill specialisation. Rules whose numbers are in the graph but whose
+derivation is not — the per-term benefit count and the prior-career
+qualification penalty — say so on themselves in `unmodelled`, and wait
+on a rule language that today ships a type system and no operators.
 
 ## What this demonstrates about the engine
 
@@ -92,6 +121,13 @@ proves. All were reported upstream rather than silently corrected.
 - **Zero invention, minimum translation.** If the book says 2D6, we
   roll 2D6. Divergences between source texts are recorded per section
   with the choice and the reason.
+
+Absorbing a different book? **[Rules as
+Data](../../docs/RULES_AS_DATA.md)** is what this cost us to learn:
+where the line between data and code actually falls, why a rule must
+never be found by its printed name, how a value proves itself against
+the text that states it, how the rules come to check themselves, and
+the failure modes we hit so you can skip them.
 
 ## Sources and licenses
 

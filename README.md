@@ -97,6 +97,18 @@ back here.
   event types: declared in the ontology or registered at startup.
   Engine logic dispatches through lookup tables, not hardcoded
   switches.
+- **Rules that check themselves.** A published rulebook can be read
+  into the graph as cited data: every value proves itself against the
+  sentence or table cell that states it, and every roll records the
+  rule entity that made it. The graph plus the dice journal is then
+  enough to re-derive what a rule permitted and compare it to what
+  happened, so a rule added tomorrow is checked without anyone writing
+  a test for it. See [Rules as Data](docs/RULES_AS_DATA.md).
+- **Runs you can replay exactly.** Any game runs headless, with no
+  window and no clock, and what happened is kept separate from what was
+  decided. A run records to a tape and replays byte for byte, so a bug
+  found by sweeping thousands of runs arrives as a seed rather than a
+  description. See [Record and Replay](docs/RECORD_AND_REPLAY.md).
 - **Opt-in subsystems.** Damage, LLM, capabilities. A puzzle game
   uses none of them, a combat game uses all of them, the engine does
   not care either way.
@@ -274,6 +286,13 @@ bus, capability rules).
 holds the invariants every change must honor;
 **[Module Architecture](docs/MODULE_ARCHITECTURE.md)** maps the
 Core / Modules / Plugins organization.
+
+**Bringing an existing rulebook?** Read **[Rules as
+Data](docs/RULES_AS_DATA.md)** before you start. It covers where the
+line between rule-as-data and rule-as-code actually falls, why a rule
+must never be found by its printed name, how a value proves itself
+against the text that states it, and the failure modes we hit absorbing
+the Cepheus Engine SRD.
 
 **Contributing to the engine?** See **[docs/INDEX.md](docs/INDEX.md)**
 for the full documentation table of contents organized by audience,
