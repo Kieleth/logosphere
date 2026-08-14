@@ -1142,6 +1142,87 @@ void test_a_roll_names_the_rule_that_made_it() {
               std::to_string(with_rule));
 }
 
+// "You begin as a Rank 0 character." Twenty-three of the twenty-four
+// careers print something in that row of their Ranks and Skills table
+// - Aerospace gives Aircraft-1, Navy Zero-G-1, Physician Medicine-1 -
+// and every one of those grants is in the graph, cited to the cell it
+// came from, read by nothing. Every character finishes a skill level
+// short of what the book gives them.
+//
+// Written before the fix, and asserting what the CHARACTER ends up
+// holding rather than how the grant is delivered, so it survives the
+// wiring that makes it pass.
+void test_joining_a_career_grants_its_rank_zero_skill() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the rank-zero world: " + why);
+    if (!why.empty()) return;
+
+    // What the book says each career starts you on, read from the
+    // graph: the rank-0 step of its track, and the skill its grant
+    // names. Nothing here is a list of careers we chose to check.
+    std::map<std::string, std::string> owed;
+    for (const auto row : world.findByType("CareerTrackEntry")) {
+        const std::string subject = world.getProperty(row, "subject");
+        const std::string track = world.getProperty(row, "track");
+        if (subject.empty() || track.empty()) continue;
+        for (const auto step : world.getRelated(
+                 static_cast<kg::EntityID>(std::stoul(track)), "HAS_PART")) {
+            if (world.getProperty(step, "step_index") != "0") continue;
+            const std::string grant = world.getProperty(step, "grants");
+            if (grant.empty()) continue;
+            const std::string skill = world.getProperty(
+                static_cast<kg::EntityID>(std::stoul(grant)), "skill");
+            if (skill.empty()) continue;
+            owed[world.getProperty(
+                static_cast<kg::EntityID>(std::stoul(subject)), "name")] =
+                world.getProperty(
+                    static_cast<kg::EntityID>(std::stoul(skill)), "name");
+        }
+    }
+    CHECK(owed.size() >= 20,
+          "the graph knows what most careers start you on: " +
+              std::to_string(owed.size()) + " of 24");
+
+    std::string missing;
+    int checked = 0;
+    for (const auto& pair : owed) {
+        // Asking for a career is not joining one: the qualification
+        // throw can turn you away and the Draft puts you somewhere
+        // else. Walk seeds until the dice let this career happen.
+        bool joined = false;
+        for (unsigned seed = 1; seed <= 60 && !joined; ++seed) {
+            logosphere::dice::DiceService dice;
+            logovger::ChargenSession session(world, dice);
+            std::string error;
+            CHECK(session.begin(seed, error), "a life begins: " + error);
+            if (!session.choose(pair.first, error)) continue;
+            if (session.sheet().career != pair.first) continue;
+            joined = true;
+            ++checked;
+            const auto held = skills_held(world, session.sheet().id);
+            const auto found = held.find(pair.second);
+            const int level = found == held.end() ? -1 : found->second;
+            if (level < 1) {
+                missing += (missing.empty() ? "" : "; ") + pair.first +
+                           " owes " + pair.second + "-1, holds " +
+                           (level < 0 ? "nothing"
+                                      : "level " + std::to_string(level));
+            }
+        }
+        if (!joined) {
+            missing += (missing.empty() ? "" : "; ") + pair.first +
+                       " was never joined in 60 seeds";
+        }
+    }
+    std::cout << "  [measure] " << owed.size()
+              << " careers print a rank 0 skill, " << checked
+              << " were joined and checked\n";
+    CHECK(missing.empty(),
+          "joining a career grants the skill its rank 0 row prints: " +
+              missing);
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2400,6 +2481,7 @@ int main() {
     test_leaving_a_career_offers_another_one();
     test_basic_training_grants_what_the_book_promises();
     test_a_roll_names_the_rule_that_made_it();
+    test_joining_a_career_grants_its_rank_zero_skill();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();
