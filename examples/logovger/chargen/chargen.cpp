@@ -2322,6 +2322,47 @@ bool run_chargen(const ChargenRequest& request,
             if (!session.choose(service, error)) return false;
             continue;
         }
+        // "You must either submit to the Draft or take the Drifter
+        // career for this term." A real decision with real
+        // consequences, and the auto-player used to refuse it: about
+        // 29% of swept seeds produced no life at all, so a third of
+        // the space the sweeps exist to search went unsearched.
+        //
+        // It alternates on the seed instead. Both paths get exercised
+        // - the Draft rolls a table and six EnterCareer outcomes that
+        // nothing else reaches - and a given seed always does the same
+        // thing, so a finding still replays exactly. This is the
+        // HARNESS choosing where the book leaves a choice open, which
+        // is why it lives here and not in the session.
+        // "For any subsequent careers, you may pick any one skill
+        // listed in the Service Skills table at Level 0." Only reached
+        // once the auto-player started taking second careers, which is
+        // what answering Draft-or-Drifter above made possible. It
+        // takes the first, for the same reason it takes Service
+        // Skills: deterministic, and it has no taste.
+        if (session.prompt().find("which service skill do they start you "
+                                  "on") != std::string::npos) {
+            if (choices.empty()) {
+                error = "no service skill offered on joining";
+                return false;
+            }
+            if (!session.choose(choices.front().key, error)) return false;
+            continue;
+        }
+        const auto drafted = std::find_if(
+            choices.begin(), choices.end(), [](const Choice& choice) {
+                return choice.label == "Submit to the Draft";
+            });
+        const auto drifter = std::find_if(
+            choices.begin(), choices.end(), [](const Choice& choice) {
+                return choice.label == "Take the Drifter career";
+            });
+        if (drafted != choices.end() && drifter != choices.end()) {
+            const auto& taken =
+                (request.seed % 2) == 0 ? *drafted : *drifter;
+            if (!session.choose(taken.key, error)) return false;
+            continue;
+        }
         break;
     }
     if (!session.finished() && !session.choices().empty() &&

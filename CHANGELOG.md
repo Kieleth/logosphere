@@ -11,6 +11,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ---
 
+## [0.4.1] - 2026-08-14
+
+### Fixed
+
+- The character-generation auto-player answers the Draft-versus-Drifter
+  question the book asks a refused character, alternating on the seed
+  so both paths are exercised and a given seed still replays exactly.
+  It previously refused, and about 29% of swept seeds produced no life
+  at all: a third of the space the sweeps exist to search went
+  unsearched. Sweeps now generate 330 lives where they generated 210,
+  with none abandoned mid-question.
+
 ## [0.4.0] - 2026-08-14
 
 The rules a game plays by can now live in the graph and check
