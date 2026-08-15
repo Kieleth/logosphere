@@ -7,6 +7,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- **Git integration policy, mechanically enforced.** Rebasing is
+  refused by a tracked `pre-rebase` hook with no override; force-pushes
+  and pushes to `main` are refused by `pre-push`. A third check refuses
+  a branch that deletes lines which landed on `main` after the branch
+  started, which is how three merged pull requests were reverted with
+  CI green throughout. `cmake -S . -B build` installs the hooks and
+  sets `pull.rebase=false` / `pull.ff=only`, or run
+  `./scripts/install-git-hooks.sh`. The rule and its reason are in
+  CONTRIBUTING.md and CLAUDE.md; the `merge-policy` CI job re-checks
+  it on every PR.
+
 ### Removed
 - **BREAKING: `ParticleSolverMode::STATIC` is gone.** It was accepted
   from the KG (`solver_authority: STATIC`) and handled by nothing in

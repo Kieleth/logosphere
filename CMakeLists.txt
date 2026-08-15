@@ -33,6 +33,12 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_info.cmake)
 
+# Point this clone's git at the tracked .githooks/ directory (never
+# rebase, never force-push, never push to main). Configure time is the
+# install step because .git/hooks does not survive a clone and a
+# documented "run this once" step does not survive an agent session.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/git_hooks.cmake)
+
 # ----------------------------------------------------------------------
 # Build profiles
 # ----------------------------------------------------------------------
