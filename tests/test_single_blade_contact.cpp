@@ -32,6 +32,7 @@
 // must exist, be bonded, and actually get hit, or the run says so and fails.
 // =============================================================================
 
+#include "generated/earth_ontology_registry.h"
 #include "../src/core/engine.h"
 #include "../src/core/explosion_detector.h"
 #include "../src/core/particle_system.h"
@@ -75,9 +76,13 @@ bool test_single_blade_contact() {
 
     {   // ontology, the sanctioned way
         kg::OntologyRegistry reg;
-        reg.addEntityType("Grass", "Plant", false);
-        reg.addAncestors("Grass", {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        engine.get_kg().extendOntology(reg);
+        // The union-merged registry validates parents (malleus H2 made real):
+        // a runtime extension must declare the chain it claims.
+        // The CANONICAL grass vocabulary: the generated earth-pack
+        // registry. Hand-rolled fixture registries drifted from the
+        // generator's real writes 16 keys deep (2026-08-14).
+        (void)reg;
+        engine.get_kg().extendOntology(earth::ontology::registry());
     }
 
     auto& ps = engine.get_particle_system();

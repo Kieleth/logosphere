@@ -37,7 +37,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("RockSize", {"LARGE_BOULDER", "MEDIUM_ROCK", "PEBBLE", "SMALL_ROCK"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("SemanticChannel", {"ABDUCT", "FLEX", "TWIST"});
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);
@@ -445,6 +445,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Floor", "floor_kind", kg::PropertyValueKind::String, false);
     reg.addProperty("Floor", "layer_index", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Floor", "layer_name", kg::PropertyValueKind::String, false);
+    reg.addProperty("Floor", "ground_r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_b", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addProperty("Grass", "tilt_angle", kg::PropertyValueKind::Float, false);
     reg.addProperty("Grass", "parent_patch", kg::PropertyValueKind::Integer, false);
@@ -569,6 +572,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addEnumProperty("Rock", "rock_size", "RockSize", false);
     reg.addProperty("Rock", "rock_type", kg::PropertyValueKind::String, false);
+    reg.addProperty("Rock", "drop_height", kg::PropertyValueKind::Float, false);
     reg.addProperty("Snake", "length", kg::PropertyValueKind::Float, false);
     reg.addProperty("Snake", "num_segments", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Snake", "body_segments", kg::PropertyValueKind::String, false);

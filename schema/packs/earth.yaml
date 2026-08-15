@@ -187,6 +187,7 @@ classes:
     slots:
       - rock_size
       - rock_type
+      - drop_height
 
   PhysicsRock:
     is_a: Rock
@@ -282,6 +283,11 @@ slots:
       "boulder"; the physics generator writes a numeric spec-type
       index on the same key (drift noted by Malleus H1). String range
       accepts both.
+  drop_height:
+    range: float
+    description: >-
+      Height a rock is released from at creation; with it the rock
+      arrives as a falling body rather than a placed one.
   density:
     range: float
     description: >-

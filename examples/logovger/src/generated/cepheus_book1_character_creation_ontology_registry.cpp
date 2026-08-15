@@ -30,7 +30,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("RuleLanguageRelationType", {"FUNCTION_SIGNATURE_HAS_PARAMETER", "LET_EXPRESSION_HAS_BINDING"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("SemanticChannel", {"ABDUCT", "FLEX", "TWIST"});
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);
@@ -865,6 +865,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Floor", "floor_kind", kg::PropertyValueKind::String, false);
     reg.addProperty("Floor", "layer_index", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Floor", "layer_name", kg::PropertyValueKind::String, false);
+    reg.addProperty("Floor", "ground_r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_b", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("FunctionParameterSpec", "parameter_key", kg::PropertyValueKind::String, true);
     reg.addRefProperty("FunctionParameterSpec", "parameter_type", true, "ValueTypeDescriptor");

@@ -31,8 +31,36 @@ applies to anyone working on physics here, human or agent.
 4. **No time estimates, ever.** Slices sequenced by dependency only.
    We move as slow as needed to build fundamentals.
 
+## THE BOARD IS THE STARTING POINT (directive)
+
+**`docs/todo_plans/PHYSICS_BOARD.md` is read before anything else, on
+every physics session, without being asked.** It holds every open
+front in exactly one class — CLEAN NOW (mechanism known, adds no debt,
+no decision owed), NEEDS DESIGN (a study exists or is owed), OWNER
+RULING (engineering ready, blocked on a decision), PARKED (real,
+understood, with the reason). Every entry cites its evidence.
+
+Four rules, non-negotiable:
+
+1. **Start there.** Before proposing work, read the board and say
+   which front you are on. "What should we do next?" is answered from
+   the board, not from memory or from whatever was last discussed.
+2. **A front not on the board does not get worked.** If work appears
+   that is not there, put it on the board first — that is how it gets
+   classified instead of just started.
+3. **The board is updated in the SAME COMMIT as the work it
+   describes.** A slice that lands moves its front; a front that
+   changes class gets a line in `LEDGER.md` saying why. A stale board
+   is worse than none, because it is consulted with authority.
+4. **Protect the owner's attention.** The board exists because twenty
+   open fronts cannot be held in one head. When reporting, lead with
+   which class the work sits in and what decision (if any) is owed —
+   never hand back an undifferentiated list.
+
 ## Read first (in this order)
 
+- `docs/todo_plans/PHYSICS_BOARD.md` — **the board** (see the
+  directive above). Where every front stands and what it needs.
 - `tests/invariants/INVARIANTS.jsonl` — the laws. One INV per line;
   kind, derives_from, status (active | aspirational). Aspirational
   invariants are real commitments born red.
@@ -89,7 +117,8 @@ applies to anyone working on physics here, human or agent.
 
 ## Ship checklist
 
-Headless suite green → sweep ALONE, zero moles → docker precheck
+Board updated (the front moved, or a new one classified) → headless
+suite green → sweep ALONE, zero moles → docker precheck
 (`scripts/precheck_linux.sh`, read the markers) → CHANGELOG entry for
 anything user-facing → DCO sign-off on every commit (`git commit -s`)
 → interactive QA launched for the owner → owner says merge.

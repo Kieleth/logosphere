@@ -45,7 +45,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addEnumType("SerpentKind", {"CORAL", "GARDEN", "PYTHON"});
     reg.setSource("https://logosphere.dev/schema");
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);
@@ -562,6 +562,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Floor", "floor_kind", kg::PropertyValueKind::String, false);
     reg.addProperty("Floor", "layer_index", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Floor", "layer_name", kg::PropertyValueKind::String, false);
+    reg.addProperty("Floor", "ground_r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_b", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addProperty("Grass", "tilt_angle", kg::PropertyValueKind::Float, false);
     reg.addProperty("Grass", "parent_patch", kg::PropertyValueKind::Integer, false);
@@ -589,10 +592,10 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addProperty("GroundSeed", "ground_width", kg::PropertyValueKind::Float, false, true, 2.0, true, 200.0);
     reg.addProperty("GroundSeed", "ground_depth", kg::PropertyValueKind::Float, false, true, 2.0, true, 200.0);
-    reg.addProperty("GroundSeed", "ground_r", kg::PropertyValueKind::Float, false, true, 0.0, true, 1.0);
-    reg.addProperty("GroundSeed", "ground_g", kg::PropertyValueKind::Float, false, true, 0.0, true, 1.0);
-    reg.addProperty("GroundSeed", "ground_b", kg::PropertyValueKind::Float, false, true, 0.0, true, 1.0);
     reg.setSource("https://logosphere.dev/schema");
+    reg.addProperty("GroundSeed", "ground_r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("GroundSeed", "ground_g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("GroundSeed", "ground_b", kg::PropertyValueKind::Float, false);
     reg.addEnumProperty("GroundSeed", "terrain", "TerrainKind", false);
     reg.addProperty("Growable", "growth_iteration", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Growable", "is_mature", kg::PropertyValueKind::Boolean, false);
@@ -748,6 +751,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addEnumProperty("Rock", "rock_size", "RockSize", false);
     reg.addProperty("Rock", "rock_type", kg::PropertyValueKind::String, false);
+    reg.addProperty("Rock", "drop_height", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("RockSeed", "x", kg::PropertyValueKind::Float, false);
     reg.addProperty("RockSeed", "y", kg::PropertyValueKind::Float, false);
@@ -755,7 +759,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("RockSeed", "rock_r", kg::PropertyValueKind::Float, false, true, 0.0, true, 1.0);
     reg.addProperty("RockSeed", "rock_g", kg::PropertyValueKind::Float, false, true, 0.0, true, 1.0);
     reg.addProperty("RockSeed", "rock_b", kg::PropertyValueKind::Float, false, true, 0.0, true, 1.0);
-    reg.addProperty("RockSeed", "drop_height", kg::PropertyValueKind::Float, false, true, 0.0, true, 60.0);
+    reg.setSource("https://logosphere.dev/packs/earth");
+    reg.addProperty("RockSeed", "drop_height", kg::PropertyValueKind::Float, false);
+    reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addProperty("RockSeed", "rock_size", kg::PropertyValueKind::Float, false, true, 0.2, true, 6.0);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("SerpentSeed", "x", kg::PropertyValueKind::Float, false);

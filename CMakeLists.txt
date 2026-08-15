@@ -1226,6 +1226,45 @@ target_include_directories(test_humanoid_headless PRIVATE
 )
 target_compile_features(test_humanoid_headless PRIVATE cxx_std_17)
 
+# KINEMATIC is a transient authority: when locomotion lets go of a
+# humanoid, physics must get it back. Proves the corpse falls.
+add_executable(test_humanoid_ragdoll tests/test_humanoid_ragdoll.cpp)
+target_link_libraries(test_humanoid_ragdoll PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core)
+target_include_directories(test_humanoid_ragdoll PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_humanoid_ragdoll PRIVATE cxx_std_17)
+
+# KNOCKBACK: momentum a braced (KINEMATIC) body refuses is booked and
+# handed to whoever owns that body, not dropped.
+add_executable(test_humanoid_knockback tests/test_humanoid_knockback.cpp)
+target_link_libraries(test_humanoid_knockback PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core)
+target_include_directories(test_humanoid_knockback PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_humanoid_knockback PRIVATE cxx_std_17)
+
+# The refusal ledger must hold what a braced body refused. It booked
+# 2.5% of it until 2026-08-14; this is what keeps it honest.
+add_executable(test_refused_momentum_ledger tests/test_refused_momentum_ledger.cpp)
+# logosphere_core and logosphere_dynamics reference each other, and
+# this test names neither directly, so GNU ld (left-to-right, one pass
+# per archive) drops dynamics before core asks for
+# notify_particle_swap. Apple's linker resolves it either way, which is
+# why it built here and failed the Linux precheck. Repeat the archive.
+target_link_libraries(test_refused_momentum_ledger PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_refused_momentum_ledger PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
+
 # Phase 4b C2 — pin-gluon lifecycle round-trip. Same headless setup as
 # test_humanoid_headless. Spawns a stub humanoid, opts in via
 # enable_physics_drive_legs, walks → stops, asserts anchor + pin gluon
@@ -2106,6 +2145,8 @@ set(TEST_SOURCES
     tests/test_constraint_order_matters.cpp    # S19 re-run: does constraint order change it?
     tests/test_physics_battery.cpp             # scenario ladder: one mechanism per rung
     tests/test_rotation_ladder.cpp             # rotation TDD: red first, one rung at a time
+    tests/test_rube_goldberg_machine.cpp       # one chain reaction, every stage an invariant
+    tests/test_sleep_wake_resolver.cpp         # INV-31 red-first: twin-scene invisibility
     tests/test_grass_natures.cpp               # the palette on real grass + human over a blade
     tests/test_settling.cpp                    # focused TDD: wiggle-free rest, and resting ON the ground
     tests/test_async_prep_churn.cpp            # issue #31: KG lookup must stay on the frame thread

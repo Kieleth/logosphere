@@ -35,7 +35,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("OdorType", {"BLOOD", "DECAY", "FRESH_MEAT", "LIVING_FLESH", "NONE", "ROTTEN", "SMOKE"});
     reg.addEnumType("PatternId", {"COTTON", "EMBROIDERY", "HAIR", "LEATHER", "LINEN", "NONE", "SILK", "SKIN", "SKIN_REPTILE", "STONE", "WOOD"});
     reg.addEnumType("SemanticChannel", {"ABDUCT", "FLEX", "TWIST"});
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.setSource("https://logosphere.dev/logotron/schema");
     reg.addEnumType("TrailState", {"FADING", "PHASED", "SOLID"});
@@ -270,6 +270,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Arena", "grid_fog", kg::PropertyValueKind::Integer, false, true, 0.0, true, 1.0);
     reg.addProperty("ArenaCell", "grid_x", kg::PropertyValueKind::Integer, false);
     reg.addProperty("ArenaCell", "grid_y", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("ArenaWall", "grid_x", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("ArenaWall", "grid_y", kg::PropertyValueKind::Integer, false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("BodyPart", "body_part_name", kg::PropertyValueKind::String, false);
     reg.addProperty("BodyPart", "body_part", kg::PropertyValueKind::String, false);
@@ -417,6 +419,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Floor", "floor_kind", kg::PropertyValueKind::String, false);
     reg.addProperty("Floor", "layer_index", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Floor", "layer_name", kg::PropertyValueKind::String, false);
+    reg.addProperty("Floor", "ground_r", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_g", kg::PropertyValueKind::Float, false);
+    reg.addProperty("Floor", "ground_b", kg::PropertyValueKind::Float, false);
     reg.addProperty("Growable", "growth_iteration", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Growable", "is_mature", kg::PropertyValueKind::Boolean, false);
     reg.addProperty("Growable", "species", kg::PropertyValueKind::String, false);

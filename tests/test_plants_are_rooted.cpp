@@ -49,6 +49,7 @@
 //   ./build-release/logosphere-tests --test test_plants_are_rooted --no-head
 // =============================================================================
 
+#include "generated/earth_ontology_registry.h"
 #include "../src/core/engine.h"
 #include "../src/core/particle_system.h"
 #include "../src/particle.h"
@@ -195,11 +196,13 @@ bool test_plants_are_rooted() {
     // returns 0 and the test fails on plumbing instead of on physics.
     {
         kg::OntologyRegistry reg;
-        reg.addEntityType("Grass",      "Plant", /*is_abstract=*/false);
-        reg.addEntityType("GrassPatch", "Plant", false);
-        reg.addAncestors("Grass",      {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        reg.addAncestors("GrassPatch", {"Plant", "LivingEntity", "WorldEntity", "Entity"});
-        engine.get_kg().extendOntology(reg);
+        // The union-merged registry validates parents (malleus H2 made real):
+        // a runtime extension must declare the chain it claims.
+        // The CANONICAL grass vocabulary: the generated earth-pack
+        // registry. Hand-rolled fixture registries drifted from the
+        // generator's real writes 16 keys deep (2026-08-14).
+        (void)reg;
+        engine.get_kg().extendOntology(earth::ontology::registry());
     }
 
     // Eden plants both, 26 short to 14 tall. The existing gate only ever ran

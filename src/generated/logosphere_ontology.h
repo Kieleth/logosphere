@@ -691,10 +691,10 @@ inline bool from_string(const char* str, WorldEventType& out) {
 enum class SolverAuthority {
     /// Physics owns it. Gravity pulls it, contacts push it, impulses move it. The default, and right for anything loose, alive, or meant to be knocked about.
     DYNAMIC,
-    /// The body owns its own position. Nothing moves it - not gravity, not impact - and it still collides, so things stand and land on it. This is what terrain IS: floors, worlds, anything that must simply be there.
-    KINEMATIC,
-    /// Immovable and inert. Like KINEMATIC, but never expected to be repositioned by anyone.
-    STATIC
+    /// An external writer owns this body's position RIGHT NOW: animation, locomotion, a scripted driver. Physics will not move it while that lasts, and it still collides, so things land on it.
+    /// It is a TRANSIENT AUTHORITY, not a label. Whoever sets it owns releasing it: a body left KINEMATIC after its driver stops can never fall, tip or ragdoll again. Driving complex animation through physics is the thing this escape hatch exists to avoid - nothing else.
+    /// NOT for scenery. Terrain, floors and worlds are not immovable by declaration (INV-1: the turtle boundary is the only intrinsically immovable thing). They rest on the turtle, on anchored bonds, or on the modelled EFFECT of the mass we choose not to simulate - which is also where gravity comes from. A body that should float escapes the field; it is not nailed to the air.
+    KINEMATIC
 };
 
 /// Convert SolverAuthority to its string representation.
@@ -702,7 +702,6 @@ inline const char* to_string(SolverAuthority value) {
     switch (value) {
         case SolverAuthority::DYNAMIC: return "DYNAMIC";
         case SolverAuthority::KINEMATIC: return "KINEMATIC";
-        case SolverAuthority::STATIC: return "STATIC";
     }
     return "unknown";
 }
@@ -711,7 +710,6 @@ inline const char* to_string(SolverAuthority value) {
 inline bool from_string(const char* str, SolverAuthority& out) {
     if (std::strcmp(str, "DYNAMIC") == 0) { out = SolverAuthority::DYNAMIC; return true; }
     if (std::strcmp(str, "KINEMATIC") == 0) { out = SolverAuthority::KINEMATIC; return true; }
-    if (std::strcmp(str, "STATIC") == 0) { out = SolverAuthority::STATIC; return true; }
     return false;
 }
 
@@ -1125,6 +1123,12 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
+    /// Ground red tint component, 0..1.
+    std::optional<float> ground_r = std::nullopt;
+    /// Ground green tint component, 0..1.
+    std::optional<float> ground_g = std::nullopt;
+    /// Ground blue tint component, 0..1.
+    std::optional<float> ground_b = std::nullopt;
 };
 
 

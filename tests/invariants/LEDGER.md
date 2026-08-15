@@ -440,3 +440,224 @@ ancestors; it now loads the real earth pack.
 Prover: test_kg_property_gate (14 checks: three rejection classes
 observed as SIGABRT with the actionable message asserted, pass-path
 controls, lenient semantics, measured costs printed).
+
+## 2026-08-14 — Wake is solved physics (owner decree, machine catch #1)
+
+The Rube Goldberg machine's S3 red RCA'd to the contact wake gate:
+`(m_a/(m_a+m_s))·speed >= WAKE_TRANSFER_SPEED (1.0 m/s)`, a pre-solve
+guess. Below the gate a sleeper is priced immovable and the mover's
+momentum is destroyed (probe f271: ball+box0 at 1.67 m/s, 343 kg·m/s
+-> ~-24 in one frame against sleeping box1, equal mass, which never
+woke). Owner ruling, verbatim intent: "we need a smart solver with
+law-INV founded rules, not a simple 1 m/s interaction; the awake
+moment needs to be calculated, or even pre-calculated; a grain of
+sand hit by a 1 m/s particle is not the same as a castle wall hit by
+a grain at 1 m/s. A sleep-awake-resolver, ontology-INV driven."
+Becomes INV-31 (aspirational) + task #56. Red ladder first; mechanism
+behind a default-off lever; WAKE_TRANSFER_SPEED path deleted only
+after the resolver goes green through machine + sweep + Eden
+characterization.
+
+## 2026-08-14 — The rest damper is eradicated (owner decree)
+
+RCA of machine S3 / resolver R1 found the frame-gated damper
+(DAMPING_FACTOR 0.90/tick below 0.4 m/s, counter-gated, reset only
+above 0.8 m/s) destroying real coasting momentum: 72 kg*m/s -> 11 in
+17 frames on a mu=0.02 floor, with contacts ferrying neighbours'
+momentum into the sink. Owner: "we need to eradicate this, quick...
+this dampening is a hack, the same as spring-modeling. A dampening is
+a dampening if it's a dampening; anything else is energy transference
+between different materials and consequences of that — physics."
+Sequencing also owner-ruled: damper first, THEN the manifold pricing
+(INV-20 x0.75 cascade) and the wake gate (INV-31), because those
+calibrate against honest physics only after the artificial sink is
+gone. Evidence after removal: resolver R1 awake twin CONSERVES
+(85.5 -> 63.9 vs 30.1 budget); ringing 1044:1, settling flat/wiggle,
+idle pose, walk gate, battery, foliage all green. The damper's
+constants stay in the registry until the cleanup commit.
+
+## 2026-08-14 — WITHDRAWN: the "manifold overshoot" (defect 2)
+
+I reported the manifold rows as pricing with the UNSPLIT effective
+mass (INV-20 violation, "3.5x overshoot") from a level-5 trace
+showing eff=12.8 on all four rows of a face contact plus an exact
+x0.75 impulse decay. Both readings were wrong:
+
+- The traced field is `c.effective_mass`, which is ALREADY the split
+  share (physics_system_v4.cpp: `c.effective_mass = effective_mass *
+  c.eff_mass_share`, share = 1/N with SPLIT_OFF unset). eff_full was
+  51.2 (target priced immovable while asleep), 12.8 per row.
+- The x0.75 decay is the CORRECT Gauss-Seidel signature of a properly
+  split manifold: each of four rows removes 1/4 of the remaining
+  approach speed, and 1 + .75 + .5625 + ... converges to
+  eff_full * v_rel = 76.15 N*s — exactly the right total.
+
+Measured proof, now permanent as ladder rung R5 (equal masses,
+frictionless, both awake): both bodies end at +0.795/+0.796 m/s
+against an analytic +0.800, momentum conserved to 0.54%.
+
+Same failure class as the five withdrawn conclusions already in this
+ledger: a number read without checking its definition. The cure this
+time is a prover in the tree, not a resolution to be careful.
+
+Standing after this: defect 1 (rest damper) was real and is
+eradicated; defect 3 (the wake gate, INV-31) is real and open.
+
+## 2026-08-14 — Sleep-awake resolver: mechanism landed behind WAKE_RESOLVER
+
+INV-31's mechanism exists (physics_system_v4.cpp: predicate no longer
+claims sleep is immovability, gravity skips sleepers on the cache's
+own reason, resolve_sleep_wakes judges the SOLVED velocity against
+REST_VELOCITY_THRESHOLD). Measured with WAKE_RESOLVER=1:
+
+- Ladder R1: the sleeping target now behaves EXACTLY like the awake
+  twin (0.690/0.691 vs 0.690/0.691, delta 0.001; momentum 70.8 vs
+  70.7 against a 23.4 budget). The cache is invisible. 12/12 rungs.
+- Machine: 3/10 -> 5/10. S3 (Newton's alley) and S4 (the wake-up:
+  a two-second-asleep stack registers an arrival, wakes, carries it)
+  both green for the first time.
+- Two chased-down door bugs found on the way, both INV-7/INV-20
+  violations that predate the resolver: the contact row build carried
+  its own inline immovability opinion (no KINEMATIC check), and the
+  apply site re-asked the question with `!pb.is_at_rest` on top of an
+  inv_mb that already answered it — body A paying an impulse body B
+  never received.
+
+OPEN, and the reason the default is still OFF: with the resolver on,
+test_light_body_ringing and test_grass_yields go red. Both involve
+KINEMATIC anchors, and the resolver's pricing correction changes the
+effective mass of every kinematic contact (a KINEMATIC body that is
+not at_rest used to be priced MOVABLE while the apply refused to move
+it). Whether those two tests encode the old mismatch or a real
+regression is the next question, and it decides the flip.
+
+## 2026-08-14 — KINEMATIC is a transient authority; STATIC is eradicated
+
+The audit (docs/todo_plans/KINEMATIC_AUDIT.md) found the repo's own
+written doctrine contradicting the owner's: schema/logosphere.yaml,
+INV-1's text and entity_physical_state.h all declared KINEMATIC the
+sanctioned way to make scenery permanently immovable, and 11 sites
+followed that spec. src/ had 12 SET sites and 4 RELEASE sites; every
+release lives in humanoid_locomotion; worldgen and examples release
+nothing. Consequence: a humanoid's hips are pinned by a path neither
+release reaches, so it cannot be knocked over or ragdoll (KNOCKBACK
+is an enum with no implementation, and test_humanoid_impact asserts a
+displacement that is structurally zero).
+
+OWNER RULING:
+1. `ParticleSolverMode::STATIC` — "needs to be totally eradicated,
+   legacy." It was accepted from the KG and handled by NOTHING in the
+   solver: a body set STATIC fell silently. Done in this commit.
+2. KINEMATIC stays, ONLY as the volitional/animation escape hatch:
+   "driving complex animations via physics is just insane for us to
+   try" — a concession made deliberately, with eyes open.
+3. KINEMATIC is a STATE, not a constant: "set when needed, i.e.
+   animation, but then RELEASED so physics can act normally on them
+   when no volition is done or animation complex is in effect."
+   A set with no release is a pin, and a pin is the HEAVY_STATIC
+   disease wearing a new mask.
+4. Immobility for scenery is NOT a pin. The direction instead:
+   "instead of using KINEMATIC for things that do not move, we could
+   SIMULATE THE EFFECT of particles we do not need to model, to
+   achieve gravity for example" — the unmodelled substrate as a
+   field, which is also where gravity comes from. "And for floating
+   things, we allow particles to escape gravity effect on them" — an
+   exemption from the field, not a nail in the air.
+
+This supersedes the schema text and INV-1's mechanism note, both
+rewritten here. The SET/RELEASE table and the bucket-B site list are
+the action lists; the substrate direction subsumes task #48 (gravity
+as an input): gravity stops being a constant and becomes the effect
+of mass we chose not to simulate.
+
+## 2026-08-14 — The board (coherence over throughput)
+
+The owner: "it's getting really hard for me to manage all these open
+fronts and advance/provide guidance in a coherent mode. I need help to
+capture all this in the documentation/ledger and divide-and-conquer,
+study what needs to be fixed/can be fixed without accumulating more
+tech debt, and which things require deep, long design."
+
+docs/todo_plans/PHYSICS_BOARD.md is that page: every open front in
+exactly one class — CLEAN NOW (mechanism known, no debt, no decision
+owed), NEEDS DESIGN (a study exists or is owed), OWNER RULING
+(engineering ready, decision blocked), PARKED (real, understood, with
+the reason). Every entry cites its evidence.
+
+Standing rule from here: a front that is not on the board does not get
+worked, and a front that moves class gets a ledger line saying why.
+The board is maintained in the same commit as the work it describes,
+like the skill and the invariants.
+
+Recommended order recorded there: C1-C4 (harness truth, the vacuous
+impact test, the two unfixed friction applies, the sleeping body that
+can spin) → authority slices S0-S2 (specified bit-identical) → the
+WAKE_RESOLVER flip → rotation after authority owns the shared inertia
+predicate. The substrate study runs in parallel because it is design
+only and blocks the largest parked item (the worldgen pins).
+
+## 2026-08-14 — Board C1-C4 landed; front F1 opened
+
+The four CLEAN NOW items are done and the board moved in the same
+commit, per the skill's directive. C3 (four friction sites) and C4
+(sleep owns its angular half) are engine changes measured
+bit-identical on the default path. C1 (BVH in the knockback fixture)
+and C2 (real assertions in the impact test) are harness truth.
+
+C1 immediately opened F1: with contacts finally forming, a boulder at
+8 m/s strikes a humanoid chest, stops dead, and the momentum is
+destroyed outright — nothing moves and nothing is booked. That is the
+four-link authority chain the motion-authority study describes, seen
+end to end, and it belongs to D1's ladder rather than to a patch.
+
+Also noted on the board: a humanoid books -14.23 N*s downward every
+frame from its own thigh resting on its KINEMATIC hips. Structural
+refusals and external shoves are currently indistinguishable in the
+ledger; whoever consumes it will need them separated.
+
+## 2026-08-14 — F1 RCA: the animation erases what the solver delivered
+
+Full RCA (docs/todo_plans/F1_MOMENTUM_LOSS_RCA.md) refuted the standing
+hypothesis. Physics is not destroying the momentum: the solver delivers
+89-110 kg*m/s per frame into the struck body parts, with zero
+BOTH_IMMOVABLE rows. HumanoidLocomotion::update_locomotion then
+broadcasts ONE hips-derived scalar onto all seventeen particles
+(humanoid_locomotion.cpp:4440-4442) and maintain_entity_shape snaps
+their positions back (:5449). The hips are KINEMATIC, so the broadcast
+value is 0 and the erasure is total — outside every door, booked
+nowhere, every frame, for every standing registered humanoid.
+
+The load-bearing property is NOT is_quat_driven, NOT ParticleOwner and
+NOT sleep: in plain two-box isolation all five DYNAMIC variants are
+bit-identical to the control, and only KINEMATIC stops a body. The
+four-link chain is refuted at link 4 (the chest is never asleep at
+impact).
+
+Two of my published readings were wrong and are retracted here: the
+chest DOES move (1.593 m in 20 frames) when the locomotion writer is
+not running, and "8.00 -> -0.00 m/s" was the boulder landing on the
+turtle downrange, not the strike — the same velocity-minimum statistic
+the motion-authority study had already flagged, used twice.
+
+The RCA also found my own refusal ledger books 2.5% of the truth (1357.8
+kg*m/s refused, 33.6 booked): the friction block books nothing and the
+warm-start apply spends outside the booking loop. That is now board
+item C8 and precedes everything else, because a drain that receives
+2.5% of the truth is worse than none.
+
+F1 becomes D1 slice S5b: "the FK rig holds what it writes, and drains
+its book."
+
+## 2026-08-14 — C8: the refusal ledger is complete (2.5% -> 99.9%)
+
+The warm-start apply and the entire friction block spent momentum
+outside the booking loop, so the ledger I added yesterday held 33.6 of
+1357.8 kg*m/s. Both doors now book. Measured by the new
+test_refused_momentum_ledger (striker 160 kg at 9 m/s into a braced
+KINEMATIC target, airborne so the turtle cannot muddy the accounting):
+1440.2 refused, 1439.2 booked, 99.9%, and the braced body does not
+move. The striker's own momentum delta is the truth the book is
+checked against — no expected value invented.
+
+Known and stated: linear only. Angular refusals are booked nowhere,
+because the angular side still has no door at all (board D1/D2).

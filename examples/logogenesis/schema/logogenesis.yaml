@@ -281,6 +281,11 @@ classes:
       - rock_b
       - drop_height
 
+  # NOTE: ground_r/g/b, crown_radius, drop_height on the WORLD
+  # classes (Floor, Tree, Rock) are declared in the owning schemas
+  # (logosphere.yaml, packs/earth.yaml): re-declaring an imported
+  # class here does not merge — the imported definition wins.
+
   OrbitSeed:
     is_a: WorldEntity
     annotations:
@@ -608,21 +613,6 @@ slots:
     minimum_value: 2.0
     maximum_value: 200.0
     description: Ground slab depth in meters (north-south).
-  ground_r:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 1.0
-    description: Ground color, red channel (0..1).
-  ground_g:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 1.0
-    description: Ground color, green channel (0..1).
-  ground_b:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 1.0
-    description: Ground color, blue channel (0..1).
   light_height:
     range: float
     minimum_value: 2.0
@@ -703,14 +693,6 @@ slots:
   spread:
     range: GrassSpread
     description: Dab shape. SOFT (default) is the painter's splat.
-  drop_height:
-    range: float
-    minimum_value: 0.0
-    maximum_value: 60.0
-    description: >-
-      0 (default) = the rock rests where placed. Positive = the rock
-      is BORN that many meters up and FALLS — impact shoves loose
-      ground aside on layered terrain. 20-40 reads dramatic.
   blade_r:
     range: float
     minimum_value: 0.0

@@ -1844,6 +1844,39 @@ void HumanoidLocomotion::unregister_humanoid(int hips_id) {
             ps.queue_particle_deletion(static_cast<size_t>(anchor),
                                        impl_->frame_counter);
         }
+
+        // HAND THE BODY BACK. KINEMATIC is a transient authority: this
+        // system took it at registration and is letting go right now, so
+        // every particle returns to physics — gravity, contacts, the lot.
+        //
+        // Until 2026-08-14 this loop tore down the anchors and released
+        // NOTHING, so an unregistered humanoid hung in the air forever.
+        // Measured by tests/test_humanoid_ragdoll: 1 of 17 particles
+        // stayed KINEMATIC and the hips fell 0.000 m in half a second.
+        // That one was always the hips — registration pins every particle
+        // in all_particle_indices, while the two drive-mode releases walk
+        // JOINT CHILDREN, and the hips are the hierarchy's root, nobody's
+        // child. A humanoid therefore could not be knocked over or
+        // ragdoll at all, which is the real reason
+        // TransformationEffect::KNOCKBACK never had an implementation.
+        {
+            auto view = ps.lock_particles_for_write();
+            for (unsigned int pid : parts.all_particle_indices) {
+                // Bounds only. The `pid == 0` sentinel used by the
+                // joint-walking paths (0 = "this joint has no child")
+                // must NOT be applied here: all_particle_indices holds
+                // real particle ids, and 0 is a real particle. Skipping
+                // it left the hips pinned when the humanoid happened to
+                // be the first body in the world.
+                if (static_cast<size_t>(pid) >= view.size()) continue;
+                Particle& p = view[pid];
+                p.solver_mode = ParticleSolverMode::DYNAMIC;
+                p.owner = ParticleOwner::PHYSICS;
+                p.is_quat_driven = false;   // no clip is driving it now
+                p.is_at_rest = false;       // it must feel gravity again
+                p.frames_at_rest = 0;
+            }
+        }
         break;
     }
     auto it = std::remove_if(

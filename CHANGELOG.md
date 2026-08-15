@@ -7,7 +7,38 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Removed
+- **BREAKING: `ParticleSolverMode::STATIC` is gone.** It was accepted
+  from the KG (`solver_authority: STATIC`) and handled by nothing in
+  the solver, so a body declared STATIC fell silently. Use `KINEMATIC`
+  for a body whose position an external writer owns. Terrain and
+  scenery are not immovable by declaration: they rest on the turtle
+  boundary or on anchored bonds (INV-1).
+
+### Changed
+- **`KINEMATIC` is a transient authority, not a label.** It is held
+  while an external writer drives a body's position and must be
+  RELEASED when that writer stops; a body left KINEMATIC can never
+  fall, tip or ragdoll again. The schema text that told readers to
+  "set KINEMATIC to make something genuinely immovable" is corrected.
+- **Unregistering a humanoid releases it to physics.**
+  `HumanoidLocomotion::unregister_humanoid` now hands every particle
+  back (DYNAMIC, gravity-eligible), so a released body falls. It
+  previously tore down the plant anchors and released nothing, which
+  is why a humanoid could not ragdoll at all.
+- The frame-gated rest damper is removed: it taxed any body 10% of its
+  velocity per tick below 0.4 m/s, forbidding slow coasting outright.
+  Rest belongs to the sleep law; dissipation belongs to modelled
+  processes (INV-19).
+- Sleep now covers angular velocity: a resting body no longer spins.
+
 ### Added
+- `PhysicsSystem::record_refused_impulse` / `take_refused_impulse`:
+  momentum a body's authority refuses is BOOKED and available to
+  whoever owns that body instead of being discarded. Contacts,
+  friction and warm starts all book it (measured 99.9% of the momentum
+  refused); turtle rows are excluded, since a boundary's support is
+  not a shove.
 - `HasSimpleAppearance` mixin declaring the simple-entity contract
   the engine's `simple_entity_activator` reads (`size`, `r`, `g`,
   `b`), attached to `LightSource`, `Cube`, `CelestialBody`, and
@@ -20,6 +51,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   as typed Float slots plus an open `capability.` namespace for
   game-registered capabilities, so `CapabilityStore::write_back`
   passes the setProperty gate.
+
+### Added (engine instrumentation)
+- Frame-chain guard: `Engine::render()` warns loudly when a display
+  exists, 60 frames have rendered, and `present()` was never called
+  (the window silently shows an unpainted white surface otherwise);
+  `renders_completed()` / `presents_completed()` counters let tests
+  assert the windowed chain directly.
 
 ### Fixed
 - Build on toolchains without `<execinfo.h>` (MSVC): the

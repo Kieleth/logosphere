@@ -200,6 +200,9 @@ classes:
     is_a: Structure
     description: >-
       Boundary wall of the arena. Static. Lethal on contact.
+    slots:
+      - grid_x
+      - grid_y
 
   Wormhole:
     is_a: WorldEntity
