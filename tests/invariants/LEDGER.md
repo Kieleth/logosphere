@@ -569,3 +569,29 @@ rewritten here. The SET/RELEASE table and the bucket-B site list are
 the action lists; the substrate direction subsumes task #48 (gravity
 as an input): gravity stops being a constant and becomes the effect
 of mass we chose not to simulate.
+
+## 2026-08-14 — The board (coherence over throughput)
+
+The owner: "it's getting really hard for me to manage all these open
+fronts and advance/provide guidance in a coherent mode. I need help to
+capture all this in the documentation/ledger and divide-and-conquer,
+study what needs to be fixed/can be fixed without accumulating more
+tech debt, and which things require deep, long design."
+
+docs/todo_plans/PHYSICS_BOARD.md is that page: every open front in
+exactly one class — CLEAN NOW (mechanism known, no debt, no decision
+owed), NEEDS DESIGN (a study exists or is owed), OWNER RULING
+(engineering ready, decision blocked), PARKED (real, understood, with
+the reason). Every entry cites its evidence.
+
+Standing rule from here: a front that is not on the board does not get
+worked, and a front that moves class gets a ledger line saying why.
+The board is maintained in the same commit as the work it describes,
+like the skill and the invariants.
+
+Recommended order recorded there: C1-C4 (harness truth, the vacuous
+impact test, the two unfixed friction applies, the sleeping body that
+can spin) → authority slices S0-S2 (specified bit-identical) → the
+WAKE_RESOLVER flip → rotation after authority owns the shared inertia
+predicate. The substrate study runs in parallel because it is design
+only and blocks the largest parked item (the worldgen pins).
