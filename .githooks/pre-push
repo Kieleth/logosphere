@@ -96,8 +96,14 @@ EOF
         continue
     fi
 
+    # On a branch checked out from before this policy landed, the checker
+    # is not in the tree. Say so rather than passing in silence: the two
+    # refusals above still hold, this one does not.
     checker="$repo_root/scripts/check-merged-work-deletion.sh"
-    [ -x "$checker" ] || continue
+    if [ ! -x "$checker" ]; then
+        echo "[pre-push] $checker not in this branch: merged-work check SKIPPED" >&2
+        continue
+    fi
 
     git fetch --quiet "$remote" main 2>/dev/null || true
     base="refs/remotes/$remote/main"

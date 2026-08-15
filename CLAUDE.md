@@ -58,10 +58,15 @@ anyone's head):
   (a rebase only becomes everyone's problem when it is force-pushed),
   and refuses a branch that deletes lines which landed on main after
   the branch started.
-- `scripts/install-git-hooks.sh` wires `core.hooksPath` to
-  `.githooks` and sets `pull.rebase=false`, `pull.ff=only`,
+- `scripts/install-git-hooks.sh` copies both hooks into `.git/hooks`
+  and sets `pull.rebase=false`, `pull.ff=only`,
   `branch.autoSetupRebase=never`. `cmake -S . -B build` runs it, so a
-  clone is protected by its first build.
+  clone is protected by its first build. It copies rather than setting
+  `core.hooksPath=.githooks` because that path is resolved against the
+  working tree: on a branch checked out from before this policy landed
+  the directory is absent and git runs the rebase in silence. Measured,
+  not assumed. `.git/hooks` is the same directory on every branch and
+  in every worktree.
 - GitHub: squash merging is the only method enabled. Merge commits
   and rebase merges are off at the repository level, so the buttons
   do not exist.
@@ -70,8 +75,8 @@ anyone's head):
   without its executable bit is silently ignored by git.
 
 If a hook refuses you, it is right and you are wrong. Do not reach
-for `--no-verify`, do not edit the hook, do not unset
-`core.hooksPath`. Stop and ask the owner.
+for `--no-verify`, do not edit the hook, do not delete it out of
+`.git/hooks`. Stop and ask the owner.
 
 ## The invariants, in one breath
 
