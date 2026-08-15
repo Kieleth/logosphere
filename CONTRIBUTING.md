@@ -189,6 +189,43 @@ defects and proposals belong in issues.
 Direct pushes to `main` are disabled. There is no path into the tree
 that skips the checks.
 
+### Never rebase
+
+Squash merging is the only merge method this repository has enabled,
+which means the shape of your branch history is irrelevant: it is
+collapsed to a single commit when it lands. Two consequences, and the
+second one is the important one.
+
+- **Do not tidy your commits.** No interactive rebase, no amend
+  chains, no local squashing. Nothing you do to them survives the
+  merge, so it buys nothing and costs the risk below.
+- **Never rebase, at all.** Not `git rebase`, not `git pull --rebase`,
+  not "Rebase and merge". A rebase replays your commits onto a base
+  they were not written against, and whatever the replay drops, or
+  whatever a conflict resolution keeps from your side, is deleted
+  without a word. This repository lost three already-merged pull
+  requests exactly that way, with CI green throughout: a branch that
+  reverts `main` still compiles and still passes its tests.
+
+When your branch is behind, merge `main` into it:
+
+```bash
+git fetch origin main
+git merge origin/main      # or: git merge --ff-only origin/main
+```
+
+The merge commit lives inside your branch and vanishes at squash time.
+
+This is enforced, not requested. `.githooks/pre-rebase` refuses every
+rebase and has no override; `.githooks/pre-push` refuses force-pushes,
+pushes to `main`, and branches that delete lines which landed on `main`
+after the branch started. The hooks install themselves the first time
+you run `cmake -S . -B build`, or explicitly:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
 ## Developer Certificate of Origin
 
 Contributions are accepted under the

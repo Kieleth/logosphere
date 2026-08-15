@@ -18,6 +18,49 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Git integration policy. The only lane here that is not about whether the
+  # code works: it is about whether the branch is honest about what it changes.
+  #
+  # A branch that reverts main still compiles and its tests still pass, so
+  # every other job in this file stays green while merged work is being
+  # deleted. That happened here: three merged pull requests were undone by a
+  # rebased branch and nothing in CI noticed. This job is the thing that
+  # notices.
+  # ---------------------------------------------------------------------------
+  merge-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A hook without the executable bit is silently ignored by git. That
+      # is a failure mode with no symptom, so it gets a test.
+      - name: Hooks are present and executable
+        run: |
+          set -e
+          for h in .githooks/pre-rebase .githooks/pre-push; do
+            test -f "$h" || { echo "MISSING $h"; exit 1; }
+            test -x "$h" || { echo "NOT EXECUTABLE (git will ignore it): $h"; exit 1; }
+          done
+          test -x scripts/check-merged-work-deletion.sh
+          test -x scripts/install-git-hooks.sh
+          # And it refuses. An unconditional hook that returns 0 is a decoration.
+          if .githooks/pre-rebase origin/main test-branch >/dev/null 2>&1; then
+            echo "pre-rebase exited 0. It must refuse unconditionally."
+            exit 1
+          fi
+          echo "hooks present, executable, and refusing"
+
+      - name: This branch deletes no work merged after it started
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --quiet origin "${{ github.base_ref }}"
+          ./scripts/check-merged-work-deletion.sh \
+            "origin/${{ github.base_ref }}" \
+            "${{ github.event.pull_request.head.sha }}"
+
+  # ---------------------------------------------------------------------------
   # Ontology generation: schema import safety, vendored generator integrity,
   # and committed-output drift. Uses the same pinned environment developers use.
   # ---------------------------------------------------------------------------

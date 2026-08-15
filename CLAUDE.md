@@ -24,6 +24,55 @@ they disagree, the docs win.
   code. It carries the operating discipline — invariants framework,
   sweep semantics, ruling protocol, owner QA contract.
 
+## Git integration policy (hard rule, no exceptions)
+
+1. **Never rebase.** Not `git rebase`, not `git rebase -i`, not
+   `git pull --rebase`, not "Rebase and merge" on GitHub. Ever.
+2. **Fast-forward where possible.** `git merge --ff-only` is the
+   preferred local integration. Behind main? `git fetch origin main
+   && git merge origin/main`. Merge it in; never rebase onto it.
+3. **Only squash merges land on main.** No merge commits, no
+   rebase-merges. main is never pushed to, only squash-merged into.
+4. **Commits inside a branch do not matter.** Do not tidy them, do
+   not rewrite them, do not squash them locally, do not amend to
+   make them pretty. The squash merge collapses the branch to one
+   commit. Nobody will ever see them. Time spent on them is time
+   spent operating the exact tool that caused the damage below.
+
+**Why, precisely.** A rebase replays commits onto a base they were
+never written against. Whatever that base has and the replay drops,
+or whatever a conflict resolution keeps from your side, is silently
+deleted. An agent session rebased repeatedly in this repository and
+reverted three already-merged pull requests. CI was green the whole
+way through, because a branch that undoes main's work still compiles
+and its tests still pass. No test in this repo can catch it. That is
+why the rule is mechanical and not advisory.
+
+**What enforces it** (all of it is in the repo, none of it is in
+anyone's head):
+
+- `.githooks/pre-rebase` refuses every rebase, unconditionally, with
+  no override. Git runs it for `git rebase` and for the rebase inside
+  `git pull --rebase`.
+- `.githooks/pre-push` refuses a push to main, refuses a force-push
+  (a rebase only becomes everyone's problem when it is force-pushed),
+  and refuses a branch that deletes lines which landed on main after
+  the branch started.
+- `scripts/install-git-hooks.sh` wires `core.hooksPath` to
+  `.githooks` and sets `pull.rebase=false`, `pull.ff=only`,
+  `branch.autoSetupRebase=never`. `cmake -S . -B build` runs it, so a
+  clone is protected by its first build.
+- GitHub: squash merging is the only method enabled. Merge commits
+  and rebase merges are off at the repository level, so the buttons
+  do not exist.
+- CI: the `merge-policy` job re-runs the merged-work check on every
+  PR and verifies the hooks are still executable, because a hook
+  without its executable bit is silently ignored by git.
+
+If a hook refuses you, it is right and you are wrong. Do not reach
+for `--no-verify`, do not edit the hook, do not unset
+`core.hooksPath`. Stop and ask the owner.
+
 ## The invariants, in one breath
 
 Everything is a particle; particles are bodies that occupy space and

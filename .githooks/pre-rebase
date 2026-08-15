@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# pre-rebase: refuse. Always. There is no rebase in this repository.
+#
+# Git runs this hook before `git rebase` does any work, including the
+# rebase that `git pull --rebase` performs internally. A non-zero exit
+# aborts the rebase before a single commit is replayed.
+#
+# Why this exists: a rebase replays commits onto a base they were never
+# written against and silently drops whatever the new base does not
+# contain. An agent session rebased repeatedly in this repository and
+# reverted three already-merged pull requests. CI stayed green the whole
+# time, because a branch that undoes main's work still compiles and its
+# tests still pass. Nothing caught it. This hook is what catches it now.
+#
+# Policy (CLAUDE.md, "Git integration policy"):
+#   1. Never rebase. Not `git rebase`, not `git pull --rebase`, not
+#      "Rebase and merge" on GitHub.
+#   2. Fast-forward where possible: `git merge --ff-only`.
+#   3. Only squash merges land on main.
+#   4. Commits inside a branch do not matter. Do not tidy them, do not
+#      rewrite them, do not squash them locally. The squash merge
+#      discards them anyway.
+#
+# If a branch is behind main, MERGE main into it:
+#     git fetch origin main && git merge origin/main
+# The merge commit lives inside the branch and disappears at squash time.
+
+upstream="$1"
+branch="$2"
+
+echo "" >&2
+echo "REFUSED: rebase is forbidden in this repository." >&2
+echo "" >&2
+if [ -n "$branch" ]; then
+    echo "  attempted: rebase '$branch' onto '$upstream'" >&2
+else
+    echo "  attempted: rebase current branch onto '$upstream'" >&2
+fi
+echo "" >&2
+echo "  Rule 1 of the git integration policy in CLAUDE.md: NEVER rebase." >&2
+echo "  A rebase replays your commits onto a base they were not written" >&2
+echo "  against and drops what that base is missing. That is how three" >&2
+echo "  merged pull requests were reverted here with CI green throughout." >&2
+echo "" >&2
+echo "  Behind main? Merge it in, do not rebase onto it:" >&2
+echo "      git fetch origin main" >&2
+echo "      git merge origin/main" >&2
+echo "" >&2
+echo "  Messy commits inside your branch? Leave them. The squash merge" >&2
+echo "  into main collapses the branch to one commit. Nobody sees them." >&2
+echo "" >&2
+echo "  This hook has no override. If you believe you need one, stop and" >&2
+echo "  ask the owner." >&2
+echo "" >&2
+
+exit 1

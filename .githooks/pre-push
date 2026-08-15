@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+#
+# pre-push: the last gate before a mistake becomes everyone's problem.
+#
+# Three refusals, in order of how certain they are:
+#
+#   1. Pushing to main. main is protected and integration happens by
+#      squash-merging a pull request. Nothing is ever pushed to it.
+#      No override.
+#
+#   2. A non-fast-forward push, i.e. `--force` or `--force-with-lease`.
+#      Under this policy no branch ever needs its history rewritten:
+#      commits inside a branch do not matter, the squash merge discards
+#      them. A force-push is what turns a rebase from a local mistake
+#      into a shared one, so this is where the rebase damage actually
+#      gets stopped. No override.
+#
+#   3. Deleting lines that landed on main after this branch started.
+#      Heuristic, and the only check here with an override. See
+#      scripts/check-merged-work-deletion.sh for how it decides and
+#      what it cannot see.
+#
+# Policy in full: CLAUDE.md, "Git integration policy".
+
+set -uo pipefail
+
+remote="${1:-origin}"
+repo_root="$(git rev-parse --show-toplevel)"
+zero="$(git hash-object --stdin </dev/null | tr '0-9a-f' '0')"
+
+fail=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "${remote_ref:-}" ] || continue
+
+    # ---------------------------------------------------------------
+    # 1. Never push to main.
+    # ---------------------------------------------------------------
+    if [ "$remote_ref" = "refs/heads/main" ]; then
+        cat >&2 <<EOF
+
+REFUSED: nothing is pushed to main.
+
+  main is integrated by squash-merging a pull request, never by a push.
+  Open a PR from your branch and let the squash merge land it.
+
+  (CLAUDE.md, Git integration policy, rule 3.)
+
+EOF
+        fail=1
+        continue
+    fi
+
+    # Branch deletion: fine.
+    if [ "$local_sha" = "$zero" ]; then
+        continue
+    fi
+
+    # Tags: nothing below applies.
+    case "$remote_ref" in refs/tags/*) continue ;; esac
+
+    # ---------------------------------------------------------------
+    # 2. Never rewrite a branch that already exists on the remote.
+    # ---------------------------------------------------------------
+    if [ "$remote_sha" != "$zero" ]; then
+        if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+            cat >&2 <<EOF
+
+REFUSED: force-push. $remote_ref would lose commits it already has.
+
+  ${remote_sha:0:9} (on the remote) is not an ancestor of ${local_sha:0:9} (yours).
+  Something rewrote this branch's history. A rebase, an amend, a reset.
+
+  No branch in this repository ever needs its history rewritten. The
+  squash merge into main collapses the whole branch to one commit, so
+  messy commits inside it cost nothing and tidying them costs exactly
+  the accident this hook exists to prevent.
+
+  Behind main? Merge, do not rebase:
+
+      git fetch origin main && git merge origin/main
+
+  (CLAUDE.md, Git integration policy, rules 1 and 4.)
+
+EOF
+            fail=1
+            continue
+        fi
+    fi
+
+    # ---------------------------------------------------------------
+    # 3. Never delete work that landed after this branch started.
+    # ---------------------------------------------------------------
+    if [ "${LOGOSPHERE_ALLOW_DELETING_MERGED_WORK:-0}" = "1" ]; then
+        echo "[pre-push] LOGOSPHERE_ALLOW_DELETING_MERGED_WORK=1: merged-work check skipped" >&2
+        continue
+    fi
+
+    checker="$repo_root/scripts/check-merged-work-deletion.sh"
+    [ -x "$checker" ] || continue
+
+    git fetch --quiet "$remote" main 2>/dev/null || true
+    base="refs/remotes/$remote/main"
+    git rev-parse --verify --quiet "$base" >/dev/null || base="origin/main"
+    git rev-parse --verify --quiet "$base" >/dev/null || continue
+
+    # Pushing main itself somewhere, or a branch equal to it: nothing to compare.
+    [ "$(git rev-parse "$base")" = "$local_sha" ] && continue
+
+    "$checker" "$base" "$local_sha" || fail=1
+done
+
+exit "$fail"
