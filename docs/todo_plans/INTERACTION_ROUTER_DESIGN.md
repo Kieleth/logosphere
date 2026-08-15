@@ -826,14 +826,27 @@ lexicographically, highest first:
    deepest literal segment.
 2. `self` address specificity, same measure.
 3. Number of condition clauses.
-4. Declared `precedence` (integer, default 0). The author's explicit
+4. **Ontology subsumption depth** (owner ruling 2026-08-15, §3.3.4
+   rung 2): with the syntactic keys tied, the route whose address names
+   a SUBTYPE of the other route's outranks it. Measured as the size of
+   the type's transitive ancestor set, `other` before `self`.
+5. Declared `precedence` (integer, default 0). The author's explicit
    override, and the only knob.
 
-A full tie on all four between two `CLAIM` routes is a **load-time
+Key 4 is placed after the syntactic keys deliberately: every pair of
+routes that resolves under keys 1 to 3 today resolves identically, and
+the only behaviour that changes is a case that is a load error now.
+**Owner question, boarded rather than assumed:** whether subsumption
+depth should instead sit inside the measure, ahead of property-filter
+count. That ordering decides which wins between a route naming a
+subtype and a route naming its supertype with a property filter.
+
+A full tie on all five between two `CLAIM` routes is a **load-time
 error naming both routes; neither is installed.** Not "first wins":
 `rules_` is an `unordered_map` (`particle_interaction_system.h:335`) and
 "first" is not a defined concept. An unresolvable tie is an authoring
-bug, and INV-27 forbids resolving it by coin flip.
+bug, and INV-27 forbids resolving it by coin flip. It is also the only
+input to the escalation rung (§3.3.4); nothing else may reach it.
 
 **Phase B, the observers. All of them fire.** Every matching route with
 `claim: OBSERVE` runs its effects, in the same sorted order, after the
@@ -870,6 +883,56 @@ silver bullet at the werewolf: `seared`. Fire a lead one: `deflected`.
 Fire either at a hippo: neither route's `self` matches, no claim, no
 outcome, and physics has already done the only thing that was going to
 happen. **No engine change for any of it.**
+
+### 3.3.4 The escalation ladder (owner ruling, 2026-08-15)
+
+Resolution is not one mechanism. It is four rungs, fast and automatic
+at the bottom, slow and rare at the top, in the owner's DIKW frame.
+Recorded in full in `tests/invariants/LEDGER.md`; the operative parts:
+
+| Rung | Reads | When it runs | Deterministic |
+|---|---|---|---|
+| 0 DATA | the occurrence physics produced | every contact | yes, it is a measurement |
+| 1 INFORMATION | the sorted route table, keys 1-3 above | every match | yes, compiled at load |
+| 2 KNOWLEDGE | the type lattice, key 4 above | only on a syntactic tie | yes, ancestor sets precomputed |
+| 3 WISDOM | the conflict, the corpus, a model | never in a frame | not required to be |
+
+Rung 2 is the rung this ruling adds, and it repairs a real defect: the
+key was purely syntactic, so two routes with the same address SHAPE
+naming a subtype and its supertype tied on every key and produced a
+load-time error, when one of them is strictly more specific by
+inheritance. The machinery is already in the tree
+(`OntologyRegistry::isSubtypeOf`, `ontology_registry.h:197`;
+`ancestorsOf`, `:314`, transitive sets built at load). **[E]**
+
+**One gap to state plainly:** `facets` do NOT inherit. They are
+explicit per type by decision (`EntityTypeDef`, `ontology_registry.h:
+50-51`, pointing at `docs/KNOWLEDGE_LAYER.md`). **[E]** So rung 2
+orders routes that address entity TYPES and buys nothing for routes
+that filter on facets. A subtype does not acquire its parent's facets,
+and any authoring guidance that assumes it will is wrong.
+
+**Rung 3's contract.** Four rules, and they are what keep INV-27:
+
+1. **Never inside the frame.** A frame that reaches an unordered tie
+   uses the fail-closed answer: refuse, report, name both routes.
+2. **Its output is never an outcome.** It emits a route, a
+   `precedence`, or an ontology edit. It writes rules, not results.
+3. **So the same conflict escalates once.** The investment mutates the
+   table; the table is what runs. That is the owner's feedback loop,
+   and the reason runtime stays a compiled lookup.
+4. **Provenance is mandatory** on anything it emits: the triggering
+   conflict, the corpus, the producing version. Readable, revocable.
+
+**Sequencing: design rung 3 now, build it last.** On the current
+corpus it has nothing to do. Six of the ten Gedankenexperimente are
+settled; the four open ones (GEDANKEN-3, 4, 5, 7) are open for reasons
+ordering cannot touch. Two need engine physics that does not exist
+(GEDANKEN-4 is F3, GEDANKEN-7 needs F4's absent restitution) and two
+need an owner ruling on how far a route's authority reaches. The
+deterministic rungs missed zero of ten. Ten hand-built cases are a
+small, self-selected corpus, and that number is the reason to build the
+rung last, not the reason to skip it.
 
 ## 3.4 The routing table: schema, location, authoring
 

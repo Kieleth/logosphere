@@ -218,6 +218,7 @@ All three surfaced while defining what interaction words may MEAN
 | R2 | **The 6 rotation questions** — orientation truth (deferred twice now); gyroscopic scope; torsion timing; friction-basis ordering; INV-16's wording; the ladder's real state | All of D2's slices |
 | R3 | **The WAKE_RESOLVER flip** | INV-31 goes active; the machine's default reaches 5/10. Path is known: C3 + the `update_rest_state` KINEMATIC guard + re-baseline two tests whose greens encode the old quirk + flip. D4 is the residual risk you accept or clear first. |
 | R4 | **The seed→world sanitisation question** | `at_logogenesis_creation`, the last sweep mole: the app materialises `tree_height=999` as an 80 m crown and the gate's range door refuses it. Should the creation pipeline clamp seed-derived values to schema bounds, and should the test then assert the refusal? |
+| R5 | **Where subsumption depth sits inside the specificity measure** | Kamaji's rung 2. Added at 2026-08-15 as key 4, AFTER the syntactic keys, so only present-day load errors change behaviour. The alternative is inside the measure ahead of property-filter count, which decides who wins between a route naming a subtype and one naming the supertype with a property filter. Blocks the specificity scorer slice (router design S1), nothing else. |
 
 ---
 
@@ -252,6 +253,45 @@ The rest waits. Two rulings (R1, R2) can be taken whenever there is appetite; th
 
 Closed: the rest damper eradicated (INV-19), `ParticleSolverMode::STATIC` eradicated, the humanoid hips pin fixed (ragdoll works, 1.231 m in 0.5 s against an analytic 1.226), refused momentum booked instead of dropped, the KG gate's long tail swept, `test_grass_yields` recovered as a trophy of the damper removal.
 
-Withdrawn: the "manifold overshoot" (defect 2) — the manifold was always correct, and R5 now proves it at 0.54% momentum error. The "boulder passes through the chest" evidence — a harness gap, not physics.
+Withdrawn: the "manifold overshoot" (defect 2) — the manifold was always correct, and rung R5 of the analytic ladder now proves it at 0.54% momentum error. The "boulder passes through the chest" evidence — a harness gap, not physics.
 
 Opened: this board.
+
+---
+
+## 2026-08-15 — the doctrine question is ruled: escalation, not exception
+
+RULED (`LEDGER.md`, same date): resolution is a **four-rung DIKW
+ladder**, not one mechanism. Rung 0 the physics fact, rung 1 the
+compiled route table, rung 2 the ontology's type lattice, rung 3
+escalation (an LLM is admissible there). It reconciles with
+`RULE_LANGUAGE.md:945-947` because the ruling's objection is to a
+resolver that silently picks, and a ladder that orders deterministically
+and escalates only what it provably cannot order is not that resolver.
+
+Rung 3's contract is what keeps INV-27: it never runs inside a frame,
+its output is a ROUTE and never an outcome, so the same conflict
+escalates exactly once and runtime stays a compiled lookup. That is the
+owner's required feedback loop, and it makes the investment permanent
+instead of per-frame.
+
+**Rung 2 repairs a defect the studies did not catch.** The specificity
+key was purely syntactic, so two routes with the same address shape
+naming a subtype and its supertype tied on every key and produced a
+load-time error, when one is strictly more specific by inheritance.
+Fixed as key 4 in router design §3.3.3; the machinery already exists
+(`OntologyRegistry::isSubtypeOf` / `ancestorsOf`).
+
+**And a gap that limits it:** `facets` do not inherit, explicitly and by
+decision (`ontology_registry.h:50-51`). Rung 2 orders routes addressing
+entity TYPES and buys nothing for facet filters.
+
+**Measured, against the owner's "95% deterministic" expectation:** the
+deterministic rungs missed **0 of 10** Gedankenexperimente. Six are
+settled; the four open ones are open for reasons ordering cannot touch
+(GEDANKEN-4 is F3, GEDANKEN-7 needs F4's absent restitution,
+GEDANKEN-3 and 5 need owner rulings on how far a route's authority
+reaches). Ten hand-built cases are a small, self-selected corpus. The
+sequencing that follows: **design rung 3 now, build it last.**
+
+New ruling owed: **R5** (where subsumption depth sits in the measure).

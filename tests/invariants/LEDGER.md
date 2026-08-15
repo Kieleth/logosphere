@@ -838,3 +838,86 @@ designed. Two studies are dispatched: one to inventory how simultaneous
 effects are resolved in the tree today, one to build the
 Gedankenexperiment set and the effect algebra. They synthesise here into
 an implementation attack.
+
+## 2026-08-15 — Doctrine RULED: escalation, not exception (the DIKW ladder)
+
+The question put to the owner: `docs/RULE_LANGUAGE.md:945-947` bans
+conflict sets by decision; Kamaji fires on pushed occurrences rather
+than on graph state. Reconcile or contradict?
+
+**RULED: reconcile, by making resolution a LADDER rather than a single
+mechanism.** The owner's frame is DIKW: lower rungs are fast and
+automatic, higher rungs are slower and handle what the rung below could
+not order. The ruling's objection is to a resolver that silently picks.
+A ladder that orders deterministically, and escalates only what it
+provably cannot order, is not that resolver.
+
+The four rungs, and what each one costs:
+
+- **Rung 0, DATA. The physics fact.** The occurrence itself. No
+  routing, no table, no cost beyond producing it.
+- **Rung 1, INFORMATION. The table.** Address match plus the syntactic
+  specificity key, compiled at load, compared over a sorted vector
+  (router design 3.3.3). Per-frame, deterministic.
+- **Rung 2, KNOWLEDGE. The ontology.** When rung 1 ties, the type
+  lattice breaks it: a route naming a subtype outranks a route naming
+  its supertype. Deterministic and still per-frame cheap, because the
+  transitive ancestor sets are precomputed at load
+  (`OntologyRegistry::ancestorsOf`, `ontology_registry.h:314`;
+  `isSubtypeOf`, `:197`). **This rung is what the ruling adds, and it
+  did not exist in the design before it.**
+- **Rung 3, WISDOM. The escalation.** What two rungs of ordering cannot
+  separate is a genuine authoring ambiguity. Today the design fails it
+  closed at load (3.3.3: an unresolvable tie is a load-time error
+  naming both routes, neither installed). Under this ruling it may
+  instead be escalated, including to an LLM.
+
+**The escalation contract, which is what keeps INV-27 intact.**
+
+1. **It never runs inside the frame.** Not once, not cached, not
+   asynchronously. A frame that reaches an unordered tie uses the
+   fail-closed answer, refuse and report.
+2. **Its output is never an outcome.** It emits a ROUTE, a `precedence`
+   declaration, or an ontology edit. It writes rules, not results.
+3. **Therefore the same conflict escalates exactly once.** The
+   investment mutates the table; the table is what runs. This is the
+   feedback loop the owner required, and it is the reason determinism
+   survives: at runtime the answer always comes from a compiled table.
+4. **What it emits carries provenance**: the conflict that triggered
+   it, the corpus it reasoned over, the version that produced it. A
+   human can read why the table says what it says, and revoke it.
+
+**Measured, not asserted: the escalation rung currently has nothing to
+do.** Of the ten Gedankenexperimente, six are settled and four are open
+(GEDANKEN-3, 4, 5, 7). None of the four is open because ordering
+failed. Two are blocked on missing engine physics (GEDANKEN-4 is F3's
+mispricing, GEDANKEN-7 needs the restitution F4 says does not exist),
+and two are owner rulings about how far a route's authority reaches
+(GEDANKEN-3 may a route name a structural break, GEDANKEN-5 absorb
+versus release). The deterministic rungs missed zero of ten. That
+supports the owner's expectation that the large majority resolves
+without escalation, with the honest caveat that ten hand-built cases
+are a small and self-selected corpus. **Design rung 3 now, build it
+last.**
+
+**What the ruling changes in the design, concretely.** The specificity
+key at router design 3.3.3 is purely syntactic: literal segment count,
+property-filter count, chain depth. It has no notion of the type
+lattice. So two routes whose addresses have the same SHAPE but name a
+subtype and its supertype tie on every key and produce a load-time
+error, when one of them is strictly more specific by inheritance. That
+is the defect rung 2 repairs. The tiebreak is added AFTER the existing
+syntactic keys, so every case that resolves today resolves identically
+and only present-day load errors change behaviour.
+
+**Owed to the owner (not decided here):** whether subsumption depth
+should instead outrank property-filter count inside the measure. That
+ordering decides which wins between a route naming a subtype and a
+route naming the supertype with a property filter. Boarded, not
+assumed.
+
+**Also recorded, on the owner's reduction-to-tuples frame.** The
+reduction they describe already has a countable size in the algebra: 8
+occurrence kinds (CLOSED), 14 measured interactions (a floor, games
+extend), 9 effects, 5 operators. The closed 8 are the alphabet; the
+rest is composition over it.
