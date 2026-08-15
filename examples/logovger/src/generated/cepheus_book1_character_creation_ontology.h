@@ -1572,7 +1572,7 @@ struct TransformationEvent : public WorldEvent {
 struct DiceRollEvent : public WorldEvent {
     /// Monotonic id of the roll, unique per session, citable.
     std::optional<int32_t> roll_id = std::nullopt;
-    /// The expression rolled, canonical form ("2D6+1").
+    /// The expression rolled, canonical form ("2D6+1"). EXECUTED, and by a named thing: DiceService::parse turns this string into a DiceExpression and DiceService::roll evaluates it (include/logosphere/core/dice_service.h:56,110). Recorded here because a formula-shaped slot is the fleet's most common way of writing knowledge down and never running it, and the only defence against that is naming the executor next to the slot. If the parser ever stops being the sole reader of this string, this line is wrong and the slot has become documentation.
     std::optional<std::string> dice_expression = std::nullopt;
     /// Individual die results, comma-separated, in roll order.
     std::optional<std::string> roll_values = std::nullopt;
@@ -1724,6 +1724,9 @@ struct OntologyEnumMemberMeta : public OntologyMetaEntity, public OntologySource
 
 
 /// Abstract root of pure rule-language value expressions.
+/// INERT. Nothing evaluates any of the classes below this one. There are no literal types and no operator types, so nothing could be built out of them yet even in principle, and there is no evaluator to run it if it were. A reader of this ontology must not conclude that the engine can compute with these.
+/// Said here rather than left to inference, because a formula written down and never executed is the fleet's most repeated mistake: malleus RECIPES.md recipe 4 counts five projects that did it before us, and this pack is the sixth. The rite that catches it inspects slot NAMES, which is why it never flagged this one: the inertia lives in class names it cannot see.
+/// What is blocked on it, concretely, so that the first operators get chosen by need rather than by taste. The Cepheus muster-out rule needs a rate over a filtered count, "one benefit per term served in which they did not lose benefits", and its extractor says exactly that in `unmodelled`. The injury table needs a clause that refers back to a choice made earlier in its own sequence, "reduce BOTH OTHER physical characteristics". Both are recorded as partial rather than pretended whole, and both are waiting on this.
 struct Expression : public Entity {
 };
 
