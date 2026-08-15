@@ -312,10 +312,19 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
 
     lines.append("")
 
-    # Facets (annotations: facets: on entity classes)
+    # Facets (annotations: facets: on entity and event classes)
     facet_lines = []
     for cn in sorted(sv.all_classes()):
-        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)):
+        # Event subtypes belong here too. Event is a SIBLING primitive
+        # of Entity in the malleus root, not a subtype of it, so a gate
+        # asking only about Entity silently discards every facet
+        # declared on an event class. Found when a facet added to
+        # ServiceTerm (is_a Event) never reached the registry: the
+        # extractor returned it correctly and this loop threw it away,
+        # so the schema said one thing and the generated code said
+        # nothing, with no error in between.
+        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)
+                or _is_event_subtype(sv, cn)):
             continue
         facets = _get_facets(sv, cn)
         if facets:
@@ -326,11 +335,13 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
                     f'    reg.addFacets("{cn}", {fset});',
                 )
             )
-    if facet_lines:
-        lines.append("    // Facets")
-        for source, statement in facet_lines:
-            emit(source, statement)
-        lines.append("")
+    # NOTE: facet_lines is built here and EMITTED AT THE END of this
+    # function, after both the entity-type and event-type blocks.
+    # addFacets() looks the type up and silently does nothing when it
+    # is absent, so a facet emitted before its type is dropped without
+    # a word. Event types are written after this point, which is
+    # exactly how a facet on ServiceTerm reached the generated file and
+    # still never reached the registry.
 
     # Open property namespaces (annotations: kg_key_namespaces:).
     # Emitted for mixins too — hasPropertyNamespace walks ancestors the
@@ -362,6 +373,15 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
         )
 
     lines.append("")
+
+    # Facets, emitted only now: addFacets() resolves the type by name
+    # and silently no-ops when it is not registered yet, so this must
+    # come after every addEntityType call, entity and event alike.
+    if facet_lines:
+        lines.append("    // Facets")
+        for source, statement in facet_lines:
+            emit(source, statement)
+        lines.append("")
 
     # Relation types with domain/range
     lines.append("    // Relation types")

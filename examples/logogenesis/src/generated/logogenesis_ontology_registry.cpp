@@ -310,6 +310,33 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Wing", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("WorldEntity", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal"});
 
+    // Open property namespaces
+    reg.addPropertyNamespace("BodyPart", "rule.0.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.1.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.2.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.3.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.4.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.5.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.6.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.7.payload.");
+    reg.addPropertyNamespace("LivingEntity", "capability.");
+
+    // Event types
+    reg.addEntityType("CollisionEvent", "WorldEvent", false);
+    reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
+    reg.addEntityType("DamageEvent", "WorldEvent", false);
+    reg.addEntityType("DeathEvent", "WorldEvent", false);
+    reg.addEntityType("DiceRollEvent", "WorldEvent", false);
+    reg.setSource("https://malleus.dev/schema");
+    reg.addEntityType("Event", "", false);
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addEntityType("PerceptionEvent", "WorldEvent", false);
+    reg.addEntityType("RelationEvent", "WorldEvent", false);
+    reg.addEntityType("SpawnEvent", "WorldEvent", false);
+    reg.addEntityType("TransformationEvent", "WorldEvent", false);
+    reg.addEntityType("VolumeEvent", "WorldEvent", false);
+    reg.addEntityType("WorldEvent", "Event", false);
+
     // Facets
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addFacets("ButterflySeed", {"request"});
@@ -329,35 +356,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("TotemSeed", {"request"});
     reg.addFacets("TreeSeed", {"request"});
 
-    // Open property namespaces
-    reg.addPropertyNamespace("BodyPart", "rule.0.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.1.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.2.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.3.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.4.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.5.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.6.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.7.payload.");
-    reg.addPropertyNamespace("LivingEntity", "capability.");
-
-    // Event types
-    reg.setSource("https://logosphere.dev/schema");
-    reg.addEntityType("CollisionEvent", "WorldEvent", false);
-    reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
-    reg.addEntityType("DamageEvent", "WorldEvent", false);
-    reg.addEntityType("DeathEvent", "WorldEvent", false);
-    reg.addEntityType("DiceRollEvent", "WorldEvent", false);
-    reg.setSource("https://malleus.dev/schema");
-    reg.addEntityType("Event", "", false);
-    reg.setSource("https://logosphere.dev/schema");
-    reg.addEntityType("PerceptionEvent", "WorldEvent", false);
-    reg.addEntityType("RelationEvent", "WorldEvent", false);
-    reg.addEntityType("SpawnEvent", "WorldEvent", false);
-    reg.addEntityType("TransformationEvent", "WorldEvent", false);
-    reg.addEntityType("VolumeEvent", "WorldEvent", false);
-    reg.addEntityType("WorldEvent", "Event", false);
-
     // Relation types
+    reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("BONDED_TO", {"Entity"}, {"Entity"});
     reg.addRelationType("BURNS", {"Entity"}, {"Entity"});
     reg.addRelationType("CONTAINS", {"Entity"}, {"Entity"});

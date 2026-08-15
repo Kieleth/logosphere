@@ -1367,6 +1367,96 @@ void test_every_absorbed_rule_reaches_a_character() {
               std::to_string(absorbed.size()));
 }
 
+// The gate above asks whether a rule was EXECUTED. This one asks the
+// easier question it does not cover: was the type ever INSTANTIATED at
+// all. Eleven types were declared in the rulebook pack and no seed
+// ever created one, JudgmentPoint.prompt_text among them, which is
+// documented as the brief handed to the referee and is read by nothing
+// while the adjudicator builds its prompt from a hardcoded string.
+//
+// Same shape as the rank 0 grants: declared, sound, cited, reached by
+// nothing. A reader census at the level of types does not catch it,
+// because a census is satisfied by one reader touching one instance.
+// This catches the strictly easier case of no instances at all, and it
+// reads the vocabulary from the registry so a type added tomorrow is
+// covered without anyone maintaining a list.
+void test_every_declared_rule_type_has_an_instance() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the instantiation world: " + why);
+    if (!why.empty()) return;
+
+    // Scoped to the vocabulary the BOOK and its packs declare. The
+    // engine's own types (Humanoid, Wall, LightSource) have no business
+    // existing in a chargen world and their absence proves nothing.
+    const std::set<std::string> book_sources = {
+        "https://logosphere.dev/packs/rulebook",
+        "https://logosphere.dev/logovger/cepheus/book1-character-creation",
+        "https://logosphere.dev/logovger/cepheus/book1-skills",
+    };
+
+    // Lives are played FIRST, because the population splits in two and
+    // a seed world alone confuses them. Book content (Career,
+    // TableEntry, AdvanceSkill) is created by seeds and is present at
+    // load. State (SkillRating, ProgressionStanding, CurrencyBalance)
+    // exists only once a character has lived, and reporting those as
+    // never-instantiated would be measuring an empty room and calling
+    // it a finding.
+    for (const std::string& career : {std::string("Navy"),
+                                      std::string("Scout"),
+                                      std::string("Noble")}) {
+        for (uint64_t seed = 1; seed <= 4; ++seed) {
+            logosphere::dice::DiceService dice;
+            logovger::ChargenRequest request;
+            request.career_name = career;
+            request.seed = seed;
+            request.max_terms = 7;
+            logovger::CharacterSheet sheet;
+            std::string error;
+            logovger::run_chargen(request, world, dice, sheet, error);
+        }
+    }
+
+    const auto& registry = world.getRegistry();
+    std::vector<std::string> empty;
+    int checked = 0, declared = 0;
+    for (const auto& entry : registry.entityTypes()) {
+        const auto& def = entry.second;
+        if (def.is_abstract) continue;
+        if (!book_sources.count(def.source)) continue;
+        ++checked;
+        if (!world.findByType(entry.first).empty()) continue;
+        // A type may declare that it has no instance yet, in the
+        // schema, with the reason written beside it. Declared absence
+        // is a countable backlog; undeclared absence is the silence
+        // this test exists to break.
+        if (def.facets.count("no-instance-declared")) {
+            ++declared;
+            continue;
+        }
+        empty.push_back(entry.first);
+    }
+    std::sort(empty.begin(), empty.end());
+
+    std::string undeclared;
+    for (const auto& name : empty) {
+        undeclared += (undeclared.empty() ? "" : ", ") + name;
+    }
+    std::cout << "  [measure] " << checked
+              << " concrete types declared by the book and its packs, "
+              << declared << " declared to have no instance yet, "
+              << empty.size() << " silently empty\n";
+
+    CHECK(checked > 20,
+          "the scope actually found the book's vocabulary: " +
+              std::to_string(checked) + " types");
+    // The gate. A type with no instance is allowed, and saying so in
+    // the schema is the price. Silence is not.
+    CHECK(empty.empty(),
+          "every declared type is instantiated or says why not: " +
+              undeclared);
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2627,6 +2717,7 @@ int main() {
     test_a_roll_names_the_rule_that_made_it();
     test_joining_a_career_grants_its_rank_zero_skill();
     test_every_absorbed_rule_reaches_a_character();
+    test_every_declared_rule_type_has_an_instance();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();

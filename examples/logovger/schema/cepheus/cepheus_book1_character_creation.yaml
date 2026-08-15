@@ -79,6 +79,16 @@ classes:
       One four-year term of service actually lived by a Voyager during
       character generation [book1/character-creation.md "Terms of
       Service"]. The KG accumulates these; the referee narrates them.
+    annotations:
+      facets: no-instance-declared
+      no_instance_reason: >-
+        "The KG accumulates these" is not true yet. Terms live in the
+        C++ character sheet, nothing writes a ServiceTerm, and so the
+        graph holds no record that a term happened while the timeline
+        is reconstructed from the sheet instead. It is declared as an
+        Event, which is what it is, and the dice journal already
+        records the throws made inside each term; the term itself is
+        what is missing. Tracked in #104.
     slots:
       - term_number
       - term_career

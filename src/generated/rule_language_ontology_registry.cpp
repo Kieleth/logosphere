@@ -370,13 +370,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Wing", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("WorldEntity", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal"});
 
-    // Facets
-    reg.setSource("https://logosphere.dev/packs/rule-language");
-    reg.addFacets("OntologyMetaContext", {"ontology-meta"});
-    reg.addFacets("OntologyMetaEntity", {"ontology-meta"});
-    reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
-    reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
-
     // Open property namespaces
     reg.addPropertyNamespace("BodyPart", "rule.0.payload.");
     reg.addPropertyNamespace("BodyPart", "rule.1.payload.");
@@ -389,7 +382,6 @@ static kg::OntologyRegistry build_registry() {
     reg.addPropertyNamespace("LivingEntity", "capability.");
 
     // Event types
-    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("CollisionEvent", "WorldEvent", false);
     reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
     reg.addEntityType("DamageEvent", "WorldEvent", false);
@@ -405,7 +397,15 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("VolumeEvent", "WorldEvent", false);
     reg.addEntityType("WorldEvent", "Event", false);
 
+    // Facets
+    reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addFacets("OntologyMetaContext", {"ontology-meta"});
+    reg.addFacets("OntologyMetaEntity", {"ontology-meta"});
+    reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
+    reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
+
     // Relation types
+    reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("BONDED_TO", {"Entity"}, {"Entity"});
     reg.addRelationType("BURNS", {"Entity"}, {"Entity"});
     reg.addRelationType("CONTAINS", {"Entity"}, {"Entity"});
