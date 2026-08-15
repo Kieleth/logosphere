@@ -74,6 +74,12 @@ constexpr float STACK_H  = 2.0f;
 // squarely: moving it east to 6.9 dropped the strike to z=2.35 and the
 // post barely moved. It stays at 6.6 and the BRIDGE reaches west to
 // meet it — the post comes to rest with its east face at 7.73.
+// 6.6 is the measured optimum, and the trade is unforgiving: the
+// arrival is ballistic, so every 0.1 m east costs strike height and
+// therefore transferred speed. Measured post velocity right after the
+// strike: 0.86 m/s at 6.6, 0.43 m/s at 7.0 — the post loses travel
+// faster than it gains a head start, and 7.0 leaves it at 7.24 where
+// 6.6 leaves it at 7.61. Neither reaches the bridge at 7.90.
 constexpr float STACK_X  = 6.6f;
 constexpr float STACK_HI_Z = 2.5f;   // spans 1.5..3.5 = deck to alley level
 
@@ -87,6 +93,9 @@ constexpr float BASEMENT_TOP   = 0.2f;
 constexpr float RAMP_CX = 1.3f, RAMP_CZ = 4.44f;
 constexpr float RAMP_LEN = 3.2f, RAMP_TILT = 0.70f;   // ~40 deg about Y
 constexpr float BALL_X0 = 0.45f, BALL_Z0 = 6.6f;
+
+// The two paths run either side of the centre line.
+constexpr float LANE = 0.9f;
 
 constexpr int PREROLL   = 120;
 constexpr int MAX_FRAME = 4000;
@@ -118,7 +127,9 @@ struct World {
     bool trace = false;
     bool ok = false;
 
-    int ball = -1;
+    int ball = -1;        // the CUBE, north path (y = +LANE)
+    int sphere = -1;      // the SPHERE, south path (y = -LANE)
+    int ramp_cube = -1, ramp_sphere = -1;
     int alley[3] = {-1, -1, -1};
     int stack_lo = -1, stack_hi = -1;
     int plank = -1;
@@ -254,41 +265,89 @@ struct World {
         platform(9.4f, 10.6f, DECK_MAIN_TOP);   // east of the gap
         platform(7.5f, 12.9f, BASEMENT_TOP);    // basement
 
-        // the ramp: one rotated KINEMATIC box (INV-12 territory)
-        // RENDER BISECT: no other visual test draws a rotation_y box;
-        // temporarily excluded to test whether it whites the frame.
+        // TWO RAMPS, SIDE BY SIDE — the machine's own controlled
+        // experiment. Identical slopes, identical drops, identical
+        // material; the only difference is the shape of what comes down.
+        //
+        // A cube can only slide. A sphere, in any engine that carries
+        // torque at contacts, must ROLL — and a rolling body keeps energy
+        // in its spin, so it arrives slower than a sliding one and its
+        // surface speed at the contact is zero. Today the engine has no
+        // contact torque, so BOTH slide and the two paths arrive
+        // together. That is the rotation gap, made visible as a
+        // side-by-side rather than described in a document: when the
+        // rotation campaign lands, these two stop agreeing, and S2R is
+        // the stage that will say so.
         if (!std::getenv("RUBE_NO_RAMP")) {
-            int ramp = add_box(RAMP_CX, 0.0f, RAMP_CZ, RAMP_LEN, 1.6f, 0.2f,
-                               Materials::Type::STONE, RAMP_TILT,
-                               0.4f, 0.55f, 0.4f);
-            pending_kinematic.push_back(ramp);
+            ramp_cube = add_box(RAMP_CX, LANE, RAMP_CZ, RAMP_LEN, 1.2f, 0.2f,
+                                Materials::Type::STONE, RAMP_TILT,
+                                0.4f, 0.55f, 0.4f);
+            ramp_sphere = add_box(RAMP_CX, -LANE, RAMP_CZ, RAMP_LEN, 1.2f, 0.2f,
+                                  Materials::Type::STONE, RAMP_TILT,
+                                  0.45f, 0.5f, 0.55f);
+            pending_kinematic.push_back(ramp_cube);
+            pending_kinematic.push_back(ramp_sphere);
         }
 
-        // the protagonist, latched KINEMATIC above the ramp's west end.
-        // STONE: the ball outweighs the wooden alley boxes ~3.5:1, so the
-        // relay is a plow, not a pendulum — with mu=0.5 eating momentum at
-        // every hop, equal masses die in the row (measured: last box never
-        // moved).
-        ball = add_box(BALL_X0, 0.0f, BALL_Z0, BALL, BALL, BALL,
+        // The cube: north lane. STONE, so it outweighs the wooden alley
+        // boxes ~3.5:1 — the relay is a plow, not a pendulum (with mu=0.5
+        // eating momentum at every hop, equal masses die in the row).
+        ball = add_box(BALL_X0, LANE, BALL_Z0, BALL, BALL, BALL,
                        Materials::Type::STONE, 0.0f, 0.9f, 0.2f, 0.2f);
+        // The sphere: south lane, same mass class, same drop.
+        {
+            Particle p = {};
+            p.shape = ParticleShape::SPHERE;
+            p.x = BALL_X0; p.y = -LANE; p.z = BALL_Z0;
+            p.width = p.height = p.thickness = BALL;
+            p.size = BALL;
+            p.r = 0.2f; p.g = 0.5f; p.b = 0.95f; p.a = 1.0f;
+            p.SetMaterial(Materials::Type::STONE);
+            sphere = engine.add_particle(p);
+        }
 
         // Newton's alley: three boxes at rest on the alley deck
+        // The alley sits in the CUBE's lane. (It was on the centre line
+        // when the paths were introduced, so the cube slid past it and
+        // the relay never happened — the interaction log said
+        // "cube->0 NONE" where a position check would only have said the
+        // last box had not moved.)
         for (int i = 0; i < 3; ++i)
-            alley[i] = add_box(4.9f + 0.45f * i, 0.0f,
+            alley[i] = add_box(4.9f + 0.45f * i, LANE,
                                DECK_ALLEY_TOP + BOX / 2 + 0.002f,
                                BOX, BOX, BOX, Materials::Type::WOOD_HARD,
                                0.0f, 0.85f, 0.65f, 0.2f);
 
         // the sleeping stack on the main deck
-        stack_hi = add_box(STACK_X, 0.0f, STACK_HI_Z,
+        stack_hi = add_box(STACK_X, LANE, STACK_HI_Z,
                            STACK_W, STACK_W, STACK_H,
                            Materials::Type::WOOD_SOFT, 0.0f,
                            0.55f, 0.8f, 0.45f);
         stack_lo = stack_hi;   // one post; the field name is legacy
 
-        // the nailed bridge across the gap: plank ends resting on the deck
-        plank = add_box(8.7f, 0.0f, DECK_MAIN_TOP + 0.075f + 0.002f,
-                        2.0f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
+        // THE NAILED BRIDGE, sized from the tear law it must satisfy.
+        //
+        // A nail breaks on SUSTAINED load: physics_system_v4.cpp computes
+        // force = impulse/dt per frame and tears only after 12 CONSECUTIVE
+        // frames at or above the threshold. An impulsive hit cannot break
+        // it — one frame of force, then the striker is stopped and pushes
+        // no more. What breaks a nail is weight it has to keep carrying.
+        //
+        // So the plank FILLS the gap (7.90..9.40) flush with the deck
+        // rather than resting on top of it: a body slides on from the deck
+        // and out over open air, where nothing but the nails holds it up.
+        // Flush also avoids the spawn overlap that a recessed plank had
+        // (measured 0.063 m of penetration at frame 1 — the plank ends
+        // were inside the deck tiles).
+        //
+        // The arithmetic the nails are chosen by, at 2 nails:
+        //   plank alone   90.0 kg ->  883 N  -> 441 N/nail  (63% of hold)
+        //   plank + post 152.5 kg -> 1496 N  -> 748 N/nail  (107%)
+        // A bridge that carries itself and fails under the load it was
+        // never meant to take. NAIL_HOLD is the design input; the tear is
+        // the consequence.
+        plank = add_box(8.65f, 0.0f, DECK_MAIN_TOP - 0.075f,
+                        1.5f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
                         0.0f, 0.7f, 0.55f, 0.3f);
 
         // the featherweight station in the basement crash zone: the
@@ -336,16 +395,19 @@ struct World {
                     std::fabs(t.z_top - DECK_MAIN_TOP) < 0.01f)
                     v[t.id].friction = 0.05f;
         }
-        make_kinematic(ball);   // latched until the trigger frame
+        make_kinematic(ball);     // latched until the trigger frame
+        make_kinematic(sphere);
 
         // bridge nails, at the exact plank-end/deck-edge contact points
         {
             const Particle pl = read(plank);
             const float z_join = DECK_MAIN_TOP;   // deck top = plank bottom
-            const int west = tile_near(pl.x - 1.0f, DECK_MAIN_TOP);
-            const int east = tile_near(pl.x + 1.0f, DECK_MAIN_TOP);
-            nail_at(plank, west, pl.x - 0.95f, 0.0f, z_join, 2200.0f);
-            nail_at(plank, east, pl.x + 0.95f, 0.0f, z_join, 2200.0f);
+            constexpr float NAIL_HOLD = 700.0f;   // N per nail, see above
+            const int west = tile_near(pl.x - 0.9f, DECK_MAIN_TOP);
+            const int east = tile_near(pl.x + 0.9f, DECK_MAIN_TOP);
+            (void)z_join;
+            nail_at(plank, west, pl.x - 0.75f, 0.0f, pl.z, NAIL_HOLD);
+            nail_at(plank, east, pl.x + 0.75f, 0.0f, pl.z, NAIL_HOLD);
         }
         // feather bond: the ringing-ladder recipe, verbatim (known good)
         {
@@ -399,6 +461,64 @@ struct World {
     ~World() { if (ok) engine.shutdown(); }
 };
 
+// ------------------------------------------------------ the interactions
+//
+// AUDIT 2026-08-15: every stage below asserted an OUTCOME — where a body
+// ended up — while the prose described an INTERACTION. Nothing checked
+// that the ball ever touched the ramp, that each alley box actually
+// struck the next, or that the flying box caught the post rather than
+// landing beside it. A position can be reached by the wrong mechanism
+// and read identically.
+//
+// The engine already reports what happened: get_collision_events() gives
+// both bodies, the world contact point, the unit normal (A toward B) and
+// the approach speed. This log keeps every contact between bodies the
+// machine cares about, so a stage can assert the event it names.
+//
+// These are deliberately written as named interactions — hit, rode,
+// landed_on — because that vocabulary is meant to move into the engine
+// and mean the same thing everywhere (skill directive, 2026-08-15).
+struct Interaction {
+    int frame;
+    int a, b;
+    float x, y, z;          // where it happened
+    float nx, ny, nz;       // unit normal, A toward B
+    float approach;         // m/s along the normal; negative = closing
+};
+
+struct InteractionLog {
+    std::vector<Interaction> all;
+
+    void observe(int frame, PhysicsSystem& phys) {
+        for (const auto& e : phys.get_collision_events()) {
+            all.push_back({frame, (int)e.particle_a, (int)e.particle_b,
+                           e.contact_x, e.contact_y, e.contact_z,
+                           e.normal_x, e.normal_y, e.normal_z,
+                           e.relative_velocity});
+        }
+    }
+
+    // Did these two bodies ever touch? Returns the hardest such contact
+    // (most negative approach speed), or nullptr.
+    const Interaction* hardest_between(int a, int b) const {
+        const Interaction* best = nullptr;
+        for (const auto& i : all) {
+            const bool pair = (i.a == a && i.b == b) || (i.a == b && i.b == a);
+            if (!pair) continue;
+            if (!best || i.approach < best->approach) best = &i;
+        }
+        return best;
+    }
+    int count_between(int a, int b) const {
+        int n = 0;
+        for (const auto& i : all)
+            if ((i.a == a && i.b == b) || (i.a == b && i.b == a)) ++n;
+        return n;
+    }
+};
+
+static InteractionLog g_log;
+
 // ---------------------------------------------------------------- stages
 struct Stage {
     const char* name;
@@ -440,10 +560,18 @@ std::vector<Stage> make_stages() {
     st.push_back({"S1 THE DROP", "INV-3 INV-11", nullptr, PREROLL + 90,
         [](World& w, std::string& m) {
             const Particle p = w.read(w.ball);
-            char buf[120];
-            snprintf(buf, sizeof buf, "ball z=%.2f vz=%.2f", p.z, p.vz);
+            // INTERACTION, not altitude: the cube must actually TOUCH the
+            // ramp, and the sphere must touch its own. Reaching the right
+            // height while sailing past the ramp used to read as success.
+            const Interaction* hit_c = g_log.hardest_between(w.ball, w.ramp_cube);
+            const Interaction* hit_s = g_log.hardest_between(w.sphere, w.ramp_sphere);
+            char buf[200];
+            snprintf(buf, sizeof buf,
+                     "cube z=%.2f vz=%.2f | landed: cube=%s sphere=%s",
+                     p.z, p.vz,
+                     hit_c ? "yes" : "NO", hit_s ? "yes" : "NO");
             m = buf;
-            return p.z < RAMP_CZ + 1.0f;
+            return hit_c != nullptr && hit_s != nullptr;
         }});
 
     // S2: slides east down the rotated ramp and leaves it with real speed
@@ -468,11 +596,21 @@ std::vector<Stage> make_stages() {
                   PREROLL + 700,
         [](World& w, std::string& m) {
             const Particle last = w.read(w.alley[2]);
-            char buf[120];
-            snprintf(buf, sizeof buf, "last box x=%.2f z=%.2f",
-                     last.x, last.z);
+            // INTERACTION: the cube struck box0, box0 struck box1, box1
+            // struck box2. A relay is a chain of contacts; the last box
+            // being displaced proves none of the links on its own.
+            const Interaction* h0 = g_log.hardest_between(w.ball, w.alley[0]);
+            const Interaction* h1 = g_log.hardest_between(w.alley[0], w.alley[1]);
+            const Interaction* h2 = g_log.hardest_between(w.alley[1], w.alley[2]);
+            char buf[220];
+            snprintf(buf, sizeof buf,
+                     "last box x=%.2f z=%.2f | relay: cube->0 %s, 0->1 %s, "
+                     "1->2 %s", last.x, last.z,
+                     h0 ? "hit" : "NONE", h1 ? "hit" : "NONE",
+                     h2 ? "hit" : "NONE");
             m = buf;
-            return last.x > 6.0f && last.z < DECK_ALLEY_TOP - 0.3f;
+            return h0 && h1 && h2 &&
+                   last.x > 6.0f && last.z < DECK_ALLEY_TOP - 0.3f;
         }});
 
     // S4: a body arrives on a stack that has been asleep for two
@@ -500,11 +638,46 @@ std::vector<Stage> make_stages() {
                      "stack_woke=%d top x=%.2f z=%.2f (start z %.2f) arrival z=%.2f "
                      "supported=%d", (int)w.stack_woke, hi.x, hi.z,
                      STACK_HI_Z, box.z, (int)supported);
-            m = buf;
-            return w.stack_woke && (supported || struck);
+            // INTERACTION: "the flying box catches the post square in the
+            // side" is a contact between those two bodies, at a height
+            // well above the deck, with a mostly-horizontal normal. All
+            // three are checked; none of them were before.
+            const Interaction* strike =
+                g_log.hardest_between(w.alley[2], w.stack_hi);
+            const bool on_the_side =
+                strike && std::fabs(strike->nx) > 0.7f &&
+                strike->z > DECK_MAIN_TOP + 0.5f;
+            char b2[260];
+            snprintf(b2, sizeof b2,
+                     "%s | strike: %s at z=%.2f nx=%.2f approach=%.2f m/s",
+                     buf, strike ? "yes" : "NONE",
+                     strike ? strike->z : 0.0f,
+                     strike ? strike->nx : 0.0f,
+                     strike ? strike->approach : 0.0f);
+            m = b2;
+            return w.stack_woke && on_the_side && (supported || struck);
         }});
 
     // S5: the arriving load tears both declared nails; the plank drops.
+    //
+    // WHY THIS IS STILL RED (measured 2026-08-15, and it is choreography,
+    // not physics):
+    //   * The tear law needs SUSTAINED load — force = impulse/dt at or
+    //     above the nail's hold for 12 CONSECUTIVE frames. An impulsive
+    //     hit cannot do it: one frame of force, then the striker stops.
+    //   * So the bridge must be STOOD ON, and it is built for that now:
+    //     it fills the gap flush with the deck, carries its own 883 N on
+    //     two 700 N nails (441 N each, 63%), and a 62.5 kg post arriving
+    //     mid-span would put 748 N on each (107%) — a tear.
+    //   * The post never arrives. It stops at x=7.61 and the bridge
+    //     begins at 7.90. Moving it east makes it worse, not better:
+    //     the arrival is ballistic, so a post at 7.00 is struck lower and
+    //     leaves with 0.43 m/s instead of 0.86, ending at 7.24.
+    //
+    // The chain needs a different carrier for the last 0.3 m — a body
+    // that arrives ON the bridge rather than sliding at it. That is a
+    // redesign of this leg, not a constant to nudge, and it is on the
+    // board as C5's remainder.
     st.push_back({"S5 THE BRIDGE", "INV-14 INV-4", nullptr, PREROLL + 1400,
         [](World& w, std::string& m) {
             const size_t bonds = w.phys().get_total_gluon_count();
@@ -559,6 +732,65 @@ std::vector<Stage> make_stages() {
                      peb.z, peb.vz);
             m = buf;
             return peb.z > BASEMENT_TOP + 1.4f;
+        }});
+
+    // SR: THE TWIN PATHS — the machine's own controlled experiment,
+    // and its first result is a defect nobody was looking for.
+    //
+    // MEASURED 2026-08-15, same ramp geometry for both lanes:
+    //   f160  cube x=0.66 v=1.06   sphere x=0.45 v=0.00
+    //   f220  cube x=2.52 v=2.65   sphere x=0.45 v=0.00
+    //   f300  cube x=5.08 v=0.88   sphere x=0.45 v=0.00
+    // The sphere lands on the ramp and NEVER MOVES. A 40-degree slope is
+    // far past the engine's own friction angle (mu=0.5 -> 26.6 deg), so
+    // nothing should hold it, and the cube beside it slides away. Whatever
+    // the sphere is resting on is not the surface the cube is resting on.
+    // Suspect, unproven: sphere-vs-rotated-box narrow phase reporting an
+    // axis-aligned normal rather than the ramp's true one, which would
+    // make the contact behave like a horizontal shelf. See the rotation
+    // study's note that sphere and ellipsoid handlers are
+    // orientation-blind.
+    //
+    // Placed LAST on purpose. It is a frontier stage: it must not halt
+    // the chain in front of stages that do pass, and a red measurement
+    // buried mid-chain would have cost S3 through S5 their coverage.
+    //
+    // Two ramps, same slope, same drop, same
+    // material; a cube on one and a sphere on the other. This stage does
+    // not judge which is right — it MEASURES THE DIFFERENCE and says so
+    // out loud, because that difference is the rotation gap.
+    //
+    // A sphere on a real ramp rolls: part of the released potential
+    // energy goes into spin, so it reaches the bottom SLOWER than a
+    // sliding cube (for a solid sphere, sqrt(5/7) of it), and its own
+    // surface is momentarily still where it touches. With no contact
+    // torque, nothing spins it, and the two arrive together.
+    //
+    // Today that is expected and the stage passes on the sphere merely
+    // completing the ramp. The measured spin and the speed ratio are
+    // printed every run, so when the rotation campaign lands the change
+    // is visible here in one line, in this machine, without anyone
+    // rewriting the stage.
+    st.push_back({"SR TWIN PATHS", "rotation gap, measured",
+                  "a SPHERE will not slide a 40-deg ramp that a CUBE slides",
+                  MAX_FRAME - 1,
+        [](World& w, std::string& m) {
+            const Particle c = w.read(w.ball);
+            const Particle s = w.read(w.sphere);
+            const float vc = std::sqrt(c.vx * c.vx + c.vy * c.vy);
+            const float vs = std::sqrt(s.vx * s.vx + s.vy * s.vy);
+            const float spin = std::sqrt(s.omega_x * s.omega_x +
+                                         s.omega_y * s.omega_y +
+                                         s.omega_z * s.omega_z);
+            const float ratio = (vc > 0.01f) ? (vs / vc) : 0.0f;
+            char buf[240];
+            snprintf(buf, sizeof buf,
+                     "cube %.2f m/s | sphere %.2f m/s (ratio %.3f, rolling "
+                     "would be 0.845) | sphere spin %.3f rad/s -> %s",
+                     vc, vs, ratio, spin,
+                     spin > 0.5f ? "ROLLING" : "sliding, no torque yet");
+            m = buf;
+            return s.x > RAMP_CX + RAMP_LEN * 0.42f && vs > 0.5f;
         }});
 
     st.push_back({"S9 THE QUIET END", "INV-24 INV-2 INV-18", nullptr,
@@ -618,6 +850,7 @@ bool run_machine() {
         return true;
     }
 
+    g_log.all.clear();
     std::vector<Stage> stages = make_stages();
     const int total = (int)stages.size();
     int completed = 0, current = 0;
@@ -634,7 +867,7 @@ bool run_machine() {
     const int dump_frame = std::getenv("RUBE_DUMP")
         ? std::atoi(std::getenv("RUBE_DUMP")) : -1;
     for (int frame = 0; frame < MAX_FRAME && current < total; ++frame) {
-        if (frame == PREROLL) w.release(w.ball);
+        if (frame == PREROLL) { w.release(w.ball); w.release(w.sphere); }
         // Interactive runs in real time; headless runs flat out. Without
         // this the whole show plays in milliseconds (measured: 798k frames
         // before the first human look).
@@ -650,6 +883,7 @@ bool run_machine() {
             w.engine.get_camera_system().set_position(b.x, b.y, b.z);
         }
         w.engine.update(1.0 / 60.0);
+        g_log.observe(frame, w.phys());
         // update() simulates; render() paints; present() puts the paint
         // on the window. All three, every frame, or the user sees an
         // unpainted (white) surface while the framebuffer is perfect.
@@ -754,6 +988,17 @@ bool run_machine() {
             probe_init = true;
             if (const char* pv = std::getenv("RUBE_PROBE"))
                 sscanf(pv, "%d,%d", &probe_a, &probe_b);
+        }
+        if (getenv("RUBE_TWIN") && frame >= PREROLL && frame <= PREROLL + 260 &&
+            (frame % 20) == 0) {
+            const Particle c = w.read(w.ball);
+            const Particle sp = w.read(w.sphere);
+            printf("      [twin f%d] cube (%.2f,%.2f,%.2f) v=%.2f | "
+                   "sphere (%.2f,%.2f,%.2f) v=%.2f spin=%.2f\n", frame,
+                   c.x, c.y, c.z, std::sqrt(c.vx*c.vx + c.vy*c.vy),
+                   sp.x, sp.y, sp.z, std::sqrt(sp.vx*sp.vx + sp.vy*sp.vy),
+                   std::sqrt(sp.omega_x*sp.omega_x + sp.omega_y*sp.omega_y +
+                             sp.omega_z*sp.omega_z));
         }
         if (getenv("RUBE_STACK") && frame >= 300 && frame <= 700 &&
             (frame % 25) == 0) {

@@ -661,3 +661,98 @@ checked against — no expected value invented.
 
 Known and stated: linear only. Angular refusals are booked nowhere,
 because the angular side still has no door at all (board D1/D2).
+
+## 2026-08-15 — C9 landed, C6 advanced: INV-6 has a witness at last
+
+C9: every build step in scripts/precheck_linux.sh now names itself and
+prints the real compiler output on failure. It proved itself on its
+first run by diagnosing "Killed signal terminated program cc1plus" —
+the OOM killer, caused by running two prechecks concurrently, not by
+any code defect. Solo rerun: PRECHECK GREEN. Prechecks run ALONE, like
+the sweep.
+
+C6: unproven invariants 14 -> 11. INV-6 (no-gravity-assumptions) is
+WITNESSED for the first time since the engine's first month — the same
+press applied on +X, +Y and -Z resolves identically (penetration
+spread 0.000000 m, resting-gap spread 0.000169 m, normal-direction
+residual under 1e-5 m/s). Three false readings on the way there, all
+recorded in the test: gravity left on made the axes non-mirrors;
+cancelling it AFTER the solve left exactly 9.8/60 = 0.16333 m/s of
+uneaten correction that read as a 4x bias; and measuring the full
+velocity vector reported a tangential drift (gravity is applied once
+per SUBSTEP, a test can only cancel once per frame) as a normal-axis
+bias. The invariant concerns the contact normal, so the normal is what
+is measured.
+
+INV-27 and INV-23 gained coverage with no new code:
+test_determinism_guards and test_immovable_pair_phantom_impulse both
+existed and were never linked, so two laws read as uncovered while
+their provers sat in the tree. Half of task #45, closed as a side
+effect of asking the audit the right question.
+
+## 2026-08-15 — C7: the energy ledger says where the joules went
+
+INV-19 promised that damping exists only where a real dissipation
+process is modelled AND that the conversion is booked. The first half
+was enforced (the rest damper was eradicated for failing it); the
+second half was never built, so every joule that left the world left
+silently.
+
+Four buckets now, each naming a process rather than a fudge: friction
+(Coulomb work at contacts), material (gluon damping, c = eta*sqrt(k*mu)),
+drag (quadratic air drag at integration), and sleep — the residue the
+cache absorbs below its quietness bound. Sleep is booked SEPARATELY on
+purpose: it is not a physical process, it is an optimisation, and
+keeping it in its own column means it can never hide inside the honest
+ones.
+
+Measured on the machine: 26.3 J of friction at the impact frame against
+a -67.6 J contact row, drag rising quadratically through free fall,
+cache absorption in microjoules, and near-zero everywhere the world is
+quiet.
+
+## 2026-08-15 — C5: the bridge is sized by the tear law, and one leg is short
+
+I had written that the bridge needed "an impulsive load — a fall, not a
+slide." Reading the tear law disproved it: for welds (nails) the engine
+computes force = impulse/dt each frame and tears only after 12
+CONSECUTIVE frames at or above the threshold. An impulse cannot break a
+nail; a WEIGHT can. So the bridge is rebuilt to be stood on — it fills
+the gap flush with the deck instead of resting on top of it, and its
+nails are sized from the arithmetic rather than invented:
+
+  plank alone    90.0 kg ->  883 N -> 441 N/nail  (63% of a 700 N hold)
+  plank + post  152.5 kg -> 1496 N -> 748 N/nail  (107%)
+
+A bridge that carries itself and fails under the load it was never
+meant to take. The old 2200 N was a number I made up.
+
+What remains is 0.30 m of geometry, and the measurements say it cannot
+be nudged: the post stops at x=7.61 and the bridge begins at 7.90.
+Moving the post toward the bridge makes it worse, because the arrival
+is ballistic — a post at 7.00 is struck lower and leaves with 0.43 m/s
+instead of 0.86, stopping at 7.24. Strike strength falls faster than
+distance does. The leg needs a body that arrives ON the bridge, which
+is a redesign of that link and stays on the board as C5's remainder.
+
+## 2026-08-15 — Instrument the interactions (owner directive)
+
+"For each interaction in a test, internal checks need to be
+instrumented and asserted with enough granularity that we understand
+that the code is doing what it does. Also, bonus: these assertions in
+time will need to be abstracted as physical interactions that we can
+port back to the engine, with semantics like 'hit', 'rolling',
+'impact' starting to have ontology-sourced meaning inside our engine —
+they mean the same everywhere and can be used as building blocks later
+on."
+
+Recorded in the physics skill as a directive. The immediate
+consequence: the Rube Goldberg machine asserted OUTCOMES (where bodies
+ended up) while the prose described INTERACTIONS (the ball takes the
+ramp, each box strikes the next, the flying box catches the post square
+in the side) — none of which were checked. A position can be produced
+by the wrong mechanism and look identical.
+
+PhysicsSystem::get_collision_events() already reports every contact
+with both bodies, the world point, the normal and the approach speed,
+so the machine can assert the strikes it names.

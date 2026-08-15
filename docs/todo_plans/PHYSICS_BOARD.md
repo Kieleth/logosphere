@@ -53,11 +53,11 @@ Do in any order. None needs a decision; all reduce debt.
 | C2 | **`test_humanoid_impact` asserts nothing** | `bool pass = impact_detected` is the entire assertion; displacements printed, never asserted; its humanoid is never registered so it has no pin at all (hips move 0.13 m, measured) | Rewrite the assertions to measure what the name claims. No mechanism change needed. |
 | C3 | **Two friction applies still re-ask the immovability question** | audit E-2: `physics_system_v4.cpp:3463` and `:3485` carry the `!pb.is_at_rest && != KINEMATIC` guard on top of `inv_mb` — the identical bug fixed at `:3324` on 2026-08-14 | Same one-line cure, already proven. Destroys momentum in every frictional contact against a sleeper the moment WAKE_RESOLVER flips. |
 | C4 | **A sleeping body can spin forever** | study D-3: enter-rest zeroes only `vx/vy/vz` (`:4759`); `integrate_angular_velocities` gates only on KINEMATIC (`:4867`); `resolve_sleep_wakes` judges only linear (`:545`) | Sleep's contract (INV-18) already says what it must do; the angular half was never written. |
-| C5 | **Machine stages S5+ choreography** — *partly done 2026-08-14: the two-box stack became a single post standing on the deck (the old top box slid on the LOWER BOX at mu=0.5 and stopped in 0.17 m while the polished deck was doing nothing — a scene that misrepresented its own physics). The post now decelerates at the deck's 0.5 m/s^2 and reaches the bridge. S5 still red: it arrives exhausted, and a body with just enough energy to arrive has none left to tear nails. The bridge needs an impulsive load — a fall, not a slide.* | `test_rube_goldberg_machine` halts at S5 with the resolver on (5/10); the struck box stops where friction says it stops, short of the bridge | Scene design, not physics. The ratchet is honest at 3 (default) / 5 (resolver). |
-| C6 | **INV-17..28 have no proving tests** | sweep: "COVERAGE HOLES (no proving test): INV-16..28, INV-5, INV-6"; task #45 | Writing provers cannot break anything. INV-6 (no gravity assumptions) has *never* been witnessed on a wall, a ceiling, or in zero-g. |
+| C5 | **Machine stages S5+ choreography** — *2026-08-15: the bridge is now built FROM the tear law instead of guessed. A nail breaks on SUSTAINED load (force = impulse/dt for 12 consecutive frames, physics_system_v4.cpp), not on an impulse — so "a fall, not a slide" was the wrong prescription and the bridge must be STOOD ON. It now fills the gap flush with the deck, carries its own 883 N on two 700 N nails (441 N each, 63% of hold), and a 62.5 kg post mid-span would load them to 748 N each (107%) — a tear by arithmetic. What is missing is the last 0.30 m: the post stops at x=7.61, the bridge starts at 7.90, and moving the post east makes it WORSE (the arrival is ballistic, so a post at 7.00 is struck lower and leaves with 0.43 m/s instead of 0.86, ending at 7.24). The leg needs a carrier that arrives ON the bridge, which is a redesign, not a constant.* — *2026-08-14: the two-box stack became a single post standing on the deck (the old top box slid on the LOWER BOX at mu=0.5 and stopped in 0.17 m while the polished deck was doing nothing — a scene that misrepresented its own physics). The post now decelerates at the deck's 0.5 m/s^2 and reaches the bridge. S5 still red: it arrives exhausted, and a body with just enough energy to arrive has none left to tear nails. The bridge needs an impulsive load — a fall, not a slide.* | `test_rube_goldberg_machine` halts at S5 with the resolver on (5/10); the struck box stops where friction says it stops, short of the bridge | Scene design, not physics. The ratchet is honest at 3 (default) / 5 (resolver). |
+| C6 | **INV-17..28 have no proving tests** — *2026-08-15: 14 unproven -> 11. INV-6 WITNESSED for the first time (same press on +X/+Y/-Z: penetration spread 0.000000 m, gap spread 0.000169 m, normal residual <1e-5 m/s). INV-27 and INV-23 gained coverage by LINKING provers that already existed unlinked. The 11 remaining are mostly static-gate shaped (INV-5 springs, INV-19 damping, INV-28 one attachment definition), like the INV-29 constants gate.* | sweep: "COVERAGE HOLES (no proving test): INV-16..28, INV-5, INV-6"; task #45 | Writing provers cannot break anything. INV-6 (no gravity assumptions) has *never* been witnessed on a wall, a ceiling, or in zero-g. |
 | C8 | ~~**The refusal ledger books 2.5% of the truth**~~ **LANDED 2026-08-14: 99.9%** (1440.2 refused / 1439.2 booked, `test_refused_momentum_ledger`) | F1 RCA: a clean airborne two-body test shows a KINEMATIC target refusing 1357.8 kg*m/s and booking **33.6** — the friction block (`physics_system_v4.cpp:3447-3550`) books nothing at all, and the warm-start apply (`:2801-2810`) spends outside the booking loop | My mechanism, incomplete. **A drain that receives 2.5% of the truth is worse than none**, and D1's S7 depends on it. Do this FIRST of the remaining clean items. |
-| C9 | **The Linux precheck swallows its own build errors** | `scripts/precheck_linux.sh:56-57` sends configure and build output to `/dev/null`, so a real link failure printed `PRECHECK FAIL (exit 1)` with nothing actionable — the error had to be reproduced by hand in docker. The script's own comment at `:63` documents a previous instance of this exact class | The gate is load-bearing (it caught a GNU-ld failure today that macOS could not see); a gate whose output you cannot read costs a debugging round every time it fires. |
-| C7 | **Energy ledger has no dissipation bucket** | INV-19's own commitment; task #44 | Bookkeeping only. Needed before any future damping can be called "modelled". |
+| C9 | ~~**The Linux precheck swallows its own build errors**~~ **LANDED 2026-08-15** — every build step now names itself and prints 40 lines of real compiler output on failure; proved itself immediately by diagnosing an OOM-killed `cc1plus` in one read | `scripts/precheck_linux.sh:56-57` sends configure and build output to `/dev/null`, so a real link failure printed `PRECHECK FAIL (exit 1)` with nothing actionable — the error had to be reproduced by hand in docker. The script's own comment at `:63` documents a previous instance of this exact class | The gate is load-bearing (it caught a GNU-ld failure today that macOS could not see); a gate whose output you cannot read costs a debugging round every time it fires. |
+| C7 | ~~**Energy ledger has no dissipation bucket**~~ **LANDED 2026-08-15** — four buckets, each naming a process: friction, material damping, air drag, and the sleep cache's absorption booked SEPARATELY because it is an optimisation, not physics. Measured on the machine: 26.3 J of friction at the impact frame, microjoules of cache absorption, near-zero when quiet | INV-19's own commitment; task #44 | Bookkeeping only. Needed before any future damping can be called "modelled". |
 
 ---
 
@@ -121,6 +121,36 @@ as its own front so it is not lost.
 KINEMATIC hips. True, and not a shove. If the refusal ledger is ever
 consumed by policy, structural refusals must be distinguishable from
 external ones.)*
+
+---
+
+## F2 — NEW FRONT: a sphere will not slide a ramp that a cube slides
+
+Found 2026-08-15 by the machine's twin-path experiment, on its first
+run. Two ramps side by side, same 40-degree slope, same STONE, same
+drop, same mass class; a cube on one lane and a sphere on the other.
+
+    f160   cube x=0.66 v=1.06 m/s    sphere x=0.45 v=0.00
+    f220   cube x=2.52 v=2.65 m/s    sphere x=0.45 v=0.00
+    f300   cube x=5.08 v=0.88 m/s    sphere x=0.45 v=0.00
+
+The sphere lands and never moves again. 40 degrees is far past the
+engine's own friction angle (mu=0.5 gives 26.6 degrees), so nothing
+should hold it, and the cube beside it leaves at 2.65 m/s. Whatever the
+sphere is resting on is not the surface the cube is resting on.
+
+**Suspect, unproven:** the sphere-vs-rotated-box narrow phase reporting
+an axis-aligned normal instead of the ramp's true one, which would make
+the contact behave like a horizontal shelf. The rotation study already
+records that sphere and ellipsoid handlers are orientation-blind
+(`ROTATION_CAMPAIGN_DESIGN.md`), so this may be that gap with a
+consequence attached — but nobody has traced this contact yet.
+
+Marked as the machine's frontier stage (SR TWIN PATHS), placed last so
+a red measurement cannot starve the passing stages of coverage. When
+contact torque lands, this same stage also becomes the rolling-versus-
+sliding witness: it prints the speed ratio against the analytic 0.845
+for a rolling solid sphere, every run.
 
 ---
 

@@ -103,6 +103,41 @@ Four rules, non-negotiable:
   immovable, no gravity assumptions, no springs as patches, no
   if-statement edge fixes) are in the repo `CLAUDE.md` and bind here.
 
+## Instrument the INTERACTIONS, not just the outcomes (directive)
+
+**Owner ruling 2026-08-15.** A test that asserts where a body ended up
+has not checked that the right thing happened to it. Every physical
+interaction a test depends on must be INSTRUMENTED AND ASSERTED, at
+enough granularity that a reader can see the engine did what the prose
+claims.
+
+Concretely: "the box strikes the post square in the side" is not a
+position check. It is a contact — between those two bodies, at a
+height, with a normal, at some approach speed — and all four are
+observable. `PhysicsSystem::get_collision_events()` reports every
+contact (`particle_a/b`, `contact_x/y/z`, `normal_*`,
+`relative_velocity`, `penetration`), so a stage can assert the strike
+it names rather than infer it from where things came to rest.
+
+The failure this prevents is real and recent: the machine's chain
+"passed" stages while nobody had checked that the ball ever touched
+the ramp, that each box in the row actually struck the next, or that
+the flying box hit the post rather than landing beside it. Outcomes
+can be produced by the wrong mechanism — a body reaching x=7.6 because
+it was struck, or because it was nudged by a spurious overlap, look
+identical in a position assert.
+
+**The longer intent (build toward this deliberately).** These
+assertions are the raw material for a vocabulary. As they accumulate,
+abstract them into named physical interactions — `hit`, `rolling`,
+`sliding`, `impact`, `rest`, `topple` — and move that vocabulary back
+INTO the engine, sourced from the ontology, so the words mean exactly
+one thing everywhere: in tests, in game rules, in the KG, in the
+narrative layer. A test that says "assert_hit(box, post, on_side)" and
+an engine that emits `hit` with the same semantics are the same
+sentence spoken twice. That is the direction; write each assertion as
+if it were about to become a building block, because it is.
+
 ## Ruling protocol
 
 1. Bring the question with its education (rule 3) and options with
