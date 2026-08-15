@@ -222,6 +222,18 @@ registering a handler.
 
 ## Ingestion: LLM extracts, machine verifies (DESIGN)
 
+> **STATE: SUPERSEDED, 2026-08-15 14:51 UTC**, by "Ingestion: the model
+> reads, the tool holds the bytes" below. Kept because the five checks
+> it names are still the checks, and because the shape it describes
+> turned out to be right after a detour: this said the LLM extracts,
+> 2026-08-11 replaced that with a mechanical parser, and 2026-08-15 put
+> the model back with a tool between it and the text.
+>
+> The detour was not wasted. What the mechanical parser bought was the
+> insistence that citations are COPIED and never retyped, and that
+> survives as the tool contract. Read the current section for how the
+> two now fit together.
+
 The pipeline, re-runnable at will per chapter, re-runnable when the
 SRD source commit bumps:
 
@@ -523,6 +535,22 @@ Then the parts that finish a character.
 
 ## Ingestion: who reads, who judges, who checks (decided 2026-08-11)
 
+> **STATE: PARTLY SUPERSEDED, 2026-08-15 14:51 UTC.** The first of its
+> three claims is dead. "Transcription is mechanical" is replaced by
+> LLM-driven transcription through tools that hold the bytes; see the
+> section below and the decisions log. The other two claims, meaning is
+> judged and judgement is audited, are ACTIVE and were always right.
+>
+> What killed it, measured across the whole SRD on 2026-08-14: a
+> deterministic parser leaves 8.5% of pipe-prefixed lines unaccounted
+> for, cuts 14 tables at a width mismatch, and fails by silent
+> CORRUPTION rather than honest loss. It promoted a data row into a
+> column header and manufactured a phantom table without a word.
+>
+> The paragraph below about copying bytes rather than retyping them is
+> NOT superseded and never will be. It moved: the tool copies the
+> bytes, the model decides the structure.
+
 **Transcription is mechanical. Meaning is judged. Judgement is
 audited.** All three, or the pipeline is not what it claims to be.
 
@@ -554,6 +582,63 @@ Benefits row prints `0`, which the audit reads as nothing and the
 extractor as money. Kept as money, because the cell is a cash result
 whose amount is zero and a benefit roll was spent to get it. That
 reasoning is in the tool, and any new disagreement still fails.
+
+## Ingestion: the model reads, the tool holds the bytes (decided 2026-08-15)
+
+> **STATE: ACTIVE, 2026-08-15 14:51 UTC.** Supersedes the first claim
+> of the 2026-08-11 section above.
+
+A model addresses the source through a tool and decides STRUCTURE. The
+tool answers two questions and nothing else: what are the addressable
+units of this source, and what are the exact bytes at this address. The
+model never types the text.
+
+That split is the whole design. **Structure is judged, content is
+copied.** Byte-exact citation, the property everything else here rests
+on, survives untouched, because the bytes still come from a copy. What
+moves to the model is the part a regular expression was never able to
+do: deciding that a three-cell row belongs to an eight-column table,
+that a trailing cell is a footnote marker, that a logical column
+wrapped across two physical ones.
+
+Declared table shapes are the instrument, not the parser. A shape says
+"this is an encounter table keyed by 2D6 with these columns"; the model
+scans a table against it and reports rows that do not fit. A deviation
+becomes a finding with a reason, where a width check produced a
+`break`.
+
+**Why the mechanical parser lost the argument.** Measured across the
+whole SRD on 2026-08-14: 8.5% of pipe-prefixed lines unaccounted for,
+14 tables cut at a width mismatch. And it does not fail honestly. At
+`book3/planetary-wilderness-encounters.md:326` the encounter table has
+eight columns and roll 10 is a legal three-cell Event row. The parser
+ends the table there, then treats data row 11 as the HEADER of a new
+one:
+
+```
+table at line 316:  8 rows, header = ['2D6', '#App', 'Size', 'Subtype']
+table at line 327:  1 row,  header = ['11', '2D6', '800kg', 'Chaser (C)']
+```
+
+No error, no warning, a phantom table in the output. A human reads that
+page without pausing. Parsing is the hard part, and it belongs where
+the judgement is rather than in a correction pass that runs afterwards
+and cannot know what was lost.
+
+**Read in pairs, arbitrated once.** Two readers, one positive and one
+adversarial, prompted differently rather than sampled twice: the second
+exists to find what the first missed or over-claimed. A single arbiter
+above them decides what enters, and records the decision with its
+reasoning, so a disagreement is resolved visibly instead of averaged
+away. There is exactly one arbiter; two would mean two authorities and
+no way to say which one wrote a given record.
+
+**What does not change.** Meaning is still judged and judgement is
+still audited, both from 2026-08-11. Byte-exact citation is still
+absolute. The value verifier still proves numbers against the sentence
+that states them, and it stays deterministic: a string comparison
+proves that absolutely, and spending a model on it would be worse in
+every way.
 
 ## No LLM, no game, and no quiet fallbacks
 
@@ -598,8 +683,29 @@ rewritten. Look for that before reaching for a divergence.
 
 ## Decisions log
 
+**This log is a ledger, not a summary. Entries are appended, never
+edited away.** A decision that stops being true is marked SUPERSEDED or
+INVALIDATED in place, with the date and time it died and what replaced
+it. Deleting it would hide that we once believed it, and the reasoning
+that changed our minds is usually worth more than the conclusion.
+
+States:
+
+- **ACTIVE**: in force. The default; an entry with no marker is ACTIVE.
+- **SUPERSEDED by \<date\>**: a later decision replaced it. The old one
+  was right for what was known then.
+- **INVALIDATED \<date\>**: it was wrong, and evidence says so. Names
+  the evidence.
+
+The same marking applies to the DESIGN sections above this table. A
+section describing a superseded design carries its state at the top,
+because a reader who lands there from a search will never scroll down
+to this log.
+
 | Date | Decision |
 |---|---|
+| 2026-08-15 14:51 UTC | **Transcription is LLM-driven, through tools that hold the bytes.** SUPERSEDES the 2026-08-11 "transcription is mechanical" entry. A model addresses the source through a coordinate tool that returns the exact bytes at an address, and decides STRUCTURE: which rows belong to which table, which cell is a footnote, where a logical column wrapped. It never retypes text, so byte-exact citation survives untouched: structure is judged, content is copied. Declared table shapes are the instrument it scans against, so a row that does not fit a shape is a reported finding rather than a `break`. Read in pairs, one positive and one adversarial, with a separate arbiter deciding what enters. INVALIDATING EVIDENCE for the old position, measured 2026-08-14 across the whole SRD: the deterministic parser leaves 8.5% of pipe-prefixed lines unaccounted for and cuts 14 tables at a width mismatch, and the failure is silent CORRUPTION rather than honest loss. `book3/planetary-wilderness-encounters.md:326` is a legal 3-cell Event row inside an 8-column encounter table; the parser ends the table there and promotes data row 11 into a column HEADER, manufacturing a phantom table, with no error anywhere. A human reads that page without pausing. Parsing is the hard part and belongs where the judgement is, at the edge, not in a correction pass afterwards. |
+| 2026-08-11 | **Transcription is mechanical. Meaning is judged. Judgement is audited.** **SUPERSEDED IN PART by 2026-08-15 14:51 UTC**: the first claim is dead, the other two are ACTIVE. A deterministic parser was chosen because a model that retypes a number produces a rule that is wrong while the prose still reads fine. That concern was correct and is now met by a tool that returns the bytes; what was wrong was concluding the model should be kept away from the reading. Measured 2026-08-14: 8.5% of pipe lines unaccounted, 14 tables cut, and one data row silently promoted to a column header. |
 | 2026-08-11 | **No LLM, no game.** Logovger requires a model, remote or local. Where a rule defers a judgment the book leaves open, that judgment goes to the model and there is NO deterministic fallback: no key and no local server means the game refuses to run, not that it quietly decides for itself. Tests inject their own stub selector; production never carries one. Applies to every decision of this shape from here on. |
 | 2026-08-08 | Absorb Traveller; the book is the spec; referee cannot roll; everything watchable (rule 12) |
 | 2026-08-08 | Spin: psionics-forward frontier sensibility; EA's Sentinel Worlds is tone inspiration only, no names/text/assets |
@@ -610,7 +716,7 @@ rewritten. Look for that before reaching for a divergence.
 | 2026-08-09 | All 24 careers adopted as data now; procedure stays basic (no aging/injuries/draft yet); Drifter mandatory (the book's fallback) |
 | 2026-08-09 | Rulebook meta-ontology + ingestion + executor are ENGINE domain (this module); rule of two; logic stays in code |
 | 2026-08-09 | No magic strings: ontology refs + KG expressions everywhere; skills are ontology elements; outcomes are KG-ops |
-| 2026-08-09 | Ingestion is LLM-extraction with the three-check verifier, not per-format parsers |
+| 2026-08-09 | Ingestion is LLM-extraction with the three-check verifier, not per-format parsers. **SUPERSEDED by 2026-08-11, then RESTORED in amended form by 2026-08-15**: the model extracts again, but through a tool that returns the bytes, so it decides structure and never retypes content. The round trip was worth it; the mechanical detour is what established that citations must be copied. |
 | 2026-08-09 | OPEN-1 decided: override = COPY-ON-WRITE FORK (option C). Voyager copies a book rule entity, edits the copy; runtime loads ONLY voyager's set. Guardrails: forked_from + content hash on every fork; CI drift check reports (not gates) when the cepheus original changes after a fork |
 | 2026-08-09 | Procedure primitives: THIN, sub-step grain, the book's own gotos transcribed as routing data (outcome label -> step id, nothing else in data; conditions live in primitives). The more granularity the better |
 | 2026-08-09 | Rule text per turn: curated fragments, LEARNABLE. Referee may request find_rule(query); the engine searches the vendored SRD (plain text first); results are BAKED BACK as curation-link entities in the KG, so curation grows by play |
