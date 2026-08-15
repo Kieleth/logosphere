@@ -1052,3 +1052,14 @@ whose cardinality makes it last-write-wins (`state.set`,
 violation in the tree right now, not a design risk. It is the
 prerequisite the composition inventory flagged as blocking, and it is
 cheap: sort at load, iterate a vector.
+
+**Precision on the line above (appended same day, before the fix
+landed).** I called the hash-order defect "an INV-27 violation in the
+tree right now", which reads as run-to-run nondeterminism. It is not
+that. For one binary and one set of EntityIDs the order is stable, so
+two runs of the same build agree. The defect is that the order is
+UNPORTABLE and UNPREDICTABLE: it changes when a rule is added and the
+map rehashes, when ids shift, or when the toolchain does, with nothing
+in the authored content different. Measured before the fix, it was also
+inverted, the rule authored second applying first. Fixed in 80a9136 by
+sorting at load; the precise statement is in the test header.
