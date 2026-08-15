@@ -168,6 +168,48 @@ for a rolling solid sphere, every run.
 
 ---
 
+## F3 — EXTERNAL authority over-delivers by 3.9x (measured)
+
+Found 2026-08-15 by the effect-algebra study, GEDANKEN-4 (Eva walks into
+a tree). `inv_mass_momentum` returns 0 for KINEMATIC
+(`physics_system_v4.cpp:532-537`), so the contact prices the driven body
+as infinitely heavy and the rooted trunk absorbs the ENTIRE approach
+cancellation: **300 kg*m/s in one frame against an honest 77.8**.
+
+This is the same defect INV-31 abolished for sleep — a PRE-SOLVE GUESS
+about what a body can receive, decided before the solve rather than by
+it — and the argument against it is already written in prose at
+`:515-526` of the same file.
+
+**It is a physics-board item, not a router item.** No routing table can
+fix a row that is priced wrong: Kamaji decides what an interaction
+MEANS, and the trunk is being handed momentum that physics should never
+have delivered. Sits directly beside D1 (motion authority) and is
+probably one of its slices.
+
+---
+
+## F4 — three engine capabilities the vocabulary assumed and does not have
+
+All three surfaced while defining what interaction words may MEAN
+(`EFFECT_ALGEBRA_DESIGN.md`), and each is small, sharp and checkable:
+
+1. **`restitution` has no reader.** Declared at `physics_system.h:53`,
+   zero hits across `src/`. Every free-pair contact in v4 is perfectly
+   inelastic — so **`bounce` names something the engine cannot do**,
+   including link 6 of the burning-hand chain the owner described.
+2. **An impact cannot break a weld.** Welds tear only after 12
+   CONSECUTIVE frames at threshold
+   (`physics_system_v4.cpp:4396-4419`); a bullet delivers 24 N against a
+   700 N hold. **No fast, light body can break anything in this engine.**
+   (Same law C5 rediscovered from the other side.)
+3. **`hit` is not a physical signal.** It requires intent, and no
+   measurement distinguishes a punch from a stumble — which is exactly
+   why logomancers needed a game-declared attack window. Deliberately
+   NOT an engine word.
+
+---
+
 ## OWNER RULING
 
 | # | Decision | Blocks |
