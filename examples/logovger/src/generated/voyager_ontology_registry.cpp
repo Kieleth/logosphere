@@ -538,6 +538,36 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Wing", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("WorldEntity", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal"});
 
+    // Open property namespaces
+    reg.addPropertyNamespace("BodyPart", "rule.0.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.1.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.2.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.3.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.4.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.5.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.6.payload.");
+    reg.addPropertyNamespace("BodyPart", "rule.7.payload.");
+    reg.addPropertyNamespace("LivingEntity", "capability.");
+
+    // Event types
+    reg.addEntityType("CollisionEvent", "WorldEvent", false);
+    reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
+    reg.addEntityType("DamageEvent", "WorldEvent", false);
+    reg.addEntityType("DeathEvent", "WorldEvent", false);
+    reg.addEntityType("DiceRollEvent", "WorldEvent", false);
+    reg.setSource("https://malleus.dev/schema");
+    reg.addEntityType("Event", "", false);
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addEntityType("PerceptionEvent", "WorldEvent", false);
+    reg.addEntityType("RelationEvent", "WorldEvent", false);
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addEntityType("ServiceTerm", "Event", false);
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addEntityType("SpawnEvent", "WorldEvent", false);
+    reg.addEntityType("TransformationEvent", "WorldEvent", false);
+    reg.addEntityType("VolumeEvent", "WorldEvent", false);
+    reg.addEntityType("WorldEvent", "Event", false);
+
     // Facets
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("AdvanceSkill", {"rulebook"});
@@ -562,9 +592,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("GainFixedMoney", {"rulebook"});
     reg.addFacets("GainMoney", {"rulebook"});
     reg.addFacets("GainPossession", {"rulebook"});
-    reg.addFacets("GainRolledMoney", {"rulebook"});
+    reg.addFacets("GainRolledMoney", {"no-instance-declared", "rulebook"});
     reg.addFacets("GrantTableRoll", {"rulebook"});
-    reg.addFacets("JudgmentPoint", {"rulebook"});
+    reg.addFacets("JudgmentPoint", {"no-instance-declared", "rulebook"});
     reg.addFacets("LookupEntry", {"rulebook"});
     reg.addFacets("LookupTable", {"rulebook"});
     reg.addFacets("ModifyAttribute", {"rulebook"});
@@ -585,11 +615,14 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("PossessionHolding", {"rulebook"});
     reg.addFacets("Procedure", {"rulebook"});
     reg.addFacets("ProcedureStep", {"rulebook"});
-    reg.addFacets("ProgressionStanding", {"rulebook"});
+    reg.addFacets("ProgressionStanding", {"no-instance-declared", "rulebook"});
     reg.addFacets("ProgressionStep", {"rulebook"});
     reg.addFacets("ProgressionTrack", {"rulebook"});
     reg.addFacets("RollableTable", {"rulebook"});
     reg.addFacets("RuleConstant", {"rulebook"});
+    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
+    reg.addFacets("ServiceTerm", {"no-instance-declared"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("SkillRating", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
@@ -601,38 +634,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("TableEntry", {"rulebook"});
     reg.addFacets("TaskCheck", {"rulebook"});
 
-    // Open property namespaces
-    reg.addPropertyNamespace("BodyPart", "rule.0.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.1.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.2.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.3.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.4.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.5.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.6.payload.");
-    reg.addPropertyNamespace("BodyPart", "rule.7.payload.");
-    reg.addPropertyNamespace("LivingEntity", "capability.");
-
-    // Event types
-    reg.setSource("https://logosphere.dev/schema");
-    reg.addEntityType("CollisionEvent", "WorldEvent", false);
-    reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
-    reg.addEntityType("DamageEvent", "WorldEvent", false);
-    reg.addEntityType("DeathEvent", "WorldEvent", false);
-    reg.addEntityType("DiceRollEvent", "WorldEvent", false);
-    reg.setSource("https://malleus.dev/schema");
-    reg.addEntityType("Event", "", false);
-    reg.setSource("https://logosphere.dev/schema");
-    reg.addEntityType("PerceptionEvent", "WorldEvent", false);
-    reg.addEntityType("RelationEvent", "WorldEvent", false);
-    reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
-    reg.addEntityType("ServiceTerm", "Event", false);
-    reg.setSource("https://logosphere.dev/schema");
-    reg.addEntityType("SpawnEvent", "WorldEvent", false);
-    reg.addEntityType("TransformationEvent", "WorldEvent", false);
-    reg.addEntityType("VolumeEvent", "WorldEvent", false);
-    reg.addEntityType("WorldEvent", "Event", false);
-
     // Relation types
+    reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("BONDED_TO", {"Entity"}, {"Entity"});
     reg.addRelationType("BURNS", {"Entity"}, {"Entity"});
     reg.addRelationType("CONTAINS", {"Entity"}, {"Entity"});

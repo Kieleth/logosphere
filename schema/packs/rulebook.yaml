@@ -389,7 +389,14 @@ classes:
       DiceExpression. The 1D6x10000 medical bill is the first instance.
       The executor journals the roll and applies its total.
     annotations:
-      facets: rulebook
+      facets: rulebook, no-instance-declared
+      no_instance_reason: >-
+        The instance this description names does not exist. Cepheus'
+        medical bill was absorbed as a RuleConstant carrying the dice
+        text and the procedure rolls it directly, so this type has a
+        registered handler and no user. Either a seed emits this and
+        the procedure stops rolling by hand, or this description stops
+        claiming an instance it has never had. Tracked in #104.
     slot_usage:
       amount_dice:
         required: true
@@ -617,7 +624,14 @@ classes:
       on it is something that happened. Same shape as SkillRating and
       CurrencyBalance, for the same reason.
     annotations:
-      facets: rulebook
+      facets: rulebook, no-instance-declared
+      no_instance_reason: >-
+        Its two named siblings are in the graph and this one is not.
+        Rank lives in the C++ character sheet and nothing writes a
+        standing, so a character's skills and money are queryable and
+        their rank is not. The asymmetry is the finding: the schema
+        says these three are the same shape, and only two of them
+        behave that way. Tracked in #104.
     slot_usage:
       track:
         required: true
@@ -741,7 +755,14 @@ classes:
       asked to judge, in the book's own words; the LLM referee
       receives it as its brief for that judgment.
     annotations:
-      facets: rulebook
+      facets: rulebook, no-instance-declared
+      no_instance_reason: >-
+        The last sentence above is not true yet. No seed creates one of
+        these, and the adjudicator builds its prompt from a hardcoded
+        string, so the referee has never received a brief from the
+        graph. This is the rank 0 shape at one remove: a declared
+        capability that reads as working. Tracked in #101, which needs
+        a typed judgment record and should make these its input.
     slots:
       - prompt_text
 

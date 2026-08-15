@@ -207,15 +207,6 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logotron/schema");
     reg.addAncestors("Wormhole", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
 
-    // Facets
-    reg.addFacets("AICycle", {"world"});
-    reg.addFacets("AllyCycle", {"world"});
-    reg.addFacets("Arena", {"world"});
-    reg.addFacets("Cycle", {"world"});
-    reg.addFacets("PlayerCycle", {"world"});
-    reg.addFacets("TrailSegment", {"world"});
-    reg.addFacets("Wormhole", {"world"});
-
     // Open property namespaces
     reg.addPropertyNamespace("BodyPart", "rule.0.payload.");
     reg.addPropertyNamespace("BodyPart", "rule.1.payload.");
@@ -246,7 +237,18 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("VolumeEvent", "WorldEvent", false);
     reg.addEntityType("WorldEvent", "Event", false);
 
+    // Facets
+    reg.setSource("https://logosphere.dev/logotron/schema");
+    reg.addFacets("AICycle", {"world"});
+    reg.addFacets("AllyCycle", {"world"});
+    reg.addFacets("Arena", {"world"});
+    reg.addFacets("Cycle", {"world"});
+    reg.addFacets("PlayerCycle", {"world"});
+    reg.addFacets("TrailSegment", {"world"});
+    reg.addFacets("Wormhole", {"world"});
+
     // Relation types
+    reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("BONDED_TO", {"Entity"}, {"Entity"});
     reg.addRelationType("BURNS", {"Entity"}, {"Entity"});
     reg.addRelationType("CONTAINS", {"Entity"}, {"Entity"});
