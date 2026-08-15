@@ -69,8 +69,44 @@ Design records here are LEDGERS, not summaries. This applies to
   that a model retyping a number is wrong in a way that still reads
   well, survived and became the tool contract. Record the split.
 
+## The layers, and the seams between them
+
+Full statement in `docs/REFLECTION_PROTOCOL.md`, which is the thing to
+read before arguing about where something belongs. The short form:
+
+    L0 source      bytes at addresses, pinned, never modified
+    L1 extraction  judges STRUCTURE, copies content, may not invent a type
+    L2 seed        the transactional unit; additive, sealed, never hand-edited
+    L3 verify      refuses, never repairs
+    L4 ontology    what MAY exist; gates every write; knows no policy
+    L5 graph       what DOES exist; no privileged writer
+    L6 runtime     dispatches on TYPE, never on a name; refuses over guessing
+    L7 game policy primitives, handlers, procedure; replaceable per game
+    L8 arbiter     answers what rules leave open; exactly one; leaves a record
+
+Eight declared seams and nothing else: `extend`, `declare_primitive`,
+`register_handler`, `set_attribute_selector`, `set_choice_resolver`,
+`register_trigger`, `register_effect` (capability), `register_effect`
+(contact). Anything crossing a boundary elsewhere is a bleed.
+
+**Primitives and route contracts.** A primitive is the C++ behind one
+procedure step; the procedure itself is data, a step naming
+`primitive_ref` which the registry maps to a function. The registry
+also declares that step's legal exit labels, and a seed may route on
+those and no others: `roll_qualification` declares `passed` and
+`failed`, and a route naming anything else is refused at verification.
+Name plus exits is the ROUTE CONTRACT. That pairing is what keeps a
+procedure data rather than code, which is why the set of primitive
+names is a design surface and not an implementation detail. There are
+17 today; the design record's OPEN item asks that new ones surface for
+approval, and measurement shows the set grew from 8 to 17 without that
+happening once, so treat the rule as live but unenforced and ask.
+
 ## Read first (in this order)
 
+- `docs/REFLECTION_PROTOCOL.md`: the layers, the seams, the ten
+  cross-cutting rules and the gate that proves each. It names its own
+  ungated rules; those are intentions, not guarantees.
 - `docs/RPG_MODULE.md`: the design record and decisions ledger. Read
   the log tail AND the state markers before proposing anything. It has
   an OPEN section listing what must not be built past.
