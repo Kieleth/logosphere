@@ -756,3 +756,46 @@ by the wrong mechanism and look identical.
 PhysicsSystem::get_collision_events() already reports every contact
 with both bodies, the world point, the normal and the approach speed,
 so the machine can assert the strikes it names.
+
+## 2026-08-15 — The interaction router (owner vision)
+
+While walking authority Q1 (what happens when a driven limb is struck),
+the owner reframed the whole question. It is not "what does a struck
+limb do" but "WHAT ROUTES THIS INTERACTION, AND WHO MAY INFLUENCE THE
+ROUTING". In their words:
+
+"My idea was always to have a ROUTER between these, like a networking
+router actually, where we can load/pre-load/dynamically load ROUTING
+between interactions and entities, even HIERARCHICALLY — humanoid->torso
+vs humanoid->arm->hand->finger — and any other entity, and being able to
+CATCH the event/interaction between particles, and allow the routing to
+be MODIFIED BY ANY OTHER SYSTEM, like a combat system: if I want a
+combat system that subscribes when weapons are used, I want to be able
+to influence what my silver-bullet does against a werewolf vs a hippo."
+
+"This is where ontology-powered semantics for these interactions and
+COMPOSABLE interactions come into play, which would allow rules in the
+KG to control these interactions with minimal code. Once those building
+blocks exist: 'hand is burning, entity retracts in panic' -> engine
+understands that animation, hand flies and hits a cabinet, hand
+bounces... a chain of semantically rich, physics-aware, animation-capable
+sequences that look and feel realistic, CREATED FROM SEMANTICS."
+
+Boarded as D0, at the head of NEEDS DESIGN, because it is the general
+case that D1's Q1 is a special case of. The scene that motivated it —
+Eva walks into a tree trunk, and the correct outcome is "Eva stops, the
+rooted trunk does not move, nobody gains energy" — is one the engine
+cannot express today: her momentum is refused by her own authority and
+the plant absorbs it, which is what tore canopies off trees earlier in
+the campaign.
+
+Also recorded: the vocabulary this produces (hit, rest, slide, bounce,
+catch) is the same vocabulary the 2026-08-15 test-instrumentation
+directive asks tests to build toward. Tests assert interactions; the
+router routes them; the ontology names them. Same words, one meaning,
+everywhere.
+
+An Opus excavation of logomancers' combat system (design/
+GAME_DESIGN_COMBAT_ENGINE.md, src/combat_system.*) is running to
+retrieve what was already prototyped there — the wins and the painful
+parts both.
