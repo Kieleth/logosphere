@@ -1531,7 +1531,7 @@ struct TransformationEvent : public WorldEvent {
 struct DiceRollEvent : public WorldEvent {
     /// Monotonic id of the roll, unique per session, citable.
     std::optional<int32_t> roll_id = std::nullopt;
-    /// The expression rolled, canonical form ("2D6+1").
+    /// The expression rolled, canonical form ("2D6+1"). EXECUTED, and by a named thing: DiceService::parse turns this string into a DiceExpression and DiceService::roll evaluates it (include/logosphere/core/dice_service.h:56,110). Recorded here because a formula-shaped slot is the fleet's most common way of writing knowledge down and never running it, and the only defence against that is naming the executor next to the slot. If the parser ever stops being the sole reader of this string, this line is wrong and the slot has become documentation.
     std::optional<std::string> dice_expression = std::nullopt;
     /// Individual die results, comma-separated, in roll order.
     std::optional<std::string> roll_values = std::nullopt;
