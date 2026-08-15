@@ -13,6 +13,36 @@ imports:
   - malleus
 
 # -------------------------------------------------------------------
+# On Signal, which this engine imports and deliberately does not use
+# -------------------------------------------------------------------
+# The malleus root declares five primitives. This engine extends four
+# of them. Nothing here subclasses Signal, and that is a decision
+# rather than an oversight, so it is written down where the next person
+# reads the schema instead of being inferred from silence.
+#
+# The candidate is real. Capability factors are derived qualities in
+# everything but name: locomotion_factor and manipulation_factor are
+# aggregated across body parts, a one-armed humanoid has
+# manipulation_factor 0.5, and missing parts contribute zero with no
+# special cases (include/logosphere/capability/capability_profile.h).
+# That is precisely what the root describes: something measurable that
+# emerges from activity, inheres in a bearer, and is recomputable from
+# the underlying data.
+#
+# It stays out of the graph because it is recomputed every frame from
+# live body state. Writing it here would make the KG a cache of physics
+# that is stale the instant it is read, and the engine would then have
+# two answers to the same question with no rule about which wins. The
+# body IS the source of truth for what a body can do.
+#
+# What would change this: a derived quality that outlives a frame and
+# that something other than the physics loop needs to read. A
+# reputation that accumulates over a session, a fatigue that persists
+# across scenes. If one of those arrives, it is a Signal and it belongs
+# in the graph. Until then, an unused primitive that says why is more
+# honest than a subtype nobody writes to.
+
+# -------------------------------------------------------------------
 # Enums
 # -------------------------------------------------------------------
 
