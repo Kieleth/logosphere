@@ -614,3 +614,36 @@ Also noted on the board: a humanoid books -14.23 N*s downward every
 frame from its own thigh resting on its KINEMATIC hips. Structural
 refusals and external shoves are currently indistinguishable in the
 ledger; whoever consumes it will need them separated.
+
+## 2026-08-14 — F1 RCA: the animation erases what the solver delivered
+
+Full RCA (docs/todo_plans/F1_MOMENTUM_LOSS_RCA.md) refuted the standing
+hypothesis. Physics is not destroying the momentum: the solver delivers
+89-110 kg*m/s per frame into the struck body parts, with zero
+BOTH_IMMOVABLE rows. HumanoidLocomotion::update_locomotion then
+broadcasts ONE hips-derived scalar onto all seventeen particles
+(humanoid_locomotion.cpp:4440-4442) and maintain_entity_shape snaps
+their positions back (:5449). The hips are KINEMATIC, so the broadcast
+value is 0 and the erasure is total — outside every door, booked
+nowhere, every frame, for every standing registered humanoid.
+
+The load-bearing property is NOT is_quat_driven, NOT ParticleOwner and
+NOT sleep: in plain two-box isolation all five DYNAMIC variants are
+bit-identical to the control, and only KINEMATIC stops a body. The
+four-link chain is refuted at link 4 (the chest is never asleep at
+impact).
+
+Two of my published readings were wrong and are retracted here: the
+chest DOES move (1.593 m in 20 frames) when the locomotion writer is
+not running, and "8.00 -> -0.00 m/s" was the boulder landing on the
+turtle downrange, not the strike — the same velocity-minimum statistic
+the motion-authority study had already flagged, used twice.
+
+The RCA also found my own refusal ledger books 2.5% of the truth (1357.8
+kg*m/s refused, 33.6 booked): the friction block books nothing and the
+warm-start apply spends outside the booking loop. That is now board
+item C8 and precedes everything else, because a drain that receives
+2.5% of the truth is worse than none.
+
+F1 becomes D1 slice S5b: "the FK rig holds what it writes, and drains
+its book."

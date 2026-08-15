@@ -55,11 +55,46 @@ Do in any order. None needs a decision; all reduce debt.
 | C4 | **A sleeping body can spin forever** | study D-3: enter-rest zeroes only `vx/vy/vz` (`:4759`); `integrate_angular_velocities` gates only on KINEMATIC (`:4867`); `resolve_sleep_wakes` judges only linear (`:545`) | Sleep's contract (INV-18) already says what it must do; the angular half was never written. |
 | C5 | **Machine stages S5+ choreography** | `test_rube_goldberg_machine` halts at S5 with the resolver on (5/10); the struck box stops where friction says it stops, short of the bridge | Scene design, not physics. The ratchet is honest at 3 (default) / 5 (resolver). |
 | C6 | **INV-17..28 have no proving tests** | sweep: "COVERAGE HOLES (no proving test): INV-16..28, INV-5, INV-6"; task #45 | Writing provers cannot break anything. INV-6 (no gravity assumptions) has *never* been witnessed on a wall, a ceiling, or in zero-g. |
+| C8 | **The refusal ledger books 2.5% of the truth** | F1 RCA: a clean airborne two-body test shows a KINEMATIC target refusing 1357.8 kg*m/s and booking **33.6** — the friction block (`physics_system_v4.cpp:3447-3550`) books nothing at all, and the warm-start apply (`:2801-2810`) spends outside the booking loop | My mechanism, incomplete. **A drain that receives 2.5% of the truth is worse than none**, and D1's S7 depends on it. Do this FIRST of the remaining clean items. |
 | C7 | **Energy ledger has no dissipation bucket** | INV-19's own commitment; task #44 | Bookkeeping only. Needed before any future damping can be called "modelled". |
 
 ---
 
-## F1 — NEW FRONT: momentum destroyed in a strike on a sleeping driven body
+## F1 — RCA COMPLETE: the animation erases what the solver delivered
+
+**Resolved 2026-08-14** by `F1_MOMENTUM_LOSS_RCA.md`. The standing
+hypothesis below was WRONG and is kept only so the correction is
+visible.
+
+**The cause is outside physics.** The solver delivers the strike
+correctly — 89-110 kg*m/s per frame into chest, head, neck and arms,
+zero `BOTH_IMMOVABLE` rows. In the same frame
+`HumanoidLocomotion::update_locomotion` broadcasts a SINGLE
+hips-derived scalar onto all seventeen particles
+(`humanoid_locomotion.cpp:4440-4442`) and `maintain_entity_shape`
+snaps their positions back (`:5449`). The hips are KINEMATIC, so
+`hips.vx` is permanently 0 and the broadcast value is 0. The erasure
+is total, instantaneous, outside every door, booked nowhere, and it
+runs for every standing registered humanoid every frame.
+Smoking gun: seventeen different velocities in, one value out.
+
+**The load-bearing property is none of the suspects.** Plain two-box
+isolation: all five DYNAMIC variants — including the chest's exact
+flags (`DYNAMICS` + `is_quat_driven`=1) and a forced-asleep box — are
+BIT-IDENTICAL to the control (target moves +4.469 m). Only KINEMATIC
+stops a body. The four-link chain is refuted at link 4: the chest is
+never asleep at impact.
+
+**Two readings I published were wrong.** The chest DOES move — 1.593 m
+in 20 frames — whenever the locomotion writer is not running.
+"8.00 -> -0.00 m/s" is the boulder landing on the turtle four metres
+downrange, not the strike; the test's velocity-minimum statistic is
+the same flaw the motion-authority study had already flagged.
+
+**Goes to D1 as slice S5b** — "the FK rig holds what it writes, and
+drains its book" — after C8 below.
+
+### Superseded hypothesis (kept for the record)
 
 Opened 2026-08-14 by C1, once the harness could finally form contacts.
 
