@@ -16,3 +16,20 @@ dependencies:
   # byte-identical) but the version STRING fails this pin. A strict
   # resolver on that machine must use the editable install as-is.
   - linkml >=1.11.0
+  - pip
+  - pip:
+      # The malleus root ontology, which every schema here imports.
+      # generate_ontology.py refuses to run without it, on purpose: it
+      # compares the vendored schema/malleus.yaml against the installed
+      # root byte for byte, and a check that cannot run is not a check.
+      #
+      # From git and pinned to a commit, for two reasons. PyPI's
+      # malleus-dev is 0.1.0 and predates bundled_ontology_path
+      # entirely, so `pip install malleus-dev` installs a package the
+      # gate cannot use. And a branch moves, which would let the root
+      # change underneath us without a diff here: the same drift this
+      # dependency exists to catch.
+      #
+      # Re-pin deliberately: bump this SHA, rerun
+      # scripts/generate_ontology.py, commit the regenerated output.
+      - malleus-dev @ git+https://github.com/Kieleth/malleus-dev@a492ea8adbb622484033e2d780890c86d6beccc1
