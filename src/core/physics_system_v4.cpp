@@ -196,6 +196,32 @@ static EnergyBuckets measure_energy(
 struct RowEnergy { double contact = 0.0, turtle = 0.0, gluon = 0.0; };
 static RowEnergy g_row_energy;
 
+// WHERE THE ENERGY WENT (INV-19's commitment).
+//
+// The invariant says damping exists only where a real dissipation
+// process is being modelled — a material turning motion into heat —
+// and that the conversion is BOOKED. Until 2026-08-15 the ledger
+// tracked kinetic, potential and strain, and every joule that left the
+// world left silently: a reader could see energy vanish and had no way
+// to ask which mechanism took it, or whether that mechanism had any
+// right to.
+//
+// Each bucket names a process, not a fudge:
+//   friction  Coulomb friction at contacts. Real: surfaces heat.
+//   material  gluon material damping, c = eta*sqrt(k*mu). Real:
+//             internal friction of the bonded material.
+//   drag      quadratic air drag during integration. Real: the
+//             particle stirs the medium.
+//   sleep     residue the sleep cache absorbs below its quietness
+//             bound (INV-31's resolver). NOT a physical process — it
+//             is the cache being a cache, and it is booked separately
+//             precisely so it can never hide inside the honest ones.
+struct Dissipation {
+    double friction = 0.0, material = 0.0, drag = 0.0, sleep = 0.0;
+    double total() const { return friction + material + drag + sleep; }
+};
+static Dissipation g_dissipation;
+
 static bool energy_ledger_on() {
     static const bool v = std::getenv("ENERGY_LEDGER") != nullptr;
     return v;
@@ -338,7 +364,8 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
         const bool ledger = energy_ledger_on();
         if (ledger) { e_before = measure_energy(particles, gluon_constraints_v2_);
-                      g_row_energy = RowEnergy{}; }
+                      g_row_energy = RowEnergy{};
+                      g_dissipation = Dissipation{}; }
 
         {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsForces);
@@ -415,6 +442,10 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                           << " | rows: contact=" << g_row_energy.contact
                           << " turtleRow=" << g_row_energy.turtle
                           << " gluon=" << g_row_energy.gluon
+                          << " | dissipated: friction=" << g_dissipation.friction
+                          << " material=" << g_dissipation.material
+                          << " drag=" << g_dissipation.drag
+                          << " sleepCache=" << g_dissipation.sleep
                           << " | d_TOTAL=" << d_all
                           << (d_all > 1.0 ? "   *** ENERGY CREATED ***" : "")
                           << std::endl;
@@ -560,6 +591,14 @@ static void resolve_sleep_wakes(ParticleSystem::WriteView& particles) {
                          (int)i, -1, "solved_impulse",
                          std::sqrt(v_sq), 0.0f, 0.0f);
         } else {
+            // The cache absorbs it. Book the kinetic energy destroyed
+            // here, separately from the modelled processes: this is
+            // bookkeeping about an optimisation, not physics, and INV-19
+            // only sanctions the latter.
+            if (energy_ledger_on()) {
+                const double m = p.GetMass();
+                if (m > 0.0) g_dissipation.sleep += 0.5 * m * double(v_sq);
+            }
             p.vx = p.vy = p.vz = 0.0f;
         }
     }
@@ -3523,6 +3562,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                         std::min(friction_limit, old_f1 + friction_impulse_1));
                 friction_impulse_1 = c.friction_impulse_t1 - old_f1;
 
+                if (energy_ledger_on() && friction_impulse_1 != 0.0f) {
+                    // Work removed along this tangent: J * v_rel plus the
+                    // J^2/2m the impulse itself carries, same shape as the
+                    // normal row's accounting above.
+                    const double inv_sum = double(inv_ma) + double(inv_mb);
+                    if (inv_sum > 0.0) {
+                        const double j = friction_impulse_1;
+                        g_dissipation.friction -= j * double(v_rel_t1)
+                                                + j * j * inv_sum * 0.5;
+                    }
+                }
                 pa.vx += t1x * friction_impulse_1 * inv_ma;
                 pa.vy += t1y * friction_impulse_1 * inv_ma;
                 pa.vz += t1z * friction_impulse_1 * inv_ma;
@@ -3573,6 +3623,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                         std::min(friction_limit, old_f2 + friction_impulse_2));
                 friction_impulse_2 = c.friction_impulse_t2 - old_f2;
 
+                if (energy_ledger_on() && friction_impulse_2 != 0.0f) {
+                    const double inv_sum = double(inv_ma) + double(inv_mb);
+                    if (inv_sum > 0.0) {
+                        const double j = friction_impulse_2;
+                        g_dissipation.friction -= j * double(v_rel_t2)
+                                                + j * j * inv_sum * 0.5;
+                    }
+                }
                 pa.vx += t2x * friction_impulse_2 * inv_ma;
                 pa.vy += t2y * friction_impulse_2 * inv_ma;
                 pa.vz += t2z * friction_impulse_2 * inv_ma;
@@ -4657,6 +4715,14 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
 
                 if (damping_factor < 0.5f) damping_factor = 0.5f;  // Clamp to prevent reversal
 
+                if (energy_ledger_on()) {
+                    // The medium takes what the factor removes.
+                    const double m = p.GetMass();
+                    const double v2 = double(p.vx)*p.vx + double(p.vy)*p.vy
+                                    + double(p.vz)*p.vz;
+                    const double f2 = double(damping_factor) * damping_factor;
+                    g_dissipation.drag += 0.5 * m * v2 * (1.0 - f2);
+                }
                 p.vx *= damping_factor;
                 p.vy *= damping_factor;
                 p.vz *= damping_factor;

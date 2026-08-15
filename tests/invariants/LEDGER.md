@@ -689,3 +689,24 @@ test_determinism_guards and test_immovable_pair_phantom_impulse both
 existed and were never linked, so two laws read as uncovered while
 their provers sat in the tree. Half of task #45, closed as a side
 effect of asking the audit the right question.
+
+## 2026-08-15 — C7: the energy ledger says where the joules went
+
+INV-19 promised that damping exists only where a real dissipation
+process is modelled AND that the conversion is booked. The first half
+was enforced (the rest damper was eradicated for failing it); the
+second half was never built, so every joule that left the world left
+silently.
+
+Four buckets now, each naming a process rather than a fudge: friction
+(Coulomb work at contacts), material (gluon damping, c = eta*sqrt(k*mu)),
+drag (quadratic air drag at integration), and sleep — the residue the
+cache absorbs below its quietness bound. Sleep is booked SEPARATELY on
+purpose: it is not a physical process, it is an optimisation, and
+keeping it in its own column means it can never hide inside the honest
+ones.
+
+Measured on the machine: 26.3 J of friction at the impact frame against
+a -67.6 J contact row, drag rising quadratically through free fall,
+cache absorption in microjoules, and near-zero everywhere the world is
+quiet.
