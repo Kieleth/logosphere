@@ -734,3 +734,25 @@ is ballistic — a post at 7.00 is struck lower and leaves with 0.43 m/s
 instead of 0.86, stopping at 7.24. Strike strength falls faster than
 distance does. The leg needs a body that arrives ON the bridge, which
 is a redesign of that link and stays on the board as C5's remainder.
+
+## 2026-08-15 — Instrument the interactions (owner directive)
+
+"For each interaction in a test, internal checks need to be
+instrumented and asserted with enough granularity that we understand
+that the code is doing what it does. Also, bonus: these assertions in
+time will need to be abstracted as physical interactions that we can
+port back to the engine, with semantics like 'hit', 'rolling',
+'impact' starting to have ontology-sourced meaning inside our engine —
+they mean the same everywhere and can be used as building blocks later
+on."
+
+Recorded in the physics skill as a directive. The immediate
+consequence: the Rube Goldberg machine asserted OUTCOMES (where bodies
+ended up) while the prose described INTERACTIONS (the ball takes the
+ramp, each box strikes the next, the flying box catches the post square
+in the side) — none of which were checked. A position can be produced
+by the wrong mechanism and look identical.
+
+PhysicsSystem::get_collision_events() already reports every contact
+with both bodies, the world point, the normal and the approach speed,
+so the machine can assert the strikes it names.
