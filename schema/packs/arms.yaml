@@ -1,0 +1,221 @@
+id: https://logosphere.dev/packs/arms
+name: arms
+title: Arms — carried and wielded implements
+description: >-
+  The vocabulary of things an agent picks up and uses: a blade, a haft,
+  an edge, a grip, a reach.
+
+  This is a SETTING PACK, not part of the universe core, and it follows
+  the line earth.yaml draws. The core describes what the engine itself
+  understands - bodies, materials, density, geometry, contact, solver
+  authority - and knows nothing about swords. A world gains weapons
+  only when a game asks for them.
+
+  WHY THE ABSTRACT BASE IS HERE AND NOT IN THE CORE. earth.yaml keeps
+  its bases in the core because the engine reasons about them:
+  LivingEntity carries health and tissue, Structure classifies the
+  unliving. There is no equivalent for a carried object, because the
+  engine has no wielding mechanism today: nothing attaches a body to a
+  hand, and a search for wield, grip, hold or carried_by in src/ and
+  include/ returns only friction comments. Vocabulary the engine cannot
+  read belongs in a pack. When attachment lands in the solver and a
+  second pack needs Implement, promote it down a layer; that is the
+  promotion rule and this note is the reason it has not happened yet.
+
+  WHAT THIS PACK REFUSES TO CARRY. Nothing here is a rules system.
+  Cepheus prints its cutlass as
+  `| Cutlass | 3 | Cr100 | 1250g | melee (extended reach) | 3D6 | S | 8 |`
+  and only three of those eight columns survive into a different game:
+  the mass, the reach, and the kind of edge. Tech level and law level
+  are one setting's inventions, Cr is one setting's money, and 3D6 is
+  one dice system's arithmetic. Those live in the rules layer that
+  ingested them. A pack that swallowed them would be Traveller wearing
+  a universal name, which is exactly the failure earth.yaml was written
+  to avoid.
+
+  STATED AND DERIVED ARE DIFFERENT KINDS. This pack describes an
+  object's shape and edge. It does NOT carry the mass a book states,
+  because the engine already derives mass from material density times
+  volume (src/materials.h: "Mass is auto-calculated from density x
+  volume at particle creation"). A book's stated weight is a cited fact
+  about a document and belongs beside its citation in the layer that
+  read it. Keeping both apart is what lets an ingestion pipeline notice
+  that 1250g over a 750mm blade implies steel and refutes hardwood,
+  and it is what makes "switch the material" an honest operation rather
+  than a magic one: either the geometry moves or the object stops
+  matching its source, and both must be visible.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  arms: https://logosphere.dev/packs/arms/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  EdgeKind:
+    description: >-
+      How an implement is shaped to deliver force. Geometry, not
+      damage: what a game does with a slashing edge is the game's to
+      say, and DamageType in the core already names the effect.
+    permissible_values:
+      NONE:
+        description: No working edge. A club, a haft, a shield rim.
+      SINGLE_EDGED:
+        description: One sharpened edge, a thicker spine opposite it.
+      DOUBLE_EDGED:
+        description: Sharpened both sides, symmetric in section.
+      SERRATED:
+        description: Toothed edge, cutting by draw rather than press.
+      POINTED:
+        description: >-
+          Shaped to concentrate force at a tip. Not exclusive with the
+          edge values above; a cutlass is single-edged AND pointed,
+          which is why point_shaped is a separate slot.
+
+  HaftKind:
+    description: >-
+      How the working part is joined to what the hand holds. Decides
+      where mass sits, which is the difference between a sword and an
+      axe long before any rules system is consulted.
+    permissible_values:
+      INTEGRAL:
+        description: >-
+          Working part and grip are one piece of material. A sword, a
+          knife.
+      MOUNTED_HEAD:
+        description: >-
+          A dense head fixed to a lighter shaft. An axe, a hammer, a
+          mace. Mass concentrates away from the hand.
+      FLEXIBLE:
+        description: >-
+          Working part joined by a flexible link. A flail, a whip.
+          Needs joint authority the solver must own.
+
+# -------------------------------------------------------------------
+# Classes
+# -------------------------------------------------------------------
+
+classes:
+  Implement:
+    is_a: WorldEntity
+    description: >-
+      A made object an agent carries and uses. Abstract: a game names
+      the particular. It is a body like any other, so it has material
+      and it can be broken.
+    abstract: true
+    mixins:
+      - HasMaterial
+      - Destructible
+    slots:
+      - grip_hands
+      - overall_length_min
+      - overall_length_max
+
+  HandWeapon:
+    is_a: Implement
+    description: >-
+      An implement used to strike at arm's length. Abstract, because
+      "sword" and "axe" are distinctions of haft and edge rather than
+      of kind, and both are expressed by the slots below.
+    abstract: true
+    slots:
+      - edge_kind
+      - haft_kind
+      - point_shaped
+      - working_length_min
+      - working_length_max
+      - handguard
+
+  BladedWeapon:
+    is_a: HandWeapon
+    description: >-
+      A hand weapon whose working length is a blade. The blade is the
+      part a book gives dimensions for, and the part that decides
+      whether a stated weight is credible.
+
+  HaftedWeapon:
+    is_a: HandWeapon
+    description: >-
+      A hand weapon whose mass sits in a head mounted on a shaft. An
+      axe, a maul, a mace.
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  grip_hands:
+    range: integer
+    minimum_value: 1
+    maximum_value: 2
+    description: >-
+      Hands required to use it as intended. A book that says "two
+      handed" states this; a book silent on it leaves it unset rather
+      than defaulting, because one hand is a claim and not an absence.
+
+  overall_length_min:
+    range: float
+    minimum_value: 0.01
+    maximum_value: 6.0
+    description: >-
+      Shortest overall length in meters, tip to butt. A range and not
+      a value, because books describe a class of object rather than
+      one: "Blade length varies from 600 to 900mm" is a real sentence
+      from a real equipment list. Instantiation picks within the
+      range, so two of the same weapon are legitimately different
+      objects. Where a source gives one figure, min and max are equal.
+
+  overall_length_max:
+    range: float
+    minimum_value: 0.01
+    maximum_value: 6.0
+    description: Longest overall length in meters. See overall_length_min.
+
+  working_length_min:
+    range: float
+    minimum_value: 0.01
+    maximum_value: 5.0
+    description: >-
+      Shortest length of the working part in meters: the blade, the
+      head, the striking surface. Distinct from overall length because
+      the grip is not what reaches the target, and because a stated
+      weight divided over the working length is what tests whether a
+      guessed material is plausible.
+
+  working_length_max:
+    range: float
+    minimum_value: 0.01
+    maximum_value: 5.0
+    description: Longest working length in meters. See working_length_min.
+
+  edge_kind:
+    range: EdgeKind
+    description: How the implement is shaped to deliver force.
+
+  haft_kind:
+    range: HaftKind
+    description: How the working part joins the grip.
+
+  point_shaped:
+    range: boolean
+    description: >-
+      Whether it is shaped to thrust. Separate from edge_kind because
+      the two are independent: a cutlass is single-edged and pointed,
+      a machete is single-edged and not.
+
+  handguard:
+    range: boolean
+    description: >-
+      Whether the grip carries structure that shields the hand. A
+      basket hilt, a quillon, a knuckle bow. Physical, because it is
+      mass in a particular place and a surface that can take a
+      contact.
