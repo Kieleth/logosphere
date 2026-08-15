@@ -57,7 +57,15 @@ failures=0
 check () {  # check <name> <branch> <expect: fire|quiet>
     local name="$1" branch="$2" expect="$3" out rc verdict
     out="$("$CHECKER" main "$branch" 2>&1)"; rc=$?
-    if [ "$rc" -ne 0 ]; then verdict=fire; else verdict=quiet; fi
+    # Non-zero alone would also be scored by a crashing script. The
+    # refusal has to be the checker's verdict, and name the lines.
+    if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q "REFUSED"; then
+        verdict=fire
+    elif [ "$rc" -ne 0 ]; then
+        verdict="failed-without-refusing"
+    else
+        verdict=quiet
+    fi
     if [ "$verdict" = "$expect" ]; then
         echo "PASS  $name: expected $expect, got $verdict (exit $rc)"
     else

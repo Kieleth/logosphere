@@ -71,8 +71,12 @@ anyone's head):
   and rebase merges are off at the repository level, so the buttons
   do not exist.
 - CI: the `merge-policy` job re-runs the merged-work check on every
-  PR and verifies the hooks are still executable, because a hook
-  without its executable bit is silently ignored by git.
+  PR, verifies the hooks are still executable (a hook without its
+  executable bit is ignored by git in silence), and runs both
+  self-tests: `scripts/test-merged-work-deletion.sh` proves the
+  detector fires on the accident and stays quiet on the control, and
+  `scripts/test-pre-push-hook.sh` performs real pushes to a real
+  local remote and asserts which ones are refused.
 
 If a hook refuses you, it is right and you are wrong. Do not reach
 for `--no-verify`, do not edit the hook, do not delete it out of

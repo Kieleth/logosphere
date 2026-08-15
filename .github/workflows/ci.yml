@@ -46,6 +46,7 @@ jobs:
           test -x scripts/check-merged-work-deletion.sh
           test -x scripts/install-git-hooks.sh
           test -x scripts/test-merged-work-deletion.sh
+          test -x scripts/test-pre-push-hook.sh
           # And it refuses. An unconditional hook that returns 0 is a decoration.
           if .githooks/pre-rebase origin/main test-branch >/dev/null 2>&1; then
             echo "pre-rebase exited 0. It must refuse unconditionally."
@@ -58,6 +59,13 @@ jobs:
       # directions, control included.
       - name: The merged-work detector is not vacuous
         run: ./scripts/test-merged-work-deletion.sh
+
+      # And the hook that calls it actually refuses a real `git push` to a
+      # real remote: push to main, force-push, and a stale branch that
+      # reverts main. The last one got through the first version of the
+      # hook, so it has a permanent case here.
+      - name: The pre-push hook refuses what it claims to
+        run: ./scripts/test-pre-push-hook.sh
 
       - name: This branch deletes no work merged after it started
         if: github.event_name == 'pull_request'

@@ -96,24 +96,39 @@ EOF
         continue
     fi
 
-    # On a branch checked out from before this policy landed, the checker
-    # is not in the tree. Say so rather than passing in silence: the two
-    # refusals above still hold, this one does not.
-    checker="$repo_root/scripts/check-merged-work-deletion.sh"
-    if [ ! -x "$checker" ]; then
-        echo "[pre-push] $checker not in this branch: merged-work check SKIPPED" >&2
-        continue
-    fi
-
     git fetch --quiet "$remote" main 2>/dev/null || true
     base="refs/remotes/$remote/main"
     git rev-parse --verify --quiet "$base" >/dev/null || base="origin/main"
     git rev-parse --verify --quiet "$base" >/dev/null || continue
 
-    # Pushing main itself somewhere, or a branch equal to it: nothing to compare.
-    [ "$(git rev-parse "$base")" = "$local_sha" ] && continue
+    # The checker is taken from main, NOT from the working tree.
+    #
+    # Measured, and it is the whole point: a branch that reverts main
+    # reverts the checker along with everything else, and the working-tree
+    # copy then does not exist. In verification, a push that deleted two
+    # merged commits sailed through on a "check SKIPPED" notice. A branch
+    # does not get a vote on whether it is checked.
+    tmp_checker=""
+    if git cat-file -e "$base:scripts/check-merged-work-deletion.sh" 2>/dev/null; then
+        # Portable form: GNU mktemp rejects a -t template without XXX.
+        tmp_checker="$(mktemp "${TMPDIR:-/tmp}/lgs-mwd.XXXXXX")"
+        git show "$base:scripts/check-merged-work-deletion.sh" > "$tmp_checker"
+        chmod +x "$tmp_checker"
+        checker="$tmp_checker"
+    elif [ -x "$repo_root/scripts/check-merged-work-deletion.sh" ]; then
+        checker="$repo_root/scripts/check-merged-work-deletion.sh"
+    else
+        # Not on main yet and not in the tree. Say so; passing in silence
+        # is the failure mode this whole file exists to remove.
+        echo "[pre-push] no merged-work checker on $base or in the tree: check SKIPPED" >&2
+        continue
+    fi
 
-    "$checker" "$base" "$local_sha" || fail=1
+    # Pushing main itself somewhere, or a branch equal to it: nothing to compare.
+    if [ "$(git rev-parse "$base")" != "$local_sha" ]; then
+        "$checker" "$base" "$local_sha" || fail=1
+    fi
+    [ -n "$tmp_checker" ] && rm -f "$tmp_checker"
 done
 
 exit "$fail"
