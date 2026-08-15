@@ -1251,8 +1251,14 @@ target_compile_features(test_humanoid_knockback PRIVATE cxx_std_17)
 # The refusal ledger must hold what a braced body refused. It booked
 # 2.5% of it until 2026-08-14; this is what keeps it honest.
 add_executable(test_refused_momentum_ledger tests/test_refused_momentum_ledger.cpp)
+# logosphere_core and logosphere_dynamics reference each other, and
+# this test names neither directly, so GNU ld (left-to-right, one pass
+# per archive) drops dynamics before core asks for
+# notify_particle_swap. Apple's linker resolves it either way, which is
+# why it built here and failed the Linux precheck. Repeat the archive.
 target_link_libraries(test_refused_momentum_ledger PRIVATE
-    logosphere_dynamics logosphere_physics logosphere_core)
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
 target_include_directories(test_refused_momentum_ledger PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
