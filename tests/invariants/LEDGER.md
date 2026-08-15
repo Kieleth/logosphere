@@ -661,3 +661,31 @@ checked against — no expected value invented.
 
 Known and stated: linear only. Angular refusals are booked nowhere,
 because the angular side still has no door at all (board D1/D2).
+
+## 2026-08-15 — C9 landed, C6 advanced: INV-6 has a witness at last
+
+C9: every build step in scripts/precheck_linux.sh now names itself and
+prints the real compiler output on failure. It proved itself on its
+first run by diagnosing "Killed signal terminated program cc1plus" —
+the OOM killer, caused by running two prechecks concurrently, not by
+any code defect. Solo rerun: PRECHECK GREEN. Prechecks run ALONE, like
+the sweep.
+
+C6: unproven invariants 14 -> 11. INV-6 (no-gravity-assumptions) is
+WITNESSED for the first time since the engine's first month — the same
+press applied on +X, +Y and -Z resolves identically (penetration
+spread 0.000000 m, resting-gap spread 0.000169 m, normal-direction
+residual under 1e-5 m/s). Three false readings on the way there, all
+recorded in the test: gravity left on made the axes non-mirrors;
+cancelling it AFTER the solve left exactly 9.8/60 = 0.16333 m/s of
+uneaten correction that read as a 4x bias; and measuring the full
+velocity vector reported a tangential drift (gravity is applied once
+per SUBSTEP, a test can only cancel once per frame) as a normal-axis
+bias. The invariant concerns the contact normal, so the normal is what
+is measured.
+
+INV-27 and INV-23 gained coverage with no new code:
+test_determinism_guards and test_immovable_pair_phantom_impulse both
+existed and were never linked, so two laws read as uncovered while
+their provers sat in the tree. Half of task #45, closed as a side
+effect of asking the audit the right question.

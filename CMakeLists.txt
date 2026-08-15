@@ -1265,6 +1265,18 @@ target_include_directories(test_refused_momentum_ledger PRIVATE
 )
 target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
 
+# INV-6's first witness: the same press on three axes must resolve the
+# same, or the solver knows which way is down.
+add_executable(test_inv6_gravity_blindness tests/test_inv6_gravity_blindness.cpp)
+target_link_libraries(test_inv6_gravity_blindness PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_inv6_gravity_blindness PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_inv6_gravity_blindness PRIVATE cxx_std_17)
+
 # Phase 4b C2 — pin-gluon lifecycle round-trip. Same headless setup as
 # test_humanoid_headless. Spawns a stub humanoid, opts in via
 # enable_physics_drive_legs, walks → stops, asserts anchor + pin gluon
