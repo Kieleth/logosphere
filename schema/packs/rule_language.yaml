@@ -17,6 +17,9 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  # Float64 for the property bounds below. See packs/math.yaml for why
+  # a named type rather than LinkML's `double` built-in.
+  - math
 
 enums:
   OntologyMetaRelationType:
@@ -837,7 +840,7 @@ slots:
       create_only: true
 
   minimum_value:
-    range: double
+    range: Float64
     annotations:
       create_only: true
 
@@ -847,7 +850,7 @@ slots:
       create_only: true
 
   maximum_value:
-    range: double
+    range: Float64
     annotations:
       create_only: true
 
