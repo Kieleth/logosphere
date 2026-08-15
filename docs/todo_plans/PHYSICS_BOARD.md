@@ -124,6 +124,36 @@ external ones.)*
 
 ---
 
+## F2 — NEW FRONT: a sphere will not slide a ramp that a cube slides
+
+Found 2026-08-15 by the machine's twin-path experiment, on its first
+run. Two ramps side by side, same 40-degree slope, same STONE, same
+drop, same mass class; a cube on one lane and a sphere on the other.
+
+    f160   cube x=0.66 v=1.06 m/s    sphere x=0.45 v=0.00
+    f220   cube x=2.52 v=2.65 m/s    sphere x=0.45 v=0.00
+    f300   cube x=5.08 v=0.88 m/s    sphere x=0.45 v=0.00
+
+The sphere lands and never moves again. 40 degrees is far past the
+engine's own friction angle (mu=0.5 gives 26.6 degrees), so nothing
+should hold it, and the cube beside it leaves at 2.65 m/s. Whatever the
+sphere is resting on is not the surface the cube is resting on.
+
+**Suspect, unproven:** the sphere-vs-rotated-box narrow phase reporting
+an axis-aligned normal instead of the ramp's true one, which would make
+the contact behave like a horizontal shelf. The rotation study already
+records that sphere and ellipsoid handlers are orientation-blind
+(`ROTATION_CAMPAIGN_DESIGN.md`), so this may be that gap with a
+consequence attached — but nobody has traced this contact yet.
+
+Marked as the machine's frontier stage (SR TWIN PATHS), placed last so
+a red measurement cannot starve the passing stages of coverage. When
+contact torque lands, this same stage also becomes the rolling-versus-
+sliding witness: it prints the speed ratio against the analytic 0.845
+for a rolling solid sphere, every run.
+
+---
+
 ## NEEDS DESIGN
 
 | # | Front | Study | State |
