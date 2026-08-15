@@ -556,6 +556,21 @@ static void resolve_sleep_wakes(ParticleSystem::WriteView& particles) {
     }
 }
 
+void PhysicsSystem::record_refused_impulse(size_t particle_id,
+                                           float jx, float jy, float jz) {
+    auto& e = refused_impulses_[particle_id];
+    e[0] += jx; e[1] += jy; e[2] += jz;
+}
+
+bool PhysicsSystem::take_refused_impulse(size_t particle_id,
+                                         float& jx, float& jy, float& jz) {
+    auto it = refused_impulses_.find(particle_id);
+    if (it == refused_impulses_.end()) return false;
+    jx = it->second[0]; jy = it->second[1]; jz = it->second[2];
+    refused_impulses_.erase(it);
+    return true;
+}
+
 void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float dt) {
     const size_t count = particles.size();
 
@@ -3337,6 +3352,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pb.vx -= c.jx * impulse * inv_mb;
                 pb.vy -= c.jy * impulse * inv_mb;
                 pb.vz -= c.jz * impulse * inv_mb;
+                // Book the half that could not be delivered. inv_mb == 0
+                // means an external writer owns this body; the momentum
+                // is real and belongs to that writer, not to the void.
+                if (inv_mb == 0.0f && impulse != 0.0f &&
+                    pb.solver_mode == ParticleSolverMode::KINEMATIC) {
+                    record_refused_impulse(c.body_b,
+                                           -c.jx * impulse,
+                                           -c.jy * impulse,
+                                           -c.jz * impulse);
+                }
+            }
+            if (inv_ma == 0.0f && impulse != 0.0f &&
+                pa.solver_mode == ParticleSolverMode::KINEMATIC) {
+                record_refused_impulse(c.body_a,
+                                       c.jx * impulse,
+                                       c.jy * impulse,
+                                       c.jz * impulse);
             }
 
             // ANCHOR TORQUE: the same impulse, applied at the anchor, spins
