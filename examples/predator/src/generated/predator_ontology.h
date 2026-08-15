@@ -879,10 +879,10 @@ struct Signal : public Identifiable, public Temporal {
 struct Relation : public Identifiable, public Temporal {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
     std::string relation_type = {};
-    /// ID of the source entity.
-    std::string source_id = {};
-    /// ID of the target entity.
-    std::string target_id = {};
+    /// Reference to the source Entity.
+    Entity source_id = {};
+    /// Reference to the target Entity.
+    Entity target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };

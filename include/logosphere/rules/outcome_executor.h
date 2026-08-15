@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -93,6 +94,11 @@ struct OutcomePlan {
     std::vector<ProcedureSignal> procedure_signals;
     std::vector<uint64_t> roll_ids;
     std::vector<AttributeLimited> attributes_limited;
+    // Every outcome entity on the path actually taken, in visit order.
+    // An unchosen option is absent: the planner never descends into
+    // one, which is the point. A coverage number built from what a
+    // rule COULD reach says nothing about what it did reach.
+    std::vector<kg::EntityID> rules_reached;
 };
 
 struct OutcomeHandlerContext {
@@ -215,6 +221,18 @@ public:
         kg::EntityID root, const OutcomeContext& context,
         const std::vector<OutcomeSelection>& selections = {});
 
+    // Every outcome entity this executor has ever applied, accumulated
+    // across its whole life. A rule absorbed into the graph and reached
+    // by nothing is invisible to a citation check (it is faithful), to
+    // a well-formedness check (it is sound), and to a type-level reader
+    // census (its type has readers). It shows up here and nowhere else.
+    //
+    // Only applied plans count. A plan abandoned on a pending choice or
+    // a failed batch reached nothing, whatever it planned to reach.
+    const std::set<kg::EntityID>& rules_reached() const {
+        return rules_reached_;
+    }
+
 private:
     struct Planner;
 
@@ -223,6 +241,7 @@ private:
     std::unordered_map<std::string, OutcomeHandler> handlers_;
     AttributeSelector attribute_selector_;
     ChoiceResolver choice_resolver_;
+    std::set<kg::EntityID> rules_reached_;
 };
 
 }  // namespace logosphere::rules

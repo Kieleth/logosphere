@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace logosphere::ontology {
+namespace arms::ontology {
 
 /// Lifecycle state of any identifiable entity.
 enum class EntityStatus {
@@ -691,10 +691,10 @@ inline bool from_string(const char* str, WorldEventType& out) {
 enum class SolverAuthority {
     /// Physics owns it. Gravity pulls it, contacts push it, impulses move it. The default, and right for anything loose, alive, or meant to be knocked about.
     DYNAMIC,
-    /// An external writer owns this body's position RIGHT NOW: animation, locomotion, a scripted driver. Physics will not move it while that lasts, and it still collides, so things land on it.
-    /// It is a TRANSIENT AUTHORITY, not a label. Whoever sets it owns releasing it: a body left KINEMATIC after its driver stops can never fall, tip or ragdoll again. Driving complex animation through physics is the thing this escape hatch exists to avoid - nothing else.
-    /// NOT for scenery. Terrain, floors and worlds are not immovable by declaration (INV-1: the turtle boundary is the only intrinsically immovable thing). They rest on the turtle, on anchored bonds, or on the modelled EFFECT of the mass we choose not to simulate - which is also where gravity comes from. A body that should float escapes the field; it is not nailed to the air.
-    KINEMATIC
+    /// The body owns its own position. Nothing moves it - not gravity, not impact - and it still collides, so things stand and land on it. This is what terrain IS: floors, worlds, anything that must simply be there.
+    KINEMATIC,
+    /// Immovable and inert. Like KINEMATIC, but never expected to be repositioned by anyone.
+    STATIC
 };
 
 /// Convert SolverAuthority to its string representation.
@@ -702,6 +702,7 @@ inline const char* to_string(SolverAuthority value) {
     switch (value) {
         case SolverAuthority::DYNAMIC: return "DYNAMIC";
         case SolverAuthority::KINEMATIC: return "KINEMATIC";
+        case SolverAuthority::STATIC: return "STATIC";
     }
     return "unknown";
 }
@@ -710,6 +711,7 @@ inline const char* to_string(SolverAuthority value) {
 inline bool from_string(const char* str, SolverAuthority& out) {
     if (std::strcmp(str, "DYNAMIC") == 0) { out = SolverAuthority::DYNAMIC; return true; }
     if (std::strcmp(str, "KINEMATIC") == 0) { out = SolverAuthority::KINEMATIC; return true; }
+    if (std::strcmp(str, "STATIC") == 0) { out = SolverAuthority::STATIC; return true; }
     return false;
 }
 
@@ -770,6 +772,70 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     if (std::strcmp(str, "MANAGES") == 0) { out = WorldRelationType::MANAGES; return true; }
     if (std::strcmp(str, "BONDED_TO") == 0) { out = WorldRelationType::BONDED_TO; return true; }
     if (std::strcmp(str, "SPECIALIZES") == 0) { out = WorldRelationType::SPECIALIZES; return true; }
+    return false;
+}
+
+/// How an implement is shaped to deliver force. Geometry, not damage: what a game does with a slashing edge is the game's to say, and DamageType in the core already names the effect.
+enum class EdgeKind {
+    /// No working edge. A club, a haft, a shield rim.
+    NONE,
+    /// One sharpened edge, a thicker spine opposite it.
+    SINGLE_EDGED,
+    /// Sharpened both sides, symmetric in section.
+    DOUBLE_EDGED,
+    /// Toothed edge, cutting by draw rather than press.
+    SERRATED,
+    /// Shaped to concentrate force at a tip. Not exclusive with the edge values above; a cutlass is single-edged AND pointed, which is why point_shaped is a separate slot.
+    POINTED
+};
+
+/// Convert EdgeKind to its string representation.
+inline const char* to_string(EdgeKind value) {
+    switch (value) {
+        case EdgeKind::NONE: return "NONE";
+        case EdgeKind::SINGLE_EDGED: return "SINGLE_EDGED";
+        case EdgeKind::DOUBLE_EDGED: return "DOUBLE_EDGED";
+        case EdgeKind::SERRATED: return "SERRATED";
+        case EdgeKind::POINTED: return "POINTED";
+    }
+    return "unknown";
+}
+
+/// Parse a string into EdgeKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, EdgeKind& out) {
+    if (std::strcmp(str, "NONE") == 0) { out = EdgeKind::NONE; return true; }
+    if (std::strcmp(str, "SINGLE_EDGED") == 0) { out = EdgeKind::SINGLE_EDGED; return true; }
+    if (std::strcmp(str, "DOUBLE_EDGED") == 0) { out = EdgeKind::DOUBLE_EDGED; return true; }
+    if (std::strcmp(str, "SERRATED") == 0) { out = EdgeKind::SERRATED; return true; }
+    if (std::strcmp(str, "POINTED") == 0) { out = EdgeKind::POINTED; return true; }
+    return false;
+}
+
+/// How the working part is joined to what the hand holds. Decides where mass sits, which is the difference between a sword and an axe long before any rules system is consulted.
+enum class HaftKind {
+    /// Working part and grip are one piece of material. A sword, a knife.
+    INTEGRAL,
+    /// A dense head fixed to a lighter shaft. An axe, a hammer, a mace. Mass concentrates away from the hand.
+    MOUNTED_HEAD,
+    /// Working part joined by a flexible link. A flail, a whip. Needs joint authority the solver must own.
+    FLEXIBLE
+};
+
+/// Convert HaftKind to its string representation.
+inline const char* to_string(HaftKind value) {
+    switch (value) {
+        case HaftKind::INTEGRAL: return "INTEGRAL";
+        case HaftKind::MOUNTED_HEAD: return "MOUNTED_HEAD";
+        case HaftKind::FLEXIBLE: return "FLEXIBLE";
+    }
+    return "unknown";
+}
+
+/// Parse a string into HaftKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, HaftKind& out) {
+    if (std::strcmp(str, "INTEGRAL") == 0) { out = HaftKind::INTEGRAL; return true; }
+    if (std::strcmp(str, "MOUNTED_HEAD") == 0) { out = HaftKind::MOUNTED_HEAD; return true; }
+    if (std::strcmp(str, "FLEXIBLE") == 0) { out = HaftKind::FLEXIBLE; return true; }
     return false;
 }
 
@@ -1123,12 +1189,6 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
-    /// Ground red tint component, 0..1.
-    std::optional<float> ground_r = std::nullopt;
-    /// Ground green tint component, 0..1.
-    std::optional<float> ground_g = std::nullopt;
-    /// Ground blue tint component, 0..1.
-    std::optional<float> ground_b = std::nullopt;
 };
 
 
@@ -1549,4 +1609,42 @@ struct WorldRelation : public Relation {
 };
 
 
-} // namespace logosphere::ontology
+/// A made object an agent carries and uses. Abstract: a game names the particular. It is a body like any other, so it has material and it can be broken.
+struct Implement : public WorldEntity, public HasMaterial, public Destructible {
+    /// Hands required to use it as intended. A book that says "two handed" states this; a book silent on it leaves it unset rather than defaulting, because one hand is a claim and not an absence.
+    std::optional<int32_t> grip_hands = std::nullopt;
+    /// Shortest overall length in meters, tip to butt. A range and not a value, because books describe a class of object rather than one: "Blade length varies from 600 to 900mm" is a real sentence from a real equipment list. Instantiation picks within the range, so two of the same weapon are legitimately different objects. Where a source gives one figure, min and max are equal.
+    std::optional<float> overall_length_min = std::nullopt;
+    /// Longest overall length in meters. See overall_length_min.
+    std::optional<float> overall_length_max = std::nullopt;
+};
+
+
+/// An implement used to strike at arm's length. Abstract, because "sword" and "axe" are distinctions of haft and edge rather than of kind, and both are expressed by the slots below.
+struct HandWeapon : public Implement {
+    /// How the implement is shaped to deliver force.
+    std::optional<EdgeKind> edge_kind = std::nullopt;
+    /// How the working part joins the grip.
+    std::optional<HaftKind> haft_kind = std::nullopt;
+    /// Whether it is shaped to thrust. Separate from edge_kind because the two are independent: a cutlass is single-edged and pointed, a machete is single-edged and not.
+    std::optional<bool> point_shaped = std::nullopt;
+    /// Shortest length of the working part in meters: the blade, the head, the striking surface. Distinct from overall length because the grip is not what reaches the target, and because a stated weight divided over the working length is what tests whether a guessed material is plausible.
+    std::optional<float> working_length_min = std::nullopt;
+    /// Longest working length in meters. See working_length_min.
+    std::optional<float> working_length_max = std::nullopt;
+    /// Whether the grip carries structure that shields the hand. A basket hilt, a quillon, a knuckle bow. Physical, because it is mass in a particular place and a surface that can take a contact.
+    std::optional<bool> handguard = std::nullopt;
+};
+
+
+/// A hand weapon whose working length is a blade. The blade is the part a book gives dimensions for, and the part that decides whether a stated weight is credible.
+struct BladedWeapon : public HandWeapon {
+};
+
+
+/// A hand weapon whose mass sits in a head mounted on a shaft. An axe, a maul, a mace.
+struct HaftedWeapon : public HandWeapon {
+};
+
+
+} // namespace arms::ontology

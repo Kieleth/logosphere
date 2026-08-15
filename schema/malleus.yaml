@@ -1,6 +1,6 @@
 id: https://malleus.dev/schema
 name: malleus
-version: 0.3.0
+version: 0.4.0
 title: Malleus Root Ontology
 description: >-
   Minimal shared identity and metadata layer.
@@ -194,6 +194,7 @@ classes:
 # -------------------------------------------------------------------
 
   Relation:
+    abstract: true
     description: >-
       A typed, directed edge between two entities.
       Reified as a class so relations can carry metadata
@@ -280,17 +281,19 @@ slots:
       Domain projects should constrain this to an enum.
 
   source_id:
-    range: string
+    range: Entity
     required: true
-    description: ID of the source entity.
+    description: Reference to the source Entity.
 
   target_id:
-    range: string
+    range: Entity
     required: true
-    description: ID of the target entity.
+    description: Reference to the target Entity.
 
   strength:
     range: float
+    minimum_value: 0.0
+    maximum_value: 1.0
     description: Weight or confidence of the relation (0.0 to 1.0).
 
   # Signal slots (new in 0.3.0)

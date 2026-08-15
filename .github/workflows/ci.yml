@@ -51,8 +51,19 @@ jobs:
       - name: Regenerate rule seeds from the vendored SRD
         run: ./examples/logovger/tools/regenerate_seeds.sh
 
+      # `git diff` is blind to files that did not exist before it ran, so
+      # a NEW schema emits new generated output and this step stays green
+      # while that output sits uncommitted. Measured on a fresh pack:
+      # `git diff --exit-code` returned 0 with three untracked generated
+      # files present. The untracked check is the half that catches it.
       - name: Reject generated-output drift
-        run: git diff --exit-code
+        run: |
+          git diff --exit-code
+          if [ -n "$(git status --porcelain -uall)" ]; then
+            echo "generated output is untracked or unstaged:"
+            git status --porcelain -uall
+            exit 1
+          fi
 
   # ---------------------------------------------------------------------------
   # Linux: headless-physics profile (core + physics + dynamics + worldgen,

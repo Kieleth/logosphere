@@ -393,6 +393,48 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ---
 
+## [0.4.4] - 2026-08-14
+
+A rule can now be asked whether the game ever ran it. Absorbing a
+rulebook already proved two things: that the data matches the book, and
+that the graph hangs together. Neither says anything about whether the
+engine acts on it, and that gap had been hiding real defects.
+
+### Added
+
+- `OutcomeExecutor::rules_reached()`: every outcome entity the executor
+  has applied. Only applied plans count, so a rule that planned to act
+  and stopped on a pending choice is not in it. `OutcomePlan` carries
+  the same list per apply, in visit order, excluding branches not taken.
+- `ChargenRequest::taste`: an optional hook for the choices the book
+  leaves open, defaulted so every existing caller behaves exactly as
+  before. Fixed taste is invisible in a green suite, and this is how a
+  sweep asks for something other than the auto-player's habits.
+- A coverage gate: play lives across every career, ask the executor
+  which absorbed rules were applied, and fail if any table in the graph
+  was reached by nothing. One row is enough to prove a table is wired,
+  so the gate survives sampling while still catching a table that is
+  wired to nothing.
+
+### Fixed
+
+- The Draft applies its outcome instead of reading a slot off it. The
+  Draft table's six services are `EnterCareer` outcomes, and the
+  primitive reached into the entity for its `drafted_career` property
+  and never ran the rule. It worked, and it meant the one absorbed rule
+  that changes which career you are in was the only rule the executor
+  never executed, invisible to anything watching what the rules do.
+
+### Note on what this found
+
+With the auto-player's standing taste, 84 of 171 tables in the graph
+had never been reached by any test in any release: every Personal
+Development table, every Specialist table and every Advanced Education
+table, for all 24 careers. Three of the four training tables the book
+gives, 432 cited and verified outcomes, never once applied to a
+character. Varying the sweep's choices took that to zero and raised
+outcome coverage from 459 to 922 of 1173.
+
 ## [0.4.2] - 2026-08-14
 
 ### Fixed
