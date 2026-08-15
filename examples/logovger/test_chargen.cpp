@@ -1078,6 +1078,57 @@ void test_extra_benefits_by_rank_are_a_table() {
           "and no number word to prove it");
 }
 
+// An arbiter's decision leaves a record, and the record says who
+// decided in words you can read.
+//
+// This was the one input to a character with no provenance at all.
+// Every other value traces to a rule and a roll; a decision traced to
+// a line of console output that scrolled away, and the arbiter's
+// identity existed only inside a one-way cache-key hash, so the graph
+// could not answer "which model chose this" even in principle.
+//
+// The test writes the record the way the session writes it, which also
+// proves the schema wiring: the KG property gate aborts on an
+// undeclared property, so a wrong slot name would kill this process
+// rather than quietly store nothing.
+void test_a_judgment_says_who_decided_and_why() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the judgment world: " + why);
+    if (!why.empty()) return;
+
+    const auto record = world.createEntity("ArbiterDecision");
+    world.setProperty(record, "decision_question",
+                      "The years take their due. Which 2 give way, and why?");
+    world.setProperty(record, "decision_options",
+                      "Strength, Dexterity, Endurance");
+    world.setProperty(record, "decision_taken", "Strength, Endurance");
+    world.setProperty(record, "decision_reason",
+                      "a life spent hauling cargo wears the back first");
+    world.setProperty(record, "arbiter", "anthropic/claude-haiku-4-5");
+
+    CHECK(world.getProperty(record, "decision_taken") == "Strength, Endurance",
+          "the choice round-trips");
+    CHECK(world.getProperty(record, "decision_options").find("Dexterity") !=
+              std::string::npos,
+          "the options it was chosen FROM are kept, not just the answer");
+    CHECK(!world.getProperty(record, "decision_reason").empty(),
+          "the reason survives instead of scrolling past");
+
+    // The point of the whole record. A hash would satisfy "a value is
+    // stored" and fail the thing this exists for.
+    const std::string arbiter = world.getProperty(record, "arbiter");
+    CHECK(arbiter.find("claude") != std::string::npos,
+          "the arbiter is readable, not a digest: " + arbiter);
+    CHECK(arbiter.find_first_of(" /") != std::string::npos,
+          "the arbiter names a backend and a model: " + arbiter);
+
+    // And it is findable without knowing its id, which is what makes
+    // it queryable provenance rather than a note.
+    CHECK(world.findByType("ArbiterDecision").size() == 1,
+          "the decision is queryable by type");
+}
+
 // Every roll a rule made says WHICH rule made it, and that rule is in
 // the graph. This is the link an oracle derived from the KG needs:
 // with it, the journal plus the graph is enough to re-derive what a
@@ -1288,6 +1339,39 @@ void test_every_absorbed_rule_reaches_a_character() {
                 if (cs.empty()) return std::string();
                 return cs[turn++ % cs.size()].key;
             };
+            // Somebody has to answer the aging table, and without a
+            // selector the engine refuses and the life ends there. The
+            // sweep had been walking into that every time a character
+            // reached the fourth term, which is why aging outcomes sat
+            // at 1 of 14 reached: not because the rules were unwired,
+            // but because no life got past the question.
+            request.attribute_selector =
+                [&turn](const logosphere::rules::AttributeSelectionRequest&
+                            ask,
+                        std::vector<std::string>& chosen,
+                        std::string& error) {
+                    for (int i = 0; i < ask.count; ++i) {
+                        std::string pick;
+                        for (size_t n = 0; n < ask.eligible.size(); ++n) {
+                            const auto& name =
+                                ask.eligible[(turn + n) % ask.eligible.size()];
+                            if (std::find(ask.already_taken.begin(),
+                                          ask.already_taken.end(), name) !=
+                                ask.already_taken.end()) continue;
+                            if (std::find(chosen.begin(), chosen.end(),
+                                          name) != chosen.end()) continue;
+                            pick = name;
+                            break;
+                        }
+                        if (pick.empty()) {
+                            error = "nothing left to take";
+                            return false;
+                        }
+                        ++turn;
+                        chosen.push_back(pick);
+                    }
+                    return true;
+                };
             logovger::CharacterSheet sheet;
             std::string error;
             logovger::run_chargen(request, world, dice, sheet, error,
@@ -1411,6 +1495,33 @@ void test_every_declared_rule_type_has_an_instance() {
             request.career_name = career;
             request.seed = seed;
             request.max_terms = 7;
+            // Somebody has to answer the aging table. Without a
+            // selector the engine refuses, the life ends at the fourth
+            // term, and every type that only exists once a decision is
+            // made stays absent for a reason that has nothing to do
+            // with the wiring this test checks.
+            request.attribute_selector =
+                [](const logosphere::rules::AttributeSelectionRequest& ask,
+                   std::vector<std::string>& chosen, std::string& error) {
+                    for (int i = 0; i < ask.count; ++i) {
+                        std::string pick;
+                        for (const auto& name : ask.eligible) {
+                            if (std::find(ask.already_taken.begin(),
+                                          ask.already_taken.end(), name) !=
+                                ask.already_taken.end()) continue;
+                            if (std::find(chosen.begin(), chosen.end(),
+                                          name) != chosen.end()) continue;
+                            pick = name;
+                            break;
+                        }
+                        if (pick.empty()) {
+                            error = "nothing left to take";
+                            return false;
+                        }
+                        chosen.push_back(pick);
+                    }
+                    return true;
+                };
             logovger::CharacterSheet sheet;
             std::string error;
             logovger::run_chargen(request, world, dice, sheet, error);
@@ -2715,6 +2826,7 @@ int main() {
     test_leaving_a_career_offers_another_one();
     test_basic_training_grants_what_the_book_promises();
     test_a_roll_names_the_rule_that_made_it();
+    test_a_judgment_says_who_decided_and_why();
     test_joining_a_career_grants_its_rank_zero_skill();
     test_every_absorbed_rule_reaches_a_character();
     test_every_declared_rule_type_has_an_instance();

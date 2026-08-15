@@ -47,6 +47,18 @@ namespace logovger {
 #define LOGOVGER_GAME_DIR "."
 #endif
 
+// One string from many, for the judgment record. The options and the
+// choice are stored the way they were offered, so the two can be read
+// back against each other without guessing at a delimiter.
+inline std::string join_with(const std::vector<std::string>& parts) {
+    std::string out;
+    for (const auto& part : parts) {
+        if (!out.empty()) out += ", ";
+        out += part;
+    }
+    return out;
+}
+
 class LogovgerApplication : public Logosphere::IApplication {
 public:
     bool initialize() override { return true; }
@@ -429,6 +441,12 @@ private:
                                          error)) {
                     return false;
                 }
+                // The session records the decision; this only adds the
+                // reason, which is the one part the session cannot
+                // know because it comes back from the model with the
+                // answer. Written per driver, the record was written
+                // twice and would have been forgotten by the third.
+                session_->attach_decision_reason(reason);
                 if (!reason.empty()) {
                     screen_.say("  the referee: " + reason,
                                 SheetScreen::Tone::Roll);

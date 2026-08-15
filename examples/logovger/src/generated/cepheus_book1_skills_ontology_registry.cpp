@@ -520,6 +520,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addPropertyNamespace("LivingEntity", "capability.");
 
     // Event types
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEntityType("ArbiterDecision", "Event", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("CollisionEvent", "WorldEvent", false);
     reg.addEntityType("ContactFilteredEvent", "WorldEvent", false);
     reg.addEntityType("DamageEvent", "WorldEvent", false);
@@ -538,6 +541,7 @@ static kg::OntologyRegistry build_registry() {
     // Facets
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("AdvanceSkill", {"rulebook"});
+    reg.addFacets("ArbiterDecision", {"rulebook"});
     reg.addFacets("AttributeGroup", {"rulebook"});
     reg.addFacets("CurrencyBalance", {"rulebook"});
     reg.addFacets("DiceExpression", {"rulebook"});
@@ -631,6 +635,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("AdvanceSkill", "existing_skill_delta", kg::PropertyValueKind::Integer, true);
     reg.setSource("https://malleus.dev/schema");
     reg.addProperty("Agent", "agent_type", kg::PropertyValueKind::String, false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addProperty("ArbiterDecision", "decision_question", kg::PropertyValueKind::String, false);
+    reg.addProperty("ArbiterDecision", "decision_options", kg::PropertyValueKind::String, false);
+    reg.addProperty("ArbiterDecision", "decision_taken", kg::PropertyValueKind::String, false);
+    reg.addProperty("ArbiterDecision", "decision_reason", kg::PropertyValueKind::String, false);
+    reg.addProperty("ArbiterDecision", "arbiter", kg::PropertyValueKind::String, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addRefProperty("ArgumentBinding", "binding_parameter", true, "FunctionParameterSpec");
     reg.addRefProperty("ArgumentBinding", "binding_argument", true, "Expression");

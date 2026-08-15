@@ -437,6 +437,49 @@ ChargenSession::ChargenSession(kg::KGModule& kg,
 // the whole row and discards the money and the injury after it. Every
 // mishap row but one carries one of these, which is why the mishap
 // table could not run at all before now.
+// The one place an arbiter's decision becomes a fact in the graph.
+//
+// It sits in the session and not in the drivers because a decision is
+// a decision whoever made it. Written per driver, it was written twice
+// and would have been forgotten by the third, which is exactly how the
+// headless driver came to leave a rule's fork unanswered and end one
+// life in ten. One writer cannot be forgotten.
+//
+// Only the entries this call added are recorded. One rule can strike
+// twice ("reduce two physical characteristics by 2, reduce one by 1"),
+// and the second call receives the first call's picks already in
+// `chosen`; recording all of them would credit this decision with
+// choices it did not make.
+void ChargenSession::record_decision(
+    const logosphere::rules::AttributeSelectionRequest& ask,
+    const std::vector<std::string>& chosen, size_t first_new) {
+    const auto join = [](const std::vector<std::string>& parts,
+                         size_t from) {
+        std::string out;
+        for (size_t i = from; i < parts.size(); ++i) {
+            if (!out.empty()) out += ", ";
+            out += parts[i];
+        }
+        return out;
+    };
+    const auto record = kg_.createEntity("ArbiterDecision");
+    kg_.setProperty(record, "decision_question",
+                    "which " + std::to_string(ask.count) +
+                        " of the eligible characteristics give way");
+    kg_.setProperty(record, "decision_options", join(ask.eligible, 0));
+    kg_.setProperty(record, "decision_taken", join(chosen, first_new));
+    // Empty until a driver names itself, and empty is the honest
+    // answer then: an unnamed arbiter is better recorded as unnamed
+    // than guessed at.
+    kg_.setProperty(record, "arbiter", arbiter_);
+    last_decision_ = record;
+}
+
+void ChargenSession::attach_decision_reason(const std::string& reason) {
+    if (last_decision_ == kg::INVALID_ENTITY) return;
+    kg_.setProperty(last_decision_, "decision_reason", reason);
+}
+
 void ChargenSession::register_outcome_handlers() {
     std::string error;
     const auto report = [&](const char* type) {
