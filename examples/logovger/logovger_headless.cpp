@@ -268,6 +268,15 @@ int main(int argc, char** argv) {
     g_seed = seed;
 #endif
 
+    // Who is answering, in words, for the record each decision leaves.
+    // The session writes that record itself; this driver only says who
+    // made it. A decision is a decision whoever made it, off a tape,
+    // from a model, or invented from the seed, and writing the record
+    // in each driver is how a third driver comes to write nothing.
+    session.set_arbiter(mode == "--replay"  ? "tape:" + tape_path
+                        : mode == "--record" ? "model, taped to " + tape_path
+                                             : "seeded generator");
+
     // The referee, through the same seam as the player. In --random
     // this answers with no model and no key; in --replay it comes off
     // the tape. Either way the engine still holds the answer to the

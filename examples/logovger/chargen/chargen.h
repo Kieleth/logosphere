@@ -129,11 +129,43 @@ public:
     // than picking quietly. The app installs an adjudicator-backed
     // selector; a test installs its own stub. There is deliberately no
     // default.
+    // Wrapped, so the session records the decision no matter which
+    // driver supplied the selector. The record used to be written by
+    // each driver, which meant a new driver produced decision-free
+    // lives and nothing said so. That is the same shape as the
+    // headless driver never wiring the choice resolver, which killed
+    // one life in ten until it was found. One writer, here.
     void set_attribute_selector(
         logosphere::rules::AttributeSelector selector) {
-        attribute_selector_ = std::move(selector);
+        attribute_selector_ =
+            [this, selector](
+                const logosphere::rules::AttributeSelectionRequest& ask,
+                std::vector<std::string>& chosen, std::string& error) {
+                if (!selector) {
+                    error = "no attribute selector installed";
+                    return false;
+                }
+                const size_t before = chosen.size();
+                if (!selector(ask, chosen, error)) return false;
+                record_decision(ask, chosen, before);
+                return true;
+            };
         executor_.set_attribute_selector(attribute_selector_);
     }
+
+    // Who answers, in words, for the record every decision leaves.
+    // There is exactly ONE arbiter: two authorities over the same
+    // record leaves no way to say which of them wrote it.
+    void set_arbiter(std::string arbiter) {
+        arbiter_ = std::move(arbiter);
+    }
+
+    // The reason, which arrives with the answer and so cannot be known
+    // by the session at the moment it writes the record. A driver that
+    // gets one attaches it to the decision just written. Calling this
+    // with no decision on record is a no-op rather than an error: a
+    // reason without a decision is nothing to attach.
+    void attach_decision_reason(const std::string& reason);
 
     // The other referee question: which of the branches a rule prints.
     // Cepheus chapter 1 has two - mishap 1 offers "as a result of 2 on
@@ -213,7 +245,14 @@ private:
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
 
+    // The one place an arbiter's decision becomes a fact in the graph.
+    void record_decision(
+        const logosphere::rules::AttributeSelectionRequest& ask,
+        const std::vector<std::string>& chosen, size_t first_new);
+
     kg::KGModule&                    kg_;
+    std::string                      arbiter_;
+    kg::EntityID                     last_decision_ = kg::INVALID_ENTITY;
     logosphere::dice::DiceService&   dice_;
     logosphere::rules::AttributeSelector attribute_selector_;
     logosphere::rules::ChoiceResolver choice_resolver_;

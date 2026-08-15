@@ -2469,4 +2469,24 @@ struct JudgmentPoint : public Entity, public Cited {
 };
 
 
+/// A question a rule left open, and the answer an arbiter gave it.
+/// JudgmentPoint is the QUESTION and comes from the book. This is the ANSWER and comes from play, so it carries no citation, for the same reason SkillRating does not: the rule is the book's, what happened is not.
+/// It exists because an arbiter's decision was the one input to a character with no provenance at all. Every other value on a sheet traces to a rule and a roll, and DiceRoll.rule links a throw to the rule entity that produced it. This traced to a line of console output that scrolled away, a hole in the replay claim exactly where a model acted, which is the worst place for one.
+/// ARBITER, not judge, and the word is load-bearing. There is exactly ONE arbiter per decision. Two would mean two authorities over the same record with no way to say which of them wrote it, and the whole point is that a decision traces to who made it. Readers may be many and may disagree; the arbiter resolves them.
+/// `arbiter` is readable text and deliberately never a hash. Who decided lived only inside a one-way cache key, so the graph could not answer "which model chose this" even in principle. An identity you cannot read back is a checksum, not provenance.
+/// Generic on purpose. An arbiter choosing which characteristic ages and an arbiter choosing between two readings of a sentence during ingestion are the same shape: a question, the options, the one taken, who took it, and why. The ingestion arbiter reuses this rather than growing a parallel record.
+struct ArbiterDecision : public Event {
+    /// What the arbiter was actually asked, as it was put to them. Recorded rather than reconstructed: the question is assembled at the moment of asking from the rule and the character's state, and re-deriving it later would give a different sentence.
+    std::optional<std::string> decision_question = std::nullopt;
+    /// Everything the rule allowed, comma-separated, in the order offered. Kept because a choice means nothing without the field it was chosen from: "Dexterity" is a different decision when the alternatives were Strength and Endurance than when it was the only option left.
+    std::optional<std::string> decision_options = std::nullopt;
+    /// What was chosen, comma-separated when a rule asks for more than one. Spelled exactly as decision_options spells it, so the two can be compared without guessing.
+    std::optional<std::string> decision_taken = std::nullopt;
+    /// Why, in the arbiter's own words. May be empty: the rule needs the choice and not the argument, so a missing reason is not a failure. An empty one is still worth storing as empty rather than omitting the record.
+    std::optional<std::string> decision_reason = std::nullopt;
+    /// Who decided, readable. Backend and model for an LLM arbiter, so a life generated last month can say which model shaped it. One per decision, never a set: two authorities over one record leaves no way to say which wrote it. Never a hash, because an identity you cannot read back is a checksum and not provenance.
+    std::optional<std::string> arbiter = std::nullopt;
+};
+
+
 } // namespace rulebook::ontology
