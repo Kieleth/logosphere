@@ -1223,6 +1223,150 @@ void test_joining_a_career_grants_its_rank_zero_skill() {
               missing);
 }
 
+// The rank 0 grants were faithful, sound, counted, and reached by
+// nothing. No gate here could see that: the citation check proves the
+// data matches the book, the well-formedness checks prove the graph
+// hangs together, and a reader census at the level of TYPES was clean
+// because the type had readers, just not those instances.
+//
+// This is the only check that answers "does the game act on it". It
+// plays lives and asks the executor which absorbed rules it actually
+// applied, then names the ones no life ever received.
+void test_every_absorbed_rule_reaches_a_character() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the coverage world: " + why);
+    if (!why.empty()) return;
+
+    // The population is the executed vocabulary, taken from the
+    // ontology rather than a list kept by hand: every concrete type the
+    // executor can apply. A hand-kept list would go stale the first
+    // time a new outcome type is absorbed, which is exactly the class
+    // of silence this test exists to break.
+    // The world's own registry, not a fresh game_registry(): that one
+    // returns BY VALUE, so ranging over a temporary's entityTypes()
+    // reads a destroyed map. It segfaulted exactly that way once.
+    const auto& registry = world.getRegistry();
+    std::map<kg::EntityID, std::string> absorbed;
+    for (const auto& entry : registry.entityTypes()) {
+        if (!registry.isSubtypeOf(entry.first, "Outcome")) continue;
+        for (const auto id : world.findByType(entry.first)) {
+            absorbed[id] = entry.first + " " +
+                           world.getProperty(id, "name");
+        }
+    }
+    CHECK(absorbed.size() > 500,
+          "the graph holds the book's outcomes: " +
+              std::to_string(absorbed.size()));
+
+    std::vector<std::string> careers;
+    for (const auto id : world.findByType("Career")) {
+        careers.push_back(world.getProperty(id, "name"));
+    }
+    std::sort(careers.begin(), careers.end());
+
+    // Every career, several seeds each, so a rule only one profession
+    // can reach still gets its chance. And where the book leaves the
+    // choice open, the sweep rotates through the options instead of
+    // always taking the same one: with fixed taste the number measures
+    // the auto-player's habits, not the book.
+    std::set<kg::EntityID> reached;
+    int lives = 0;
+    for (const auto& career : careers) {
+        for (uint64_t seed = 1; seed <= 12; ++seed) {
+            logosphere::dice::DiceService dice;
+            logovger::ChargenRequest request;
+            request.career_name = career;
+            request.seed = seed;
+            request.max_terms = 7;
+            // Rotating, not random: a given seed always plays the same
+            // life, so a finding here replays exactly. Every key comes
+            // from the offered set, so nothing invalid is ever chosen.
+            size_t turn = seed;
+            request.taste = [&turn](const std::string&,
+                                    const std::vector<logovger::Choice>& cs) {
+                if (cs.empty()) return std::string();
+                return cs[turn++ % cs.size()].key;
+            };
+            logovger::CharacterSheet sheet;
+            std::string error;
+            logovger::run_chargen(request, world, dice, sheet, error,
+                                  &reached);
+            ++lives;
+        }
+    }
+
+    std::vector<std::string> never;
+    std::map<std::string, std::pair<int, int>> by_type;  // reached, total
+    for (const auto& rule : absorbed) {
+        const std::string type = world.getType(rule.first);
+        ++by_type[type].second;
+        if (reached.count(rule.first)) {
+            ++by_type[type].first;
+            continue;
+        }
+        never.push_back(rule.second);
+    }
+    std::cout << "  [measure] " << lives << " lives over " << careers.size()
+              << " careers reached " << reached.size() << " of "
+              << absorbed.size() << " absorbed outcomes, "
+              << never.size() << " never\n";
+    for (const auto& row : by_type) {
+        std::cout << "  [measure]   " << row.first << ": "
+                  << row.second.first << "/" << row.second.second << "\n";
+    }
+
+    // An outcome nobody rolled this run is sampling noise. A whole
+    // TABLE with not one row reached is the rank 0 shape: absorbed,
+    // sound, and wired to nothing.
+    int dead_tables = 0, tables = 0;
+    std::string dead;
+    for (const auto& entry : registry.entityTypes()) {
+        const bool container =
+            registry.isSubtypeOf(entry.first, "RollableTable") ||
+            registry.isSubtypeOf(entry.first, "ProgressionTrack");
+        if (!container) continue;
+        for (const auto table : world.findByType(entry.first)) {
+            int rows = 0, hit = 0;
+            for (const auto row : world.getRelated(table, "HAS_PART")) {
+                const std::string outcome =
+                    world.getProperty(row, "outcome").empty()
+                        ? world.getProperty(row, "grants")
+                        : world.getProperty(row, "outcome");
+                if (outcome.empty()) continue;
+                ++rows;
+                if (reached.count(
+                        static_cast<kg::EntityID>(std::stoul(outcome)))) {
+                    ++hit;
+                }
+            }
+            if (rows == 0) continue;
+            ++tables;
+            if (hit == 0) {
+                ++dead_tables;
+                dead += (dead.empty() ? "" : "; ") +
+                        world.getProperty(table, "name") + " (" +
+                        std::to_string(rows) + " rows)";
+            }
+        }
+    }
+    std::cout << "  [measure] " << dead_tables << " of " << tables
+              << " tables reached nothing at all\n";
+
+    // The gate. One row reached is enough to prove a table is wired,
+    // so this survives sampling: which row the dice pick varies, that
+    // ANY row can be picked does not. A table at zero is either
+    // unreachable or unchosen, and both are worth a build failure.
+    CHECK(dead_tables == 0,
+          "every absorbed table is reached by some life: " + dead);
+    // And the sweep must keep doing real work. Without this, narrowing
+    // it to one career would turn the gate above green.
+    CHECK(reached.size() * 2 > absorbed.size(),
+          "the sweep exercises most of the book: " +
+              std::to_string(reached.size()) + " of " +
+              std::to_string(absorbed.size()));
+}
+
 void test_missing_rule_constant_never_falls_back() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2482,6 +2626,7 @@ int main() {
     test_basic_training_grants_what_the_book_promises();
     test_a_roll_names_the_rule_that_made_it();
     test_joining_a_career_grants_its_rank_zero_skill();
+    test_every_absorbed_rule_reaches_a_character();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();
