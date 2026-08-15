@@ -990,3 +990,65 @@ than 5.2 promises. `bounce` needs the restitution F4 measured as
 declared-with-zero-readers, `roll` needs angular state at the seam, and
 `topple` is unimplemented. The physics default can only say what the
 engine can measure today.
+
+## 2026-08-15 — TWO CORRECTIONS, and the composition rule inverts
+
+**CORRECTION 1, mine.** I wrote "today the engine counts extra
+conditions, so the rule with a property filter wins." That is false.
+There is no specificity mechanism anywhere in the interaction system:
+`specificity`, `precedence` and `priority` return ZERO hits across
+`src/interaction/` and `include/logosphere/interaction/`. The key I
+described was authored in the router design study and never ruled. I
+presented a proposal as shipped behaviour. The owner caught it.
+
+**CORRECTION 2, and it is the more important one.** Exclusivity was
+never the status quo either. At `particle_interaction_system.cpp:
+364-369` **[E]** every matching rule fires:
+
+```cpp
+for (const auto& [rid, r] : rules_) {
+    if (r.trigger != Trigger::ON_CONTACT) continue;
+    if (!conditions.evaluate(r.condition, view)) continue;
+    ContactEffectContext ectx{view, *this, bus};
+    effects.apply(r.effect_expr, ectx);
+}
+```
+
+Both apply. Always. The single-winner election is something the router
+design INTRODUCED with `claim: CLAIM`; it is not what the engine does.
+The owner's instinct ("both need to be applied when there is a way to
+do so") is closer to the existing code than the design was.
+
+**So the composition rule inverts.** Not "one wins and silences the
+other", which was the wrong question I answered twice. The rule:
+
+- **Both rules apply, by default.** Preserved from the code.
+- **Exclusivity is COMPUTED, never declared.** Two effects cannot both
+  land only when the effect's own declared CARDINALITY forbids a second
+  application to the same target in the same frame. That is already
+  written down in the algebra 5.4 and needs no new authoring concept:
+  NARRATIVE (`emit_event`) is unbounded, `damage.accumulate` is
+  additive, `state.set` is idempotent per property, `knockback` is once
+  per (occurrence, side) drawing on one budget, AUTHORITY is once per
+  (body, frame), STRUCTURE is once per (bond or particle, frame). Only
+  the last two are genuinely exclusive, plus `state.set` when two rules
+  write DIFFERENT values to the SAME property.
+- **The outcome NAME stays exclusive**, one per (occurrence, side), per
+  GEDANKEN-9. Specificity picks the name. It does not silence effects.
+- **Therefore `claim: CLAIM` / `claim: OBSERVE` stops being a flag.** A
+  route that declares an `outcome:` is naming; a route carrying only
+  `do:` is adding consequences. Derived from what the route writes,
+  not guessed in advance by an author who cannot see the other routes.
+
+Specificity is demoted from an ELECTION to an ORDER. It decides the
+sequence in which effects apply and which name is published. It does
+not decide who is allowed to run.
+
+**A live defect this exposes, in shipped code, today.** That loop
+iterates an `unordered_map` (`particle_interaction_system.h:335`), so
+the order in which matching rules apply is hash order. For any effect
+whose cardinality makes it last-write-wins (`state.set`,
+`profile.swap`), **hash order decides the outcome**. That is an INV-27
+violation in the tree right now, not a design risk. It is the
+prerequisite the composition inventory flagged as blocking, and it is
+cheap: sort at load, iterate a vector.
