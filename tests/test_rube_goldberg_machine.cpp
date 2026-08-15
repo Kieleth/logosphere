@@ -74,6 +74,12 @@ constexpr float STACK_H  = 2.0f;
 // squarely: moving it east to 6.9 dropped the strike to z=2.35 and the
 // post barely moved. It stays at 6.6 and the BRIDGE reaches west to
 // meet it — the post comes to rest with its east face at 7.73.
+// 6.6 is the measured optimum, and the trade is unforgiving: the
+// arrival is ballistic, so every 0.1 m east costs strike height and
+// therefore transferred speed. Measured post velocity right after the
+// strike: 0.86 m/s at 6.6, 0.43 m/s at 7.0 — the post loses travel
+// faster than it gains a head start, and 7.0 leaves it at 7.24 where
+// 6.6 leaves it at 7.61. Neither reaches the bridge at 7.90.
 constexpr float STACK_X  = 6.6f;
 constexpr float STACK_HI_Z = 2.5f;   // spans 1.5..3.5 = deck to alley level
 
@@ -286,9 +292,29 @@ struct World {
                            0.55f, 0.8f, 0.45f);
         stack_lo = stack_hi;   // one post; the field name is legacy
 
-        // the nailed bridge across the gap: plank ends resting on the deck
-        plank = add_box(8.7f, 0.0f, DECK_MAIN_TOP + 0.075f + 0.002f,
-                        2.0f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
+        // THE NAILED BRIDGE, sized from the tear law it must satisfy.
+        //
+        // A nail breaks on SUSTAINED load: physics_system_v4.cpp computes
+        // force = impulse/dt per frame and tears only after 12 CONSECUTIVE
+        // frames at or above the threshold. An impulsive hit cannot break
+        // it — one frame of force, then the striker is stopped and pushes
+        // no more. What breaks a nail is weight it has to keep carrying.
+        //
+        // So the plank FILLS the gap (7.90..9.40) flush with the deck
+        // rather than resting on top of it: a body slides on from the deck
+        // and out over open air, where nothing but the nails holds it up.
+        // Flush also avoids the spawn overlap that a recessed plank had
+        // (measured 0.063 m of penetration at frame 1 — the plank ends
+        // were inside the deck tiles).
+        //
+        // The arithmetic the nails are chosen by, at 2 nails:
+        //   plank alone   90.0 kg ->  883 N  -> 441 N/nail  (63% of hold)
+        //   plank + post 152.5 kg -> 1496 N  -> 748 N/nail  (107%)
+        // A bridge that carries itself and fails under the load it was
+        // never meant to take. NAIL_HOLD is the design input; the tear is
+        // the consequence.
+        plank = add_box(8.65f, 0.0f, DECK_MAIN_TOP - 0.075f,
+                        1.5f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
                         0.0f, 0.7f, 0.55f, 0.3f);
 
         // the featherweight station in the basement crash zone: the
@@ -342,10 +368,12 @@ struct World {
         {
             const Particle pl = read(plank);
             const float z_join = DECK_MAIN_TOP;   // deck top = plank bottom
-            const int west = tile_near(pl.x - 1.0f, DECK_MAIN_TOP);
-            const int east = tile_near(pl.x + 1.0f, DECK_MAIN_TOP);
-            nail_at(plank, west, pl.x - 0.95f, 0.0f, z_join, 2200.0f);
-            nail_at(plank, east, pl.x + 0.95f, 0.0f, z_join, 2200.0f);
+            constexpr float NAIL_HOLD = 700.0f;   // N per nail, see above
+            const int west = tile_near(pl.x - 0.9f, DECK_MAIN_TOP);
+            const int east = tile_near(pl.x + 0.9f, DECK_MAIN_TOP);
+            (void)z_join;
+            nail_at(plank, west, pl.x - 0.75f, 0.0f, pl.z, NAIL_HOLD);
+            nail_at(plank, east, pl.x + 0.75f, 0.0f, pl.z, NAIL_HOLD);
         }
         // feather bond: the ringing-ladder recipe, verbatim (known good)
         {
@@ -505,6 +533,25 @@ std::vector<Stage> make_stages() {
         }});
 
     // S5: the arriving load tears both declared nails; the plank drops.
+    //
+    // WHY THIS IS STILL RED (measured 2026-08-15, and it is choreography,
+    // not physics):
+    //   * The tear law needs SUSTAINED load — force = impulse/dt at or
+    //     above the nail's hold for 12 CONSECUTIVE frames. An impulsive
+    //     hit cannot do it: one frame of force, then the striker stops.
+    //   * So the bridge must be STOOD ON, and it is built for that now:
+    //     it fills the gap flush with the deck, carries its own 883 N on
+    //     two 700 N nails (441 N each, 63%), and a 62.5 kg post arriving
+    //     mid-span would put 748 N on each (107%) — a tear.
+    //   * The post never arrives. It stops at x=7.61 and the bridge
+    //     begins at 7.90. Moving it east makes it worse, not better:
+    //     the arrival is ballistic, so a post at 7.00 is struck lower and
+    //     leaves with 0.43 m/s instead of 0.86, ending at 7.24.
+    //
+    // The chain needs a different carrier for the last 0.3 m — a body
+    // that arrives ON the bridge rather than sliding at it. That is a
+    // redesign of this leg, not a constant to nudge, and it is on the
+    // board as C5's remainder.
     st.push_back({"S5 THE BRIDGE", "INV-14 INV-4", nullptr, PREROLL + 1400,
         [](World& w, std::string& m) {
             const size_t bonds = w.phys().get_total_gluon_count();

@@ -710,3 +710,27 @@ Measured on the machine: 26.3 J of friction at the impact frame against
 a -67.6 J contact row, drag rising quadratically through free fall,
 cache absorption in microjoules, and near-zero everywhere the world is
 quiet.
+
+## 2026-08-15 — C5: the bridge is sized by the tear law, and one leg is short
+
+I had written that the bridge needed "an impulsive load — a fall, not a
+slide." Reading the tear law disproved it: for welds (nails) the engine
+computes force = impulse/dt each frame and tears only after 12
+CONSECUTIVE frames at or above the threshold. An impulse cannot break a
+nail; a WEIGHT can. So the bridge is rebuilt to be stood on — it fills
+the gap flush with the deck instead of resting on top of it, and its
+nails are sized from the arithmetic rather than invented:
+
+  plank alone    90.0 kg ->  883 N -> 441 N/nail  (63% of a 700 N hold)
+  plank + post  152.5 kg -> 1496 N -> 748 N/nail  (107%)
+
+A bridge that carries itself and fails under the load it was never
+meant to take. The old 2200 N was a number I made up.
+
+What remains is 0.30 m of geometry, and the measurements say it cannot
+be nudged: the post stops at x=7.61 and the bridge begins at 7.90.
+Moving the post toward the bridge makes it worse, because the arrival
+is ballistic — a post at 7.00 is struck lower and leaves with 0.43 m/s
+instead of 0.86, stopping at 7.24. Strike strength falls faster than
+distance does. The leg needs a body that arrives ON the bridge, which
+is a redesign of that link and stays on the board as C5's remainder.
