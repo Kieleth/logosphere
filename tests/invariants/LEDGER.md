@@ -799,3 +799,42 @@ An Opus excavation of logomancers' combat system (design/
 GAME_DESIGN_COMBAT_ENGINE.md, src/combat_system.*) is running to
 retrieve what was already prototyped there — the wins and the painful
 parts both.
+
+## 2026-08-15 — Kamaji: SUBSUME (Q1 ruled), and effects must compose
+
+The interaction router is named **KAMAJI**, after the six-armed boiler
+keeper of Spirited Away who receives everything and routes it, one
+specific arm to one specific drawer. Named beings with a job, like the
+Turtle, Silk, Forge, Malleus and Weirden.
+
+**Q1 RULED: SUBSUME.** Kamaji replaces TransformationRule's contact
+triggers rather than sitting beside them. One place to look for "what
+happens when things touch"; the old path is deleted, not left coexisting
+(the repo rule for replacing a mechanism).
+
+**And the owner raised what the study had not:** effects must be able to
+INTERACT WITH EACH OTHER. When several are in play at once the outcome
+must be resolved deterministically — "a logical, prolog way to solve
+when multiple things are in effect at the same time". That is more
+design than either study anticipated, and the owner's method for it:
+
+1. Start from the SIMPLEST possible mental experiments — bullet-particle
+   vs wall-particle, sphere vs mud — each captured the way an invariant
+   is captured, in its own registry.
+2. For each, study which effects must be in place so that the SUBSUMED
+   COMBINATION produces the right overall behaviour, across animation
+   and physics together.
+3. From those, derive which language and semantic operations we allow
+   over interactions: capturing the effect first and then operating on
+   it — encode/decode inside rich interactions.
+
+The proper term for these, adopted here: **GEDANKENEXPERIMENT**
+(Einstein's own word), recorded as GEDANKEN-N in tests/invariants/
+GEDANKEN.jsonl, beside the INVs.
+
+Q2-Q8 are parked as TODO-to-check rather than answered now; the owner's
+judgement is that they resolve one way or another once composition is
+designed. Two studies are dispatched: one to inventory how simultaneous
+effects are resolved in the tree today, one to build the
+Gedankenexperiment set and the effect algebra. They synthesise here into
+an implementation attack.
