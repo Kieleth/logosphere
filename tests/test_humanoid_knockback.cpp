@@ -166,7 +166,16 @@ int main() {
         float jx = 0, jy = 0, jz = 0;
         bool booked = false;
         float boulder_vx0 = 8.0f, boulder_vx_min = 8.0f;
-        for (int f = 0; f < 90 && !booked; ++f) {
+        for (int f = 0; f < 90; ++f) {
+            // THE BROAD PHASE NEEDS A BVH. Without this call
+            // bvh->is_ready() is false (physics_system_v4.cpp:1004), the
+            // candidate list is empty every frame, and NO box-box contact
+            // can exist in this process at all. The first draft of this
+            // test omitted it and "measured" a boulder passing through a
+            // chest: it lost 0.00074 m/s crossing the full span, which is
+            // air drag. A harness that cannot form the event under test
+            // manufactures findings.
+            w.ps.update_bvh();
             w.physics.update(1.0 / 60.0);
             {
                 auto v = w.ps.lock_particles_for_read();
@@ -180,16 +189,24 @@ int main() {
                            (int)ch.is_at_rest);
                 }
             }
-            // Drain EVERY body in the world: which part the boulder
-            // catches is the scene's business, not this rung's.
+            // Drain EVERY body and ACCUMULATE. A humanoid books refusals
+            // constantly from its own structure — its thigh resting on
+            // its KINEMATIC hips books -14.23 N*s downward every frame,
+            // which is true and is not a shove. What this rung asks is
+            // whether the STRIKE was booked, so it sums the along-strike
+            // (+x) component and ignores the structural -z traffic.
             const size_t n = w.ps.lock_particles_for_read().size();
-            for (size_t pid = 0; pid < n; ++pid)
-                if (w.physics.take_refused_impulse(pid, jx, jy, jz)) {
-                    booked = true;
-                    printf("  [measure] refused momentum booked on P%zu: "
-                           "(%.2f, %.2f, %.2f) N*s\n", pid, jx, jy, jz);
-                    break;
+            for (size_t pid = 0; pid < n; ++pid) {
+                float ax, ay, az;
+                if (w.physics.take_refused_impulse(pid, ax, ay, az)) {
+                    if (ax > 0.5f) {
+                        jx += ax; jy += ay; jz += az;
+                        booked = true;
+                        printf("  [measure] strike booked on P%zu: "
+                               "(%.2f, %.2f, %.2f) N*s\n", pid, ax, ay, az);
+                    }
                 }
+            }
         }
         printf("  [measure] boulder vx %.2f -> %.2f (it %s the humanoid)\n",
                boulder_vx0, boulder_vx_min,
@@ -211,13 +228,15 @@ int main() {
         w.throw_boulder(-1.0f, 0.0f, 1.44f, 8.0f, 0.0f);
         for (int f = 0; f < 120; ++f) {
             w.humanoid.update_pre_physics(1.0 / 60.0);
+            w.ps.update_bvh();
             w.physics.update(1.0 / 60.0);
             w.humanoid.update_post_physics(1.0 / 60.0);
         }
         const float x1 = w.ps.lock_particles_for_read()[w.hips_id].x;
         const float moved = x1 - x0;
-        printf("  [measure] hips x: %.3f -> %.3f (moved %+.3f m)\n",
-               x0, x1, moved);
+        const float chest_x = w.ps.lock_particles_for_read()[w.hips_id + 2].x;
+        printf("  [measure] hips x: %.3f -> %.3f (moved %+.3f m) | "
+               "chest x=%+.3f\n", x0, x1, moved, chest_x);
         check(std::fabs(moved) > 0.02f,
               "R2: the struck humanoid is displaced by the hit");
         check(moved > 0.0f,

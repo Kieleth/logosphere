@@ -37,6 +37,16 @@ does not fall over."
 
 Do in any order. None needs a decision; all reduce debt.
 
+> **C1-C4 LANDED 2026-08-14.** Measured: the knockback fixture now
+> builds a BVH and forms real contacts (the boulder goes 8.00 -> -0.00
+> m/s against the humanoid where it previously lost 0.00074 m/s to air
+> drag); `test_humanoid_impact` asserts displacement and passes on
+> 0.13 m hips / 0.14 m chest instead of asserting nothing; the four
+> friction sites route through the door and measure true relative
+> velocity; sleep now owns its angular half. Default path bit-identical
+> across the canary set. **C1 exposed a new front — see F1 below.**
+> C5-C7 remain.
+
 | # | Front | Evidence | Why it is clean |
 |---|---|---|---|
 | C1 | **Harness truth: `test_humanoid_knockback` never builds a BVH** | study §corrections; `physics_system_v4.cpp:1004` `bvh->is_ready()` false, candidate list always empty; boulder loses 0.00074 m/s crossing the chest (air drag) | The test measures nothing today. One `update_bvh()` call in the fixture. Until then every conclusion drawn from it is void — including two I already published and retracted. |
@@ -46,6 +56,35 @@ Do in any order. None needs a decision; all reduce debt.
 | C5 | **Machine stages S5+ choreography** | `test_rube_goldberg_machine` halts at S5 with the resolver on (5/10); the struck box stops where friction says it stops, short of the bridge | Scene design, not physics. The ratchet is honest at 3 (default) / 5 (resolver). |
 | C6 | **INV-17..28 have no proving tests** | sweep: "COVERAGE HOLES (no proving test): INV-16..28, INV-5, INV-6"; task #45 | Writing provers cannot break anything. INV-6 (no gravity assumptions) has *never* been witnessed on a wall, a ceiling, or in zero-g. |
 | C7 | **Energy ledger has no dissipation bucket** | INV-19's own commitment; task #44 | Bookkeeping only. Needed before any future damping can be called "modelled". |
+
+---
+
+## F1 — NEW FRONT: momentum destroyed in a strike on a sleeping driven body
+
+Opened 2026-08-14 by C1, once the harness could finally form contacts.
+
+A boulder at 8 m/s strikes a humanoid's chest and stops DEAD (8.00 ->
+-0.00 m/s). Neither the chest nor the hips moves a micron, and the
+refusal ledger books nothing along the strike. The momentum is simply
+gone — an INV-3 violation at full scale, invisible until the BVH fix
+made the collision real.
+
+The chest at impact: `solver_mode` DYNAMIC, `owner` DYNAMICS,
+`is_quat_driven` 1, mass 15.625 kg, and asleep (the four-link chain in
+the motion-authority study: representation flag skips its gravity ->
+velocity stays exactly zero -> sleep law rests it -> the momentum
+predicate answers 0).
+
+This is **D1's territory, not a separate fix** — it is the strongest
+single piece of evidence for the authority unification, and it should
+become a rung on D1's ladder rather than being patched here. Recorded
+as its own front so it is not lost.
+
+*(A second, smaller finding from the same run: a humanoid books
+-14.23 N*s downward every frame from its own thigh resting on its
+KINEMATIC hips. True, and not a shove. If the refusal ledger is ever
+consumed by policy, structural refusals must be distinguishable from
+external ones.)*
 
 ---
 

@@ -595,3 +595,22 @@ can spin) → authority slices S0-S2 (specified bit-identical) → the
 WAKE_RESOLVER flip → rotation after authority owns the shared inertia
 predicate. The substrate study runs in parallel because it is design
 only and blocks the largest parked item (the worldgen pins).
+
+## 2026-08-14 — Board C1-C4 landed; front F1 opened
+
+The four CLEAN NOW items are done and the board moved in the same
+commit, per the skill's directive. C3 (four friction sites) and C4
+(sleep owns its angular half) are engine changes measured
+bit-identical on the default path. C1 (BVH in the knockback fixture)
+and C2 (real assertions in the impact test) are harness truth.
+
+C1 immediately opened F1: with contacts finally forming, a boulder at
+8 m/s strikes a humanoid chest, stops dead, and the momentum is
+destroyed outright — nothing moves and nothing is booked. That is the
+four-link authority chain the motion-authority study describes, seen
+end to end, and it belongs to D1's ladder rather than to a patch.
+
+Also noted on the board: a humanoid books -14.23 N*s downward every
+frame from its own thigh resting on its KINEMATIC hips. Structural
+refusals and external shoves are currently indistinguishable in the
+ledger; whoever consumes it will need them separated.

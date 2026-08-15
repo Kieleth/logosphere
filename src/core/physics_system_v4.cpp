@@ -543,7 +543,16 @@ static void resolve_sleep_wakes(ParticleSystem::WriteView& particles) {
         if (!p.is_at_rest) continue;
         if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
         const float v_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
-        if (v_sq == 0.0f) continue;
+        const float w_sq = p.omega_x * p.omega_x + p.omega_y * p.omega_y +
+                           p.omega_z * p.omega_z;
+        if (v_sq == 0.0f && w_sq == 0.0f) continue;
+        if (w_sq > 0.0f && v_sq <= REST_VELOCITY_THRESHOLD *
+                                   REST_VELOCITY_THRESHOLD) {
+            // Spin the cache cannot hold: below the linear bound but
+            // turning. Absorb it with the rest of the residue rather than
+            // leaving a sleeper rotating.
+            p.omega_x = p.omega_y = p.omega_z = 0.0f;
+        }
         if (v_sq > REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
             p.is_at_rest = false;
             p.low_velocity_frames = 0;
@@ -3355,16 +3364,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // Book the half that could not be delivered. inv_mb == 0
                 // means an external writer owns this body; the momentum
                 // is real and belongs to that writer, not to the void.
-                if (inv_mb == 0.0f && impulse != 0.0f &&
-                    pb.solver_mode == ParticleSolverMode::KINEMATIC) {
+                // ANY refusal, not just KINEMATIC ones. inv_mb is 0
+                // whenever this body cannot take momentum — held by an
+                // external writer, or asleep. A resting body books
+                // nothing (no approach, no impulse); a STRUCK one books
+                // exactly what it refused, which is the whole point.
+                if (inv_mb == 0.0f && impulse != 0.0f) {
                     record_refused_impulse(c.body_b,
                                            -c.jx * impulse,
                                            -c.jy * impulse,
                                            -c.jz * impulse);
                 }
             }
-            if (inv_ma == 0.0f && impulse != 0.0f &&
-                pa.solver_mode == ParticleSolverMode::KINEMATIC) {
+            // Turtle rows are excluded on BOTH sides: the turtle is the
+            // world boundary (INV-1), not a body delivering a shove, and
+            // its support force fires every frame under every resting
+            // body. Booking it swamped the ledger with -14.23 N*s of
+            // "someone pushed you" on a humanoid that was merely standing.
+            if (!c.is_turtle_contact && inv_ma == 0.0f && impulse != 0.0f) {
                 record_refused_impulse(c.body_a,
                                        c.jx * impulse,
                                        c.jy * impulse,
@@ -3470,8 +3487,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
                 // Friction constraint 1 (tangent 1)
                 // Start with pa's velocity; subtract pb's only if pb is moving
+                // MEASURE THE TRUTH, always. Skipping a sleeper's
+                // velocity here was harmless only because rest-entry
+                // zeroes it; under the resolver a sleeping body carries
+                // real velocity mid-substep, and a relative velocity that
+                // ignores one side is not a relative velocity. Only the
+                // turtle is exempt: it is a boundary, not a body, and has
+                // no velocity to subtract.
                 float v_rel_t1 = t1x * pa.vx + t1y * pa.vy + t1z * pa.vz;
-                if (!c.is_turtle_contact && !pb.is_at_rest) {
+                if (!c.is_turtle_contact) {
                     v_rel_t1 -= t1x * pb.vx + t1y * pb.vy + t1z * pb.vz;
                 }
                 float friction_impulse_1 = -v_rel_t1 * c.effective_mass;
@@ -3492,7 +3516,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << std::endl;
                 }
 
-                if (!c.is_turtle_contact && !pb.is_at_rest && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                // THE DOOR DECIDES (INV-7). inv_mb is already 0 for
+                // anyone immovable; re-asking the question here made body
+                // A pay friction body B never received the moment the two
+                // disagreed. Same cure as the normal-impulse apply.
+                if (!c.is_turtle_contact) {
                     pb.vx -= t1x * friction_impulse_1 * inv_mb;
                     pb.vy -= t1y * friction_impulse_1 * inv_mb;
                     pb.vz -= t1z * friction_impulse_1 * inv_mb;
@@ -3501,7 +3529,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // Friction constraint 2 (tangent 2)
                 // Start with pa's velocity; subtract pb's only if pb is moving
                 float v_rel_t2 = t2x * pa.vx + t2y * pa.vy + t2z * pa.vz;
-                if (!c.is_turtle_contact && !pb.is_at_rest) {
+                if (!c.is_turtle_contact) {
                     v_rel_t2 -= t2x * pb.vx + t2y * pb.vy + t2z * pb.vz;
                 }
                 float friction_impulse_2 = -v_rel_t2 * c.effective_mass;
@@ -3514,7 +3542,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pa.vy += t2y * friction_impulse_2 * inv_ma;
                 pa.vz += t2z * friction_impulse_2 * inv_ma;
 
-                if (!c.is_turtle_contact && !pb.is_at_rest && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                if (!c.is_turtle_contact) {
                     pb.vx -= t2x * friction_impulse_2 * inv_mb;
                     pb.vy -= t2y * friction_impulse_2 * inv_mb;
                     pb.vz -= t2z * friction_impulse_2 * inv_mb;
@@ -4757,8 +4785,15 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
             if (p.frames_at_rest < 255) p.frames_at_rest++;
             if (p.frames_at_rest >= REST_FRAMES_REQUIRED) {
                 p.is_at_rest = true;
-                // Zero velocity when entering rest to prevent drift
+                // Zero velocity when entering rest to prevent drift.
+                // BOTH halves: a body that kept its angular velocity went
+                // on spinning while asleep forever — enter-rest zeroed
+                // only the linear part, angular integration gates only on
+                // KINEMATIC, and nothing downstream judged spin. Sleep is
+                // a cache over dynamics (INV-18) and a cache that keeps
+                // one field live is a leak.
                 p.vx = p.vy = p.vz = 0.0f;
+                p.omega_x = p.omega_y = p.omega_z = 0.0f;
             }
         } else if (vel_sq > WAKE_VELOCITY_THRESHOLD * WAKE_VELOCITY_THRESHOLD) {
             // Velocity above wake threshold - actually moving
@@ -4865,6 +4900,11 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         // DYNAMICS particles are controlled by ParticleDynamicsSystem (humanoids, etc.)
         // Skip angular integration here - dynamics handles their rotation
         if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+        // A sleeping body does not spin. The linear half of this has been
+        // true since the sleep law existed; the angular half was simply
+        // never written, so a sleeper kept whatever omega it fell asleep
+        // with (INV-18: sleep hides nothing).
+        if (p.is_at_rest) continue;
 
         // Get moment of inertia (calculate if not cached)
         //
