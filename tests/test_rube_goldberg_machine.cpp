@@ -59,15 +59,23 @@ constexpr float TILE    = 1.0f;
 constexpr float TILE_TH = 0.2f;
 constexpr float BALL    = 0.4f;
 constexpr float BOX     = 0.4f;
-// The stack is two TALL boxes so its top face stands at the alley
-// deck's level: a box leaving that deck strikes it squarely in the
-// side. Cubes at deck level let the arrival sail clean over the top
-// (measured: cleared it and landed at x=7.67).
-constexpr float STACK_W  = 0.35f;
-constexpr float STACK_H  = 1.0f;
+// A single TALL POST standing on the main deck, its top face at the
+// alley deck's level so a box leaving that deck strikes it squarely.
+//
+// It was a two-box stack until 2026-08-14. The arrival struck the top
+// box, which then slid on the LOWER BOX at that pair's friction
+// (mu=0.5) and stopped in 0.17 m — measured deceleration 2.1 m/s^2
+// where the polished deck allows 0.49. A body sliding on another body
+// never touches the floor you polished. One post stands on the deck
+// itself, so the deck's friction is the one that governs.
+constexpr float STACK_W  = 0.25f;
+constexpr float STACK_H  = 2.0f;
+// The post starts where the arrival is still HIGH enough to strike it
+// squarely: moving it east to 6.9 dropped the strike to z=2.35 and the
+// post barely moved. It stays at 6.6 and the BRIDGE reaches west to
+// meet it — the post comes to rest with its east face at 7.73.
 constexpr float STACK_X  = 6.6f;
-constexpr float STACK_LO_Z = 2.0f;   // top at 2.5
-constexpr float STACK_HI_Z = 3.0f;   // top at 3.5 = alley deck level
+constexpr float STACK_HI_Z = 2.5f;   // spans 1.5..3.5 = deck to alley level
 
 constexpr float DECK_ALLEY_TOP = 3.4f;
 constexpr float DECK_MAIN_TOP  = 1.5f;
@@ -272,18 +280,15 @@ struct World {
                                0.0f, 0.85f, 0.65f, 0.2f);
 
         // the sleeping stack on the main deck
-        stack_lo = add_box(STACK_X, 0.0f, STACK_LO_Z,
-                           STACK_W, STACK_W, STACK_H,
-                           Materials::Type::WOOD_SOFT, 0.0f,
-                           0.5f, 0.75f, 0.4f);
         stack_hi = add_box(STACK_X, 0.0f, STACK_HI_Z,
                            STACK_W, STACK_W, STACK_H,
                            Materials::Type::WOOD_SOFT, 0.0f,
                            0.55f, 0.8f, 0.45f);
+        stack_lo = stack_hi;   // one post; the field name is legacy
 
         // the nailed bridge across the gap: plank ends resting on the deck
         plank = add_box(8.7f, 0.0f, DECK_MAIN_TOP + 0.075f + 0.002f,
-                        1.8f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
+                        2.0f, 0.8f, 0.15f, Materials::Type::WOOD_SOFT,
                         0.0f, 0.7f, 0.55f, 0.3f);
 
         // the featherweight station in the basement crash zone: the
@@ -337,10 +342,10 @@ struct World {
         {
             const Particle pl = read(plank);
             const float z_join = DECK_MAIN_TOP;   // deck top = plank bottom
-            const int west = tile_near(pl.x - 0.9f, DECK_MAIN_TOP);
-            const int east = tile_near(pl.x + 0.9f, DECK_MAIN_TOP);
-            nail_at(plank, west, pl.x - 0.85f, 0.0f, z_join, 2200.0f);
-            nail_at(plank, east, pl.x + 0.85f, 0.0f, z_join, 2200.0f);
+            const int west = tile_near(pl.x - 1.0f, DECK_MAIN_TOP);
+            const int east = tile_near(pl.x + 1.0f, DECK_MAIN_TOP);
+            nail_at(plank, west, pl.x - 0.95f, 0.0f, z_join, 2200.0f);
+            nail_at(plank, east, pl.x + 0.95f, 0.0f, z_join, 2200.0f);
         }
         // feather bond: the ringing-ladder recipe, verbatim (known good)
         {
@@ -485,9 +490,10 @@ std::vector<Stage> make_stages() {
             const Particle hi = w.read(w.stack_hi);
             const Particle box = w.read(w.alley[2]);
             const float stack_top = hi.z + STACK_H / 2;
+            (void)stack_top;
             const bool supported = box.z > stack_top - 0.1f &&
                                    std::fabs(box.x - hi.x) < 1.0f;
-            const bool struck = std::fabs(hi.x - STACK_X) > 0.05f ||
+            const bool struck = std::fabs(hi.x - STACK_X) > 0.03f ||
                                 std::fabs(hi.z - STACK_HI_Z) > 0.05f;
             char buf[180];
             snprintf(buf, sizeof buf,
@@ -748,6 +754,15 @@ bool run_machine() {
             probe_init = true;
             if (const char* pv = std::getenv("RUBE_PROBE"))
                 sscanf(pv, "%d,%d", &probe_a, &probe_b);
+        }
+        if (getenv("RUBE_STACK") && frame >= 300 && frame <= 700 &&
+            (frame % 25) == 0) {
+            const Particle hi = w.read(w.stack_hi);
+            const Particle lo = w.read(w.stack_lo);
+            printf("      [stack f%d] hi x=%.3f vx=%+.3f rest=%d mass=%.1f | "
+                   "plank x=%.3f z=%.3f\n", frame, hi.x, hi.vx,
+                   (int)hi.is_at_rest, hi.GetMass(),
+                   w.read(w.plank).x, w.read(w.plank).z);
         }
         if (frame >= probe_a && frame <= probe_b) {
             const Particle b = w.read(w.ball);
