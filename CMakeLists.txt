@@ -1226,6 +1226,17 @@ target_include_directories(test_humanoid_headless PRIVATE
 )
 target_compile_features(test_humanoid_headless PRIVATE cxx_std_17)
 
+# KINEMATIC is a transient authority: when locomotion lets go of a
+# humanoid, physics must get it back. Proves the corpse falls.
+add_executable(test_humanoid_ragdoll tests/test_humanoid_ragdoll.cpp)
+target_link_libraries(test_humanoid_ragdoll PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core)
+target_include_directories(test_humanoid_ragdoll PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_humanoid_ragdoll PRIVATE cxx_std_17)
+
 # Phase 4b C2 — pin-gluon lifecycle round-trip. Same headless setup as
 # test_humanoid_headless. Spawns a stub humanoid, opts in via
 # enable_physics_drive_legs, walks → stops, asserts anchor + pin gluon
