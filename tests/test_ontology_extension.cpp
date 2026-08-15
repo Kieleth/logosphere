@@ -437,8 +437,36 @@ void test_unknown_enum_refinement_fails_atomically() {
            "an invalid enum reference leaves the extension unapplied");
 }
 
+// The endpoint machinery was complete and unused. The generator has
+// supported per-relation valid_source_types / valid_target_types all
+// along, the registry validates them on the write path
+// (kg_core.cpp), and an existing test proves rejection works against
+// a HAND-BUILT registry. What nobody had done was declare endpoints on
+// the ENGINE's own vocabulary, so every one of the eleven relation
+// types shipped as (Entity, Entity) and no edge in the real graph
+// could be wrong. Testing a mechanism against a fixture says nothing
+// about the vocabulary that ships.
+void test_engine_relations_constrain_their_endpoints() {
+    auto registry = logosphere::ontology::registry();
+
+    ASSERT(registry.isValidRelation("ILLUMINATES", "LightSource", "FloorTile"),
+           "a light source illuminates a world entity");
+    ASSERT(!registry.isValidRelation("ILLUMINATES", "Humanoid", "FloorTile"),
+           "a humanoid does not illuminate anything");
+    ASSERT(!registry.isValidRelation("ILLUMINATES", "LightSource", "Skill"),
+           "nothing outside the world can be lit");
+
+    // The honest half. HAS_PART links a humanoid to a torso, a
+    // procedure to a step and a table to a row, so it is wide because
+    // it IS wide, not because nobody looked.
+    ASSERT(registry.isValidRelation("HAS_PART", "Humanoid", "FloorTile"),
+           "HAS_PART stays open on purpose");
+}
+
 int main() {
     std::cout << "=== Ontology Extension Tests ===" << std::endl;
+
+    test_engine_relations_constrain_their_endpoints();
 
     test_engine_types_still_work_after_extension();
     test_custom_entity_types_available();

@@ -245,7 +245,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("HAS_CONSTRAINT", {"Entity"}, {"Entity"});
     reg.addRelationType("HAS_PART", {"Entity"}, {"Entity"});
     reg.addRelationType("HAS_REGIONAL_PART", {"Entity"}, {"Entity"});
-    reg.addRelationType("ILLUMINATES", {"Entity"}, {"Entity"});
+    reg.addRelationType("ILLUMINATES", {"LightSource"}, {"WorldEntity"});
     reg.addRelationType("MANAGES", {"Entity"}, {"Entity"});
     reg.addRelationType("PERCEIVES", {"Entity"}, {"Entity"});
     reg.addRelationType("SPECIALIZES", {"Entity"}, {"Entity"});
