@@ -890,12 +890,19 @@ Resolution is not one mechanism. It is four rungs, fast and automatic
 at the bottom, slow and rare at the top, in the owner's DIKW frame.
 Recorded in full in `tests/invariants/LEDGER.md`; the operative parts:
 
-| Rung | Reads | When it runs | Deterministic |
+**The ontology is read at LOAD, never in a frame** (owner correction,
+2026-08-15). Rungs 1 and 2 are both compile steps: they compute each
+route's key and sort the table once. At runtime a frame walks an
+already-sorted vector and takes the first match. Nothing consults the
+type lattice per contact, and nothing may.
+
+| Rung | Reads | When | Per-frame cost |
 |---|---|---|---|
-| 0 DATA | the occurrence physics produced | every contact | yes, it is a measurement |
-| 1 INFORMATION | the sorted route table, keys 1-3 above | every match | yes, compiled at load |
-| 2 KNOWLEDGE | the type lattice, key 4 above | only on a syntactic tie | yes, ancestor sets precomputed |
-| 3 WISDOM | the conflict, the corpus, a model | never in a frame | not required to be |
+| 0 DATA | the occurrence physics produced | every contact, in frame | producing it |
+| 1 INFORMATION | route addresses, keys 1-3 | **at load**, to compute keys and sort | none |
+| 2 KNOWLEDGE | the type lattice, key 4 | **at load**, on a syntactic tie | none |
+| 3 WISDOM | the conflict, the corpus, a model | offline, never in a frame | none |
+| (runtime) | the sorted vector | every match | one walk, first match wins |
 
 Rung 2 is the rung this ruling adds, and it repairs a real defect: the
 key was purely syntactic, so two routes with the same address SHAPE

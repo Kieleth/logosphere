@@ -218,7 +218,8 @@ All three surfaced while defining what interaction words may MEAN
 | R2 | **The 6 rotation questions** — orientation truth (deferred twice now); gyroscopic scope; torsion timing; friction-basis ordering; INV-16's wording; the ladder's real state | All of D2's slices |
 | R3 | **The WAKE_RESOLVER flip** | INV-31 goes active; the machine's default reaches 5/10. Path is known: C3 + the `update_rest_state` KINEMATIC guard + re-baseline two tests whose greens encode the old quirk + flip. D4 is the residual risk you accept or clear first. |
 | R4 | **The seed→world sanitisation question** | `at_logogenesis_creation`, the last sweep mole: the app materialises `tree_height=999` as an 80 m crown and the gate's range door refuses it. Should the creation pipeline clamp seed-derived values to schema bounds, and should the test then assert the refusal? |
-| R5 | **Where subsumption depth sits inside the specificity measure** | Kamaji's rung 2. Added at 2026-08-15 as key 4, AFTER the syntactic keys, so only present-day load errors change behaviour. The alternative is inside the measure ahead of property-filter count, which decides who wins between a route naming a subtype and one naming the supertype with a property filter. Blocks the specificity scorer slice (router design S1), nothing else. |
+| ~~R5~~ | **RULED 2026-08-15: compute both, the HIERARCHY declares which wins.** Two policies, `SPECIALISE` (subtype outranks, `super`-style) and `ENCAPSULATE` (filters outrank, today's behaviour), declared per hierarchy in the schema instead of fixed in the scorer. INV-29's shape applied to routing. | Residual owed: the default policy for a hierarchy that declares nothing, and whether the annotation sits on the root type or every type. Blocks the specificity scorer slice only. |
+| R6 | **The physics-default vocabulary is short** | The `else` branch (below) names outcomes from the measured floor, but `bounce` needs F4's absent restitution, `roll` needs angular state at the seam, `topple` is unimplemented. Ship the default with the words the engine can actually measure, or block it on F4? |
 
 ---
 
@@ -295,3 +296,39 @@ reaches). Ten hand-built cases are a small, self-selected corpus. The
 sequencing that follows: **design rung 3 now, build it last.**
 
 New ruling owed: **R5** (where subsumption depth sits in the measure).
+
+---
+
+## 2026-08-15 (later) — R5 ruled, and the `else` branch is physics
+
+**Correction taken first:** the ontology is read at LOAD, never in a
+frame. The ladder as first written implied rungs firing in sequence at
+runtime. Rungs 1 and 2 are compile steps that sort the table once; a
+frame walks a sorted vector. Rung 3's output is a route, so it is spent
+at load too. The table is armed before the world runs. Router design
+3.3.4 corrected.
+
+**R5 RULED: compute both, and the hierarchy declares which wins.** No
+global answer, because hierarchies mean different things: some are
+specialisation ladders where a subtype should override its parent, some
+are encapsulation boundaries where a filter on the parent has no
+business reaching inside. Two declared policies, `SPECIALISE` and
+`ENCAPSULATE`, owned by whoever authored the hierarchy. It does not
+dissolve the set-overlap finding; it converts an underivable fact into
+a declared input, which is INV-29's shape.
+
+**NEW FRONT, D6: the `else` branch is a physics default, and it is
+counted.** When no route claims an occurrence the engine emits the
+PHYSICS RESPONSE, derived from the solve and the materials, named from
+the measured floor, with no game meaning attached. GEDANKEN-1's
+identity case made non-empty: motion stays bit-identical, the event
+gains a name. Every fall-through increments a counter keyed by
+(occurrence kind, type pair), so authoring effort can follow measured
+frequency instead of imagination. Owner's framing: the
+Gedankenexperimente we can think of are the defaults we preload, and
+the tracker finds the ones we failed to think of.
+
+D6 is cheap, independent of the router's election machinery, and
+useful before Kamaji exists: the counter can be built and left running
+to gather the distribution while the rest is designed. Its vocabulary
+limit is boarded as R6.

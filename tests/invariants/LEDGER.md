@@ -921,3 +921,72 @@ reduction they describe already has a countable size in the algebra: 8
 occurrence kinds (CLOSED), 14 measured interactions (a floor, games
 extend), 9 effects, 5 operators. The closed 8 are the alphabet; the
 rest is composition over it.
+
+## 2026-08-15 — R5 RULED, and the `else` branch is physics
+
+Three owner decisions, taken together.
+
+**1. CORRECTION: the ontology is read at load, never in a frame.** The
+ladder as first written implied rungs firing in sequence at runtime.
+Wrong framing. Rungs 1 and 2 are compile steps: they compute each
+route's specificity key and sort the table once, at load. A frame walks
+an already-sorted vector. Nothing consults the type lattice per contact
+and nothing may. The table is armed before the world runs; that is the
+whole point of the rung 3 contract (its output is a route, so it too is
+spent at load). Router design 3.3.4 corrected.
+
+**2. R5 RULED: compute both, and let the HIERARCHY declare which
+wins.** The question was whether a route naming a type outranks a route
+naming that type's ancestor plus a property filter. The ruling rejects
+a single global answer, and the reason is that different hierarchies
+mean different things: some are specialisation ladders where a subtype
+is meant to override its parent the way `super` is overridden, and some
+are encapsulation boundaries where the type is a closed box and a
+filter on the parent has no business reaching inside it.
+
+So both measures are computed, and the policy is DECLARED per
+hierarchy in the schema rather than fixed in the scorer. Two named
+policies to specify:
+
+- **SPECIALISE**: subsumption depth outranks property-filter count. The
+  subtype's route wins. `super`-style.
+- **ENCAPSULATE**: property-filter count outranks subsumption depth,
+  which is today's behaviour.
+
+This is INV-29's shape applied to routing: the constant becomes a
+declared input, owned by whoever authored the hierarchy and knows what
+it means. It does not dissolve the set-overlap finding (a type route
+and an ancestor-plus-filter route match crossing sets, because
+`state.set` can mutate the filtered property mid-play). It converts an
+underivable fact into a declared one, which is the honest move.
+
+Owed before the scorer slice: the DEFAULT policy for a hierarchy that
+declares nothing, and whether the annotation sits on the root type or
+on every type.
+
+**3. NEW: the `else` branch is a physics default, and it is counted.**
+Owner: "we cannot capture 100% of the interactions of a rich world, but
+we can approximate via physics." When no route claims an occurrence,
+the engine does not fall silent. It emits the PHYSICS RESPONSE: the
+outcome derived from what the solver already computed plus the
+materials involved (density, friction, restitution when F4 delivers
+it), named from the measured floor in the effect algebra 5.2 (`touch`,
+`impact`, `rest`, `slide`, `stop`, `block`, `separate`). No game
+meaning, no semantics, just the word physics has earned.
+
+This is GEDANKEN-1's identity case made non-empty: the run with an
+empty route table stays bit-identical in MOTION, and gains a name.
+
+**And it is instrumented.** Every fall-through increments a counter
+keyed by (occurrence kind, type pair). The counter is the statistical
+instrument for finding which unauthored interactions actually matter in
+a running world, so authoring effort follows measured frequency instead
+of imagination. The owner's framing: the Gedankenexperimente we can
+think of are the defaults we preload; the tracker tells us which ones
+we failed to think of.
+
+**Honest limit to state with it:** the default's vocabulary is smaller
+than 5.2 promises. `bounce` needs the restitution F4 measured as
+declared-with-zero-readers, `roll` needs angular state at the seam, and
+`topple` is unimplemented. The physics default can only say what the
+engine can measure today.
