@@ -647,3 +647,17 @@ item C8 and precedes everything else, because a drain that receives
 
 F1 becomes D1 slice S5b: "the FK rig holds what it writes, and drains
 its book."
+
+## 2026-08-14 — C8: the refusal ledger is complete (2.5% -> 99.9%)
+
+The warm-start apply and the entire friction block spent momentum
+outside the booking loop, so the ledger I added yesterday held 33.6 of
+1357.8 kg*m/s. Both doors now book. Measured by the new
+test_refused_momentum_ledger (striker 160 kg at 9 m/s into a braced
+KINEMATIC target, airborne so the turtle cannot muddy the accounting):
+1440.2 refused, 1439.2 booked, 99.9%, and the braced body does not
+move. The striker's own momentum delta is the truth the book is
+checked against — no expected value invented.
+
+Known and stated: linear only. Angular refusals are booked nowhere,
+because the angular side still has no door at all (board D1/D2).

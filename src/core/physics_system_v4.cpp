@@ -2808,6 +2808,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     pb.vx -= c.jx * warm_impulse * inv_mb;
                     pb.vy -= c.jy * warm_impulse * inv_mb;
                     pb.vz -= c.jz * warm_impulse * inv_mb;
+                    // BOOK WHAT THIS SPENDS. The warm start is momentum
+                    // like any other; it just arrives before the
+                    // iterations. Measured before this line existed: a
+                    // KINEMATIC target refused 1357.8 kg*m/s and the
+                    // ledger held 33.6 of it — 2.5% — because the warm
+                    // apply lived outside the booking loop.
+                    if (inv_mb == 0.0f && warm_impulse != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -c.jx * warm_impulse,
+                                               -c.jy * warm_impulse,
+                                               -c.jz * warm_impulse);
+                    }
+                }
+                if (!c.is_turtle_contact && inv_ma == 0.0f &&
+                    warm_impulse != 0.0f) {
+                    record_refused_impulse(c.body_a,
+                                           c.jx * warm_impulse,
+                                           c.jy * warm_impulse,
+                                           c.jz * warm_impulse);
                 }
 
                 // CANARY_DEBUG: Log warm start impulse applied to canary
@@ -3524,6 +3543,22 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     pb.vx -= t1x * friction_impulse_1 * inv_mb;
                     pb.vy -= t1y * friction_impulse_1 * inv_mb;
                     pb.vz -= t1z * friction_impulse_1 * inv_mb;
+                    // Friction is momentum too. The whole block booked
+                    // nothing until 2026-08-14, so a body braced against
+                    // a shove absorbed all the tangential load silently.
+                    if (inv_mb == 0.0f && friction_impulse_1 != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -t1x * friction_impulse_1,
+                                               -t1y * friction_impulse_1,
+                                               -t1z * friction_impulse_1);
+                    }
+                }
+                if (!c.is_turtle_contact && inv_ma == 0.0f &&
+                    friction_impulse_1 != 0.0f) {
+                    record_refused_impulse(c.body_a,
+                                           t1x * friction_impulse_1,
+                                           t1y * friction_impulse_1,
+                                           t1z * friction_impulse_1);
                 }
 
                 // Friction constraint 2 (tangent 2)
@@ -3542,10 +3577,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pa.vy += t2y * friction_impulse_2 * inv_ma;
                 pa.vz += t2z * friction_impulse_2 * inv_ma;
 
+                if (!c.is_turtle_contact && inv_ma == 0.0f &&
+                    friction_impulse_2 != 0.0f) {
+                    record_refused_impulse(c.body_a,
+                                           t2x * friction_impulse_2,
+                                           t2y * friction_impulse_2,
+                                           t2z * friction_impulse_2);
+                }
                 if (!c.is_turtle_contact) {
                     pb.vx -= t2x * friction_impulse_2 * inv_mb;
                     pb.vy -= t2y * friction_impulse_2 * inv_mb;
                     pb.vz -= t2z * friction_impulse_2 * inv_mb;
+                    if (inv_mb == 0.0f && friction_impulse_2 != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -t2x * friction_impulse_2,
+                                               -t2y * friction_impulse_2,
+                                               -t2z * friction_impulse_2);
+                    }
                 }
             }
         }

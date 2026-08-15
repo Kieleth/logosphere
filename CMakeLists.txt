@@ -1248,6 +1248,17 @@ target_include_directories(test_humanoid_knockback PRIVATE
 )
 target_compile_features(test_humanoid_knockback PRIVATE cxx_std_17)
 
+# The refusal ledger must hold what a braced body refused. It booked
+# 2.5% of it until 2026-08-14; this is what keeps it honest.
+add_executable(test_refused_momentum_ledger tests/test_refused_momentum_ledger.cpp)
+target_link_libraries(test_refused_momentum_ledger PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core)
+target_include_directories(test_refused_momentum_ledger PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
+
 # Phase 4b C2 — pin-gluon lifecycle round-trip. Same headless setup as
 # test_humanoid_headless. Spawns a stub humanoid, opts in via
 # enable_physics_drive_legs, walks → stops, asserts anchor + pin gluon
