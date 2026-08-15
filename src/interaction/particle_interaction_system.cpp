@@ -361,7 +361,13 @@ size_t ParticleInteractionSystem::process_contacts(
                 ContactContext view =
                     view_from(kg, c, self, other, /*flip=*/side == 0);
 
-                for (const auto& [rid, r] : rules_) {
+                // EVERY matching rule fires. There is no election here
+                // and no suppression: two rules that both describe this
+                // contact both apply, and the ORDER is what decides the
+                // outcome of any last-write-wins effect. So walk
+                // rule_order_, not the hash map.
+                for (uint32_t rid : rule_order_) {
+                    const TransformationRule& r = rules_.at(rid);
                     if (r.trigger != Trigger::ON_CONTACT) continue;
                     if (!conditions.evaluate(r.condition, view)) continue;
                     ContactEffectContext ectx{view, *this, bus};
@@ -484,6 +490,22 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         ++loaded;
     }
 
+    // The order rules apply in, decided ONCE here rather than left to
+    // however the hash map happens to bucket EntityIDs. Several rules can
+    // match one occurrence and all of them fire, so this sequence is the
+    // outcome for every last-write-wins effect; leaving it to the map
+    // made it depend on which rule was authored first, backwards
+    // (`tests/test_rule_order_determinism.cpp` measures it).
+    //
+    // Sorted by id, which is authoring order. That is not a claim about
+    // which rule SHOULD win, a question the specificity design answers
+    // and this does not prejudge: when that key lands it becomes the
+    // primary comparator and id remains the final tiebreak.
+    rule_order_.clear();
+    rule_order_.reserve(rules_.size());
+    for (const auto& [id, r] : rules_) rule_order_.push_back(id);
+    std::sort(rule_order_.begin(), rule_order_.end());
+
     // Refresh the hot-path gate once, here, rather than scanning rules
     // every frame in process_contacts.
     has_contact_rules_ = false;
@@ -551,7 +573,11 @@ void ParticleInteractionSystem::tick_transformations(
     //    process_filtered_overlaps; render indices still valid).
     if (!rules_.empty()) {
         for (const auto& open : episode_opens_) {
-            for (const auto& [rid, r] : rules_) {
+            // Same contract, same reason to walk the ordered view: these
+            // effects (swap_profile, fade_out, delete) are last-write-wins
+            // or destructive, so the sequence is the outcome.
+            for (uint32_t rid : rule_order_) {
+                const TransformationRule& r = rules_.at(rid);
                 bool trigger_matches =
                     (r.trigger == Trigger::ON_VOLUME_ENTER && open.is_medium) ||
                     (r.trigger == Trigger::ON_CONTACT_FILTERED);

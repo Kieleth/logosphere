@@ -557,6 +557,7 @@ add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_contact_producer)
 add_headless_test(test_contact_bounce)
+add_headless_test(test_rule_order_determinism)  # two rules, one contact
 add_headless_test(test_goap_executors)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)

@@ -16,6 +16,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   boundary or on anchored bonds (INV-1).
 
 ### Changed
+- **Contact rules now apply in a declared order.** When several rules
+  match one contact they all fire, as before, but the sequence is now
+  ascending rule id (authoring order) instead of whatever order the
+  internal hash map produced. The old order was unportable and, when
+  measured, inverted: the rule authored second applied first. Any
+  last-write-wins effect (`swap_profile`, and game effects that set a
+  property) could therefore reorder when a rule was added or the
+  toolchain changed, with nothing in the authored content different.
 - **`KINEMATIC` is a transient authority, not a label.** It is held
   while an external writer drives a body's position and must be
   RELEASED when that writer stops; a body left KINEMATIC can never

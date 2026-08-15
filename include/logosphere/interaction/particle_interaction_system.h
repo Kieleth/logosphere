@@ -295,6 +295,7 @@ public:
         profiles_.clear();
         open_episodes_.clear();
         rules_.clear();
+        rule_order_.clear();
         armed_.clear();
         episode_opens_.clear();
         open_contacts_.clear();
@@ -333,6 +334,19 @@ private:
     };
 
     std::unordered_map<uint32_t, TransformationRule> rules_;
+    // The order rules APPLY in, rebuilt at load. When several rules match
+    // one occurrence they all fire (that is the contract, see
+    // process_contacts), so the sequence decides the outcome of every
+    // last-write-wins effect. Iterating `rules_` made that sequence a
+    // property of EntityID hashing, which nobody chose: measured, the
+    // rule authored second applied first
+    // (`tests/test_rule_order_determinism.cpp`).
+    //
+    // Sorted by rule id today, which is authoring order and is at least a
+    // property of the rules themselves. When the specificity key lands it
+    // becomes the primary comparator here and id stays the final
+    // tiebreak; nothing else has to move.
+    std::vector<uint32_t> rule_order_;
     std::vector<ArmedTransformation> armed_;
     std::vector<EpisodeOpen> episode_opens_;
 
