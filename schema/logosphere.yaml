@@ -387,6 +387,20 @@ enums:
         description: Physical support (floor supports entity)
       ILLUMINATES:
         description: Light source reaches entity
+        annotations:
+          # Declared because they are KNOWN, not guessed. Only a
+          # LightSource illuminates, which is what that class exists
+          # for, and only something in the world can be lit.
+          #
+          # The rest of this enum stays at the Entity default until its
+          # endpoints are evidenced the same way. HAS_PART alone has
+          # 125 call sites and legitimately links a humanoid to a
+          # torso, a procedure to a step and a table to a row, so it is
+          # (Entity, Entity) in truth and not by neglect. SUPPORTS and
+          # BURNS have no creation site anywhere in the repo, so there
+          # is nothing to learn their shape from yet.
+          valid_source_types: LightSource
+          valid_target_types: WorldEntity
       BURNS:
         description: Fire spread between entities
       PERCEIVES:
