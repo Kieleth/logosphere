@@ -35,7 +35,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("OdorType", {"BLOOD", "DECAY", "FRESH_MEAT", "LIVING_FLESH", "NONE", "ROTTEN", "SMOKE"});
     reg.addEnumType("PatternId", {"COTTON", "EMBROIDERY", "HAIR", "LEATHER", "LINEN", "NONE", "SILK", "SKIN", "SKIN_REPTILE", "STONE", "WOOD"});
     reg.addEnumType("SemanticChannel", {"ABDUCT", "FLEX", "TWIST"});
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.setSource("https://logosphere.dev/logotron/schema");
     reg.addEnumType("TrailState", {"FADING", "PHASED", "SOLID"});

@@ -147,7 +147,7 @@ int main() {
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;
                 p.r = t - 0.03f; p.g = t + 0.05f; p.b = t; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::DIRT);
-                p.solver_mode = ParticleSolverMode::STATIC;
+                p.solver_mode = ParticleSolverMode::KINEMATIC;
                 p.is_at_rest = true;
                 engine.add_particle(p);
             }

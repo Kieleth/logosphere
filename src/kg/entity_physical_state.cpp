@@ -38,7 +38,9 @@ int EntityPhysicalState::apply_solver_authority(kg::EntityID entity) {
 
     ParticleSolverMode mode;
     if (value == "KINEMATIC")   mode = ParticleSolverMode::KINEMATIC;
-    else if (value == "STATIC") mode = ParticleSolverMode::STATIC;
+    // "STATIC" was accepted here and implemented nowhere — the body
+    // fell silently. Eradicated 2026-08-14 (owner order); the value is
+    // now refused like any other undeclared authority.
     else if (value == "DYNAMIC") mode = ParticleSolverMode::DYNAMIC;
     else {
         std::cerr << "[EntityPhysicalState] entity " << entity

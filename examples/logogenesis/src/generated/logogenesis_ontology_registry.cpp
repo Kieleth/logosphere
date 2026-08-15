@@ -45,7 +45,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addEnumType("SerpentKind", {"CORAL", "GARDEN", "PYTHON"});
     reg.setSource("https://logosphere.dev/schema");
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);

@@ -530,3 +530,42 @@ effective mass of every kinematic contact (a KINEMATIC body that is
 not at_rest used to be priced MOVABLE while the apply refused to move
 it). Whether those two tests encode the old mismatch or a real
 regression is the next question, and it decides the flip.
+
+## 2026-08-14 — KINEMATIC is a transient authority; STATIC is eradicated
+
+The audit (docs/todo_plans/KINEMATIC_AUDIT.md) found the repo's own
+written doctrine contradicting the owner's: schema/logosphere.yaml,
+INV-1's text and entity_physical_state.h all declared KINEMATIC the
+sanctioned way to make scenery permanently immovable, and 11 sites
+followed that spec. src/ had 12 SET sites and 4 RELEASE sites; every
+release lives in humanoid_locomotion; worldgen and examples release
+nothing. Consequence: a humanoid's hips are pinned by a path neither
+release reaches, so it cannot be knocked over or ragdoll (KNOCKBACK
+is an enum with no implementation, and test_humanoid_impact asserts a
+displacement that is structurally zero).
+
+OWNER RULING:
+1. `ParticleSolverMode::STATIC` — "needs to be totally eradicated,
+   legacy." It was accepted from the KG and handled by NOTHING in the
+   solver: a body set STATIC fell silently. Done in this commit.
+2. KINEMATIC stays, ONLY as the volitional/animation escape hatch:
+   "driving complex animations via physics is just insane for us to
+   try" — a concession made deliberately, with eyes open.
+3. KINEMATIC is a STATE, not a constant: "set when needed, i.e.
+   animation, but then RELEASED so physics can act normally on them
+   when no volition is done or animation complex is in effect."
+   A set with no release is a pin, and a pin is the HEAVY_STATIC
+   disease wearing a new mask.
+4. Immobility for scenery is NOT a pin. The direction instead:
+   "instead of using KINEMATIC for things that do not move, we could
+   SIMULATE THE EFFECT of particles we do not need to model, to
+   achieve gravity for example" — the unmodelled substrate as a
+   field, which is also where gravity comes from. "And for floating
+   things, we allow particles to escape gravity effect on them" — an
+   exemption from the field, not a nail in the air.
+
+This supersedes the schema text and INV-1's mechanism note, both
+rewritten here. The SET/RELEASE table and the bucket-B site list are
+the action lists; the substrate direction subsumes task #48 (gravity
+as an input): gravity stops being a constant and becomes the effect
+of mass we chose not to simulate.

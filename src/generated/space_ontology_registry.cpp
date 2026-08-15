@@ -27,7 +27,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("OdorType", {"BLOOD", "DECAY", "FRESH_MEAT", "LIVING_FLESH", "NONE", "ROTTEN", "SMOKE"});
     reg.addEnumType("PatternId", {"COTTON", "EMBROIDERY", "HAIR", "LEATHER", "LINEN", "NONE", "SILK", "SKIN", "SKIN_REPTILE", "STONE", "WOOD"});
     reg.addEnumType("SemanticChannel", {"ABDUCT", "FLEX", "TWIST"});
-    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC", "STATIC"});
+    reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);
