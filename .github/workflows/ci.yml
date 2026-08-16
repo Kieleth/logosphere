@@ -290,36 +290,71 @@ jobs:
   #   12 sanitized lives        102s wall, 8.5s each
   #   test_chargen              565s, against 74s unsanitized. 7.6x.
   # The sanitizers cost between 5.5x and 7.6x here, not the 2x they are
-  # usually quoted at.
+  # usually quoted at. On the runner a life costs about 30s, so 12 of them
+  # is roughly 6 minutes.
+  #
+  # TOOLCHAIN: clang AND libc++, both of them load-bearing, and the first
+  # version of this lane had neither.
+  #
+  # It was written with the runner's default g++ and libstdc++, it went
+  # green, and green was worth nothing: measured against both bugs this
+  # lane exists to catch, that toolchain reports neither. The standard
+  # library is half of ASan. Container overflow is detected through
+  # annotations the library itself emits around its buffers, and libc++
+  # emits them where libstdc++ does not; use-after-scope is the
+  # compiler's, and clang instruments it where gcc does not, at -O0, -O1
+  # and -O2 alike and with -fsanitize-address-use-after-scope passed
+  # explicitly.
+  #
+  # Measured on the two real bugs, not on a hypothetical:
+  #
+  #                          | #132 container-overflow | use-after-scope
+  #   gcc 13  + libstdc++    |         MISS            |     MISS
+  #   clang 18 + libstdc++   |         MISS            |     CATCH
+  #   clang 18 + libc++      |         CATCH           |     CATCH
+  #
+  # The first row is what this lane shipped as for one CI run. It built
+  # 313 targets, ran 89 tests, played 12 lives, reported success, and
+  # would have let #132 through exactly as every other lane did.
   # ---------------------------------------------------------------------------
   sanitizers-linux:
     runs-on: ubuntu-latest
     env:
       # A stack trace with a line number, or the report is a puzzle.
       UBSAN_OPTIONS: print_stacktrace=1
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v4
 
+      # libc++ is not optional here. See the table above: with libstdc++
+      # this lane does not see the bug it was built for.
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ ninja-build
+          sudo apt-get install -y cmake ninja-build clang libc++-dev libc++abi-dev
 
       # RelWithDebInfo, not Debug: the reports need symbols and line
       # numbers, and the tests need to finish. -fno-sanitize-recover=all
       # makes UBSan abort on the first finding instead of printing it and
       # carrying on, which is the difference between a gate and a log.
-      - name: Configure (core profile, ASan + UBSan)
+      - name: Configure (core profile, clang + libc++, ASan + UBSan)
         run: |
           cmake -S . -B build-san -G Ninja \
             -DLOGOSPHERE_PROFILE=core \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
-            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
-            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all -stdlib=libc++" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined -stdlib=libc++"
 
+      # 15 rather than the 10 the test steps use, and the number is
+      # measured: the g++ build of this same profile took 8m46s on this
+      # runner, 88% of a 10-minute cap, and a build that fails on the cap
+      # reports as a lane failure indistinguishable from a real finding.
+      # A compile is not a test; the cap here is a runaway guard, not a
+      # performance budget.
       - name: Build logosphere_core + headless tests
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: cmake --build build-san -j $(nproc)
 
       # EXCLUDED, and named rather than dropped quietly: test_chargen.

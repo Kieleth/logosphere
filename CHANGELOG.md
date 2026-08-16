@@ -15,10 +15,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   platform CI ran: a pointer into a vector, read after the vector was
   cleared, which libc++ and libstdc++ tolerate and MSVC does not. ASan
   found it in one run. Advisory, not merge-blocking, so a finding is
-  loud without blocking an unrelated merge. `test_chargen` is excluded
-  and the exclusion is named in the workflow: it costs 565s under the
-  sanitizers against 74s without them, and the lives step walks the same
-  code. Known finding on landing: `test_mutation_playback` aborts with a
+  loud without blocking an unrelated merge. Built with clang and libc++,
+  and both are load-bearing: measured against the two real bugs, gcc with
+  libstdc++ detects neither, clang with libstdc++ detects one, and clang
+  with libc++ detects both. Container-overflow detection comes from
+  annotations the standard library emits, so the library is half the
+  tool. `test_chargen` is excluded and the exclusion is named in the
+  workflow: it costs 565s under the sanitizers against 74s without them,
+  and the lives step walks the same code. Known finding on landing:
+  `test_mutation_playback` aborts with a
   stack-use-after-scope in its own fixture (a `CountingPlay` destructor
   writes to two counters declared after the registry that owns it, so
   they die first). The test's subject is unaffected; the fixture is
