@@ -801,6 +801,18 @@ classes:
       rather than growing a parallel record.
     annotations:
       facets: rulebook
+    slot_usage:
+      # Pinned rather than left to the malleus root's open string. This
+      # class is exactly one kind of event, so equals_string states that
+      # and the gate can check it. Unpinned, any string validated, which
+      # in a record whose whole purpose is provenance means the record
+      # of who decided what could not be told apart by type at read
+      # time. It descends straight from Event, so it inherited no
+      # constraint from an intermediate the way WorldEvent's subtypes
+      # do; the shape has one other instance in this repository
+      # (ServiceTerm) and both are fixed together.
+      event_type:
+        equals_string: ARBITER_DECISION
     slots:
       - decision_question
       - decision_options

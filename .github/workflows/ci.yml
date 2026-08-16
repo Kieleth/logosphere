@@ -94,6 +94,16 @@ jobs:
       - name: Run generator contract tests
         run: python -m unittest scripts/test_generate_registry.py
 
+      # The schema contracts malleus cannot check for us. Its rites ask
+      # two of these three questions and ask them well, but only of
+      # schemas its inspector can LOAD, and this repo's packs import by
+      # bare name so several need an explicit import map and had never
+      # been judged at all. ServiceTerm sat in exactly that gap with an
+      # open event_type. This audit reads the YAML directly and asks
+      # every schema, loadable or not.
+      - name: Run schema contract audit
+        run: python -m unittest scripts/test_schema_contracts.py
+
       # The seed extractors have contract tests too, and nothing ran
       # them. Written when the career extractor was, never wired up.
       - name: Run seed extractor contract tests
