@@ -81,6 +81,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   assert the windowed chain directly.
 
 ### Fixed
+- **Logovger chargen: the Draft answer was read out of a list that had
+  already been cleared.** `find_choice` returned a pointer into the
+  session's offer list, and every caller cleared that list before it
+  was done reading the answer. libc++ and libstdc++ leave a cleared
+  vector's bytes in place, so the read kept working on macOS and
+  Linux; MSVC's `std::string` destructor zeroes the small-string
+  buffer, so on Windows `"2"` read as `""`, the Draft branch was never
+  taken, and every character who submitted to the Draft quietly became
+  a Drifter. The Draft Career table was then reached by no life at all
+  and `headless-windows` failed the absorbed-table coverage gate.
+  `find_choice` now returns an owning `std::optional<Choice>`, and a
+  `static_assert` refuses a borrowing return type. Dice are not
+  involved: `DiceService` is engine-owned xorshift64* over `uint64_t`
+  and already produced identical rolls on all three platforms.
 - Build on toolchains without `<execinfo.h>` (MSVC): the
   TURTLE_TRACE caller backtrace in `particle_system.cpp` is now
   guarded by `__has_include`; the turtle violation itself still
