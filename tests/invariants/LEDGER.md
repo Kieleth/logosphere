@@ -756,3 +756,570 @@ by the wrong mechanism and look identical.
 PhysicsSystem::get_collision_events() already reports every contact
 with both bodies, the world point, the normal and the approach speed,
 so the machine can assert the strikes it names.
+
+## 2026-08-15 — The interaction router (owner vision)
+
+While walking authority Q1 (what happens when a driven limb is struck),
+the owner reframed the whole question. It is not "what does a struck
+limb do" but "WHAT ROUTES THIS INTERACTION, AND WHO MAY INFLUENCE THE
+ROUTING". In their words:
+
+"My idea was always to have a ROUTER between these, like a networking
+router actually, where we can load/pre-load/dynamically load ROUTING
+between interactions and entities, even HIERARCHICALLY — humanoid->torso
+vs humanoid->arm->hand->finger — and any other entity, and being able to
+CATCH the event/interaction between particles, and allow the routing to
+be MODIFIED BY ANY OTHER SYSTEM, like a combat system: if I want a
+combat system that subscribes when weapons are used, I want to be able
+to influence what my silver-bullet does against a werewolf vs a hippo."
+
+"This is where ontology-powered semantics for these interactions and
+COMPOSABLE interactions come into play, which would allow rules in the
+KG to control these interactions with minimal code. Once those building
+blocks exist: 'hand is burning, entity retracts in panic' -> engine
+understands that animation, hand flies and hits a cabinet, hand
+bounces... a chain of semantically rich, physics-aware, animation-capable
+sequences that look and feel realistic, CREATED FROM SEMANTICS."
+
+Boarded as D0, at the head of NEEDS DESIGN, because it is the general
+case that D1's Q1 is a special case of. The scene that motivated it —
+Eva walks into a tree trunk, and the correct outcome is "Eva stops, the
+rooted trunk does not move, nobody gains energy" — is one the engine
+cannot express today: her momentum is refused by her own authority and
+the plant absorbs it, which is what tore canopies off trees earlier in
+the campaign.
+
+Also recorded: the vocabulary this produces (hit, rest, slide, bounce,
+catch) is the same vocabulary the 2026-08-15 test-instrumentation
+directive asks tests to build toward. Tests assert interactions; the
+router routes them; the ontology names them. Same words, one meaning,
+everywhere.
+
+An Opus excavation of logomancers' combat system (design/
+GAME_DESIGN_COMBAT_ENGINE.md, src/combat_system.*) is running to
+retrieve what was already prototyped there — the wins and the painful
+parts both.
+
+## 2026-08-15 — Kamaji: SUBSUME (Q1 ruled), and effects must compose
+
+The interaction router is named **KAMAJI**, after the six-armed boiler
+keeper of Spirited Away who receives everything and routes it, one
+specific arm to one specific drawer. Named beings with a job, like the
+Turtle, Silk, Forge, Malleus and Weirden.
+
+**Q1 RULED: SUBSUME.** Kamaji replaces TransformationRule's contact
+triggers rather than sitting beside them. One place to look for "what
+happens when things touch"; the old path is deleted, not left coexisting
+(the repo rule for replacing a mechanism).
+
+**And the owner raised what the study had not:** effects must be able to
+INTERACT WITH EACH OTHER. When several are in play at once the outcome
+must be resolved deterministically — "a logical, prolog way to solve
+when multiple things are in effect at the same time". That is more
+design than either study anticipated, and the owner's method for it:
+
+1. Start from the SIMPLEST possible mental experiments — bullet-particle
+   vs wall-particle, sphere vs mud — each captured the way an invariant
+   is captured, in its own registry.
+2. For each, study which effects must be in place so that the SUBSUMED
+   COMBINATION produces the right overall behaviour, across animation
+   and physics together.
+3. From those, derive which language and semantic operations we allow
+   over interactions: capturing the effect first and then operating on
+   it — encode/decode inside rich interactions.
+
+The proper term for these, adopted here: **GEDANKENEXPERIMENT**
+(Einstein's own word), recorded as GEDANKEN-N in tests/invariants/
+GEDANKEN.jsonl, beside the INVs.
+
+Q2-Q8 are parked as TODO-to-check rather than answered now; the owner's
+judgement is that they resolve one way or another once composition is
+designed. Two studies are dispatched: one to inventory how simultaneous
+effects are resolved in the tree today, one to build the
+Gedankenexperiment set and the effect algebra. They synthesise here into
+an implementation attack.
+
+## 2026-08-15 — Doctrine RULED: escalation, not exception (the DIKW ladder)
+
+The question put to the owner: `docs/RULE_LANGUAGE.md:945-947` bans
+conflict sets by decision; Kamaji fires on pushed occurrences rather
+than on graph state. Reconcile or contradict?
+
+**RULED: reconcile, by making resolution a LADDER rather than a single
+mechanism.** The owner's frame is DIKW: lower rungs are fast and
+automatic, higher rungs are slower and handle what the rung below could
+not order. The ruling's objection is to a resolver that silently picks.
+A ladder that orders deterministically, and escalates only what it
+provably cannot order, is not that resolver.
+
+The four rungs, and what each one costs:
+
+- **Rung 0, DATA. The physics fact.** The occurrence itself. No
+  routing, no table, no cost beyond producing it.
+- **Rung 1, INFORMATION. The table.** Address match plus the syntactic
+  specificity key, compiled at load, compared over a sorted vector
+  (router design 3.3.3). Per-frame, deterministic.
+- **Rung 2, KNOWLEDGE. The ontology.** When rung 1 ties, the type
+  lattice breaks it: a route naming a subtype outranks a route naming
+  its supertype. Deterministic and still per-frame cheap, because the
+  transitive ancestor sets are precomputed at load
+  (`OntologyRegistry::ancestorsOf`, `ontology_registry.h:314`;
+  `isSubtypeOf`, `:197`). **This rung is what the ruling adds, and it
+  did not exist in the design before it.**
+- **Rung 3, WISDOM. The escalation.** What two rungs of ordering cannot
+  separate is a genuine authoring ambiguity. Today the design fails it
+  closed at load (3.3.3: an unresolvable tie is a load-time error
+  naming both routes, neither installed). Under this ruling it may
+  instead be escalated, including to an LLM.
+
+**The escalation contract, which is what keeps INV-27 intact.**
+
+1. **It never runs inside the frame.** Not once, not cached, not
+   asynchronously. A frame that reaches an unordered tie uses the
+   fail-closed answer, refuse and report.
+2. **Its output is never an outcome.** It emits a ROUTE, a `precedence`
+   declaration, or an ontology edit. It writes rules, not results.
+3. **Therefore the same conflict escalates exactly once.** The
+   investment mutates the table; the table is what runs. This is the
+   feedback loop the owner required, and it is the reason determinism
+   survives: at runtime the answer always comes from a compiled table.
+4. **What it emits carries provenance**: the conflict that triggered
+   it, the corpus it reasoned over, the version that produced it. A
+   human can read why the table says what it says, and revoke it.
+
+**Measured, not asserted: the escalation rung currently has nothing to
+do.** Of the ten Gedankenexperimente, six are settled and four are open
+(GEDANKEN-3, 4, 5, 7). None of the four is open because ordering
+failed. Two are blocked on missing engine physics (GEDANKEN-4 is F3's
+mispricing, GEDANKEN-7 needs the restitution F4 says does not exist),
+and two are owner rulings about how far a route's authority reaches
+(GEDANKEN-3 may a route name a structural break, GEDANKEN-5 absorb
+versus release). The deterministic rungs missed zero of ten. That
+supports the owner's expectation that the large majority resolves
+without escalation, with the honest caveat that ten hand-built cases
+are a small and self-selected corpus. **Design rung 3 now, build it
+last.**
+
+**What the ruling changes in the design, concretely.** The specificity
+key at router design 3.3.3 is purely syntactic: literal segment count,
+property-filter count, chain depth. It has no notion of the type
+lattice. So two routes whose addresses have the same SHAPE but name a
+subtype and its supertype tie on every key and produce a load-time
+error, when one of them is strictly more specific by inheritance. That
+is the defect rung 2 repairs. The tiebreak is added AFTER the existing
+syntactic keys, so every case that resolves today resolves identically
+and only present-day load errors change behaviour.
+
+**Owed to the owner (not decided here):** whether subsumption depth
+should instead outrank property-filter count inside the measure. That
+ordering decides which wins between a route naming a subtype and a
+route naming the supertype with a property filter. Boarded, not
+assumed.
+
+**Also recorded, on the owner's reduction-to-tuples frame.** The
+reduction they describe already has a countable size in the algebra: 8
+occurrence kinds (CLOSED), 14 measured interactions (a floor, games
+extend), 9 effects, 5 operators. The closed 8 are the alphabet; the
+rest is composition over it.
+
+## 2026-08-15 — R5 RULED, and the `else` branch is physics
+
+Three owner decisions, taken together.
+
+**1. CORRECTION: the ontology is read at load, never in a frame.** The
+ladder as first written implied rungs firing in sequence at runtime.
+Wrong framing. Rungs 1 and 2 are compile steps: they compute each
+route's specificity key and sort the table once, at load. A frame walks
+an already-sorted vector. Nothing consults the type lattice per contact
+and nothing may. The table is armed before the world runs; that is the
+whole point of the rung 3 contract (its output is a route, so it too is
+spent at load). Router design 3.3.4 corrected.
+
+**2. R5 RULED: compute both, and let the HIERARCHY declare which
+wins.** The question was whether a route naming a type outranks a route
+naming that type's ancestor plus a property filter. The ruling rejects
+a single global answer, and the reason is that different hierarchies
+mean different things: some are specialisation ladders where a subtype
+is meant to override its parent the way `super` is overridden, and some
+are encapsulation boundaries where the type is a closed box and a
+filter on the parent has no business reaching inside it.
+
+So both measures are computed, and the policy is DECLARED per
+hierarchy in the schema rather than fixed in the scorer. Two named
+policies to specify:
+
+- **SPECIALISE**: subsumption depth outranks property-filter count. The
+  subtype's route wins. `super`-style.
+- **ENCAPSULATE**: property-filter count outranks subsumption depth,
+  which is today's behaviour.
+
+This is INV-29's shape applied to routing: the constant becomes a
+declared input, owned by whoever authored the hierarchy and knows what
+it means. It does not dissolve the set-overlap finding (a type route
+and an ancestor-plus-filter route match crossing sets, because
+`state.set` can mutate the filtered property mid-play). It converts an
+underivable fact into a declared one, which is the honest move.
+
+Owed before the scorer slice: the DEFAULT policy for a hierarchy that
+declares nothing, and whether the annotation sits on the root type or
+on every type.
+
+**3. NEW: the `else` branch is a physics default, and it is counted.**
+Owner: "we cannot capture 100% of the interactions of a rich world, but
+we can approximate via physics." When no route claims an occurrence,
+the engine does not fall silent. It emits the PHYSICS RESPONSE: the
+outcome derived from what the solver already computed plus the
+materials involved (density, friction, restitution when F4 delivers
+it), named from the measured floor in the effect algebra 5.2 (`touch`,
+`impact`, `rest`, `slide`, `stop`, `block`, `separate`). No game
+meaning, no semantics, just the word physics has earned.
+
+This is GEDANKEN-1's identity case made non-empty: the run with an
+empty route table stays bit-identical in MOTION, and gains a name.
+
+**And it is instrumented.** Every fall-through increments a counter
+keyed by (occurrence kind, type pair). The counter is the statistical
+instrument for finding which unauthored interactions actually matter in
+a running world, so authoring effort follows measured frequency instead
+of imagination. The owner's framing: the Gedankenexperimente we can
+think of are the defaults we preload; the tracker tells us which ones
+we failed to think of.
+
+**Honest limit to state with it:** the default's vocabulary is smaller
+than 5.2 promises. `bounce` needs the restitution F4 measured as
+declared-with-zero-readers, `roll` needs angular state at the seam, and
+`topple` is unimplemented. The physics default can only say what the
+engine can measure today.
+
+## 2026-08-15 — TWO CORRECTIONS, and the composition rule inverts
+
+**CORRECTION 1, mine.** I wrote "today the engine counts extra
+conditions, so the rule with a property filter wins." That is false.
+There is no specificity mechanism anywhere in the interaction system:
+`specificity`, `precedence` and `priority` return ZERO hits across
+`src/interaction/` and `include/logosphere/interaction/`. The key I
+described was authored in the router design study and never ruled. I
+presented a proposal as shipped behaviour. The owner caught it.
+
+**CORRECTION 2, and it is the more important one.** Exclusivity was
+never the status quo either. At `particle_interaction_system.cpp:
+364-369` **[E]** every matching rule fires:
+
+```cpp
+for (const auto& [rid, r] : rules_) {
+    if (r.trigger != Trigger::ON_CONTACT) continue;
+    if (!conditions.evaluate(r.condition, view)) continue;
+    ContactEffectContext ectx{view, *this, bus};
+    effects.apply(r.effect_expr, ectx);
+}
+```
+
+Both apply. Always. The single-winner election is something the router
+design INTRODUCED with `claim: CLAIM`; it is not what the engine does.
+The owner's instinct ("both need to be applied when there is a way to
+do so") is closer to the existing code than the design was.
+
+**So the composition rule inverts.** Not "one wins and silences the
+other", which was the wrong question I answered twice. The rule:
+
+- **Both rules apply, by default.** Preserved from the code.
+- **Exclusivity is COMPUTED, never declared.** Two effects cannot both
+  land only when the effect's own declared CARDINALITY forbids a second
+  application to the same target in the same frame. That is already
+  written down in the algebra 5.4 and needs no new authoring concept:
+  NARRATIVE (`emit_event`) is unbounded, `damage.accumulate` is
+  additive, `state.set` is idempotent per property, `knockback` is once
+  per (occurrence, side) drawing on one budget, AUTHORITY is once per
+  (body, frame), STRUCTURE is once per (bond or particle, frame). Only
+  the last two are genuinely exclusive, plus `state.set` when two rules
+  write DIFFERENT values to the SAME property.
+- **The outcome NAME stays exclusive**, one per (occurrence, side), per
+  GEDANKEN-9. Specificity picks the name. It does not silence effects.
+- **Therefore `claim: CLAIM` / `claim: OBSERVE` stops being a flag.** A
+  route that declares an `outcome:` is naming; a route carrying only
+  `do:` is adding consequences. Derived from what the route writes,
+  not guessed in advance by an author who cannot see the other routes.
+
+Specificity is demoted from an ELECTION to an ORDER. It decides the
+sequence in which effects apply and which name is published. It does
+not decide who is allowed to run.
+
+**A live defect this exposes, in shipped code, today.** That loop
+iterates an `unordered_map` (`particle_interaction_system.h:335`), so
+the order in which matching rules apply is hash order. For any effect
+whose cardinality makes it last-write-wins (`state.set`,
+`profile.swap`), **hash order decides the outcome**. That is an INV-27
+violation in the tree right now, not a design risk. It is the
+prerequisite the composition inventory flagged as blocking, and it is
+cheap: sort at load, iterate a vector.
+
+**Precision on the line above (appended same day, before the fix
+landed).** I called the hash-order defect "an INV-27 violation in the
+tree right now", which reads as run-to-run nondeterminism. It is not
+that. For one binary and one set of EntityIDs the order is stable, so
+two runs of the same build agree. The defect is that the order is
+UNPORTABLE and UNPREDICTABLE: it changes when a rule is added and the
+map rehashes, when ids shift, or when the toolchain does, with nothing
+in the authored content different. Measured before the fix, it was also
+inverted, the rule authored second applying first. Fixed in 80a9136 by
+sorting at load; the precise statement is in the test header.
+
+## 2026-08-16 — Transcript audit: what the owner said that was never written down
+
+An audit of the full session transcript (1,083 owner messages, March to
+August) checked every directive against this repo. The August physics
+work is captured well: 31 invariants, this ledger, the board, the skill.
+The gaps fall in two places.
+
+**ONE LIVE CONTRADICTION, and it is the reason for this entry.**
+`PHYSICS_BOARD.md` recorded `is_quat_driven` as "renamed not folded".
+The owner had instructed the opposite:
+
+> "`is_quat_driven + owner` is completely wrong, and I think it was
+> added without my knowledge/agreement, and needs to be folded into
+> solver_mode, since it's the same logic/essence, would you agree?"
+
+No ruling was ever recorded and the board carried the opposite
+disposition. What actually happened is worth stating exactly, because
+the failure is not that the study reached a different answer. The study
+found something real: the flag does two jobs. Alone it is
+REPRESENTATION, naming which orientation field is the truth, and it is
+used correctly at six sites. Paired with `owner` it is AUTHORITY, and it
+is used wrongly at seven. The authority half folds precisely as the
+owner said. The representation half has nowhere to fold, because
+`solver_mode` carries no notion of which quaternion is truth.
+
+**The failure is that this distinction was never put back to him.** A
+finding that contradicts an instruction is a question owed to the
+owner, not a licence to change the disposition quietly. Boarded as R7.
+
+**Standing process rules that lived only in conversation**, now in
+`CLAUDE.md`: always merge and never rebase (said twice, four months
+apart); no assistant attribution anywhere in this repo; no em dashes or
+assistant writing tells; one physics engine with no scene ever tuned;
+unused code is dangerous code and gets deleted; no submodules; wind is
+modelled and never faked. Maintainer voice for contributors, corrected
+three times on drafted replies, is captured too.
+
+**In the skill**: the Gedankenexperiment registry was absent from the
+read-first list entirely, and the owner's directive to spawn
+experiments before options is now recorded there. So is the prohibition
+on piping a run the owner is meant to see through `head`, `tail` or
+`grep`, which broke five runs before it was written down.
+
+**Seven instructions had to be repeated**, which the audit calls the
+strongest signal in it. Visual QA was asked for at least eight times in
+one week, four of them the identical sentence. "Never revert without
+consent" was sent twice two minutes apart. "No if-statement edge fixes"
+appears at least nine times across five months. Headless-only took four
+escalating messages inside one hour. Each repetition is a place where
+the first telling produced agreement and no change.
+
+**A provenance warning, recorded rather than acted on.** Two rules this
+session has been treating as standing, "never `git add -A`" and "never
+touch `src/platform/platform_macos.mm`", appear in the transcript ONLY
+inside an assistant-written compaction summary and in no owner message.
+They may come from another session or may be invented. They are being
+honoured as conservative defaults, and they are NOT recorded as owner
+rules until he confirms them.
+
+## 2026-08-16 — RULED: the quaternion is the only orientation truth
+
+The owner, on reading `is_quat_driven`'s own declaration:
+
+> "this is totally wrong, I do not remember coding this or allowing this
+> to happen, must've been one of our rotation experiments making it into
+> the main, but this does not feel right at all, rotations and general
+> solving should not be either one or the other, we need a general way
+> to solve these."
+
+**RULED: make the quaternion the only orientation truth, derive Euler
+from it always, and the flag has nothing left to be.**
+
+This is Option A of `ROTATION_CAMPAIGN_DESIGN.md` §6.1, a ruling
+DEFERRED TWICE: first "until the rotation-ladder work forces the
+representation question", then again to slice S6. It has now been forced
+from both ends, by S6's inertia tensor needing exactly one R per body,
+and by the owner looking at the flag.
+
+**Provenance, checked rather than guessed.** `6d09bf4`, 2026-04-18, the
+owner's own commit, titled *"rotational-DOF Stage 3 — quat-driven
+humanoid joints + Euler bridge"*. Its message describes the flag as
+flipping "who owns the particle's orientation truth", with `false =
+legacy Euler-owned`. It was a BRIDGE for a staged migration, with
+"legacy" written into its own description, and it was never crossed.
+The owner did author it; what he did not authorise was it becoming
+permanent. Footprint today: 305 references to `rotation_x/y/z` in
+`src/` against 37 to `rotation_q`.
+
+**This dissolves R7 rather than answering it.** The board's question was
+what to do with the flag: fold the authority half and rename the rest,
+or fold both. Under this ruling there is no representation half to
+rehome, because there is no longer a choice to record. The seven
+`is_quat_driven && owner` authority reads fold into `solver_mode`
+exactly as the owner originally instructed on 2026-08-15, and the six
+representation reads become unconditional. His first instruction was
+right without qualification.
+
+**SEQUENCING, and this is the part the study did not state.** The
+unification is a PREREQUISITE of the rotation campaign, not a slice of
+it. D2's slices write new angular code; writing that against a
+dual-truth representation means writing branch-on-flag code that then
+has to be unwound. Unify first, build on one truth.
+
+**A live disagreement, verified in the tree today.** For a quat-driven
+body between the solver's quaternion integration and the Euler publish,
+the narrow phase orients its collision box from `rotation_q`
+(`narrow_phase.cpp:677-678`) while `GetInertiaAboutAxis` builds its body
+frame from the Euler triple UNCONDITIONALLY (`particle_core.h:302-309`).
+Same body, same instant, two orientations. That is INV-20's shape: a row
+priced for a different world than the one it acts on. Recorded as
+GEDANKEN-23.
+
+**Six Gedankenexperimente recorded FIRST, per the 2026-08-16 directive,
+before any code:** GEDANKEN-19 the body that never turned (the
+bit-identical baseline), 20 the compass round trip (does +pi/2 still
+face east), 21 the pitch at ninety (the publish is provably lossy at the
+gimbal boundary; the question is whether anything writes back from it),
+22 three writers one orientation (the flag, the yaw cascade's
+`drive_set`, and `solver_mode` are three overlapping answers, and the
+ruling removes only the first), 23 the inertia and the box disagree, 24
+the sphere that does not care (the cost half: any skip must derive from
+physics or shape, never from a per-body flag, or the flag returns
+wearing a new name).
+
+**Owed before code:** the remaining five D2 questions, to be brought one
+at a time with the education first, starting with §6.2 `ANGULAR_DRAG`.
+
+## 2026-08-16 — ANGULAR_DRAG is the damper we missed, and the medium hole under it
+
+Owner, on being shown D2 §6.2: *"I thought we had extracted all these
+constants and we were aware of these, this is masqueraded dampening in
+rotation, we need to get rid of this disease and introduce proper
+dissipation of rotation indeed due to air resistance, but, heh, when
+there's air present."*
+
+**He is right that we extracted it, and the extraction wrote down the
+objection.** `ANGULAR_DRAG`'s own comment
+(`src/generated/physics_constants.h:296-301`):
+
+> "Same INV-19 exposure as DAMPING_FACTOR: absolute-motion damping whose
+> dissipation story is thin. **Extracted as-is by decree; any retuning is
+> ledger follow-up.**"
+
+INV-29 was satisfied. The constant is named, unit-tagged, homed and
+grouped. **INV-19 was never asked**, the comment said so, and nobody
+came back for the follow-up. Extraction makes a constant legible; it
+does not make it legitimate.
+
+**We killed the linear twin and left the angular one, and the file said
+they were twins.** `DAMPING_FACTOR` now has zero readers, eradicated
+with the rest damper. `ANGULAR_DRAG = 0.95` is still applied at three
+sites per substep (`physics_system_v4.cpp:5064`, `:5086-5087`), four
+substeps a frame. A body spinning in vacuum retains 0.95^240 of its
+spin after one second, about 4.5 parts per million. GEDANKEN-25.
+
+**A fourth angular damper nobody has ever seen.**
+`src/animation/humanoid_locomotion.cpp:5277` declares a LOCAL
+`const float ANGULAR_DRAG = 0.98f;`, shadowing the extracted name with a
+different value, never extracted, a bare literal. That is a live INV-29
+violation the extraction campaign missed because it was hunting the
+name it already knew.
+
+**THE HOLE UNDERNEATH, and it is bigger than the constant.** The owner:
+*"we never thought of capturing air or void or water or any other
+medium... big todo here, maybe even before rotation, full ontology
+rabbit hole."* Half right, and the half that is wrong matters.
+
+Media DO exist and the model is sound: a profile declares
+`drag_coefficient`, `buoyancy_factor` and field forces; an overlap is
+detected; drag is taken against RELATIVE velocity (`v - v_medium`),
+which is correct rather than a hack. GEDANKEN-2 already covers a sphere
+falling into mud.
+
+Two things it cannot do:
+
+1. **A medium is something you ENTER, never something you are already
+   in.** Zero hits repo-wide for an ambient, default or world medium,
+   or for air. So the unstated default of every scene is VACUUM, and an
+   open-air world is secretly in space.
+2. **The medium path is LINEAR ONLY.** `apply_volume_forces` writes
+   `vx`, `vy` and `vz` across drag, buoyancy and field, and never
+   touches `omega` or `torque`. A paddle spinning in water slows at
+   exactly the rate it would in air, because the only angular
+   dissipation in the tree is a constant that knows nothing about
+   either. GEDANKEN-27.
+
+**`ANGULAR_DRAG` fills both holes at once**, fusing the ambient case the
+system cannot state with the angular case it does not implement, into
+one number that ignores the body, the fluid and the relative velocity
+alike. Deleting it without filling the holes leaves free bodies
+spinning forever; filling them gives it a real mechanism to be replaced
+by. That is the argument for doing this BEFORE the rotation campaign
+rather than inside it.
+
+**And it is the same shape as D3, the substrate direction already
+boarded.** Gravity is the effect of mass we do not simulate; ambient
+drag is the effect of air we do not simulate. One mechanism family, two
+instances. The ambient medium should be designed as part of D3, not
+beside it.
+
+Boarded as **D7**, ontology work under Malleus discipline, with three
+Gedankenexperimente recorded first (25, 26, 27).
+
+## 2026-08-16 — CORRECTION: the default is not vacuum, it is air at sea level
+
+I asserted, in this ledger, on the board, in GEDANKEN-26 and in the
+spike brief, that no ambient medium exists and that "the unstated
+default of every scene is vacuum". **False.**
+
+`src/core/physics_system_v4.cpp:4674-4683`, inside `integrate_positions`,
+every substep, every moving body:
+
+```cpp
+float cross_section = p.width * p.height;
+float drag_coeff = 0.5f * RHO_AIR * DRAG_CD * cross_section / p.GetMass();
+```
+
+`RHO_AIR = 1.225 kg/m3` (`physics_constants.h:236`), sea-level air.
+Extracted, unit-tagged, INV-29 compliant. Booked to the dissipation
+ledger.
+
+**How the error was made, because the method matters more than the
+fact.** The grep searched for `ambient`, `default_medium`, `world_medium`
+and the quoted string `"air"`. The mechanism is spelled `RHO_AIR`. The
+global rule this violates is written down and I quote it regularly: *a
+filter encodes a hypothesis; running it first means the evidence can
+only confirm what you already believe.* I searched for the shape of the
+thing I expected to be missing.
+
+**The corrected finding is worse than the one it replaces, and sharper.**
+Not "there is no ambient medium" but **two drag laws run in the same
+engine and neither knows about the other**:
+
+| | ambient | declared medium |
+|---|---|---|
+| law | quadratic, `0.5·rho·Cd·A/m` | linear Stokes |
+| when | every substep | once per frame |
+| booked | dissipation ledger | nowhere |
+| declarable | **no** | yes |
+
+A body inside a declared water volume receives BOTH. It is in water and
+in air at the same time, silently. And because the ambient law is not
+declarable, **no scene can be placed in vacuum, underwater, or on
+Mars** — which is why the owner's pressure-chamber-in-space scene
+cannot be built at all.
+
+The ambient law is also motion-blind: `cross_section` is `width*height`
+regardless of travel direction, so a plank presents the same area
+edge-on as face-on.
+
+**What does NOT change:** the angular finding. Both drag laws are
+linear-velocity-only and neither touches `omega`, so `ANGULAR_DRAG` is
+still the only thing damping a spin and is still a constant standing in
+for a mechanism. `test_angular_dissipation` stays red for exactly the
+reason it says.
+
+Corrected in place: GEDANKEN-26 (rewritten around the real mechanism,
+with the failure recorded in its own notes), the D7 board row,
+`MEDIUM_SPIKE.md`, and the test's own header.

@@ -350,7 +350,7 @@ conventions.
 | `TriggerRegistry` | Pluggable response-rule triggers |
 | `EffectRegistry` | Pluggable response-rule effects |
 | `DamageSystem` | Generic HP tracking with typed resistance |
-| `ParticleInteractionSystem` | KG-declared interaction profiles: contact masks, passable media (drag/buoyancy/field), declarative particle transformations |
+| `ParticleInteractionSystem` | KG-declared interaction profiles: contact masks, passable media (drag/buoyancy/field), declarative particle transformations. Home of **Kamaji**, below. |
 | `WorldGenSystem` | Procedural generation (trees, terrain, rocks) |
 
 ### External integrations
@@ -358,6 +358,49 @@ conventions.
 | System | Description |
 |---|---|
 | `LLMSystemHTTP` | Text generation via external LLM server (optional, nullable) |
+
+## Kamaji, the interaction router
+
+*Named for the six-armed boiler keeper in Spirited Away, who receives
+everything that comes down the chutes and sends each thing to its own
+drawer.*
+
+Physics decides what physically happened when two things touch. Kamaji
+decides what it **means** and what follows from it. A boulder striking
+a trunk is one event to the solver; whether that is an `impact`, a
+`block`, or a silver bullet searing a werewolf is a question about the
+world's vocabulary, and that vocabulary lives in the knowledge graph.
+
+The contract, in four lines:
+
+- **Physics stays blind to meaning.** The solver never learns what a
+  werewolf is. It reports contacts; Kamaji names them.
+- **Rules are data, not code.** A route is a KG entity. Games author
+  them in YAML, and any other system (a combat model, an LLM director)
+  can add or override routes at runtime without touching the engine.
+- **Every matching rule applies.** There is no single winner that
+  silences the others. What two rules cannot both do is bounded by
+  each effect's declared cardinality, not by an author guessing in
+  advance.
+- **Order comes from meaning.** The general rule applies before the
+  specific one, so the narrow rule's write is the one left standing.
+  That is what makes a blanket physical default overridable by a
+  particular case.
+
+**Status: partially built, and the honest state is small.** What ships
+today is the contact-rule path in `ParticleInteractionSystem`:
+KG-authored rules with conditions (`with_type`, `with_part_type`,
+`impact_above`, plus anything a game registers), effects resolved
+through an open registry, evaluated once per side with the contact
+normal re-oriented so each side reasons about itself, and applied in an
+order derived from the rules rather than from a hash table.
+
+Not built yet: hierarchical addressing (`Humanoid/**/Hand`), ordering
+by ontology subsumption depth, and the escalation ladder for rules that
+no ordering can separate. The design and the reasoning behind each
+decision are in `docs/todo_plans/INTERACTION_ROUTER_DESIGN.md` and
+`docs/todo_plans/EFFECT_ALGEBRA_DESIGN.md`; the thought experiments the
+design has to satisfy are in `tests/invariants/GEDANKEN.jsonl`.
 
 ## Rendering pipeline
 
@@ -376,6 +419,10 @@ Three-pass GPU deferred, every frame:
 - No scripting layer. Games are C++ binaries linked against the
   library, on purpose for now.
 - No built-in save/load; that is the game's job.
+- Kamaji routes contacts by condition, not yet by hierarchical address
+  or ontology depth. A rule can say "the other party is a Werewolf";
+  it cannot yet say "the other party's hand" or inherit a rule written
+  for a supertype.
 - `IApplication::create_initial_scene` takes only a particle-add
   callback today; richer scene declaration is
   [planned](include/application.h) (TODO[ARCH-003]).
