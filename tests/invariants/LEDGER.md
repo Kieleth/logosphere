@@ -1190,3 +1190,79 @@ wearing a new name).
 
 **Owed before code:** the remaining five D2 questions, to be brought one
 at a time with the education first, starting with §6.2 `ANGULAR_DRAG`.
+
+## 2026-08-16 — ANGULAR_DRAG is the damper we missed, and the medium hole under it
+
+Owner, on being shown D2 §6.2: *"I thought we had extracted all these
+constants and we were aware of these, this is masqueraded dampening in
+rotation, we need to get rid of this disease and introduce proper
+dissipation of rotation indeed due to air resistance, but, heh, when
+there's air present."*
+
+**He is right that we extracted it, and the extraction wrote down the
+objection.** `ANGULAR_DRAG`'s own comment
+(`src/generated/physics_constants.h:296-301`):
+
+> "Same INV-19 exposure as DAMPING_FACTOR: absolute-motion damping whose
+> dissipation story is thin. **Extracted as-is by decree; any retuning is
+> ledger follow-up.**"
+
+INV-29 was satisfied. The constant is named, unit-tagged, homed and
+grouped. **INV-19 was never asked**, the comment said so, and nobody
+came back for the follow-up. Extraction makes a constant legible; it
+does not make it legitimate.
+
+**We killed the linear twin and left the angular one, and the file said
+they were twins.** `DAMPING_FACTOR` now has zero readers, eradicated
+with the rest damper. `ANGULAR_DRAG = 0.95` is still applied at three
+sites per substep (`physics_system_v4.cpp:5064`, `:5086-5087`), four
+substeps a frame. A body spinning in vacuum retains 0.95^240 of its
+spin after one second, about 4.5 parts per million. GEDANKEN-25.
+
+**A fourth angular damper nobody has ever seen.**
+`src/animation/humanoid_locomotion.cpp:5277` declares a LOCAL
+`const float ANGULAR_DRAG = 0.98f;`, shadowing the extracted name with a
+different value, never extracted, a bare literal. That is a live INV-29
+violation the extraction campaign missed because it was hunting the
+name it already knew.
+
+**THE HOLE UNDERNEATH, and it is bigger than the constant.** The owner:
+*"we never thought of capturing air or void or water or any other
+medium... big todo here, maybe even before rotation, full ontology
+rabbit hole."* Half right, and the half that is wrong matters.
+
+Media DO exist and the model is sound: a profile declares
+`drag_coefficient`, `buoyancy_factor` and field forces; an overlap is
+detected; drag is taken against RELATIVE velocity (`v - v_medium`),
+which is correct rather than a hack. GEDANKEN-2 already covers a sphere
+falling into mud.
+
+Two things it cannot do:
+
+1. **A medium is something you ENTER, never something you are already
+   in.** Zero hits repo-wide for an ambient, default or world medium,
+   or for air. So the unstated default of every scene is VACUUM, and an
+   open-air world is secretly in space.
+2. **The medium path is LINEAR ONLY.** `apply_volume_forces` writes
+   `vx`, `vy` and `vz` across drag, buoyancy and field, and never
+   touches `omega` or `torque`. A paddle spinning in water slows at
+   exactly the rate it would in air, because the only angular
+   dissipation in the tree is a constant that knows nothing about
+   either. GEDANKEN-27.
+
+**`ANGULAR_DRAG` fills both holes at once**, fusing the ambient case the
+system cannot state with the angular case it does not implement, into
+one number that ignores the body, the fluid and the relative velocity
+alike. Deleting it without filling the holes leaves free bodies
+spinning forever; filling them gives it a real mechanism to be replaced
+by. That is the argument for doing this BEFORE the rotation campaign
+rather than inside it.
+
+**And it is the same shape as D3, the substrate direction already
+boarded.** Gravity is the effect of mass we do not simulate; ambient
+drag is the effect of air we do not simulate. One mechanism family, two
+instances. The ambient medium should be designed as part of D3, not
+beside it.
+
+Boarded as **D7**, ontology work under Malleus discipline, with three
+Gedankenexperimente recorded first (25, 26, 27).
