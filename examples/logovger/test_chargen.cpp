@@ -2043,6 +2043,102 @@ void test_every_skill_table_row_is_validated_before_selection() {
           "roll or outcome mutation: " + error);
 }
 
+// The procedure's vocabulary cannot grow quietly.
+//
+// A primitive is the C++ behind one step; the registry declares its
+// name and the exit labels a seed may route on. Name plus exits is the
+// route contract, and it is what keeps the procedure data rather than
+// code, which makes the set of names a design surface rather than an
+// implementation detail. RPG_MODULE.md OPEN item 1 says new ones
+// surface for the owner's approval.
+//
+// Measured on 2026-08-15: the set grew from 8 to 17 and not one of the
+// nine additions was ever surfaced, #59 adding five in a single PR.
+// Nothing was harmed and nothing noticed, which is the same shape as
+// the rank 0 grants and the endpoints that validated nothing. A rule
+// with no gate is an intention.
+//
+// This does not prevent an addition and does not pretend to. It makes
+// one impossible to add QUIETLY: the author must edit
+// APPROVED_PRIMITIVES in the same commit, and that diff says in one
+// line that the procedure's vocabulary changed. A review trigger, not
+// a permission system.
+void test_no_primitive_enters_the_procedure_unapproved() {
+    const std::string text =
+        slurp(game_path("chargen/APPROVED_PRIMITIVES"));
+    CHECK(!text.empty(), "the approved-primitive list is readable");
+    if (text.empty()) return;
+
+    std::map<std::string, std::string> approved;
+    std::istringstream lines(text);
+    std::string line;
+    while (std::getline(lines, line)) {
+        const auto hash = line.find('#');
+        if (hash != std::string::npos) line = line.substr(0, hash);
+        const auto colon = line.find(':');
+        if (colon == std::string::npos) continue;
+        std::string name = line.substr(0, colon);
+        std::string labels = line.substr(colon + 1);
+        const auto trim = [](std::string& s) {
+            while (!s.empty() && std::isspace(static_cast<unsigned char>(
+                                     s.front()))) s.erase(s.begin());
+            while (!s.empty() && std::isspace(static_cast<unsigned char>(
+                                     s.back()))) s.pop_back();
+        };
+        trim(name);
+        trim(labels);
+        if (name.empty()) continue;
+        approved[name] = labels;
+    }
+
+    const auto registry = logovger::make_chargen_procedure_registry();
+    std::map<std::string, std::string> live;
+    for (const auto& name : registry.declared_names()) {
+        const auto* contract = registry.contract(name);
+        std::vector<std::string> labels(contract->route_labels.begin(),
+                                        contract->route_labels.end());
+        std::sort(labels.begin(), labels.end());
+        std::string joined;
+        for (const auto& label : labels) {
+            joined += (joined.empty() ? "" : ",") + label;
+        }
+        live[name] = joined;
+    }
+
+    std::string unapproved, missing, drifted;
+    for (const auto& entry : live) {
+        const auto found = approved.find(entry.first);
+        if (found == approved.end()) {
+            unapproved += (unapproved.empty() ? "" : ", ") + entry.first;
+        } else if (found->second != entry.second) {
+            drifted += (drifted.empty() ? "" : "; ") + entry.first +
+                       " declares [" + entry.second + "], approved as [" +
+                       found->second + "]";
+        }
+    }
+    for (const auto& entry : approved) {
+        if (!live.count(entry.first)) {
+            missing += (missing.empty() ? "" : ", ") + entry.first;
+        }
+    }
+
+    std::cout << "  [measure] " << live.size()
+              << " primitives declared, " << approved.size()
+              << " approved\n";
+    CHECK(unapproved.empty(),
+          "no primitive enters the procedure without approval. Bring it to "
+          "the owner, then add it to chargen/APPROVED_PRIMITIVES in the "
+          "same commit. Unapproved: " + unapproved);
+    // Both directions. A route contract that loosens silently changes
+    // what every seed may do, and a primitive removed from the registry
+    // while the list still promises it is equally a lie.
+    CHECK(drifted.empty(), "route contracts match what was approved: " +
+                               drifted);
+    CHECK(missing.empty(),
+          "the approved list does not promise primitives the registry no "
+          "longer declares: " + missing);
+}
+
 void test_procedure_data_drives_chargen_control_flow() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -2843,6 +2939,7 @@ int main() {
     test_skill_outcome_parameters_drive_the_executor();
     test_skill_table_dice_data_drives_selection();
     test_every_skill_table_row_is_validated_before_selection();
+    test_no_primitive_enters_the_procedure_unapproved();
     test_procedure_data_drives_chargen_control_flow();
     test_unknown_runtime_primitive_fails_before_character_state();
 
