@@ -125,41 +125,85 @@ slots:
             rendered,
         )
 
-    def test_pack_owned_relation_enum_emits_typed_relations(self):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            schema = root / "relations.yaml"
-            output = root / "registry.cpp"
-            schema.write_text(
-                """id: schema://relations
+    # The relation contract lives on the class. This test used to
+    # declare it on the enum, with `relation_type_enum: true` and
+    # valid_source_types / valid_target_types annotations on the
+    # permissible value. That mechanism was deleted on 2026-08-16, so
+    # the test moved with it rather than being deleted: the question it
+    # asks (does a pack get typed relations of its own) is still the
+    # right question.
+    RELATION_PACK = """id: schema://relations
 name: relations
 classes:
   Entity: {}
+  Relation:
+    abstract: true
   Left:
     is_a: Entity
   Right:
     is_a: Entity
+%s
 enums:
   PackRelationType:
-    annotations:
-      relation_type_enum: true
     permissible_values:
       LINKS:
-        annotations:
-          valid_source_types: Left
-          valid_target_types: Right
 """
-            )
 
+    LINKS_CLASS = """  LinksRelation:
+    is_a: Relation
+    slot_usage:
+      relation_type:
+        range: PackRelationType
+        equals_string: LINKS
+      source_id:
+        range: Left
+      target_id:
+        range: Right
+"""
+
+    def _render(self, body):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "relations.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(self.RELATION_PACK % body)
             generate_registry_cpp(
                 str(schema), "relations::ontology", str(output)
             )
-            rendered = output.read_text()
+            return output.read_text()
 
+    def test_pack_owned_relation_class_emits_typed_relations(self):
         self.assertIn(
             'reg.addRelationType("LINKS", {"Left"}, {"Right"});',
-            rendered,
+            self._render(self.LINKS_CLASS),
         )
+
+    def test_the_deleted_enum_path_is_dead(self):
+        """An enum alone emits no relation, and that is the point.
+
+        Under the old mechanism this exact schema produced a typed
+        relation. If it ever does again, two mechanisms are live and
+        they will drift. This is the replaced path proving it stays
+        dead, not a check that enums are ignored.
+        """
+        rendered = self._render("")
+        self.assertNotIn("addRelationType", rendered)
+        # And the control: the same schema WITH the class does emit, so
+        # this test cannot pass because the generator is simply broken.
+        self.assertIn("addRelationType", self._render(self.LINKS_CLASS))
+
+    def test_concrete_relation_without_a_pinned_predicate_is_refused(self):
+        """Silence is not an option here: an unpinned concrete relation
+        must fail the build, not generate nothing."""
+        unpinned = """  LinksRelation:
+    is_a: Relation
+    slot_usage:
+      relation_type:
+        range: PackRelationType
+"""
+        with self.assertRaises(ValueError) as caught:
+            self._render(unpinned)
+        self.assertIn("equals_string", str(caught.exception))
 
     def test_enum_identity_and_members_reach_registry_output(self):
         with tempfile.TemporaryDirectory() as td:
