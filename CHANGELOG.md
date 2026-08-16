@@ -22,10 +22,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   two independent newcomers each had to reassemble "how does a game
   start" by grep. `--shot` writes a PPM so a build can prove it renders.
   `docs/GETTING_STARTED.md` now points here.
-- **`examples/pacman/` and `examples/tetris/`.** Two complete games,
-  written by coding agents with no prior knowledge of the engine, in 29
-  and 25 minutes, with zero changes to engine source. Each ships the log
-  its author kept while working.
+- **`examples/logomanpac/` and `examples/logotriste/`.** Two complete
+  games, a maze chase and a falling-blocks well, written by coding agents
+  with no prior knowledge of the engine, in 29 and 25 minutes, with zero
+  changes to engine source. Each ships the log its author kept while
+  working, left verbatim. `logomanpac --shot` and `logotriste --shot`
+  write a PPM, and `at_logomanpac` asserts on pixels.
 - **`docs/NEWCOMER_RUNS.md`.** Two coding agents, two clean clones, one
   sentence of instruction each: a playable Pacman in 29 minutes and a
   playable Tetris in 25, both with zero changes to engine source. The

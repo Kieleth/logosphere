@@ -55,7 +55,7 @@ Note what is NOT in it: no hint about where to start, no mention of
 
 ## Results
 
-| | Pacman | Tetris |
+| | Logomanpac (maze) | Logotriste (blocks) |
 |---|---|---|
 | Builds | Yes. Documented command, verbatim, first try | Yes. Same |
 | Runs | Windowed and headless | Windowed and headless |
@@ -148,8 +148,13 @@ report's clothes.
    behaviour with a `TEMP` comment on it, not a documentation defect,
    and it is tracked separately rather than fixed in a docs branch.
 
-Both games are in the tree as `examples/pacman/` and `examples/tetris/`,
-with the log each agent wrote beside it.
+Both games are in the tree as `examples/logomanpac/` and
+`examples/logotriste/`, with the log each agent wrote beside it. They
+were renamed after the fact: the prompts above say Pacman and Tetris
+because that is what we typed, and what shipped carries our own names
+rather than somebody else's trademark. Each agent's log is left exactly
+as written, old paths and all, because a record that gets tidied
+afterwards is not a record.
 
 ## What this does and does not establish
 

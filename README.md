@@ -60,17 +60,18 @@ This part is for her. If you write games for a living, skip to
 
 Here is the thing worth knowing: **nobody typed these two games.**
 
-![Pacman, built on Logosphere by a coding agent in 29 minutes](assets/screenshots/pacman.png)
+![Logomanpac, built on Logosphere by a coding agent in 29 minutes](assets/screenshots/logomanpac.png)
 
-![Tetris, built on Logosphere by a coding agent in 25 minutes](assets/screenshots/tetris.png)
+![Logotriste, built on Logosphere by a coding agent in 25 minutes](assets/screenshots/logotriste.png)
 
 Two AI coding agents, two fresh copies of this repository, one
-instruction each, nobody to ask for help. A playing Pacman in **29
-minutes** and a playing Tetris in **25**. Neither changed a single line
-of the engine. Both wrote their own tests and ran them. Those two
-pictures are frames the games actually rendered, not mockups: Pacman is
-paused twelve seconds into a bot's run, Tetris is the moment it topped
-out at 195 lines. The whole account, including the five things our
+instruction each, nobody to ask for help. A playing maze-chase game in
+**29 minutes**, a playing falling-blocks game in **25**. You know both
+of them on sight, which is the point: they are the two games everybody
+can already judge. Neither agent changed a single line of the engine.
+Both wrote their own tests and ran them. Those pictures are frames the
+games actually rendered, not mockups: Logomanpac twelve seconds into a
+bot's run, Logotriste at the moment it topped out at 195 lines. The whole account, including the five things our
 documentation got wrong and made them waste time on, is in
 [docs/NEWCOMER_RUNS.md](docs/NEWCOMER_RUNS.md), prompts included.
 
@@ -118,12 +119,12 @@ cmake --build build -j
 **6. Play the games somebody else's robot wrote:**
 
 ```bash
-./build/pacman/pacman     # arrow keys
-./build/tetris/tetris     # arrows, space to drop, R to restart
-./build/minimal/minimal   # five boxes and nothing else, on purpose
+./build/logomanpac/logomanpac   # the maze one. arrow keys
+./build/logotriste/logotriste   # the blocks one. arrows, space, R
+./build/minimal/minimal         # five boxes, nothing else, on purpose
 ```
 
-If Pacman appears, you have a working game engine on your computer and
+If the maze appears, you have a working game engine on your computer and
 you have not written anything yet.
 
 ### Now make it yours
@@ -153,7 +154,7 @@ project you plan.
 - *"Make the maze fully 3D and tilt the camera down at 45 degrees."* The
   world already is 3D. The flat look is one projection setting, so this
   is a smaller change than it sounds.
-- *"Turn off the lights and give Pacman a torch that casts real
+- *"Turn off the lights and give the player a torch that casts real
   shadows."* Light here is computed and shadow is the absence of it, so
   the ghosts will genuinely hide behind corners. Nobody has to draw that.
 - *"Make the pellets physical, so the ones I miss roll down the corridor
@@ -164,7 +165,7 @@ project you plan.
 - *"Give each ghost a personality and let the model rewrite the one that
   killed me."* This is exactly what the Logotron example does with light
   cycles, so there is working code to point your agent at.
-- *"Make the Tetris pieces heavy and let them topple when the stack is
+- *"Make the falling pieces heavy and let them topple when the stack is
   uneven."* Real rigid bodies, real rotation, immediate chaos.
 - *"Add weather. I want it to snow in the maze."*
 
