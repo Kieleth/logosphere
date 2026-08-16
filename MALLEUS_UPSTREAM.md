@@ -232,6 +232,85 @@ run is exactly when they cannot tell the difference.
 
 ---
 
+## 6. An ontology that cannot hold a half-known concept forces a lie
+
+### For upstream
+
+This is a FEATURE request with a rite attached, not only a rite. The
+rite alone would report a gap malleus currently gives adopters no way
+to close.
+
+**The pain point.** Ingesting a body of published rules, a term is
+routinely used before the document defines it. Chapter 9 says
+"characters receive one benefit per term served" and *benefit* is
+defined in chapter 3, or chapter 14, or by example only. A reader
+processing chapter 9 has three moves available and all three are bad:
+invent a definition (a rule that is subtly wrong while reading
+perfectly), refuse the passage (which strands most of the document,
+because forward reference is normal prose, not an error), or write a
+string and resolve it later (which is the magic-strings heresy under a
+different name).
+
+The missing capability is a **provisional concept**: an entity that
+exists, is addressable, can be referenced and reinforced by later
+passages, and is typed so that nothing can read it as settled. Lewis's
+rule of accommodation is the formal ancestor: a presupposition required
+by what is said comes into existence, *provided nobody objects*. The
+objection clause is the part a knowledge system has to supply, and it
+is exactly what an ontology is for.
+
+Note this is close to, but not the same as, the staging overlay.
+Staging asks "has this claim been assented to". Accommodation asks "is
+this concept fully known yet". A staged claim about a settled concept
+and a committed claim about a half-known concept are different states
+and an adopter needs both.
+
+**The trap to specify against.** Reinforcement (counting later
+references) is valuable for ranking what to resolve first, and it must
+never promote. A concept referenced forty times and never defined is
+the most important open question in the ingest; it is not thereby
+defined. Any implementation where accumulated weight settles a concept
+has built a half-open gate on its own most load-bearing entities.
+
+```yaml
+  - id: provisional_concept_status
+    question: >-
+      When the source uses a concept before defining it, can the graph
+      hold that concept in a typed provisional state, and is that state
+      impossible to mistake for a settled one at read time?
+    severity: HERESY
+    lesson: >-
+      Documents introduce terms before defining them; this is normal
+      prose, not a defect in the source. A knowledge system with no
+      provisional state offers its writers three moves and all three
+      are heresies: invent the definition, refuse the passage, or store
+      an unresolved string and promise to fix it later. The third is the
+      one that gets chosen, because it is the only one that lets the
+      ingest continue, and it reintroduces magic strings under a name
+      nobody is watching. Require a distinct provisional status that is
+      addressable and referenceable, that names the source location
+      forcing it, that no executable path may consume, and that is
+      cleared only by a definition being found and judged. Reference
+      counting may rank the backlog and must never settle a concept:
+      promotion by accumulated weight rebuilds the half-open gate on
+      precisely the entities the graph leans on hardest. A system with
+      no such state will report a clean rejection rate while its writers
+      route around it, which is indistinguishable from a healthy one.
+```
+
+### Where we hit it
+
+Reading a published RPG rulebook into an executable graph. Full design
+and the prior art it rests on: `docs/CUMULATIVE_INGESTION.md` (R11 and
+R12 in `docs/REFLECTION_PROTOCOL.md`). We found it from the other end:
+our seed verifier takes the prior world as an optional argument, and
+the owner's ruling was that tightening that signature treats a
+representation gap as a call-signature defect. The caller's choice
+between a lie and a refusal exists whatever the signature says, because
+the ontology has nowhere to put a half-known concept.
+
+---
+
 ## Observation, not a lesson
 
 `MALLEUS_INQUISITION.md` records "rubric v1"; the rubric on this machine
