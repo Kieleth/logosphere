@@ -1122,3 +1122,71 @@ inside an assistant-written compaction summary and in no owner message.
 They may come from another session or may be invented. They are being
 honoured as conservative defaults, and they are NOT recorded as owner
 rules until he confirms them.
+
+## 2026-08-16 — RULED: the quaternion is the only orientation truth
+
+The owner, on reading `is_quat_driven`'s own declaration:
+
+> "this is totally wrong, I do not remember coding this or allowing this
+> to happen, must've been one of our rotation experiments making it into
+> the main, but this does not feel right at all, rotations and general
+> solving should not be either one or the other, we need a general way
+> to solve these."
+
+**RULED: make the quaternion the only orientation truth, derive Euler
+from it always, and the flag has nothing left to be.**
+
+This is Option A of `ROTATION_CAMPAIGN_DESIGN.md` §6.1, a ruling
+DEFERRED TWICE: first "until the rotation-ladder work forces the
+representation question", then again to slice S6. It has now been forced
+from both ends, by S6's inertia tensor needing exactly one R per body,
+and by the owner looking at the flag.
+
+**Provenance, checked rather than guessed.** `6d09bf4`, 2026-04-18, the
+owner's own commit, titled *"rotational-DOF Stage 3 — quat-driven
+humanoid joints + Euler bridge"*. Its message describes the flag as
+flipping "who owns the particle's orientation truth", with `false =
+legacy Euler-owned`. It was a BRIDGE for a staged migration, with
+"legacy" written into its own description, and it was never crossed.
+The owner did author it; what he did not authorise was it becoming
+permanent. Footprint today: 305 references to `rotation_x/y/z` in
+`src/` against 37 to `rotation_q`.
+
+**This dissolves R7 rather than answering it.** The board's question was
+what to do with the flag: fold the authority half and rename the rest,
+or fold both. Under this ruling there is no representation half to
+rehome, because there is no longer a choice to record. The seven
+`is_quat_driven && owner` authority reads fold into `solver_mode`
+exactly as the owner originally instructed on 2026-08-15, and the six
+representation reads become unconditional. His first instruction was
+right without qualification.
+
+**SEQUENCING, and this is the part the study did not state.** The
+unification is a PREREQUISITE of the rotation campaign, not a slice of
+it. D2's slices write new angular code; writing that against a
+dual-truth representation means writing branch-on-flag code that then
+has to be unwound. Unify first, build on one truth.
+
+**A live disagreement, verified in the tree today.** For a quat-driven
+body between the solver's quaternion integration and the Euler publish,
+the narrow phase orients its collision box from `rotation_q`
+(`narrow_phase.cpp:677-678`) while `GetInertiaAboutAxis` builds its body
+frame from the Euler triple UNCONDITIONALLY (`particle_core.h:302-309`).
+Same body, same instant, two orientations. That is INV-20's shape: a row
+priced for a different world than the one it acts on. Recorded as
+GEDANKEN-23.
+
+**Six Gedankenexperimente recorded FIRST, per the 2026-08-16 directive,
+before any code:** GEDANKEN-19 the body that never turned (the
+bit-identical baseline), 20 the compass round trip (does +pi/2 still
+face east), 21 the pitch at ninety (the publish is provably lossy at the
+gimbal boundary; the question is whether anything writes back from it),
+22 three writers one orientation (the flag, the yaw cascade's
+`drive_set`, and `solver_mode` are three overlapping answers, and the
+ruling removes only the first), 23 the inertia and the box disagree, 24
+the sphere that does not care (the cost half: any skip must derive from
+physics or shape, never from a per-body flag, or the flag returns
+wearing a new name).
+
+**Owed before code:** the remaining five D2 questions, to be brought one
+at a time with the education first, starting with §6.2 `ANGULAR_DRAG`.
