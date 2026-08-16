@@ -144,9 +144,10 @@ report's clothes.
 4. `write_if_changed` creates its parent directory. One line, plus a
    comment saying it is invisible until somebody adds a game, which is
    why it survived this long.
-5. Not fixed: the unconditional `[TIMING]` print. It is engine
-   behaviour with a `TEMP` comment on it, not a documentation defect,
-   and it is tracked separately rather than fixed in a docs branch.
+5. The unconditional `[TIMING]` print is deleted, along with the four
+   timestamps that fed it. A five-second headless run of the minimal
+   example emitted 282,352 lines before and 82 after. The engine had
+   proper telemetry phase markers three lines away the whole time.
 
 Both games are in the tree as `examples/logomanpac/` and
 `examples/logotriste/`, with the log each agent wrote beside it. They

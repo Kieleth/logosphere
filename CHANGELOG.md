@@ -60,6 +60,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   boundary or on anchored bonds (INV-1).
 
 ### Fixed
+- **The engine no longer shouts over your game.** A `// TEMP` debug print
+  at `engine.cpp:1292` wrote frame timings to stdout every 30 frames, in
+  Release, with no flag to stop it: neither `show_performance_metrics`
+  nor `show_debug_overlay` touched it. Headless runs are uncapped, so
+  "every 30 frames" meant tens of thousands of lines a second. Measured
+  on a five-second run of `examples/minimal`: **282,352 lines before,
+  82 after**, of which 282,270 were the print. Its four
+  `high_resolution_clock` timestamps went with it; the telemetry phase
+  markers beside them already do this job properly.
 - **The Getting Started tutorial no longer contains a line that does not
   compile.** `docs/GETTING_STARTED.md` and `docs/GAME_LAYER.md` both told
   the reader to override `display_framebuffer`, removed in Phase 6 of the
