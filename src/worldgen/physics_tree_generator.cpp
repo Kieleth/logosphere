@@ -28,7 +28,7 @@ PhysicsTreeGenerator::~PhysicsTreeGenerator()
 {
 }
 
-void PhysicsTreeGenerator::initialize(Engine *engine)
+void PhysicsTreeGenerator::initialize(Engine* engine)
 {
     engine_ = engine;
     physics_ = &engine->get_physics_system();
