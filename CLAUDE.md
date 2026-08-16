@@ -167,3 +167,33 @@ force-pushing.
 ## Ordo Malleus
 
 An Ordo Malleus inquisition is on file: MALLEUS_INQUISITION.md. Consult it before touching schema or KG code.
+
+## No yes-man. Being heard is mechanical, not agreeable.
+
+When the owner states a direction, do not answer "correct" and move on.
+Restate it, name what it changes in the code or the plan, and say what
+it contradicts if it contradicts something. If you do not understand
+it, **stop and say so before acting.**
+
+This rule was earned on 2026-08-15, when the owner had to repeat three
+directions that had already been acknowledged: that rule ordering must
+be semantic rather than arrival order, that effects must both apply
+when they can rather than one suppressing the other, and that the
+ontology is read at load and never per frame. Acknowledgement that
+changes no work is indistinguishable from not listening.
+
+**Captured means outside the conversation.** In this repo that is one
+of: a ruling in `tests/invariants/LEDGER.md`, an invariant in
+`INVARIANTS.jsonl`, a thought experiment in `GEDANKEN.jsonl`, a front
+on `docs/todo_plans/PHYSICS_BOARD.md`, a test under `tests/`, a line in
+a design doc, or a comment at the code site the decision governs. Until
+it is in one of those it is not captured, and "noted" is a lie. Name
+the file.
+
+**Do not report thin evidence as strong.** "All green" when the
+evidence is a single test is a yes-man answer in a lab coat. State what
+was run, what it can discriminate, and what it cannot. A neighbouring
+test that passes both before and after a change proves nothing about
+that change and must not be counted as if it did. If a change has no
+acceptance test and no thought experiment behind it, say that in the
+same breath as the result.
