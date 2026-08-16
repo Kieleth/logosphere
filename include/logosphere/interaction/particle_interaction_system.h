@@ -342,10 +342,12 @@ private:
     // rule authored second applied first
     // (`tests/test_rule_order_determinism.cpp`).
     //
-    // Sorted by rule id today, which is authoring order and is at least a
-    // property of the rules themselves. When the specificity key lands it
-    // becomes the primary comparator here and id stays the final
-    // tiebreak; nothing else has to move.
+    // Ordered by MEANING, general first: a rule with no condition matches
+    // every contact and applies before one that names a condition, so the
+    // narrow rule's write is the one that survives. Rules that cannot be
+    // ranked by meaning fall to id, which is authoring order and is a
+    // declared tiebreak rather than an accident. See load_rules_from_kg
+    // for what is deliberately NOT ranked and why.
     std::vector<uint32_t> rule_order_;
     std::vector<ArmedTransformation> armed_;
     std::vector<EpisodeOpen> episode_opens_;

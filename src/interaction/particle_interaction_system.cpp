@@ -497,14 +497,40 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
     // made it depend on which rule was authored first, backwards
     // (`tests/test_rule_order_determinism.cpp` measures it).
     //
-    // Sorted by id, which is authoring order. That is not a claim about
-    // which rule SHOULD win, a question the specificity design answers
-    // and this does not prejudge: when that key lands it becomes the
-    // primary comparator and id remains the final tiebreak.
+    // ORDERED BY MEANING, GENERAL FIRST. A rule that states no condition
+    // describes every contact, so it is the catch-all; a rule that states
+    // one describes fewer. The general one applies FIRST and the specific
+    // one LAST, because for any last-write-wins effect the last write is
+    // the one that survives. That is what makes "default, then override"
+    // work: a blanket rule can set the ordinary outcome and a narrow rule
+    // can replace it, which is the shape the physics-default `else`
+    // branch needs.
+    //
+    // Only that one distinction is drawn here, and only because it is
+    // derivable: no condition matches a strict superset of what any
+    // condition matches. Finer ranking is NOT attempted:
+    //   - type depth (Werewolf under Shapeshifter) waits on the default
+    //     hierarchy policy, R5's residual;
+    //   - threshold tightness (impact_above:5 inside impact_above:1) is
+    //     derivable but only BETWEEN two rules using that same condition,
+    //     and a single sort key cannot express that without also ranking
+    //     unlike conditions against each other, which is a claim nobody
+    //     has made;
+    //   - with_type against with_part_type is genuinely incomparable, the
+    //     same crossing-sets shape as R5.
+    // Everything unranked falls to id, which is authoring order and is
+    // the declared tiebreak rather than an accident.
+    auto tier = [this](uint32_t id) {
+        return rules_.at(id).condition.empty() ? 0 : 1;
+    };
     rule_order_.clear();
     rule_order_.reserve(rules_.size());
     for (const auto& [id, r] : rules_) rule_order_.push_back(id);
-    std::sort(rule_order_.begin(), rule_order_.end());
+    std::sort(rule_order_.begin(), rule_order_.end(),
+              [&](uint32_t a, uint32_t b) {
+                  const int ta = tier(a), tb = tier(b);
+                  return (ta != tb) ? (ta < tb) : (a < b);
+              });
 
     // Refresh the hot-path gate once, here, rather than scanning rules
     // every frame in process_contacts.

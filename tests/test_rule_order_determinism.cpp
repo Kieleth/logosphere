@@ -86,10 +86,16 @@ kg::OntologyRegistry game_types() {
     return reg;
 }
 
-// One contact between two KG-backed particles, and two unconditional
-// ON_CONTACT rules whose only difference is their tag. `first` is
-// authored first and so receives the lower EntityID.
-std::vector<std::string> run(const char* first, const char* second) {
+// One rule as authored: the tag its effect records, and the condition
+// that decides whether it matches ("" = unconditional, matches always).
+struct Rule {
+    const char* tag;
+    const char* condition;
+};
+
+// One contact between two KG-backed particles and the given rules, in the
+// order given. The first authored receives the lower EntityID.
+std::vector<std::string> run_rules(const std::vector<Rule>& rules) {
     g_order.clear();
 
     kg::KGModule kg{logosphere::ontology::registry()};
@@ -107,12 +113,12 @@ std::vector<std::string> run(const char* first, const char* second) {
     body("Striker", "Head", 100);
     body("Struck", "Torso", 200);
 
-    for (const char* tag : { first, second }) {
+    for (const Rule& rule : rules) {
         kg::EntityID r = kg.createEntity("TransformationRule");
         kg.setProperty(r, "trigger", "on_contact");
-        kg.setProperty(r, "effect", std::string("record:") + tag);
-        // condition left empty: unconditional, so BOTH rules match the
-        // one contact and this is a test about order, not about matching.
+        kg.setProperty(r, "effect", std::string("record:") + rule.tag);
+        if (rule.condition && *rule.condition)
+            kg.setProperty(r, "condition", rule.condition);
     }
     sys.load_rules_from_kg(kg);
 
@@ -163,8 +169,9 @@ int main() {
             g_order.push_back(args);
         });
 
-    const auto a = run("alpha", "beta");   // alpha authored first
-    const auto b = run("beta", "alpha");   // beta authored first
+    std::printf("\n-- equally specific rules: the tiebreak is authoring --\n");
+    const auto a = run_rules({ {"alpha", ""}, {"beta", ""} });
+    const auto b = run_rules({ {"beta", ""}, {"alpha", ""} });
 
     std::printf("  [measure] alpha authored first: %s\n", join(a).c_str());
     std::printf("  [measure] beta  authored first: %s\n", join(b).c_str());
@@ -187,9 +194,43 @@ int main() {
     check(pb.size() == 2 && pb[0] == "beta" && pb[1] == "alpha",
           "authored beta then alpha: beta applies first (the control)");
 
-    printf("\n  Equally specific rules apply in authoring order. When the\n"
-           "  specificity key lands it becomes the primary comparator and\n"
-           "  this stays the tiebreak, so this expectation does not move.\n");
+    printf("\n  Equally specific rules apply in authoring order, which is\n"
+           "  the declared tiebreak beneath the ordering by meaning below.\n");
+
+    // -- The ordering that is about MEANING ---------------------------
+    //
+    // A rule with no condition describes EVERY contact. A rule that names
+    // a condition describes fewer. The general one must apply FIRST, so
+    // that when both write the same thing the narrow one's write is the
+    // one left standing. This is what lets a blanket default be
+    // overridden by a specific case, and it must hold no matter which of
+    // the two the author happened to type first.
+    //
+    // `with_type:Struck` is the condition, and it matches: the contact
+    // below is evaluated per side, and one of those sides sees a Struck
+    // as the other party.
+    std::printf("\n-- general before specific, whatever the authoring order --\n");
+    const auto gs = run_rules({ {"general", ""},
+                                {"specific", "with_type:Struck"} });
+    const auto sg = run_rules({ {"specific", "with_type:Struck"},
+                                {"general", ""} });
+
+    std::printf("  [measure] general authored first:  %s\n", join(gs).c_str());
+    std::printf("  [measure] specific authored first: %s\n", join(sg).c_str());
+
+    const auto pgs = first_pass(gs);
+    const auto psg = first_pass(sg);
+
+    // Control: the conditional rule has to actually match, or "general
+    // first" would be trivially true because `specific` never ran.
+    check(pgs.size() == 2 && psg.size() == 2,
+          "the conditional rule really matched (both rules ran)");
+
+    check(pgs.size() == 2 && pgs[0] == "general" && pgs[1] == "specific",
+          "authored general first: the general rule still applies first");
+    check(psg.size() == 2 && psg[0] == "general" && psg[1] == "specific",
+          "authored specific first: the general rule STILL applies first "
+          "(order comes from meaning, not from typing order)");
 
     std::printf("\n  %s (%d failures)\n",
                 failures == 0 ? "ORDER IS A DECLARED CONTRACT"
