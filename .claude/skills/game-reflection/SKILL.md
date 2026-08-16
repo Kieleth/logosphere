@@ -131,6 +131,17 @@ happening once, so treat the rule as live but unenforced and ask.
   an unresolvable term is a raised finding, never a guessed meaning.
   "No magic strings" applies to concepts too. Full statement: R11 in
   `docs/REFLECTION_PROTOCOL.md`. This is the rule the module turns on.
+- **A term used before it is defined CREATES a provisional concept.**
+  R12, decided 2026-08-16, gate not built yet. No real book admits an
+  order where every term precedes its use, so the requirement is a
+  CLOSED QUEUE rather than a perfect order. Provisional is a distinct
+  status nothing may execute against; it names the passage that forced
+  it; every later reference reinforces it, which RANKS the queue by the
+  book's own usage; the queue closes before the world is playable.
+  Reinforcement measures importance and **never** resolution: forty
+  references do not define a term, and promoting on count rebuilds the
+  half-open gate on exactly the most load-bearing concepts in the
+  graph. Promotion needs a definition, found and judged.
 - **Structure is judged, content is copied.** A model decides which
   rows belong to which table, which cell is a footnote, where a column
   wrapped. It NEVER types the text. Bytes come from a tool that
