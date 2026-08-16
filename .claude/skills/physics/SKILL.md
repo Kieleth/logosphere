@@ -20,6 +20,12 @@ applies to anyone working on physics here, human or agent.
    work touches) launched FOR the owner: tee output to /tmp, never
    kill or timeout the process, the owner closes it. Headless green is
    necessary, never sufficient. Do this unprompted.
+   **Never pipe a run the owner is meant to see through `| head`, `|
+   tail` or `| grep`.** It truncates the very output they asked for and,
+   for a windowed run, the pipe can stop it executing at all. This one
+   broke five separate runs before it was written down: "run it here
+   with tee into tmp, no `| head`" and, four days later, "lets see how
+   many times I need to remind you this one".
 2. **The owner participates in every decision.** Present options with
    evidence and a recommendation if asked; the owner rules. Never pick
    "the obvious option" on their behalf, never merge without their
@@ -68,6 +74,16 @@ Four rules, non-negotiable:
   tail before proposing anything the owner may already have ruled on.
 - `tests/invariants/TEST_AUDIT.jsonl` — every physics test: what it
   proves, which INVs it touches, expected verdict, known_open.
+- `tests/invariants/GEDANKEN.jsonl` — the Gedankenexperimente. The
+  simplest possible thought experiment for each design question
+  (bullet into wall, sphere into mud), recorded the way an INV is
+  recorded: setup, question, expected, composition, carrier, status.
+  **Owner directive, 2026-08-16: "we need to gedankenxperimente hard
+  from now on... we need to blast this."** Every design question spawns
+  its experiments BEFORE any options are presented and long before any
+  code. An experiment written after the code it describes is a failure
+  of this rule, and must say so in its own notes field rather than be
+  backdated (see GEDANKEN-11).
 - `docs/todo_plans/PHYSICS_PIPELINE_SEQUENCE.md` — the solve loop as
   it actually executes, with the hazard edges. Any solve-loop change
   must respect (and update) this.
