@@ -255,6 +255,126 @@ jobs:
           ./build-consumer/consumer-smoke
 
   # ---------------------------------------------------------------------------
+  # Linux: the same headless profile under AddressSanitizer and
+  # UndefinedBehaviorSanitizer.
+  #
+  # WHY THIS LANE EXISTS. A use-after-lifetime bug shipped and sat
+  # undetected on every platform CI runs. find_choice returned a pointer
+  # INTO choices_, callers cleared choices_, and the answer was read
+  # afterwards. libc++ and libstdc++ leave a cleared vector's bytes where
+  # they were, so Linux and macOS were green for as long as those were the
+  # only compilers in play; MSVC zeroes a destroyed small string, so
+  # everyone who submitted to the Draft quietly became a Drifter and
+  # headless-windows went red for a reason no lane could explain. Nothing
+  # in this file could see it. ASan saw it in one run, as a
+  # container-overflow with a line number (fixed in a7870c5, #132).
+  #
+  # A test suite answers "does the code do the right thing". This answers
+  # "is the code allowed to do it at all", and those are different
+  # questions. It is the only lane here that asks the second one.
+  #
+  # PROFILE: core. Two reasons, and the first is the one that matters.
+  # The code that had the bug (examples/logovger/chargen) is compiled and
+  # run by this profile and no other, so this is where the sanitizer's
+  # value actually is. It is also the cheapest profile: no GLFW, no Metal,
+  # no Objective-C++, nothing that needs a display.
+  #
+  # ADVISORY, not merge-blocking. It is not in the required contexts on
+  # main, which is deliberate and matches full-macos: a sanitizer finding
+  # should be loud and visible rather than hidden, without holding up
+  # somebody else's unrelated merge.
+  #
+  # MEASURED COST (dev machine, AppleClang, 16 cores, against Release):
+  #   build                     770s CPU / 80s wall
+  #   ctest minus test_chargen  13s wall at -j4, 32s CPU
+  #   12 sanitized lives        102s wall, 8.5s each
+  #   test_chargen              565s, against 74s unsanitized. 7.6x.
+  # The sanitizers cost between 5.5x and 7.6x here, not the 2x they are
+  # usually quoted at.
+  # ---------------------------------------------------------------------------
+  sanitizers-linux:
+    runs-on: ubuntu-latest
+    env:
+      # A stack trace with a line number, or the report is a puzzle.
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ ninja-build
+
+      # RelWithDebInfo, not Debug: the reports need symbols and line
+      # numbers, and the tests need to finish. -fno-sanitize-recover=all
+      # makes UBSan abort on the first finding instead of printing it and
+      # carrying on, which is the difference between a gate and a log.
+      - name: Configure (core profile, ASan + UBSan)
+        run: |
+          cmake -S . -B build-san -G Ninja \
+            -DLOGOSPHERE_PROFILE=core \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build logosphere_core + headless tests
+        timeout-minutes: 10
+        run: cmake --build build-san -j $(nproc)
+
+      # EXCLUDED, and named rather than dropped quietly: test_chargen.
+      #
+      # It plays 288 lives in one process and costs 565s under the
+      # sanitizers against 74s without them, measured on hardware faster
+      # than this runner. It would blow the 10-minute cap on its own and
+      # tell us nothing the next step does not.
+      #
+      # What it would have covered is covered, by the step below: the
+      # translation unit that had the bug is examples/logovger/chargen,
+      # and logovger-headless compiles and runs the same file. A memory
+      # error on the chargen path shows on the first life that walks it,
+      # not on the 288th. test_chargen still runs unsanitized in
+      # headless-linux, where it is the rule-space sweep it was built to
+      # be.
+      #
+      # Everything else in the profile runs here, all 89 of them.
+      - name: Run headless test suite under the sanitizers (minus test_chargen)
+        timeout-minutes: 10
+        working-directory: build-san
+        run: ctest --output-on-failure -j $(nproc) -E '^test_chargen$'
+
+      # TWELVE lives, and the number is argued rather than picked.
+      #
+      # A sanitized life costs 8.5s here against 1.5s clean, so the 60
+      # that headless-linux plays would cost around 500s on this runner
+      # and probably more. Twelve is what fits with room to spare.
+      #
+      # Twelve is enough because of what this step is FOR. It is not the
+      # rule-space sweep (headless-linux plays 60 unsanitized, and
+      # test_chargen plays 288 in-process); it is a walk down the chargen
+      # code path with the sanitizers watching, and a lifetime error there
+      # is deterministic once the path is walked at all. Measured on seeds
+      # 1 through 12: three reach the Draft branch and four the Drifter
+      # branch, which is both sides of the exact fork the shipped bug
+      # corrupted.
+      - name: Play 12 lives under the sanitizers
+        timeout-minutes: 10
+        run: |
+          failed=""
+          for seed in $(seq 1 12); do
+            ./build-san/logovger-headless --random "$seed" >/tmp/life-$seed.txt 2>&1 \
+              || failed="$failed $seed"
+          done
+          if [ -n "$failed" ]; then
+            echo "lives that aborted under the sanitizers:$failed"
+            set -- $failed
+            echo "--- seed $1, in full ---"
+            cat "/tmp/life-$1.txt"
+            exit 1
+          fi
+          echo "12 lives, none aborted"
+
+  # ---------------------------------------------------------------------------
   # macOS: full engine (Metal, GLFW, physics, examples). Free on public
   # repositories; advisory (not merge-blocking) while runtimes settle.
   # ---------------------------------------------------------------------------
