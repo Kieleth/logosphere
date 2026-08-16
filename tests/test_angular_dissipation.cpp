@@ -34,10 +34,18 @@
 //
 // Both are red today for the same reason, and the reason is one
 // constant standing in for two mechanisms the engine does not have:
-// an AMBIENT medium (a medium is currently something you ENTER, so the
-// unstated default of every scene is vacuum) and ANGULAR coupling to a
-// medium (`apply_volume_forces` writes vx/vy/vz and never touches
-// omega). Boarded as D7.
+// a DECLARABLE ambient medium and ANGULAR coupling to one.
+//
+// CORRECTION (2026-08-16): an ambient medium DOES exist and this file
+// first said it did not. Quadratic drag against RHO_AIR = 1.225 runs on
+// every moving body every substep (physics_system_v4.cpp:4674-4683).
+// It is not declarable, so no scene can be set in vacuum, and it runs
+// ALONGSIDE the linear medium drag rather than instead of it. What is
+// genuinely absent is any ANGULAR counterpart: `apply_volume_forces`
+// writes vx/vy/vz and never touches omega, and the ambient law is
+// linear-velocity-only too. So the angular finding below stands
+// unchanged; only the story about what surrounds the body was wrong.
+// Boarded as D7.
 //
 // Run: ./build/test_angular_dissipation
 // =============================================================================
@@ -131,9 +139,10 @@ int main() {
                 "            LINEAR ONLY (apply_volume_forces writes\n"
                 "            vx/vy/vz and never omega), so a submerged\n"
                 "            body and an airborne one cannot differ.\n");
-    std::printf("  [note] and there is no ambient medium to be the 'air'\n"
-                "         half of the comparison: a medium is something a\n"
-                "         body ENTERS, so open air is vacuum. D7.\n");
+    std::printf("  [note] ambient air DOES exist (quadratic, RHO_AIR),\n"
+                "         but it is linear-velocity-only and not\n"
+                "         declarable, so it damps no spin and no scene\n"
+                "         can opt out of it. D7.\n");
 
     std::printf("\n  %s (%d failures)\n",
                 failures == 0 ? "ANGULAR DISSIPATION IS PHYSICAL"

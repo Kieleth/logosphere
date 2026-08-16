@@ -79,8 +79,11 @@ against this; the owner participates in the answer.
   `drag_coefficient`, `buoyancy_factor` and a field force; overlaps are
   detected; forces are applied to the intruder. Drag is taken against
   RELATIVE velocity, which is the right form.
-- **No ambient medium.** Zero hits repo-wide. The unstated default of
-  every scene is vacuum.
+- **An ambient medium DOES exist and I missed it.** Quadratic drag
+  against `RHO_AIR = 1.225` on every moving body every substep
+  (`physics_system_v4.cpp:4674-4683`). It is not declarable, so no
+  scene can be set in vacuum, and it runs ALONGSIDE the linear medium
+  drag rather than instead of it.
 - **Linear only.** `apply_volume_forces` writes `vx/vy/vz` and never
   touches `omega` or `torque`.
 - The solver is **XPBD / sequential impulse**, which matters: position

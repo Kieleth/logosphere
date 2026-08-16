@@ -1266,3 +1266,60 @@ beside it.
 
 Boarded as **D7**, ontology work under Malleus discipline, with three
 Gedankenexperimente recorded first (25, 26, 27).
+
+## 2026-08-16 — CORRECTION: the default is not vacuum, it is air at sea level
+
+I asserted, in this ledger, on the board, in GEDANKEN-26 and in the
+spike brief, that no ambient medium exists and that "the unstated
+default of every scene is vacuum". **False.**
+
+`src/core/physics_system_v4.cpp:4674-4683`, inside `integrate_positions`,
+every substep, every moving body:
+
+```cpp
+float cross_section = p.width * p.height;
+float drag_coeff = 0.5f * RHO_AIR * DRAG_CD * cross_section / p.GetMass();
+```
+
+`RHO_AIR = 1.225 kg/m3` (`physics_constants.h:236`), sea-level air.
+Extracted, unit-tagged, INV-29 compliant. Booked to the dissipation
+ledger.
+
+**How the error was made, because the method matters more than the
+fact.** The grep searched for `ambient`, `default_medium`, `world_medium`
+and the quoted string `"air"`. The mechanism is spelled `RHO_AIR`. The
+global rule this violates is written down and I quote it regularly: *a
+filter encodes a hypothesis; running it first means the evidence can
+only confirm what you already believe.* I searched for the shape of the
+thing I expected to be missing.
+
+**The corrected finding is worse than the one it replaces, and sharper.**
+Not "there is no ambient medium" but **two drag laws run in the same
+engine and neither knows about the other**:
+
+| | ambient | declared medium |
+|---|---|---|
+| law | quadratic, `0.5·rho·Cd·A/m` | linear Stokes |
+| when | every substep | once per frame |
+| booked | dissipation ledger | nowhere |
+| declarable | **no** | yes |
+
+A body inside a declared water volume receives BOTH. It is in water and
+in air at the same time, silently. And because the ambient law is not
+declarable, **no scene can be placed in vacuum, underwater, or on
+Mars** — which is why the owner's pressure-chamber-in-space scene
+cannot be built at all.
+
+The ambient law is also motion-blind: `cross_section` is `width*height`
+regardless of travel direction, so a plank presents the same area
+edge-on as face-on.
+
+**What does NOT change:** the angular finding. Both drag laws are
+linear-velocity-only and neither touches `omega`, so `ANGULAR_DRAG` is
+still the only thing damping a spin and is still a constant standing in
+for a mechanism. `test_angular_dissipation` stays red for exactly the
+reason it says.
+
+Corrected in place: GEDANKEN-26 (rewritten around the real mechanism,
+with the failure recorded in its own notes), the D7 board row,
+`MEDIUM_SPIKE.md`, and the test's own header.
