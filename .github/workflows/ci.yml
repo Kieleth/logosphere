@@ -270,6 +270,36 @@ jobs:
         timeout-minutes: 1
         run: ./build/logosphere-tests --test
 
+      # Engine tests that NO lane ran. They are macOS-only (Cocoa,
+      # Metal, a real Engine), so this is the only lane that can, and
+      # they were compiled on every build and executed by nothing. Both
+      # had been failing on main for as long as anyone can tell, which
+      # is what "main is green" was actually worth.
+      #
+      # EXPECTED RED, deliberately. test_humanoid_terrain_scenarios
+      # fails three litter-underfoot cases: a walker over ground for 27%
+      # to 40% of a path that should be 100%. That is locomotion and
+      # belongs to whoever owns the physics work. Hiding it until they
+      # get to it is exactly how it stayed hidden. This lane is advisory
+      # and not a required check, so the red is loud without blocking
+      # anyone's merge.
+      #
+      # Add tests here as they earn it. Anything macOS-only that nothing
+      # else runs belongs in this list, not in a comment saying it
+      # should be.
+      - name: Run engine tests no other lane covers
+        timeout-minutes: 15
+        run: |
+          failed=""
+          for t in test_determinism_guards test_humanoid_terrain_scenarios; do
+            echo "=== $t ==="
+            ./build/$t || failed="$failed $t"
+          done
+          if [ -n "$failed" ]; then
+            echo "engine tests failing:$failed"
+            exit 1
+          fi
+
   # ---------------------------------------------------------------------------
   # Windows: headless subset under MSVC. Verifies the core profile is the
   # portable C++17 it claims to be (issue #7). Advisory: not merge-blocking
