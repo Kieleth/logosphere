@@ -154,8 +154,48 @@ an engine that emits `hit` with the same semantics are the same
 sentence spoken twice. That is the direction; write each assertion as
 if it were about to become a building block, because it is.
 
+## GEDANKENEXPERIMENTE COME FIRST (directive, 2026-08-16)
+
+Owner: *"we need to gedankenxperimente hard from now on... we need to
+blast this."*
+
+**Every design question spawns its thought experiments BEFORE any
+options are presented, and long before any code.** The method is the
+owner's, stated when the registry was created:
+
+1. Start from the SIMPLEST possible experiment. Bullet particle into
+   wall particle. Sphere into mud. Not the interesting case, the
+   irreducible one.
+2. For each, work out which mechanisms must be in place for the
+   COMBINATION to produce the right overall behaviour, across
+   animation and physics together.
+3. From those, derive what the language and the semantics must allow.
+
+Each is recorded in `tests/invariants/GEDANKEN.jsonl` the way an INV is
+recorded: `setup`, `question`, `expected`, `effects_required`,
+`composition`, `invariants`, `carrier` (with `[E]` file:line evidence
+or `[GAP]`), `forces`, `status` (`settled` | `open`), `notes`.
+
+Three rules that make the registry worth having:
+
+- **An experiment written AFTER the code it describes is a failure of
+  this directive.** Record it, say so in its own `notes` field, and do
+  not backdate it. GEDANKEN-11 is the standing example.
+- **Prefer the experiment that can come out either way.** One whose
+  answer is already obvious teaches nothing. GEDANKEN-12 exists only
+  because it removes one detail from GEDANKEN-11 and flips the answer,
+  which is what exposed that effects never declare what they write.
+- **`status: open` is the useful state.** An open experiment names
+  exactly what is missing and why, and several of them are the best
+  arguments in the design (GEDANKEN-16 is the whole justification for
+  hierarchical addresses). Do not rush them to `settled`.
+
 ## Ruling protocol
 
+0. **Gedankenexperimente first.** Before options exist, the simplest
+   experiments that discriminate between them are recorded. If the
+   question cannot be reduced to an experiment, it is not yet
+   understood well enough to put to the owner.
 1. Bring the question with its education (rule 3) and options with
    evidence. One question at a time when the owner says so.
 2. Owner rules → append the ruling to `LEDGER.md` with date and the
@@ -168,8 +208,10 @@ if it were about to become a building block, because it is.
 
 ## Ship checklist
 
-Board updated (the front moved, or a new one classified) → headless
-suite green → sweep ALONE, zero moles → docker precheck
+Board updated (the front moved, or a new one classified) →
+Gedankenexperiment recorded for anything new in BEHAVIOUR, and its
+status honest → headless suite green → sweep ALONE, zero moles →
+docker precheck
 (`scripts/precheck_linux.sh`, read the markers) → CHANGELOG entry for
 anything user-facing → DCO sign-off on every commit (`git commit -s`)
 → interactive QA launched for the owner → owner says merge.
