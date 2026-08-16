@@ -426,21 +426,15 @@ enums:
       SUPPORTS:
         description: Physical support (floor supports entity)
       ILLUMINATES:
+        # Endpoints used to be declared here, as valid_source_types and
+        # valid_target_types annotations. They moved to
+        # IlluminatesRelation on 2026-08-16, with the rest of this
+        # enum's members, because malleus asks for the contract on the
+        # Relation subclass and two places to declare one fact is one
+        # place too many. The reasoning that lived in this comment moved
+        # with it, per class, where it can be read next to the class it
+        # explains.
         description: Light source reaches entity
-        annotations:
-          # Declared because they are KNOWN, not guessed. Only a
-          # LightSource illuminates, which is what that class exists
-          # for, and only something in the world can be lit.
-          #
-          # The rest of this enum stays at the Entity default until its
-          # endpoints are evidenced the same way. HAS_PART alone has
-          # 125 call sites and legitimately links a humanoid to a
-          # torso, a procedure to a step and a table to a row, so it is
-          # (Entity, Entity) in truth and not by neglect. SUPPORTS and
-          # BURNS have no creation site anywhere in the repo, so there
-          # is nothing to learn their shape from yet.
-          valid_source_types: LightSource
-          valid_target_types: WorldEntity
       BURNS:
         description: Fire spread between entities
       PERCEIVES:
@@ -1136,11 +1130,185 @@ classes:
 # -------------------------------------------------------------------
 
   WorldRelation:
+    abstract: true
     is_a: Relation
-    description: A typed relationship between world entities.
+    description: >-
+      Abstract parent of the engine's world relations. One concrete
+      subclass per member of WorldRelationType, each pinning its own
+      predicate and declaring its own endpoints.
+
+      It is abstract because a relation class that leaves relation_type
+      open across an enum is not one relation, it is a family. Malleus
+      refuses that shape ("Concrete relation must fix relation_type with
+      equals_string") and the refusal is right: an edge whose predicate
+      is only known at write time cannot have a checkable domain and
+      range, so endpoint validation degenerates to "does this name
+      exist".
     slot_usage:
       relation_type:
         range: WorldRelationType
+
+  # Concrete relations. Each fixes its predicate and declares its
+  # endpoints, and the generator reads THESE (not the enum) to emit
+  # addRelationType. Endpoints are declared from evidence and stay at
+  # Entity when the evidence says Entity; a narrow range invented here
+  # becomes a rejection at runtime for an edge the engine legitimately
+  # makes.
+  #
+  # A second constraint decides several of these, and it is structural
+  # rather than evidential: a relation declared HERE can only name
+  # endpoint classes visible HERE. HAS_PART's real endpoints, measured
+  # across the seeds, are Procedure to ProcedureStep, RollableTable to
+  # TableEntry, SubjectLookupTable to CareerTableEntry and nine more,
+  # every one of them a rulebook-pack class that imports this file. The
+  # root cannot name them without inverting the dependency. A pack that
+  # wants narrow endpoints declares its own Relation subclass, the way
+  # rule_language.yaml does.
+
+  HasPartRelation:
+    is_a: WorldRelation
+    description: >-
+      Composition: a humanoid has_part a torso. Endpoints are Entity
+      from evidence, not neglect. 81 createRelation sites in C++ plus
+      1518 seed ops, spanning humanoid to torso, Procedure to
+      ProcedureStep, RollableTable to TableEntry, LookupTable to
+      CharacteristicModifierEntry, and OutcomeSequence to OutcomeStep.
+      There is no narrower pair that covers them.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: HAS_PART
+
+  HasRegionalPartRelation:
+    is_a: WorldRelation
+    description: >-
+      Spatial subdivision: an arm has_regional_part a forearm. No
+      creation site in C++ or seeds as of 2026-08-16, so there is
+      nothing to learn its endpoints from. Entity until evidenced.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: HAS_REGIONAL_PART
+
+  HasConstraintRelation:
+    is_a: WorldRelation
+    description: >-
+      Physics constraint link. Three creation sites, all body to
+      constraint, but the body side spans humanoid, totem and the
+      generic entity generator, and the constraint side has no class of
+      its own in this schema to narrow to.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: HAS_CONSTRAINT
+
+  ContainsRelation:
+    is_a: WorldRelation
+    description: >-
+      Spatial containment: a chest contains an item. Four creation
+      sites spanning strata floor to layer, floor to tile, and torso to
+      arm. Heterogeneous, so Entity.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: CONTAINS
+
+  SupportsRelation:
+    is_a: WorldRelation
+    description: >-
+      Physical support: a floor supports an entity. One site and it is
+      a test. No production creation site, so the shape is unevidenced.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: SUPPORTS
+
+  IlluminatesRelation:
+    is_a: WorldRelation
+    description: >-
+      A light source reaches an entity. The one relation whose
+      endpoints are KNOWN rather than guessed: only a LightSource
+      illuminates, which is what that class exists for, and only
+      something in the world can be lit. Both classes are declared in
+      this file, so the root can name them.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: ILLUMINATES
+      source_id:
+        range: LightSource
+      target_id:
+        range: WorldEntity
+
+  BurnsRelation:
+    is_a: WorldRelation
+    description: >-
+      Fire spread between entities. No creation site anywhere in the
+      repository, so there is nothing to learn its shape from yet.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: BURNS
+
+  PerceivesRelation:
+    is_a: WorldRelation
+    description: >-
+      An agent perceives a target entity. One site and it is a test
+      (creature to torso). Anything can perceive anything until the
+      perception layer says otherwise.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: PERCEIVES
+
+  ManagesRelation:
+    is_a: WorldRelation
+    description: >-
+      A system entity manages another entity. Two sites, both the chunk
+      system to a chunk's entity. Neither side has a class in this
+      schema to narrow to.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: MANAGES
+
+  BondedToRelation:
+    is_a: WorldRelation
+    description: >-
+      Direct bond between two bodies, the engine's cement. The bond is
+      a physical constraint at bond_strength; strong bonds make many
+      particles behave as one rigid body, weak ones give under load.
+      Use it to fix things in place relative to each other rather than
+      to the world. No createRelation site: bonds are made through the
+      gluon path, so the KG edge has no writer to learn endpoints from.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: BONDED_TO
+
+  SpecializesRelation:
+    is_a: WorldRelation
+    description: >-
+      A narrower thing refines a broader one: Slug Rifle SPECIALIZES
+      Gun Combat in a skill cascade. Every occurrence measured is Skill
+      to Skill, and Skill is a rulebook-pack class, so this file cannot
+      name it. The pack may declare its own narrowed subclass; the root
+      keeps the generic vocabulary.
+    slot_usage:
+      relation_type:
+        range: WorldRelationType
+        required: true
+        equals_string: SPECIALIZES
 
 # -------------------------------------------------------------------
 # Slots (properties)

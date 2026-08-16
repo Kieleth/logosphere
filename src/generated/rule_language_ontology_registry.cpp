@@ -417,7 +417,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("HAS_REGIONAL_PART", {"Entity"}, {"Entity"});
     reg.addRelationType("ILLUMINATES", {"LightSource"}, {"WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
-    reg.addRelationType("LET_EXPRESSION_HAS_BINDING", {"LetExpression"}, {"LocalBinding"});
+    reg.addRelationType("LET_EXPRESSION_HAS_BINDING", {"Expression"}, {"LocalBinding"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("MANAGES", {"Entity"}, {"Entity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");

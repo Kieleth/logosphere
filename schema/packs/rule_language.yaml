@@ -22,69 +22,36 @@ imports:
   - math
 
 enums:
+  # Both enums below are the VOCABULARY only: the set of legal
+  # predicates, and the range of each relation class's relation_type
+  # slot. They carried valid_source_types / valid_target_types
+  # annotations until 2026-08-16, and carried `relation_type_enum:
+  # true` to tell the generator to harvest them. Endpoints now live on
+  # the Relation subclasses at the bottom of this file, which is where
+  # malleus asks for them and where a reader looking at a relation
+  # finds them. The generator reads the classes; nothing reads these
+  # annotations, so they are gone rather than left to rot.
+
   OntologyMetaRelationType:
     description: Typed links inside the immutable ontology meta-graph.
-    annotations:
-      relation_type_enum: true
     permissible_values:
       ONTOLOGY_META_CONTAINS:
-        annotations:
-          valid_source_types: OntologyMetaContext
-          valid_target_types: OntologyMetaEntity
       ONTOLOGY_CLASS_DIRECT_PARENT:
-        annotations:
-          valid_source_types: OntologyClassMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_CLASS_HAS_FACET:
-        annotations:
-          valid_source_types: OntologyClassMeta
-          valid_target_types: OntologyFacetMeta
       ONTOLOGY_PROPERTY_DECLARING_CLASS:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_PROPERTY_VALUE_KIND:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyValueKindMeta
       ONTOLOGY_PROPERTY_REFERENCE_TARGET:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_PROPERTY_ENUM_TYPE:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyEnumMeta
       ONTOLOGY_RELATION_VALID_SOURCE:
-        annotations:
-          valid_source_types: OntologyRelationMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_RELATION_VALID_TARGET:
-        annotations:
-          valid_source_types: OntologyRelationMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_ENUM_HAS_MEMBER:
-        annotations:
-          valid_source_types: OntologyEnumMeta
-          valid_target_types: OntologyEnumMemberMeta
       ONTOLOGY_ENUM_MEMBER_OWNER:
-        annotations:
-          valid_source_types: OntologyEnumMemberMeta
-          valid_target_types: OntologyEnumMeta
 
   RuleLanguageRelationType:
     description: Closed ownership links inside stored rule programs.
-    annotations:
-      relation_type_enum: true
     permissible_values:
       FUNCTION_SIGNATURE_HAS_PARAMETER:
-        annotations:
-          valid_source_types: FunctionSignature
-          valid_target_types: FunctionParameterSpec
       LET_EXPRESSION_HAS_BINDING:
-        annotations:
-          valid_source_types: LetExpression
-          valid_target_types: LocalBinding
 
 classes:
   KnowledgeContext:
@@ -749,6 +716,206 @@ classes:
         required: true
     slots:
       - let_body
+
+# -------------------------------------------------------------------
+# Relations
+#
+# One concrete class per member of the two relation enums above, each
+# pinning its predicate with equals_string and declaring both
+# endpoints. The endpoints were annotations on the enum members until
+# 2026-08-16; they moved here because malleus asks for the contract on
+# the Relation subclass, and because two declarations of one fact is
+# one too many. The generator reads these.
+#
+# Unlike the engine root's relations, every one of these is narrow on
+# both sides. These links are closed ownership edges inside the meta
+# graph and inside stored rule programs, so the endpoint pair is known
+# exactly rather than inferred from call sites.
+# -------------------------------------------------------------------
+
+  OntologyMetaContainsRelation:
+    is_a: Relation
+    description: A meta context contains a meta entity.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_META_CONTAINS
+      source_id:
+        range: OntologyMetaContext
+      target_id:
+        range: OntologyMetaEntity
+
+  OntologyClassDirectParentRelation:
+    is_a: Relation
+    description: A class meta points at its direct parent class meta.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_CLASS_DIRECT_PARENT
+      source_id:
+        range: OntologyClassMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyClassHasFacetRelation:
+    is_a: Relation
+    description: A class meta carries a facet meta.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_CLASS_HAS_FACET
+      source_id:
+        range: OntologyClassMeta
+      target_id:
+        range: OntologyFacetMeta
+
+  OntologyPropertyDeclaringClassRelation:
+    is_a: Relation
+    description: A property meta points at the class that declares it.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_DECLARING_CLASS
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyPropertyValueKindRelation:
+    is_a: Relation
+    description: A property meta points at its value kind.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_VALUE_KIND
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyValueKindMeta
+
+  OntologyPropertyReferenceTargetRelation:
+    is_a: Relation
+    description: A reference-valued property meta names its target class.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_REFERENCE_TARGET
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyPropertyEnumTypeRelation:
+    is_a: Relation
+    description: An enum-valued property meta names its enum.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_ENUM_TYPE
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyEnumMeta
+
+  OntologyRelationValidSourceRelation:
+    is_a: Relation
+    description: A relation meta names a class valid as its source.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_RELATION_VALID_SOURCE
+      source_id:
+        range: OntologyRelationMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyRelationValidTargetRelation:
+    is_a: Relation
+    description: A relation meta names a class valid as its target.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_RELATION_VALID_TARGET
+      source_id:
+        range: OntologyRelationMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyEnumHasMemberRelation:
+    is_a: Relation
+    description: An enum meta carries a member meta.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_ENUM_HAS_MEMBER
+      source_id:
+        range: OntologyEnumMeta
+      target_id:
+        range: OntologyEnumMemberMeta
+
+  OntologyEnumMemberOwnerRelation:
+    is_a: Relation
+    description: A member meta points back at the enum that owns it.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_ENUM_MEMBER_OWNER
+      source_id:
+        range: OntologyEnumMemberMeta
+      target_id:
+        range: OntologyEnumMeta
+
+  FunctionSignatureHasParameterRelation:
+    is_a: Relation
+    description: A function signature owns a typed parameter spec.
+    slot_usage:
+      relation_type:
+        range: RuleLanguageRelationType
+        required: true
+        equals_string: FUNCTION_SIGNATURE_HAS_PARAMETER
+      source_id:
+        range: FunctionSignature
+      target_id:
+        range: FunctionParameterSpec
+
+  LetExpressionHasBindingRelation:
+    is_a: Relation
+    description: >-
+      A let expression owns a local binding.
+
+      The source is Expression rather than LetExpression, and the
+      difference is forced. LetExpression is a MIXIN marker, not an
+      Entity subtype, so it cannot be an endpoint: an endpoint names a
+      class instances can belong to. The thirteen classes that carry
+      the marker (LetBooleanExpression through LetOutcomePlanExpression,
+      one per result family) all descend from Expression, which is the
+      narrowest Entity subtype that covers them. This is wider than the
+      truth by exactly the non-let expressions, and it is as narrow as
+      the type system permits.
+
+      This endpoint read LetExpression until 2026-08-16 and was always
+      wrong; the old enum-annotation path only checked that the name
+      was a class, and a mixin is a class.
+    slot_usage:
+      relation_type:
+        range: RuleLanguageRelationType
+        required: true
+        equals_string: LET_EXPRESSION_HAS_BINDING
+      source_id:
+        range: Expression
+      target_id:
+        range: LocalBinding
 
 slots:
   context_key:

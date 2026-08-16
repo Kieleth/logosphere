@@ -7,7 +7,31 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
-### Added
+### Changed
+- **Relations are declared one class per predicate.** `WorldRelation`
+  and `EdenRelation` are now abstract, with a concrete subclass per
+  member of their enum: each pins `relation_type` with `equals_string`
+  and declares its own `source_id` / `target_id`. `rule_language`
+  gains the same for its thirteen. Endpoint constraints moved off the
+  enums' `valid_source_types` / `valid_target_types` annotations,
+  which are deleted along with `relation_type_enum`; the enums remain
+  the vocabulary. The generator reads `Relation` subclasses.
+
+  **Impact on games.** A schema that declares its own relation enum and
+  a single open relation class will no longer generate: split it, one
+  class per predicate. The generator now says so by name. Endpoints
+  must also be `Entity` subtypes, which a mixin is not.
+
+  **What this fixes.** Every schema in the repository failed to
+  construct under malleus, so none had been judged past construction
+  and eight rites had never run against any of them. Eden's five
+  relation types reached no registry at all, because harvesting from
+  enums required an opt-in annotation Eden never set, while game code
+  wrote those edges. `LET_EXPRESSION_HAS_BINDING` declared an endpoint
+  (`LetExpression`) that is a mixin marker no instance can belong to.
+
+  The 208 previously generated `addRelationType` triples are unchanged
+  byte for byte; the only additions are Eden's five.
 - **Git integration policy, mechanically enforced.** Rebasing is
   refused by a tracked `pre-rebase` hook with no override; force-pushes
   and pushes to `main` are refused by `pre-push`. A third check refuses
