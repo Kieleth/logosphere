@@ -47,6 +47,8 @@ jobs:
           test -x scripts/install-git-hooks.sh
           test -x scripts/test-merged-work-deletion.sh
           test -x scripts/test-pre-push-hook.sh
+          test -x scripts/check-signoff.sh
+          test -x scripts/test-signoff-on-main.sh
           # And it refuses. An unconditional hook that returns 0 is a decoration.
           if .githooks/pre-rebase origin/main test-branch >/dev/null 2>&1; then
             echo "pre-rebase exited 0. It must refuse unconditionally."
@@ -66,6 +68,17 @@ jobs:
       # hook, so it has a permanent case here.
       - name: The pre-push hook refuses what it claims to
         run: ./scripts/test-pre-push-hook.sh
+
+      # The sign-off gate moved off pull requests and onto main (see
+      # .github/workflows/dco.yml for why). It therefore no longer runs on
+      # anything a contributor can see before merging, which makes it
+      # exactly the kind of check that can rot unnoticed. This is the lane
+      # that keeps it honest: twelve cases in a throwaway repository,
+      # accept and refuse both asserted, including the case the gate
+      # exists for (a squash message hand-edited in the merge box, with
+      # the trailer deleted along with the commit log).
+      - name: The sign-off gate is not vacuous
+        run: ./scripts/test-signoff-on-main.sh
 
       - name: This branch deletes no work merged after it started
         if: github.event_name == 'pull_request'

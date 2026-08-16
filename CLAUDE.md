@@ -10,7 +10,8 @@ they disagree, the docs win.
   invariants. They are non-negotiable: if a fix appears to require
   breaking one, the diagnosis is wrong. Go one level deeper.
 - [CONTRIBUTING.md](CONTRIBUTING.md): repo layout, build profiles,
-  test patterns, submission process (DCO sign-off on every commit).
+  test patterns, submission process (DCO sign-off, checked on the
+  commit that lands on main).
 - [docs/GAME_LAYER.md](docs/GAME_LAYER.md): the API surface games
   consume.
 - [docs/testing_guidelines.md](docs/testing_guidelines.md): how a test
@@ -72,11 +73,14 @@ anyone's head):
   do not exist.
 - CI: the `merge-policy` job re-runs the merged-work check on every
   PR, verifies the hooks are still executable (a hook without its
-  executable bit is ignored by git in silence), and runs both
+  executable bit is ignored by git in silence), and runs all three
   self-tests: `scripts/test-merged-work-deletion.sh` proves the
-  detector fires on the accident and stays quiet on the control, and
+  detector fires on the accident and stays quiet on the control,
   `scripts/test-pre-push-hook.sh` performs real pushes to a real
-  local remote and asserts which ones are refused.
+  local remote and asserts which ones are refused, and
+  `scripts/test-signoff-on-main.sh` proves the DCO gate refuses an
+  unsigned commit as well as accepting a signed one (that gate runs
+  on main, so a pull request never exercises it directly).
 
 If a hook refuses you, it is right and you are wrong. Do not reach
 for `--no-verify`, do not edit the hook, do not delete it out of
@@ -144,8 +148,10 @@ Three profiles: `full` (macOS arm64, default), `physics` and `core`
 (any C++17 toolchain). See CONTRIBUTING.md for commands. The
 combined harness is `./build/logosphere-tests --no-head`; standalone
 tests are individual executables under `build/`. CI runs the
-headless profiles plus a DCO check on every PR, and all required
-checks must be green before merge.
+headless profiles and the merge-policy lane on every PR, and all
+required checks must be green before merge. The DCO check does not
+run on pull requests: it runs on pushes to main, over the commit the
+squash merge produces.
 
 Tests are held to [docs/testing_guidelines.md](docs/testing_guidelines.md).
 The short version, and none of it is optional:
@@ -197,8 +203,18 @@ Graph) and links what is actively being pushed on.
 
 Present-tense imperative subject with conventional prefixes
 (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `perf:`, `chore:`).
-Body explains why, not what. Every commit carries a DCO sign-off
-(`git commit -s`). Keep each PR to one logical change.
+Body explains why, not what. Commit with `git commit -s`. Keep each PR
+to one logical change.
+
+The DCO gate is on `main`, over the commit the squash merge produces,
+not over branch commits. Sign as you go anyway: GitHub builds the
+squash message from the pull request title plus your commit messages,
+so the trailer arrives by itself. The failure it catches is a squash
+message rewritten in the merge box with the trailer deleted. Branch
+commits are not checked, because a branch catching up with
+`git merge origin/main` produces a merge commit that cannot be signed
+without the force-push the policy above refuses, and no branch should
+have to choose between the two rules.
 
 ## Never revert without explicit consent
 

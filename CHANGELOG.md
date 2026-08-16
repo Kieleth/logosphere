@@ -28,6 +28,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   boundary or on anchored bonds (INV-1).
 
 ### Changed
+- **The DCO sign-off is checked on `main`, not on branch commits.** It
+  runs on the single commit a squash merge produces, over the push
+  event, and no longer walks every commit in a pull request. The old
+  gate could not coexist with the merge policy: a branch behind `main`
+  catches up with `git merge origin/main`, and that merge commit has no
+  authored content, cannot be signed at creation, and cannot be signed
+  later without the force-push the policy refuses. A branch could obey
+  one rule or the other, never both, and it cost a branch (#131,
+  reopened as #133). Contributors see no difference: GitHub builds the
+  squash message from the pull request title plus the branch commit
+  messages, so `git commit -s` carries the trailer through by itself.
+  What the gate catches is a squash message rewritten in the merge box
+  with the trailer deleted. `scripts/check-signoff.sh` is the checker,
+  `scripts/test-signoff-on-main.sh` proves it refuses as well as
+  accepts, and the `merge-policy` CI job runs that test on every PR.
 - **Contact rules now apply in order of meaning, general first.** When
   several rules match one contact they all fire, as before. The
   sequence is no longer whatever the internal hash map produced (which
