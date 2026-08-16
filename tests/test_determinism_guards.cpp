@@ -13,6 +13,7 @@
 #include "logosphere/worldgen/rock_generator.h"
 #include "logosphere/kg/kg_module.h"
 #include "generated/logosphere_ontology_registry.h"
+#include "generated/earth_ontology_registry.h"
 
 #include <cmath>
 #include <iostream>
@@ -125,11 +126,24 @@ void the_same_place_grows_the_same_rock() {
     }
     auto& world = engine.get_kg();
 
-    kg::OntologyRegistry game("schema://determinism-test");
-    game.addEntityType("Rock", "Entity", false);
-    game.addAncestors("Rock", {"Entity", "Describable", "Identifiable",
-                               "Temporal"});
-    world.extendOntology(game);
+    // The REAL Rock, from the setting pack that declares it, rather than
+    // a hand-rolled stand-in.
+    //
+    // This used to declare its own Rock hanging straight off Entity.
+    // That survived only while setProperty validated nothing: the writes
+    // landed untyped and nobody noticed the fixture described a rock
+    // that could not be anywhere and had no size. Once the KG property
+    // gate arrived the first boulder aborted the process, and the gate
+    // was right every time.
+    //
+    // Declaring the stub properly would have meant mirroring four
+    // separate earth.yaml declarations here: chunk_x and chunk_y from
+    // Spatial, size from HasSimpleAppearance, rock_type from Rock
+    // itself. A fixture that has to restate the ontology to work is the
+    // drift the ontology exists to prevent, and it would have gone stale
+    // the next time earth.yaml moved. RockGenerator is a worldgen
+    // generator for the earth pack, so the test loads the earth pack.
+    world.extendOntology(earth::ontology::registry());
 
     RockGenerator gen;
     gen.initialize(&engine, &world);

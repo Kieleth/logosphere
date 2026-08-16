@@ -2,14 +2,20 @@
 
 A game engine where everything is a particle and every particle is a
 node in a knowledge graph. Walls, creatures, trees, fire, the sun:
-one substrate, all of it queryable, all of it mutable, all of it
-fair game for a language model holding the ops grammar.
+one substrate, all of it queryable, all of it mutable.
 
 No OpenGL, no Vulkan, no DirectX. A software rasterizer writes the
 framebuffer and Metal compute shaders trace the light. Games declare
 their entity types, relations, and events in YAML; the engine
 provides capability aggregation, response rules, and a typed event
 bus on top.
+
+The world is legible enough that a language model can hold the same
+ops grammar the game holds and author into it under the same
+validation as everything else. That bet is where the engine came
+from, and taking it is optional. The LLM system is nullable, the
+physics and the graph each stand alone, and a game that uses no AI
+loses nothing that was built for AI.
 
 ![Logomancers, a game in development on Logosphere](assets/screenshots/logomancers.png)
 
@@ -20,48 +26,38 @@ real dice.*
 
 ## Where this comes from
 
-Logos is the old Greek word that never translates clean. Word,
-speech, reason, account: the principle that orders a thing and the
-act of saying it, both at once. Heraclitus used it for the pattern
-underneath change. A sphere is a world with nothing outside it.
-Media theorists already had "logosphere" for the realm where
-language lives; I took the word literally. A world made of word.
-Speak, and it is so.
+The project started with one bet: give a language model real control
+of a world, not a chatbot bolted onto a quest log. Every mature engine
+keeps its world state in scene graphs and serialized editor magic,
+where a model cannot see it, so this one got written from zero around
+the opposite idea. One legible substrate, one ontology, and no
+privileged writer.
 
-The project started with one raw idea: give a language model control
-of a world. Not a chatbot bolted onto a quest log, not dialogue
-trees with better sentences. Control. The model should be able to
-make a tree exist, raise the ground, redesign an opponent mid-match,
-change the hour of the sky, and break things it shouldn't, in a
-world physical enough that its choices carry weight.
+Chasing legibility for a model produced an engine that is legible,
+full stop, and that is the part you keep whether or not you ever call
+a model. The full account, the word it is named after, and what the
+bet cost: [docs/WHY.md](docs/WHY.md).
 
-I tried the obvious route first, on paper: take a mature engine and
-wire a model into it. Every path I traced hit the same wall.
-Existing engines are built for human authors with human tools; their
-world state lives in scene graphs, prefabs, serialized editor magic,
-in places a model can't see and shouldn't blindly touch. You end up
-handing the model a puppet with three strings, spawn here, play
-animation, set flag, and calling it control.
+## Start here
 
-So the engine got written from zero, around the opposite bet: make
-the whole world one legible, mutable substrate. Everything is a
-particle. Every particle is a node in a knowledge graph. Types,
-relations, and events are declared in an ontology the model reads
-like a spec sheet, and the only way anything changes, whether the
-mover is the player, the physics, or the model, is through
-operations validated against that ontology. An LLM holding the ops
-grammar has the same hands the game itself has. That is the root of
-the project. Everything else here, the software rasterizer, the
-turtle at z = 0, the shadows that are only the absence of light,
-grew from taking that one bet seriously.
+**What do I have to adopt?** Less than you think. Three build profiles,
+and each is a real product rather than a stripped demo.
 
-The idea also came with a deadline, by accident. It arrived around
-the time I decided to finally finish my degree, and the final
-project became the channel: nearly all my free time went into the
-engine, and the thesis gave that obsession a shape and a due date.
-The university marked it Matrícula de Honor, the distinction it
-gives to a handful of projects a year. The degree closed. The engine
-kept going.
+| Profile | You get | Platform |
+|---|---|---|
+| `core` | Knowledge graph, ontology, capability rules, damage, event bus, game time | Any C++17 toolchain |
+| `physics` | The above plus a render-free engine: solver, contacts, gluons, dynamics, locomotion, worldgen | Any C++17 toolchain |
+| `full` | Everything, plus software rasterizer, Metal lighting, GLFW, the example games | macOS arm64 |
+
+Use the physics and forget the graph. Use the graph and never open a
+window. Switch the model off and nothing asks about it. A puzzle game
+uses none of the AI, a combat game uses all of it, and the engine does
+not care either way.
+
+**What can it actually do, and how finished is each part?**
+[docs/CAPABILITIES.md](docs/CAPABILITIES.md) is one page, every claim
+carrying what backs it, every gap stated. Read it before you commit a
+weekend.
 
 ## Status
 
@@ -78,6 +74,11 @@ back here.
 
 ## What makes it different
 
+- **Modular to the point of indifference.** Damage, LLM, capabilities,
+  rendering: every one of them is opt-in, and the engine never checks
+  whether you took it. The physics runs render-free on Linux. The
+  graph runs without a GPU. Nothing degrades because you left a
+  subsystem out, because nothing below assumes it is there.
 - **Particle-first, not mesh-first.** No triangle meshes anywhere.
   Spheres and boxes with mass and density, and physics and rendering
   argue over the same data.
@@ -109,9 +110,36 @@ back here.
   decided. A run records to a tape and replays byte for byte, so a bug
   found by sweeping thousands of runs arrives as a seed rather than a
   description. See [Record and Replay](docs/RECORD_AND_REPLAY.md).
-- **Opt-in subsystems.** Damage, LLM, capabilities. A puzzle game
-  uses none of them, a combat game uses all of them, the engine does
-  not care either way.
+## Reflection: somebody else's rulebook, playable
+
+*Work in progress, and the most differentiated thing here.*
+
+Point the engine at a published body of rules and it becomes game
+knowledge that cites itself. Not a re-implementation of the rules in
+C++: the careers, throws, skill tables, and rank ladders are entities
+in the graph, loaded from seeds that must prove themselves before
+anything runs. Every captured value carries the verbatim text it came
+from, and the verifier reopens the book at that address and refuses
+the seed when a quote, a number, or a table address does not match.
+**3,089 quotes checked, zero misses.**
+
+The discipline pays for itself in defects nobody else catches. Reading
+one chapter surfaced four errors in the published book, reported
+upstream rather than quietly patched. It also caught one of ours:
+twenty-three careers had a rank 0 skill grant that was cited to its
+cell, verified against the source, counted by an invariant, and read
+by no code at all, so every character came out a skill level short
+while every check stayed green.
+
+Honest ceiling: one chapter of one book. Extraction moves to paired
+model readers with an arbiter, decided and not yet built. Scanned
+books and PDFs are a single layer swap at the source, with the
+contract already written down. Nothing about this is finished, and
+every gap is named in the protocol rather than left for you to find.
+
+[The Reflection Protocol](docs/REFLECTION_PROTOCOL.md) ·
+[Rules as Data](docs/RULES_AS_DATA.md) ·
+[what is gated and what is not](docs/CAPABILITIES.md)
 
 ## Example games
 
