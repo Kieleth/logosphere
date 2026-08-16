@@ -139,12 +139,24 @@ engine's own friction angle (mu=0.5 gives 26.6 degrees), so nothing
 should hold it, and the cube beside it leaves at 2.65 m/s. Whatever the
 sphere is resting on is not the surface the cube is resting on.
 
-**Suspect, unproven:** the sphere-vs-rotated-box narrow phase reporting
-an axis-aligned normal instead of the ramp's true one, which would make
-the contact behave like a horizontal shelf. The rotation study already
-records that sphere and ellipsoid handlers are orientation-blind
-(`ROTATION_CAMPAIGN_DESIGN.md`), so this may be that gap with a
-consequence attached — but nobody has traced this contact yet.
+**Mechanism located 2026-08-16, and it is the suspect.** The call site is
+`narrow_phase_particle_pair` (`src/core/narrow_phase.cpp:957-977`): for a
+sphere-vs-box pair it builds the box side with `aabb_of_box_particle`
+(`:459-466`), which reads `width`/`height`/`thickness` as world extents and
+never looks at rotation. So a sphere meets a ROTATED ramp as the ramp's
+upright bounding slab. Measured in `tests/test_collision_bounds_rotation.cpp`
+part 5: on one 30-degree ramp, a box is correctly told `(0, -0.5, 0.866)`
+and a sphere is told `(0, 0, 1)`. A flat shelf, with no lateral component
+to drive it downhill, which is exactly the "lands and never moves again"
+in the numbers above.
+
+The gap is the sphere-vs-box PAIR, not the sphere: broad-phase bounds,
+BVH leaves, turtle down-reach and box-box narrow phase all went oriented on
+2026-08-12. That makes this INV-12 broken in one handler rather than a
+missing capability, and the test now pins the wrong answer so a fix cannot
+land silently. Still owed: the fix itself (an oriented sphere-vs-OBB
+closest-point handler), and confirmation on the live ramp scene that this
+is the whole of F2 rather than the first half of it.
 
 Marked as the machine's frontier stage (SR TWIN PATHS), placed last so
 a red measurement cannot starve the passing stages of coverage. When

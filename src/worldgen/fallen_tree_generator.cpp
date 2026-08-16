@@ -156,13 +156,32 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
         // Position along the log
         float seg_x = world_x + dir_x * spec.length * (t - 0.5f);  // Center at world position
         float seg_y = world_y + dir_y * spec.length * (t - 0.5f);
-        // SIT ON THE GROUND MEANS SIT ON THE Z EXTENT. The log is laid
-        // horizontal by rotation_y, but physics reads `thickness` as the world-Z
-        // extent and IGNORES rotation, and create_log_segment sets
-        // thickness = length. Offsetting by half the DIAMETER therefore buried
-        // every preset: fallen_trunk -0.26, fallen_branch -0.2875, twig -0.24.
-        // The half-extent is half the segment length, plus the 1.1 overlap the
-        // caller applies.
+        // SIT ON THE GROUND MEANS SIT ON THE Z EXTENT, AND THIS OFFSET NO
+        // LONGER DOES THAT. Read this before copying it.
+        //
+        // The segment is a BOX laid flat by rotation_y = pi/2, and
+        // create_segment puts the LENGTH in `thickness`. The offset below is
+        // half that length, which was correct while collision bounds were
+        // rotation-blind: the world-Z half-extent really was half the
+        // thickness field then, and offsetting by half the DIAMETER instead
+        // buried every preset (fallen_trunk -0.26, fallen_branch -0.2875,
+        // twig -0.24).
+        //
+        // Bounds have been ORIENTED for rotated boxes since 2026-08-12, so
+        // the world-Z half-extent is now half the DIAMETER, and this offset
+        // overshoots by those same numbers with the sign flipped. Measured in
+        // tests/test_collision_bounds_rotation.cpp part [1c]: the oriented
+        // bottom lands at +0.2600 (trunk), +0.2083 (log), +0.2875 (branch),
+        // +0.2400 (twig) above the ground it is aiming at. The segments are
+        // DYNAMIC, so they drop through the gap instead of hanging in it, but
+        // they are not placed on the ground and the opening frames show it.
+        //
+        // Left standing on purpose: changing the offset changes behaviour,
+        // which is this generator's owner's call and not a comment fix. The
+        // right half-extent comes from the helper physics itself uses,
+        // aabb_of_obb(obb_of_box_particle(...)). Which shapes get oriented
+        // bounds and which do not is tabulated once, in
+        // include/logosphere/physics/narrow_phase.h.
         const float seg_len_z = (spec.length / std::max(1, spec.num_segments)) * 1.1f;
         float seg_z = world_z + seg_len_z * 0.5f;  // Sit on ground
 

@@ -953,37 +953,40 @@ int PhysicsTreeGenerator::generate_root_system(
     // PRIMARY ROOTS - Radial spread from root plate
     // ========================================================================
     //
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // !!  CRITICAL WARNING: PHYSICS COLLISION IS AXIS-ALIGNED ONLY        !!
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // THESE ROOTS ARE BUILT UNROTATED, AND THAT IS NOW A CHOICE, NOT A LIMIT.
     //
-    // The physics system (physics_system_v4.cpp) computes particle collision
-    // bounds using width/height/thickness as WORLD-AXIS-ALIGNED extents:
+    // What this code does: every root sets rotation_x/y/z = 0 (below) and
+    // spells its size straight in world axes, so width/height/thickness ARE
+    // its world extents and the axis-aligned fast path reads them unchanged.
+    //   X-axis roots (East/West):   width=length, height=cross, thickness=cross
+    //   Y-axis roots (North/South): width=cross, height=length, thickness=cross
     //
-    //     particle_bottom = p.z - (p.thickness * 0.5f)   // LINE ~414, ~2094
+    // What physics does: collision bounds and contacts are ORIENTED for any
+    // BOX rotated past BOX_ROTATION_EPS, at every site, since 2026-08-12. The
+    // canonical table of which shapes get oriented treatment and which stay
+    // axis-aligned lives in ONE place, include/logosphere/physics/narrow_phase.h,
+    // pinned by tests/test_collision_bounds_rotation.cpp. Read it there. A
+    // local copy is what rotted the warning this replaces.
     //
-    // IT COMPLETELY IGNORES rotation_x, rotation_y, rotation_z FOR COLLISION!
+    // HISTORY, because the warning that stood here was load-bearing prose and
+    // deserves a proper burial. It read "PHYSICS COLLISION IS AXIS-ALIGNED
+    // ONLY / IT COMPLETELY IGNORES rotation_x, rotation_y, rotation_z FOR
+    // COLLISION", from a 2024-12 debugging session:
+    //   - root.thickness was set to root_length (1.25 m, the root's LENGTH)
+    //   - rotation_x/y were set to lay the root horizontal
+    //   - collision read bottom = 0.125 - 1.25/2 = -0.5 m, below the turtle
+    //   - the turtle pushed the roots up to z = 0.625 m, so they floated
+    // True the day it was written, false since the oriented path landed. That
+    // same particle today bounds to its CROSS-SECTION, because rotation_y puts
+    // the length axis horizontal and the bound follows it. The failure the
+    // warning describes can no longer reproduce. Staying axis-aligned here is
+    // simply the least machinery that does the job, and that is the whole
+    // reason left for it.
     //
-    // WHAT WENT WRONG (2024-12 debugging session, hours wasted):
-    //   - We set root.thickness = root_length (1.25m, the root's LENGTH)
-    //   - We set rotation_x/y to orient the root horizontally
-    //   - Physics computed: bottom = 0.125 - 1.25/2 = -0.5m (BELOW TURTLE!)
-    //   - Turtle collision pushed roots UP to z = 0.625m
-    //   - Roots appeared to "float above" the slab instead of at its sides
-    //
-    // THE FIX:
-    //   - Set width/height/thickness to match WORLD axes, not local particle axes
-    //   - For horizontal East/West roots: width=length, height=cross, thickness=cross
-    //   - For horizontal North/South roots: width=cross, height=length, thickness=cross
-    //   - DO NOT use rotation_x/y for horizontal particles - it only affects rendering
-    //
-    // FUTURE PREVENTION:
-    //   - Always think "what is the WORLD Z extent?" when setting thickness
-    //   - If particle is horizontal, thickness should be SMALL (cross-section)
-    //   - Test with simple axis-aligned particles FIRST before adding complexity
-    //   - See test_physics_tree_roots.cpp Case 0 for baseline test pattern
-    //
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // The rule that does survive, and it is a real one: `thickness` is the
+    // LOCAL Z extent, never "the long dimension". For an unrotated horizontal
+    // part that means the cross-section. Set the rotation or set the extents,
+    // and know which one you are doing. See test_physics_tree_roots.cpp Case 0.
 
     int num_roots = 3 + (rng_state_ % 2);  // 3-4 roots
     float root_length = tree_height * 0.25f;  // Each root = 25% of height
@@ -1010,10 +1013,11 @@ int PhysicsTreeGenerator::generate_root_system(
         float radial_x = std::cos(rad_h);
         float radial_y = std::sin(rad_h);
 
-        // Root direction: purely horizontal (axis-aligned boxes don't support rotation)
+        // Root direction: purely horizontal, so the box needs no rotation and
+        // its local axes are already the world ones.
         float dir_x = radial_x;
         float dir_y = radial_y;
-        float dir_z = 0.0f;  // Horizontal - physics can't handle rotated boxes
+        float dir_z = 0.0f;  // Horizontal, and kept unrotated on purpose
 
         // Root particle config
         Particle root = {};
@@ -1025,7 +1029,8 @@ int PhysicsTreeGenerator::generate_root_system(
         root.b = 1.0f;
         root.a = 1.0f;
 
-        // BOX dimensions must match WORLD axes (physics ignores rotation!)
+        // These roots carry no rotation, so their local axes ARE the world
+        // axes and the extents below are read as written.
         // For nearly horizontal roots at cardinal directions:
         //   X-axis roots (East/West): width=length, height=cross, thickness=cross
         //   Y-axis roots (North/South): width=cross, height=length, thickness=cross
@@ -1336,7 +1341,7 @@ void PhysicsTreeGenerator::collect_tree_specs(
         root.a = 1.0f;
         root.shape = ParticleShape::BOX;
 
-        // Axis-aligned dimensions (physics ignores rotation)
+        // Unrotated box, so these extents are world extents as written.
         if (std::abs(radial_x) > std::abs(radial_y)) {
             root.width = root_length;
             root.height = root_thickness;

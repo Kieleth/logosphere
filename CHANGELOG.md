@@ -18,6 +18,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   `./scripts/install-git-hooks.sh`. The rule and its reason are in
   CONTRIBUTING.md and CLAUDE.md; the `merge-policy` CI job re-checks
   it on every PR.
+- **`test_collision_bounds_rotation`, and one canonical answer to "does
+  collision apply rotation?"** The table now lives only in
+  `include/logosphere/physics/narrow_phase.h` and every line of it is an
+  asserted check in the new headless test. Rotated BOXes get oriented
+  bounds at every site and an oriented box-box narrow phase; unrotated
+  BOXes keep the raw extents bit-identical; SPHERE is rotation-invariant;
+  ELLIPSOID stays a conservative axis-aligned fallback. The test also
+  PINS a live INV-12 defect it did not fix: sphere-vs-BOX still collides
+  against the box's world-axis slab, so a sphere on a 30-degree ramp is
+  handed `(0, 0, 1)` where a box is correctly handed `(0, -0.5, 0.866)`.
+  Two worldgen comments that asserted the opposite of all this are
+  corrected; no behaviour changed.
 
 ### Removed
 - **BREAKING: `ParticleSolverMode::STATIC` is gone.** It was accepted

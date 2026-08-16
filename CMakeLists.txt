@@ -408,6 +408,7 @@ add_headless_test(test_kg_setproperty_events)
 add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
+add_headless_test(test_collision_bounds_rotation)  # which shapes get oriented bounds, and which do not
 add_headless_test(test_iso_azimuth)
 add_headless_test(test_ontology_packs)
 add_headless_test(test_entity_type_strings)
