@@ -24,20 +24,6 @@ hunter's campfire against the night, every light computed, every
 shadow the absence of it, narrated live by an LLM Weaver rolling
 real dice.*
 
-## Where this comes from
-
-The project started with one bet: give a language model real control
-of a world, not a chatbot bolted onto a quest log. Every mature engine
-keeps its world state in scene graphs and serialized editor magic,
-where a model cannot see it, so this one got written from zero around
-the opposite idea. One legible substrate, one ontology, and no
-privileged writer.
-
-Chasing legibility for a model produced an engine that is legible,
-full stop, and that is the part you keep whether or not you ever call
-a model. The full account, the word it is named after, and what the
-bet cost: [docs/WHY.md](docs/WHY.md).
-
 ## Start here
 
 **What do I have to adopt?** Less than you think. Three build profiles,
@@ -58,6 +44,20 @@ not care either way.
 [docs/CAPABILITIES.md](docs/CAPABILITIES.md) is one page, every claim
 carrying what backs it, every gap stated. Read it before you commit a
 weekend.
+
+## Where this comes from
+
+The project started with one bet: give a language model real control
+of a world, not a chatbot bolted onto a quest log. Every mature engine
+keeps its world state in scene graphs and serialized editor magic,
+where a model cannot see it, so this one got written from zero around
+the opposite idea. One legible substrate, one ontology, and no
+privileged writer.
+
+Chasing legibility for a model produced an engine that is legible,
+full stop, and that is the part you keep whether or not you ever call
+a model. The full account, the word it is named after, and what the
+bet cost: [docs/WHY.md](docs/WHY.md).
 
 ## Status
 
@@ -110,6 +110,7 @@ back here.
   decided. A run records to a tape and replays byte for byte, so a bug
   found by sweeping thousands of runs arrives as a seed rather than a
   description. See [Record and Replay](docs/RECORD_AND_REPLAY.md).
+
 ## Reflection: somebody else's rulebook, playable
 
 *Work in progress, and the most differentiated thing here.*
@@ -192,25 +193,17 @@ remote providers (OpenAI, Anthropic) or a local server.
 
 ### Logovger, a Rulebook Read Into the Graph
 
-A published tabletop RPG rulebook, ingested until it is playable. The
-Cepheus Engine SRD goes in as markdown; what comes out is a character
-generator you sit at, where every value on the sheet can be clicked
-and the book answers with the table cell it came from.
+The playable end of the reflection work above. The Cepheus Engine SRD
+goes in as markdown; what comes out is a character generator you sit
+at, where every value on the sheet can be clicked and the book answers
+with the table cell it came from.
 
 None of the rules are written in C++. Careers, throws, skill tables,
 rank ladders and mustering-out benefits are entities in the knowledge
-graph, loaded from seed files that must prove themselves first: an
-ingestion verifier resolves every citation back into the source text
-and refuses the seed when a quote, a number or a table address does
-not match. Dice are engine-side, seeded and journalled, so a life
-replays exactly and every result cites the roll that made it.
-
-That discipline is not decoration. Reading three thousand rule
-entities out of one chapter surfaced four defects in the published
-book, including a skill that two career tables grant and the rules
-never define. Each was reported upstream rather than quietly
-corrected, and the ones the book's own text proves wrong are fixed at
-source with the divergence recorded.
+graph. Dice are engine-side, seeded and journalled, so a life replays
+exactly and every result cites the roll that made it. Among the four
+defects the reading found in the published book: a skill that two
+career tables grant and the rules never define.
 
 An LLM narrates what the dice already decided and cannot contradict
 them, because it is handed facts and asked only for prose. It runs
@@ -298,10 +291,14 @@ and `headless-linux` jobs).
 | `logogenesis` | `build/logogenesis/` | full | Logogenesis example game |
 | `logovger` | `build/logovger/` | full | Logovger, character creation from an ingested rulebook |
 | `logovger-bench-narrator` | `build/examples/logovger/` | full | Measures the wait between a decision and its narration |
-| Standalone headless tests | `build/test_*` | both | 46 standalone executables (KG, capability, damage, events, ontology, physics guards) |
+| Standalone headless tests | `build/test_*` | both | 66 standalone executables (KG, capability, damage, events, ontology, planning, pathfinding, physics guards) |
 | Other standalone tests | `build/test_*` | full | Physics, rendering, animation, etc. |
 
 ## Documentation
+
+**What can it do, and what is still missing?**
+**[Capabilities](docs/CAPABILITIES.md)** is the honest inventory: every
+claim names the gate that proves it, and everything ungated says so.
 
 **New here?** Start with **[Getting Started](docs/GETTING_STARTED.md)**,
 the end-to-end tutorial for building your first game.
@@ -321,6 +318,10 @@ line between rule-as-data and rule-as-code actually falls, why a rule
 must never be found by its printed name, how a value proves itself
 against the text that states it, and the failure modes we hit absorbing
 the Cepheus Engine SRD.
+
+**Why is it built this way?** **[docs/WHY.md](docs/WHY.md)**: the bet
+the engine came from, what it cost, and why it is not a tax on people
+who never take it.
 
 **Contributing to the engine?** See **[docs/INDEX.md](docs/INDEX.md)**
 for the full documentation table of contents organized by audience,
@@ -370,6 +371,9 @@ Three-pass GPU deferred, every frame:
 3. **Apply.** Combine G-buffer and lighting into framebuffer pixels.
 
 ## What it can't do yet
+
+The full list, per capability, with what is gated and what merely works,
+is in [docs/CAPABILITIES.md](docs/CAPABILITIES.md). The headlines:
 
 - The full engine runs on macOS arm64 only. Linux gets the headless
   profiles; Windows is structurally compatible and unverified.

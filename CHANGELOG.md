@@ -8,6 +8,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **`docs/CAPABILITIES.md`, the honest inventory.** One page for the
+  question the README never answered directly: what can this engine do
+  today, and how finished is each part. Every claim names the gate that
+  proves it, and anything working but unguarded is marked ungated rather
+  than left to look the same as the rest. It links the detailed
+  documents instead of restating them, and says which one wins when they
+  disagree.
+- **`docs/WHY.md`.** The origin story moves out of the README, which had
+  it as the third thing a new reader met, and gains the part it was
+  missing: what the bet means for someone who never uses a language
+  model.
+
 - **Git integration policy, mechanically enforced.** Rebasing is
   refused by a tracked `pre-rebase` hook with no override; force-pushes
   and pushes to `main` are refused by `pre-push`. A third check refuses
@@ -28,6 +40,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   boundary or on anchored bonds (INV-1).
 
 ### Changed
+- **The README leads with what you can build.** The opt-in nature of
+  every subsystem was the last of nine bullets while the LLM was the
+  second sentence, which readers correctly took to mean the model was
+  mandatory. The profile table now sits near the top, the reflection
+  work has a first-page section carrying its own status, the origin
+  story moves to `docs/WHY.md`, and the standalone headless test count
+  is corrected from 46 to 66.
 - **`KINEMATIC` is a transient authority, not a label.** It is held
   while an external writer drives a body's position and must be
   RELEASED when that writer stops; a body left KINEMATIC can never
