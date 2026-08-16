@@ -1,5 +1,5 @@
 // ============================================================================
-// COLLISION BOUNDS vs ROTATION — the table that keeps the comments honest
+// COLLISION BOUNDS vs ROTATION: the table that keeps the comments honest
 // ============================================================================
 // Two comments in this tree asserted, for two years and in two different
 // wordings, that physics "ignores rotation" when computing collision extents.
@@ -17,7 +17,7 @@
 // itself (normals, manifold points, penetrations) is test_rotated_box_contact.
 //
 // INV-12 (true-geometry-contacts) is the law under all of it, including the
-// one place the code still breaks it — see part 5.
+// one place the code still breaks it. See part 5.
 // ============================================================================
 
 #include "particle.h"
@@ -59,7 +59,7 @@ int main() {
     printf("\n=== COLLISION BOUNDS vs ROTATION ===\n");
 
     // ------------------------------------------------------------------
-    // 1 — A ROTATED BOX GETS ORIENTED BOUNDS.
+    // 1. A ROTATED BOX GETS ORIENTED BOUNDS.
     //
     // The fallen-log segment is the case that motivated this: a 2.2 m long,
     // 0.7 m thick trunk piece laid flat by rotation_y = pi/2. Its `thickness`
@@ -133,7 +133,7 @@ int main() {
     }
 
     // ------------------------------------------------------------------
-    // 2 — AN UNROTATED BOX KEEPS THE RAW ARITHMETIC, TO THE BIT.
+    // 2. AN UNROTATED BOX KEEPS THE RAW ARITHMETIC, TO THE BIT.
     //
     // This is a promise, not an approximation: the axis-aligned fast path
     // exists so that unrotated worlds are bit-identical to the pre-OBB engine.
@@ -154,7 +154,7 @@ int main() {
     }
 
     // ------------------------------------------------------------------
-    // 3 — WHERE THE LINE IS. Rotation below the epsilon is not rotation.
+    // 3. WHERE THE LINE IS. Rotation below the epsilon is not rotation.
     // ------------------------------------------------------------------
     printf("    [3] the epsilon line (BOX_ROTATION_EPS = %g rad)\n",
            (double)PhysicsV4::BOX_ROTATION_EPS);
@@ -168,7 +168,7 @@ int main() {
     }
 
     // ------------------------------------------------------------------
-    // 4 — BOX vs BOX WITH ONE SIDE ROTATED USES THE ORIENTED HANDLER, AND
+    // 4. BOX vs BOX WITH ONE SIDE ROTATED USES THE ORIENTED HANDLER, AND
     //     ITS NORMAL COMES FROM THE GEOMETRY, NOT FROM A WORLD AXIS.
     //
     // A 30-degree ramp with a small box resting on its slope. The contact
@@ -207,7 +207,7 @@ int main() {
     }
 
     // ------------------------------------------------------------------
-    // 5 — PINNED GAP: SPHERE vs a ROTATED BOX IS STILL AXIS-ALIGNED.
+    // 5. PINNED GAP: SPHERE vs a ROTATED BOX IS STILL AXIS-ALIGNED.
     //
     // narrow_phase_particle_pair builds the box side with
     // aabb_of_box_particle (src/core/narrow_phase.cpp), which reads
@@ -220,7 +220,7 @@ int main() {
     // The assertion below pins the WRONG behaviour on purpose. It is the
     // tripwire for the canonical comment: the day someone routes this pair
     // through an oriented handler, this check fails, and whoever makes it fail
-    // has to come here and correct the table. That is the whole point — the
+    // has to come here and correct the table. That is the whole point: the
     // previous comments rotted precisely because nothing could fail when they
     // stopped being true.
     // ------------------------------------------------------------------
