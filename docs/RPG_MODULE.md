@@ -704,6 +704,7 @@ to this log.
 
 | Date | Decision |
 |---|---|
+| 2026-08-16 04:23 UTC | **The primitive-approval rule stays, and gets a gate.** OPEN item 1 said primitive names and route contracts surface for the owner's approval. Measured: the set grew from 8 to 17 and not one of the nine additions was ever surfaced, #59 adding five in a single PR. The owner's ruling on that evidence: nine unenforced violations are evidence the rule was never enforced, NOT evidence the rule is wrong, and the correct reading is the same one this month has produced everywhere else, that a rule with no gate is an intention. So `examples/logovger/chargen/APPROVED_PRIMITIVES` now lists the approved seventeen with their route contracts, and `test_no_primitive_enters_the_procedure_unapproved` fails when the registry and the list disagree in either direction. It cannot stop an addition and does not pretend to; it makes one impossible to add QUIETLY, because the author must edit the list in the same commit and the diff says in one line that the procedure's vocabulary changed. All seventeen are hereby approved retroactively, `grant_rank_zero` included: the rank 0 grant must reach all 24 careers, only the rank-track table covers them, so it cannot ride the promotion step which sees 17. |
 | 2026-08-15 14:51 UTC | **Transcription is LLM-driven, through tools that hold the bytes.** SUPERSEDES the 2026-08-11 "transcription is mechanical" entry. A model addresses the source through a coordinate tool that returns the exact bytes at an address, and decides STRUCTURE: which rows belong to which table, which cell is a footnote, where a logical column wrapped. It never retypes text, so byte-exact citation survives untouched: structure is judged, content is copied. Declared table shapes are the instrument it scans against, so a row that does not fit a shape is a reported finding rather than a `break`. Read in pairs, one positive and one adversarial, with a separate arbiter deciding what enters. INVALIDATING EVIDENCE for the old position, measured 2026-08-14 across the whole SRD: the deterministic parser leaves 8.5% of pipe-prefixed lines unaccounted for and cuts 14 tables at a width mismatch, and the failure is silent CORRUPTION rather than honest loss. `book3/planetary-wilderness-encounters.md:326` is a legal 3-cell Event row inside an 8-column encounter table; the parser ends the table there and promotes data row 11 into a column HEADER, manufacturing a phantom table, with no error anywhere. A human reads that page without pausing. Parsing is the hard part and belongs where the judgement is, at the edge, not in a correction pass afterwards. |
 | 2026-08-11 | **Transcription is mechanical. Meaning is judged. Judgement is audited.** **SUPERSEDED IN PART by 2026-08-15 14:51 UTC**: the first claim is dead, the other two are ACTIVE. A deterministic parser was chosen because a model that retypes a number produces a rule that is wrong while the prose still reads fine. That concern was correct and is now met by a tool that returns the bytes; what was wrong was concluding the model should be kept away from the reading. Measured 2026-08-14: 8.5% of pipe lines unaccounted, 14 tables cut, and one data row silently promoted to a column header. |
 | 2026-08-11 | **No LLM, no game.** Logovger requires a model, remote or local. Where a rule defers a judgment the book leaves open, that judgment goes to the model and there is NO deterministic fallback: no key and no local server means the game refuses to run, not that it quietly decides for itself. Tests inject their own stub selector; production never carries one. Applies to every decision of this shape from here on. |
@@ -800,9 +801,15 @@ _Reconciled 2026-08-09 against the decisions log; former items 3, 5, 6
 (rule-text selection, dev transport, instance loading) are decided
 above and removed here._
 
-1. Primitive names and route contracts beyond the current nine-step
+1. ~~Primitive names and route contracts beyond the current nine-step
    `basic_chargen` slice. They surface for approval with each later
-   checklist expansion, not as speculative engine vocabulary.
+   checklist expansion, not as speculative engine vocabulary.~~
+   **CLOSED 2026-08-16 04:23 UTC.** The rule stands and is now gated:
+   `chargen/APPROVED_PRIMITIVES` holds the approved set with its route
+   contracts, and a test fails when the registry disagrees with it in
+   either direction. It went nine additions without being honoured
+   while it lived only here, which is the argument for the gate rather
+   than against the rule. See the decisions log.
 2. Turn cadence and interruption model for the referee loop.
 3. Escalation policy living ON the content (NPC carries tree + persona
    brief + escalation marks): leaning yes, confirm at build.
