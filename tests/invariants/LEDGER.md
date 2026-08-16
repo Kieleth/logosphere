@@ -1063,3 +1063,62 @@ map rehashes, when ids shift, or when the toolchain does, with nothing
 in the authored content different. Measured before the fix, it was also
 inverted, the rule authored second applying first. Fixed in 80a9136 by
 sorting at load; the precise statement is in the test header.
+
+## 2026-08-16 — Transcript audit: what the owner said that was never written down
+
+An audit of the full session transcript (1,083 owner messages, March to
+August) checked every directive against this repo. The August physics
+work is captured well: 31 invariants, this ledger, the board, the skill.
+The gaps fall in two places.
+
+**ONE LIVE CONTRADICTION, and it is the reason for this entry.**
+`PHYSICS_BOARD.md` recorded `is_quat_driven` as "renamed not folded".
+The owner had instructed the opposite:
+
+> "`is_quat_driven + owner` is completely wrong, and I think it was
+> added without my knowledge/agreement, and needs to be folded into
+> solver_mode, since it's the same logic/essence, would you agree?"
+
+No ruling was ever recorded and the board carried the opposite
+disposition. What actually happened is worth stating exactly, because
+the failure is not that the study reached a different answer. The study
+found something real: the flag does two jobs. Alone it is
+REPRESENTATION, naming which orientation field is the truth, and it is
+used correctly at six sites. Paired with `owner` it is AUTHORITY, and it
+is used wrongly at seven. The authority half folds precisely as the
+owner said. The representation half has nowhere to fold, because
+`solver_mode` carries no notion of which quaternion is truth.
+
+**The failure is that this distinction was never put back to him.** A
+finding that contradicts an instruction is a question owed to the
+owner, not a licence to change the disposition quietly. Boarded as R7.
+
+**Standing process rules that lived only in conversation**, now in
+`CLAUDE.md`: always merge and never rebase (said twice, four months
+apart); no assistant attribution anywhere in this repo; no em dashes or
+assistant writing tells; one physics engine with no scene ever tuned;
+unused code is dangerous code and gets deleted; no submodules; wind is
+modelled and never faked. Maintainer voice for contributors, corrected
+three times on drafted replies, is captured too.
+
+**In the skill**: the Gedankenexperiment registry was absent from the
+read-first list entirely, and the owner's directive to spawn
+experiments before options is now recorded there. So is the prohibition
+on piping a run the owner is meant to see through `head`, `tail` or
+`grep`, which broke five runs before it was written down.
+
+**Seven instructions had to be repeated**, which the audit calls the
+strongest signal in it. Visual QA was asked for at least eight times in
+one week, four of them the identical sentence. "Never revert without
+consent" was sent twice two minutes apart. "No if-statement edge fixes"
+appears at least nine times across five months. Headless-only took four
+escalating messages inside one hour. Each repetition is a place where
+the first telling produced agreement and no change.
+
+**A provenance warning, recorded rather than acted on.** Two rules this
+session has been treating as standing, "never `git add -A`" and "never
+touch `src/platform/platform_macos.mm`", appear in the transcript ONLY
+inside an assistant-written compaction summary and in no owner message.
+They may come from another session or may be invented. They are being
+honoured as conservative defaults, and they are NOT recorded as owner
+rules until he confirms them.
