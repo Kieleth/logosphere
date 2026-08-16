@@ -89,6 +89,15 @@ classes:
         Event, which is what it is, and the dice journal already
         records the throws made inside each term; the term itself is
         what is missing. Tracked in #104.
+    slot_usage:
+      # Pinned rather than left to the malleus root's open string. Same
+      # shape as ArbiterDecision and fixed with it: a direct Event
+      # subclass inherits no constraint from an intermediate, so its
+      # type slot admitted any string. Found by audit rather than by
+      # the inspector, which cannot load this schema without import
+      # maps and so had never judged it.
+      event_type:
+        equals_string: SERVICE_TERM
     slots:
       - term_number
       - term_career

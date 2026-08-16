@@ -311,6 +311,105 @@ the ontology has nowhere to put a half-known concept.
 
 ---
 
+## 7. A rite that only judges loadable schemas reports a clean fleet
+
+### For upstream
+
+The generalization behind three separate defects found in one sitting.
+All three were **opt-out by omission**: a contract you escape by
+writing nothing, in a place nobody looks.
+
+1. A concrete Event subtype descending DIRECTLY from the root primitive
+   inherits no type constraint, so its type slot admits any string. Two
+   instances here. Sibling classes were fine because they descend
+   through an intermediate that narrows the slot, which is what made
+   the defect look like an exception rather than a pattern.
+2. A relation vocabulary that reaches no registry because the
+   generator's discovery required an opt-in annotation the schema
+   never set. The types were declared, code wrote them, and the
+   registry had never heard of them.
+3. An endpoint naming a class no instance can belong to, because the
+   check asked whether the NAME was a class and a mixin is a class.
+
+`constrained_tongues` already asks question 1 and asks it correctly,
+including inheritance. It found one of the two instances. It could not
+find the other, and that is the lesson: **the second lived in a schema
+the inspector could not load.**
+
+This repository's packs import by bare name (`imports: [logosphere]`)
+and resolve at build time through the generator's own search. The
+inspector needs `--map` for those, and without it reports a
+construction heresy and stops. So the fleet-visible verdict was
+"one heresy in the schema I could read", and the true state was "one
+heresy here plus an unknown number in the schemas nobody judged".
+
+The severity is not in the missing rite. It is in the SHAPE of the
+report. A construction failure and a clean run are different states,
+and an adopter sweeping a directory sees a list where some schemas are
+judged and some only look judged. 0.9.0 fixed exactly this INSIDE one
+run, by naming the rites that did not execute. The same fix is needed
+ACROSS a run: a sweep must be able to say how many of the schemas it
+was pointed at were actually judged.
+
+Concretely, two asks. A batch mode that takes a directory and prints a
+judged-versus-unjudged census, so "8 of 12 judged" is impossible to
+mistake for "8 sealed". And import resolution that tries sibling and
+parent directories relative to the schema before giving up, which is
+where a bare-name import in a pack layout actually resolves. 0.9.0
+already made the installed root a last-resort fallback for `malleus`
+itself; this is the same idea one step out.
+
+```yaml
+  - id: judged_census
+    question: >-
+      When several schemas are inspected together, does the report
+      state how many were actually judged, as distinct from how many
+      passed?
+    severity: HERESY
+    lesson: >-
+      A schema that fails to construct is not a schema that passed, and
+      in a list of results the two look alike at a glance: one line per
+      file, most of them clean. Observed: a repository where every
+      schema failed to construct for one shared reason, so no rite had
+      ever run against any of them, and the state was read for months
+      as ordinary health. When the blocker was fixed, one rite fired on
+      a pack that had never been judged, and a second instance of the
+      same defect was still invisible because that schema needed an
+      import map the sweep did not pass. Report the census, not just
+      the verdicts: judged, unjudged, and why each unjudged one could
+      not be read. An adopter cannot act on a clean sheet whose
+      denominator is unknown.
+  - id: inherited_constraint_credit
+    question: >-
+      When judging whether a subtype constrains its type slot, does the
+      rite resolve constraints inherited from ancestors rather than
+      reading the leaf class alone?
+    severity: SUSPICION
+    lesson: >-
+      A parent that narrows the type slot constrains every descendant.
+      A checker reading only the leaf reports every one of them as
+      open. Observed in an adopter's own audit script before it was
+      corrected: ten concrete events flagged, all ten inheriting a
+      perfectly good enum constraint from one intermediate, and one
+      real defect sitting in the same list indistinguishable from the
+      noise. Over-reporting is not the safe direction; it buries the
+      true finding and it teaches the reader to skim.
+```
+
+### Where we hit it
+
+Fixed here by declaring one concrete relation class per predicate and
+pinning both open event types, and by adding an audit that reads schema
+YAML directly rather than through the inspector's loader, precisely so
+that an unloadable schema is still asked the questions. The audit ships
+with a vacuity test that plants each defect in a throwaway tree and
+requires the audit to catch it, because the first version of that audit
+crashed on every pack while a filter swallowed the traceback and
+printed a clean sheet for a repository with two live defects in it.
+That is the same failure as this lesson, one layer down.
+
+---
+
 ## Observation, not a lesson
 
 `MALLEUS_INQUISITION.md` records "rubric v1"; the rubric on this machine

@@ -279,9 +279,17 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("WorldEvent", "Event", false);
 
     // Relation types
+    reg.setSource("https://logosphere.dev/eden/schema");
+    reg.addRelationType("BEARS", {"Entity"}, {"Entity"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("BONDED_TO", {"Entity"}, {"Entity"});
     reg.addRelationType("BURNS", {"Entity"}, {"Entity"});
     reg.addRelationType("CONTAINS", {"Entity"}, {"Entity"});
+    reg.setSource("https://logosphere.dev/eden/schema");
+    reg.addRelationType("DESIRES", {"Entity"}, {"Entity"});
+    reg.addRelationType("FOLLOWS", {"Entity"}, {"Entity"});
+    reg.addRelationType("FORBIDS", {"Entity"}, {"Entity"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("HAS_CONSTRAINT", {"Entity"}, {"Entity"});
     reg.addRelationType("HAS_PART", {"Entity"}, {"Entity"});
     reg.addRelationType("HAS_REGIONAL_PART", {"Entity"}, {"Entity"});
@@ -290,6 +298,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("PERCEIVES", {"Entity"}, {"Entity"});
     reg.addRelationType("SPECIALIZES", {"Entity"}, {"Entity"});
     reg.addRelationType("SUPPORTS", {"Entity"}, {"Entity"});
+    reg.setSource("https://logosphere.dev/eden/schema");
+    reg.addRelationType("TEMPTS", {"Entity"}, {"Entity"});
 
     // Properties per entity type
     reg.setSource("https://malleus.dev/schema");
