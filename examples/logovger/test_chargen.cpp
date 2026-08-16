@@ -2436,6 +2436,105 @@ void test_a_training_answer_names_a_table_not_a_position() {
           "nothing");
 }
 
+// "You must either submit to the Draft or take the Drifter career for
+// this term." Two answers, two different lives, and the game has to act
+// on the one it was handed.
+//
+// On Windows it did not. The answer was a POINTER into the offer list,
+// the list was cleared before the answer was finished with, and the
+// read that decided Draft-versus-Drifter happened after the Choice it
+// pointed at had been destroyed. libc++ and libstdc++ leave a cleared
+// vector's bytes alone, so on macOS and Linux "2" was still "2" and
+// nothing looked wrong for as long as those were the only compilers.
+// MSVC's std::string destructor zeroes the small-string buffer, so "2"
+// read as "" there: every character who submitted to the Draft became a
+// Drifter instead, the six EnterCareer outcomes behind the Draft table
+// were reached by nobody, and headless-windows failed on the one gate
+// that asks whether an absorbed table is ever reached.
+//
+// This test asserts the claim that broke: the answer decides. It is
+// checked BOTH ways, because "always Drifter" is exactly what the bug
+// produced and a one-sided check would have passed through it.
+void test_the_draft_answer_decides_which_career_takes_you() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the draft-answer world loads: " + why);
+    if (!why.empty()) return;
+
+    // Play the first seed that is turned away by its career, twice,
+    // answering the same question each way. The seed is not hardcoded:
+    // whether a life fails qualification is a throw, so the sweep finds
+    // one and asserts against THAT life.
+    const std::string kTurnedAway = "will not have you this term";
+    const auto play = [&](uint64_t seed, const std::string& answer,
+                          logovger::CharacterSheet& out,
+                          std::string& error) -> bool {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) return false;
+        LongLife player(session);
+        if (!player.run_until(kTurnedAway, error)) return false;
+        if (!session.choose(answer, error)) return false;
+        out = session.sheet();
+        return true;
+    };
+
+    uint64_t turned_away_seed = 0;
+    logovger::CharacterSheet drafted, drifted;
+    std::string error;
+    for (uint64_t seed = 1; seed <= 400 && turned_away_seed == 0; ++seed) {
+        logovger::CharacterSheet sheet;
+        if (!play(seed, "2", sheet, error)) continue;
+        turned_away_seed = seed;
+        drafted = sheet;
+    }
+    CHECK(turned_away_seed != 0,
+          "some life is turned away and asked Draft-or-Drifter; none was, "
+          "so this proves nothing: " + error);
+    if (turned_away_seed == 0) return;
+    CHECK(play(turned_away_seed, "1", drifted, error),
+          "the same life replays and takes the Drifter answer: " + error);
+
+    const auto life_says = [](const logovger::CharacterSheet& sheet,
+                              const std::string& prefix) {
+        for (const auto& event : sheet.life) {
+            if (event.what.rfind(prefix, 0) == 0) return event.what;
+        }
+        return std::string();
+    };
+    const std::string drafted_into = life_says(drafted, "drafted into the ");
+    const std::string became = life_says(drifted, "became a Drifter");
+
+    std::cout << "  [measure] seed " << turned_away_seed
+              << " turned away; answering the Draft gives '"
+              << drafted.career << "', answering Drifter gives '"
+              << drifted.career << "'\n";
+
+    // Submitting to the Draft rolls the book's 1D6 table and the row
+    // names the service that takes you. Any of the six is right; being
+    // a Drifter is not, because that is the OTHER answer.
+    CHECK(!drafted_into.empty(),
+          "submitting to the Draft is recorded as a draft: the timeline "
+          "says nothing about being drafted");
+    CHECK(drafted.career != "Drifter" && !drafted.career.empty(),
+          "submitting to the Draft puts the character in a service, not "
+          "the Drifter career: got '" + drafted.career + "'");
+    CHECK(became == "became a Drifter",
+          "and taking the Drifter answer is recorded as taking it: '" +
+              became + "'");
+    CHECK(drifted.career == "Drifter",
+          "which puts the character in the Drifter career: got '" +
+              drifted.career + "'");
+    // The point of the pair: one question, two answers, two outcomes.
+    // If the answer were being dropped, both runs would land in the
+    // same place and every check above except this one could still
+    // pass.
+    CHECK(drafted.career != drifted.career,
+          "the two answers produce two different careers; both gave '" +
+              drafted.career + "', so the answer was not read");
+}
+
 // A mishap can ruin a characteristic, and the crisis it raises
 // suspends the SAME step that asked "take the mishap, or die". The
 // answer to the second question was read as an answer to the first: a
@@ -2914,6 +3013,7 @@ int main() {
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
     test_a_training_answer_names_a_table_not_a_position();
+    test_the_draft_answer_decides_which_career_takes_you();
     test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();

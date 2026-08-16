@@ -12,8 +12,10 @@
 #include <charconv>
 #include <limits>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace logovger {
@@ -400,17 +402,40 @@ std::string lowercase(std::string value) {
     return value;
 }
 
-const Choice* find_choice(const std::vector<Choice>& choices,
-                          const std::string& answer) {
+// Returns a COPY, and that is the whole point. It used to return a
+// pointer into `choices_`, and every caller then cleared `choices_`
+// before it was done reading: the answer outlived the list it came
+// from. libc++ and libstdc++ leave a cleared vector's bytes where they
+// were, so the read kept working and the bug was invisible for as long
+// as nobody built with anything else. MSVC's std::string destructor
+// zeroes the small-string buffer, so on Windows `picked->key` read ""
+// after the clear, "2" never matched, and every character who submitted
+// to the Draft silently became a Drifter instead. Copying is a few
+// bytes on a path that has just asked a human a question, and it makes
+// the whole class of error unrepresentable.
+std::optional<Choice> find_choice(const std::vector<Choice>& choices,
+                                  const std::string& answer) {
     const std::string normalized = lowercase(answer);
     for (const auto& choice : choices) {
         if (normalized == lowercase(choice.key) ||
             normalized == lowercase(choice.label)) {
-            return &choice;
+            return choice;
         }
     }
-    return nullptr;
+    return std::nullopt;
 }
+
+// The guard, not a comment asking the next person to be careful. Every
+// caller clears `choices_` while still holding the answer, so a
+// borrowing return type is a dangling read waiting to happen, and the
+// build should say so rather than one platform's allocator saying so a
+// month later in CI.
+static_assert(
+    !std::is_pointer_v<decltype(find_choice(
+        std::declval<const std::vector<Choice>&>(),
+        std::declval<const std::string&>()))>,
+    "find_choice must return an owning copy: its callers clear choices_ "
+    "before they are done reading the answer");
 
 }  // namespace
 
@@ -793,7 +818,8 @@ ChargenSession::PrimitiveResult ChargenSession::choose_career(
         }
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -886,7 +912,8 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
                   "ways to spend it.";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -1116,7 +1143,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
                   "what it can give you)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
@@ -1299,7 +1327,8 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
                   "level 0)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the skills");
@@ -1485,7 +1514,8 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                   "read what is on it)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
@@ -1621,7 +1651,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
                   what + "? (click it to read the throw)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -2234,7 +2265,8 @@ ChargenSession::PrimitiveResult ChargenSession::choose_term_end(
                   " is over. What now?";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
