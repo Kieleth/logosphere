@@ -1,0 +1,307 @@
+id: https://logosphere.dev/pacman/schema
+name: pacman
+title: Pacman — maze chase on Logosphere
+description: >-
+  Game ontology for Pacman. A grid maze of wall blocks, a player
+  avatar that eats pellets, four ghosts with distinct targeting
+  policies, and the round state that ties them together. Everything
+  the game reasons about is a KG entity; the C++ reads and writes it
+  through setProperty so the graph is the single record of the run.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pacman: https://logosphere.dev/pacman/schema/
+  logosphere: https://logosphere.dev/schema/
+  malleus: https://malleus.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+# -------------------------------------------------------------------
+# Enums
+# -------------------------------------------------------------------
+
+enums:
+  LaneDirection:
+    description: >-
+      Cardinal heading along a maze lane. NONE is a real value: the
+      avatar stands still before the first input and after a death.
+    permissible_values:
+      NONE:
+        description: Not moving.
+      UP:
+        description: Toward decreasing row (screen up).
+      DOWN:
+        description: Toward increasing row (screen down).
+      LEFT:
+        description: Toward decreasing column.
+      RIGHT:
+        description: Toward increasing column.
+
+  GhostMood:
+    description: >-
+      Which policy a ghost's turn decision runs under this tick. The
+      arcade original alternates SCATTER and CHASE on a fixed
+      schedule; FRIGHTENED preempts both and EATEN overrides all.
+    permissible_values:
+      SCATTER:
+        description: Head for this ghost's home corner.
+      CHASE:
+        description: Head for this ghost's target rule.
+      FRIGHTENED:
+        description: Turn at random, edible, half speed.
+      EATEN:
+        description: Eyes only, returning to the house at speed.
+
+  GhostName:
+    description: The four ghosts, each a distinct targeting policy.
+    permissible_values:
+      BLINKY:
+        description: Targets the avatar's current cell.
+      PINKY:
+        description: Targets four cells ahead of the avatar.
+      INKY:
+        description: Targets the avatar reflected through Blinky.
+      CLYDE:
+        description: Chases when far, retreats to his corner when near.
+
+  RoundPhase:
+    description: What the round is doing right now.
+    permissible_values:
+      READY:
+        description: Frozen on the start line, waiting out the ready pause.
+      PLAYING:
+        description: Live.
+      DYING:
+        description: The avatar was caught; frozen through the death pause.
+      LEVEL_CLEARED:
+        description: Every pellet eaten.
+      GAME_OVER:
+        description: Out of lives.
+
+  PacmanEventType:
+    description: Pacman-specific event types raised on the state_changes bus.
+    permissible_values:
+      PELLET_EATEN:
+        description: The avatar consumed a pellet.
+      POWER_PELLET_EATEN:
+        description: The avatar consumed an energizer; ghosts turn.
+      GHOST_EATEN:
+        description: The avatar consumed a frightened ghost.
+      AVATAR_CAUGHT:
+        description: A ghost reached the avatar.
+      LEVEL_CLEARED:
+        description: The last pellet went.
+
+# -------------------------------------------------------------------
+# Entity types
+# -------------------------------------------------------------------
+
+classes:
+  Maze:
+    is_a: WorldEntity
+    annotations:
+      facets: world
+    description: >-
+      The board. Holds its own dimensions in cells and the running
+      round state, so a query of this one entity answers "what is the
+      score, how many lives are left, how many pellets remain".
+    slot_usage:
+      round_phase:
+        range: RoundPhase
+    slots:
+      - maze_cols
+      - maze_rows
+      - score
+      - high_score
+      - lives
+      - level
+      - pellets_remaining
+      - round_phase
+
+  MazeWall:
+    is_a: Structure
+    annotations:
+      facets: world
+    description: >-
+      One impassable cell of the maze. One entity per cell rather
+      than per wall run: the collision query is a cell lookup, and
+      keeping the entity granularity equal to the query granularity
+      means nothing has to be re-derived.
+    slots:
+      - cell_col
+      - cell_row
+
+  Pellet:
+    is_a: WorldEntity
+    annotations:
+      facets: world
+    description: One point of food. Eaten on overlap with the avatar.
+    slots:
+      - cell_col
+      - cell_row
+      - eaten
+      - points
+
+  PowerPellet:
+    is_a: Pellet
+    annotations:
+      facets: world
+    description: >-
+      An energizer. Worth more, and flips every non-eaten ghost to
+      FRIGHTENED for frightened_seconds.
+
+  Avatar:
+    is_a: LivingEntity
+    annotations:
+      facets: world
+    description: >-
+      The player-controlled character. Position is continuous in cell
+      units; turns only commit when the avatar is centred on the
+      perpendicular axis and the next cell is open.
+    slot_usage:
+      lane_direction:
+        range: LaneDirection
+      desired_direction:
+        range: LaneDirection
+    slots:
+      - cell_x
+      - cell_y
+      - lane_direction
+      - desired_direction
+      - lane_speed
+
+  Ghost:
+    is_a: LivingEntity
+    annotations:
+      facets: world
+    description: >-
+      One pursuer. The name selects the chase-target rule; the mood
+      selects which rule runs. Both are KG state, so the whole
+      pursuit is inspectable mid-run.
+    slot_usage:
+      lane_direction:
+        range: LaneDirection
+      desired_direction:
+        range: LaneDirection
+      ghost_name:
+        range: GhostName
+      ghost_mood:
+        range: GhostMood
+    slots:
+      - cell_x
+      - cell_y
+      - lane_direction
+      - desired_direction
+      - lane_speed
+      - ghost_name
+      - ghost_mood
+      - mood_timer
+      - scatter_col
+      - scatter_row
+      - target_col
+      - target_row
+      - house_release_at
+
+# -------------------------------------------------------------------
+# Slots
+# -------------------------------------------------------------------
+
+slots:
+  maze_cols:
+    range: integer
+    minimum_value: 4
+    maximum_value: 128
+    description: Board width in cells.
+  maze_rows:
+    range: integer
+    minimum_value: 4
+    maximum_value: 128
+    description: Board height in cells.
+  score:
+    range: integer
+    minimum_value: 0
+    description: Points banked this run.
+  high_score:
+    range: integer
+    minimum_value: 0
+    description: Best score seen this session.
+  lives:
+    range: integer
+    minimum_value: 0
+    maximum_value: 9
+    description: Avatars left after the current one.
+  level:
+    range: integer
+    minimum_value: 1
+    description: Board number, 1-based. Ghosts speed up with it.
+  pellets_remaining:
+    range: integer
+    minimum_value: 0
+    description: Uneaten pellets, including energizers. Zero clears the level.
+  round_phase:
+    range: RoundPhase
+    description: What the round is doing right now.
+  cell_col:
+    range: integer
+    description: Column of a cell-aligned entity.
+  cell_row:
+    range: integer
+    description: Row of a cell-aligned entity.
+  eaten:
+    range: integer
+    minimum_value: 0
+    maximum_value: 1
+    description: 1 once consumed. Kept rather than destroyed so the
+      board can be re-laid without re-deriving which cells hold food.
+  points:
+    range: integer
+    minimum_value: 0
+    description: Score awarded when consumed.
+  cell_x:
+    range: float
+    description: Continuous column position in cell units.
+  cell_y:
+    range: float
+    description: Continuous row position in cell units.
+  lane_direction:
+    range: LaneDirection
+    description: Heading currently being travelled.
+  desired_direction:
+    range: LaneDirection
+    description: Heading requested but not yet committed; commits at
+      the next cell centre where that heading is open.
+  lane_speed:
+    range: float
+    minimum_value: 0.0
+    maximum_value: 40.0
+    description: Cells per second along the lane.
+  ghost_name:
+    range: GhostName
+    description: Which of the four this ghost is.
+  ghost_mood:
+    range: GhostMood
+    description: Which turn policy runs this tick.
+  mood_timer:
+    range: float
+    minimum_value: 0.0
+    description: Seconds left in the current mood.
+  scatter_col:
+    range: integer
+    description: Column of this ghost's home corner.
+  scatter_row:
+    range: integer
+    description: Row of this ghost's home corner.
+  target_col:
+    range: integer
+    description: Column this ghost is steering toward right now.
+  target_row:
+    range: integer
+    description: Row this ghost is steering toward right now.
+  house_release_at:
+    range: float
+    minimum_value: 0.0
+    description: Round-elapsed seconds at which this ghost leaves the house.

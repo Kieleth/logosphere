@@ -1,0 +1,82 @@
+id: https://logosphere.dev/tetris/schema
+name: tetris
+title: Tetris on Logosphere
+description: >-
+  Game ontology for Tetris. The well, its locked cells and the active
+  tetromino are all knowledge-graph entities; the grid is the graph,
+  not a private array.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  tetris: https://logosphere.dev/tetris/schema/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+
+enums:
+  TetrominoKind:
+    description: The seven free tetrominoes, named for the letters they resemble.
+    permissible_values:
+      I:
+        description: Four cells in a line.
+      O:
+        description: The square.
+      T:
+        description: Three in a row plus one centred above.
+      S:
+        description: Two offset pairs leaning right.
+      Z:
+        description: Two offset pairs leaning left.
+      J:
+        description: Three in a row plus one above the left end.
+      L:
+        description: Three in a row plus one above the right end.
+
+classes:
+  TetrisWell:
+    is_a: WorldEntity
+    description: The playfield. Its frame is drawn from its own particles.
+    slots:
+      - well_columns
+      - well_rows
+
+  TetrisMino:
+    is_a: WorldEntity
+    description: One locked cell resting in the well.
+    slots:
+      - cell_column
+      - cell_row
+      - tetromino_kind
+
+  TetrisPiece:
+    is_a: WorldEntity
+    description: The tetromino currently falling.
+    slots:
+      - cell_column
+      - cell_row
+      - tetromino_kind
+      - piece_rotation
+
+slots:
+  well_columns:
+    range: integer
+    description: Width of the well in cells.
+  well_rows:
+    range: integer
+    description: Height of the well in cells.
+  cell_column:
+    range: integer
+    description: Column index, 0 at the left wall.
+  cell_row:
+    range: integer
+    description: Row index, 0 at the floor.
+  tetromino_kind:
+    range: TetrominoKind
+    description: Which of the seven pieces this cell came from.
+  piece_rotation:
+    range: integer
+    description: Rotation state, 0 to 3, clockwise.

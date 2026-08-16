@@ -18,7 +18,9 @@ A game implements it; the engine drives it.
 class MyGame : public Logosphere::IApplication {
     bool initialize() override;             // window + resources
     void shutdown() override;
-    void display_framebuffer(uint8_t* buf, int w, int h) override;
+    // The engine owns the window (created from EngineConfig); return
+    // nullptr unless your game brings its own. display_framebuffer was
+    // removed in Phase 6 of the Renderer/Display split.
     GLFWwindow* get_window() override;
 
     // Optional lifecycle hooks

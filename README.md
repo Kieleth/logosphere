@@ -47,23 +47,134 @@ weekend.
 
 **Do I have to write the C++ myself?** There is no scripting layer, so
 games are C++ binaries linked against the library. That is a real cost
-and we are not going to pretend otherwise. What we did instead of
-pretending was test the obvious way around it: clone the repo, put a
-coding agent on it, ask for a game.
+and we will not pretend otherwise. But you may not have to type it:
+see [For my little sister](#for-my-little-sister), below, where two AI
+agents each built a game here in under half an hour and we published
+the receipts.
 
-Two clean clones, two agents with no prior knowledge of the engine, one
-sentence of instruction each, nobody to ask. A playable Pacman in **29
-minutes** and a playable Tetris in **25**, both with **zero changes to
-engine source**, both verifying their own work with headless assertions
-and framebuffer pixel checks. Everything they needed was already in the
-public API.
+## For my little sister
 
-What it cost them is the part worth reading, and it is not flattering:
-our own tutorial contains a line that no longer compiles, the smallest
-example in the tree is 3,180 lines, and the mode that makes 2D games
-possible appears in five source files and zero documents. The full
-record, with the caveats that keep it honest, is in
-[docs/NEWCOMER_RUNS.md](docs/NEWCOMER_RUNS.md).
+My sister has never written a line of C++ and is not going to start.
+This part is for her. If you write games for a living, skip to
+[Quick start](#quick-start), you will find this section slow.
+
+Here is the thing worth knowing: **nobody typed these two games.**
+
+![Pacman, built on Logosphere by a coding agent in 29 minutes](assets/screenshots/pacman.png)
+
+![Tetris, built on Logosphere by a coding agent in 25 minutes](assets/screenshots/tetris.png)
+
+Two AI coding agents, two fresh copies of this repository, one
+instruction each, nobody to ask for help. A playing Pacman in **29
+minutes** and a playing Tetris in **25**. Neither changed a single line
+of the engine. Both wrote their own tests and ran them. Those two
+pictures are frames the games actually rendered, not mockups: Pacman is
+paused twelve seconds into a bot's run, Tetris is the moment it topped
+out at 195 lines. The whole account, including the five things our
+documentation got wrong and made them waste time on, is in
+[docs/NEWCOMER_RUNS.md](docs/NEWCOMER_RUNS.md), prompts included.
+
+So the honest instruction for a beginner is not "learn C++ first". It is
+"get the engine on your Mac, point a coding agent at it, and ask".
+
+### Getting it onto your Mac, assuming nothing
+
+Ten minutes, most of it waiting for downloads. Every command below only
+ADDS things to your machine. None of them delete anything.
+
+**1. Open Terminal.** Press `Cmd` and `Space` together, type `Terminal`,
+press `Enter`. A window with text appears. That is it. That is the scary
+part over.
+
+**2. Get Apple's developer tools.** Paste this, press `Enter`, and click
+through the box that pops up:
+
+```bash
+xcode-select --install
+```
+
+**3. Get Homebrew,** which installs the rest. Copy the one-line command
+from [brew.sh](https://brew.sh), paste it, press `Enter`. It will ask
+for your password: that is normal, and it will not show anything as you
+type it.
+
+**4. Get the three things the engine needs:**
+
+```bash
+brew install cmake glfw pkg-config
+```
+
+**5. Get Logosphere and build it.** The build takes a few minutes and
+prints a great deal of noise. Noise is fine. Only the word `error`
+matters:
+
+```bash
+git clone https://github.com/Kieleth/logosphere
+cd logosphere
+cmake -S . -B build -DCMAKE_OSX_ARCHITECTURES="arm64"
+cmake --build build -j
+```
+
+**6. Play the games somebody else's robot wrote:**
+
+```bash
+./build/pacman/pacman     # arrow keys
+./build/tetris/tetris     # arrows, space to drop, R to restart
+./build/minimal/minimal   # five boxes and nothing else, on purpose
+```
+
+If Pacman appears, you have a working game engine on your computer and
+you have not written anything yet.
+
+### Now make it yours
+
+Install [Claude Code](https://claude.com/claude-code) or Codex, open it
+in the `logosphere` folder, and type what you want. Not pseudo-code, not
+a spec. What you want.
+
+The two agents got a long, careful prompt because we were running an
+experiment and wanted them to keep a log. You do not need any of that.
+This is enough:
+
+> Build me a playable Snake in this repository. It is a game engine. Read
+> `examples/minimal/main.cpp` first, then `docs/GETTING_STARTED.md`, and
+> work out the rest by reading the code. Test it as you go and tell me
+> honestly if something does not work.
+
+Then let it run. It will read for a while before it writes anything.
+That is the part that works.
+
+### Prompts worth trying next
+
+Once you have something on screen, these are the ones that show off what
+this engine can do that most cannot. Each is a sentence you type, not a
+project you plan.
+
+- *"Make the maze fully 3D and tilt the camera down at 45 degrees."* The
+  world already is 3D. The flat look is one projection setting, so this
+  is a smaller change than it sounds.
+- *"Turn off the lights and give Pacman a torch that casts real
+  shadows."* Light here is computed and shadow is the absence of it, so
+  the ghosts will genuinely hide behind corners. Nobody has to draw that.
+- *"Make the pellets physical, so the ones I miss roll down the corridor
+  and pile up."* Every pellet is already a body with mass and a material.
+- *"Let a language model redesign the maze every time I lose a life, and
+  make it harder each time."* The model writes into the same validated
+  world the game does, so it cannot produce an illegal maze.
+- *"Give each ghost a personality and let the model rewrite the one that
+  killed me."* This is exactly what the Logotron example does with light
+  cycles, so there is working code to point your agent at.
+- *"Make the Tetris pieces heavy and let them topple when the stack is
+  uneven."* Real rigid bodies, real rotation, immediate chaos.
+- *"Add weather. I want it to snow in the maze."*
+
+None of those are hypothetical features. Each one leans on something the
+engine already does and the
+[capabilities page](docs/CAPABILITIES.md) will tell you which.
+
+When it goes wrong, and it will, paste the error back to the agent and
+say "this failed, fix it". That is the entire debugging technique and it
+works more often than it has any right to.
 
 ## Where this comes from
 

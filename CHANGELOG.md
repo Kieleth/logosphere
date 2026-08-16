@@ -15,6 +15,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   than left to look the same as the rest. It links the detailed
   documents instead of restating them, and says which one wins when they
   disagree.
+- **`examples/minimal/`, the smallest complete game.** One file, 248
+  lines, 65 of them comments, no schema and no generated code: a window,
+  a floor, five boxes and one you drive with the arrow keys. It exists
+  because the smallest thing in the tree was a 3,180-line header, and
+  two independent newcomers each had to reassemble "how does a game
+  start" by grep. `--shot` writes a PPM so a build can prove it renders.
+  `docs/GETTING_STARTED.md` now points here.
+- **`examples/pacman/` and `examples/tetris/`.** Two complete games,
+  written by coding agents with no prior knowledge of the engine, in 29
+  and 25 minutes, with zero changes to engine source. Each ships the log
+  its author kept while working.
 - **`docs/NEWCOMER_RUNS.md`.** Two coding agents, two clean clones, one
   sentence of instruction each: a playable Pacman in 29 minutes and a
   playable Tetris in 25, both with zero changes to engine source. The
@@ -45,6 +56,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   for a body whose position an external writer owns. Terrain and
   scenery are not immovable by declaration: they rest on the turtle
   boundary or on anchored bonds (INV-1).
+
+### Fixed
+- **The Getting Started tutorial no longer contains a line that does not
+  compile.** `docs/GETTING_STARTED.md` and `docs/GAME_LAYER.md` both told
+  the reader to override `display_framebuffer`, removed in Phase 6 of the
+  Renderer/Display split. Both now show the `get_window()` returning
+  nullptr that every shipping example actually writes.
+- **`scripts/generate_ontology.py` creates its output directory.**
+  `write_if_changed` wrote without a parent `mkdir`, so the documented
+  generator command failed with a bare `FileNotFoundError` for exactly
+  one case: a game that does not exist yet. Every game already in the
+  tree has `src/generated/` committed, which is why it survived.
 
 ### Changed
 - **The README leads with what you can build.** The opt-in nature of

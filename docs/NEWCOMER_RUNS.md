@@ -20,6 +20,39 @@ wall with the exact error, and to record it as a finding rather than a
 detail if it had to change engine code to make a game work. Neither was
 given a hint, an entry point, or a correction.
 
+## The prompt, verbatim
+
+Both agents got the same text, differing only in the game and the path.
+It is longer than a beginner needs because it is an experiment protocol,
+not an onboarding script: most of it is about keeping an honest log.
+
+> You are a newcomer to a codebase you have never seen. You are a
+> competent programmer, but you know nothing about this engine, and
+> nobody is available to help you. Everything you learn must come from
+> the repository itself.
+>
+> The repository is at `<path>`. Work ONLY inside that directory.
+>
+> YOUR GOAL: build a playable Pacman on this engine.
+>
+> TWO DELIVERABLES, both required: the game, as far as you can get it;
+> and a log at `<repo>/NEWCOMER_LOG.md`, written AS YOU GO, not
+> reconstructed at the end. Every document you opened and whether it
+> earned the time. The first moment you were confused, quoted. Every
+> wall: the exact error, what you tried, whether you got past it.
+> Anything you had to guess because the docs did not say. Anything you
+> expected the engine to provide that it did not.
+>
+> RULES: Do not ask questions, there is nobody to ask. Do not soften the
+> log; a log full of praise is a failed run. You may change engine code,
+> but record every time you had to, because that is a finding. Prefer
+> the documented path, and if you invent a workaround, first record that
+> the documented path failed. Stop when you have a running game, or when
+> one wall has consumed an unreasonable amount of effort.
+
+Note what is NOT in it: no hint about where to start, no mention of
+`IApplication`, no entry point, no correction when they went wrong.
+
 ## Results
 
 | | Pacman | Tetris |
@@ -91,6 +124,32 @@ measured roughly 434,000 lines of `[TIMING]` from an eight-second headless
 run with `show_performance_metrics` and `show_debug_overlay` both false. The
 other reported `[PARTICLE_DELETE_FLUSH]` on every pellet eaten and an
 optimization-flags banner, also unconditional in Release.
+
+## What changed because of it
+
+All five landed in the same pull request as this record, because a
+defect list that ships without its fixes is a to-do list wearing a
+report's clothes.
+
+1. `examples/minimal/` now exists: 248 lines, 65 of them comments, one
+   file, no schema, no generated code. It builds in CI, and
+   `GETTING_STARTED.md` points at it instead of at a 2,165-line game.
+   The six things that are mandatory and unguessable are numbered in a
+   comment at the top of it, in the order the runs discovered them.
+2. `display_framebuffer` is gone from both documents, replaced by the
+   `get_window()` that shipping games actually write.
+3. `ProjectionMode::BirdsEye`, `set_pixels_per_unit` and
+   `is_self_emissive` are notes 3, 4 and 5 in the minimal example, and
+   the turtle rule is note 6.
+4. `write_if_changed` creates its parent directory. One line, plus a
+   comment saying it is invisible until somebody adds a game, which is
+   why it survived this long.
+5. Not fixed: the unconditional `[TIMING]` print. It is engine
+   behaviour with a `TEMP` comment on it, not a documentation defect,
+   and it is tracked separately rather than fixed in a docs branch.
+
+Both games are in the tree as `examples/pacman/` and `examples/tetris/`,
+with the log each agent wrote beside it.
 
 ## What this does and does not establish
 
