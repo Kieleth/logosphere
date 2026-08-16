@@ -1,12 +1,16 @@
 // ============================================================================
 // COLLISION BOUNDS vs ROTATION: the table that keeps the comments honest
 // ============================================================================
-// Two comments in this tree asserted, for two years and in two different
-// wordings, that physics "ignores rotation" when computing collision extents.
-// Both were unfalsifiable prose: nothing in the suite could tell a reader
-// whether they were still true. They were not. The OBB work (3fe107e,
-// 0eb4b67, both 2026-08-12) made rotated BOX bounds oriented at every site,
-// and no comment moved.
+// Two comments in this tree asserted, in two different wordings, that physics
+// "ignores rotation" when computing collision extents. Both were unfalsifiable
+// prose: nothing in the suite could tell a reader whether they were still
+// true. They were not. The OBB work (3fe107e, 0eb4b67, both 2026-08-12) made
+// rotated BOX bounds oriented at every site, and no comment moved.
+//
+// On dates, precisely: the claim became false on 2026-08-12. How long the
+// older comment stood before that cannot be read from this repo, whose history
+// starts at the squashed publish commit 6e9847d (2026-07-30); it dates itself
+// to a "2024-12 debugging session" and that is its own word, not git's.
 //
 // This test is the falsifier. It pins, line by line, WHICH shapes get
 // oriented treatment and which stay axis-aligned, so the canonical table in
