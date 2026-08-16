@@ -273,9 +273,9 @@ narrowing.
 **R11. Extraction is cumulative, never parallel and blind.** A passage
 is read against everything already ingested. Every term it uses either
 resolves to something the graph already holds, or is a new concept this
-passage defines, or is unresolvable and raised. There is no fourth
-option, and in particular there is no "understood well enough from the
-sentence alone".
+passage defines, or is unresolvable, in which case it is raised and
+accommodated under R12. There is no fourth option, and in particular
+there is no "understood well enough from the sentence alone".
 *Gate*: partial and accidental. Extractors already load prior seeds to
 resolve references, and `verify_seed` already receives `loaded_before`,
 but both are hand-wired rather than required.
@@ -325,7 +325,8 @@ strings becomes no magic CONCEPTS.
 before anything defines it means either the reading order is wrong or
 the book forward-references, and both are worth knowing. Silently
 inventing a meaning is how a rule ends up subtly wrong while reading
-perfectly.
+perfectly. **AMENDED 2026-08-16 06:48 UTC**: it is a finding *and* it
+creates something. See R12.
 
 *The ledger records the dependency.* A row says which prior concepts it
 resolved against, so re-ingesting a changed passage can find everything
@@ -347,6 +348,72 @@ it is what turns a habit into a contract, and what makes the paired
 readers and the arbiter buildable: a reader cannot be handed a passage
 and a schema alone, it must be handed a passage, a schema, and what the
 book has said so far.
+
+---
+
+**R12. A term used before it is defined creates a provisional concept.**
+Accommodation, not refusal, and not a guess. The mention itself is the
+act of creation, so later passages have something to attach to. A
+provisional concept is a distinct status that nothing may execute
+against, it names the passage that forced it and the term as the source
+spelled it, and every later reference reinforces it. Ingestion is
+complete only when nothing provisional remains unresolved.
+*Gate*: NONE. Decided 2026-08-16, not yet built.
+
+## R12 in full: what to do when the order cannot exist
+
+R11 needs a reading order in which every term is defined before it is
+used. No real document admits one. Books forward-reference, define by
+example, and refine across chapters, and a protocol that demands
+otherwise will be honoured by nobody and quietly bypassed by everybody.
+
+R12 replaces the impossible requirement with an achievable one. Not a
+perfect order: a **closed queue**.
+
+The formal ancestor is David Lewis, "Scorekeeping in a Language Game"
+(1979), and his rule of accommodation: a presupposition required by
+what is said comes into existence, **provided nobody objects**. Say "my
+sister is visiting" to someone who did not know you have a sister and
+they do not halt. The sister enters the common ground because the
+sentence needed her there.
+
+The second clause is the half we implement. An accommodation nobody can
+object to is not accommodation, it is invention. So:
+
+1. **Provisional is a status, never an entity with empty slots.**
+   Nothing may read it as settled. An under-specified thing that looks
+   settled is worse than a missing thing, because the missing thing
+   fails loudly and the under-specified one executes.
+2. **It carries why it exists.** The passage that forced it, and the
+   term as the source spelled it.
+3. **Nothing executes against it.** A rule depending on a provisional
+   concept is not runnable and says so.
+4. **The queue closes before the world is playable**, and the gate is a
+   test, not a report.
+5. **The queue's age is measured.** A queue nobody drains is a backlog
+   wearing a protocol's clothes.
+
+**Reinforcement.** Every later reference strengthens the provisional
+concept, so the queue is ranked by the source's own usage rather than
+by arrival order. A term the book leans on forty times and never
+defines is the most important thing the ingestion has to report, and it
+must not sit at position 900 of an unsorted list. Reinforcement rising
+while resolutions stay flat is an ingestion accumulating debt, which is
+a number worth watching.
+
+**And the limit, which is the whole risk.** Reinforcement measures
+importance, **never resolution**. Forty references do not define a
+term. Any rule that promotes a provisional concept to settled on count
+alone rebuilds the half-open gate, and does it to the most load-bearing
+concepts in the graph. Promotion happens when a definition is found and
+judged, and on nothing else. The neural analogy that motivates
+reinforcement is kept for intuition and abandoned exactly here: a
+reinforced path in a brain does become the answer through repetition,
+and that is precisely the property this refuses.
+
+A replacement for this layer **must honour**: mention creates, status
+is distinct, nothing executes against provisional, the queue closes
+before play, and count never promotes.
 
 ---
 

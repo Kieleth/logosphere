@@ -157,9 +157,14 @@ discovered cumulative interpretation.
 
 ---
 
-## The proposed extension: typed accommodation
+## Typed accommodation: DECIDED 2026-08-16
 
-Owner, 2026-08-16, and this goes past R11 as written:
+> **STATE: ACTIVE.** Ruled by the owner 2026-08-16: accommodation, not
+> a stricter reading order. "B, no C, B." The staged alternative was
+> offered and refused, so this is not future work behind a phase gate;
+> it is the design. Reinforcement is part of the ruling, see below.
+
+This goes past R11 as written:
 
 > when a concept is defined inside a document it is required to be
 > captured in an ontology even if it's not fully fleshed out, and still
@@ -202,6 +207,49 @@ hash to an actor and a role. A provisional concept is a staged claim.
 We should use that rather than build a parallel notion of "sort of in
 the graph".
 
+### Reinforcement
+
+Part of the same ruling, and the owner's framing: "provisional that
+gets reinforced, inheriting from how brains work and reinforced paths
+on neurons."
+
+A provisional concept is created on first mention and **strengthened by
+every later reference to it**. The record is therefore not a flat list.
+It carries a count and the addresses that produced it, which turns the
+accommodation queue into a ranked one: a term the book leans on forty
+times and never defines is the most important thing the ingestion has
+to say, and it should not be sitting at position 900 of an unsorted
+backlog.
+
+Three things reinforcement buys, and they are the argument for it:
+
+1. **Priority that is measured rather than guessed.** The queue drains
+   in importance order, and importance is a count of the book's own
+   usage.
+2. **A signal about the source.** A heavily-referenced never-defined
+   term means one of three things: the definition exists and the
+   reading missed it (a bug in us), the book assumes it as a primitive
+   from outside (a real finding about the source), or the book is
+   incoherent (a finding about the book). All three are worth knowing
+   and none is visible without the count.
+3. **A convergence measure.** Reinforcement rising while resolutions
+   stay flat means the ingestion is accumulating debt, not progress.
+   That is a number you can put on a dashboard and act on.
+
+**What reinforcement must NOT do, and this is the whole risk.**
+Reinforcement measures **importance, never resolution**. Forty
+references do not define a term. Any rule of the form "a provisional
+concept referenced N times is promoted to settled" rebuilds exactly the
+half-open gate the five conditions above exist to prevent, and it does
+it in the most dangerous possible way, because the promoted concept
+will be one of the most load-bearing in the whole graph. Promotion
+happens on a definition being found and judged, and on nothing else.
+
+The neural analogy is worth keeping for intuition and worth abandoning
+at this exact point: a reinforced path in a brain does become the
+answer through repetition alone, and that is precisely the property we
+are refusing.
+
 ---
 
 ## The module question
@@ -235,13 +283,19 @@ This stays a design note. Extracting a module before the second
 consumer exists violates the promotion rule this project already
 follows, and logovger is consumer one.
 
+One correction to that, from the 2026-08-16 rulings: the **provisional
+status type** in the list above is not ours to own. It is a
+representation capability, so it belongs to malleus with the rest of
+the ontology, and this module would consume it. See gap 1 below, which
+makes the same point from the other end.
+
 ---
 
 ## The state of the gate today, measured 2026-08-16
 
 R11's gate is recorded in the protocol as "partial and accidental".
 Here is what that means, exactly, so the enforcement work has real
-targets.
+targets. Each carries the owner's verdict from 2026-08-16.
 
 1. **The prior world is an optional argument.**
    `include/logosphere/kg/seed_verifier.h:120` declares
@@ -249,20 +303,48 @@ targets.
    Blind verification is the DEFAULT and compiles silently. The header
    comment explains at length why prerequisites are needed, and the
    signature makes them optional.
+   **Verdict: WRONG LAYER, not a bug here.** The owner's correction:
+   the starting ontology must be able to capture any concept relevant
+   to the domain being captured, provisional ones included, and that is
+   malleus-dev work rather than logosphere work. Deleting a default
+   argument treats a representation gap as a call-signature defect.
+   Tightening the signature is worth doing and does not close anything;
+   an ontology that cannot hold a half-known concept forces the caller
+   to choose between a lie and a refusal no matter what the signature
+   says. Goes upstream with the accommodation design.
 
 2. **The shipped CLI omits it.** `tools/logosphere_verify.cpp:76` calls
    `verify_seed(parsed.seed, source_root, registry)` with no
    prerequisites. Every seed it checks is checked in isolation. Its two
    ctest cases (`logosphere_verify_positive`, `_negative`) use
    self-contained fixtures, so the omission has never shown up.
+   **Verdict: BUG.** The tool whose job is verification cannot verify
+   the seeds the game actually loads. Fix it and give it a fixture that
+   only passes with prerequisites, so the fix is gated rather than
+   asserted.
 
 3. **Accumulation is hand-rolled per call site, twice.**
    `examples/logovger/test_chargen.cpp:91` and
    `examples/logovger/src/logovger_app.h:348` each build their own
-   `loaded_before` vector in their own loop. The comment above
-   `kRuleSeeds` records that duplicating the seed LIST already caused a
-   failure once; the loop that accumulates prior state is still
-   duplicated.
+   `loaded_before` vector in their own loop:
+
+   ```cpp
+   std::vector<const kg::SeedEnvelope*> loaded_before;
+   for (seed : kRuleSeeds) {
+       verify_seed(parsed, root, registry, &procedures, loaded_before);
+       kept.push_back(parsed);
+       loaded_before.push_back(&kept.back());   // the growing world
+   }
+   ```
+
+   The R11 discipline lives inside that loop, and the loop is copied
+   rather than owned. A third loader (a tool, a new example, an editor)
+   must rebuild it correctly from memory, and nothing catches a version
+   that forgets the last line. The comment above `kRuleSeeds` records
+   that duplicating the seed LIST already caused a real failure; this
+   is the same hazard one level down.
+   **Verdict: one owner.** The accumulator becomes a function, and the
+   loaders call it.
 
 4. **The dependency order is a comment.**
    `examples/logovger/chargen/rule_seeds.h` orders six seeds and
@@ -272,16 +354,27 @@ targets.
    The header asserts that a wrong order "fails loudly, which is the
    intended behaviour"; **no test loads them out of order**, so that
    claim is untested.
+   **Verdict: BUG.** A documented guarantee with nothing behind it. The
+   test loads them out of order and asserts the failure, which either
+   proves the guarantee or discovers it was never true. Both outcomes
+   are worth more than the comment.
 
 5. **Extractors load prior seeds individually.**
    `examples/logovger/tools/extract_career_tables.py` has
    `load_skill_references()` and `load_career_seed_references()`. Each
    extractor decides for itself what prior knowledge it needs.
+   **Verdict: ACCEPTED, not a defect.** The owner's ruling: this is
+   what the model is for. Which prior knowledge a passage needs is an
+   ambiguous judgement, and a judgement is exactly what should not be
+   frozen into a static manifest. The gate belongs on the OUTPUT (does
+   every reference resolve, is every unresolved term accommodated and
+   recorded), never on the reader's choice of what to consult. Note the
+   consistency with the module's oldest rule: structure is judged,
+   content is copied, and what to read next is structure.
 
-Every one of the five is the same defect: the discipline exists and
-nothing requires it. Item 4 is the sharpest, because it is a documented
-guarantee with no test behind it, which is the exact shape this project
-keeps finding.
+Three of the five are defects: 2 and 4 are bugs, 3 is a duplicated
+owner. Item 1 is real and belongs upstream in malleus. Item 5 is
+correct as it stands.
 
 ---
 
