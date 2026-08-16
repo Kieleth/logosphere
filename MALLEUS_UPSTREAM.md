@@ -174,6 +174,64 @@ running against", and a stale install announces itself.
 
 ---
 
+## 5. An unknown range blinds seven unrelated rites
+
+### For upstream
+
+```yaml
+  - id: unknown_range_blast_radius
+    question: >-
+      When a schema names a range the loader does not recognise, does
+      the failure stay on the SLOT, or does it take the whole file and
+      everything importing it?
+    severity: HERESY
+    lesson: >-
+      An unknown range fails construction, construction is rite one, and
+      a failed rite one short-circuits the run. So one unrecognised name
+      does not reject one slot: it silently blinds every later rite on
+      that file and on every file importing it. Observed: an adopter
+      used a range that is a legal built-in of the schema language and
+      simply absent from the loader's allowlist; five files of thirteen
+      failed to construct, and SEVEN of eight mechanical rites had
+      therefore never executed anywhere in that repository. Nobody knew,
+      because the report showed one heresy per file and said nothing
+      about what it had skipped. Two fixes, independent: widen the
+      allowlist to the schema language's full set of built-ins, since
+      rejecting a legal type punishes an adopter for using their tools
+      correctly; and make construction failure REPORT the rites it
+      prevented from running, so the blast radius is visible rather
+      than inferred.
+```
+
+The allowlist that produced this is five names where the schema
+language defines nineteen. The missing fourteen include the
+double-precision float, the decimal, the date and the URI, which is to
+say the ones an adopter reaching for precision will use first.
+
+### Where we hit it
+
+Two slots declared a double-precision float, correctly, because the
+engine stores those bounds as a C++ `double`. Writing the narrower type
+to satisfy the loader would have made the schema describe an engine we
+do not have, so we declared a named type that resolves down to the
+loader's nearest builtin and kept the meaning in its description. The
+fix took ten minutes. Finding it took a day, and only because a rite we
+could not run was the thing we were trying to run.
+
+### Also, a false-finding generator
+
+The inquisitor CLI takes `--map` for import resolution. Invoked without
+maps on a schema that imports a sibling, it reports "does not
+construct", which is indistinguishable in the output from a real
+construction failure. Twelve of our schemas appeared broken this way
+and none of them were. Either resolve sibling imports relative to the
+inspected file by default, or make an unresolved import say
+`CANNOT INSPECT` rather than `HERESY`. As it stands the tool
+manufactures findings against correct schemas, and an adopter's first
+run is exactly when they cannot tell the difference.
+
+---
+
 ## Observation, not a lesson
 
 `MALLEUS_INQUISITION.md` records "rubric v1"; the rubric on this machine
