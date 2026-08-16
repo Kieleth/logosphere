@@ -392,7 +392,15 @@ jobs:
       # 1 through 12: three reach the Draft branch and four the Drifter
       # branch, which is both sides of the exact fork the shipped bug
       # corrupted.
+      #
+      # `if: always()` because without it this step is SKIPPED whenever
+      # ctest above goes red, and the chargen path is then not walked at
+      # all. That is how it behaved on its first red run: one failing
+      # test silently took the whole reason this lane exists off the
+      # board. A lane that stops reporting the moment it has something to
+      # report is worse than no lane.
       - name: Play 12 lives under the sanitizers
+        if: always()
         timeout-minutes: 10
         run: |
           failed=""
