@@ -72,13 +72,18 @@ structure is judged. **May not** invent a type: extraction fits the
 source to the vocabulary L4 declares, and where it does not fit it
 raises rather than approximates.
 
+**May not** read a passage in isolation. See R11: extraction is
+cumulative, and a passage is understood against everything already
+ingested or it is not understood at all.
+
 **Crosses out**: typed claims, each carrying the address it came from,
 plus exceptions for what could not be expressed.
 
-**A replacement must honour**: structure judged, content copied, and
-every claim addressed. A deterministic parser and a pair of models with
-an arbiter are both conformant here; we have used both, and the ledger
-records why the second replaced the first.
+**A replacement must honour**: structure judged, content copied, every
+claim addressed, and the cumulative reading. A deterministic parser and
+a pair of models with an arbiter are both conformant on the first
+three; we have used both, and the ledger records why the second
+replaced the first.
 
 ### L2 Seed
 
@@ -264,6 +269,128 @@ never write onto it. Overrides fork.
 and never narrowed in place; retirement is supersession.
 *Gate*: partial. The ontology collision check catches redefinition, not
 narrowing.
+
+**R11. Extraction is cumulative, never parallel and blind.** A passage
+is read against everything already ingested. Every term it uses either
+resolves to something the graph already holds, or is a new concept this
+passage defines, or is unresolvable and raised. There is no fourth
+option, and in particular there is no "understood well enough from the
+sentence alone".
+*Gate*: partial and accidental. Extractors already load prior seeds to
+resolve references, and `verify_seed` already receives `loaded_before`,
+but both are hand-wired rather than required.
+
+This is the rule the whole module turns on, so it gets its own section
+below.
+
+---
+
+## R11 in full: a book teaches itself, in order
+
+Take one sentence:
+
+> Characters who end their careers receive one benefit per term served
+> in which they did not lose benefits.
+
+To capture that you must already know what a **character** is, what it
+means to **end a career**, what a **benefit** is, what a **term served**
+is, and what **losing benefits** means. Not one of those is defined in
+this sentence. Every one is defined earlier, in another section, often
+in another chapter, and the sentence is unreadable without them.
+
+A book is not a bag of independent statements. It is a vocabulary that
+grows as you read, where later rules compose earlier concepts, and the
+same words carry meanings the text established pages ago. Extraction
+that treats passages as independent units is not extracting the book.
+It is extracting sentences that happen to be printed in it.
+
+**What follows from that, concretely.**
+
+*Order is a dependency order, not a page order.* A passage cannot be
+read before the passages that define its terms. The book's own
+ordering is usually close to this and is not identical to it, because
+books forward-reference.
+
+*Parallelism is bounded by that order.* Passages with no unresolved
+dependency on each other can be read at once. A naive fan-out across
+the whole book cannot work, and the limit is real rather than a
+performance choice.
+
+*Every extraction carries the graph so far.* Not the whole graph
+necessarily, but the slice its terms resolve into. This is the same
+discipline R1 already applies to values, raised to concepts: no magic
+strings becomes no magic CONCEPTS.
+
+*An unresolvable term is a finding, not a guess.* "Benefit" appearing
+before anything defines it means either the reading order is wrong or
+the book forward-references, and both are worth knowing. Silently
+inventing a meaning is how a rule ends up subtly wrong while reading
+perfectly.
+
+*The ledger records the dependency.* A row says which prior concepts it
+resolved against, so re-ingesting a changed passage can find everything
+downstream of it. Without that, a corrected definition leaves every
+rule built on the old one quietly stale.
+
+**The practice already exists in embryo, unnamed.** Three places:
+
+- `extract_career_tables.py` loads the skills seed to resolve
+  `Athletics` to a canonical skill reference rather than a string.
+- `verify_seed` takes `loaded_before` and checks each seed against the
+  growing world rather than against nothing.
+- `rule_seeds.h` lists the seeds in a hand-maintained dependency order,
+  with the reasons in comments: "After the dice and currency it
+  references", "it references the Skills the vocabulary owns".
+
+Three hand-wired instances of one principle nobody had stated. Naming
+it is what turns a habit into a contract, and what makes the paired
+readers and the arbiter buildable: a reader cannot be handed a passage
+and a schema alone, it must be handed a passage, a schema, and what the
+book has said so far.
+
+---
+
+## Decisions this protocol records
+
+Taken 2026-08-16 04:57 UTC, except where marked OPEN. R11 above is one
+of them and is written up separately because it governs the others.
+
+**The ledger covers the whole book.** Not only rule-bearing passages.
+Every passage gets a row, and "no rule content" is a judged status like
+any other. Measured, the book is 51.3% table rows, 35.6% prose, 12.8%
+headings, and the genuinely non-rule files (legal, about, introduction,
+README, contents) are 47,407 bytes of 715,234, so 6.6%. Restricting the
+ledger to rule-bearing passages would have made `% ingested` read
+better and would have put the act of exclusion outside the record,
+which is exactly where a rule goes missing. The cost is real: something
+judges "this is flavour" a few thousand times, and every one of those
+is a judgement that can be wrong. It is a judgement that will at least
+be visible.
+
+**The grain of a ledger row is OPEN.** Paragraph, sentence, or cell was
+put as a question and answered with R11 instead, which changes the
+question: a row that also records what it resolved against is not
+obviously the same size as a row that records only ingested-or-raised.
+What survives from the question is its constraint. The mustering-out
+paragraph carries two rules and the graph holds one, so any grain at
+which that is a single row forces the record to lie in one direction or
+the other. Decide this before Phase A writes rows.
+
+**A derived value that contradicts a stated one is kept, both of them,
+with the divergence recorded.** Not refused, not silently resolved.
+This is not hypothetical: the Cutlass states 1250g and a blade of 600
+to 900mm, and at the ends of its own range the derived mass is 1000g
+and 1500g. The book's two facts cannot both hold across the book's own
+range, so any policy that keeps one number is choosing which of the
+book's statements to discard. Keeping both makes every such
+contradiction queryable, which turns a problem into an inventory.
+
+**Tests that nothing runs get run, and the red is accepted.** The
+`full-macos` lane now executes the two engine tests no lane covered.
+One passes; the other fails three locomotion cases and will stay red
+until the responsible work lands. The lane is advisory, so the red is
+loud and blocks nobody. Hiding a failure until someone gets to it is
+how it stayed hidden.
 
 ---
 

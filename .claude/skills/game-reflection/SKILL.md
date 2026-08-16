@@ -120,6 +120,17 @@ happening once, so treat the rule as live but unenforced and ask.
 
 ## Operating rules
 
+- **Extraction is cumulative, never parallel and blind.** A passage is
+  read against everything already ingested. "Characters receive one
+  benefit per term served" cannot be captured without already holding
+  *character*, *term served*, and *benefit*, none of which that
+  sentence defines. So: reading order is a DEPENDENCY order, not page
+  order; how much can be read at once is bounded by that order and it
+  is a correctness limit, not a throughput knob; every reader gets the
+  passage, the schema, AND the slice of graph its terms resolve into;
+  an unresolvable term is a raised finding, never a guessed meaning.
+  "No magic strings" applies to concepts too. Full statement: R11 in
+  `docs/REFLECTION_PROTOCOL.md`. This is the rule the module turns on.
 - **Structure is judged, content is copied.** A model decides which
   rows belong to which table, which cell is a footnote, where a column
   wrapped. It NEVER types the text. Bytes come from a tool that
