@@ -1,0 +1,322 @@
+# Cumulative ingestion: prior art, and what is ours
+
+`docs/REFLECTION_PROTOCOL.md` states R11: a passage is read against
+everything already ingested, or it is not read. This document is the
+background R11 stands on. It exists because R11 is not a local
+convenience for one RPG book. It is a restatement of something several
+fields worked out independently, and knowing which fields lets us take
+their results instead of rediscovering them badly.
+
+Owner's framing, 2026-08-16: "the seed-generative effect of written or
+any communication, where diffused terms are planted early and revealed
+and referenced as narration progresses."
+
+Two claims are kept apart throughout. The **phenomenon** is old and
+well described. The **enforcement** is what we are adding, and nothing
+below does it for us.
+
+---
+
+## The phenomenon, in one example
+
+> Characters who end their careers receive one benefit per term served
+> in which they did not lose benefits.
+
+Five terms are load-bearing: *character*, *end a career*, *benefit*,
+*term served*, *lose benefits*. The sentence defines none of them. Each
+was planted earlier, some chapters earlier. Read alone, the sentence is
+grammatical and meaningless.
+
+A book is not a bag of statements. It is a vocabulary that grows as it
+is read, and later rules compose earlier concepts. Extraction that
+treats passages as independent extracts sentences that happen to be
+printed in a book.
+
+---
+
+## Where this already has a name
+
+### Dynamic semantics: meaning is context change potential
+
+The slogan is literal. In dynamic semantics a sentence does not denote
+a truth value; it denotes a **function from an input context to an
+output context**. Kamp's Discourse Representation Theory (1981) builds
+Discourse Representation Structures, which introduce *discourse
+referents* that later sentences pick up. Heim's File Change Semantics
+is the closely related account: a discourse is a file, new material
+opens file cards, later material updates them.
+
+*What it gives us.* The formal shape of a passage reader. Its input is
+the graph so far, its output is the graph after, and a passage whose
+input context lacks its referents has no defined output. That is R11 as
+a type signature rather than as an intention.
+
+*What it does not give us.* Nothing mechanical. It describes competent
+readers, and imposes no obligation on a program.
+
+### Lewis on accommodation: the generative half
+
+Lewis, "Scorekeeping in a Language Game", *Journal of Philosophical
+Logic* 8 (1979), 339-359, building on Stalnaker's common ground. The
+rule of accommodation: a presupposition required by what is said
+**comes into existence**, provided nobody objects. Say "my sister is
+visiting" to someone who did not know you have a sister, and they do
+not halt; the sister enters the common ground because the sentence
+needed her there.
+
+*What it gives us.* This is exactly the owner's stronger proposal: a
+concept mentioned before it is defined should be **created**, provisional
+and under-specified, so later text has something to attach to. Lewis
+supplies both the mechanism and its limit, and the limit is the
+important half. Accommodation runs *provided nobody objects*. An
+accommodation nobody can object to is not accommodation, it is
+invention.
+
+*What it does not give us.* Any notion of an objection that is
+mechanically raised, or of a provisional entity that cannot be mistaken
+for a settled one.
+
+### Extension by definition: the formal core
+
+The strictest statement of R11 is not linguistic, it is proof theory.
+An *extension by definition* introduces a new symbol `R` together with
+the axiom `∀x. R(x) ↔ A(x)` where `A` is a formula **in the existing
+language**. Such an extension is *conservative*: it proves no new
+theorem in the original language, because the new symbol can always be
+translated away.
+
+*What it gives us.* The precise reason a passage cannot be read alone.
+A definition that references a symbol the theory does not have is not a
+definition. It also gives the correctness criterion for our reading
+order: each seed must be a conservative extension of everything loaded
+before it, which is a checkable property, not a style preference.
+
+*What it does not give us.* Books are not proof scripts. They
+forward-reference, define by example, and refine across chapters.
+
+### Terminology science: concept systems
+
+ISO 704 (*Terminology work: principles and methods*) is the standards-
+body version. Concepts sit in a **concept system**; a concept's
+position is fixed by its *intension* (its set of characteristics) and
+*extension*. Intensional definitions are preferred precisely because
+they place the concept within the system, and in generic relations a
+specific concept **inherits** the characteristics of its superordinate.
+
+*What it gives us.* Vocabulary that survives outside our repo, and
+independent confirmation that "define a term against prior terms" is
+the recognised discipline rather than our invention. Useful when this
+work is described to anyone outside the project.
+
+*What it does not give us.* It governs human terminologists.
+
+### Induction heads: the machine already does this
+
+Olsson et al., "In-context Learning and Induction Heads", Transformer
+Circuits Thread, 2022. A previous-token head plus an induction head
+implement pattern completion: seeing `[A][B] ... [A]`, attend back to
+the earlier `A` and predict `B`. The authors argue this mechanism
+accounts for the bulk of in-context learning in large models.
+
+*What it gives us.* The owner's observation, and it is correct: an LLM
+reading a book already resolves later terms against earlier ones by
+attending back. That is why an LLM reads the mustering-out sentence
+correctly and a regular expression cannot.
+
+*Why we build anything at all, then.* Attention resolves a reference
+inside one context window, for the duration of one forward pass, and
+leaves nothing behind. The resolution is not addressable, not
+inspectable, not replayable, and not checkable. Our architecture is not
+compensating for a model that fails at this. It is compensating for a
+model that **succeeds and does not persist**. The purpose is to turn a
+transient, unauditable resolution into a typed, addressable one that
+outlives the pass that made it. That is the whole malleus thesis
+applied to reading, and it is worth stating in exactly those terms
+rather than as a workaround for model weakness.
+
+---
+
+## What is ours
+
+Every field above **describes** cumulative interpretation. None of them
+**gates** it. There is no dynamic-semantics compiler that refuses a
+discourse whose referents are missing, no accommodation queue whose age
+is measured, no terminology tool that fails a build.
+
+Our contribution, and the only part we should claim:
+
+**An ingestion in which cumulative reading is a mechanically checked
+contract rather than a property of a careful reader.** Concretely: a
+declared dependency order that is checked against actual references, a
+refusal when a term resolves to nothing, a record of what each row
+resolved against so a corrected definition can find its downstream, and
+a test that fails when any of those is bypassed.
+
+That claim is small and defensible. We should not claim to have
+discovered cumulative interpretation.
+
+---
+
+## The proposed extension: typed accommodation
+
+Owner, 2026-08-16, and this goes past R11 as written:
+
+> when a concept is defined inside a document it is required to be
+> captured in an ontology even if it's not fully fleshed out, and still
+> is developing, but we know and can refer later concepts/words to that
+> original notion
+
+This is Lewis's accommodation, and it dissolves the hardest problem in
+R11 as currently stated. Strict R11 needs a reading order in which
+every term is defined before use. Books do not admit such an order:
+they forward-reference and refine. Accommodation replaces the
+impossible requirement (a perfect order) with an achievable one (a
+**closed queue**): a term may be mentioned before it is defined, which
+creates a provisional concept, and the ingestion is complete only when
+no provisional concept remains unresolved.
+
+**The danger, stated plainly.** A provisional concept is a half-open
+gate unless its incompleteness is typed. An under-specified entity that
+looks like a settled one is worse than a missing entity, because a
+missing entity fails loudly and an under-specified one executes. This
+runs straight into malleus doctrine (no half measures) and into the
+engine's own rule that missing data is failure rather than a default.
+
+**The form that survives that objection**, and it is the only form that
+does:
+
+1. A provisional concept is a **distinct status**, not a normal entity
+   with empty slots. Nothing can read it as settled.
+2. It carries **why it exists**: the passage that forced it, and the
+   term as the book spelled it.
+3. Nothing executes against it. A rule depending on a provisional
+   concept is not runnable, and says so.
+4. The queue is **closed before the world is playable**, and the gate
+   is a test, not a report.
+5. Its **age is measured**. A queue nobody drains is a backlog wearing
+   a protocol's clothes.
+
+Note that malleus already has the machine for this: a staging overlay
+for proposed subgraphs, and an assent protocol that binds a content
+hash to an actor and a role. A provisional concept is a staged claim.
+We should use that rather than build a parallel notion of "sort of in
+the graph".
+
+---
+
+## The module question
+
+The owner's framing: this is not logosphere-specific, and could be a
+module malleus or anyone else uses. The analogy offered was TCP inside
+the ISO seven-layer model, meaning a protocol occupying a defined layer
+of a larger stack rather than a whole system.
+
+The analogy holds and is worth keeping. `REFLECTION_PROTOCOL.md`
+already defines layers L0 to L8. Cumulative ingestion is the contract
+across **L1 (extraction) and L2 (seed)**, and nothing above L2 should
+know how it was satisfied. A different implementation may replace it if
+it honours the same contract: every reference resolves against a
+declared prior state, unresolved terms are raised or accommodated
+explicitly, and the resolution set is recorded.
+
+What that module would own, if extracted:
+
+- the address grammar for source units (L0 already reserves this)
+- the declared dependency order, and its check against actual
+  references
+- the accommodation queue and its provisional status type
+- the resolution record per unit, and the downstream-invalidation query
+  it enables
+
+What it must NOT own: the ontology (malleus), the graph store, the rule
+runtime, and anything about games.
+
+This stays a design note. Extracting a module before the second
+consumer exists violates the promotion rule this project already
+follows, and logovger is consumer one.
+
+---
+
+## The state of the gate today, measured 2026-08-16
+
+R11's gate is recorded in the protocol as "partial and accidental".
+Here is what that means, exactly, so the enforcement work has real
+targets.
+
+1. **The prior world is an optional argument.**
+   `include/logosphere/kg/seed_verifier.h:120` declares
+   `verify_seed(..., const std::vector<const SeedEnvelope*>& prerequisites = {})`.
+   Blind verification is the DEFAULT and compiles silently. The header
+   comment explains at length why prerequisites are needed, and the
+   signature makes them optional.
+
+2. **The shipped CLI omits it.** `tools/logosphere_verify.cpp:76` calls
+   `verify_seed(parsed.seed, source_root, registry)` with no
+   prerequisites. Every seed it checks is checked in isolation. Its two
+   ctest cases (`logosphere_verify_positive`, `_negative`) use
+   self-contained fixtures, so the omission has never shown up.
+
+3. **Accumulation is hand-rolled per call site, twice.**
+   `examples/logovger/test_chargen.cpp:91` and
+   `examples/logovger/src/logovger_app.h:348` each build their own
+   `loaded_before` vector in their own loop. The comment above
+   `kRuleSeeds` records that duplicating the seed LIST already caused a
+   failure once; the loop that accumulates prior state is still
+   duplicated.
+
+4. **The dependency order is a comment.**
+   `examples/logovger/chargen/rule_seeds.h` orders six seeds and
+   explains the reasons in prose ("it references the Skills the
+   vocabulary owns, the Currency and dice the earlier seeds create").
+   Nothing machine-checks that the order matches the actual references.
+   The header asserts that a wrong order "fails loudly, which is the
+   intended behaviour"; **no test loads them out of order**, so that
+   claim is untested.
+
+5. **Extractors load prior seeds individually.**
+   `examples/logovger/tools/extract_career_tables.py` has
+   `load_skill_references()` and `load_career_seed_references()`. Each
+   extractor decides for itself what prior knowledge it needs.
+
+Every one of the five is the same defect: the discipline exists and
+nothing requires it. Item 4 is the sharpest, because it is a documented
+guarantee with no test behind it, which is the exact shape this project
+keeps finding.
+
+---
+
+## Citations
+
+Verified against sources 2026-08-16:
+
+- Dynamic semantics, "meaning is context change potential"; Kamp 1981
+  (DRT), Heim (File Change Semantics). Stanford Encyclopedia of
+  Philosophy, https://plato.stanford.edu/entries/dynamic-semantics/
+- Lewis, D. "Scorekeeping in a Language Game", *Journal of
+  Philosophical Logic* 8 (1979), 339-359.
+  https://link.springer.com/article/10.1007/BF00258436
+- Extension by definitions; conservative extension.
+  https://en.wikipedia.org/wiki/Extension_by_definitions
+- ISO 704, *Terminology work: principles and methods* (2009, 2022).
+  https://www.iso.org/standard/79077.html
+- Olsson, C. et al. "In-context Learning and Induction Heads",
+  Transformer Circuits Thread, 2022. https://arxiv.org/pdf/2209.11895
+- Ying, C. et al. "Do Transformers Really Perform Bad for Graph
+  Representation?" (Graphormer), NeurIPS 2021. Structural encodings
+  (centrality, spatial, edge) added as a bias inside attention.
+  https://proceedings.neurips.cc/paper/2021/file/f1c1592588411002af340cbaedd6fc33-Paper.pdf
+
+Named from memory and NOT verified here. Check before citing any of
+these in anything that leaves the repo:
+
+- Halliday and Hasan, *Cohesion in English* (lexical cohesion, lexical
+  chains): the textual mechanism by which a term is planted and later
+  picked up.
+- Grosz, Joshi and Weinstein, centering theory (local coherence and
+  attentional state).
+- Mann and Thompson, Rhetorical Structure Theory (discourse structure
+  above the sentence).
+- Buitelaar and Cimiano, ontology learning from text (the "ontology
+  learning layer cake").
+- Bengio et al., curriculum learning (presentation order affects what
+  is learned).
