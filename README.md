@@ -45,6 +45,26 @@ not care either way.
 carrying what backs it, every gap stated. Read it before you commit a
 weekend.
 
+**Do I have to write the C++ myself?** There is no scripting layer, so
+games are C++ binaries linked against the library. That is a real cost
+and we are not going to pretend otherwise. What we did instead of
+pretending was test the obvious way around it: clone the repo, put a
+coding agent on it, ask for a game.
+
+Two clean clones, two agents with no prior knowledge of the engine, one
+sentence of instruction each, nobody to ask. A playable Pacman in **29
+minutes** and a playable Tetris in **25**, both with **zero changes to
+engine source**, both verifying their own work with headless assertions
+and framebuffer pixel checks. Everything they needed was already in the
+public API.
+
+What it cost them is the part worth reading, and it is not flattering:
+our own tutorial contains a line that no longer compiles, the smallest
+example in the tree is 3,180 lines, and the mode that makes 2D games
+possible appears in five source files and zero documents. The full
+record, with the caveats that keep it honest, is in
+[docs/NEWCOMER_RUNS.md](docs/NEWCOMER_RUNS.md).
+
 ## Where this comes from
 
 The project started with one bet: give a language model real control

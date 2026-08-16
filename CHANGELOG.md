@@ -15,6 +15,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   than left to look the same as the rest. It links the detailed
   documents instead of restating them, and says which one wins when they
   disagree.
+- **`docs/NEWCOMER_RUNS.md`.** Two coding agents, two clean clones, one
+  sentence of instruction each: a playable Pacman in 29 minutes and a
+  playable Tetris in 25, both with zero changes to engine source. The
+  record exists because the claim "put an agent on it" is easy to assert
+  and we wanted it measured. It also lists what the runs cost, which is
+  five documentation defects including a tutorial line that does not
+  compile.
 - **`docs/WHY.md`.** The origin story moves out of the README, which had
   it as the third thing a new reader met, and gains the part it was
   missing: what the bet means for someone who never uses a language

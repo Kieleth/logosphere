@@ -20,6 +20,8 @@ Optional, whenever you want it: **[Why this exists](WHY.md)**: the bet the engin
 - **[Knowledge Layer](KNOWLEDGE_LAYER.md)** — facets, queries, the event journal, history renderers, and the ops write-back loop: how any consumer (LLM director, AI, inspector, replay) reads meaning from the world
 - **[Ontology-native Rule Language](RULE_LANGUAGE.md)**: architecture contract for applications and games that store typed, executable rule programs in the KG
 
+- **[Two newcomers, measured](NEWCOMER_RUNS.md)**: what happened when two coding agents with no prior knowledge of the engine were each asked for a game. Both shipped, neither touched engine source, and the walls they hit are the current documentation defect list
+
 ## Engine internals
 
 - **[The Reflection Protocol](REFLECTION_PROTOCOL.md)**: the nine layers between somebody else's rulebook and a playable game, each with a contract, a conformance gate, and a stated replacement condition. Names its own ungated rules under "Known thin ice"
