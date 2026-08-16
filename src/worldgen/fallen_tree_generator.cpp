@@ -7,7 +7,8 @@
 #include <string>
 
 // Species presets
-FallenTreeSpec FallenTreeSpec::fallen_trunk() {
+FallenTreeSpec FallenTreeSpec::fallen_trunk()
+{
     FallenTreeSpec spec;
     spec.type = FallenType::TRUNK;
     spec.length = 6.0f;
@@ -22,7 +23,8 @@ FallenTreeSpec FallenTreeSpec::fallen_trunk() {
     return spec;
 }
 
-FallenTreeSpec FallenTreeSpec::fallen_log() {
+FallenTreeSpec FallenTreeSpec::fallen_log()
+{
     FallenTreeSpec spec;
     spec.type = FallenType::LOG;
     spec.length = 2.5f;
@@ -36,11 +38,12 @@ FallenTreeSpec FallenTreeSpec::fallen_log() {
     return spec;
 }
 
-FallenTreeSpec FallenTreeSpec::fallen_branch() {
+FallenTreeSpec FallenTreeSpec::fallen_branch()
+{
     FallenTreeSpec spec;
     spec.type = FallenType::BRANCH;
     spec.length = 1.5f;
-    spec.diameter = 0.25f;  // 25cm - above 15cm minimum for visibility
+    spec.diameter = 0.25f; // 25cm - above 15cm minimum for visibility
     spec.num_segments = 2;
     spec.stiffness = 70000.0f;
     spec.bark_r = 0.40f;
@@ -50,11 +53,12 @@ FallenTreeSpec FallenTreeSpec::fallen_branch() {
     return spec;
 }
 
-FallenTreeSpec FallenTreeSpec::twig() {
+FallenTreeSpec FallenTreeSpec::twig()
+{
     FallenTreeSpec spec;
     spec.type = FallenType::TWIG;
     spec.length = 0.6f;
-    spec.diameter = 0.18f;  // 18cm - above 15cm minimum for visibility
+    spec.diameter = 0.18f; // 18cm - above 15cm minimum for visibility
     spec.num_segments = 1;
     spec.stiffness = 50000.0f;
     spec.bark_r = 0.45f;
@@ -64,15 +68,18 @@ FallenTreeSpec FallenTreeSpec::twig() {
     return spec;
 }
 
-void FallenTreeSpec::apply_natural_variation(float variance_amount, unsigned int seed) {
+void FallenTreeSpec::apply_natural_variation(float variance_amount, unsigned int seed)
+{
     // Simple LCG for deterministic randomness
     unsigned int rng_state = seed;
-    auto rng_next = [&rng_state]() -> float {
+    auto rng_next = [&rng_state]() -> float
+    {
         rng_state = (1103515245 * rng_state + 12345) % 2147483648;
         return (float)rng_state / 2147483648.0f;
     };
 
-    auto vary = [&rng_next, variance_amount](float base, float max_variance) -> float {
+    auto vary = [&rng_next, variance_amount](float base, float max_variance) -> float
+    {
         float random = rng_next();
         float normalized = (random * 2.0f - 1.0f);
         float curved = normalized * normalized * normalized;
@@ -92,38 +99,41 @@ void FallenTreeSpec::apply_natural_variation(float variance_amount, unsigned int
     rotation_angle = rng_next() * 360.0f;
 
     // Clamp dimensions to reasonable ranges
-    switch (type) {
-        case FallenType::TRUNK:
-            length = std::max(3.0f, std::min(10.0f, length));
-            diameter = std::max(0.4f, std::min(1.2f, diameter));
-            break;
-        case FallenType::LOG:
-            length = std::max(1.0f, std::min(4.0f, length));
-            diameter = std::max(0.2f, std::min(0.8f, diameter));
-            break;
-        case FallenType::BRANCH:
-            length = std::max(0.5f, std::min(2.5f, length));
-            diameter = std::max(0.18f, std::min(0.35f, diameter));  // Min 18cm for visibility
-            break;
-        case FallenType::TWIG:
-            length = std::max(0.4f, std::min(0.8f, length));
-            diameter = std::max(0.15f, std::min(0.22f, diameter));  // Min 15cm for visibility
-            break;
+    switch (type)
+    {
+    case FallenType::TRUNK:
+        length = std::max(3.0f, std::min(10.0f, length));
+        diameter = std::max(0.4f, std::min(1.2f, diameter));
+        break;
+    case FallenType::LOG:
+        length = std::max(1.0f, std::min(4.0f, length));
+        diameter = std::max(0.2f, std::min(0.8f, diameter));
+        break;
+    case FallenType::BRANCH:
+        length = std::max(0.5f, std::min(2.5f, length));
+        diameter = std::max(0.18f, std::min(0.35f, diameter)); // Min 18cm for visibility
+        break;
+    case FallenType::TWIG:
+        length = std::max(0.4f, std::min(0.8f, length));
+        diameter = std::max(0.15f, std::min(0.22f, diameter)); // Min 15cm for visibility
+        break;
     }
 }
 
 FallenTreeGenerator::FallenTreeGenerator()
-    : EntityGenerator()
-    , rng_state_(0)
+    : EntityGenerator(), rng_state_(0)
 {
 }
 
-FallenTreeGenerator::~FallenTreeGenerator() {
+FallenTreeGenerator::~FallenTreeGenerator()
+{
 }
 
 kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float world_y, float world_z,
-                                                        const FallenTreeSpec& spec) {
-    if (!engine_ || !kg_) {
+                                                       const FallenTreeSpec &spec)
+{
+    if (!engine_ || !kg_)
+    {
         std::cerr << "[FallenTreeGenerator] ERROR: Not initialized!" << std::endl;
         return kg::INVALID_ENTITY;
     }
@@ -150,24 +160,25 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
     std::vector<kg::KGParticleID> segment_particles;
 
     // Create segments along the length
-    for (int i = 0; i < spec.num_segments; ++i) {
-        float t = (i + 0.5f) / spec.num_segments;  // Center of segment
+    for (int i = 0; i < spec.num_segments; ++i)
+    {
+        float t = (i + 0.5f) / spec.num_segments; // Center of segment
 
         // Position along the log
-        float seg_x = world_x + dir_x * spec.length * (t - 0.5f);  // Center at world position
+        float seg_x = world_x + dir_x * spec.length * (t - 0.5f); // Center at world position
         float seg_y = world_y + dir_y * spec.length * (t - 0.5f);
         // SIT ON THE GROUND MEANS SIT ON THE Z EXTENT. The log is laid
-        // horizontal by rotation_y, but physics reads `thickness` as the world-Z
-        // extent and IGNORES rotation, and create_log_segment sets
+        // horizontal by rotation_y, but collision bounds use `thickness` as the
+        // world-Z extent without applying rotation, and create_log_segment sets
         // thickness = length. Offsetting by half the DIAMETER therefore buried
         // every preset: fallen_trunk -0.26, fallen_branch -0.2875, twig -0.24.
         // The half-extent is half the segment length, plus the 1.1 overlap the
         // caller applies.
         const float seg_len_z = (spec.length / std::max(1, spec.num_segments)) * 1.1f;
-        float seg_z = world_z + seg_len_z * 0.5f;  // Sit on ground
+        float seg_z = world_z + seg_len_z * 0.5f; // Sit on ground
 
         // Vary diameter slightly along length (taper at ends)
-        float taper = 1.0f - 0.15f * std::abs(t - 0.5f) * 2.0f;  // Slight taper at ends
+        float taper = 1.0f - 0.15f * std::abs(t - 0.5f) * 2.0f; // Slight taper at ends
         float seg_diameter = spec.diameter * taper;
 
         // Color variation per segment
@@ -180,20 +191,20 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
 
         kg::KGParticleID particle = create_segment(
             seg_x, seg_y, seg_z,
-            segment_length * 1.1f,  // Slight overlap for seamless appearance
+            segment_length * 1.1f, // Slight overlap for seamless appearance
             seg_diameter,
             spec.rotation_angle,
-            0.0f,  // Horizontal (lying on ground)
+            0.0f, // Horizontal (lying on ground)
             r, g, b,
-            entity
-        );
+            entity);
 
         segment_particles.push_back(particle);
     }
 
     // Create constraints between adjacent segments
-    for (size_t i = 1; i < segment_particles.size(); ++i) {
-        create_constraint(entity, segment_particles[i-1], segment_particles[i], spec.stiffness);
+    for (size_t i = 1; i < segment_particles.size(); ++i)
+    {
+        create_constraint(entity, segment_particles[i - 1], segment_particles[i], spec.stiffness);
     }
 
     // Track entity
@@ -210,10 +221,11 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
 }
 
 kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
-                                                      float length, float diameter,
-                                                      float rotation_h, float rotation_v,
-                                                      float r, float g, float b,
-                                                      kg::EntityID entity_id) {
+                                                     float length, float diameter,
+                                                     float rotation_h, float rotation_v,
+                                                     float r, float g, float b,
+                                                     kg::EntityID entity_id)
+{
     Particle p;
     p.x = x;
     p.y = y;
@@ -228,9 +240,9 @@ kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
 
     // BOX shape lying horizontal
     p.shape = ParticleShape::BOX;
-    p.width = diameter;       // Cross-section
-    p.height = diameter;      // Cross-section
-    p.thickness = length;     // Length of segment
+    p.width = diameter;   // Cross-section
+    p.height = diameter;  // Cross-section
+    p.thickness = length; // Length of segment
 
     // Rotation: log lies horizontal pointing in rotation_h direction
     // BOX thickness axis points UP by default, we rotate to horizontal
@@ -245,11 +257,11 @@ kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
     // 2. Rotate 90° around Y: (0, 0, 1) → (1, 0, 0) = East
     // 3. Rotate around Z by rad_h: (cos(rad_h), sin(rad_h), 0) = desired direction
     p.rotation_x = 0.0f;
-    p.rotation_y = M_PI / 2.0f;  // Tilt 90° so thickness is horizontal (pointing East)
-    p.rotation_z = rad_h;        // Rotate to point in desired direction
+    p.rotation_y = M_PI / 2.0f; // Tilt 90° so thickness is horizontal (pointing East)
+    p.rotation_z = rad_h;       // Rotate to point in desired direction
 
     p.reflectivity = 0.25f;
-    p.pattern_id = 1;  // PATTERN_WOOD
+    p.pattern_id = 1; // PATTERN_WOOD
 
     // Physics properties - wood density ~600 kg/m³
     // Mass auto-calculates from volume and material_density
@@ -262,18 +274,21 @@ kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
     return kg_id;
 }
 
-void FallenTreeGenerator::seed_rng(unsigned int seed) {
+void FallenTreeGenerator::seed_rng(unsigned int seed)
+{
     rng_state_ = seed;
 }
 
-float FallenTreeGenerator::random_variance(float base, float variance) {
+float FallenTreeGenerator::random_variance(float base, float variance)
+{
     rng_state_ = (1103515245 * rng_state_ + 12345) % 2147483648;
     float normalized = (float)rng_state_ / 2147483648.0f;
     float offset = (normalized * 2.0f - 1.0f) * variance;
     return base + offset;
 }
 
-float FallenTreeGenerator::random_range(float min, float max) {
+float FallenTreeGenerator::random_range(float min, float max)
+{
     rng_state_ = (1103515245 * rng_state_ + 12345) % 2147483648;
     float normalized = (float)rng_state_ / 2147483648.0f;
     return min + normalized * (max - min);
