@@ -295,6 +295,7 @@ public:
         profiles_.clear();
         open_episodes_.clear();
         rules_.clear();
+        rule_order_.clear();
         armed_.clear();
         episode_opens_.clear();
         open_contacts_.clear();
@@ -333,6 +334,21 @@ private:
     };
 
     std::unordered_map<uint32_t, TransformationRule> rules_;
+    // The order rules APPLY in, rebuilt at load. When several rules match
+    // one occurrence they all fire (that is the contract, see
+    // process_contacts), so the sequence decides the outcome of every
+    // last-write-wins effect. Iterating `rules_` made that sequence a
+    // property of EntityID hashing, which nobody chose: measured, the
+    // rule authored second applied first
+    // (`tests/test_rule_order_determinism.cpp`).
+    //
+    // Ordered by MEANING, general first: a rule with no condition matches
+    // every contact and applies before one that names a condition, so the
+    // narrow rule's write is the one that survives. Rules that cannot be
+    // ranked by meaning fall to id, which is authoring order and is a
+    // declared tiebreak rather than an accident. See load_rules_from_kg
+    // for what is deliberately NOT ranked and why.
+    std::vector<uint32_t> rule_order_;
     std::vector<ArmedTransformation> armed_;
     std::vector<EpisodeOpen> episode_opens_;
 

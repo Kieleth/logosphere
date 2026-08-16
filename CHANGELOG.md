@@ -28,6 +28,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   boundary or on anchored bonds (INV-1).
 
 ### Changed
+- **Contact rules now apply in order of meaning, general first.** When
+  several rules match one contact they all fire, as before. The
+  sequence is no longer whatever the internal hash map produced (which
+  was unportable and, measured, inverted: the rule authored second
+  applied first). A rule with no condition matches every contact, so it
+  applies BEFORE a rule that names one, and the narrower rule's write
+  is the one left standing. This is what makes a blanket default
+  overridable by a specific case. Rules that cannot yet be ranked by
+  meaning fall back to authoring order.
 - **`KINEMATIC` is a transient authority, not a label.** It is held
   while an external writer drives a body's position and must be
   RELEASED when that writer stops; a body left KINEMATIC can never

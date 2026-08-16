@@ -563,6 +563,7 @@ add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_contact_producer)
 add_headless_test(test_contact_bounce)
+add_headless_test(test_rule_order_determinism)  # two rules, one contact
 add_headless_test(test_goap_executors)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
@@ -1270,6 +1271,20 @@ target_include_directories(test_refused_momentum_ledger PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
+
+# D7, born red: what slows a spinning body down? Today, a constant.
+# ANGULAR_DRAG is multiplied into omega four times a frame for every
+# body in every surrounding, so a cube spinning in vacuum stops in a
+# second. Measures GEDANKEN-25 and names GEDANKEN-27's blocker.
+add_executable(test_angular_dissipation tests/test_angular_dissipation.cpp)
+target_link_libraries(test_angular_dissipation PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_angular_dissipation PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_angular_dissipation PRIVATE cxx_std_17)
 
 # INV-6's first witness: the same press on three axes must resolve the
 # same, or the solver knows which way is down.
