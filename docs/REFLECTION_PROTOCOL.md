@@ -69,6 +69,15 @@ replaceable `SourceAccess` returns exact bytes for each declaration. The engine
 derives length, content digest, canonical manifest, and edition identity; the
 application may not assert them.
 
+**IMPLEMENTATION AMENDMENT, 2026-08-17 23:46 UTC.** Repository checkout is
+part of exact-byte integrity. A platform may not rewrite line endings for a
+byte-addressed source representation, and `SourceAccess` may not silently
+normalize bytes after reading them. Repository-backed corpora therefore
+declare an explicit checkout policy for addressed source files. The initial
+Cepheus corpus uses `text eol=lf`, matching its Git object bytes. A mechanical
+test checks both the declared attribute and the checked-out bytes for every
+vendored Markdown source.
+
 ### L1 Extraction
 
 **Owns** the reading. Deciding that a three-cell row belongs to an

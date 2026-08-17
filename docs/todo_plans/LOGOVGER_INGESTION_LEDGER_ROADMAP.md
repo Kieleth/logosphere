@@ -597,6 +597,33 @@ Verification before the documentation phase:
   structural locator fields;
 - `git diff --check`: clean.
 
+## Cross-platform exact-byte guard, 2026-08-17 23:46 UTC
+
+PR #138 exposed a repository-boundary defect on Windows. Git checkout
+converted the vendored Cepheus Markdown from LF to CRLF because the repository
+had no `.gitattributes`. `RuleSourceAccess` then did the correct thing and read
+the checked-out file in binary mode. Its bytes no longer matched the
+LF-authored `ByteRangeSelector` offsets and `TextQuoteSelector` values, so seed
+verification rejected the exact targets. The later table, character creation,
+and rule-identity failures were cascades from that refusal.
+
+The fix does not normalize source content in the engine. It declares
+`text eol=lf` for `examples/logovger/srd/cepheus/**/*.md`, preserving the Git
+object bytes on every checkout. A new source-checkout contract enumerates all
+32 vendored Markdown files and verifies both Git's effective `eol` attribute
+and the raw absence of CRLF bytes.
+
+TDD evidence:
+
+- red: all 32 source-file subtests failed because `eol` was unspecified;
+- green: the focused checkout contract passed 1/0 and all seven Logovger
+  Python tool suites passed;
+- `git check-attr eol` reports `lf` for both production corpus members;
+- PR #138 CI rerun: pending;
+- the separate DCO failure is the known repository-policy defect tracked by
+  PR #137. It does not weaken the product gates and will receive the documented
+  admin override only after those gates pass.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
