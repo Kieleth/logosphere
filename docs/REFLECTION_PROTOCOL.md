@@ -461,6 +461,19 @@ claim, not to the coverage row. Exact type names, leaf identity grammar,
 and the closed outcome vocabulary remain implementation decisions and
 must be settled by the Phase A tests. The required topology does not.
 
+**Phase A contract, 2026-08-17 15:25 UTC.** The selected names are
+`SourceCoverage`, `IngestionClaim`, `CoverageDecision`, and
+`ClaimDecision`. Outcomes are append-only `ArbiterDecision` histories,
+ordered contiguously per subject, never mutable status fields. Current
+state is the latest decision. The closed coverage vocabulary is
+`CLAIMS_PRESENT` / `NO_RULE_CONTENT`; the closed claim vocabulary is
+`MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
+`CONTRADICTORY`. Partial and raised decisions distinguish
+`ONTOLOGY_GAP` from `RULE_LANGUAGE_GAP`. The reconciliation gate
+accounts for every enumerated source target, every coverage record,
+every claim-to-coverage link, and every current decision while retaining
+the prior events. R12 provisional state remains upstream Malleus work.
+
 **Coverage uses atomic source leaves, DECIDED 2026-08-17 03:12 UTC.**
 The canonical coverage units are headings, prose sentences, table cells
 including header and empty cells, sentences within list items, and an

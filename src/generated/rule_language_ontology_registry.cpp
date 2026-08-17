@@ -247,8 +247,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("ByteRangeSelector", {"Addressable", "Describable", "Entity", "Identifiable", "SourceSelector", "Temporal"});
     reg.addAncestors("CollectionExpression", {"Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("CollisionEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Constraint", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("ContactFilteredEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Creature", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("DamageEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.addAncestors("DeathEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.addAncestors("DiceRollEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.setSource("https://malleus.dev/schema");
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -256,6 +261,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("EntityCollectionTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
     reg.addAncestors("EntityExpression", {"Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.addAncestors("EntityTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
+    reg.setSource("https://malleus.dev/schema");
+    reg.addAncestors("Event", {"Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("Expression", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("FloatCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.addAncestors("FloatCollectionTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
@@ -323,6 +331,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("OutcomePlanTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("ParticleInteractionProfile", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("PerceptionEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("ReadLocalBooleanCollectionExpression", {"BooleanCollectionExpression", "CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "LocalReadExpression", "Temporal"});
@@ -351,6 +360,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("ReadParameterOutcomePlanExpression", {"Describable", "Entity", "Expression", "Identifiable", "OutcomePlanExpression", "ParameterReadExpression", "Temporal"});
     reg.addAncestors("ReadParameterStringCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "ParameterReadExpression", "StringCollectionExpression", "Temporal"});
     reg.addAncestors("ReadParameterStringExpression", {"Describable", "Entity", "Expression", "Identifiable", "ParameterReadExpression", "ScalarExpression", "StringExpression", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("RelationEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("RuntimeContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("ScalarExpression", {"Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -364,6 +376,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("SourceRepresentationContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("SourceSelector", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("SourceTarget", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("SpawnEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("StringCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.addAncestors("StringCollectionTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
     reg.addAncestors("StringExpression", {"Describable", "Entity", "Expression", "Identifiable", "ScalarExpression", "Temporal"});
@@ -377,15 +392,18 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Thigh", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Thorax", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Torso", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("TransformationEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("TransformationRule", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("UpperArm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("ValueTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("VolumeEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Wall", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("WallBlock", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "Wall", "WorldEntity"});
     reg.addAncestors("Wing", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("WorldEntity", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal"});
+    reg.addAncestors("WorldEvent", {"Event", "Identifiable", "Temporal"});
 
     // Open property namespaces
     reg.addPropertyNamespace("BodyPart", "rule.0.payload.");

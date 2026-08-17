@@ -71,14 +71,22 @@ assume a historical branch is idle from this document alone.
   claims alone never imply it.
 - Claim dispositions, resolution dependencies, and invalidation links
   live on claims, not on source-coverage rows.
+- Dispositions are append-only decisions, not mutable claim fields.
+  `SourceCoverage` and `IngestionClaim` are enduring records;
+  `CoverageDecision` and `ClaimDecision` reuse `ArbiterDecision` and
+  derive current state from the latest contiguous sequence while
+  preserving every earlier judgement.
 - Seeds remain the verified load format. The ledger does not replace
   seed verification or weaken byte-exact citations.
 - A future reusable ingestion module is promoted only after a second
   consumer exists. Logovger is consumer one.
 
-`SourceCoverageUnit` and `IngestionClaim` are useful working labels in
-discussion only. The owner has not selected schema type names, the exact
-leaf-identity grammar, or the closed claim-disposition vocabulary.
+The built schema names are `SourceCoverage`, `IngestionClaim`,
+`CoverageDecision`, and `ClaimDecision`. Exact leaf identity is a
+`SourceRepresentationContext` plus typed primary selector. Claim
+dispositions are `MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
+`CONTRADICTORY`; incomplete claims distinguish `ONTOLOGY_GAP` from
+`RULE_LANGUAGE_GAP`. Provisional claims remain R12/Malleus work.
 
 ## Completed
 
@@ -141,20 +149,20 @@ Follow this TDD order:
   must address
   duplicate sentences, repeated headings, empty cells, duplicate or
   blank row keys, and repeated table labels at one pinned source commit.
-- [ ] Present and decide the minimum closed claim dispositions. Keep
+- [x] Present and decide the minimum closed claim dispositions. Keep
   ontology-gap and rule-language-gap reasons distinct if both enter the
   first slice.
-- [ ] Write a fixture containing a zero-claim unit, a one-claim unit,
+- [x] Write a fixture containing a zero-claim unit, a one-claim unit,
   and a compound unit with multiple claims. Include one claim supported
   by multiple units if the selected address grammar can express it.
-- [ ] Add red schema or parser tests for coverage-to-claim linkage and
+- [x] Add red schema or parser tests for coverage-to-claim linkage and
   exact source identity before adding production types.
-- [ ] Implement only the minimum ledger representation required by those
+- [x] Implement only the minimum ledger representation required by those
   tests. No compatibility fallback and no second ingestion grammar.
-- [ ] Add a reconciliation gate: every enumerated unit has exactly one
+- [x] Add a reconciliation gate: every enumerated unit has exactly one
   coverage judgement; zero claims requires explicit no-rule-content;
   every claim cites existing coverage; totals close.
-- [ ] Prove a missing unit, an unlinked claim, a duplicate coverage row,
+- [x] Prove a missing unit, an unlinked claim, a duplicate coverage row,
   and silent zero-claim coverage each fail mechanically.
 - [ ] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed

@@ -126,6 +126,7 @@ set(LOGOSPHERE_CORE_SOURCES
     src/text/source_document.cpp
     src/text/source_locator.cpp
     src/text/source_target.cpp
+    src/kg/ingestion_ledger.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
     # validated write path, and the ingestion verifier (verbatim /
     # schema / value / semantic / invariants). docs/RPG_MODULE.md.
@@ -421,6 +422,7 @@ add_headless_test(test_source_locator)
 target_compile_definitions(test_source_locator
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_headless_test(test_source_target)
+add_headless_test(test_ingestion_ledger)
 add_headless_test(test_rulebook_pack)
 add_headless_test(test_rule_fork)
 # Verbatim-checks its citations against the vendored SRD in the tree.

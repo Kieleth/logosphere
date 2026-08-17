@@ -421,6 +421,104 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
           "with an optional typed quote selector");
 }
 
+void test_ingestion_dispositions_are_append_only_typed_decisions() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("SourceCoverage", "Addressable") &&
+              reg.isSubtypeOf("IngestionClaim", "Addressable"),
+          "coverage and claims are enduring addressable ledger records");
+    CHECK(reg.isSubtypeOf("CoverageDecision", "ArbiterDecision") &&
+              reg.isSubtypeOf("ClaimDecision", "ArbiterDecision"),
+          "ledger outcomes reuse the existing arbiter event");
+    CHECK(reg.hasFacet("CoverageDecision", "append-only") &&
+              reg.hasFacet("ClaimDecision", "append-only"),
+          "ledger decision events are append-only");
+
+    const auto* target =
+        reg.findProperty("SourceCoverage", "coverage_target");
+    const auto* subject =
+        reg.findProperty("ClaimDecision", "decision_subject");
+    const auto* sequence =
+        reg.findProperty("ClaimDecision", "decision_sequence");
+    CHECK(target && target->required && target->create_only &&
+              target->value_kind == kg::PropertyValueKind::EntityRef &&
+              target->ref_target == "SourceTarget" && subject &&
+              subject->required &&
+              subject->value_kind == kg::PropertyValueKind::EntityRef &&
+              subject->ref_target == "IngestionClaim" && sequence &&
+              sequence->required && sequence->has_min &&
+              sequence->min_value == 0,
+          "typed subjects and sequences make decision histories replayable");
+
+    const auto* coverage =
+        reg.findProperty("CoverageDecision", "coverage_judgement");
+    const auto* disposition =
+        reg.findProperty("ClaimDecision", "claim_disposition");
+    const auto* gap =
+        reg.findProperty("ClaimDecision", "claim_gap_kind");
+    const auto* related =
+        reg.findProperty("ClaimDecision", "related_claim");
+    CHECK(coverage && coverage->required &&
+              coverage->value_kind == kg::PropertyValueKind::Enum &&
+              coverage->enum_type == "CoverageJudgement" && disposition &&
+              disposition->required &&
+              disposition->value_kind == kg::PropertyValueKind::Enum &&
+              disposition->enum_type == "ClaimDisposition" && gap &&
+              !gap->required &&
+              gap->value_kind == kg::PropertyValueKind::Enum &&
+              gap->enum_type == "ClaimGapKind" && related &&
+              !related->required &&
+              related->value_kind == kg::PropertyValueKind::EntityRef &&
+              related->ref_target == "IngestionClaim",
+          "decision values and exceptional links are closed ontology types");
+
+    CHECK(reg.hasRelationType("CLAIM_SUPPORTED_BY") &&
+              reg.isValidRelation("CLAIM_SUPPORTED_BY", "IngestionClaim",
+                                  "SourceCoverage") &&
+              reg.hasRelationType("CLAIM_MATERIALIZES") &&
+              reg.isValidRelation("CLAIM_MATERIALIZES", "IngestionClaim",
+                                  "RuleConstant") &&
+              reg.hasRelationType("CLAIM_RESOLVED_AGAINST") &&
+              reg.isValidRelation("CLAIM_RESOLVED_AGAINST",
+                                  "IngestionClaim", "RuleConstant"),
+          "claims link to evidence, materialized graph data, and prior knowledge");
+}
+
+void test_ingestion_decision_history_cannot_be_rewritten() {
+    kg::KGModule kg(rulebook::ontology::registry());
+    kg.setMode(kg::KGMode::MINIMAL);
+
+    const auto claim = kg.createEntity("IngestionClaim");
+    kg.setProperty(claim, "identity_context", std::to_string(claim));
+    kg.setProperty(claim, "entity_key", "claim:test");
+    kg.setProperty(claim, "claim_statement", "A test claim.");
+
+    const auto decision = kg.createEntity("ClaimDecision");
+    kg.setProperty(decision, "event_type", "ARBITER_DECISION");
+    kg.setProperty(decision, "decision_subject", std::to_string(claim));
+    kg.setProperty(decision, "decision_sequence", "0");
+    kg.setProperty(decision, "claim_disposition", "RAISED");
+    kg.setProperty(decision, "claim_gap_kind", "ONTOLOGY_GAP");
+    kg.setProperty(decision, "decision_question", "Can this be typed?");
+    kg.setProperty(decision, "decision_reason", "The class is absent.");
+    kg.setProperty(decision, "arbiter", "test");
+
+    const auto rewrite = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpSetProperty{{decision, ""}, "decision_reason",
+                                     "rewritten"}},
+        kg, kg.getRegistry());
+    CHECK(!rewrite.ok &&
+              rewrite.reason.find("append-only") != std::string::npos,
+          "a validated write cannot rewrite an ingestion decision");
+
+    const auto destroy = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpDestroyEntity{{decision, ""}}}, kg,
+        kg.getRegistry());
+    CHECK(!destroy.ok &&
+              destroy.reason.find("append-only") != std::string::npos,
+          "a validated write cannot delete ingestion decision history");
+}
+
 void test_rule_content_has_portable_addressable_identity() {
     const auto& reg = rulebook::ontology::registry();
     CHECK(reg.hasEntityType("Addressable") && reg.isAbstract("Addressable"),
@@ -976,6 +1074,8 @@ int main() {
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
     test_source_leaf_identity_is_a_typed_schema_tuple();
+    test_ingestion_dispositions_are_append_only_typed_decisions();
+    test_ingestion_decision_history_cannot_be_rewritten();
     test_rule_content_has_portable_addressable_identity();
     test_rule_origin_and_published_content_are_immutable();
     test_chapter_one_instantiates();

@@ -430,6 +430,19 @@ first owner-facing boundaries in Phase A. The TDD sequence and current
 handoff are recorded in
 `todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
 
+**Implementation amendment, 2026-08-17 15:25 UTC.** Those boundaries
+are now selected. Exact leaf identity is the typed source
+representation-plus-primary-selector tuple. `SourceCoverage` and
+`IngestionClaim` are the enduring records. Disposition is never a
+mutable property on either record: `CoverageDecision` and
+`ClaimDecision` reuse `ArbiterDecision` and form contiguous append-only
+histories per subject. The latest decision is current, and previous
+readings remain queryable. Coverage decisions choose `CLAIMS_PRESENT`
+or `NO_RULE_CONTENT`. Claim decisions choose `MATERIALIZED`, `PARTIAL`,
+`RAISED`, `DUPLICATE`, or `CONTRADICTORY`; incomplete claims distinguish
+ontology gaps from rule-language gaps. Provisional remains an R12
+staged-claim concern owned by Malleus rather than a sixth local status.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must

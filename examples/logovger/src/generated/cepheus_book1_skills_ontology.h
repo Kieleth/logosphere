@@ -884,6 +884,115 @@ inline bool from_string(const char* str, RuleLanguageRelationType& out) {
     return false;
 }
 
+/// Latest derived judgement for one enumerated source leaf.
+enum class CoverageJudgement {
+    /// One or more semantic claims cite this coverage record.
+    CLAIMS_PRESENT,
+    /// The leaf was visited and judged to contain no rule claim.
+    NO_RULE_CONTENT
+};
+
+/// Convert CoverageJudgement to its string representation.
+inline const char* to_string(CoverageJudgement value) {
+    switch (value) {
+        case CoverageJudgement::CLAIMS_PRESENT: return "CLAIMS_PRESENT";
+        case CoverageJudgement::NO_RULE_CONTENT: return "NO_RULE_CONTENT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into CoverageJudgement. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, CoverageJudgement& out) {
+    if (std::strcmp(str, "CLAIMS_PRESENT") == 0) { out = CoverageJudgement::CLAIMS_PRESENT; return true; }
+    if (std::strcmp(str, "NO_RULE_CONTENT") == 0) { out = CoverageJudgement::NO_RULE_CONTENT; return true; }
+    return false;
+}
+
+/// Outcome recorded by one append-only claim decision.
+enum class ClaimDisposition {
+    /// The complete claim is represented by typed KG content.
+    MATERIALIZED,
+    /// Typed KG content represents only part of the claim.
+    PARTIAL,
+    /// The claim is recorded but cannot yet be represented.
+    RAISED,
+    /// An earlier claim already represents the same meaning.
+    DUPLICATE,
+    /// The claim conflicts with another claim and both are kept.
+    CONTRADICTORY
+};
+
+/// Convert ClaimDisposition to its string representation.
+inline const char* to_string(ClaimDisposition value) {
+    switch (value) {
+        case ClaimDisposition::MATERIALIZED: return "MATERIALIZED";
+        case ClaimDisposition::PARTIAL: return "PARTIAL";
+        case ClaimDisposition::RAISED: return "RAISED";
+        case ClaimDisposition::DUPLICATE: return "DUPLICATE";
+        case ClaimDisposition::CONTRADICTORY: return "CONTRADICTORY";
+    }
+    return "unknown";
+}
+
+/// Parse a string into ClaimDisposition. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, ClaimDisposition& out) {
+    if (std::strcmp(str, "MATERIALIZED") == 0) { out = ClaimDisposition::MATERIALIZED; return true; }
+    if (std::strcmp(str, "PARTIAL") == 0) { out = ClaimDisposition::PARTIAL; return true; }
+    if (std::strcmp(str, "RAISED") == 0) { out = ClaimDisposition::RAISED; return true; }
+    if (std::strcmp(str, "DUPLICATE") == 0) { out = ClaimDisposition::DUPLICATE; return true; }
+    if (std::strcmp(str, "CONTRADICTORY") == 0) { out = ClaimDisposition::CONTRADICTORY; return true; }
+    return false;
+}
+
+/// Closed reason why a claim is partial or raised.
+enum class ClaimGapKind {
+    /// The ontology cannot type a required concept or relation.
+    ONTOLOGY_GAP,
+    /// The rule language cannot express the required operation.
+    RULE_LANGUAGE_GAP
+};
+
+/// Convert ClaimGapKind to its string representation.
+inline const char* to_string(ClaimGapKind value) {
+    switch (value) {
+        case ClaimGapKind::ONTOLOGY_GAP: return "ONTOLOGY_GAP";
+        case ClaimGapKind::RULE_LANGUAGE_GAP: return "RULE_LANGUAGE_GAP";
+    }
+    return "unknown";
+}
+
+/// Parse a string into ClaimGapKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, ClaimGapKind& out) {
+    if (std::strcmp(str, "ONTOLOGY_GAP") == 0) { out = ClaimGapKind::ONTOLOGY_GAP; return true; }
+    if (std::strcmp(str, "RULE_LANGUAGE_GAP") == 0) { out = ClaimGapKind::RULE_LANGUAGE_GAP; return true; }
+    return false;
+}
+
+/// Typed links from ingestion claims to evidence and graph data.
+enum class RulebookIngestionRelationType {
+    CLAIM_SUPPORTED_BY,
+    CLAIM_MATERIALIZES,
+    CLAIM_RESOLVED_AGAINST
+};
+
+/// Convert RulebookIngestionRelationType to its string representation.
+inline const char* to_string(RulebookIngestionRelationType value) {
+    switch (value) {
+        case RulebookIngestionRelationType::CLAIM_SUPPORTED_BY: return "CLAIM_SUPPORTED_BY";
+        case RulebookIngestionRelationType::CLAIM_MATERIALIZES: return "CLAIM_MATERIALIZES";
+        case RulebookIngestionRelationType::CLAIM_RESOLVED_AGAINST: return "CLAIM_RESOLVED_AGAINST";
+    }
+    return "unknown";
+}
+
+/// Parse a string into RulebookIngestionRelationType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, RulebookIngestionRelationType& out) {
+    if (std::strcmp(str, "CLAIM_SUPPORTED_BY") == 0) { out = RulebookIngestionRelationType::CLAIM_SUPPORTED_BY; return true; }
+    if (std::strcmp(str, "CLAIM_MATERIALIZES") == 0) { out = RulebookIngestionRelationType::CLAIM_MATERIALIZES; return true; }
+    if (std::strcmp(str, "CLAIM_RESOLVED_AGAINST") == 0) { out = RulebookIngestionRelationType::CLAIM_RESOLVED_AGAINST; return true; }
+    return false;
+}
+
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
     std::optional<float> position_x = std::nullopt;
@@ -2706,6 +2815,66 @@ struct ArbiterDecision : public Event {
     std::optional<std::string> decision_reason = std::nullopt;
     /// Who decided, readable. Backend and model for an LLM arbiter, so a life generated last month can say which model shaped it. One per decision, never a set: two authorities over one record leaves no way to say which wrote it. Never a hash, because an identity you cannot read back is a checksum and not provenance.
     std::optional<std::string> arbiter = std::nullopt;
+};
+
+
+/// Enduring ledger record for one mechanically enumerated source target. Its current judgement is derived from its ordered CoverageDecision history rather than stored as mutable state.
+struct SourceCoverage : public Entity, public Addressable {
+    /// Exact source leaf this coverage record judges.
+    SourceTarget coverage_target = {};
+};
+
+
+/// One atomic semantic claim read from one or more source coverage records. The claim persists while append-only ClaimDecision events record how successive readings disposed it.
+struct IngestionClaim : public Entity, public Addressable {
+    /// Auditable statement of one atomic meaning read from the cited leaves. Executable meaning lives in the typed entities linked by CLAIM_MATERIALIZES, never in this text.
+    std::string claim_statement = {};
+};
+
+
+/// One append-only judgement about whether an enumerated source leaf produced semantic claims. Later decisions supersede earlier ones by sequence without rewriting history.
+struct CoverageDecision : public ArbiterDecision {
+    /// Enduring ledger record judged by this append-only decision.
+    SourceCoverage decision_subject = {};
+    /// Contiguous zero-based order within one decision subject.
+    int32_t decision_sequence = {};
+    /// Typed coverage outcome chosen by this decision.
+    CoverageJudgement coverage_judgement = {};
+};
+
+
+/// One append-only disposition of an atomic claim. The latest sequence is current; previous decisions remain queryable. Reconciliation enforces which optional fields and graph links each disposition requires.
+struct ClaimDecision : public ArbiterDecision {
+    /// Enduring ledger record judged by this append-only decision.
+    IngestionClaim decision_subject = {};
+    /// Contiguous zero-based order within one decision subject.
+    int32_t decision_sequence = {};
+    /// Typed claim outcome chosen by this decision.
+    ClaimDisposition claim_disposition = {};
+    /// Required by reconciliation for PARTIAL and RAISED claims.
+    std::optional<ClaimGapKind> claim_gap_kind = std::nullopt;
+    /// Required by reconciliation for DUPLICATE and CONTRADICTORY decisions.
+    std::optional<IngestionClaim> related_claim = std::nullopt;
+};
+
+
+/// Abstract parent for typed ingestion-ledger links.
+struct RulebookIngestionRelation : public Relation {
+};
+
+
+/// An atomic claim cites one enumerated coverage record.
+struct ClaimSupportedByRelation : public RulebookIngestionRelation {
+};
+
+
+/// A claim is represented by one typed KG entity.
+struct ClaimMaterializesRelation : public RulebookIngestionRelation {
+};
+
+
+/// A claim was read against one previously known KG entity.
+struct ClaimResolvedAgainstRelation : public RulebookIngestionRelation {
 };
 
 
