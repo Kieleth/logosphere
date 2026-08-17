@@ -359,6 +359,26 @@ bool parse_band_cell(const std::string& q, Band& band) {
     return i < q.size() && q[i] == '|';
 }
 
+bool same_band(const Band& left, const Band& right) {
+    return left.lo == right.lo && left.hi == right.hi;
+}
+
+std::vector<Band> evidence_bands(const std::string& evidence) {
+    std::vector<Band> bands;
+    std::istringstream lines(evidence);
+    std::string line;
+    while (std::getline(lines, line)) {
+        line = trim(line);
+        if (line.empty()) continue;
+        Band band;
+        if (parse_band_cell(line, band) ||
+            parse_band_cell("| " + line + " |", band)) {
+            bands.push_back(band);
+        }
+    }
+    return bands;
+}
+
 // A stored band property, parsed. The schema already validated these
 // as integers; a parse failure here means the property is absent.
 bool read_band(const KGModule& kg, EntityID id, const char* min_key,
@@ -403,7 +423,21 @@ bool read_row_band(const KGModule& kg, EntityID id, Band& band) {
     // last row: "| 1+ |". The flag and the number are exclusive, the
     // same contract key_max_unbounded has on a lookup row.
     const std::string top_flag = kg.getProperty(id, "roll_max_unbounded");
-    if (top_flag == "true" || top_flag == "1") {
+    const std::string bottom_flag =
+        kg.getProperty(id, "roll_min_unbounded");
+    const bool top_unbounded = top_flag == "true" || top_flag == "1";
+    const bool bottom_unbounded =
+        bottom_flag == "true" || bottom_flag == "1";
+    if (top_unbounded && bottom_unbounded) return false;
+    if (bottom_unbounded) {
+        const std::string lo = kg.getProperty(id, "roll_min");
+        const std::string hi = kg.getProperty(id, "roll_max");
+        if (lo.empty() || hi.empty()) return false;
+        band.lo.reset();
+        band.hi = std::strtoll(hi.c_str(), nullptr, 10);
+        return true;
+    }
+    if (top_unbounded) {
         const std::string lo = kg.getProperty(id, "roll_min");
         if (lo.empty() || !kg.getProperty(id, "roll_max").empty()) {
             return false;
@@ -661,6 +695,59 @@ struct Checker {
         return true;
     }
 
+    bool has_current_partial_source_gap(const KGModule& world,
+                                        EntityID rule) const {
+        for (const EntityID claim :
+             world.getRelatedReverse(rule, "CLAIM_MATERIALIZES")) {
+            EntityID latest = INVALID_ENTITY;
+            unsigned long long latest_sequence = 0;
+            for (const EntityID decision : world.findByProperty(
+                     "decision_subject", std::to_string(claim))) {
+                if (!ont.isSubtypeOf(world.getType(decision),
+                                     "ClaimDecision")) {
+                    continue;
+                }
+                const std::string sequence_text =
+                    world.getProperty(decision, "decision_sequence");
+                unsigned long long sequence = 0;
+                const auto parsed = std::from_chars(
+                    sequence_text.data(),
+                    sequence_text.data() + sequence_text.size(), sequence);
+                if (parsed.ec != std::errc{} ||
+                    parsed.ptr != sequence_text.data() +
+                                      sequence_text.size()) {
+                    continue;
+                }
+                if (latest == INVALID_ENTITY || sequence > latest_sequence) {
+                    latest = decision;
+                    latest_sequence = sequence;
+                }
+            }
+            if (latest != INVALID_ENTITY &&
+                world.getProperty(latest, "claim_disposition") == "PARTIAL" &&
+                world.getProperty(latest, "claim_gap_kind") == "SOURCE_GAP") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool is_source_gap_widening(const KGModule& world, EntityID row,
+                                const Band& stored,
+                                const Band& printed) const {
+        if (!stored.lo && stored.hi && printed.lo && printed.hi) {
+            const std::string stored_lo = world.getProperty(row, "roll_min");
+            const std::string stored_hi = world.getProperty(row, "roll_max");
+            return stored_lo == std::to_string(*printed.lo) &&
+                   stored_hi == std::to_string(*printed.hi) &&
+                   *stored.hi == *printed.hi;
+        }
+        if (stored.lo && !stored.hi && printed.lo && printed.hi) {
+            return *stored.lo == *printed.lo;
+        }
+        return false;
+    }
+
     void check_verbatim(const KGModule& world, const SeedLoadReport& load) {
         const auto targets = world.findByType("SourceTarget");
         if (!targets.empty()) {
@@ -916,34 +1003,75 @@ struct Checker {
                 }
                 continue;
             }
-            const std::string band_text =
-                addressed_row.empty() ? quote : ("| " + addressed_row + " |");
-            Band cell_band;
-            if (!parse_band_cell(band_text, cell_band)) {
-                violate("value", static_cast<int>(i), alias,
-                        type + ": cannot derive a band from the quoted "
-                        "leading cell (the book's notations: '| N |', "
-                        "'| N-M |', en dash, '| N through M |', "
-                        "'| N or higher |'): \"" +
-                        preview(band_text) + "\"");
-                continue;
-            }
-            ++report.bands_derived;
             Band row_band;
             if (!read_row_band(world, id, row_band)) {
                 violate("value", static_cast<int>(i), alias,
-                        type + ": quote declares band " +
-                        format_band(cell_band) + " but the row has no valid "
-                        "band slots set");
+                        type + ": the row has no valid band slots set");
                 continue;
             }
-            if (row_band.lo != cell_band.lo ||
-                row_band.hi != cell_band.hi) {
-                violate("value", static_cast<int>(i), alias,
-                        type + ": band " + format_band(row_band) +
-                        " does not equal the quoted cell's " +
-                        format_band(cell_band));
+
+            if (!addressed_row.empty()) {
+                const std::string band_text = "| " + addressed_row + " |";
+                Band cell_band;
+                if (!parse_band_cell(band_text, cell_band)) {
+                    violate("value", static_cast<int>(i), alias,
+                            type + ": cannot derive a band from the addressed "
+                            "source row \"" + preview(band_text) + "\"");
+                    continue;
+                }
+                ++report.bands_derived;
+                if (!same_band(row_band, cell_band)) {
+                    violate("value", static_cast<int>(i), alias,
+                            type + ": band " + format_band(row_band) +
+                            " does not equal the quoted cell's " +
+                            format_band(cell_band));
+                }
+                continue;
             }
+
+            const auto candidates = evidence_bands(quote);
+            if (candidates.empty()) {
+                violate("value", static_cast<int>(i), alias,
+                        type + ": cannot derive a band from any exact "
+                        "evidence fragment: \"" + preview(quote) + "\"");
+                continue;
+            }
+            std::vector<Band> exact_matches;
+            std::vector<Band> widened_matches;
+            for (const Band& candidate : candidates) {
+                if (same_band(row_band, candidate)) {
+                    exact_matches.push_back(candidate);
+                } else if (is_source_gap_widening(world, id, row_band,
+                                                  candidate)) {
+                    widened_matches.push_back(candidate);
+                }
+            }
+            if (exact_matches.size() == 1) {
+                ++report.bands_derived;
+                continue;
+            }
+            if (exact_matches.size() > 1 || widened_matches.size() > 1) {
+                violate("value", static_cast<int>(i), alias,
+                        type + ": more than one exact evidence fragment "
+                        "can prove band " + format_band(row_band));
+                continue;
+            }
+            if (widened_matches.size() == 1) {
+                if (has_current_partial_source_gap(world, id)) {
+                    ++report.bands_derived;
+                    continue;
+                }
+                violate("value", static_cast<int>(i), alias,
+                        type + ": widening printed band " +
+                        format_band(widened_matches.front()) + " to " +
+                        format_band(row_band) +
+                        " requires its current materializing decision to be "
+                        "PARTIAL with claim_gap_kind SOURCE_GAP");
+                continue;
+            }
+            violate("value", static_cast<int>(i), alias,
+                    type + ": band " + format_band(row_band) +
+                    " matches no exact evidence fragment");
         }
     }
 

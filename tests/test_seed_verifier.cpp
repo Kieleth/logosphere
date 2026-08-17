@@ -287,6 +287,86 @@ kg::SeedEnvelope exact_evidence_seed() {
     return mini_seed(file, ops);
 }
 
+kg::SeedEnvelope exact_multileaf_open_bottom_seed(
+    const std::string& gap_kind) {
+    const std::string file = "book1/character-creation.md";
+    const std::string source = slurp(std::string(kSourceRoot) + "/" + file);
+    const std::size_t aging = source.find("## Aging");
+    const std::size_t header = source.find("| 2D6 |", aging);
+    const std::size_t band = source.find("\\-6", header);
+    CHECK(aging != std::string::npos && header != std::string::npos &&
+              band != std::string::npos,
+          "the exact multi-leaf band fixture exists in the source");
+    if (aging == std::string::npos || header == std::string::npos ||
+        band == std::string::npos) {
+        return {};
+    }
+
+    kg::SeedEnvelope seed;
+    seed.source = {file, pinned_commit()};
+    seed.layer = "test";
+    auto create = [&](const std::string& type, const std::string& alias,
+                      std::vector<std::pair<std::string, std::string>> props) {
+        seed.ops.push_back(
+            kg::KGOp{kg::KGOpCreateEntity{type, std::move(props), alias}});
+    };
+    auto relate = [&](const std::string& from, const std::string& relation,
+                      const std::string& to) {
+        kg::KGOpSetRelation op;
+        op.from.symbolic = from;
+        op.relation = relation;
+        op.to.symbolic = to;
+        seed.ops.push_back(kg::KGOp{std::move(op)});
+    };
+    auto target = [&](const std::string& alias, std::size_t start,
+                      const std::string& exact) {
+        create("ByteRangeSelector", alias + "_range",
+               {{"source_byte_start", std::to_string(start)},
+                {"source_byte_end", std::to_string(start + exact.size())}});
+        create("TextQuoteSelector", alias + "_quote",
+               {{"source_quote_exact", exact}});
+        create("SourceTarget", alias + "_target",
+               {{"target_primary_selector", "@" + alias + "_range"},
+                {"target_quote_selector", "@" + alias + "_quote"}});
+        create("SourceCoverage", alias + "_coverage",
+               {{"coverage_target", "@" + alias + "_target"}});
+        create("CoverageDecision", alias + "_coverage_decision",
+               {{"event_type", "ARBITER_DECISION"},
+                {"decision_subject", "@" + alias + "_coverage"},
+                {"decision_sequence", "0"},
+                {"coverage_judgement", "CLAIMS_PRESENT"},
+                {"decision_question", "Does this leaf state a rule?"},
+                {"decision_reason", "It is part of the table row."},
+                {"arbiter", "test reader"}});
+    };
+
+    target("header", header + 2, "2D6");
+    target("band", band, "\\-6");
+    create("NoEffect", "effect", {{"name", "test no effect"}});
+    create("TableEntry", "row",
+           {{"name", "test open bottom"},
+            {"roll_min", "-6"},
+            {"roll_max", "-6"},
+            {"roll_min_unbounded", "true"},
+            {"outcome", "@effect"}});
+    create("IngestionClaim", "claim",
+           {{"claim_statement", "The bottom row applies at -6 or less."}});
+    create("ClaimDecision", "claim_decision",
+           {{"event_type", "ARBITER_DECISION"},
+            {"decision_subject", "@claim"},
+            {"decision_sequence", "0"},
+            {"claim_disposition", "PARTIAL"},
+            {"claim_gap_kind", gap_kind},
+            {"decision_question", "Can this claim enter the graph?"},
+            {"decision_reason", "The printed floor leaves lower totals open."},
+            {"arbiter", "test reader"}});
+    relate("claim", "CLAIM_SUPPORTED_BY", "header_coverage");
+    relate("claim", "CLAIM_SUPPORTED_BY", "band_coverage");
+    relate("claim", "CLAIM_MATERIALIZES", "effect");
+    relate("claim", "CLAIM_MATERIALIZES", "row");
+    return seed;
+}
+
 logosphere::text::SourceCorpusDeclaration exact_evidence_corpus(
     const kg::SeedEnvelope& seed) {
     return {seed.layer,
@@ -672,6 +752,28 @@ void test_exact_evidence_replaces_the_legacy_locator_without_fallback() {
         engine_registry());
     CHECK(reason_contains(quote_report, "verbatim", "quote selector"),
           "a supporting quote that disagrees with the byte range is refused");
+}
+
+void test_exact_multileaf_band_requires_a_typed_source_gap() {
+    RootSourceAccess source_access(kSourceRoot);
+
+    const auto source_gap = exact_multileaf_open_bottom_seed("SOURCE_GAP");
+    const auto accepted = kg::verify_seed_in_edition(
+        source_gap, kSourceRoot, exact_evidence_corpus(source_gap),
+        source_access, engine_registry());
+    print_first(accepted, "value");
+    CHECK(accepted.ok(),
+          "a matching later evidence fragment proves the printed band, and "
+          "PARTIAL SOURCE_GAP permits its explicit open-bottom reading");
+
+    const auto language_gap =
+        exact_multileaf_open_bottom_seed("RULE_LANGUAGE_GAP");
+    const auto rejected = kg::verify_seed_in_edition(
+        language_gap, kSourceRoot, exact_evidence_corpus(language_gap),
+        source_access, engine_registry());
+    CHECK(reason_contains(rejected, "value", "SOURCE_GAP"),
+          "a rule-language gap cannot authorize widening a printed source "
+          "band");
 }
 
 void test_loader_owns_seed_portable_identity() {
@@ -1790,6 +1892,7 @@ int main() {
     test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence();
     test_loader_scopes_exact_evidence_to_its_representation();
     test_exact_evidence_replaces_the_legacy_locator_without_fallback();
+    test_exact_multileaf_band_requires_a_typed_source_gap();
     test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();
