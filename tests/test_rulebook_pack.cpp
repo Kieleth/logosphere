@@ -545,6 +545,9 @@ void test_ingestion_dispositions_are_append_only_typed_decisions() {
               related->value_kind == kg::PropertyValueKind::EntityRef &&
               related->ref_target == "IngestionClaim",
           "decision values and exceptional links are closed ontology types");
+    CHECK(reg.enumTypes().at("ClaimGapKind").members.count("SOURCE_GAP") == 1,
+          "claim gaps distinguish defects in source content from missing "
+          "ontology and rule-language capability");
 
     CHECK(reg.hasRelationType("CLAIM_SUPPORTED_BY") &&
               reg.isValidRelation("CLAIM_SUPPORTED_BY", "IngestionClaim",

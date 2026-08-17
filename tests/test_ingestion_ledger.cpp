@@ -244,6 +244,23 @@ void test_partial_claim_requires_typed_gap() {
           "partial cannot hide whether ontology or rule language blocked it");
 }
 
+void test_partial_claim_accepts_source_gap() {
+    Fixture f;
+    const auto target = f.target("byte-range:0:1");
+    const auto coverage = f.coverage(target, "coverage:source-gap");
+    const auto claim =
+        f.claim("claim:source-gap", "The source leaves a band open.",
+                {coverage});
+    f.materialize(claim, "source-gap-reading");
+    f.claim_decision(claim, 0, "PARTIAL", "SOURCE_GAP");
+    f.coverage_decision(coverage, 0, "CLAIMS_PRESENT");
+    const auto report =
+        kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+    CHECK(report.ok,
+          "a partial materialization can name a source defect without "
+          "misclassifying it as ontology or rule language: " + report.error);
+}
+
 void test_duplicate_requires_related_claim() {
     Fixture f;
     const auto target = f.target("byte-range:0:1");
@@ -270,6 +287,7 @@ int main() {
     test_silent_zero_claim_coverage_fails();
     test_broken_decision_sequence_fails();
     test_partial_claim_requires_typed_gap();
+    test_partial_claim_accepts_source_gap();
     test_duplicate_requires_related_claim();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"

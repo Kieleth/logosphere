@@ -972,7 +972,9 @@ enum class ClaimGapKind {
     /// The ontology cannot type a required concept or relation.
     ONTOLOGY_GAP,
     /// The rule language cannot express the required operation.
-    RULE_LANGUAGE_GAP
+    RULE_LANGUAGE_GAP,
+    /// The source is ambiguous, inconsistent, or incomplete for the required rule.
+    SOURCE_GAP
 };
 
 /// Convert ClaimGapKind to its string representation.
@@ -980,6 +982,7 @@ inline const char* to_string(ClaimGapKind value) {
     switch (value) {
         case ClaimGapKind::ONTOLOGY_GAP: return "ONTOLOGY_GAP";
         case ClaimGapKind::RULE_LANGUAGE_GAP: return "RULE_LANGUAGE_GAP";
+        case ClaimGapKind::SOURCE_GAP: return "SOURCE_GAP";
     }
     return "unknown";
 }
@@ -988,6 +991,7 @@ inline const char* to_string(ClaimGapKind value) {
 inline bool from_string(const char* str, ClaimGapKind& out) {
     if (std::strcmp(str, "ONTOLOGY_GAP") == 0) { out = ClaimGapKind::ONTOLOGY_GAP; return true; }
     if (std::strcmp(str, "RULE_LANGUAGE_GAP") == 0) { out = ClaimGapKind::RULE_LANGUAGE_GAP; return true; }
+    if (std::strcmp(str, "SOURCE_GAP") == 0) { out = ClaimGapKind::SOURCE_GAP; return true; }
     return false;
 }
 

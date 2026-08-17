@@ -171,7 +171,8 @@ bool check_claim_disposition(const KGModule& world, EntityID claim,
 
     if (has_gap) {
         const std::string gap = world.getProperty(decision, "claim_gap_kind");
-        if (gap != "ONTOLOGY_GAP" && gap != "RULE_LANGUAGE_GAP") {
+        if (gap != "ONTOLOGY_GAP" && gap != "RULE_LANGUAGE_GAP" &&
+            gap != "SOURCE_GAP") {
             error = "claim decision " + std::to_string(decision) +
                     ": unknown gap kind '" + gap + "'";
             return false;

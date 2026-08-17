@@ -67,6 +67,8 @@ enums:
         description: The ontology cannot type a required concept or relation.
       RULE_LANGUAGE_GAP:
         description: The rule language cannot express the required operation.
+      SOURCE_GAP:
+        description: The source is ambiguous, inconsistent, or incomplete for the required rule.
 
   RulebookIngestionRelationType:
     description: Typed links from ingestion claims to evidence and graph data.
