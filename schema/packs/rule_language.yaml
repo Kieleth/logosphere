@@ -21,7 +21,25 @@ imports:
   # a named type rather than LinkML's `double` built-in.
   - math
 
+types:
+  source_digest:
+    typeof: string
+    description: Lowercase hexadecimal bytes of a typed content digest.
+    pattern: ^[0-9a-f]+$
+
 enums:
+  SourceMediaType:
+    description: Closed media vocabulary implemented by source resolvers.
+    permissible_values:
+      UTF8_TEXT:
+        description: UTF-8 source text addressed by byte range.
+
+  SourceDigestAlgorithm:
+    description: Closed cryptographic digest vocabulary for source bytes.
+    permissible_values:
+      SHA256:
+        description: SHA-256, encoded as 64 lowercase hexadecimal digits.
+
   # Both enums below are the VOCABULARY only: the set of legal
   # predicates, and the range of each relation class's relation_type
   # slot. They carried valid_source_types / valid_target_types
@@ -119,6 +137,96 @@ classes:
     slots:
       - identity_context
       - entity_key
+
+  SourceRepresentationContext:
+    is_a: KnowledgeContext
+    description: >-
+      Exact immutable bytes of one source representation. A new byte
+      sequence is a new context even when it represents the same logical
+      document or edition.
+    annotations:
+      facets: sealed-origin, seed-owned
+    slot_usage:
+      source_layer:
+        required: true
+      source_file:
+        required: true
+      source_commit:
+        required: true
+      source_layer_context:
+        required: true
+      source_media_type:
+        required: true
+      source_digest_algorithm:
+        required: true
+      source_digest:
+        required: true
+      source_byte_length:
+        required: true
+    slots:
+      - source_layer
+      - source_file
+      - source_commit
+      - source_layer_context
+      - source_media_type
+      - source_digest_algorithm
+      - source_digest
+      - source_byte_length
+
+  SourceSelector:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Addressable
+    description: >-
+      Typed coordinates selecting one fragment of a source
+      representation. Selector subclasses own their coordinate grammar;
+      no discriminator string chooses semantics at runtime.
+
+  ByteRangeSelector:
+    is_a: SourceSelector
+    description: >-
+      Half-open byte range [start, end) within one immutable source
+      representation. Equal bounds select an empty leaf.
+    slot_usage:
+      source_byte_start:
+        required: true
+      source_byte_end:
+        required: true
+    slots:
+      - source_byte_start
+      - source_byte_end
+
+  TextQuoteSelector:
+    is_a: SourceSelector
+    description: >-
+      Supporting exact text plus optional immediate context. It aids
+      inspection and convergence checks but never owns leaf identity.
+    slot_usage:
+      source_quote_exact:
+        required: true
+    slots:
+      - source_quote_exact
+      - source_quote_prefix
+      - source_quote_suffix
+
+  SourceTarget:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      One source representation plus its canonical primary selector.
+      An optional quote selector is supporting evidence and must converge
+      on the same fragment.
+    slot_usage:
+      target_representation:
+        required: true
+      target_primary_selector:
+        required: true
+    slots:
+      - target_representation
+      - target_primary_selector
+      - target_quote_selector
 
   OntologyMetaContext:
     is_a: KnowledgeContext
@@ -939,6 +1047,63 @@ slots:
   source_commit:
     range: string
     description: Exact revision of the source document.
+
+  source_media_type:
+    range: SourceMediaType
+    description: Closed media kind governing valid primary selectors.
+
+  source_digest_algorithm:
+    range: SourceDigestAlgorithm
+    description: Cryptographic algorithm used by source_digest.
+
+  source_digest:
+    range: source_digest
+    description: Digest of the exact source representation bytes.
+
+  source_byte_length:
+    range: integer
+    minimum_value: 0
+    description: Exact size of the source representation in bytes.
+
+  source_byte_start:
+    range: integer
+    minimum_value: 0
+    description: Inclusive zero-based byte position in a representation.
+
+  source_byte_end:
+    range: integer
+    minimum_value: 0
+    description: Exclusive zero-based byte position in a representation.
+
+  source_quote_exact:
+    range: string
+    description: Exact decoded text expected at the primary selector.
+
+  source_quote_prefix:
+    range: string
+    description: Optional text immediately before the selected text.
+
+  source_quote_suffix:
+    range: string
+    description: Optional text immediately after the selected text.
+
+  target_representation:
+    range: SourceRepresentationContext
+    annotations:
+      create_only: true
+    description: Exact immutable source representation being selected.
+
+  target_primary_selector:
+    range: SourceSelector
+    annotations:
+      create_only: true
+    description: Canonical selector that owns target identity.
+
+  target_quote_selector:
+    range: TextQuoteSelector
+    annotations:
+      create_only: true
+    description: Optional supporting quote required to match the primary.
 
   source_layer_context:
     range: SourceLayerContext

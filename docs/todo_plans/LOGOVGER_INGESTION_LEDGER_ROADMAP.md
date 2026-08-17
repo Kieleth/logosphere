@@ -60,6 +60,10 @@ assume a historical branch is idle from this document alone.
   semantics, PROV activity and agent semantics, and CID-style typed
   digests. External standards services and serializers are not runtime
   dependencies.
+- The representation-plus-primary-selector tuple is canonical leaf
+  identity. Its types and constraints come from the reusable LinkML
+  rule-language pack through the Malleus-rooted generator. Handwritten
+  C++ consumes generated types and never owns the semantic contract.
 - One source unit may produce zero, one, or many atomic claims.
 - One claim may cite more than one source unit when its meaning crosses
   a source boundary.
@@ -131,7 +135,10 @@ Follow this TDD order:
 - [x] Decide the standards adoption boundary: standards-shaped
   semantics implemented through a local replacement for the current
   locator, with no external standards runtime or legacy fallback.
-- [ ] Present and decide the exact leaf-identity grammar. It must address
+- [x] Decide the exact leaf-identity grammar: a typed source
+  representation plus a typed primary selector, declared in LinkML.
+  Supporting quote and structural selectors do not own identity. It
+  must address
   duplicate sentences, repeated headings, empty cells, duplicate or
   blank row keys, and repeated table labels at one pinned source commit.
 - [ ] Present and decide the minimum closed claim dispositions. Keep

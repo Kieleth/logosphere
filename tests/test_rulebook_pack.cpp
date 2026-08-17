@@ -355,6 +355,72 @@ void test_rule_contexts_are_explicit_kg_entities() {
           "a rule fork records its source as typed KG lineage");
 }
 
+void test_source_leaf_identity_is_a_typed_schema_tuple() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("SourceRepresentationContext", "KnowledgeContext"),
+          "an exact source representation is a reusable knowledge context");
+    CHECK(reg.hasEntityType("SourceSelector") &&
+              reg.isAbstract("SourceSelector"),
+          "SourceSelector is an abstract schema concept, not a kind string");
+    CHECK(reg.isSubtypeOf("ByteRangeSelector", "SourceSelector") &&
+              reg.isSubtypeOf("TextQuoteSelector", "SourceSelector"),
+          "byte ranges and text quotes are concrete typed selectors");
+    CHECK(reg.isSubtypeOf("SourceTarget", "Addressable"),
+          "a source target has portable structured identity");
+
+    const auto* media =
+        reg.findProperty("SourceRepresentationContext", "source_media_type");
+    const auto* algorithm = reg.findProperty("SourceRepresentationContext",
+                                             "source_digest_algorithm");
+    const auto* digest =
+        reg.findProperty("SourceRepresentationContext", "source_digest");
+    const auto* length = reg.findProperty("SourceRepresentationContext",
+                                          "source_byte_length");
+    CHECK(media && media->required &&
+              media->value_kind == kg::PropertyValueKind::Enum &&
+              media->enum_type == "SourceMediaType" &&
+              algorithm && algorithm->required &&
+              algorithm->value_kind == kg::PropertyValueKind::Enum &&
+              algorithm->enum_type == "SourceDigestAlgorithm" &&
+              digest && digest->required &&
+              digest->value_kind == kg::PropertyValueKind::String &&
+              length && length->required &&
+              length->value_kind == kg::PropertyValueKind::Integer,
+          "a representation requires typed media, digest, and byte length");
+
+    const auto* start =
+        reg.findProperty("ByteRangeSelector", "source_byte_start");
+    const auto* end =
+        reg.findProperty("ByteRangeSelector", "source_byte_end");
+    CHECK(start && start->required && start->has_min &&
+              start->min_value == 0 &&
+              start->value_kind == kg::PropertyValueKind::Integer &&
+              end && end->required && end->has_min && end->min_value == 0 &&
+              end->value_kind == kg::PropertyValueKind::Integer,
+          "a byte selector requires non-negative inclusive-start and "
+          "exclusive-end positions");
+
+    const auto* representation =
+        reg.findProperty("SourceTarget", "target_representation");
+    const auto* primary =
+        reg.findProperty("SourceTarget", "target_primary_selector");
+    const auto* quote =
+        reg.findProperty("SourceTarget", "target_quote_selector");
+    CHECK(representation && representation->required &&
+              representation->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              representation->ref_target == "SourceRepresentationContext" &&
+              primary && primary->required &&
+              primary->value_kind == kg::PropertyValueKind::EntityRef &&
+              primary->ref_target == "SourceSelector" &&
+              quote && !quote->required &&
+              quote->value_kind == kg::PropertyValueKind::EntityRef &&
+              quote->ref_target == "TextQuoteSelector",
+          "a target requires representation plus typed primary selector, "
+          "with an optional typed quote selector");
+}
+
 void test_rule_content_has_portable_addressable_identity() {
     const auto& reg = rulebook::ontology::registry();
     CHECK(reg.hasEntityType("Addressable") && reg.isAbstract("Addressable"),
@@ -909,6 +975,7 @@ int main() {
     test_table_results_have_one_complete_shape();
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
+    test_source_leaf_identity_is_a_typed_schema_tuple();
     test_rule_content_has_portable_addressable_identity();
     test_rule_origin_and_published_content_are_immutable();
     test_chapter_one_instantiates();
