@@ -91,11 +91,13 @@ rather than a toy:
 2. **Ingestion is verified, not trusted.** Seeds are refused unless
    every citation resolves in the source and every number appears in
    the text it quotes. A line citation cannot prove a table cell.
-3. **Meaning is judged, and the judgement is audited.** Transcription
-   is mechanical, because a model that retypes a number is wrong in a
-   way that still reads well. What a cell MEANS is classified, and a
-   second model audits that classification; a test fails if the audit
-   has never seen a value the seed ships.
+3. **Structure is judged, content is copied, and judgement is audited.**
+   A model reader decides the structure of irregular source material.
+   For digital text, the source tool returns exact bytes, so the reader
+   never retypes a number. What a cell means is classified, and an
+   independent reader audits that classification; a test fails if the
+   audit has never seen a value the seed ships. The current mechanical
+   extractors predate this accepted target design.
 4. **Rules are data all the way down.** Procedures, steps, routes,
    throws, tables and outcomes are entities. Changing what a career
    teaches is editing a seed, not a rebuild of game code.

@@ -93,6 +93,10 @@ leaf-identity grammar, or the closed claim-disposition vocabulary.
 - [x] Decide option 4, two-level coverage and atomic claims.
 - [x] Choose atomic leaf coverage over block coverage, with block-level
   techniques reserved for derived grouping if volume requires them.
+- [x] Research source location and provenance against W3C Web
+  Annotation, PROV-O, IIIF, IPFS CID, EPUB CFI, and ALTO. No single
+  standard owns identity, fragment selection, OCR evidence, provenance,
+  and coverage closure. See `SOURCE_LOCATION_PROVENANCE_SPIKE.md`.
 - [x] Reconcile the decision across the protocol, cumulative-ingestion
   rationale, ingestion review, and RPG decision ledger.
 
@@ -118,6 +122,10 @@ Follow this TDD order:
 - [x] Decide source-unit grain: atomic headings, prose sentences, table
   cells, list-item sentences, and opaque leaves, without a semantic
   pre-filter.
+- [ ] Decide the standards adoption boundary: a standards-shaped local
+  ontology profile, full standards serialization, or a private locator
+  version 2. The micro-spike recommends the first but records no owner
+  decision.
 - [ ] Present and decide the exact leaf-identity grammar. It must address
   duplicate sentences, repeated headings, empty cells, duplicate or
   blank row keys, and repeated table labels at one pinned source commit.
