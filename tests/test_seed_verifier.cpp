@@ -32,6 +32,7 @@
 #include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/procedure_runner.h"
 #include "logosphere/text/source_corpus.h"
+#include "logosphere/text/source_target.h"
 #include "generated/earth_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -39,6 +40,7 @@
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/space_ontology_registry.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -162,6 +164,14 @@ bool set_prop(kg::SeedEnvelope& seed, const std::string& alias,
     return false;
 }
 
+bool add_prop(kg::SeedEnvelope& seed, const std::string& alias,
+              const std::string& key, const std::string& value) {
+    kg::KGOpCreateEntity* ce = find_create(seed, alias);
+    if (!ce) return false;
+    ce->properties.emplace_back(key, value);
+    return true;
+}
+
 bool has_check(const kg::SeedVerifyReport& report,
                const std::string& check) {
     return report.count(check) > 0;
@@ -220,6 +230,69 @@ kg::SeedEnvelope mini_seed(const std::string& file,
     kg::SeedParseResult r = kg::parse_seed_envelope(text);
     CHECK(r.ok(), "mini seed parses: " + r.error);
     return r.seed;
+}
+
+kg::SeedEnvelope exact_evidence_seed() {
+    const std::string file = "book1/character-creation.md";
+    const std::string source = slurp(std::string(kSourceRoot) + "/" + file);
+    const std::string sentence =
+        "All characters begin at the age of majority, typically 18.";
+    const std::size_t start = source.find(sentence);
+    CHECK(start != std::string::npos,
+          "the exact-evidence fixture sentence exists in the source");
+    if (start == std::string::npos) return {};
+    const std::size_t end = start + sentence.size();
+
+    const std::string ops =
+        "{\"op\":\"create_entity\",\"type\":\"RuleConstant\","
+        "\"as\":\"@age\",\"properties\":{\"name\":\"age of majority\","
+        "\"constant_value\":\"18\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"ByteRangeSelector\","
+        "\"as\":\"@range\",\"properties\":{\"source_byte_start\":" +
+        std::to_string(start) + ",\"source_byte_end\":" +
+        std::to_string(end) + "}},"
+        "{\"op\":\"create_entity\",\"type\":\"TextQuoteSelector\","
+        "\"as\":\"@quote\",\"properties\":{\"source_quote_exact\":\"" +
+        sentence + "\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"SourceTarget\","
+        "\"as\":\"@target\",\"properties\":{"
+        "\"target_primary_selector\":\"@range\","
+        "\"target_quote_selector\":\"@quote\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"SourceCoverage\","
+        "\"as\":\"@coverage\",\"properties\":{"
+        "\"coverage_target\":\"@target\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"CoverageDecision\","
+        "\"as\":\"@coverage_decision\",\"properties\":{"
+        "\"event_type\":\"ARBITER_DECISION\","
+        "\"decision_subject\":\"@coverage\",\"decision_sequence\":0,"
+        "\"coverage_judgement\":\"CLAIMS_PRESENT\","
+        "\"decision_question\":\"Does this leaf state a rule?\","
+        "\"decision_reason\":\"It states the starting age.\","
+        "\"arbiter\":\"test reader\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"IngestionClaim\","
+        "\"as\":\"@claim\",\"properties\":{"
+        "\"claim_statement\":\"The age of majority is typically 18.\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"ClaimDecision\","
+        "\"as\":\"@claim_decision\",\"properties\":{"
+        "\"event_type\":\"ARBITER_DECISION\","
+        "\"decision_subject\":\"@claim\",\"decision_sequence\":0,"
+        "\"claim_disposition\":\"MATERIALIZED\","
+        "\"decision_question\":\"Can this claim enter the graph?\","
+        "\"decision_reason\":\"RuleConstant expresses it exactly.\","
+        "\"arbiter\":\"test reader\"}},"
+        "{\"op\":\"set_relation\",\"from\":\"@claim\","
+        "\"relation\":\"CLAIM_SUPPORTED_BY\",\"to\":\"@coverage\"},"
+        "{\"op\":\"set_relation\",\"from\":\"@claim\","
+        "\"relation\":\"CLAIM_MATERIALIZES\",\"to\":\"@age\"}";
+    return mini_seed(file, ops);
+}
+
+logosphere::text::SourceCorpusDeclaration exact_evidence_corpus(
+    const kg::SeedEnvelope& seed) {
+    return {seed.layer,
+            {{seed.source.file,
+              rule_language::ontology::SourceMediaType::UTF8_TEXT,
+              seed.source.commit}}};
 }
 
 void print_first(const kg::SeedVerifyReport& report,
@@ -467,6 +540,117 @@ void test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence()
           "an edition from another source layer fails before rule mutation");
     CHECK(wrong_world.findByType("RuleConstant").empty(),
           "a mismatched edition leaves no seed rules behind");
+}
+
+void test_loader_scopes_exact_evidence_to_its_representation() {
+    kg::SeedEnvelope seed = exact_evidence_seed();
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    RootSourceAccess source_access(kSourceRoot);
+    const auto materialized =
+        logosphere::text::materialize_source_corpus_into_kg(
+            exact_evidence_corpus(seed), source_access, world);
+    CHECK(materialized.ok,
+          "the exact-evidence corpus materializes: " + materialized.reason);
+    if (!materialized.ok) return;
+
+    kg::SeedLoadReport report;
+    const bool loaded = kg::load_seed_in_edition(
+        seed, materialized.ingestion_edition_context, world, report);
+    CHECK(loaded, "the edition loader accepts exact evidence: " + report.error);
+    if (!loaded) return;
+
+    const auto representations =
+        world.findByType("SourceRepresentationContext");
+    CHECK(representations.size() == 1,
+          "the exact-evidence corpus has one representation");
+    if (representations.size() != 1) return;
+    const auto representation = representations.front();
+    const auto range = report.bindings.at("range");
+    const auto quote = report.bindings.at("quote");
+    const auto target = report.bindings.at("target");
+    const auto rule = report.bindings.at("age");
+    const std::string canonical = logosphere::text::canonical_byte_range_key(
+        std::stoll(world.getProperty(range, "source_byte_start")),
+        std::stoll(world.getProperty(range, "source_byte_end")));
+
+    CHECK(world.getProperty(range, "identity_context") ==
+                  std::to_string(representation) &&
+              world.getProperty(quote, "identity_context") ==
+                  std::to_string(representation) &&
+              world.getProperty(target, "identity_context") ==
+                  std::to_string(representation),
+          "selectors and targets are representation-scoped");
+    CHECK(world.getProperty(range, "entity_key") == canonical &&
+              world.getProperty(target, "entity_key") == canonical,
+          "the primary selector and target share the canonical byte-range key");
+    CHECK(world.getProperty(target, "target_representation") ==
+              std::to_string(representation),
+          "the loader binds the exact represented bytes into the target");
+    CHECK(world.getProperty(rule, "identity_context") ==
+                  std::to_string(materialized.ingestion_edition_context) &&
+              world.getProperty(rule, "origin_context") ==
+                  std::to_string(materialized.ingestion_edition_context),
+          "the rule keeps edition identity and edition origin while evidence "
+          "stays representation-scoped");
+    CHECK(world.findByType("SourceDocumentContext").empty() &&
+              report.source_document_context == kg::INVALID_ENTITY,
+          "an exact-evidence-only seed does not create a legacy document "
+          "context");
+}
+
+void test_exact_evidence_replaces_the_legacy_locator_without_fallback() {
+    kg::SeedEnvelope seed = exact_evidence_seed();
+    RootSourceAccess source_access(kSourceRoot);
+    const auto corpus = exact_evidence_corpus(seed);
+    const auto report = kg::verify_seed_in_edition(
+        seed, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(report.ok(),
+          "a rule can be verified entirely through ledger evidence");
+    CHECK(report.quotes_checked == 0,
+          "exact evidence does not pass through the legacy quote counter");
+
+    kg::SeedEnvelope mixed = seed;
+    CHECK(add_prop(mixed, "age", "source_section", "Chapter 1"),
+          "the mixed-path negative fixture gains a legacy locator field");
+    const auto mixed_report = kg::verify_seed_in_edition(
+        mixed, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(reason_contains(mixed_report, "verbatim", "legacy locator"),
+          "an exact-evidence rule cannot retain part of the legacy locator");
+
+    kg::SeedEnvelope unsupported = seed;
+    unsupported.ops.erase(
+        std::remove_if(
+            unsupported.ops.begin(), unsupported.ops.end(),
+            [](const kg::KGOp& op) {
+                const auto* relation = std::get_if<kg::KGOpSetRelation>(&op);
+                return relation && relation->relation == "CLAIM_MATERIALIZES";
+            }),
+        unsupported.ops.end());
+    const auto unsupported_report = kg::verify_seed_in_edition(
+        unsupported, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(reason_contains(unsupported_report, "verbatim",
+                          "CLAIM_MATERIALIZES"),
+          "a rule without legacy citation must be materialized by an evidenced "
+          "claim");
+
+    kg::SeedEnvelope wrong_value = seed;
+    CHECK(set_prop(wrong_value, "age", "constant_value", "19"),
+          "the wrong-value fixture changes the materialized rule");
+    const auto wrong_value_report = kg::verify_seed_in_edition(
+        wrong_value, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(reason_contains(wrong_value_report, "value", "19"),
+          "numeric rule values must occur in exact evidence bytes");
+
+    kg::SeedEnvelope mismatched_quote = seed;
+    CHECK(set_prop(mismatched_quote, "quote", "source_quote_exact",
+                   "All characters begin at 19."),
+          "the quote-convergence fixture changes supporting evidence");
+    const auto quote_report = kg::verify_seed_in_edition(
+        mismatched_quote, kSourceRoot, corpus, source_access,
+        engine_registry());
+    CHECK(reason_contains(quote_report, "verbatim", "quote selector"),
+          "a supporting quote that disagrees with the byte range is refused");
 }
 
 void test_loader_owns_seed_portable_identity() {
@@ -1082,8 +1266,8 @@ void test_uncited_entity_of_a_cited_type_fails() {
     const auto report = kg::verify_seed(seed, kSourceRoot,
                                         engine_registry());
     CHECK(!report.ok(), "an uncited RuleConstant fails");
-    CHECK(reason_contains(report, "verbatim", "uncited ingested entity"),
-          "and VERBATIM names it as uncited");
+    CHECK(reason_contains(report, "verbatim", "CLAIM_MATERIALIZES"),
+          "and VERBATIM names the missing exact-evidence link");
 }
 
 void test_type_without_the_slot_is_exempt() {
@@ -1409,7 +1593,7 @@ void test_a_count_written_as_a_word_is_proof() {
         "\"as\":\"@spelled\",\"properties\":{"
         "\"name\":\"aging_physical_count\",\"constant_value\":\"3\","
         "\"source_section\":\"Aging\",\"source_kind\":\"cell\","
-        "\"source_table\":\"2D6\",\"source_row\":\"-5\","
+        "\"source_table\":\"2D6\",\"source_row\":\"\\\\-5\","
         "\"source_column\":\"Effects of Aging\","
         "\"source_quote\":\"Reduce three physical characteristics by 2.\"}}";
     auto seed = mini_seed("book1/character-creation.md", op);
@@ -1425,6 +1609,7 @@ void test_a_count_written_as_a_word_is_proof() {
           "the wrong-count mutation applied");
     const auto wrong = kg::verify_seed(seed, kSourceRoot,
                                        engine_registry());
+    print_first(wrong, "value");
     CHECK(!wrong.ok() && wrong.count("value") > 0,
           "a count the quote does not state still fails");
 }
@@ -1582,6 +1767,8 @@ int main() {
     test_a_second_seed_cannot_recreate_a_name();
     test_loader_materializes_seed_origin_contexts();
     test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence();
+    test_loader_scopes_exact_evidence_to_its_representation();
+    test_exact_evidence_replaces_the_legacy_locator_without_fallback();
     test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();

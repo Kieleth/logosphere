@@ -867,11 +867,7 @@ classes:
       Its current judgement is derived from its ordered CoverageDecision
       history rather than stored as mutable state.
     annotations:
-      facets: rulebook, ingestion-ledger, no-instance-declared
-      no_instance_reason: >-
-        The Phase A reconciliation fixture instantiates this engine type.
-        Production instantiation belongs to the next checklist item: persist
-        one real Logovger section through the ledger.
+      facets: rulebook, ingestion-ledger
     slot_usage:
       coverage_target:
         required: true
@@ -887,11 +883,7 @@ classes:
       records. The claim persists while append-only ClaimDecision events
       record how successive readings disposed it.
     annotations:
-      facets: rulebook, ingestion-ledger, no-instance-declared
-      no_instance_reason: >-
-        The Phase A reconciliation fixture instantiates this engine type.
-        Production instantiation belongs to the next checklist item: persist
-        one real Logovger section through the ledger.
+      facets: rulebook, ingestion-ledger
     slot_usage:
       claim_statement:
         required: true
@@ -905,11 +897,7 @@ classes:
       produced semantic claims. Later decisions supersede earlier ones by
       sequence without rewriting history.
     annotations:
-      facets: rulebook, ingestion-ledger, append-only, no-instance-declared
-      no_instance_reason: >-
-        The Phase A reconciliation fixture instantiates this engine type.
-        Production instantiation belongs to the next checklist item: persist
-        one real Logovger section through the ledger.
+      facets: rulebook, ingestion-ledger, append-only
     slot_usage:
       decision_subject:
         range: SourceCoverage
@@ -936,11 +924,7 @@ classes:
       current; previous decisions remain queryable. Reconciliation enforces
       which optional fields and graph links each disposition requires.
     annotations:
-      facets: rulebook, ingestion-ledger, append-only, no-instance-declared
-      no_instance_reason: >-
-        The Phase A reconciliation fixture instantiates this engine type.
-        Production instantiation belongs to the next checklist item: persist
-        one real Logovger section through the ledger.
+      facets: rulebook, ingestion-ledger, append-only
     slot_usage:
       decision_subject:
         range: IngestionClaim

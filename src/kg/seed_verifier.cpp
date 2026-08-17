@@ -5,12 +5,15 @@
 #include "logosphere/text/source_corpus.h"
 
 #include "logosphere/core/dice_service.h"
+#include "logosphere/kg/ingestion_ledger.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/rules/procedure_runner.h"
 #include "logosphere/rules/lookup_table_selector.h"
+#include "logosphere/text/source_target.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -540,7 +543,138 @@ struct Checker {
     // than against a whole line.
     std::map<EntityID, std::string> resolved;
 
+    bool entity_reference(const KGModule& world, EntityID owner,
+                          const char* property, EntityID& out,
+                          std::string& why) const {
+        if (!world.hasProperty(owner, property)) {
+            why = "missing required " + std::string(property);
+            return false;
+        }
+        const std::string value = world.getProperty(owner, property);
+        unsigned long long parsed = 0;
+        const auto result = std::from_chars(
+            value.data(), value.data() + value.size(), parsed);
+        if (value.empty() || result.ec != std::errc{} ||
+            result.ptr != value.data() + value.size() || parsed == 0 ||
+            parsed > std::numeric_limits<EntityID>::max() ||
+            !world.exists(static_cast<EntityID>(parsed))) {
+            why = std::string(property) +
+                  " does not reference an existing entity";
+            return false;
+        }
+        out = static_cast<EntityID>(parsed);
+        return true;
+    }
+
+    bool has_legacy_locator_field(const KGModule& world, EntityID entity,
+                                  std::string& field) const {
+        for (const char* candidate :
+             {"source_file", "source_section", "source_kind",
+              "source_table", "source_row", "source_column"}) {
+            if (world.hasProperty(entity, candidate)) {
+                field = candidate;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool resolve_source_target(const KGModule& world, EntityID target,
+                               std::string& text, std::string& why) {
+        EntityID representation = INVALID_ENTITY;
+        if (!entity_reference(world, target, "target_representation",
+                              representation, why)) {
+            return false;
+        }
+        if (!world.hasProperty(representation, "source_file")) {
+            why = "target representation has no source_file";
+            return false;
+        }
+        const std::string file =
+            world.getProperty(representation, "source_file");
+        if (file.empty()) {
+            why = "target representation source_file is empty";
+            return false;
+        }
+        const std::string* bytes = source_text(file, why);
+        if (!bytes) return false;
+        const auto result =
+            logosphere::text::resolve_text_target(world, target, *bytes);
+        if (!result.ok) {
+            why = result.reason;
+            return false;
+        }
+        text = result.text;
+        return true;
+    }
+
+    bool exact_evidence_for_rule(const KGModule& world, EntityID rule,
+                                 std::string& evidence,
+                                 std::string& why) {
+        const auto claims =
+            world.getRelatedReverse(rule, "CLAIM_MATERIALIZES");
+        if (claims.empty()) {
+            why = "rule has no legacy citation and no "
+                  "CLAIM_MATERIALIZES ingestion claim";
+            return false;
+        }
+
+        std::unordered_set<EntityID> seen_targets;
+        for (const EntityID claim : claims) {
+            if (!ont.isSubtypeOf(world.getType(claim), "IngestionClaim")) {
+                why = "CLAIM_MATERIALIZES source is not an IngestionClaim";
+                return false;
+            }
+            const auto coverages =
+                world.getRelated(claim, "CLAIM_SUPPORTED_BY");
+            if (coverages.empty()) {
+                why = "materializing claim has no CLAIM_SUPPORTED_BY "
+                      "coverage";
+                return false;
+            }
+            for (const EntityID coverage : coverages) {
+                EntityID target = INVALID_ENTITY;
+                if (!entity_reference(world, coverage, "coverage_target",
+                                      target, why)) {
+                    return false;
+                }
+                if (!seen_targets.insert(target).second) continue;
+                std::string selected;
+                if (!resolve_source_target(world, target, selected, why)) {
+                    return false;
+                }
+                if (!evidence.empty()) evidence.push_back('\n');
+                evidence += selected;
+            }
+        }
+        if (evidence.empty()) {
+            why = "materializing claims resolve to no source evidence bytes";
+            return false;
+        }
+        return true;
+    }
+
     void check_verbatim(const KGModule& world, const SeedLoadReport& load) {
+        const auto targets = world.findByType("SourceTarget");
+        if (!targets.empty()) {
+            for (const EntityID target : targets) {
+                std::string selected;
+                std::string why;
+                if (!resolve_source_target(world, target, selected, why)) {
+                    violate("verbatim", -1, "",
+                            "source target " + std::to_string(target) +
+                                ": " + why);
+                }
+            }
+            const auto ledger =
+                reconcile_ingestion_ledger(world, targets);
+            if (!ledger.ok) {
+                violate("verbatim", -1, "",
+                        "ingestion ledger does not reconcile: " +
+                            ledger.error);
+            }
+        }
+
         for (size_t i = 0; i < seed.ops.size(); ++i) {
             const EntityID id = load.created_ids[i];
             if (id == INVALID_ENTITY) continue;
@@ -548,14 +682,35 @@ struct Checker {
             const std::string alias = alias_of(seed.ops[i]);
             const std::string quote = world.getProperty(id, "source_quote");
             if (quote.empty()) {
-                // The Cited contract (schema/packs/rulebook.yaml):
-                // ingested data of a type that declares source_quote
-                // must carry one. Types without the slot are exempt.
-                if (ont.hasProperty(type, "source_quote")) {
+                if (!ont.hasProperty(type, "source_quote")) continue;
+                std::string locator_field;
+                if (has_legacy_locator_field(world, id, locator_field)) {
                     violate("verbatim", static_cast<int>(i), alias,
-                            "uncited ingested entity: " + type +
-                            " declares source_quote but none is set");
+                            "exact-evidence rule retains legacy locator "
+                            "field '" + locator_field + "'");
+                    continue;
                 }
+                std::string evidence;
+                std::string why;
+                if (!exact_evidence_for_rule(world, id, evidence, why)) {
+                    violate("verbatim", static_cast<int>(i), alias, why);
+                    continue;
+                }
+                if (ingestion_edition_context == INVALID_ENTITY ||
+                    world.getProperty(id, "origin_context") !=
+                        std::to_string(ingestion_edition_context)) {
+                    violate("verbatim", static_cast<int>(i), alias,
+                            "exact-evidence rule origin_context must be its "
+                            "ingestion edition");
+                    continue;
+                }
+                resolved[id] = std::move(evidence);
+                continue;
+            }
+            if (!world.getRelatedReverse(id, "CLAIM_MATERIALIZES").empty()) {
+                violate("verbatim", static_cast<int>(i), alias,
+                        "rule combines exact ledger evidence with the legacy "
+                        "source_quote path");
                 continue;
             }
             ++report.quotes_checked;
@@ -590,8 +745,9 @@ struct Checker {
         for (size_t i = 0; i < seed.ops.size(); ++i) {
             const EntityID id = load.created_ids[i];
             if (id == INVALID_ENTITY) continue;
-            const std::string quote = world.getProperty(id, "source_quote");
-            if (quote.empty()) continue;
+            const auto evidence = resolved.find(id);
+            if (evidence == resolved.end()) continue;
+            const std::string& quote = evidence->second;
             const std::string type = world.getType(id);
             const std::string alias = alias_of(seed.ops[i]);
             const std::vector<std::string> tokens = number_tokens(quote);

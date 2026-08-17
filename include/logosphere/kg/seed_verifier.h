@@ -16,7 +16,7 @@
 //              throwaway MINIMAL-mode world built from the given
 //              registry, so every op passes alias resolution and
 //              validate_kg_op - refs-resolve comes for free.
-//   VERBATIM   every loaded entity with a source_quote has it as an
+//   VERBATIM   every loaded entity with a legacy source_quote has it as an
 //              exact BYTE substring of its source file. The file is
 //              the entity's own source_file property when set
 //              (multi-file seeds are legal), else the envelope's
@@ -27,11 +27,13 @@
 //              source_section is required on every cited entity and
 //              must equal the nearest Markdown heading above at least
 //              one exact occurrence of the quote.
-//              An entity whose TYPE declares source_quote (the
-//              Cited contract) but whose loaded state has none is
-//              an uncited-ingested-entity violation; types without
-//              the slot are exempt. Source paths containing ".."
-//              are rejected before opening.
+//              A Cited entity without source_quote must instead have edition
+//              origin and be the result of one or more reconciled
+//              IngestionClaims whose SourceTargets resolve against exact
+//              representation bytes. Legacy locator fields and exact ledger
+//              evidence cannot coexist on one rule. Types without the slot
+//              are exempt. Source paths containing ".." are rejected before
+//              opening.
 //   VALUE      every numeric slot on a quoted entity must EQUAL one
 //              of the quote's number tokens (digit runs; embedded
 //              thousands-commas normalize, "10,000" -> "10000";
@@ -147,8 +149,8 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
 
 // Edition-scoped verification materializes the declared exact corpus into the
 // scratch world, then loads prerequisites and the target through
-// load_seed_in_edition. Citation checks still use source_root and the existing
-// structural locator during the explicit evidence-transition phase.
+// load_seed_in_edition. Each rule may use either the transitional structural
+// locator or exact SourceTarget ledger evidence, never both.
 SeedVerifyReport verify_seed_in_edition(
     const SeedEnvelope& seed,
     const std::string& source_root,

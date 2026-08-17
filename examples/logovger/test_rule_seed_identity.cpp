@@ -6,7 +6,9 @@
 #include "chargen/procedure_catalog.h"
 #include "chargen/rule_seed_loader.h"
 
+#include "logosphere/kg/ingestion_ledger.h"
 #include "logosphere/kg/kg_module.h"
+#include "logosphere/text/source_target.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/logosphere_ontology_registry.h"
@@ -15,6 +17,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -110,6 +113,12 @@ void test_production_rules_use_exact_edition_identity() {
                                                   "Addressable")) {
                 continue;
             }
+            if (world.getRegistry().isSubtypeOf(create->type,
+                                                "SourceSelector") ||
+                world.getRegistry().isSubtypeOf(create->type,
+                                                "SourceTarget")) {
+                continue;
+            }
             ++addressable_rules;
             std::vector<kg::EntityID> exact_matches;
             for (const auto candidate :
@@ -133,6 +142,84 @@ void test_production_rules_use_exact_edition_identity() {
     CHECK(!world.findByType("SourceDocumentContext").empty(),
           "document contexts remain only as the explicit transitional "
           "origin for legacy citation evidence");
+
+    const auto targets = world.findByType("SourceTarget");
+    const auto coverages = world.findByType("SourceCoverage");
+    const auto claims = world.findByType("IngestionClaim");
+    CHECK(targets.size() == 4 && coverages.size() == 4 &&
+              claims.size() == 6,
+          "Injury Crisis persists four atomic source leaves and six atomic "
+          "claims");
+    CHECK(world.findByType("CoverageDecision").size() == 4 &&
+              world.findByType("ClaimDecision").size() == 6,
+          "every production coverage and claim has its initial append-only "
+          "decision");
+    CHECK(!world.getRegistry().hasFacet("SourceCoverage",
+                                        "no-instance-declared") &&
+              !world.getRegistry().hasFacet("IngestionClaim",
+                                             "no-instance-declared") &&
+              !world.getRegistry().hasFacet("CoverageDecision",
+                                             "no-instance-declared") &&
+              !world.getRegistry().hasFacet("ClaimDecision",
+                                             "no-instance-declared"),
+          "production ledger types no longer claim to have no instances");
+
+    const std::string chapter =
+        slurp(game_root + "/srd/cepheus/book1/character-creation.md");
+    std::set<std::string> selected;
+    bool targets_resolve = targets.size() == 4;
+    for (const auto target : targets) {
+        const auto result =
+            logosphere::text::resolve_text_target(world, target, chapter);
+        targets_resolve = targets_resolve && result.ok;
+        if (result.ok) selected.insert(result.text);
+    }
+    CHECK(targets_resolve &&
+              selected.count("Injury Crisis") == 1 &&
+              selected.count(
+                  "If any characteristic is reduced to 0, then the character "
+                  "suffers an injury crisis.") == 1 &&
+              selected.count(
+                  "The character dies unless he can pay 1D6×10,000 Credits "
+                  "for medical care, which will bring any characteristics "
+                  "back up to 1.") == 1 &&
+              selected.count(
+                  "The character automatically fails any Qualification "
+                  "checks from now on – he must either continue in the "
+                  "career he is in or become a Drifter if he wishes to take "
+                  "any more terms.") == 1,
+          "every Injury Crisis target resolves to the exact selected source "
+          "bytes");
+
+    const auto ledger = kg::reconcile_ingestion_ledger(world, targets);
+    CHECK(ledger.ok,
+          "the production Injury Crisis ledger closes: " + ledger.error);
+
+    kg::EntityID credits = kg::INVALID_ENTITY;
+    for (const auto candidate : world.findByType("Currency")) {
+        if (world.getProperty(candidate, "entity_key") == "credits") {
+            credits = candidate;
+        }
+    }
+    CHECK(credits != kg::INVALID_ENTITY,
+          "the migrated Credits rule remains loaded");
+    if (credits != kg::INVALID_ENTITY) {
+        bool has_legacy_locator = false;
+        for (const char* field :
+             {"source_file", "source_section", "source_quote", "source_kind",
+              "source_table", "source_row", "source_column"}) {
+            has_legacy_locator =
+                has_legacy_locator || world.hasProperty(credits, field);
+        }
+        CHECK(!has_legacy_locator &&
+                  world.getProperty(credits, "origin_context") ==
+                      std::to_string(editions.front()),
+              "Credits has edition origin and no surviving legacy locator "
+              "field");
+        CHECK(world.getRelatedReverse(credits, "CLAIM_MATERIALIZES").size() ==
+                  1,
+              "one exact evidenced claim materializes the Credits rule");
+    }
 }
 
 }  // namespace

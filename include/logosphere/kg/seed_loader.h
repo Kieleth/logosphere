@@ -126,6 +126,8 @@ struct SeedLoadReport {
     // Addressable creates.
     EntityID identity_context = INVALID_ENTITY;
     EntityID source_layer_context = INVALID_ENTITY;
+    // Present only when at least one entity still uses the legacy structural
+    // locator path. Exact-evidence-only seeds do not materialize one.
     EntityID source_document_context = INVALID_ENTITY;
 };
 
@@ -136,7 +138,8 @@ struct SeedLoadReport {
 // mutation events publish only after the complete graph is committed.
 // Destruction and cinematics are not seed data and are rejected.
 // Source context creation, Addressable identity, and Cited.origin_context are
-// loader-owned.
+// loader-owned. In an edition load, SourceSelector and SourceTarget identity
+// is representation-scoped; rule and ledger identity is edition-scoped.
 // The report is cleared on entry, so reusing one report object cannot
 // leak bindings between seeds. Validation runs against kg.getRegistry(),
 // the registry the world was built from. Returns report.ok.
@@ -147,8 +150,9 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
 // materialized IngestionEditionContext. The edition must resolve against its
 // canonical manifest, match seed.layer, include seed.source.file, and carry a
 // SourceRevisionObservation matching seed.source.commit. All checks happen
-// before seed mutation. Citation origin remains the legacy source document
-// until the separate evidence migration removes that path.
+// before seed mutation. A Cited entity with source_quote retains the legacy
+// document origin. A Cited entity without any legacy locator receives edition
+// origin and must be justified by exact ledger evidence during verification.
 bool load_seed_in_edition(const SeedEnvelope& seed,
                           EntityID ingestion_edition_context,
                           KGModule& kg,

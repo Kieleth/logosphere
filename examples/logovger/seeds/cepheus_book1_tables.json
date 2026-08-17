@@ -6,10 +6,16 @@
  "layer": "cepheus",
  "invariants": {
   "count_of_type": {
+   "ByteRangeSelector": 4,
+   "ClaimDecision": 6,
+   "CoverageDecision": 4,
    "Currency": 1,
    "DiceExpression": 2,
    "DifficultyEntry": 2,
-   "LookupTable": 1
+   "IngestionClaim": 6,
+   "LookupTable": 1,
+   "SourceCoverage": 4,
+   "SourceTarget": 4
   },
   "unique_name_per_type": [
    "DiceExpression",
@@ -57,10 +63,344 @@
    "type": "Currency",
    "as": "@credits",
    "properties": {
-    "name": "Credits",
-    "source_section": "Injury Crisis",
-    "source_quote": "he can pay 1D6\u00d710,000 Credits for medical care"
+    "name": "Credits"
    }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@injury_crisis_heading_range",
+   "properties": {
+    "source_byte_start": 26585,
+    "source_byte_end": 26598
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@injury_crisis_heading_target",
+   "properties": {
+    "target_primary_selector": "@injury_crisis_heading_range"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@injury_crisis_heading_coverage",
+   "properties": {
+    "coverage_target": "@injury_crisis_heading_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@injury_crisis_heading_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_heading_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "NO_RULE_CONTENT",
+    "decision_question": "Does this heading state an independent rule claim?",
+    "decision_reason": "The heading names the section but states no rule.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@injury_crisis_trigger_range",
+   "properties": {
+    "source_byte_start": 26600,
+    "source_byte_end": 26683
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@injury_crisis_trigger_target",
+   "properties": {
+    "target_primary_selector": "@injury_crisis_trigger_range"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@injury_crisis_trigger_coverage",
+   "properties": {
+    "coverage_target": "@injury_crisis_trigger_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@injury_crisis_trigger_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_trigger_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this sentence state one or more rule claims?",
+    "decision_reason": "It defines the trigger for an injury crisis.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@injury_crisis_medical_range",
+   "properties": {
+    "source_byte_start": 26684,
+    "source_byte_end": 26809
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@injury_crisis_medical_target",
+   "properties": {
+    "target_primary_selector": "@injury_crisis_medical_range"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@injury_crisis_medical_coverage",
+   "properties": {
+    "coverage_target": "@injury_crisis_medical_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@injury_crisis_medical_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_medical_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this sentence state one or more rule claims?",
+    "decision_reason": "It states death, medical cost, and restoration consequences.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@injury_crisis_qualification_range",
+   "properties": {
+    "source_byte_start": 26810,
+    "source_byte_end": 26988
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@injury_crisis_qualification_target",
+   "properties": {
+    "target_primary_selector": "@injury_crisis_qualification_range"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@injury_crisis_qualification_coverage",
+   "properties": {
+    "coverage_target": "@injury_crisis_qualification_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@injury_crisis_qualification_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_qualification_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this sentence state one or more rule claims?",
+    "decision_reason": "It states qualification and future-career constraints.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@injury_crisis_trigger_claim",
+   "properties": {
+    "claim_statement": "Any characteristic reduced to zero causes an injury crisis."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_trigger_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_trigger_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The current rule language cannot express the crisis trigger.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@injury_crisis_death_claim",
+   "properties": {
+    "claim_statement": "A character in injury crisis dies unless medical care is paid for."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_death_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_death_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The payment-gated death consequence is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@injury_crisis_cost_claim",
+   "properties": {
+    "claim_statement": "Injury-crisis medical care costs 1D6 multiplied by 10,000 Credits."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_cost_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_cost_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "Credits is typed, but the multiplied payment rule is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@injury_crisis_restore_claim",
+   "properties": {
+    "claim_statement": "Paid medical care restores any characteristic at zero to one."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_restore_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_restore_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The conditional restoration consequence is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@injury_crisis_qualification_claim",
+   "properties": {
+    "claim_statement": "After an injury crisis, the character automatically fails Qualification checks."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_qualification_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_qualification_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The persistent automatic-check failure is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@injury_crisis_career_claim",
+   "properties": {
+    "claim_statement": "Further terms are limited to the current career or the Drifter career."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_career_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_career_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The conditional future-career restriction is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_trigger_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_trigger_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_death_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_cost_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_restore_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_qualification_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_qualification_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_career_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_qualification_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@injury_crisis_cost_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@credits"
   },
   {
    "op": "create_entity",

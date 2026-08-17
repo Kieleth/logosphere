@@ -606,8 +606,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("AdvanceSkill", {"rulebook"});
     reg.addFacets("ArbiterDecision", {"rulebook"});
     reg.addFacets("AttributeGroup", {"rulebook"});
-    reg.addFacets("ClaimDecision", {"append-only", "ingestion-ledger", "no-instance-declared", "rulebook"});
-    reg.addFacets("CoverageDecision", {"append-only", "ingestion-ledger", "no-instance-declared", "rulebook"});
+    reg.addFacets("ClaimDecision", {"append-only", "ingestion-ledger", "rulebook"});
+    reg.addFacets("CoverageDecision", {"append-only", "ingestion-ledger", "rulebook"});
     reg.addFacets("CurrencyBalance", {"rulebook"});
     reg.addFacets("DiceExpression", {"rulebook"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-skills");
@@ -620,7 +620,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("GainPossession", {"rulebook"});
     reg.addFacets("GainRolledMoney", {"no-instance-declared", "rulebook"});
     reg.addFacets("GrantTableRoll", {"rulebook"});
-    reg.addFacets("IngestionClaim", {"ingestion-ledger", "no-instance-declared", "rulebook"});
+    reg.addFacets("IngestionClaim", {"ingestion-ledger", "rulebook"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addFacets("IngestionEditionContext", {"no-instance-declared", "sealed-origin", "seed-owned"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -651,7 +651,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("Skill", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("SkillRating", {"rulebook"});
-    reg.addFacets("SourceCoverage", {"ingestion-ledger", "no-instance-declared", "rulebook"});
+    reg.addFacets("SourceCoverage", {"ingestion-ledger", "rulebook"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
