@@ -469,6 +469,24 @@ from identity, so the same exact corpus remains the same edition across an
 unrelated source revision. The schema and mechanical resolver are built;
 existing document-scoped rule loading has not yet migrated.
 
+**Evidence-migration amendment, 2026-08-17 19:16 UTC.** Production rule
+identity has since moved to the exact edition, and the first real section now
+uses the ledger. The migration exposed a general ownership error before more
+content moved: selectors and targets were being scoped like rules, to the
+edition. They identify bytes in one representation, so the loader now scopes
+them to `SourceRepresentationContext` and derives byte-range target identity
+from the canonical selector key. Rules and claims remain edition-scoped.
+
+The verifier enforces one evidence grammar per rule. Exact evidence requires a
+reconciled claim and coverage path to a resolvable `SourceTarget`, edition
+origin, and no structural locator fields. Legacy evidence requires its quoted
+document path and cannot coexist with exact claims. The `Injury Crisis`
+heading and three sentences prove zero-claim and multi-claim coverage against
+production bytes: four coverage records, six claims, five raised decisions,
+and one partial decision materializing the existing Credits entity. This is a
+section-by-section replacement. It does not weaken verification while the
+remaining 3,081 legacy citations move.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must

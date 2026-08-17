@@ -99,9 +99,14 @@ broken reference. Multiple matches are a violated world invariant and also
 fail. Published source content uses its exact ingestion-edition context; its
 evidence uses an exact source representation plus selector. The production
 Logovger loader materializes its declared corpus and injects the resulting
-ingestion edition as rule identity. Its existing citation verifier still uses
-a source-document origin and structural locator fields during the explicit
-evidence transition. Runtime content uses its explicit runtime context. Forks
+ingestion edition as rule identity. During the explicit evidence transition,
+each source-authored rule uses exactly one evidence path. Unmigrated rules keep
+a source-document origin and structural locator. Migrated rules have edition
+origin, no legacy locator field, and are materialized by a reconciled
+`IngestionClaim` supported by exact representation-scoped `SourceTarget`
+coverage. The verifier rejects either path when fields from the other remain.
+`Injury Crisis` is the first migrated production section. Runtime content uses
+its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 

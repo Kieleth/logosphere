@@ -88,8 +88,11 @@ rather than a toy:
 1. **Corpus identity is exact.** The application declares both source files,
    and the engine derives one content-addressed ingestion edition from their
    bytes. Every production rule and cross-seed reference uses that edition.
-   Existing `SourceDocument` and `SourceLocator` citations remain the explicit
-   transitional evidence path until conversion to `SourceTarget`.
+   `Injury Crisis` is the first production section migrated to exact
+   `SourceTarget` coverage and atomic claims. Its Credits rule has no legacy
+   locator. The remaining 3,081 structural citations retain the explicit
+   transitional path until each section converts; exact evidence never falls
+   back to that path.
 2. **Ingestion is verified, not trusted.** Seeds are refused unless
    every citation resolves in the source and every number appears in
    the text it quotes. A line citation cannot prove a table cell.

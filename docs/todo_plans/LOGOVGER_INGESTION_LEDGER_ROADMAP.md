@@ -336,6 +336,68 @@ are intentionally unchanged. They move section by section to exact
 representation-scoped `SourceTarget` evidence. There is no compatibility
 fallback.
 
+## First production evidence slice, 2026-08-17 19:16 UTC
+
+`Injury Crisis` is the first real section migrated. Four exact byte-range
+targets enumerate its heading and three sentences. The heading has one
+`NO_RULE_CONTENT` decision. The sentences support six atomic claims: five are
+`RAISED` for `RULE_LANGUAGE_GAP`; the medical-cost claim is `PARTIAL` because
+it materializes the existing Credits `Currency` entity but cannot yet express
+the 1D6 times 10,000 calculation. The entity's old `source_section` and
+`source_quote` fields are deleted. Production now has 3,081 legacy structural
+citations remaining.
+
+TDD exposed two general defects before the production seed moved:
+
+- the edition-aware loader gave selectors and targets edition identity, while
+  source evidence must be representation-scoped. The generic loader now owns
+  that distinction and derives byte-range target identity from the canonical
+  selector key;
+- an old numeric verifier test used `-5` while the pinned Markdown bytes contain
+  `\-5`. It therefore failed on verbatim matching before reaching the numeric
+  assertion it claimed to test. The fixture now copies the exact bytes and
+  proves the wrong numeric value fails through the exact-evidence path.
+
+The verifier now rejects mixed evidence grammars, exact rules without a
+materializing claim, unresolved exact targets, and exact selected bytes that
+do not support either the stored quote or numeric value. Legacy verification
+remains intact for unmigrated rules, but it is not a fallback from exact
+evidence.
+
+Verification for the first production evidence slice, implementation commit
+`93da42f`:
+
+- the generic exact-evidence fixture first ran red at 280 passes / 6 failures:
+  the target lacked loader-owned representation identity, exact byte and quote
+  evidence was not verified, mixed locator fields were accepted, and a rule
+  could omit its materializing claim;
+- after correcting representation ownership, the same target ran 287/5. The
+  remaining failures belonged to verifier enforcement, not seed loading;
+- the production identity target then ran red at 11/5 before the real seed
+  contained targets, coverage, claims, decisions, or a locator-free Credits
+  rule;
+- after the production records loaded, a schema guard ran red at 16/1 because
+  the four ledger classes still claimed `no-instance-declared`. Regeneration
+  removed that obsolete facet from every composed registry;
+- final focused results: `test_seed_verifier` 292/0,
+  `test_logovger_rule_seed_identity` 17/0, and
+  `test_logovger_table_results` 91/0;
+- generator and schema contract tests: 14/0, plus 4/0 for the Logovger
+  generators. Schema audit: 15 schemas, 370 classes, 53 enums, zero findings;
+- regenerating the production seeds reproduced the generated files and left
+  the hand-authored evidence migration intact;
+- a direct table-test run before its executable was rebuilt reported 54/22
+  against the previous loader. Rebuilding that target produced 91/0 without a
+  source change. Authoritative regression results therefore follow a complete
+  build, not an arbitrary existing binary;
+- complete registered headless profile: effective 97/97. CTest first reported
+  96/97 because `test_run_recorder` could not create its user-session directory
+  inside the filesystem sandbox; the unchanged test passed 12/0 with normal
+  filesystem access. `test_chargen` passed;
+- the six production seeds contain 3,081 remaining entities with structural
+  locator fields, measured after regeneration;
+- `git diff --check`: clean.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
@@ -386,7 +448,7 @@ Follow this TDD order:
   loose locator fields to exact representation-scoped `SourceTarget` evidence.
   Delete the replaced locator path when the final section moves; do not add a
   `SourceTarget`-to-locator fallback.
-- [ ] Persist one small real Logovger section through the ledger, then
+- [x] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.
 - [x] Record the observed red tests, implementation commit, focused

@@ -469,6 +469,25 @@ accumulate observations without changing its identity; a repeated observation
 is idempotent, while two byte sequences claimed for the same layer, logical
 path, and revision fail before KG mutation.
 
+**Evidence amendment, 2026-08-17 19:16 UTC.** R13 now gates both sides of the
+boundary for migrated rules. `SourceSelector` and `SourceTarget` identity is
+scoped to the exact `SourceRepresentationContext`; rule and claim identity is
+scoped to the exact `IngestionEditionContext`. A migrated `Cited` rule has no
+legacy locator properties, has edition origin, and is the object of a
+`CLAIM_MATERIALIZES` relation from a reconciled claim supported by exact
+targets. An unmigrated rule retains document origin and its structural
+locator. The verifier rejects a mixture, so the transition cannot become a
+fallback chain.
+
+`Injury Crisis` is the first production section through that gate. Four exact
+byte-range targets cover its heading and three sentences. The heading is
+explicitly judged `NO_RULE_CONTENT`; the sentences produce six claims. Five
+claims are raised for missing rule-language expression, and the medical-cost
+claim is partial because its existing `Currency` entity captures Credits but
+not the 1D6 times 10,000 calculation. That entity's old section and quote
+locator is deleted. The remaining production transition contains 3,081
+legacy structural citations.
+
 ---
 
 ## Decisions this protocol records
