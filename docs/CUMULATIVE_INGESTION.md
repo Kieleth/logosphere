@@ -297,6 +297,17 @@ R11's gate is recorded in the protocol as "partial and accidental".
 Here is what that means, exactly, so the enforcement work has real
 targets. Each carries the owner's verdict from 2026-08-16.
 
+**ENFORCEMENT UPDATE, 2026-08-17 00:41 UTC.** Defects 2, 3 and 4 below
+are fixed. The CLI accepts ordered prerequisite seeds and has paired
+passing-with-prerequisite and failing-without-prerequisite fixtures.
+`verify_and_load_seed_sequence` is the one owner of the growing prior
+world, and the windowed game, headless runner and chargen tests all call
+the same Logovger loader that delegates to it. A generic reversed pair
+and the real six-seed manifest with its final procedure moved first both
+fail at seed zero before loading anything. Item 1 remains upstream
+representation work and item 5 remains accepted. R12 is not part of this
+enforcement slice.
+
 1. **The prior world is an optional argument.**
    `include/logosphere/kg/seed_verifier.h:120` declares
    `verify_seed(..., const std::vector<const SeedEnvelope*>& prerequisites = {})`.

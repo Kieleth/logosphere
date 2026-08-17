@@ -276,9 +276,13 @@ resolves to something the graph already holds, or is a new concept this
 passage defines, or is unresolvable, in which case it is raised and
 accommodated under R12. There is no fourth option, and in particular
 there is no "understood well enough from the sentence alone".
-*Gate*: partial and accidental. Extractors already load prior seeds to
-resolve references, and `verify_seed` already receives `loaded_before`,
-but both are hand-wired rather than required.
+*Gate*: **AMENDED 2026-08-17 00:41 UTC.** Still partial, but seed loading
+is no longer accidental. `verify_and_load_seed_sequence` owns ordered
+prerequisite accumulation; the game, headless runner, chargen gate and
+verifier CLI all enter through it. A two-seed fixture passes only with its
+prerequisite, and both a reversed fixture and the reversed production
+manifest fail before the dependent seed mutates the world. Raw extraction
+output and R12 accommodation remain ungated.
 
 This is the rule the whole module turns on, so it gets its own section
 below.

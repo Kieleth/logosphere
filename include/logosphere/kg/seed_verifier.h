@@ -110,6 +110,20 @@ struct SeedVerifyReport {
     }
 };
 
+// Result of verifying and loading an ordered seed sequence. R11 lives in
+// this operation: each seed is verified with every earlier seed as a
+// prerequisite, then loaded into the caller's world. A failure stops before
+// that seed mutates the world. Earlier seeds remain loaded because each seed,
+// not the sequence, is the transactional unit.
+struct SeedSequenceLoadReport {
+    bool        ok = true;
+    int         failed_seed = -1;
+    std::string error;
+    size_t      seeds_verified = 0;
+    size_t      seeds_loaded = 0;
+    std::vector<SeedVerifyReport> verifications;
+};
+
 // Verification loads the seed into a scratch world, so a seed that
 // references entities another seed owns (with canonical @@entity paths)
 // cannot be verified alone: its references resolve against nothing. Pass the
@@ -125,6 +139,18 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
                                      procedure_primitives = nullptr,
                              const std::vector<const SeedEnvelope*>&
                                  prerequisites = {});
+
+// Verify and load seeds in declared dependency order. This is the single
+// owner of prerequisite accumulation for game startup and verification tools.
+// Empty input is invalid: a caller that requires rule data must not silently
+// start with none.
+bool verify_and_load_seed_sequence(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives = nullptr);
 
 }  // namespace kg
 

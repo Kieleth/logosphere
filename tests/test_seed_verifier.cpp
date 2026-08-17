@@ -43,6 +43,7 @@
 #include <sstream>
 #include <string>
 #include <variant>
+#include <vector>
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -61,6 +62,12 @@ const char* kSourceRoot =
     LOGOSPHERE_SOURCE_DIR "/examples/logovger/srd/cepheus";
 const char* kFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/chargen_ch1.json";
+const char* kPrerequisiteFixture =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/prerequisite_base.json";
+const char* kDependentFixture =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/prerequisite_dependent.json";
+const char* kStandaloneFixture =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/rulebook_smoke.json";
 
 std::string slurp(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
@@ -108,6 +115,14 @@ kg::SeedEnvelope parse_fixture() {
     kg::SeedParseResult r = kg::parse_seed_envelope(text);
     CHECK(r.ok(), "the positive fixture parses: " + r.error);
     return r.seed;
+}
+
+kg::SeedEnvelope parse_seed_fixture(const char* path) {
+    const std::string text = slurp(path);
+    CHECK(!text.empty(), std::string(path) + " is readable");
+    kg::SeedParseResult parsed = kg::parse_seed_envelope(text);
+    CHECK(parsed.ok(), std::string(path) + " parses: " + parsed.error);
+    return parsed.seed;
 }
 
 kg::KGOpCreateEntity* find_create(kg::SeedEnvelope& seed,
@@ -1407,6 +1422,72 @@ void test_duplicate_name_fails_invariant() {
           "the reason names the duplicate and how many there are");
 }
 
+void test_seed_sequence_is_cumulative_and_ordered() {
+    kg::KGModule empty_world(engine_registry());
+    empty_world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport empty_report;
+    CHECK(!kg::verify_and_load_seed_sequence(
+              {}, kSourceRoot, empty_world, empty_report),
+          "an empty required seed sequence is refused");
+    CHECK(empty_report.error.find("empty") != std::string::npos,
+          "the empty-sequence refusal is actionable");
+
+    std::vector<kg::SeedEnvelope> ordered{
+        parse_seed_fixture(kPrerequisiteFixture),
+        parse_seed_fixture(kDependentFixture),
+    };
+
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport report;
+    CHECK(kg::verify_and_load_seed_sequence(
+              ordered, kSourceRoot, world, report),
+          "the dependent seed verifies and loads after its prerequisite: " +
+              report.error);
+    std::cout << "  [measure] cumulative sequence loaded "
+              << report.seeds_loaded << " seeds" << std::endl;
+    CHECK(report.seeds_loaded == 2,
+          "the cumulative loader reports both loaded seeds");
+    CHECK(world.findByType("RuleConstant").size() == 2,
+          "both ordered seed consequences reached the world");
+
+    std::vector<kg::SeedEnvelope> reversed{ordered[1], ordered[0]};
+    kg::KGModule reversed_world(engine_registry());
+    reversed_world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport reversed_report;
+    CHECK(!kg::verify_and_load_seed_sequence(
+              reversed, kSourceRoot, reversed_world, reversed_report),
+          "a dependent seed presented before its prerequisite is refused");
+    std::cout << "  [measure] wrong-order refusal: "
+              << reversed_report.error << std::endl;
+    CHECK(reversed_report.failed_seed == 0,
+          "the report identifies the first, wrongly ordered seed");
+    CHECK(reversed_report.error.find(
+              "no matching Addressable entity is loaded") !=
+              std::string::npos,
+          "the refusal names the missing prerequisite entity");
+    CHECK(reversed_world.findByType("RuleConstant").empty(),
+          "wrong order mutates nothing before refusal");
+
+    kg::SeedEnvelope drifted = parse_seed_fixture(kPrerequisiteFixture);
+    drifted.source.commit = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+    std::vector<kg::SeedEnvelope> warning_sequence{
+        std::move(drifted), parse_seed_fixture(kStandaloneFixture)};
+    kg::KGModule warning_world(engine_registry());
+    warning_world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport warning_report;
+    CHECK(kg::verify_and_load_seed_sequence(
+              warning_sequence, kSourceRoot, warning_world,
+              warning_report),
+          "a non-gating prerequisite warning does not fail the sequence: " +
+              warning_report.error);
+    CHECK(warning_report.verifications.size() == 2,
+          "the sequence retains one verification report per seed");
+    CHECK(warning_report.verifications.front().warnings.size() == 1 &&
+              warning_report.verifications.back().warnings.empty(),
+          "an earlier prerequisite warning survives a clean target");
+}
+
 }  // namespace
 
 int main() {
@@ -1454,6 +1535,7 @@ int main() {
     test_duplicate_name_fails_invariant();
     test_source_commit_drift_warns_without_failing();
     test_missing_source_commit_file_has_no_opinion();
+    test_seed_sequence_is_cumulative_and_ordered();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

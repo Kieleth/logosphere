@@ -437,16 +437,16 @@ register_headless_test(test_seed_verifier)
 target_compile_definitions(test_seed_verifier
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
-# The ingestion verifier CLI: logosphere-verify <seed.json> <source-root>.
+# The ingestion verifier CLI accepts an ordered prerequisite chain before the
+# target seed. Game seed files still verify through game-side registries.
 # Links the ENGINE registries only (core + rulebook + earth + space,
 # merged); game seed files with game types verify through game-side
 # targets calling kg::verify_seed with their own registry.
 add_executable(logosphere-verify tools/logosphere_verify.cpp)
 target_link_libraries(logosphere-verify PRIVATE logosphere_core)
 target_compile_features(logosphere-verify PRIVATE cxx_std_17)
-# The CLI under ctest, both directions: the positive fixture must
-# verify clean (exit 0), the misquote fixture must fail (exit 1,
-# expressed as WILL_FAIL).
+# The CLI under ctest: a standalone seed passes, a misquote fails, and a
+# cross-seed reference passes only when its prerequisite is supplied.
 add_test(NAME logosphere_verify_positive
     COMMAND logosphere-verify
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/rulebook_smoke.json
@@ -456,6 +456,18 @@ add_test(NAME logosphere_verify_negative
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
+add_test(NAME logosphere_verify_prerequisite
+    COMMAND logosphere-verify
+        --prerequisite
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_base.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+add_test(NAME logosphere_verify_missing_prerequisite
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+set_tests_properties(logosphere_verify_missing_prerequisite
+    PROPERTIES WILL_FAIL TRUE)
 
 # Logovger with no window: a life played by an InputSource. Proves the
 # replay harness on a real game, and gives a fuzzing entry point that

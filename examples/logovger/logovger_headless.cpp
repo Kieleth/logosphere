@@ -21,10 +21,8 @@
 
 #include "chargen/chargen.h"
 #include "chargen/procedure_catalog.h"
-#include "chargen/rule_seeds.h"
+#include "chargen/rule_seed_loader.h"
 
-#include "logosphere/kg/seed_loader.h"
-#include "logosphere/kg/seed_verifier.h"
 #include "logosphere/events/event_bus.h"
 #include "logosphere/kg/kg_query.h"
 #include "logosphere/replay/run_recorder.h"
@@ -42,10 +40,8 @@
 #include <chrono>
 #include <filesystem>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
 
 namespace {
@@ -60,14 +56,6 @@ std::string game_path(const std::string& rel) {
     return std::string(LOGOVGER_GAME_DIR) + "/" + rel;
 }
 
-std::string slurp(const std::string& path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) return {};
-    std::ostringstream out;
-    out << f.rdbuf();
-    return out.str();
-}
-
 kg::OntologyRegistry game_registry() {
     auto out = logosphere::ontology::registry();
     out.extend(rulebook::ontology::registry());
@@ -80,40 +68,8 @@ kg::OntologyRegistry game_registry() {
 bool load_rules(kg::KGModule& world, std::string& why) {
     world.setMode(kg::KGMode::MINIMAL);
     const auto primitives = logovger::make_chargen_procedure_registry();
-    std::vector<kg::SeedEnvelope> kept;
-    // Reserve, or every pointer below dangles. A seed may reference
-    // what an earlier one owns, so verification is handed pointers
-    // into this vector; letting it reallocate turns those into garbage
-    // and the failure reads as "the reference does not resolve".
-    kept.reserve(logovger::kRuleSeedCount);
-    std::vector<const kg::SeedEnvelope*> loaded;
-    for (const char* seed : logovger::kRuleSeeds) {
-        const std::string json = slurp(game_path(seed));
-        if (json.empty()) { why = std::string(seed) + " unreadable"; return false; }
-        auto parsed = kg::parse_seed_envelope(json);
-        if (!parsed.ok()) { why = "envelope: " + parsed.error; return false; }
-        const auto verdict = kg::verify_seed(parsed.seed,
-                                             game_path("srd/cepheus"),
-                                             game_registry(), &primitives,
-                                             loaded);
-        if (!verdict.ok()) {
-            std::ostringstream o;
-            for (const auto& v : verdict.violations) {
-                o << "[" << v.check << "] " << v.alias << ": " << v.reason
-                  << "; ";
-            }
-            why = "verify: " + o.str();
-            return false;
-        }
-        kg::SeedLoadReport report;
-        if (!kg::load_seed(parsed.seed, world, report)) {
-            why = "load: " + report.error;
-            return false;
-        }
-        kept.push_back(std::move(parsed.seed));
-        loaded.push_back(&kept.back());
-    }
-    return true;
+    return logovger::load_rule_seeds(
+        world, LOGOVGER_GAME_DIR, primitives, why);
 }
 
 #ifdef LOGOVGER_WITH_LLM

@@ -1305,4 +1305,57 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
     return report;
 }
 
+bool verify_and_load_seed_sequence(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives) {
+    report = SeedSequenceLoadReport{};
+    if (seeds.empty()) {
+        report.ok = false;
+        report.error = "seed sequence is empty";
+        return false;
+    }
+
+    std::vector<const SeedEnvelope*> prerequisites;
+    prerequisites.reserve(seeds.size());
+    for (size_t index = 0; index < seeds.size(); ++index) {
+        const SeedEnvelope& seed = seeds[index];
+        SeedVerifyReport verified = verify_seed(
+            seed, source_root, world.getRegistry(), procedure_primitives,
+            prerequisites);
+        report.verifications.push_back(std::move(verified));
+        const SeedVerifyReport& current = report.verifications.back();
+        if (!current.ok()) {
+            report.ok = false;
+            report.failed_seed = static_cast<int>(index);
+            std::ostringstream error;
+            error << "verification failed";
+            for (const auto& violation : current.violations) {
+                error << ": [" << violation.check << "] ";
+                if (!violation.alias.empty()) {
+                    error << "@" << violation.alias << " ";
+                }
+                error << violation.reason;
+            }
+            report.error = error.str();
+            return false;
+        }
+        ++report.seeds_verified;
+
+        SeedLoadReport loaded;
+        if (!load_seed(seed, world, loaded)) {
+            report.ok = false;
+            report.failed_seed = static_cast<int>(index);
+            report.error = "load failed: " + loaded.error;
+            return false;
+        }
+        ++report.seeds_loaded;
+        prerequisites.push_back(&seed);
+    }
+    return true;
+}
+
 }  // namespace kg

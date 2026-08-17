@@ -78,6 +78,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - Sleep now covers angular velocity: a resting body no longer spins.
 
 ### Added
+- `verify_and_load_seed_sequence`, the single ordered path for cumulative
+  seed verification and loading. `logosphere-verify` now accepts repeated
+  `--prerequisite <seed.json>` arguments, verifies every seed in order, and
+  refuses a dependent seed when its prior graph is absent.
 - `PhysicsSystem::record_refused_impulse` / `take_refused_impulse`:
   momentum a body's authority refuses is BOOKED and available to
   whoever owns that body instead of being discarded. Contacts,

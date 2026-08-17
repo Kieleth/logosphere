@@ -11,7 +11,9 @@
 // vocabulary seed OWNS every Skill; everything after it references
 // those by canonical source-document, exact type, and seed alias.
 // Load a referencing seed first and it fails loudly, which is the
-// intended behaviour, not a reason to reorder by hand.
+// intended behaviour, not a reason to reorder by hand. The production
+// manifest is loaded out of order by
+// test_rule_seed_manifest_rejects_wrong_order, which gates this claim.
 
 #ifndef LOGOVGER_RULE_SEEDS_H
 #define LOGOVGER_RULE_SEEDS_H
