@@ -298,6 +298,44 @@ named transition, not a second evidence grammar: no `SourceTarget` consumer
 falls back to a locator, and the locator is deleted when the last evidence
 section moves.
 
+Verification for production edition-scoped rule identity, implementation
+commit `44ee08d`:
+
+- `test_logovger_rule_seed_identity` first ran red at 2/2 because production
+  references still named document contexts and no ingestion edition was
+  materialized;
+- the engine unit test then failed to compile because
+  `load_seed_in_edition` did not exist, and the application test failed to
+  compile because `declare_rule_source_corpus` did not exist;
+- after the edition-aware loader existed but before the seed migration,
+  production loading failed while resolving the old document-scoped dice
+  reference in the shared tables seed;
+- a late report-contract regression ran red at 270/1 because an empty seed
+  falsely reported the supplied edition as materialized. The loader now
+  reports an identity context only after loading an addressable rule;
+- production now declares six seeds, two representations, one source revision,
+  and one exact ingestion edition. All 1,393 cross-seed qualified references
+  use
+  `ingestion-edition:v1:7:cepheus:sha256:76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85`;
+- focused results: `test_seed_verifier` 271/0,
+  `test_logovger_rule_seed_identity` 9/0, and
+  `test_logovger_table_results` 91/0. The source corpus, manifest, target,
+  ledger, and rulebook targets also pass;
+- generator and schema contract tests: 14/0, plus 4/0 for the Logovger
+  generators. Schema audit: 15 schemas, 370 classes, 53 enums, and zero
+  findings. Regenerating the production seeds reproduced the checked-in
+  output;
+- complete registered headless profile: effective 97/97. CTest first reported
+  96/97 because `test_run_recorder` could not create its user-session directory
+  inside the filesystem sandbox; the rebuilt, unchanged test passed 12/0 with
+  normal filesystem access. `test_chargen` passed;
+- `git diff --check`: clean.
+
+The remaining 3,082 structural citations and document-scoped citation origins
+are intentionally unchanged. They move section by section to exact
+representation-scoped `SourceTarget` evidence. There is no compatibility
+fallback.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
@@ -351,7 +389,7 @@ Follow this TDD order:
 - [ ] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.
-- [ ] Record the observed red tests, implementation commit, focused
+- [x] Record the observed red tests, implementation commit, focused
   tests, complete registered headless profile, and remaining owner
   decisions in this checklist before integration.
 
