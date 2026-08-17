@@ -438,14 +438,31 @@ judges "this is flavour" a few thousand times, and every one of those
 is a judgement that can be wrong. It is a judgement that will at least
 be visible.
 
-**The grain of a ledger row is OPEN.** Paragraph, sentence, or cell was
-put as a question and answered with R11 instead, which changes the
-question: a row that also records what it resolved against is not
-obviously the same size as a row that records only ingested-or-raised.
-What survives from the question is its constraint. The mustering-out
-paragraph carries two rules and the graph holds one, so any grain at
-which that is a single row forces the record to lie in one direction or
-the other. Decide this before Phase A writes rows.
+**The ledger has two levels, DECIDED 2026-08-17 01:41 UTC.** The owner
+selected option 4, "belt and suspenders": mechanically enumerable
+source-coverage rows plus atomic semantic claims linked to them. This
+supersedes the single-row-grain question. A coverage row proves that an
+addressed part of the pinned source was visited. A claim records one
+meaning judged from that source, what it resolved against, and what
+happened to it. One source unit may produce zero, one, or many claims;
+one claim may cite more than one source unit when its meaning crosses an
+address boundary. The mustering-out paragraph therefore gets one
+coverage judgement and separate claims for its separate rules. It no
+longer has to lie about a mixed outcome.
+
+The two levels have separate invariants. Every mechanically enumerated
+source unit has exactly one coverage judgement. Zero claims is legal
+only when the coverage row explicitly judges that the unit has no rule
+content; silence is never that judgement. Every claim cites at least one
+coverage row and carries its own disposition, dependency set, and
+downstream invalidation identity. Ingested, raised, duplicate,
+contradictory, provisional, and any later claim outcomes belong to the
+claim, not to the coverage row. Exact type names, source-unit grammar,
+and the closed outcome vocabulary remain implementation decisions and
+must be settled by the Phase A tests. The required topology does not.
+
+The implementation checklist and parallel-session handover live in
+`todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
 
 **A derived value that contradicts a stated one is kept, both of them,
 with the divergence recorded.** Not refused, not silently resolved.

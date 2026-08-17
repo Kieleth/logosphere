@@ -272,9 +272,11 @@ What that module would own, if extracted:
 - the address grammar for source units (L0 already reserves this)
 - the declared dependency order, and its check against actual
   references
-- the accommodation queue and its provisional status type
-- the resolution record per unit, and the downstream-invalidation query
-  it enables
+- source-coverage records and the atomic claims linked to them
+- claim-level resolution records and the downstream-invalidation query
+  they enable
+- the accommodation queue, while consuming malleus's provisional status
+  type
 
 What it must NOT own: the ontology (malleus), the graph store, the rule
 runtime, and anything about games.
@@ -383,9 +385,50 @@ enforcement slice.
    consistency with the module's oldest rule: structure is judged,
    content is copied, and what to read next is structure.
 
-Three of the five are defects: 2 and 4 are bugs, 3 is a duplicated
-owner. Item 1 is real and belongs upstream in malleus. Item 5 is
-correct as it stands.
+At the time of measurement, three of the five were defects: 2 and 4
+were bugs and 3 was a duplicated owner. They are now closed by the
+enforcement update above. Item 1 remains upstream in malleus. Item 5
+remains correct as it stands.
+
+---
+
+## The ingestion ledger topology, decided 2026-08-17
+
+The ledger is not one row forced to serve two incompatible purposes.
+It has two levels:
+
+1. A mechanically enumerated **source-coverage record** proves that an
+   addressed unit of the pinned source was visited and judged.
+2. An **atomic claim record** captures one semantic claim produced from
+   one or more of those units, including its disposition and the prior
+   concepts against which it resolved.
+
+The labels above describe roles, not final schema type names. The owner
+selected this topology as option 4, "belt and suspenders". It resolves
+the paragraph-versus-sentence-versus-cell dead end without pretending
+that source layout and semantic meaning have the same grain. A source
+unit may yield zero, one, or many claims. A claim may cross source-unit
+boundaries. Mixed results therefore stay truthful: two rules in one
+paragraph can have different dispositions, while the source paragraph
+still has one visible coverage judgement.
+
+Four reconciliation rules are binding:
+
+1. Every unit produced by the selected mechanical source enumerator has
+   exactly one coverage judgement.
+2. A unit with zero claims explicitly says "no rule content". Absence
+   of claims is not accepted as evidence of that judgement.
+3. Every claim cites at least one coverage unit and owns its own
+   disposition, resolution dependencies, and invalidation identity.
+4. Whole-source totals reconcile from enumeration through coverage to
+   claims, including raised, duplicate, contradictory, and provisional
+   claims. No filtered content disappears before the ledger.
+
+This decision does not choose the schema class names, exact source-unit
+grammar, or closed claim-disposition vocabulary. Those are the first
+owner-facing boundaries in Phase A. The TDD sequence and current handoff
+are recorded in
+`todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
 
 ---
 
