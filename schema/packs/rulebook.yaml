@@ -57,6 +57,8 @@ enums:
         description: The claim is recorded but cannot yet be represented.
       DUPLICATE:
         description: An earlier claim already represents the same meaning.
+      SUPERSEDED:
+        description: A later, broader or corrected claim replaces this claim.
       CONTRADICTORY:
         description: The claim conflicts with another claim and both are kept.
 

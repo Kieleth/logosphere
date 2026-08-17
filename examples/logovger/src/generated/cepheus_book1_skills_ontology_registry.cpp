@@ -10,7 +10,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("BodyRegion", {"FULL_BODY", "LOWER_BODY", "UPPER_BODY"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
-    reg.addEnumType("ClaimDisposition", {"CONTRADICTORY", "DUPLICATE", "MATERIALIZED", "PARTIAL", "RAISED"});
+    reg.addEnumType("ClaimDisposition", {"CONTRADICTORY", "DUPLICATE", "MATERIALIZED", "PARTIAL", "RAISED", "SUPERSEDED"});
     reg.addEnumType("ClaimGapKind", {"ONTOLOGY_GAP", "RULE_LANGUAGE_GAP", "SOURCE_GAP"});
     reg.addEnumType("CoverageJudgement", {"CLAIMS_PRESENT", "NO_RULE_CONTENT"});
     reg.setSource("https://logosphere.dev/schema");

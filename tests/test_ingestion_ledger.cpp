@@ -168,6 +168,29 @@ void test_duplicate_and_contradictory_claims_remain_visible() {
               report.error);
 }
 
+void test_superseded_claim_points_to_its_generalized_replacement() {
+    Fixture f;
+    const auto target = f.target("byte-range:0:4");
+    const auto coverage = f.coverage(target, "coverage:claims");
+
+    const auto narrow =
+        f.claim("claim:narrow", "This cause produces a crisis.", {coverage});
+    f.claim_decision(narrow, 0, "RAISED", "RULE_LANGUAGE_GAP");
+
+    const auto generalized = f.claim(
+        "claim:general", "Every listed cause produces a crisis.", {coverage});
+    f.materialize(generalized, "generalized");
+    f.claim_decision(generalized, 0, "MATERIALIZED");
+    f.claim_decision(narrow, 1, "SUPERSEDED", {}, generalized);
+    f.coverage_decision(coverage, 0, "CLAIMS_PRESENT");
+
+    const auto report =
+        kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+    CHECK(report.ok && report.claim_count == 2 && report.decision_count == 4,
+          "a narrower claim keeps its history and points to the current "
+          "generalized replacement: " + report.error);
+}
+
 void test_missing_enumerated_leaf_fails() {
     Fixture f;
     f.target("byte-range:0:1");
@@ -275,12 +298,48 @@ void test_duplicate_requires_related_claim() {
           "duplicate is a typed relation to a claim, not an unsupported label");
 }
 
+void test_superseded_requires_replacement_and_relinquishes_results() {
+    {
+        Fixture f;
+        const auto target = f.target("byte-range:0:1");
+        const auto coverage = f.coverage(target, "coverage:a");
+        const auto claim =
+            f.claim("claim:superseded", "Superseded.", {coverage});
+        f.claim_decision(claim, 0, "SUPERSEDED");
+        f.coverage_decision(coverage, 0, "CLAIMS_PRESENT");
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok && report.error.find("replacement claim") !=
+                                std::string::npos,
+              "superseded is a typed link to its replacement, not a label");
+    }
+    {
+        Fixture f;
+        const auto target = f.target("byte-range:0:1");
+        const auto coverage = f.coverage(target, "coverage:a");
+        const auto replacement =
+            f.claim("claim:replacement", "Replacement.", {coverage});
+        f.materialize(replacement, "replacement");
+        f.claim_decision(replacement, 0, "MATERIALIZED");
+        const auto old = f.claim("claim:old", "Old.", {coverage});
+        f.materialize(old, "old");
+        f.claim_decision(old, 0, "SUPERSEDED", {}, replacement);
+        f.coverage_decision(coverage, 0, "CLAIMS_PRESENT");
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok && report.error.find("materialized results") !=
+                                std::string::npos,
+              "a superseded claim cannot keep authoritative graph results");
+    }
+}
+
 }  // namespace
 
 int main() {
     std::cout << "Ingestion ledger reconciliation" << std::endl;
     test_complete_fixture_reconciles();
     test_duplicate_and_contradictory_claims_remain_visible();
+    test_superseded_claim_points_to_its_generalized_replacement();
     test_missing_enumerated_leaf_fails();
     test_duplicate_coverage_fails();
     test_unlinked_claim_fails();
@@ -289,6 +348,7 @@ int main() {
     test_partial_claim_requires_typed_gap();
     test_partial_claim_accepts_source_gap();
     test_duplicate_requires_related_claim();
+    test_superseded_requires_replacement_and_relinquishes_results();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

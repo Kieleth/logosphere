@@ -941,6 +941,8 @@ enum class ClaimDisposition {
     RAISED,
     /// An earlier claim already represents the same meaning.
     DUPLICATE,
+    /// A later, broader or corrected claim replaces this claim.
+    SUPERSEDED,
     /// The claim conflicts with another claim and both are kept.
     CONTRADICTORY
 };
@@ -952,6 +954,7 @@ inline const char* to_string(ClaimDisposition value) {
         case ClaimDisposition::PARTIAL: return "PARTIAL";
         case ClaimDisposition::RAISED: return "RAISED";
         case ClaimDisposition::DUPLICATE: return "DUPLICATE";
+        case ClaimDisposition::SUPERSEDED: return "SUPERSEDED";
         case ClaimDisposition::CONTRADICTORY: return "CONTRADICTORY";
     }
     return "unknown";
@@ -963,6 +966,7 @@ inline bool from_string(const char* str, ClaimDisposition& out) {
     if (std::strcmp(str, "PARTIAL") == 0) { out = ClaimDisposition::PARTIAL; return true; }
     if (std::strcmp(str, "RAISED") == 0) { out = ClaimDisposition::RAISED; return true; }
     if (std::strcmp(str, "DUPLICATE") == 0) { out = ClaimDisposition::DUPLICATE; return true; }
+    if (std::strcmp(str, "SUPERSEDED") == 0) { out = ClaimDisposition::SUPERSEDED; return true; }
     if (std::strcmp(str, "CONTRADICTORY") == 0) { out = ClaimDisposition::CONTRADICTORY; return true; }
     return false;
 }

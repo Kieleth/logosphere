@@ -247,6 +247,19 @@ bool check_claim_disposition(const KGModule& world, EntityID claim,
         }
         return true;
     }
+    if (disposition == "SUPERSEDED") {
+        if (!has_related) {
+            error = "claim " + std::to_string(claim) +
+                    ": SUPERSEDED requires a replacement claim";
+            return false;
+        }
+        if (has_gap || !materialized.empty()) {
+            error = "claim " + std::to_string(claim) +
+                    ": SUPERSEDED forbids gap kind and materialized results";
+            return false;
+        }
+        return true;
+    }
     if (disposition == "CONTRADICTORY") {
         if (!has_related) {
             error = "claim " + std::to_string(claim) +
