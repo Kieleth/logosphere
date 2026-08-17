@@ -105,8 +105,12 @@ a source-document origin and structural locator. Migrated rules have edition
 origin, no legacy locator field, and are materialized by a reconciled
 `IngestionClaim` supported by exact representation-scoped `SourceTarget`
 coverage. The verifier rejects either path when fields from the other remain.
-`Injury Crisis` is the first migrated production section. Runtime content uses
-its explicit runtime context. Forks
+For `UTF8_TEXT`, every ledger target also carries a `TextQuoteSelector` whose
+exact text must equal the bytes selected by its primary `ByteRangeSelector`.
+This supporting selector does not own identity; it prevents Unicode character
+positions from being accepted as byte positions. `Injury Crisis` and
+`Medical Care` are the first migrated production sections. Runtime content
+uses its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 

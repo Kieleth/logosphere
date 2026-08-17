@@ -398,6 +398,55 @@ Verification for the first production evidence slice, implementation commit
   locator fields, measured after regeneration;
 - `git diff --check`: clean.
 
+## Second production evidence slice, 2026-08-17 19:46 UTC
+
+`Medical Care` adds one dependency-ordered, hand-authored production seed.
+Although the section appears before career definitions in the source, its
+payment table names every Career, so the seed follows `cepheus_careers.json`.
+Its 22 leaves are one heading, five sentences, four header cells, and twelve
+data cells. They produce 15 claims: fourteen `RAISED` decisions and one
+`PARTIAL` decision that materializes the fixed 5,000-credit restoration cost
+as a `RuleConstant`. Each of the nine percentage claims cites its career-group
+cell, threshold header, and result cell, then resolves against 2D6 and the
+exact prior Career entities. The seed contains 83 typed resolution links.
+
+The first integration attempt exposed a general text-address defect. Its
+positions were counted as Unicode characters, not UTF-8 bytes. Multibyte
+characters before the section shifted every range by 20 bytes. The cost
+constant happened to fail numeric verification; the raised claims could have
+accepted valid but unintended text because they had no value to contradict it.
+The generic verifier now requires a matching `TextQuoteSelector` for every
+`UTF8_TEXT` ingestion-ledger target. The earlier `Injury Crisis` targets were
+upgraded to the same rule. Non-text `SourceTarget` remains generic and does not
+invent a quote contract.
+
+Verification for implementation commit `58a9f83`:
+
+- the production contract first ran red at 14 passes / 7 failures before the
+  Medical Care seed existed;
+- the first integrated seed ran 12/9 after a complete rebuild. Verification
+  exposed the character-versus-byte drift and also corrected seed invariants
+  that had been written as cumulative world counts rather than per-seed
+  counts;
+- the generic missing-quote regression ran red at 293/1 before the verifier
+  enforced text convergence, then passed at 294/0;
+- final focused results: `test_logovger_rule_seed_identity` 22/0 and
+  `test_logovger_table_results` 91/0;
+- the complete production ledger has 26 coverage records, 21 claims, three
+  no-rule-content leaves, two partial claims, and nineteen raised claims;
+- production now has seven seeds and 1,476 qualified cross-seed references.
+  The 3,081 legacy structural citations are unchanged because Medical Care had
+  no previous seeded rule entities; its new constant starts on exact evidence;
+- generator and schema contract tests: 14/0, plus 4/0 for the Logovger
+  generators. Schema audit: 15 schemas, 370 classes, 53 enums, zero findings;
+- regenerating the production seeds reproduced all generated files and left
+  the hand-authored Medical Care seed intact;
+- complete registered headless profile: effective 97/97. CTest first reported
+  96/97 because `test_run_recorder` could not create its user-session directory
+  inside the filesystem sandbox; the unchanged test passed 12/0 with normal
+  filesystem access. `test_chargen` passed;
+- `git diff --check`: clean.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable

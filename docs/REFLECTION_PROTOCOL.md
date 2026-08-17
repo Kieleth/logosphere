@@ -488,6 +488,27 @@ not the 1D6 times 10,000 calculation. That entity's old section and quote
 locator is deleted. The remaining production transition contains 3,081
 legacy structural citations.
 
+**UTF-8 evidence amendment, 2026-08-17 19:46 UTC.** The second production
+slice exposed that a valid byte range is not proof that it addresses the
+intended text. The first `Medical Care` draft calculated Unicode character
+positions; multibyte characters earlier in the representation shifted every
+range by 20 bytes. Raised claims had no numeric value to expose the drift and
+could otherwise have passed against the wrong source leaves. Edition-scoped
+verification now requires every `UTF8_TEXT` ledger target to carry a
+`TextQuoteSelector` whose exact text converges with the primary byte range.
+The generic `SourceTarget` schema keeps that selector optional because other
+media do not have text quotes. The ingestion verifier makes it mandatory only
+where the representation contract can prove it.
+
+`Medical Care` now contributes 22 exact leaves and 15 claims. Its fixed 5,000
+Credits per restored characteristic point is a partial claim materializing a
+`RuleConstant`; fourteen claims remain raised for missing rule-language
+operations. Percentage claims cite career, threshold, and result cells and
+record the exact prior dice and Career entities used to interpret them. The
+production ledger now totals 26 coverage records and 21 claims. The legacy
+citation count remains 3,081 because this section had no prior structural
+citation to replace.
+
 ---
 
 ## Decisions this protocol records

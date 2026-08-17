@@ -487,6 +487,22 @@ and one partial decision materializing the existing Credits entity. This is a
 section-by-section replacement. It does not weaken verification while the
 remaining 3,081 legacy citations move.
 
+**Second-slice amendment, 2026-08-17 19:46 UTC.** `Medical Care` makes the
+dependency order visible. The section appears before the career definitions in
+the book, but its payment table names all 24 careers. Its production seed is
+therefore loaded after the Career seed, and its nine percentage claims record
+typed `CLAIM_RESOLVED_AGAINST` links to the exact prior Career entities and
+2D6 expression. This is R11 as graph data rather than a comment about reading
+order. The seed adds 83 resolution links in total.
+
+The slice also found a source-address failure class. Unicode character offsets
+are not UTF-8 byte offsets, and a range may resolve successfully while pointing
+at the wrong bytes. Every UTF-8 ledger target now requires an exact supporting
+quote that must converge with its primary byte range. `Medical Care` persists
+22 leaves and 15 claims; one partial claim materializes the 5,000-credit
+restoration-cost constant and fourteen remain raised. The earlier `Injury
+Crisis` targets were upgraded to the same convergence gate.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must
