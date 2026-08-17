@@ -813,6 +813,26 @@ inline bool from_string(const char* str, SourceDigestAlgorithm& out) {
     return false;
 }
 
+/// Closed canonical encoding vocabulary for source manifests.
+enum class SourceManifestFormat {
+    /// Source representations sorted by logical source path, encoded as decimal byte-length-prefixed fields in the version-one field order.
+    LENGTH_PREFIXED_V1
+};
+
+/// Convert SourceManifestFormat to its string representation.
+inline const char* to_string(SourceManifestFormat value) {
+    switch (value) {
+        case SourceManifestFormat::LENGTH_PREFIXED_V1: return "LENGTH_PREFIXED_V1";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceManifestFormat. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceManifestFormat& out) {
+    if (std::strcmp(str, "LENGTH_PREFIXED_V1") == 0) { out = SourceManifestFormat::LENGTH_PREFIXED_V1; return true; }
+    return false;
+}
+
 /// Typed links inside the immutable ontology meta-graph.
 enum class OntologyMetaRelationType {
     ONTOLOGY_META_CONTAINS,
@@ -862,8 +882,9 @@ inline bool from_string(const char* str, OntologyMetaRelationType& out) {
     return false;
 }
 
-/// Closed ownership links inside stored rule programs.
+/// Closed typed links owned by the reusable rule-language pack.
 enum class RuleLanguageRelationType {
+    EDITION_INCLUDES_REPRESENTATION,
     FUNCTION_SIGNATURE_HAS_PARAMETER,
     LET_EXPRESSION_HAS_BINDING
 };
@@ -871,6 +892,7 @@ enum class RuleLanguageRelationType {
 /// Convert RuleLanguageRelationType to its string representation.
 inline const char* to_string(RuleLanguageRelationType value) {
     switch (value) {
+        case RuleLanguageRelationType::EDITION_INCLUDES_REPRESENTATION: return "EDITION_INCLUDES_REPRESENTATION";
         case RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER: return "FUNCTION_SIGNATURE_HAS_PARAMETER";
         case RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING: return "LET_EXPRESSION_HAS_BINDING";
     }
@@ -879,6 +901,7 @@ inline const char* to_string(RuleLanguageRelationType value) {
 
 /// Parse a string into RuleLanguageRelationType. Returns false if the string is not a valid value.
 inline bool from_string(const char* str, RuleLanguageRelationType& out) {
+    if (std::strcmp(str, "EDITION_INCLUDES_REPRESENTATION") == 0) { out = RuleLanguageRelationType::EDITION_INCLUDES_REPRESENTATION; return true; }
     if (std::strcmp(str, "FUNCTION_SIGNATURE_HAS_PARAMETER") == 0) { out = RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER; return true; }
     if (std::strcmp(str, "LET_EXPRESSION_HAS_BINDING") == 0) { out = RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING; return true; }
     return false;
@@ -1889,6 +1912,23 @@ struct SourceRepresentationContext : public KnowledgeContext {
 };
 
 
+/// Exact immutable source corpus used by one ingestion run. Its identity is the authored source layer plus the digest of its canonical manifest. Linked representations carry repository revision provenance, but commit IDs do not participate in the manifest digest.
+struct IngestionEditionContext : public KnowledgeContext {
+    /// Authored layer declared by a seed envelope.
+    std::string source_layer = {};
+    /// Immutable parent source layer of a document context.
+    SourceLayerContext source_layer_context = {};
+    /// Canonical encoding used to produce the source manifest digest.
+    SourceManifestFormat source_manifest_format = {};
+    /// Cryptographic algorithm used by source_manifest_digest.
+    SourceDigestAlgorithm source_manifest_digest_algorithm = {};
+    /// Digest of the edition's canonical source manifest.
+    std::string source_manifest_digest = {};
+    /// Exact number of representations in the source manifest.
+    int32_t source_representation_count = {};
+};
+
+
 /// Typed coordinates selecting one fragment of a source representation. Selector subclasses own their coordinate grammar; no discriminator string chooses semantics at runtime.
 struct SourceSelector : public Entity, public Addressable {
 };
@@ -2413,6 +2453,11 @@ struct OntologyEnumMemberOwnerRelation : public Relation {
 
 /// A function signature owns a typed parameter spec.
 struct FunctionSignatureHasParameterRelation : public Relation {
+};
+
+
+/// An ingestion edition contains one exact source representation.
+struct EditionIncludesRepresentationRelation : public Relation {
 };
 
 

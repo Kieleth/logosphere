@@ -421,6 +421,29 @@ before play, and count never promotes.
 
 ---
 
+**R13. Rule identity is edition-scoped; evidence is representation-scoped.**
+A rule belongs to the exact source corpus against which it was read, not to
+one source file chosen as its nominal owner and not to a mutable layer name.
+Its identity context is the source layer plus the digest of a complete source
+manifest. Citations keep pointing to exact representations and selectors, so
+one rule may still draw evidence from several files.
+*Gate*: **PARTIAL, added 2026-08-17 15:42 UTC.** LinkML declares the sealed
+`IngestionEditionContext`, its closed manifest format, and its typed
+representation-membership relation. The resolver rebuilds the sorted manifest
+and refuses empty manifests, duplicate paths, cross-layer members, missing
+data, count drift, digest drift, and context-key drift. The rule loader still
+creates document-scoped identity and has not yet crossed this boundary.
+
+The canonical format is `LENGTH_PREFIXED_V1`. Every field is decimal byte
+length, colon, raw bytes. It contains the format, entry count, then each
+representation sorted by logical source path with fields in this order:
+source path, media type, digest algorithm, digest, byte length. Repository
+commit is retained as provenance on the representation but excluded from the
+manifest. Therefore changing a path or byte content creates a new edition;
+moving the same exact source through an unrelated repository commit does not.
+
+---
+
 ## Decisions this protocol records
 
 Taken 2026-08-16 04:57 UTC, except where marked OPEN. R11 above is one
@@ -473,6 +496,18 @@ state is the latest decision. The closed coverage vocabulary is
 accounts for every enumerated source target, every coverage record,
 every claim-to-coverage link, and every current decision while retaining
 the prior events. R12 provisional state remains upstream Malleus work.
+
+**Rule identity context, decided 2026-08-17 15:42 UTC.** The owner selected
+the exact ingestion-edition option. Rule entities will use one sealed
+`IngestionEditionContext` as `identity_context`; source evidence remains an
+exact representation plus selector. The edition is one source layer plus the
+SHA-256 digest of its canonical, sorted, non-empty representation manifest.
+Manifest membership is a typed relation. File order is irrelevant; duplicate
+logical paths, mixed layers, missing members, or declared identity drift fail.
+Repository commit is provenance rather than identity because it may change
+while every represented source byte remains identical. The edition schema and
+resolver exist. The loader and existing rule instances still require an atomic
+migration before this protocol rule is fully gated.
 
 **Coverage uses atomic source leaves, DECIDED 2026-08-17 03:12 UTC.**
 The canonical coverage units are headings, prose sentences, table cells

@@ -40,6 +40,14 @@ enums:
       SHA256:
         description: SHA-256, encoded as 64 lowercase hexadecimal digits.
 
+  SourceManifestFormat:
+    description: Closed canonical encoding vocabulary for source manifests.
+    permissible_values:
+      LENGTH_PREFIXED_V1:
+        description: >-
+          Source representations sorted by logical source path, encoded as
+          decimal byte-length-prefixed fields in the version-one field order.
+
   # Both enums below are the VOCABULARY only: the set of legal
   # predicates, and the range of each relation class's relation_type
   # slot. They carried valid_source_types / valid_target_types
@@ -66,8 +74,9 @@ enums:
       ONTOLOGY_ENUM_MEMBER_OWNER:
 
   RuleLanguageRelationType:
-    description: Closed ownership links inside stored rule programs.
+    description: Closed typed links owned by the reusable rule-language pack.
     permissible_values:
+      EDITION_INCLUDES_REPRESENTATION:
       FUNCTION_SIGNATURE_HAS_PARAMETER:
       LET_EXPRESSION_HAS_BINDING:
 
@@ -172,6 +181,39 @@ classes:
       - source_digest_algorithm
       - source_digest
       - source_byte_length
+
+  IngestionEditionContext:
+    is_a: KnowledgeContext
+    description: >-
+      Exact immutable source corpus used by one ingestion run. Its identity is
+      the authored source layer plus the digest of its canonical manifest.
+      Linked representations carry repository revision provenance, but commit
+      IDs do not participate in the manifest digest.
+    annotations:
+      facets: sealed-origin, seed-owned, no-instance-declared
+      no_instance_reason: >-
+        The manifest contract is proven in Phase A tests; the next real-section
+        slice will create the first production ingestion edition.
+    slot_usage:
+      source_layer:
+        required: true
+      source_layer_context:
+        required: true
+      source_manifest_format:
+        required: true
+      source_manifest_digest_algorithm:
+        required: true
+      source_manifest_digest:
+        required: true
+      source_representation_count:
+        required: true
+    slots:
+      - source_layer
+      - source_layer_context
+      - source_manifest_format
+      - source_manifest_digest_algorithm
+      - source_manifest_digest
+      - source_representation_count
 
   SourceSelector:
     is_a: Entity
@@ -997,6 +1039,19 @@ classes:
       target_id:
         range: FunctionParameterSpec
 
+  EditionIncludesRepresentationRelation:
+    is_a: Relation
+    description: An ingestion edition contains one exact source representation.
+    slot_usage:
+      relation_type:
+        range: RuleLanguageRelationType
+        required: true
+        equals_string: EDITION_INCLUDES_REPRESENTATION
+      source_id:
+        range: IngestionEditionContext
+      target_id:
+        range: SourceRepresentationContext
+
   LetExpressionHasBindingRelation:
     is_a: Relation
     description: >-
@@ -1059,6 +1114,31 @@ slots:
   source_digest:
     range: source_digest
     description: Digest of the exact source representation bytes.
+
+  source_manifest_format:
+    range: SourceManifestFormat
+    annotations:
+      create_only: true
+    description: Canonical encoding used to produce the source manifest digest.
+
+  source_manifest_digest_algorithm:
+    range: SourceDigestAlgorithm
+    annotations:
+      create_only: true
+    description: Cryptographic algorithm used by source_manifest_digest.
+
+  source_manifest_digest:
+    range: source_digest
+    annotations:
+      create_only: true
+    description: Digest of the edition's canonical source manifest.
+
+  source_representation_count:
+    range: integer
+    minimum_value: 1
+    annotations:
+      create_only: true
+    description: Exact number of representations in the source manifest.
 
   source_byte_length:
     range: integer

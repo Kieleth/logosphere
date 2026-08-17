@@ -122,10 +122,11 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/qualified_reference.cpp
     src/kg/ontology_meta_graph.cpp
     src/kg/ontology_validator.cpp
-    # Source locators: address a piece of a rulebook, resolve it back
+    # Source evidence: address exact fragments and seal corpus editions
     src/text/source_document.cpp
     src/text/source_locator.cpp
     src/text/source_target.cpp
+    src/text/source_manifest.cpp
     src/kg/ingestion_ledger.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
     # validated write path, and the ingestion verifier (verbatim /
@@ -422,6 +423,7 @@ add_headless_test(test_source_locator)
 target_compile_definitions(test_source_locator
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_headless_test(test_source_target)
+add_headless_test(test_source_manifest)
 add_headless_test(test_ingestion_ledger)
 add_headless_test(test_rulebook_pack)
 add_headless_test(test_rule_fork)

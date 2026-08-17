@@ -421,6 +421,52 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
           "with an optional typed quote selector");
 }
 
+void test_ingestion_edition_is_a_typed_sealed_context() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("IngestionEditionContext", "KnowledgeContext"),
+          "an ingestion edition is an explicit knowledge context");
+    CHECK(reg.hasFacet("IngestionEditionContext", "sealed-origin") &&
+              reg.hasFacet("IngestionEditionContext", "seed-owned"),
+          "an ingestion edition is immutable seed-owned origin data");
+
+    const auto* layer =
+        reg.findProperty("IngestionEditionContext", "source_layer");
+    const auto* layer_context = reg.findProperty(
+        "IngestionEditionContext", "source_layer_context");
+    const auto* format = reg.findProperty(
+        "IngestionEditionContext", "source_manifest_format");
+    const auto* algorithm = reg.findProperty(
+        "IngestionEditionContext", "source_manifest_digest_algorithm");
+    const auto* digest = reg.findProperty(
+        "IngestionEditionContext", "source_manifest_digest");
+    const auto* count = reg.findProperty(
+        "IngestionEditionContext", "source_representation_count");
+    CHECK(layer && layer->required && layer_context &&
+              layer_context->required &&
+              layer_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              layer_context->ref_target == "SourceLayerContext" && format &&
+              format->required &&
+              format->value_kind == kg::PropertyValueKind::Enum &&
+              format->enum_type == "SourceManifestFormat" && algorithm &&
+              algorithm->required &&
+              algorithm->value_kind == kg::PropertyValueKind::Enum &&
+              algorithm->enum_type == "SourceDigestAlgorithm" && digest &&
+              digest->required &&
+              digest->value_kind == kg::PropertyValueKind::String && count &&
+              count->required &&
+              count->value_kind == kg::PropertyValueKind::Integer &&
+              count->has_min && count->min_value == 1,
+          "an edition requires layer plus a typed non-empty manifest digest");
+
+    CHECK(reg.hasRelationType("EDITION_INCLUDES_REPRESENTATION") &&
+              reg.isValidRelation("EDITION_INCLUDES_REPRESENTATION",
+                                  "IngestionEditionContext",
+                                  "SourceRepresentationContext"),
+          "edition membership is a typed relation to exact representations");
+}
+
 void test_ingestion_dispositions_are_append_only_typed_decisions() {
     const auto& reg = rulebook::ontology::registry();
 
@@ -1074,6 +1120,7 @@ int main() {
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
     test_source_leaf_identity_is_a_typed_schema_tuple();
+    test_ingestion_edition_is_a_typed_sealed_context();
     test_ingestion_dispositions_are_append_only_typed_decisions();
     test_ingestion_decision_history_cannot_be_rewritten();
     test_rule_content_has_portable_addressable_identity();

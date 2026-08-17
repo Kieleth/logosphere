@@ -27,12 +27,13 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("PatternId", {"COTTON", "EMBROIDERY", "HAIR", "LEATHER", "LINEN", "NONE", "SILK", "SKIN", "SKIN_REPTILE", "STONE", "WOOD"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
-    reg.addEnumType("RuleLanguageRelationType", {"FUNCTION_SIGNATURE_HAS_PARAMETER", "LET_EXPRESSION_HAS_BINDING"});
+    reg.addEnumType("RuleLanguageRelationType", {"EDITION_INCLUDES_REPRESENTATION", "FUNCTION_SIGNATURE_HAS_PARAMETER", "LET_EXPRESSION_HAS_BINDING"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("SemanticChannel", {"ABDUCT", "FLEX", "TWIST"});
     reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addEnumType("SourceDigestAlgorithm", {"SHA256"});
+    reg.addEnumType("SourceManifestFormat", {"LENGTH_PREFIXED_V1"});
     reg.addEnumType("SourceMediaType", {"UTF8_TEXT"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
@@ -110,6 +111,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Identifiable", "", true);
     reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addEntityType("IngestionEditionContext", "KnowledgeContext", false);
     reg.addEntityType("IntegerCollectionExpression", "CollectionExpression", true);
     reg.addEntityType("IntegerCollectionTypeDescriptor", "ValueTypeDescriptor", false);
     reg.addEntityType("IntegerExpression", "NumericExpression", true);
@@ -286,6 +288,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Hips", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("Humanoid", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addAncestors("IngestionEditionContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("IntegerCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.addAncestors("IntegerCollectionTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
     reg.addAncestors("IntegerExpression", {"Describable", "Entity", "Expression", "Identifiable", "NumericExpression", "ScalarExpression", "Temporal"});
@@ -434,6 +437,7 @@ static kg::OntologyRegistry build_registry() {
 
     // Facets
     reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addFacets("IngestionEditionContext", {"no-instance-declared", "sealed-origin", "seed-owned"});
     reg.addFacets("OntologyMetaContext", {"ontology-meta"});
     reg.addFacets("OntologyMetaEntity", {"ontology-meta"});
     reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
@@ -446,6 +450,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("BURNS", {"Entity"}, {"Entity"});
     reg.addRelationType("CONTAINS", {"Entity"}, {"Entity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addRelationType("EDITION_INCLUDES_REPRESENTATION", {"IngestionEditionContext"}, {"SourceRepresentationContext"});
     reg.addRelationType("FUNCTION_SIGNATURE_HAS_PARAMETER", {"FunctionSignature"}, {"FunctionParameterSpec"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("HAS_CONSTRAINT", {"Entity"}, {"Entity"});
@@ -681,6 +686,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addIdentifierProperty("Identifiable", "id", kg::PropertyValueKind::String, true);
     reg.addProperty("Identifiable", "name", kg::PropertyValueKind::String, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addProperty("IngestionEditionContext", "source_layer", kg::PropertyValueKind::String, true);
+    reg.addRefProperty("IngestionEditionContext", "source_layer_context", true, "SourceLayerContext", true);
+    reg.addEnumProperty("IngestionEditionContext", "source_manifest_format", "SourceManifestFormat", true, true);
+    reg.addEnumProperty("IngestionEditionContext", "source_manifest_digest_algorithm", "SourceDigestAlgorithm", true, true);
+    reg.addProperty("IngestionEditionContext", "source_manifest_digest", kg::PropertyValueKind::String, true, true);
+    reg.addProperty("IngestionEditionContext", "source_representation_count", kg::PropertyValueKind::Integer, true, true, 1.0, false, 0.0, true);
     reg.addProperty("KnowledgeContext", "context_key", kg::PropertyValueKind::String, true, true);
     reg.addRefProperty("LetBooleanCollectionExpression", "let_body", true, "BooleanCollectionExpression");
     reg.addRefProperty("LetBooleanExpression", "let_body", true, "BooleanExpression");

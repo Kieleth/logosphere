@@ -64,6 +64,14 @@ assume a historical branch is idle from this document alone.
   identity. Its types and constraints come from the reusable LinkML
   rule-language pack through the Malleus-rooted generator. Handwritten
   C++ consumes generated types and never owns the semantic contract.
+- Rule entities are scoped to an exact ingestion edition, not to one
+  arbitrary source document or only a mutable layer name. The edition
+  identity is source layer plus SHA-256 of a canonical, sorted, non-empty
+  source-representation manifest. Source targets remain scoped to exact
+  representations.
+- The canonical manifest includes logical path, media type, digest algorithm,
+  source digest, and byte length. It excludes repository commit, which remains
+  provenance. Source order cannot change identity; a path or byte change does.
 - One source unit may produce zero, one, or many atomic claims.
 - One claim may cite more than one source unit when its meaning crosses
   a source boundary.
@@ -87,6 +95,8 @@ The built schema names are `SourceCoverage`, `IngestionClaim`,
 dispositions are `MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
 `CONTRADICTORY`; incomplete claims distinguish `ONTOLOGY_GAP` from
 `RULE_LANGUAGE_GAP`. Provisional claims remain R12/Malleus work.
+`IngestionEditionContext` is the selected rule identity scope, with
+`EDITION_INCLUDES_REPRESENTATION` owning its exact manifest membership.
 
 ## Completed
 
@@ -117,6 +127,13 @@ dispositions are `MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
   and coverage closure. See `SOURCE_LOCATION_PROVENANCE_SPIKE.md`.
 - [x] Reconcile the decision across the protocol, cumulative-ingestion
   rationale, ingestion review, and RPG decision ledger.
+- [x] Decide rule identity scope: exact ingestion edition, keyed by source
+  layer plus canonical source-manifest digest.
+- [x] Define the edition and typed representation membership in the reusable
+  LinkML rule-language pack.
+- [x] Prove manifest identity ignores relation order and repository commit,
+  changes for source path or bytes, and refuses empty, duplicate, cross-layer,
+  incomplete, or drifted declarations.
 
 Verification for the R11 implementation baseline:
 
@@ -192,6 +209,11 @@ Follow this TDD order:
   every claim cites existing coverage; totals close.
 - [x] Prove a missing unit, an unlinked claim, a duplicate coverage row,
   and silent zero-claim coverage each fail mechanically.
+- [x] Establish the sealed ingestion-edition context and canonical manifest
+  resolver before changing rule identity.
+- [ ] Atomically migrate rule identity and citations from document context and
+  loose locator fields to ingestion edition plus `SourceTarget`. Delete the
+  replaced locator path rather than retaining a fallback.
 - [ ] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.

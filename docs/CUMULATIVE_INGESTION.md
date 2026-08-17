@@ -443,6 +443,19 @@ or `NO_RULE_CONTENT`. Claim decisions choose `MATERIALIZED`, `PARTIAL`,
 ontology gaps from rule-language gaps. Provisional remains an R12
 staged-claim concern owned by Malleus rather than a sixth local status.
 
+**Identity-context amendment, 2026-08-17 15:42 UTC.** A captured rule is
+scoped to the exact ingestion edition against which it was interpreted. The
+edition is not a single document and is not only the layer name: it is a sealed
+context whose identity combines the source layer with the SHA-256 digest of a
+canonical manifest of exact source representations. This lets one claim cite
+several files without assigning the resulting rule to one arbitrary file. The
+manifest is sorted by logical path and length-prefixes every field, so relation
+order and delimiter characters cannot change or collide in its identity.
+Paths and represented bytes participate. Repository commit is kept as
+provenance but excluded, so the same exact corpus remains the same edition
+across an unrelated repository commit. The schema and mechanical resolver are
+built; existing document-scoped rule loading has not yet migrated.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must
