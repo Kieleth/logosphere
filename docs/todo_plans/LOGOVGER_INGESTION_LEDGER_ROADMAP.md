@@ -213,6 +213,32 @@ This commit proves edition construction and validation only. Existing rule
 entities still use document identity, and the old locator path is still live.
 Those two facts are the next atomic migration, not hidden compatibility.
 
+Verification for the generic source-corpus boundary, implementation commit
+`c4e1ff4`:
+
+- the new runtime target first failed to compile because
+  `logosphere/text/source_corpus.h` did not exist;
+- the schema contract then ran red at 94 passes / 1 failure because the
+  generic representation still exposed Git-specific `source_commit` instead
+  of required source-system `source_revision`;
+- the declaration type exposes membership, media type, layer, and revision,
+  but no digest or byte length. Two different `SourceAccess`
+  implementations and reversed declaration order produce the same identity;
+- focused results: `test_source_corpus` 13/0, `test_source_manifest` 14/0,
+  `test_source_target` 8/0, `test_ingestion_ledger` 10/0, and
+  `test_rulebook_pack` 95/0;
+- generator and schema contract tests: 14/0. Schema audit: 15 schemas, 369
+  classes, 53 enums, and zero findings;
+- complete registered headless profile: effective 96/96. CTest first reported
+  95/96 because `test_run_recorder` could not create its user-session directory
+  inside the filesystem sandbox; the unchanged test passed 12/0 with normal
+  filesystem access;
+- `git diff --check`: clean.
+
+This phase establishes the generic declaration/access/identity boundary. It
+does not yet write the materialized corpus into the KG and does not migrate the
+legacy Logovger loader. Those are explicit subsequent slices below.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
