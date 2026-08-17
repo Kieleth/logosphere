@@ -244,6 +244,44 @@ This phase establishes the generic declaration/access/identity boundary. It
 does not yet write the materialized corpus into the KG and does not migrate the
 legacy Logovger loader. Those are explicit subsequent slices below.
 
+Verification for separate revision provenance and atomic KG materialization,
+implementation commit `da7ba36`:
+
+- the LinkML contract first ran red at 94 passes / 4 failures because revision
+  still lived on `SourceRepresentationContext` and no separate typed
+  provenance record existed;
+- the runtime target then failed to compile because
+  `materialize_source_corpus_into_kg` did not exist;
+- an initial grouped `SourceRevisionContext` implementation passed the first
+  focused tests, but the incremental-observation regression ran red at 24/1:
+  a sealed revision group could not record another independent representation
+  without mutating earlier provenance. The grouped context and
+  `REVISION_INCLUDES_REPRESENTATION` relation were deleted and replaced by one
+  append-only `SourceRevisionObservation` per representation/revision pair;
+- a compile-time contract then ran red because
+  `SourceRepresentationDeclaration` remained default-constructible and could
+  silently default media to UTF-8. Construction now requires path, typed media,
+  and revision explicitly;
+- the materializer reuses exact layer, representation, edition, and observation
+  identities; adds a new observation when identical content appears at a new
+  revision; rejects conflicting bytes for one layer/path/revision before KG
+  mutation; and commits every missing entity and edition relation through one
+  validated atomic KG-op batch;
+- final focused results: `test_source_corpus` 25/0,
+  `test_source_manifest` 13/0, `test_source_target` 8/0,
+  `test_ingestion_ledger` 10/0, and `test_rulebook_pack` 98/0;
+- generator and schema contract tests: 14/0. Schema audit: 15 schemas, 370
+  classes, 53 enums, and zero findings;
+- complete registered headless profile: effective 96/96. CTest first reported
+  95/96 because `test_run_recorder` could not create its user-session directory
+  inside the filesystem sandbox; the unchanged test passed 12/0 with normal
+  filesystem access;
+- `git diff --check`: clean.
+
+The generic engine can now persist a declared corpus and its provenance. The
+legacy Logovger seed loader still creates document contexts and remains the
+next explicit migration; no compatibility path was added here.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
