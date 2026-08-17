@@ -489,6 +489,62 @@ Verification for implementation commit `19a3bab`:
   filesystem access. `test_chargen` passed in the registered profile;
 - `git diff --check`: clean.
 
+## Fourth production evidence slice, 2026-08-17 21:08 UTC
+
+`Aging` migrates the heading-based block ending before `Aging Crisis`. Its 22
+atomic leaves are one heading, three prose sentences, two table header cells,
+and sixteen data cells. They support 12 claims: nine `MATERIALIZED`, two
+`RAISED/RULE_LANGUAGE_GAP`, and one `PARTIAL/SOURCE_GAP`.
+
+The start-age constant moves from `extract_careers.py` into
+`extract_shared_tables.py`. The latter already owned the table and now owns
+the section's exact evidence too. All 30 Aging rules lose their structural
+locators and gain materializing claims. The `roll_aging` procedure step remains
+legacy because its citation belongs to the separate character-creation
+checklist leaf.
+
+The table's bottom row is printed as plain `-6`, but the existing runtime row
+is open below that value. The graph keeps the executable reading and records
+the source omission as a partial `SOURCE_GAP`. It does not rewrite the source
+claim as complete.
+
+TDD exposed and closed two generic verifier defects before integration:
+
+- exact evidence from several leaves was joined in support order, while band
+  verification assumed the first fragment was the row key;
+- `read_row_band` honored the open top flag but ignored
+  `roll_min_unbounded`, despite the table runner already honoring it.
+
+The generic verifier now scans all evidence fragments and requires one unique
+matching band. A one-sided expansion from a finite printed band is accepted
+only when the rule's current materializing decision is
+`PARTIAL/SOURCE_GAP`. A negative regression proves `RULE_LANGUAGE_GAP` cannot
+authorize the same widening. The generic changes are commits `3788fd7` and
+`c5886f5`; the Aging migration is `dbda4c8`.
+
+Verification:
+
+- the new generic verifier fixture first ran red at 296 passes / 2 failures,
+  rejecting both the later evidence fragment and the open-bottom reading;
+- `test_seed_verifier` then passed 298/0;
+- `test_logovger_rule_seed_identity` passed 29/0 and
+  `test_logovger_table_results` passed;
+- ingestion-ledger, rulebook-pack, seed-verifier, production table, and
+  production identity CTest targets passed 5/5;
+- schema contracts passed with 15 schemas, 370 classes, 53 enums, and zero
+  findings. Logovger extractor contracts passed 5/0;
+- regenerating all generated seeds reproduced the checked-in outputs;
+- complete registered headless profile: effective 97/97. CTest reported 96/97
+  inside the filesystem sandbox because `test_run_recorder` could not create
+  its user-session directory; the unchanged binary passed 12/0 with normal
+  filesystem access. The slow `test_chargen` target passed in the registered
+  profile;
+- production totals are 50 coverage records and 36 claims: five no-rule
+  leaves, three partial claims, 24 raised claims, and nine materialized claims;
+- the six legacy-bearing production seeds now contain 3,051 entities with
+  structural locator fields;
+- `git diff --check`: clean.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable

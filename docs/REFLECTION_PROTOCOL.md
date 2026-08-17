@@ -524,6 +524,27 @@ The production ledger now totals 28 coverage records and 24 claims. This slice
 needed no new generic mechanism; the existing ledger represented the source
 shape and both gap kinds without a fallback or invented rule entity.
 
+**Source-gap amendment, 2026-08-17 21:08 UTC.** The fourth production slice,
+`Aging`, adds 22 exact leaves and 12 claims. It converts 30 existing rule
+entities to exact evidence, including the start-age constant, table,
+consequences, ordered outcome composition, entries, and explicit no-effect
+outcome. The separate checklist-owned `roll_aging` procedure step remains
+legacy because this slice does not cover its source leaf.
+
+The source prints the bottom table key as `-6`, not `-6 or less`, although the
+runtime must decide lower totals. The executable open-bottom reading therefore
+has a `PARTIAL` decision with `SOURCE_GAP`. `SOURCE_GAP` means the source itself
+does not fully specify the materialized reading. It is distinct from an absent
+ontology concept and from an absent rule-language expression.
+
+This case also closes a verifier failure class. A claim can cite header, key,
+and effect leaves, so exact evidence is a set of fragments rather than one
+synthetic row string. Band verification now finds one unique matching fragment
+and rejects ambiguity. A one-sided expansion beyond the printed boundary is
+accepted only through the current partial source-gap decision. Production now
+totals 50 coverage records and 36 claims: five no-rule-content leaves, three
+partial claims, 24 raised claims, and nine materialized claims.
+
 ---
 
 ## Decisions this protocol records

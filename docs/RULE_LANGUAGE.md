@@ -109,11 +109,21 @@ For `UTF8_TEXT`, every ledger target also carries a `TextQuoteSelector` whose
 exact text must equal the bytes selected by its primary `ByteRangeSelector`.
 This supporting selector does not own identity; it prevents Unicode character
 positions from being accepted as byte positions. `Injury Crisis`,
-`Medical Care`, and `Medical Debt` are the first migrated production sections.
-Medical Debt also proves that one exact coverage leaf can support several
-claims with independent dispositions: rule-language gaps for Benefits debit
-and precedence, and an ontology gap for the absent anagathic concept. Runtime
-content uses its explicit runtime context. Forks
+`Medical Care`, `Medical Debt`, and `Aging` are the first migrated production
+sections. Medical Debt proves that one exact coverage leaf can support several
+claims with independent dispositions. Aging proves the inverse: one rule may
+need several exact leaves, such as the table headers, result key, and effect.
+The verifier derives a row band from one unique evidence fragment rather than
+assuming evidence order.
+
+An incomplete claim uses the gap kind that names the missing layer.
+`ONTOLOGY_GAP` means the graph lacks a concept. `RULE_LANGUAGE_GAP` means the
+concepts exist but the executable language lacks the required composition.
+`SOURCE_GAP` means the source itself does not fully state the materialized
+reading. A printed finite table boundary may be widened at one side only by a
+current `PARTIAL/SOURCE_GAP` materializing decision. `Aging` uses this for its
+printed `-6` floor; changing that decision to a rule-language gap makes
+verification fail. Runtime content uses its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 

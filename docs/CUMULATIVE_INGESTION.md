@@ -520,6 +520,32 @@ procedure step. The seed therefore follows all three owners in dependency
 order. Production now has 28 coverage records and 24 claims: four
 no-rule-content leaves, two partial claims, and 22 raised claims.
 
+**Fourth-slice amendment, 2026-08-17 21:08 UTC.** `Aging` migrates the section
+ending before `Aging Crisis`: one heading, three prose sentences, two table
+header cells, and sixteen data cells. These 22 exact leaves support 12 claims.
+Nine are materialized, two recurring or computed operations are raised as
+rule-language gaps, and the bottom table row is partial because the source
+prints `-6` while the executable table must also decide results below `-6`.
+That difference is recorded as `SOURCE_GAP`, not hidden in an ordinary
+materialized decision.
+
+The slice replaces structural locators on all 30 Aging rule entities. The
+start-age constant moves from the career extractor to the shared-table
+extractor, which now owns both its exact evidence and every existing Aging
+table consequence. The checklist-owned `roll_aging` procedure step cites a
+different source leaf and remains on the legacy path. Production now has 50
+coverage records and 36 claims: five no-rule-content leaves, three partial
+claims, 24 raised claims, and nine materialized claims. There are 3,051 legacy
+structural citations left.
+
+Integration exposed two generic verifier assumptions. Exact evidence may
+combine several leaves, so a table band cannot be assumed to occupy the first
+fragment. The verifier now inspects every fragment and requires one unique
+band match. It also now reads `roll_min_unbounded`, matching the existing
+table runner. A finite printed band may widen at one boundary only when the
+current materializing decision is `PARTIAL` with `SOURCE_GAP`; another gap kind
+cannot authorize the change.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must
