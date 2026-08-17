@@ -545,6 +545,58 @@ Verification:
   structural locator fields;
 - `git diff --check`: clean.
 
+## Fifth production evidence slice, 2026-08-17 21:38 UTC
+
+`Aging Crisis` adds four exact leaves: one heading and three sentences. The
+trigger is aging-specific, while the remaining five semantic consequences
+repeat `Injury Crisis`. The selected abstraction keeps both source occurrences
+but generalizes shared meaning.
+
+Five new canonical claims each cite the matching Injury Crisis and Aging
+Crisis coverage records. The five old occurrence-specific Injury Crisis claims
+remain addressable and retain their sequence-zero decisions. Each receives a
+sequence-one `SUPERSEDED` decision pointing to its generalized replacement.
+`DUPLICATE` was not reused backwards.
+
+That integration exposed a missing generic lifecycle state. The rulebook
+LinkML schema now declares `SUPERSEDED`; generated projections carry it; and
+reconciliation requires a replacement claim while forbidding retained gaps or
+materialized results. Positive and negative ledger tests cover the contract.
+The generic phase is commit `d47e7f6`.
+
+The generalized cost claim takes over the Credits materialization from the old
+claim. The generalized restoration claim materializes `crisis_restore_value`,
+which moves from the generated career seed to the earlier hand-authored crisis
+seed. A separate partial claim in the procedure seed materializes
+`aging_crisis_unpaid`; it states that the route covers the death projection but
+not the complete payment gate. Both rules lose their structural locators. The
+production phase is commit `f8f1ab6`.
+
+Verification before the documentation phase:
+
+- the generic tests first failed through the enum property gate because
+  `SUPERSEDED` did not exist; final ingestion reconciliation passed 14/0 and
+  rulebook schema passed 100/0;
+- the production contract first passed 25 assertions and failed eight before
+  Aging Crisis coverage, generalized claims, supersession histories, moved
+  materializations, and current totals existed; final production identity
+  passed 33/0;
+- ingestion, rulebook, seed-verifier, production table, and production
+  identity CTest targets passed 5/5;
+- all six Logovger extractor and ownership tests passed. Schema contracts read
+  15 schemas, 370 classes, and 53 enums with zero findings;
+- all generated seeds reproduced the checked-in output;
+- the full `test_chargen` behavior target passed after 156 seconds;
+- complete registered headless profile: effective 97/97. The filesystem
+  sandbox prevents `test_run_recorder` from creating its user-session
+  directory; the unchanged binary passed 12/0 with normal filesystem access;
+- production now has 54 coverage records, 43 claims, and 48 claim decisions.
+  Current state is six no-rule leaves, five partial claims, 24 raised claims,
+  nine materialized claims, and five superseded claims;
+- the six legacy-bearing production seeds contain 3,049 entities with
+  structural locator fields;
+- `git diff --check`: clean.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable

@@ -127,6 +127,16 @@ verification fail. Runtime content uses its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 
+Source occurrences and semantic claims have different identity. Repeated text
+keeps one `SourceTarget` and `SourceCoverage` per occurrence, but equivalent
+meaning may become one claim supported by all of them. When a later generalized
+claim replaces an existing narrower claim, the old claim receives an
+append-only `SUPERSEDED` decision naming the replacement. It keeps its earlier
+decision history, but relinquishes materialized graph results. `DUPLICATE`
+remains for the other direction, where a later claim repeats an earlier
+canonical claim. `Aging Crisis` is the production proof: five generalized
+crisis claims cite both its leaves and the prior Injury Crisis leaves.
+
 Source revision provenance follows the same structured rule. An exact
 `SourceRepresentationContext` is content identity and has no revision field.
 An append-only `SourceRevisionObservation` is addressable within that

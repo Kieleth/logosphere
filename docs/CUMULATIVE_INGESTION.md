@@ -546,6 +546,35 @@ table runner. A finite printed band may widen at one boundary only when the
 current materializing decision is `PARTIAL` with `SOURCE_GAP`; another gap kind
 cannot authorize the change.
 
+**Fifth-slice amendment, 2026-08-17 21:38 UTC.** `Aging Crisis` has four exact
+leaves, but five of its semantic consequences repeat `Injury Crisis`. Coverage
+does not collapse those occurrences. Each heading and sentence keeps its own
+target and judgement. Claim identity does collapse the shared meaning: death
+unless paid, the 1D6 times 10,000 Credit cost, restoration to value 1, the
+qualification bar, and the future-career restriction are five generalized
+claims, each supported by both source occurrences.
+
+The prior five Injury Crisis claims are not deleted or relabelled as later
+duplicates. Each keeps its sequence-zero decision and gains a sequence-one
+`SUPERSEDED` decision pointing to the generalized replacement. This required a
+new generic disposition because `DUPLICATE` has the opposite direction: a new
+claim repeats an earlier canonical claim. A superseded claim must name its
+replacement and cannot retain a gap or materialized graph result.
+
+Two claims remain occurrence-specific. The aging trigger is raised as a
+rule-language gap. A separate partial claim materializes the existing
+`aging_crisis_unpaid` procedure route, while stating that the route represents
+only the death result and not the complete payment gate. The generalized cost
+claim now materializes Credits, and the generalized restoration claim
+materializes `crisis_restore_value`. That constant moves from the career seed
+to the earlier crisis seed. Both it and the route lose their structural
+locators.
+
+Production now has 54 coverage records, 43 enduring claims, and 48 claim
+decisions. Current state is six no-rule-content leaves, five partial claims, 24
+raised claims, nine materialized claims, and five superseded claims. There are
+3,049 legacy structural citations left.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must

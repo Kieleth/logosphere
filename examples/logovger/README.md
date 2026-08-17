@@ -92,14 +92,17 @@ rather than a toy:
 1. **Corpus identity is exact.** The application declares both source files,
    and the engine derives one content-addressed ingestion edition from their
    bytes. Every production rule and cross-seed reference uses that edition.
-   `Injury Crisis`, `Medical Care`, `Medical Debt`, and `Aging` are the first
-   production sections using exact `SourceTarget` coverage and atomic claims.
+   `Injury Crisis`, `Medical Care`, `Medical Debt`, `Aging`, and `Aging Crisis`
+   are the first production sections using exact `SourceTarget` coverage and
+   atomic claims.
    Medical Debt proves that one compound source leaf can support several
    independently disposed claims. Aging proves that one rule can cite several
    exact leaves and that an executable reading beyond the printed text stays
-   visible as `PARTIAL/SOURCE_GAP`. Every UTF-8 target has a supporting quote
-   that must match its byte range. All 30 Aging rules, Credits, and the medical
-   restoration-cost constant have no legacy locator. The remaining 3,051
+   visible as `PARTIAL/SOURCE_GAP`. Aging Crisis keeps repeated source
+   occurrences distinct while five generalized claims cite both crisis
+   passages. Every UTF-8 target has a supporting quote that must match its byte
+   range. All 30 Aging rules, Credits, both restoration constants, and the
+   unpaid-aging-crisis route have no legacy locator. The remaining 3,049
    structural citations retain the explicit transitional path until each
    section converts; exact evidence never falls back to that path.
 2. **Ingestion is verified, not trusted.** Seeds are refused unless

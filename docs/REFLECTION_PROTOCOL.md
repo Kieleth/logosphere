@@ -545,6 +545,26 @@ accepted only through the current partial source-gap decision. Production now
 totals 50 coverage records and 36 claims: five no-rule-content leaves, three
 partial claims, 24 raised claims, and nine materialized claims.
 
+**Claim-generalization amendment, 2026-08-17 21:38 UTC.** `Aging Crisis`
+repeats the two consequence sentences from `Injury Crisis` byte for byte. The
+four Aging Crisis leaves remain distinct coverage records because provenance
+answers where each occurrence appeared. The five shared consequences become
+generalized claims supported by both passages because claim identity answers
+what was asserted.
+
+The five old Injury Crisis claims remain enduring records. Their original
+decisions stay at sequence zero; sequence one is `SUPERSEDED` and points to the
+new canonical claim. `SUPERSEDED` is not `DUPLICATE` in reverse. A duplicate is
+a later redundant claim pointing backward. A superseded claim points forward
+to a broader or corrected replacement. Reconciliation requires that link and
+forbids the old claim from retaining gap or materialization authority.
+
+The aging-specific trigger remains separate. The procedure's unpaid-crisis
+route also has its own partial projection claim because one game route is not
+the whole general pay-or-die rule. The production ledger now has 54 coverage
+records, 43 claims, and 48 claim decisions. Its current dispositions are five
+partial, 24 raised, nine materialized, and five superseded.
+
 ---
 
 ## Decisions this protocol records
