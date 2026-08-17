@@ -503,6 +503,23 @@ quote that must converge with its primary byte range. `Medical Care` persists
 restoration-cost constant and fourteen remain raised. The earlier `Injury
 Crisis` targets were upgraded to the same convergence gate.
 
+**Third-slice amendment, 2026-08-17 20:08 UTC.** `Medical Debt` proves the
+production ledger's compound-leaf case. One exact sentence supports three
+independent claims: medical-care debt must be paid from Benefits, anagathic
+drug debt must be paid from Benefits, and both obligations precede every other
+finishing-touch action. The claims share one coverage record rather than
+duplicating the source target.
+
+None of the three claims is forced into executable data. The medical-debt and
+precedence claims are raised as rule-language gaps because the graph cannot
+debit Benefits or order the payment before every other finishing action. The
+anagathic claim is raised as an ontology gap because the graph has no
+anagathic-drug or corresponding debt concept. Interpretation still records
+typed dependencies on the prior medical-care cost, Benefits lookup, and final
+procedure step. The seed therefore follows all three owners in dependency
+order. Production now has 28 coverage records and 24 claims: four
+no-rule-content leaves, two partial claims, and 22 raised claims.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must

@@ -73,14 +73,16 @@ survival roll is death unless the Referee allows the mishap table, a
 mishap can end a career and cost years, and a characteristic driven to
 zero raises a crisis that is paid for or fatal.
 
-Medical care is now absorbed as exact coverage and claims, including its
-Cr5,000 per-point constant and every career-payment cell, but its restoration
-and percentage-payment operations are not yet executable. Not yet absorbed,
-and each knowingly so: anagathics, the retirement pension, noble titles, and
-cascade skill specialisation. Rules whose numbers are in the graph but whose
-derivation is not — the per-term benefit count and the prior-career
-qualification penalty — say so on themselves in `unmodelled`, and wait
-on a rule language that today ships a type system and no operators.
+Medical care and medical debt are now absorbed as exact coverage and claims,
+including the Cr5,000 per-point constant, every career-payment cell, and the
+requirement to pay outstanding costs from Benefits first. Their restoration,
+percentage-payment, debt, and precedence operations are not yet executable.
+The medical-debt claim also records the missing anagathic concept as an
+ontology gap. Not yet absorbed, and each knowingly so: the retirement pension,
+noble titles, and cascade skill specialisation. Rules whose numbers are in the
+graph but whose derivation is not, including the per-term benefit count and
+the prior-career qualification penalty, say so on themselves in `unmodelled`
+and wait on a rule language that today ships a type system and no operators.
 
 ## What this demonstrates about the engine
 
@@ -90,10 +92,12 @@ rather than a toy:
 1. **Corpus identity is exact.** The application declares both source files,
    and the engine derives one content-addressed ingestion edition from their
    bytes. Every production rule and cross-seed reference uses that edition.
-   `Injury Crisis` and `Medical Care` are the first production sections using
-   exact `SourceTarget` coverage and atomic claims. Every UTF-8 target has a
-   supporting quote that must match its byte range. Credits and the medical
-   restoration-cost constant have no legacy locator. The remaining 3,081
+   `Injury Crisis`, `Medical Care`, and `Medical Debt` are the first production
+   sections using exact `SourceTarget` coverage and atomic claims. Medical Debt
+   proves that one compound source leaf can support several independently
+   disposed claims. Every UTF-8 target has a supporting quote that must match
+   its byte range. Credits and the medical restoration-cost constant have no
+   legacy locator. The remaining 3,081
    structural citations retain the explicit transitional path until each
    section converts; exact evidence never falls back to that path.
 2. **Ingestion is verified, not trusted.** Seeds are refused unless

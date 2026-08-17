@@ -447,6 +447,48 @@ Verification for implementation commit `58a9f83`:
   filesystem access. `test_chargen` passed;
 - `git diff --check`: clean.
 
+## Third production evidence slice, 2026-08-17 20:08 UTC
+
+`Medical Debt` adds one dependency-ordered, hand-authored production seed. It
+follows the procedure seed because its interpretation uses three prior typed
+concepts owned by different seeds: the medical-care restoration-cost
+`RuleConstant`, the Benefits `SubjectLookupTable`, and the final
+`ProcedureStep`. The new seed adds seven qualified cross-seed references.
+
+The section has two exact leaves: a no-rule heading and one compound sentence.
+The sentence supports three independent claims without duplicating its
+coverage record. Medical-care debt payment and payment precedence are raised
+as `RULE_LANGUAGE_GAP`; the current language cannot debit awarded Benefits or
+order that debit before every other finishing-touch action. Anagathic debt is
+raised as `ONTOLOGY_GAP`; the current graph contains no anagathic-drug or
+corresponding debt concept. The slice creates no executable rule entity and
+does not hide any missing mechanism behind prose or a default.
+
+Verification for implementation commit `19a3bab`:
+
+- the production contract ran red at 18 passes / 5 failures before the seed
+  existed;
+- after integration, the contract ran 25/1 because the test tried to find a
+  `ClaimDecision` event by addressable entity key. The corrected assertion
+  follows the event's typed `decision_subject` property, then passed 26/0;
+- the complete production ledger has 28 coverage records and 24 claims: four
+  no-rule-content leaves, two partial claims, and 22 raised claims;
+- the compound sentence has one coverage record supporting three claims. The
+  anagathic claim is mechanically checked as a raised ontology gap;
+- generic verifier and table semantics remain 294/0 and 91/0;
+- production now has eight seeds and 1,483 qualified cross-seed references.
+  The 3,081 legacy structural citations remain unchanged because this slice
+  materializes no rule entity and replaces no legacy citation;
+- generator and schema contract tests pass 14/0, plus 4/0 for the Logovger
+  generators. Schema audit: 15 schemas, 370 classes, 53 enums, zero findings;
+- regenerating all four generated production seeds reproduced them exactly
+  and left the hand-authored Medical Debt seed intact;
+- complete registered headless profile: effective 97/97. CTest reported 96/97
+  inside the filesystem sandbox because `test_run_recorder` could not create
+  its user-session directory; the unchanged test passed 12/0 with normal
+  filesystem access. `test_chargen` passed in the registered profile;
+- `git diff --check`: clean.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable

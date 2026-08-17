@@ -509,6 +509,21 @@ production ledger now totals 26 coverage records and 21 claims. The legacy
 citation count remains 3,081 because this section had no prior structural
 citation to replace.
 
+**Compound-leaf amendment, 2026-08-17 20:08 UTC.** The third production slice,
+`Medical Debt`, contains only a heading and one compound sentence. The heading
+is explicitly `NO_RULE_CONTENT`. The sentence has one exact coverage record
+and supports three separate `IngestionClaim` records, so evidence identity is
+not copied merely because interpretation splits a sentence.
+
+All three claims remain visible and non-executable. Medical-care payment from
+Benefits and payment precedence are `RULE_LANGUAGE_GAP` findings. Anagathic
+debt is an `ONTOLOGY_GAP` because no anagathic concept exists in the current
+graph. `CLAIM_RESOLVED_AGAINST` still records the exact prior concepts used:
+the medical-care cost constant, Benefits lookup, and final character step.
+The production ledger now totals 28 coverage records and 24 claims. This slice
+needed no new generic mechanism; the existing ledger represented the source
+shape and both gap kinds without a fallback or invented rule entity.
+
 ---
 
 ## Decisions this protocol records

@@ -108,9 +108,12 @@ coverage. The verifier rejects either path when fields from the other remain.
 For `UTF8_TEXT`, every ledger target also carries a `TextQuoteSelector` whose
 exact text must equal the bytes selected by its primary `ByteRangeSelector`.
 This supporting selector does not own identity; it prevents Unicode character
-positions from being accepted as byte positions. `Injury Crisis` and
-`Medical Care` are the first migrated production sections. Runtime content
-uses its explicit runtime context. Forks
+positions from being accepted as byte positions. `Injury Crisis`,
+`Medical Care`, and `Medical Debt` are the first migrated production sections.
+Medical Debt also proves that one exact coverage leaf can support several
+claims with independent dispositions: rule-language gaps for Benefits debit
+and precedence, and an ontology gap for the absent anagathic concept. Runtime
+content uses its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 
