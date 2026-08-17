@@ -298,8 +298,10 @@ two distinct inputs: an application-owned `SourceCorpusDeclaration` naming
 the complete membership, layer, typed media, and revision provenance; and a
 replaceable `SourceAccess` that returns exact bytes for each declaration. The
 engine derives representation digests and lengths, the canonical manifest,
-and edition identity. Logovger will supply the first declaration and adapter,
-not a private manifest grammar.
+and edition identity. Logovger now supplies the first declaration and exact
+filesystem adapter. Its six production seeds declare two source
+representations and resolve all cross-seed references inside the derived
+edition. The application does not own a private manifest grammar.
 
 ---
 

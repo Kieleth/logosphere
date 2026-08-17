@@ -85,9 +85,11 @@ on a rule language that today ships a type system and no operators.
 It is the ingestion pipeline end to end, on a real published book
 rather than a toy:
 
-1. **A source is addressable.** `SourceDocument` and `SourceLocator`
-   address a heading, sentence, table, row or cell, so a rule can cite
-   the exact place it came from instead of a page number.
+1. **Corpus identity is exact.** The application declares both source files,
+   and the engine derives one content-addressed ingestion edition from their
+   bytes. Every production rule and cross-seed reference uses that edition.
+   Existing `SourceDocument` and `SourceLocator` citations remain the explicit
+   transitional evidence path until conversion to `SourceTarget`.
 2. **Ingestion is verified, not trusted.** Seeds are refused unless
    every citation resolves in the source and every number appears in
    the text it quotes. A line citation cannot prove a table cell.

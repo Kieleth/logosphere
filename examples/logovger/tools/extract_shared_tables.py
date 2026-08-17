@@ -40,18 +40,20 @@ import os
 import re
 import sys
 
+from rule_source_identity import ingestion_edition_context_key
+
 CHAPTER = "book1/character-creation.md"
 
 
-def qualified(alias, type_name, commit, file=CHAPTER):
+def qualified(alias, type_name, context_key):
     """A reference to an entity another seed owns.
 
-    Names the origin document AND the commit, then the type and the
-    alias the owning seed bound it to. Scoped by construction, so it
-    cannot be answered by a same-named entity from somewhere else.
+    Names the exact corpus edition, then the type and the alias the owning seed
+    bound it to. Scoped by construction, so it cannot be answered by a
+    same-named entity from another edition.
     """
     from urllib.parse import quote
-    context = quote(f"source-document:cepheus:{file}@{commit}", safe="")
+    context = quote(context_key, safe="")
     return f"@@entity/{context}/{type_name}/{alias}"
 
 # The book's own sentence about which abilities are which. Quoted, not
@@ -182,6 +184,7 @@ MISHAP_YEARS_UNMODELLED = (
 
 
 COMMIT = ""
+EDITION_CONTEXT = ""
 
 
 def slug(text):
@@ -263,9 +266,10 @@ def main():
     root, out_path = sys.argv[1], sys.argv[2]
     lines = open(os.path.join(root, CHAPTER), encoding="utf-8").read().split(
         "\n")
-    global COMMIT
+    global COMMIT, EDITION_CONTEXT
     COMMIT = open(os.path.join(root, "SOURCE_COMMIT"),
                   encoding="utf-8").read().strip()
+    EDITION_CONTEXT = ingestion_edition_context_key(root)
     commit = COMMIT
     b = Builder()
 
@@ -282,7 +286,7 @@ def main():
                      affected_count=str(count), **citation)
         if dice:
             props["attribute_delta_dice"] = qualified(
-                "d" + dice.lower(), "DiceExpression", COMMIT)
+                "d" + dice.lower(), "DiceExpression", EDITION_CONTEXT)
             # A rolled delta carries no sign, so the row has to say
             # which way it goes. Every rolled delta in this chapter is
             # a reduction ("Reduce one physical characteristic by 1D6"),
@@ -320,7 +324,7 @@ def main():
     as_printed = {r[0].replace("\\", ""): r[0] for r in aging_rows}
     b.add("RollableTable", "@aging_table", dict(
         name="Effects of Aging",
-        dice=qualified("d2d6", "DiceExpression", COMMIT),
+        dice=qualified("d2d6", "DiceExpression", EDITION_CONTEXT),
         **b.cite(AGING_SECTION, None, None,
                  "At the end of the fourth term, and at the end of every "
                  "term thereafter, the character must roll 2D6 on the "
@@ -366,7 +370,8 @@ def main():
     injury_rows = {r[0]: r[1]
                    for r in read_table(lines, INJURY_TABLE, INJURY_COLUMN)}
     b.add("RollableTable", "@injury_table", dict(
-        name="Injury", dice=qualified("d1d6", "DiceExpression", COMMIT),
+        name="Injury",
+        dice=qualified("d1d6", "DiceExpression", EDITION_CONTEXT),
         **b.cite(INJURY_SECTION, None, None,
                  "Characters that are wounded in combat or accidents "
                  "during character creation must roll on the Injury "
@@ -419,7 +424,7 @@ def main():
     # ---- mishaps --------------------------------------------------
     b.add("RollableTable", "@mishap_table", dict(
         name="Survival Mishaps",
-        dice=qualified("d1d6", "DiceExpression", COMMIT),
+        dice=qualified("d1d6", "DiceExpression", EDITION_CONTEXT),
         **b.cite(MISHAP_SECTION, None, None,
                  "With the Referee's approval, you can keep the character "
                  "that fails a survival roll and roll on the Survival "
@@ -478,7 +483,7 @@ def main():
             elif clause[0] == "money":
                 props.update(amount=str(clause[1]),
                              currency=qualified("credits", "Currency",
-                                                COMMIT))
+                                                EDITION_CONTEXT))
                 parts.append(b.add("GainFixedMoney", alias, props))
             elif clause[0] == "age":
                 props.update(attribute_ref="age_years",

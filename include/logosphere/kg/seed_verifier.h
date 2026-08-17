@@ -74,6 +74,11 @@ namespace logosphere::rules {
 class ProcedurePrimitiveRegistry;
 }
 
+namespace logosphere::text {
+class SourceAccess;
+struct SourceCorpusDeclaration;
+}
+
 namespace kg {
 
 class OntologyRegistry;
@@ -140,6 +145,20 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
                              const std::vector<const SeedEnvelope*>&
                                  prerequisites = {});
 
+// Edition-scoped verification materializes the declared exact corpus into the
+// scratch world, then loads prerequisites and the target through
+// load_seed_in_edition. Citation checks still use source_root and the existing
+// structural locator during the explicit evidence-transition phase.
+SeedVerifyReport verify_seed_in_edition(
+    const SeedEnvelope& seed,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration& corpus,
+    const logosphere::text::SourceAccess& source_access,
+    const OntologyRegistry& registry,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives = nullptr,
+    const std::vector<const SeedEnvelope*>& prerequisites = {});
+
 // Verify and load seeds in declared dependency order. This is the single
 // owner of prerequisite accumulation for game startup and verification tools.
 // Empty input is invalid: a caller that requires rule data must not silently
@@ -147,6 +166,19 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
 bool verify_and_load_seed_sequence(
     const std::vector<SeedEnvelope>& seeds,
     const std::string& source_root,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives = nullptr);
+
+// Materialize one exact corpus in the caller's world, verify every seed in a
+// scratch world containing the same corpus, then load each seed in dependency
+// order with the resulting IngestionEditionContext as its identity scope.
+bool verify_and_load_seed_sequence_in_edition(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration& corpus,
+    const logosphere::text::SourceAccess& source_access,
     KGModule& world,
     SeedSequenceLoadReport& report,
     const logosphere::rules::ProcedurePrimitiveRegistry*

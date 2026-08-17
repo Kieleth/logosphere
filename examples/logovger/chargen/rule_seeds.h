@@ -39,6 +39,17 @@ inline constexpr const char* kRuleSeeds[] = {
 inline constexpr std::size_t kRuleSeedCount =
     sizeof(kRuleSeeds) / sizeof(kRuleSeeds[0]);
 
+// Complete application-owned corpus membership for the production rule
+// edition. Seed envelopes may select one of these representations as their
+// legacy citation origin, but cannot add corpus members implicitly.
+inline constexpr const char* kRuleSourceFiles[] = {
+    "book1/character-creation.md",
+    "book1/skills.md",
+};
+
+inline constexpr std::size_t kRuleSourceFileCount =
+    sizeof(kRuleSourceFiles) / sizeof(kRuleSourceFiles[0]);
+
 }  // namespace logovger
 
 #endif  // LOGOVGER_RULE_SEEDS_H

@@ -40,7 +40,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from extract_career_tables import (ATTRIBUTES, CHAPTER, cells, is_separator,
                                    load_skill_references, qualified_ref,
-                                   read_tables, seed_context_key, slug)
+                                   read_tables, slug)
+from rule_source_identity import ingestion_edition_context_key
 
 GENERATED_BY = "examples/logovger/tools/extract_careers.py"
 SECTION = "Career Tables"
@@ -175,9 +176,9 @@ RULE_CONSTANTS = [
 class Builder:
     """Ops in the order a loader can resolve them."""
 
-    def __init__(self, commit, skills):
+    def __init__(self, context_key, skills):
         self.ops = []
-        self.commit = commit
+        self.context_key = context_key
         self.skills = skills
 
     def add(self, type_name, alias, properties):
@@ -190,9 +191,7 @@ class Builder:
                          "relation": "HAS_PART", "to": child})
 
     def dice(self, key):
-        return qualified_ref(
-            "source-document:cepheus:%s@%s" % (CHAPTER, self.commit),
-            "DiceExpression", key)
+        return qualified_ref(self.context_key, "DiceExpression", key)
 
     def cite(self, section, table, row, column, quote, kind="cell"):
         out = {"source_file": CHAPTER, "source_section": section,
@@ -221,9 +220,10 @@ def main():
     root, vocabulary_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
     commit = open(os.path.join(root, "SOURCE_COMMIT"),
                   encoding="utf-8").read().strip()
-    skills = load_skill_references(vocabulary_path)
+    context_key = ingestion_edition_context_key(root)
+    skills = load_skill_references(vocabulary_path, context_key)
     tables = read_tables(os.path.join(root, CHAPTER))
-    b = Builder(commit, skills)
+    b = Builder(context_key, skills)
 
     careers = {}
     counts = {"career": 0, "check": 0, "service_row": 0, "draft": 0, "dm": 0}

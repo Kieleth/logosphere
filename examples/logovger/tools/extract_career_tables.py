@@ -220,16 +220,9 @@ def qualified_ref(context_key, type_name, entity_key):
     return "@@entity/" + "/".join(quote(part, safe=safe) for part in parts)
 
 
-def seed_context_key(seed):
-    source = seed["source"]
-    return (f"source-document:{seed['layer']}:"
-            f"{source['file']}@{source['commit']}")
-
-
-def load_skill_references(vocabulary_path):
+def load_skill_references(vocabulary_path, context_key):
     """Canonical skill references, indexed by every source-proven name."""
     seed = json.load(open(vocabulary_path, encoding="utf-8"))
-    context_key = seed_context_key(seed)
     names = {}
     for op in seed["ops"]:
         props = op["properties"]
@@ -241,13 +234,12 @@ def load_skill_references(vocabulary_path):
     return names
 
 
-def load_career_seed_references(vocabulary_path):
+def load_career_seed_references(vocabulary_path, context_key):
     """Canonical Career-seed references indexed by type and exact name."""
     career_path = os.path.join(
         os.path.dirname(vocabulary_path), "cepheus_careers.json")
     with open(career_path, encoding="utf-8") as source:
         seed = json.load(source)
-    context_key = seed_context_key(seed)
     references = {"Career": {}, "RollableTable": {}}
     for op in seed["ops"]:
         type_name = op.get("type")
@@ -279,6 +271,11 @@ def assert_canonical_references(value, path="seed"):
         raise ValueError(
             f"{path}: obsolete qualified reference {value!r}; expected "
             "@@entity/... or @@meta/...")
+    elif isinstance(value, str) and value.startswith(
+            "@@entity/source-document"):
+        raise ValueError(
+            f"{path}: legacy document-scoped identity {value!r}; expected "
+            "the exact ingestion edition")
 
 
 class Builder:
@@ -375,12 +372,12 @@ def main():
     chapter = os.path.join(root, "book1", "character-creation.md")
     commit = open(os.path.join(root, "SOURCE_COMMIT"),
                   encoding="utf-8").read().strip()
+    from rule_source_identity import ingestion_edition_context_key
+    context_key = ingestion_edition_context_key(root)
 
     tables = read_tables(chapter)
-    context_key = (
-        f"source-document:cepheus:{CHAPTER}@{commit}")
-    career_seed = load_career_seed_references(vocabulary_path)
-    builder = Builder(load_skill_references(vocabulary_path),
+    career_seed = load_career_seed_references(vocabulary_path, context_key)
+    builder = Builder(load_skill_references(vocabulary_path, context_key),
                       career_seed["Career"], career_seed["RollableTable"],
                       context_key)
     # The Draft table is ALSO titled "Career", with columns "Roll of

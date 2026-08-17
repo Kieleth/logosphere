@@ -557,6 +557,19 @@ target_compile_definitions(test_chargen
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(NAME test_chargen COMMAND test_chargen)
 
+add_executable(test_logovger_rule_seed_identity
+    examples/logovger/test_rule_seed_identity.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_logovger_rule_seed_identity PRIVATE logosphere_core)
+target_compile_features(test_logovger_rule_seed_identity PRIVATE cxx_std_17)
+target_include_directories(test_logovger_rule_seed_identity PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(test_logovger_rule_seed_identity
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+register_headless_test(test_logovger_rule_seed_identity)
+
 # Pure arithmetic: where the panels sit. No engine, no GPU, no window.
 # It catches the failures a screenshot cannot, starting with a window
 # too wide for the display to show at all.

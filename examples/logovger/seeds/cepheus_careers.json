@@ -466,7 +466,7 @@
     "name": "Athlete qualification",
     "attribute_ref": "endurance",
     "target_number": "8",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -486,7 +486,7 @@
     "name": "Athlete survival",
     "attribute_ref": "dexterity",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -504,7 +504,7 @@
    "as": "@athlete_at0_1",
    "properties": {
     "name": "Athlete: Athletics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_athletics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_athletics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -518,7 +518,7 @@
    "as": "@athlete_at0_2",
    "properties": {
     "name": "Athlete: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -532,7 +532,7 @@
    "as": "@athlete_at0_3",
    "properties": {
     "name": "Athlete: Carousing at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -546,7 +546,7 @@
    "as": "@athlete_at0_4",
    "properties": {
     "name": "Athlete: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -560,7 +560,7 @@
    "as": "@athlete_at0_5",
    "properties": {
     "name": "Athlete: Gambling at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -574,7 +574,7 @@
    "as": "@athlete_at0_6",
    "properties": {
     "name": "Athlete: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -740,7 +740,7 @@
     "name": "Aerospace Defense qualification",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -760,7 +760,7 @@
     "name": "Aerospace Defense survival",
     "attribute_ref": "dexterity",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -778,7 +778,7 @@
    "as": "@aerospace_defense_at0_1",
    "properties": {
     "name": "Aerospace Defense: Electronics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -792,7 +792,7 @@
    "as": "@aerospace_defense_at0_2",
    "properties": {
     "name": "Aerospace Defense: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -806,7 +806,7 @@
    "as": "@aerospace_defense_at0_3",
    "properties": {
     "name": "Aerospace Defense: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -820,7 +820,7 @@
    "as": "@aerospace_defense_at0_4",
    "properties": {
     "name": "Aerospace Defense: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -834,7 +834,7 @@
    "as": "@aerospace_defense_at0_5",
    "properties": {
     "name": "Aerospace Defense: Survival at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -848,7 +848,7 @@
    "as": "@aerospace_defense_at0_6",
    "properties": {
     "name": "Aerospace Defense: Aircraft at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_aircraft",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_aircraft",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1014,7 +1014,7 @@
     "name": "Agent qualification",
     "attribute_ref": "social_standing",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1034,7 +1034,7 @@
     "name": "Agent survival",
     "attribute_ref": "intelligence",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1052,7 +1052,7 @@
    "as": "@agent_at0_1",
    "properties": {
     "name": "Agent: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1066,7 +1066,7 @@
    "as": "@agent_at0_2",
    "properties": {
     "name": "Agent: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1080,7 +1080,7 @@
    "as": "@agent_at0_3",
    "properties": {
     "name": "Agent: Streetwise at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1094,7 +1094,7 @@
    "as": "@agent_at0_4",
    "properties": {
     "name": "Agent: Bribery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1108,7 +1108,7 @@
    "as": "@agent_at0_5",
    "properties": {
     "name": "Agent: Leadership at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1122,7 +1122,7 @@
    "as": "@agent_at0_6",
    "properties": {
     "name": "Agent: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1288,7 +1288,7 @@
     "name": "Barbarian qualification",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1308,7 +1308,7 @@
     "name": "Barbarian survival",
     "attribute_ref": "strength",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1326,7 +1326,7 @@
    "as": "@barbarian_at0_1",
    "properties": {
     "name": "Barbarian: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1340,7 +1340,7 @@
    "as": "@barbarian_at0_2",
    "properties": {
     "name": "Barbarian: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1354,7 +1354,7 @@
    "as": "@barbarian_at0_3",
    "properties": {
     "name": "Barbarian: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1368,7 +1368,7 @@
    "as": "@barbarian_at0_4",
    "properties": {
     "name": "Barbarian: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1382,7 +1382,7 @@
    "as": "@barbarian_at0_5",
    "properties": {
     "name": "Barbarian: Survival at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1396,7 +1396,7 @@
    "as": "@barbarian_at0_6",
    "properties": {
     "name": "Barbarian: Animals at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_animals",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_animals",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1562,7 +1562,7 @@
     "name": "Belter qualification",
     "attribute_ref": "intelligence",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1582,7 +1582,7 @@
     "name": "Belter survival",
     "attribute_ref": "dexterity",
     "target_number": "7",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1600,7 +1600,7 @@
    "as": "@belter_at0_1",
    "properties": {
     "name": "Belter: Comms at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1614,7 +1614,7 @@
    "as": "@belter_at0_2",
    "properties": {
     "name": "Belter: Demolitions at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_demolitions",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_demolitions",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1628,7 +1628,7 @@
    "as": "@belter_at0_3",
    "properties": {
     "name": "Belter: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1642,7 +1642,7 @@
    "as": "@belter_at0_4",
    "properties": {
     "name": "Belter: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1656,7 +1656,7 @@
    "as": "@belter_at0_5",
    "properties": {
     "name": "Belter: Prospecting at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_prospecting",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_prospecting",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1670,7 +1670,7 @@
    "as": "@belter_at0_6",
    "properties": {
     "name": "Belter: Piloting at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_piloting",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_piloting",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1836,7 +1836,7 @@
     "name": "Bureaucrat qualification",
     "attribute_ref": "social_standing",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1856,7 +1856,7 @@
     "name": "Bureaucrat survival",
     "attribute_ref": "education",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -1874,7 +1874,7 @@
    "as": "@bureaucrat_at0_1",
    "properties": {
     "name": "Bureaucrat: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1888,7 +1888,7 @@
    "as": "@bureaucrat_at0_2",
    "properties": {
     "name": "Bureaucrat: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1902,7 +1902,7 @@
    "as": "@bureaucrat_at0_3",
    "properties": {
     "name": "Bureaucrat: Carousing at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1916,7 +1916,7 @@
    "as": "@bureaucrat_at0_4",
    "properties": {
     "name": "Bureaucrat: Bribery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1930,7 +1930,7 @@
    "as": "@bureaucrat_at0_5",
    "properties": {
     "name": "Bureaucrat: Leadership at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -1944,7 +1944,7 @@
    "as": "@bureaucrat_at0_6",
    "properties": {
     "name": "Bureaucrat: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2110,7 +2110,7 @@
     "name": "Colonist qualification",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2130,7 +2130,7 @@
     "name": "Colonist survival",
     "attribute_ref": "endurance",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2148,7 +2148,7 @@
    "as": "@colonist_at0_1",
    "properties": {
     "name": "Colonist: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2162,7 +2162,7 @@
    "as": "@colonist_at0_2",
    "properties": {
     "name": "Colonist: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2176,7 +2176,7 @@
    "as": "@colonist_at0_3",
    "properties": {
     "name": "Colonist: Animals at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_animals",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_animals",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2190,7 +2190,7 @@
    "as": "@colonist_at0_4",
    "properties": {
     "name": "Colonist: Electronics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2204,7 +2204,7 @@
    "as": "@colonist_at0_5",
    "properties": {
     "name": "Colonist: Survival at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2218,7 +2218,7 @@
    "as": "@colonist_at0_6",
    "properties": {
     "name": "Colonist: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2384,7 +2384,7 @@
     "name": "Diplomat qualification",
     "attribute_ref": "social_standing",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2404,7 +2404,7 @@
     "name": "Diplomat survival",
     "attribute_ref": "education",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2422,7 +2422,7 @@
    "as": "@diplomat_at0_1",
    "properties": {
     "name": "Diplomat: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2436,7 +2436,7 @@
    "as": "@diplomat_at0_2",
    "properties": {
     "name": "Diplomat: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2450,7 +2450,7 @@
    "as": "@diplomat_at0_3",
    "properties": {
     "name": "Diplomat: Carousing at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2464,7 +2464,7 @@
    "as": "@diplomat_at0_4",
    "properties": {
     "name": "Diplomat: Bribery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2478,7 +2478,7 @@
    "as": "@diplomat_at0_5",
    "properties": {
     "name": "Diplomat: Liaison at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_liaison",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_liaison",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2492,7 +2492,7 @@
    "as": "@diplomat_at0_6",
    "properties": {
     "name": "Diplomat: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2658,7 +2658,7 @@
     "name": "Drifter qualification",
     "attribute_ref": "dexterity",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2678,7 +2678,7 @@
     "name": "Drifter survival",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2696,7 +2696,7 @@
    "as": "@drifter_at0_1",
    "properties": {
     "name": "Drifter: Streetwise at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2710,7 +2710,7 @@
    "as": "@drifter_at0_2",
    "properties": {
     "name": "Drifter: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2724,7 +2724,7 @@
    "as": "@drifter_at0_3",
    "properties": {
     "name": "Drifter: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2738,7 +2738,7 @@
    "as": "@drifter_at0_4",
    "properties": {
     "name": "Drifter: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2752,7 +2752,7 @@
    "as": "@drifter_at0_5",
    "properties": {
     "name": "Drifter: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2766,7 +2766,7 @@
    "as": "@drifter_at0_6",
    "properties": {
     "name": "Drifter: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2932,7 +2932,7 @@
     "name": "Entertainer qualification",
     "attribute_ref": "social_standing",
     "target_number": "8",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2952,7 +2952,7 @@
     "name": "Entertainer survival",
     "attribute_ref": "intelligence",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -2970,7 +2970,7 @@
    "as": "@entertainer_at0_1",
    "properties": {
     "name": "Entertainer: Athletics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_athletics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_athletics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2984,7 +2984,7 @@
    "as": "@entertainer_at0_2",
    "properties": {
     "name": "Entertainer: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -2998,7 +2998,7 @@
    "as": "@entertainer_at0_3",
    "properties": {
     "name": "Entertainer: Carousing at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3012,7 +3012,7 @@
    "as": "@entertainer_at0_4",
    "properties": {
     "name": "Entertainer: Bribery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3026,7 +3026,7 @@
    "as": "@entertainer_at0_5",
    "properties": {
     "name": "Entertainer: Gambling at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3040,7 +3040,7 @@
    "as": "@entertainer_at0_6",
    "properties": {
     "name": "Entertainer: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3206,7 +3206,7 @@
     "name": "Hunter qualification",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -3226,7 +3226,7 @@
     "name": "Hunter survival",
     "attribute_ref": "strength",
     "target_number": "8",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -3244,7 +3244,7 @@
    "as": "@hunter_at0_1",
    "properties": {
     "name": "Hunter: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3258,7 +3258,7 @@
    "as": "@hunter_at0_2",
    "properties": {
     "name": "Hunter: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3272,7 +3272,7 @@
    "as": "@hunter_at0_3",
    "properties": {
     "name": "Hunter: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3286,7 +3286,7 @@
    "as": "@hunter_at0_4",
    "properties": {
     "name": "Hunter: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3300,7 +3300,7 @@
    "as": "@hunter_at0_5",
    "properties": {
     "name": "Hunter: Survival at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3314,7 +3314,7 @@
    "as": "@hunter_at0_6",
    "properties": {
     "name": "Hunter: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3480,7 +3480,7 @@
     "name": "Marine qualification",
     "attribute_ref": "intelligence",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -3500,7 +3500,7 @@
     "name": "Marine survival",
     "attribute_ref": "endurance",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -3518,7 +3518,7 @@
    "as": "@marine_at0_1",
    "properties": {
     "name": "Marine: Comms at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3532,7 +3532,7 @@
    "as": "@marine_at0_2",
    "properties": {
     "name": "Marine: Demolitions at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_demolitions",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_demolitions",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3546,7 +3546,7 @@
    "as": "@marine_at0_3",
    "properties": {
     "name": "Marine: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3560,7 +3560,7 @@
    "as": "@marine_at0_4",
    "properties": {
     "name": "Marine: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3574,7 +3574,7 @@
    "as": "@marine_at0_5",
    "properties": {
     "name": "Marine: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3588,7 +3588,7 @@
    "as": "@marine_at0_6",
    "properties": {
     "name": "Marine: Battle Dress at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_battle_dress",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_battle_dress",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3754,7 +3754,7 @@
     "name": "Maritime Defense qualification",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -3774,7 +3774,7 @@
     "name": "Maritime Defense survival",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -3792,7 +3792,7 @@
    "as": "@maritime_defense_at0_1",
    "properties": {
     "name": "Maritime Defense: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3806,7 +3806,7 @@
    "as": "@maritime_defense_at0_2",
    "properties": {
     "name": "Maritime Defense: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3820,7 +3820,7 @@
    "as": "@maritime_defense_at0_3",
    "properties": {
     "name": "Maritime Defense: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3834,7 +3834,7 @@
    "as": "@maritime_defense_at0_4",
    "properties": {
     "name": "Maritime Defense: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3848,7 +3848,7 @@
    "as": "@maritime_defense_at0_5",
    "properties": {
     "name": "Maritime Defense: Survival at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -3862,7 +3862,7 @@
    "as": "@maritime_defense_at0_6",
    "properties": {
     "name": "Maritime Defense: Watercraft at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_watercraft",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_watercraft",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4028,7 +4028,7 @@
     "name": "Mercenary qualification",
     "attribute_ref": "intelligence",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4048,7 +4048,7 @@
     "name": "Mercenary survival",
     "attribute_ref": "endurance",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4066,7 +4066,7 @@
    "as": "@mercenary_at0_1",
    "properties": {
     "name": "Mercenary: Comms at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4080,7 +4080,7 @@
    "as": "@mercenary_at0_2",
    "properties": {
     "name": "Mercenary: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4094,7 +4094,7 @@
    "as": "@mercenary_at0_3",
    "properties": {
     "name": "Mercenary: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4108,7 +4108,7 @@
    "as": "@mercenary_at0_4",
    "properties": {
     "name": "Mercenary: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4122,7 +4122,7 @@
    "as": "@mercenary_at0_5",
    "properties": {
     "name": "Mercenary: Gambling at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4136,7 +4136,7 @@
    "as": "@mercenary_at0_6",
    "properties": {
     "name": "Mercenary: Battle Dress at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_battle_dress",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_battle_dress",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4302,7 +4302,7 @@
     "name": "Merchant qualification",
     "attribute_ref": "intelligence",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4322,7 +4322,7 @@
     "name": "Merchant survival",
     "attribute_ref": "intelligence",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4340,7 +4340,7 @@
    "as": "@merchant_at0_1",
    "properties": {
     "name": "Merchant: Comms at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4354,7 +4354,7 @@
    "as": "@merchant_at0_2",
    "properties": {
     "name": "Merchant: Engineering at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_engineering",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_engineering",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4368,7 +4368,7 @@
    "as": "@merchant_at0_3",
    "properties": {
     "name": "Merchant: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4382,7 +4382,7 @@
    "as": "@merchant_at0_4",
    "properties": {
     "name": "Merchant: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4396,7 +4396,7 @@
    "as": "@merchant_at0_5",
    "properties": {
     "name": "Merchant: Broker at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_broker",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_broker",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4410,7 +4410,7 @@
    "as": "@merchant_at0_6",
    "properties": {
     "name": "Merchant: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4576,7 +4576,7 @@
     "name": "Navy qualification",
     "attribute_ref": "intelligence",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4596,7 +4596,7 @@
     "name": "Navy survival",
     "attribute_ref": "intelligence",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4614,7 +4614,7 @@
    "as": "@navy_at0_1",
    "properties": {
     "name": "Navy: Comms at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4628,7 +4628,7 @@
    "as": "@navy_at0_2",
    "properties": {
     "name": "Navy: Engineering at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_engineering",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_engineering",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4642,7 +4642,7 @@
    "as": "@navy_at0_3",
    "properties": {
     "name": "Navy: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4656,7 +4656,7 @@
    "as": "@navy_at0_4",
    "properties": {
     "name": "Navy: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4670,7 +4670,7 @@
    "as": "@navy_at0_5",
    "properties": {
     "name": "Navy: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4684,7 +4684,7 @@
    "as": "@navy_at0_6",
    "properties": {
     "name": "Navy: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4850,7 +4850,7 @@
     "name": "Noble qualification",
     "attribute_ref": "social_standing",
     "target_number": "8",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4870,7 +4870,7 @@
     "name": "Noble survival",
     "attribute_ref": "social_standing",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -4888,7 +4888,7 @@
    "as": "@noble_at0_1",
    "properties": {
     "name": "Noble: Athletics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_athletics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_athletics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4902,7 +4902,7 @@
    "as": "@noble_at0_2",
    "properties": {
     "name": "Noble: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4916,7 +4916,7 @@
    "as": "@noble_at0_3",
    "properties": {
     "name": "Noble: Carousing at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4930,7 +4930,7 @@
    "as": "@noble_at0_4",
    "properties": {
     "name": "Noble: Leadership at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4944,7 +4944,7 @@
    "as": "@noble_at0_5",
    "properties": {
     "name": "Noble: Gambling at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -4958,7 +4958,7 @@
    "as": "@noble_at0_6",
    "properties": {
     "name": "Noble: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5124,7 +5124,7 @@
     "name": "Physician qualification",
     "attribute_ref": "education",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5144,7 +5144,7 @@
     "name": "Physician survival",
     "attribute_ref": "intelligence",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5162,7 +5162,7 @@
    "as": "@physician_at0_1",
    "properties": {
     "name": "Physician: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5176,7 +5176,7 @@
    "as": "@physician_at0_2",
    "properties": {
     "name": "Physician: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5190,7 +5190,7 @@
    "as": "@physician_at0_3",
    "properties": {
     "name": "Physician: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5204,7 +5204,7 @@
    "as": "@physician_at0_4",
    "properties": {
     "name": "Physician: Medicine at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_medicine",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_medicine",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5218,7 +5218,7 @@
    "as": "@physician_at0_5",
    "properties": {
     "name": "Physician: Leadership at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5232,7 +5232,7 @@
    "as": "@physician_at0_6",
    "properties": {
     "name": "Physician: Sciences at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_sciences",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_sciences",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5398,7 +5398,7 @@
     "name": "Pirate qualification",
     "attribute_ref": "dexterity",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5418,7 +5418,7 @@
     "name": "Pirate survival",
     "attribute_ref": "dexterity",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5436,7 +5436,7 @@
    "as": "@pirate_at0_1",
    "properties": {
     "name": "Pirate: Streetwise at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5450,7 +5450,7 @@
    "as": "@pirate_at0_2",
    "properties": {
     "name": "Pirate: Electronics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5464,7 +5464,7 @@
    "as": "@pirate_at0_3",
    "properties": {
     "name": "Pirate: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5478,7 +5478,7 @@
    "as": "@pirate_at0_4",
    "properties": {
     "name": "Pirate: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5492,7 +5492,7 @@
    "as": "@pirate_at0_5",
    "properties": {
     "name": "Pirate: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5506,7 +5506,7 @@
    "as": "@pirate_at0_6",
    "properties": {
     "name": "Pirate: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5672,7 +5672,7 @@
     "name": "Rogue qualification",
     "attribute_ref": "dexterity",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5692,7 +5692,7 @@
     "name": "Rogue survival",
     "attribute_ref": "dexterity",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5710,7 +5710,7 @@
    "as": "@rogue_at0_1",
    "properties": {
     "name": "Rogue: Streetwise at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5724,7 +5724,7 @@
    "as": "@rogue_at0_2",
    "properties": {
     "name": "Rogue: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5738,7 +5738,7 @@
    "as": "@rogue_at0_3",
    "properties": {
     "name": "Rogue: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5752,7 +5752,7 @@
    "as": "@rogue_at0_4",
    "properties": {
     "name": "Rogue: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5766,7 +5766,7 @@
    "as": "@rogue_at0_5",
    "properties": {
     "name": "Rogue: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5780,7 +5780,7 @@
    "as": "@rogue_at0_6",
    "properties": {
     "name": "Rogue: Vehicle at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5946,7 +5946,7 @@
     "name": "Scientist qualification",
     "attribute_ref": "education",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5966,7 +5966,7 @@
     "name": "Scientist survival",
     "attribute_ref": "education",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -5984,7 +5984,7 @@
    "as": "@scientist_at0_1",
    "properties": {
     "name": "Scientist: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -5998,7 +5998,7 @@
    "as": "@scientist_at0_2",
    "properties": {
     "name": "Scientist: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6012,7 +6012,7 @@
    "as": "@scientist_at0_3",
    "properties": {
     "name": "Scientist: Electronics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6026,7 +6026,7 @@
    "as": "@scientist_at0_4",
    "properties": {
     "name": "Scientist: Medicine at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_medicine",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_medicine",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6040,7 +6040,7 @@
    "as": "@scientist_at0_5",
    "properties": {
     "name": "Scientist: Bribery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6054,7 +6054,7 @@
    "as": "@scientist_at0_6",
    "properties": {
     "name": "Scientist: Sciences at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_sciences",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_sciences",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6220,7 +6220,7 @@
     "name": "Scout qualification",
     "attribute_ref": "intelligence",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -6240,7 +6240,7 @@
     "name": "Scout survival",
     "attribute_ref": "endurance",
     "target_number": "7",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -6258,7 +6258,7 @@
    "as": "@scout_at0_1",
    "properties": {
     "name": "Scout: Comms at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6272,7 +6272,7 @@
    "as": "@scout_at0_2",
    "properties": {
     "name": "Scout: Electronics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6286,7 +6286,7 @@
    "as": "@scout_at0_3",
    "properties": {
     "name": "Scout: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6300,7 +6300,7 @@
    "as": "@scout_at0_4",
    "properties": {
     "name": "Scout: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6314,7 +6314,7 @@
    "as": "@scout_at0_5",
    "properties": {
     "name": "Scout: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6328,7 +6328,7 @@
    "as": "@scout_at0_6",
    "properties": {
     "name": "Scout: Piloting at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_piloting",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_piloting",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6494,7 +6494,7 @@
     "name": "Surface Defense qualification",
     "attribute_ref": "endurance",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -6514,7 +6514,7 @@
     "name": "Surface Defense survival",
     "attribute_ref": "education",
     "target_number": "5",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -6532,7 +6532,7 @@
    "as": "@surface_defense_at0_1",
    "properties": {
     "name": "Surface Defense: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6546,7 +6546,7 @@
    "as": "@surface_defense_at0_2",
    "properties": {
     "name": "Surface Defense: Gun Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6560,7 +6560,7 @@
    "as": "@surface_defense_at0_3",
    "properties": {
     "name": "Surface Defense: Gunnery at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6574,7 +6574,7 @@
    "as": "@surface_defense_at0_4",
    "properties": {
     "name": "Surface Defense: Melee Combat at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6588,7 +6588,7 @@
    "as": "@surface_defense_at0_5",
    "properties": {
     "name": "Surface Defense: Recon at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6602,7 +6602,7 @@
    "as": "@surface_defense_at0_6",
    "properties": {
     "name": "Surface Defense: Battle Dress at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_battle_dress",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_battle_dress",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6768,7 +6768,7 @@
     "name": "Technician qualification",
     "attribute_ref": "education",
     "target_number": "6",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -6788,7 +6788,7 @@
     "name": "Technician survival",
     "attribute_ref": "dexterity",
     "target_number": "4",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Career Tables",
     "source_kind": "cell",
@@ -6806,7 +6806,7 @@
    "as": "@technician_at0_1",
    "properties": {
     "name": "Technician: Admin at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6820,7 +6820,7 @@
    "as": "@technician_at0_2",
    "properties": {
     "name": "Technician: Computer at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6834,7 +6834,7 @@
    "as": "@technician_at0_3",
    "properties": {
     "name": "Technician: Mechanics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6848,7 +6848,7 @@
    "as": "@technician_at0_4",
    "properties": {
     "name": "Technician: Medicine at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_medicine",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_medicine",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6862,7 +6862,7 @@
    "as": "@technician_at0_5",
    "properties": {
     "name": "Technician: Electronics at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -6876,7 +6876,7 @@
    "as": "@technician_at0_6",
    "properties": {
     "name": "Technician: Sciences at level 0",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_sciences",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_sciences",
     "skill_level": "0",
     "source_file": "book1/character-creation.md",
     "source_section": "Basic Training",
@@ -7040,7 +7040,7 @@
    "as": "@athlete_svc",
    "properties": {
     "name": "Athlete Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7053,7 +7053,7 @@
    "as": "@athlete_g1",
    "properties": {
     "name": "Athlete: gain Athletics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_athletics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_athletics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7092,7 +7092,7 @@
    "as": "@athlete_g2",
    "properties": {
     "name": "Athlete: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7131,7 +7131,7 @@
    "as": "@athlete_g3",
    "properties": {
     "name": "Athlete: gain Carousing",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7170,7 +7170,7 @@
    "as": "@athlete_g4",
    "properties": {
     "name": "Athlete: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7209,7 +7209,7 @@
    "as": "@athlete_g5",
    "properties": {
     "name": "Athlete: gain Gambling",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7248,7 +7248,7 @@
    "as": "@athlete_g6",
    "properties": {
     "name": "Athlete: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7293,7 +7293,7 @@
    "as": "@aerospace_defense_svc",
    "properties": {
     "name": "Aerospace Defense Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7306,7 +7306,7 @@
    "as": "@aerospace_defense_g1",
    "properties": {
     "name": "Aerospace Defense: gain Electronics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7345,7 +7345,7 @@
    "as": "@aerospace_defense_g2",
    "properties": {
     "name": "Aerospace Defense: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7384,7 +7384,7 @@
    "as": "@aerospace_defense_g3",
    "properties": {
     "name": "Aerospace Defense: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7423,7 +7423,7 @@
    "as": "@aerospace_defense_g4",
    "properties": {
     "name": "Aerospace Defense: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7462,7 +7462,7 @@
    "as": "@aerospace_defense_g5",
    "properties": {
     "name": "Aerospace Defense: gain Survival",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7501,7 +7501,7 @@
    "as": "@aerospace_defense_g6",
    "properties": {
     "name": "Aerospace Defense: gain Aircraft",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_aircraft",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_aircraft",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7546,7 +7546,7 @@
    "as": "@agent_svc",
    "properties": {
     "name": "Agent Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7559,7 +7559,7 @@
    "as": "@agent_g1",
    "properties": {
     "name": "Agent: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7598,7 +7598,7 @@
    "as": "@agent_g2",
    "properties": {
     "name": "Agent: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7637,7 +7637,7 @@
    "as": "@agent_g3",
    "properties": {
     "name": "Agent: gain Streetwise",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7676,7 +7676,7 @@
    "as": "@agent_g4",
    "properties": {
     "name": "Agent: gain Bribery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7715,7 +7715,7 @@
    "as": "@agent_g5",
    "properties": {
     "name": "Agent: gain Leadership",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7754,7 +7754,7 @@
    "as": "@agent_g6",
    "properties": {
     "name": "Agent: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7799,7 +7799,7 @@
    "as": "@barbarian_svc",
    "properties": {
     "name": "Barbarian Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -7812,7 +7812,7 @@
    "as": "@barbarian_g1",
    "properties": {
     "name": "Barbarian: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7851,7 +7851,7 @@
    "as": "@barbarian_g2",
    "properties": {
     "name": "Barbarian: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7890,7 +7890,7 @@
    "as": "@barbarian_g3",
    "properties": {
     "name": "Barbarian: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7929,7 +7929,7 @@
    "as": "@barbarian_g4",
    "properties": {
     "name": "Barbarian: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -7968,7 +7968,7 @@
    "as": "@barbarian_g5",
    "properties": {
     "name": "Barbarian: gain Survival",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8007,7 +8007,7 @@
    "as": "@barbarian_g6",
    "properties": {
     "name": "Barbarian: gain Animals",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_animals",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_animals",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8052,7 +8052,7 @@
    "as": "@belter_svc",
    "properties": {
     "name": "Belter Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -8065,7 +8065,7 @@
    "as": "@belter_g1",
    "properties": {
     "name": "Belter: gain Comms",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8104,7 +8104,7 @@
    "as": "@belter_g2",
    "properties": {
     "name": "Belter: gain Demolitions",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_demolitions",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_demolitions",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8143,7 +8143,7 @@
    "as": "@belter_g3",
    "properties": {
     "name": "Belter: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8182,7 +8182,7 @@
    "as": "@belter_g4",
    "properties": {
     "name": "Belter: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8221,7 +8221,7 @@
    "as": "@belter_g5",
    "properties": {
     "name": "Belter: gain Prospecting",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_prospecting",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_prospecting",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8260,7 +8260,7 @@
    "as": "@belter_g6",
    "properties": {
     "name": "Belter: gain Piloting",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_piloting",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_piloting",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8305,7 +8305,7 @@
    "as": "@bureaucrat_svc",
    "properties": {
     "name": "Bureaucrat Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -8318,7 +8318,7 @@
    "as": "@bureaucrat_g1",
    "properties": {
     "name": "Bureaucrat: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8357,7 +8357,7 @@
    "as": "@bureaucrat_g2",
    "properties": {
     "name": "Bureaucrat: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8396,7 +8396,7 @@
    "as": "@bureaucrat_g3",
    "properties": {
     "name": "Bureaucrat: gain Carousing",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8435,7 +8435,7 @@
    "as": "@bureaucrat_g4",
    "properties": {
     "name": "Bureaucrat: gain Bribery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8474,7 +8474,7 @@
    "as": "@bureaucrat_g5",
    "properties": {
     "name": "Bureaucrat: gain Leadership",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8513,7 +8513,7 @@
    "as": "@bureaucrat_g6",
    "properties": {
     "name": "Bureaucrat: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8558,7 +8558,7 @@
    "as": "@colonist_svc",
    "properties": {
     "name": "Colonist Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -8571,7 +8571,7 @@
    "as": "@colonist_g1",
    "properties": {
     "name": "Colonist: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8610,7 +8610,7 @@
    "as": "@colonist_g2",
    "properties": {
     "name": "Colonist: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8649,7 +8649,7 @@
    "as": "@colonist_g3",
    "properties": {
     "name": "Colonist: gain Animals",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_animals",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_animals",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8688,7 +8688,7 @@
    "as": "@colonist_g4",
    "properties": {
     "name": "Colonist: gain Electronics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8727,7 +8727,7 @@
    "as": "@colonist_g5",
    "properties": {
     "name": "Colonist: gain Survival",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8766,7 +8766,7 @@
    "as": "@colonist_g6",
    "properties": {
     "name": "Colonist: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8811,7 +8811,7 @@
    "as": "@diplomat_svc",
    "properties": {
     "name": "Diplomat Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -8824,7 +8824,7 @@
    "as": "@diplomat_g1",
    "properties": {
     "name": "Diplomat: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8863,7 +8863,7 @@
    "as": "@diplomat_g2",
    "properties": {
     "name": "Diplomat: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8902,7 +8902,7 @@
    "as": "@diplomat_g3",
    "properties": {
     "name": "Diplomat: gain Carousing",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8941,7 +8941,7 @@
    "as": "@diplomat_g4",
    "properties": {
     "name": "Diplomat: gain Bribery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -8980,7 +8980,7 @@
    "as": "@diplomat_g5",
    "properties": {
     "name": "Diplomat: gain Liaison",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_liaison",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_liaison",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9019,7 +9019,7 @@
    "as": "@diplomat_g6",
    "properties": {
     "name": "Diplomat: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9064,7 +9064,7 @@
    "as": "@drifter_svc",
    "properties": {
     "name": "Drifter Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -9077,7 +9077,7 @@
    "as": "@drifter_g1",
    "properties": {
     "name": "Drifter: gain Streetwise",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9116,7 +9116,7 @@
    "as": "@drifter_g2",
    "properties": {
     "name": "Drifter: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9155,7 +9155,7 @@
    "as": "@drifter_g3",
    "properties": {
     "name": "Drifter: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9194,7 +9194,7 @@
    "as": "@drifter_g4",
    "properties": {
     "name": "Drifter: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9233,7 +9233,7 @@
    "as": "@drifter_g5",
    "properties": {
     "name": "Drifter: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9272,7 +9272,7 @@
    "as": "@drifter_g6",
    "properties": {
     "name": "Drifter: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9317,7 +9317,7 @@
    "as": "@entertainer_svc",
    "properties": {
     "name": "Entertainer Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -9330,7 +9330,7 @@
    "as": "@entertainer_g1",
    "properties": {
     "name": "Entertainer: gain Athletics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_athletics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_athletics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9369,7 +9369,7 @@
    "as": "@entertainer_g2",
    "properties": {
     "name": "Entertainer: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9408,7 +9408,7 @@
    "as": "@entertainer_g3",
    "properties": {
     "name": "Entertainer: gain Carousing",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9447,7 +9447,7 @@
    "as": "@entertainer_g4",
    "properties": {
     "name": "Entertainer: gain Bribery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9486,7 +9486,7 @@
    "as": "@entertainer_g5",
    "properties": {
     "name": "Entertainer: gain Gambling",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9525,7 +9525,7 @@
    "as": "@entertainer_g6",
    "properties": {
     "name": "Entertainer: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9570,7 +9570,7 @@
    "as": "@hunter_svc",
    "properties": {
     "name": "Hunter Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -9583,7 +9583,7 @@
    "as": "@hunter_g1",
    "properties": {
     "name": "Hunter: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9622,7 +9622,7 @@
    "as": "@hunter_g2",
    "properties": {
     "name": "Hunter: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9661,7 +9661,7 @@
    "as": "@hunter_g3",
    "properties": {
     "name": "Hunter: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9700,7 +9700,7 @@
    "as": "@hunter_g4",
    "properties": {
     "name": "Hunter: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9739,7 +9739,7 @@
    "as": "@hunter_g5",
    "properties": {
     "name": "Hunter: gain Survival",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9778,7 +9778,7 @@
    "as": "@hunter_g6",
    "properties": {
     "name": "Hunter: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9823,7 +9823,7 @@
    "as": "@marine_svc",
    "properties": {
     "name": "Marine Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -9836,7 +9836,7 @@
    "as": "@marine_g1",
    "properties": {
     "name": "Marine: gain Comms",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9875,7 +9875,7 @@
    "as": "@marine_g2",
    "properties": {
     "name": "Marine: gain Demolitions",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_demolitions",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_demolitions",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9914,7 +9914,7 @@
    "as": "@marine_g3",
    "properties": {
     "name": "Marine: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9953,7 +9953,7 @@
    "as": "@marine_g4",
    "properties": {
     "name": "Marine: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -9992,7 +9992,7 @@
    "as": "@marine_g5",
    "properties": {
     "name": "Marine: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10031,7 +10031,7 @@
    "as": "@marine_g6",
    "properties": {
     "name": "Marine: gain Battle Dress",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_battle_dress",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_battle_dress",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10076,7 +10076,7 @@
    "as": "@maritime_defense_svc",
    "properties": {
     "name": "Maritime Defense Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -10089,7 +10089,7 @@
    "as": "@maritime_defense_g1",
    "properties": {
     "name": "Maritime Defense: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10128,7 +10128,7 @@
    "as": "@maritime_defense_g2",
    "properties": {
     "name": "Maritime Defense: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10167,7 +10167,7 @@
    "as": "@maritime_defense_g3",
    "properties": {
     "name": "Maritime Defense: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10206,7 +10206,7 @@
    "as": "@maritime_defense_g4",
    "properties": {
     "name": "Maritime Defense: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10245,7 +10245,7 @@
    "as": "@maritime_defense_g5",
    "properties": {
     "name": "Maritime Defense: gain Survival",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_survival",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_survival",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10284,7 +10284,7 @@
    "as": "@maritime_defense_g6",
    "properties": {
     "name": "Maritime Defense: gain Watercraft",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_watercraft",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_watercraft",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10329,7 +10329,7 @@
    "as": "@mercenary_svc",
    "properties": {
     "name": "Mercenary Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -10342,7 +10342,7 @@
    "as": "@mercenary_g1",
    "properties": {
     "name": "Mercenary: gain Comms",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10381,7 +10381,7 @@
    "as": "@mercenary_g2",
    "properties": {
     "name": "Mercenary: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10420,7 +10420,7 @@
    "as": "@mercenary_g3",
    "properties": {
     "name": "Mercenary: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10459,7 +10459,7 @@
    "as": "@mercenary_g4",
    "properties": {
     "name": "Mercenary: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10498,7 +10498,7 @@
    "as": "@mercenary_g5",
    "properties": {
     "name": "Mercenary: gain Gambling",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10537,7 +10537,7 @@
    "as": "@mercenary_g6",
    "properties": {
     "name": "Mercenary: gain Battle Dress",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_battle_dress",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_battle_dress",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10582,7 +10582,7 @@
    "as": "@merchant_svc",
    "properties": {
     "name": "Merchant Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -10595,7 +10595,7 @@
    "as": "@merchant_g1",
    "properties": {
     "name": "Merchant: gain Comms",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10634,7 +10634,7 @@
    "as": "@merchant_g2",
    "properties": {
     "name": "Merchant: gain Engineering",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_engineering",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_engineering",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10673,7 +10673,7 @@
    "as": "@merchant_g3",
    "properties": {
     "name": "Merchant: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10712,7 +10712,7 @@
    "as": "@merchant_g4",
    "properties": {
     "name": "Merchant: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10751,7 +10751,7 @@
    "as": "@merchant_g5",
    "properties": {
     "name": "Merchant: gain Broker",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_broker",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_broker",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10790,7 +10790,7 @@
    "as": "@merchant_g6",
    "properties": {
     "name": "Merchant: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10835,7 +10835,7 @@
    "as": "@navy_svc",
    "properties": {
     "name": "Navy Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -10848,7 +10848,7 @@
    "as": "@navy_g1",
    "properties": {
     "name": "Navy: gain Comms",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10887,7 +10887,7 @@
    "as": "@navy_g2",
    "properties": {
     "name": "Navy: gain Engineering",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_engineering",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_engineering",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10926,7 +10926,7 @@
    "as": "@navy_g3",
    "properties": {
     "name": "Navy: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -10965,7 +10965,7 @@
    "as": "@navy_g4",
    "properties": {
     "name": "Navy: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11004,7 +11004,7 @@
    "as": "@navy_g5",
    "properties": {
     "name": "Navy: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11043,7 +11043,7 @@
    "as": "@navy_g6",
    "properties": {
     "name": "Navy: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11088,7 +11088,7 @@
    "as": "@noble_svc",
    "properties": {
     "name": "Noble Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -11101,7 +11101,7 @@
    "as": "@noble_g1",
    "properties": {
     "name": "Noble: gain Athletics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_athletics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_athletics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11140,7 +11140,7 @@
    "as": "@noble_g2",
    "properties": {
     "name": "Noble: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11179,7 +11179,7 @@
    "as": "@noble_g3",
    "properties": {
     "name": "Noble: gain Carousing",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_carousing",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_carousing",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11218,7 +11218,7 @@
    "as": "@noble_g4",
    "properties": {
     "name": "Noble: gain Leadership",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11257,7 +11257,7 @@
    "as": "@noble_g5",
    "properties": {
     "name": "Noble: gain Gambling",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gambling",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gambling",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11296,7 +11296,7 @@
    "as": "@noble_g6",
    "properties": {
     "name": "Noble: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11341,7 +11341,7 @@
    "as": "@physician_svc",
    "properties": {
     "name": "Physician Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -11354,7 +11354,7 @@
    "as": "@physician_g1",
    "properties": {
     "name": "Physician: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11393,7 +11393,7 @@
    "as": "@physician_g2",
    "properties": {
     "name": "Physician: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11432,7 +11432,7 @@
    "as": "@physician_g3",
    "properties": {
     "name": "Physician: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11471,7 +11471,7 @@
    "as": "@physician_g4",
    "properties": {
     "name": "Physician: gain Medicine",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_medicine",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_medicine",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11510,7 +11510,7 @@
    "as": "@physician_g5",
    "properties": {
     "name": "Physician: gain Leadership",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_leadership",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_leadership",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11549,7 +11549,7 @@
    "as": "@physician_g6",
    "properties": {
     "name": "Physician: gain Sciences",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_sciences",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_sciences",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11594,7 +11594,7 @@
    "as": "@pirate_svc",
    "properties": {
     "name": "Pirate Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -11607,7 +11607,7 @@
    "as": "@pirate_g1",
    "properties": {
     "name": "Pirate: gain Streetwise",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11646,7 +11646,7 @@
    "as": "@pirate_g2",
    "properties": {
     "name": "Pirate: gain Electronics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11685,7 +11685,7 @@
    "as": "@pirate_g3",
    "properties": {
     "name": "Pirate: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11724,7 +11724,7 @@
    "as": "@pirate_g4",
    "properties": {
     "name": "Pirate: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11763,7 +11763,7 @@
    "as": "@pirate_g5",
    "properties": {
     "name": "Pirate: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11802,7 +11802,7 @@
    "as": "@pirate_g6",
    "properties": {
     "name": "Pirate: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11847,7 +11847,7 @@
    "as": "@rogue_svc",
    "properties": {
     "name": "Rogue Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -11860,7 +11860,7 @@
    "as": "@rogue_g1",
    "properties": {
     "name": "Rogue: gain Streetwise",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_streetwise",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_streetwise",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11899,7 +11899,7 @@
    "as": "@rogue_g2",
    "properties": {
     "name": "Rogue: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11938,7 +11938,7 @@
    "as": "@rogue_g3",
    "properties": {
     "name": "Rogue: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -11977,7 +11977,7 @@
    "as": "@rogue_g4",
    "properties": {
     "name": "Rogue: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12016,7 +12016,7 @@
    "as": "@rogue_g5",
    "properties": {
     "name": "Rogue: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12055,7 +12055,7 @@
    "as": "@rogue_g6",
    "properties": {
     "name": "Rogue: gain Vehicle",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_vehicle",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_vehicle",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12100,7 +12100,7 @@
    "as": "@scientist_svc",
    "properties": {
     "name": "Scientist Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -12113,7 +12113,7 @@
    "as": "@scientist_g1",
    "properties": {
     "name": "Scientist: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12152,7 +12152,7 @@
    "as": "@scientist_g2",
    "properties": {
     "name": "Scientist: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12191,7 +12191,7 @@
    "as": "@scientist_g3",
    "properties": {
     "name": "Scientist: gain Electronics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12230,7 +12230,7 @@
    "as": "@scientist_g4",
    "properties": {
     "name": "Scientist: gain Medicine",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_medicine",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_medicine",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12269,7 +12269,7 @@
    "as": "@scientist_g5",
    "properties": {
     "name": "Scientist: gain Bribery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_bribery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_bribery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12308,7 +12308,7 @@
    "as": "@scientist_g6",
    "properties": {
     "name": "Scientist: gain Sciences",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_sciences",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_sciences",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12353,7 +12353,7 @@
    "as": "@scout_svc",
    "properties": {
     "name": "Scout Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -12366,7 +12366,7 @@
    "as": "@scout_g1",
    "properties": {
     "name": "Scout: gain Comms",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_comms",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_comms",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12405,7 +12405,7 @@
    "as": "@scout_g2",
    "properties": {
     "name": "Scout: gain Electronics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12444,7 +12444,7 @@
    "as": "@scout_g3",
    "properties": {
     "name": "Scout: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12483,7 +12483,7 @@
    "as": "@scout_g4",
    "properties": {
     "name": "Scout: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12522,7 +12522,7 @@
    "as": "@scout_g5",
    "properties": {
     "name": "Scout: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12561,7 +12561,7 @@
    "as": "@scout_g6",
    "properties": {
     "name": "Scout: gain Piloting",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_piloting",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_piloting",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12606,7 +12606,7 @@
    "as": "@surface_defense_svc",
    "properties": {
     "name": "Surface Defense Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -12619,7 +12619,7 @@
    "as": "@surface_defense_g1",
    "properties": {
     "name": "Surface Defense: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12658,7 +12658,7 @@
    "as": "@surface_defense_g2",
    "properties": {
     "name": "Surface Defense: gain Gun Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gun_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gun_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12697,7 +12697,7 @@
    "as": "@surface_defense_g3",
    "properties": {
     "name": "Surface Defense: gain Gunnery",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_gunnery",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_gunnery",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12736,7 +12736,7 @@
    "as": "@surface_defense_g4",
    "properties": {
     "name": "Surface Defense: gain Melee Combat",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_melee_combat",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_melee_combat",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12775,7 +12775,7 @@
    "as": "@surface_defense_g5",
    "properties": {
     "name": "Surface Defense: gain Recon",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_recon",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_recon",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12814,7 +12814,7 @@
    "as": "@surface_defense_g6",
    "properties": {
     "name": "Surface Defense: gain Battle Dress",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_battle_dress",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_battle_dress",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12859,7 +12859,7 @@
    "as": "@technician_svc",
    "properties": {
     "name": "Technician Service Skills",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Skills and Training",
     "source_kind": "sentence",
@@ -12872,7 +12872,7 @@
    "as": "@technician_g1",
    "properties": {
     "name": "Technician: gain Admin",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_admin",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_admin",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12911,7 +12911,7 @@
    "as": "@technician_g2",
    "properties": {
     "name": "Technician: gain Computer",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_computer",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_computer",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12950,7 +12950,7 @@
    "as": "@technician_g3",
    "properties": {
     "name": "Technician: gain Mechanics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_mechanics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_mechanics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -12989,7 +12989,7 @@
    "as": "@technician_g4",
    "properties": {
     "name": "Technician: gain Medicine",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_medicine",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_medicine",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -13028,7 +13028,7 @@
    "as": "@technician_g5",
    "properties": {
     "name": "Technician: gain Electronics",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_electronics",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_electronics",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -13067,7 +13067,7 @@
    "as": "@technician_g6",
    "properties": {
     "name": "Technician: gain Sciences",
-    "skill": "@@entity/source-document%3Acepheus%3Abook1%2Fskills.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Skill/sk_sciences",
+    "skill": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Skill/sk_sciences",
     "initial_skill_level": "1",
     "existing_skill_delta": "1",
     "source_file": "book1/character-creation.md",
@@ -13112,7 +13112,7 @@
    "as": "@draft_table",
    "properties": {
     "name": "Draft Career",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Qualifying and the Draft",
     "source_kind": "table",

@@ -3,6 +3,7 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_ops_parse.h"
 #include "logosphere/kg/kg_ops_transaction.h"
+#include "logosphere/text/source_manifest.h"
 
 #include <nlohmann/json.hpp>
 
@@ -197,6 +198,64 @@ bool seed_creates_addressable_content(const SeedEnvelope& seed,
     return false;
 }
 
+bool validate_ingestion_edition(const SeedEnvelope& seed,
+                                EntityID edition,
+                                const KGModule& kg,
+                                std::string& error) {
+    if (edition == INVALID_ENTITY || !kg.exists(edition) ||
+        kg.getType(edition) != "IngestionEditionContext") {
+        error = "seed identity context is not an IngestionEditionContext";
+        return false;
+    }
+    const auto resolved =
+        logosphere::text::resolve_ingestion_edition(kg, edition);
+    if (!resolved.ok) {
+        error = "seed ingestion edition is invalid: " + resolved.reason;
+        return false;
+    }
+    if (!require_context_property(kg, edition, "source_layer", seed.layer,
+                                  error)) {
+        return false;
+    }
+
+    EntityID representation = INVALID_ENTITY;
+    for (const EntityID candidate : kg.getRelated(
+             edition, "EDITION_INCLUDES_REPRESENTATION")) {
+        if (kg.getProperty(candidate, "source_file") != seed.source.file)
+            continue;
+        if (representation != INVALID_ENTITY) {
+            error = "seed ingestion edition contains duplicate source_file '" +
+                    seed.source.file + "'";
+            return false;
+        }
+        representation = candidate;
+    }
+    if (representation == INVALID_ENTITY) {
+        error = "seed ingestion edition does not include source_file '" +
+                seed.source.file + "'";
+        return false;
+    }
+
+    size_t matching_revisions = 0;
+    for (const EntityID observation :
+         kg.findByType("SourceRevisionObservation")) {
+        if (kg.getProperty(observation, "identity_context") ==
+                std::to_string(representation) &&
+            kg.getProperty(observation, "source_revision") ==
+                seed.source.commit) {
+            ++matching_revisions;
+        }
+    }
+    if (matching_revisions != 1) {
+        error = "seed ingestion edition source_file '" + seed.source.file +
+                "' requires exactly one source revision observation for '" +
+                seed.source.commit + "', found " +
+                std::to_string(matching_revisions);
+        return false;
+    }
+    return true;
+}
+
 bool seed_owns_type(const KGModule& kg, const std::string& type) {
     const auto& ontology = kg.getRegistry();
     return ontology.hasFacet(type, "seed-owned") ||
@@ -368,9 +427,17 @@ bool refuse_names_already_loaded(const SeedEnvelope& seed, const KGModule& kg,
     return true;
 }
 
-bool load_seed(const SeedEnvelope& seed, KGModule& kg,
-               SeedLoadReport& report) {
+static bool load_seed_with_identity(const SeedEnvelope& seed,
+                                    EntityID ingestion_edition_context,
+                                    KGModule& kg,
+                                    SeedLoadReport& report) {
     report = SeedLoadReport{};
+    if (ingestion_edition_context != INVALID_ENTITY &&
+        !validate_ingestion_edition(seed, ingestion_edition_context, kg,
+                                    report.error)) {
+        report.ok = false;
+        return false;
+    }
     int invalid_op = -1;
     if (!refuse_names_already_loaded(seed, kg, invalid_op, report.error)) {
         report.ok = false;
@@ -458,13 +525,17 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
     const std::string document_ref = document_id == INVALID_ENTITY
         ? std::string("@") + kDocumentAlias
         : std::to_string(document_id);
+    const std::string identity_ref =
+        ingestion_edition_context == INVALID_ENTITY
+            ? document_ref
+            : std::to_string(ingestion_edition_context);
 
     for (size_t index = 0; index < seed.ops.size(); ++index) {
         KGOp copied = seed.ops[index];
         if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
             create &&
             kg.getRegistry().isSubtypeOf(create->type, "Addressable")) {
-            create->properties.emplace_back("identity_context", document_ref);
+            create->properties.emplace_back("identity_context", identity_ref);
             create->properties.emplace_back("entity_key", create->as);
         }
         if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
@@ -504,11 +575,28 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
     }
     report.bindings.erase(kLayerAlias);
     report.bindings.erase(kDocumentAlias);
+    report.identity_context =
+        ingestion_edition_context == INVALID_ENTITY
+            ? document_id
+            : ingestion_edition_context;
     report.source_layer_context = layer_id;
     report.source_document_context = document_id;
     report.created_ids.assign(batch.created_ids.begin() + prefix_count,
                               batch.created_ids.end());
     return true;
+}
+
+bool load_seed(const SeedEnvelope& seed, KGModule& kg,
+               SeedLoadReport& report) {
+    return load_seed_with_identity(seed, INVALID_ENTITY, kg, report);
+}
+
+bool load_seed_in_edition(const SeedEnvelope& seed,
+                          EntityID ingestion_edition_context,
+                          KGModule& kg,
+                          SeedLoadReport& report) {
+    return load_seed_with_identity(seed, ingestion_edition_context, kg,
+                                   report);
 }
 
 }  // namespace kg

@@ -2,6 +2,7 @@
 
 #include "logosphere/text/source_document.h"
 #include "logosphere/text/source_locator.h"
+#include "logosphere/text/source_corpus.h"
 
 #include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
@@ -419,6 +420,7 @@ struct Checker {
     SeedVerifyReport& report;
     const logosphere::rules::ProcedurePrimitiveRegistry*
         procedure_primitives;
+    EntityID ingestion_edition_context = INVALID_ENTITY;
 
     // rel path -> file content; empty string caches "unreadable".
     std::map<std::string, std::string> files;
@@ -471,7 +473,11 @@ struct Checker {
     // Loads into `world` through the seed loader; the loaded state
     // is what every other check reads.
     bool check_schema(KGModule& world, SeedLoadReport& load) {
-        const bool ok = load_seed(seed, world, load);
+        const bool ok = ingestion_edition_context == INVALID_ENTITY
+                            ? load_seed(seed, world, load)
+                            : load_seed_in_edition(
+                                  seed, ingestion_edition_context, world,
+                                  load);
         report.ops_loaded = load.ops_applied;
         if (!ok) {
             const std::string alias =
@@ -1256,22 +1262,43 @@ struct Checker {
 
 }  // namespace
 
-SeedVerifyReport verify_seed(const SeedEnvelope& seed,
-                             const std::string& source_root,
-                             const OntologyRegistry& registry,
-                             const logosphere::rules::
-                                 ProcedurePrimitiveRegistry*
-                                     procedure_primitives,
-                             const std::vector<const SeedEnvelope*>&
-                                 prerequisites) {
+static SeedVerifyReport verify_seed_impl(
+    const SeedEnvelope& seed,
+    const std::string& source_root,
+    const OntologyRegistry& registry,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives,
+    const std::vector<const SeedEnvelope*>& prerequisites,
+    const logosphere::text::SourceCorpusDeclaration* corpus,
+    const logosphere::text::SourceAccess* source_access) {
     SeedVerifyReport report;
     Checker checker{seed, source_root, registry, report,
-                    procedure_primitives, {}};
+                    procedure_primitives, INVALID_ENTITY, {}};
 
     checker.check_commit_pin();
 
     KGModule world(registry);
     world.setMode(KGMode::MINIMAL);
+    if (corpus != nullptr) {
+        if (source_access == nullptr) {
+            report.violations.push_back(
+                {"schema", -1, "",
+                 "edition-scoped verification has no source access"});
+            return report;
+        }
+        const auto materialized =
+            logosphere::text::materialize_source_corpus_into_kg(
+                *corpus, *source_access, world);
+        if (!materialized.ok) {
+            report.violations.push_back(
+                {"schema", -1, "",
+                 "source corpus materialization failed: " +
+                     materialized.reason});
+            return report;
+        }
+        checker.ingestion_edition_context =
+            materialized.ingestion_edition_context;
+    }
 
     // What this seed depends on, loaded first and in order, so its
     // Canonical @@entity references resolve against the same world the game
@@ -1281,7 +1308,13 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
     for (const SeedEnvelope* prerequisite : prerequisites) {
         if (!prerequisite) continue;
         SeedLoadReport prior;
-        if (!load_seed(*prerequisite, world, prior)) {
+        const bool loaded = checker.ingestion_edition_context == INVALID_ENTITY
+                                ? load_seed(*prerequisite, world, prior)
+                                : load_seed_in_edition(
+                                      *prerequisite,
+                                      checker.ingestion_edition_context,
+                                      world, prior);
+        if (!loaded) {
             report.violations.push_back(
                 {"schema", prior.failed_op, "",
                  "prerequisite seed '" + prerequisite->source.file +
@@ -1305,9 +1338,38 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
     return report;
 }
 
-bool verify_and_load_seed_sequence(
+SeedVerifyReport verify_seed(const SeedEnvelope& seed,
+                             const std::string& source_root,
+                             const OntologyRegistry& registry,
+                             const logosphere::rules::
+                                 ProcedurePrimitiveRegistry*
+                                     procedure_primitives,
+                             const std::vector<const SeedEnvelope*>&
+                                 prerequisites) {
+    return verify_seed_impl(seed, source_root, registry,
+                            procedure_primitives, prerequisites, nullptr,
+                            nullptr);
+}
+
+SeedVerifyReport verify_seed_in_edition(
+    const SeedEnvelope& seed,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration& corpus,
+    const logosphere::text::SourceAccess& source_access,
+    const OntologyRegistry& registry,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives,
+    const std::vector<const SeedEnvelope*>& prerequisites) {
+    return verify_seed_impl(seed, source_root, registry,
+                            procedure_primitives, prerequisites, &corpus,
+                            &source_access);
+}
+
+static bool verify_and_load_seed_sequence_impl(
     const std::vector<SeedEnvelope>& seeds,
     const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration* corpus,
+    const logosphere::text::SourceAccess* source_access,
     KGModule& world,
     SeedSequenceLoadReport& report,
     const logosphere::rules::ProcedurePrimitiveRegistry*
@@ -1319,13 +1381,32 @@ bool verify_and_load_seed_sequence(
         return false;
     }
 
+    EntityID edition = INVALID_ENTITY;
+    if (corpus != nullptr) {
+        if (source_access == nullptr) {
+            report.ok = false;
+            report.error = "edition-scoped seed sequence has no source access";
+            return false;
+        }
+        const auto materialized =
+            logosphere::text::materialize_source_corpus_into_kg(
+                *corpus, *source_access, world);
+        if (!materialized.ok) {
+            report.ok = false;
+            report.error = "source corpus materialization failed: " +
+                           materialized.reason;
+            return false;
+        }
+        edition = materialized.ingestion_edition_context;
+    }
+
     std::vector<const SeedEnvelope*> prerequisites;
     prerequisites.reserve(seeds.size());
     for (size_t index = 0; index < seeds.size(); ++index) {
         const SeedEnvelope& seed = seeds[index];
-        SeedVerifyReport verified = verify_seed(
+        SeedVerifyReport verified = verify_seed_impl(
             seed, source_root, world.getRegistry(), procedure_primitives,
-            prerequisites);
+            prerequisites, corpus, source_access);
         report.verifications.push_back(std::move(verified));
         const SeedVerifyReport& current = report.verifications.back();
         if (!current.ok()) {
@@ -1346,7 +1427,11 @@ bool verify_and_load_seed_sequence(
         ++report.seeds_verified;
 
         SeedLoadReport loaded;
-        if (!load_seed(seed, world, loaded)) {
+        const bool loaded_ok = edition == INVALID_ENTITY
+                                   ? load_seed(seed, world, loaded)
+                                   : load_seed_in_edition(
+                                         seed, edition, world, loaded);
+        if (!loaded_ok) {
             report.ok = false;
             report.failed_seed = static_cast<int>(index);
             report.error = "load failed: " + loaded.error;
@@ -1356,6 +1441,32 @@ bool verify_and_load_seed_sequence(
         prerequisites.push_back(&seed);
     }
     return true;
+}
+
+bool verify_and_load_seed_sequence(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives) {
+    return verify_and_load_seed_sequence_impl(
+        seeds, source_root, nullptr, nullptr, world, report,
+        procedure_primitives);
+}
+
+bool verify_and_load_seed_sequence_in_edition(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration& corpus,
+    const logosphere::text::SourceAccess& source_access,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives) {
+    return verify_and_load_seed_sequence_impl(
+        seeds, source_root, &corpus, &source_access, world, report,
+        procedure_primitives);
 }
 
 }  // namespace kg

@@ -45,13 +45,12 @@
 // schema check.
 //
 // When the registry includes the rule-language pack and a seed creates
-// Addressable content, the loader also owns identity materialization. In the
-// same
-// atomic batch it creates or reuses SourceLayerContext and
-// SourceDocumentContext entities, then injects the document context and seed
-// alias as each entity's identity_context and entity_key. Cited content also
-// gets the document context as origin_context. Seed ops cannot forge those
-// loader-owned values.
+// Addressable content, the loader owns identity materialization. The legacy
+// load_seed entry point uses the source document for both identity and citation
+// origin. load_seed_in_edition instead requires an already materialized exact
+// ingestion edition for identity while retaining the source document only as
+// transitional citation origin. Seed ops cannot forge either loader-owned
+// value.
 //
 // Engine-side helper. Generic - no game knowledge.
 
@@ -125,6 +124,7 @@ struct SeedLoadReport {
 
     // Engine-owned identity contexts. INVALID_ENTITY when this seed has no
     // Addressable creates.
+    EntityID identity_context = INVALID_ENTITY;
     EntityID source_layer_context = INVALID_ENTITY;
     EntityID source_document_context = INVALID_ENTITY;
 };
@@ -142,6 +142,17 @@ struct SeedLoadReport {
 // the registry the world was built from. Returns report.ok.
 bool load_seed(const SeedEnvelope& seed, KGModule& kg,
                SeedLoadReport& report);
+
+// Load source-authored Addressable content inside one exact, already
+// materialized IngestionEditionContext. The edition must resolve against its
+// canonical manifest, match seed.layer, include seed.source.file, and carry a
+// SourceRevisionObservation matching seed.source.commit. All checks happen
+// before seed mutation. Citation origin remains the legacy source document
+// until the separate evidence migration removes that path.
+bool load_seed_in_edition(const SeedEnvelope& seed,
+                          EntityID ingestion_edition_context,
+                          KGModule& kg,
+                          SeedLoadReport& report);
 
 }  // namespace kg
 

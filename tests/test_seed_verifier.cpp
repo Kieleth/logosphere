@@ -31,6 +31,7 @@
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/procedure_runner.h"
+#include "logosphere/text/source_corpus.h"
 #include "generated/earth_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -76,6 +77,21 @@ std::string slurp(const std::string& path) {
     ss << f.rdbuf();
     return ss.str();
 }
+
+struct RootSourceAccess final : logosphere::text::SourceAccess {
+    std::string root;
+
+    explicit RootSourceAccess(std::string source_root)
+        : root(std::move(source_root)) {}
+
+    logosphere::text::SourceReadResult read_exact(
+        const logosphere::text::SourceRepresentationDeclaration& declaration)
+        const override {
+        const std::string bytes = slurp(root + "/" + declaration.source_file);
+        if (bytes.empty()) return {false, {}, "unreadable or empty"};
+        return {true, bytes, {}};
+    }
+};
 
 // The same merged registry the CLI uses: core + every engine pack.
 kg::OntologyRegistry engine_registry() {
@@ -385,6 +401,72 @@ void test_loader_materializes_seed_origin_contexts() {
               batch.error.find("sealed origin") != std::string::npos &&
               world.getProperty(check, "target_number") == "8",
           "the validated runtime path cannot mutate a published rule");
+}
+
+void test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence() {
+    kg::SeedEnvelope seed = parse_fixture();
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    RootSourceAccess source_access(kSourceRoot);
+    const logosphere::text::SourceCorpusDeclaration corpus{
+        seed.layer,
+        {{seed.source.file,
+          rule_language::ontology::SourceMediaType::UTF8_TEXT,
+          seed.source.commit}}};
+    const auto materialized =
+        logosphere::text::materialize_source_corpus_into_kg(
+            corpus, source_access, world);
+    CHECK(materialized.ok,
+          "the exact test corpus materializes before seed loading: " +
+              materialized.reason);
+    if (!materialized.ok) return;
+
+    kg::SeedLoadReport report;
+    const bool ok = kg::load_seed_in_edition(
+        seed, materialized.ingestion_edition_context, world, report);
+    CHECK(ok, "a seed loads inside its supplied ingestion edition: " +
+                  report.error);
+    if (!ok) return;
+
+    const auto check = report.bindings.at("int_throw");
+    CHECK(world.getProperty(check, "identity_context") ==
+              std::to_string(materialized.ingestion_edition_context),
+          "the ingestion edition, not the cited document, owns rule identity");
+    CHECK(report.source_document_context != kg::INVALID_ENTITY &&
+              world.getProperty(check, "origin_context") ==
+                  std::to_string(report.source_document_context),
+          "legacy citation evidence retains its document origin during the "
+          "explicit transition");
+
+    kg::SeedEnvelope empty = seed;
+    empty.ops.clear();
+    kg::SeedLoadReport empty_report;
+    CHECK(kg::load_seed_in_edition(
+              empty, materialized.ingestion_edition_context, world,
+              empty_report) &&
+              empty_report.identity_context == kg::INVALID_ENTITY,
+          "a seed with no Addressable creates does not report an identity "
+          "context it never used");
+
+    kg::KGModule wrong_world(engine_registry());
+    wrong_world.setMode(kg::KGMode::MINIMAL);
+    const logosphere::text::SourceCorpusDeclaration wrong_corpus{
+        "other",
+        {{seed.source.file,
+          rule_language::ontology::SourceMediaType::UTF8_TEXT,
+          seed.source.commit}}};
+    const auto wrong_edition =
+        logosphere::text::materialize_source_corpus_into_kg(
+            wrong_corpus, source_access, wrong_world);
+    kg::SeedLoadReport rejected;
+    CHECK(wrong_edition.ok &&
+              !kg::load_seed_in_edition(
+                  seed, wrong_edition.ingestion_edition_context,
+                  wrong_world, rejected) &&
+              rejected.error.find("source_layer") != std::string::npos,
+          "an edition from another source layer fails before rule mutation");
+    CHECK(wrong_world.findByType("RuleConstant").empty(),
+          "a mismatched edition leaves no seed rules behind");
 }
 
 void test_loader_owns_seed_portable_identity() {
@@ -1499,6 +1581,7 @@ int main() {
     test_loader_binds_and_resolves();
     test_a_second_seed_cannot_recreate_a_name();
     test_loader_materializes_seed_origin_contexts();
+    test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence();
     test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();

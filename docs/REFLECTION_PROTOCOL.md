@@ -533,8 +533,12 @@ Manifest membership is a typed relation. File order is irrelevant; duplicate
 logical paths, mixed layers, missing members, or declared identity drift fail.
 Source-system revision is separate provenance rather than identity because it
 may change while every represented source byte remains identical. The edition
-schema and resolver exist. The loader and existing rule instances still
-require an atomic migration before this protocol rule is fully gated.
+schema and resolver exist. Production Logovger rules now use the materialized
+edition as `identity_context`, and every cross-seed qualified reference names
+that edition. Evidence remains on the structural document-locator path until
+the separate source-target migration is complete. This split was selected
+explicitly so identity no longer waits on conversion of 3,082 legacy citation
+records.
 
 **Coverage uses atomic source leaves, DECIDED 2026-08-17 03:12 UTC.**
 The canonical coverage units are headings, prose sentences, table cells

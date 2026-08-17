@@ -97,9 +97,11 @@ The entity resolver decodes the context key, exact type, and entity key, then
 requires exactly one matching `Addressable` entity. Zero matches fail as a
 broken reference. Multiple matches are a violated world invariant and also
 fail. Published source content uses its exact ingestion-edition context; its
-evidence uses an exact source representation plus selector. The current seed
-loader still injects a source-document context and is the legacy path scheduled
-for atomic migration. Runtime content uses its explicit runtime context. Forks
+evidence uses an exact source representation plus selector. The production
+Logovger loader materializes its declared corpus and injects the resulting
+ingestion edition as rule identity. Its existing citation verifier still uses
+a source-document origin and structural locator fields during the explicit
+evidence transition. Runtime content uses its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 

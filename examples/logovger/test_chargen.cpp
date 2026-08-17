@@ -101,10 +101,15 @@ void test_rule_seed_manifest_rejects_wrong_order() {
     kg::KGModule world(game_registry());
     world.setMode(kg::KGMode::MINIMAL);
     const auto procedures = logovger::make_chargen_procedure_registry();
+    logosphere::text::SourceCorpusDeclaration corpus;
+    CHECK(logovger::declare_rule_source_corpus(seeds, corpus, error),
+          "the production corpus is declared before order verification: " +
+              error);
+    logovger::RuleSourceAccess source_access(game_path("srd/cepheus"));
     kg::SeedSequenceLoadReport report;
-    CHECK(!kg::verify_and_load_seed_sequence(
-              seeds, game_path("srd/cepheus"), world, report,
-              &procedures),
+    CHECK(!kg::verify_and_load_seed_sequence_in_edition(
+              seeds, game_path("srd/cepheus"), corpus, source_access,
+              world, report, &procedures),
           "the procedure seed is refused before the rules it references");
     std::cout << "  [measure] production wrong-order refusal: "
               << report.error << std::endl;

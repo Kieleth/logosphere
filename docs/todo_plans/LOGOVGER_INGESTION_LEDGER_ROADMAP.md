@@ -278,9 +278,25 @@ implementation commit `da7ba36`:
   filesystem access;
 - `git diff --check`: clean.
 
-The generic engine can now persist a declared corpus and its provenance. The
-legacy Logovger seed loader still creates document contexts and remains the
-next explicit migration; no compatibility path was added here.
+The generic engine can now persist a declared corpus and its provenance.
+
+**Scope ruling, 2026-08-17 18:36 UTC.** Owner selected option 2: move rule
+identity to the exact edition now, then migrate evidence section by section.
+The measured production surface is six seeds, two representations, one source
+revision, 1,393 cross-seed qualified references, and 3,082 structural
+citations. Identity and evidence are separate graph concerns. Keeping rules
+document-scoped until every locator converts would preserve known-wrong
+identity and make the 3,082-record evidence conversion a prerequisite for an
+independent invariant.
+
+The production loader now derives one edition from application-declared corpus
+membership and exact bytes, validates every seed's layer, representation, and
+revision observation against it, and injects it as rule identity. All 1,393
+production references use the edition context. Source-document contexts and
+loose locator fields remain only for existing citation verification. This is a
+named transition, not a second evidence grammar: no `SourceTarget` consumer
+falls back to a locator, and the locator is deleted when the last evidence
+section moves.
 
 ## Immediate Phase A, minimum honest ledger
 
@@ -325,9 +341,13 @@ Follow this TDD order:
 - [x] Materialize a declared corpus as `SourceLayerContext`,
   `SourceRepresentationContext`, append-only `SourceRevisionObservation`, and
   `IngestionEditionContext` in one validated engine operation.
-- [ ] Atomically migrate rule identity and citations from document context and
-  loose locator fields to ingestion edition plus `SourceTarget`. Delete the
-  replaced locator path rather than retaining a fallback.
+- [x] Migrate all production rule identity and cross-seed references from
+  document context to the exact ingestion edition. Keep the existing locator
+  only as the explicit transitional citation path.
+- [ ] Migrate citations section by section from source-document origin and
+  loose locator fields to exact representation-scoped `SourceTarget` evidence.
+  Delete the replaced locator path when the final section moves; do not add a
+  `SourceTarget`-to-locator fallback.
 - [ ] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.

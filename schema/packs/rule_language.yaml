@@ -190,8 +190,8 @@ classes:
     annotations:
       facets: append-only, seed-owned, no-instance-declared
       no_instance_reason: >-
-        The engine materializer is the first writer; the legacy Logovger
-        loader has not migrated to source-corpus contexts yet.
+        The engine source-corpus materializer owns runtime instances; schemas
+        do not declare revision observations.
     slot_usage:
       identity_context:
         range: SourceRepresentationContext
@@ -215,8 +215,8 @@ classes:
     annotations:
       facets: sealed-origin, seed-owned, no-instance-declared
       no_instance_reason: >-
-        The manifest contract is proven in Phase A tests; the next real-section
-        slice will create the first production ingestion edition.
+        The engine source-corpus materializer owns runtime instances; schemas
+        do not declare ingestion editions.
     slot_usage:
       source_layer:
         required: true

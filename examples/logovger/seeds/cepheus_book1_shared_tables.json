@@ -62,7 +62,7 @@
    "as": "@aging_table",
    "properties": {
     "name": "Effects of Aging",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Aging",
     "source_kind": "sentence",
@@ -648,7 +648,7 @@
    "as": "@injury_table",
    "properties": {
     "name": "Injury",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Injuries",
     "source_kind": "sentence",
@@ -670,7 +670,7 @@
     "source_table": "1D6",
     "source_row": "1",
     "source_column": "Injury",
-    "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "attribute_delta_dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "attribute_delta_reduces": "true",
     "unmodelled": "The second clause, 'reduce both other physical characteristics by 2 (or one of them by 4)', depends on which characteristic the first clause reduced. An outcome cannot refer to a choice made earlier in its own sequence, so only the 1D6 reduction is expressed."
    }
@@ -714,7 +714,7 @@
     "source_table": "1D6",
     "source_row": "2",
     "source_column": "Injury",
-    "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "attribute_delta_dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "attribute_delta_reduces": "true"
    }
   },
@@ -993,7 +993,7 @@
    "as": "@mishap_table",
    "properties": {
     "name": "Survival Mishaps",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Survival",
     "source_kind": "sentence",
@@ -1359,7 +1359,7 @@
     "source_row": "3",
     "source_column": "Mishaps",
     "amount": "-10000",
-    "currency": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Currency/credits"
+    "currency": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Currency/credits"
    }
   },
   {
