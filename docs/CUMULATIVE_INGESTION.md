@@ -425,10 +425,31 @@ Four reconciliation rules are binding:
    claims. No filtered content disappears before the ledger.
 
 This decision does not choose the schema class names, exact source-unit
-grammar, or closed claim-disposition vocabulary. Those are the first
-owner-facing boundaries in Phase A. The TDD sequence and current handoff
-are recorded in
+identity grammar, or closed claim-disposition vocabulary. Those are the
+first owner-facing boundaries in Phase A. The TDD sequence and current
+handoff are recorded in
 `todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
+
+### Coverage grain: atomic leaves, decided 2026-08-17
+
+Coverage starts at the smallest source leaves the document model must
+expose: headings, prose sentences, table cells including header and
+empty cells, and sentences inside list items. Source content that cannot
+be classified becomes an opaque leaf or makes enumeration fail. It is
+never dropped. A file manifest proves that every file in the pinned
+source entered enumeration, including files with no leaves.
+
+This is deliberately more granular than the minimum needed for many
+pages. Paragraphs, rows, sections, and files may be derived later as
+grouping, filtering, batching, or display views if leaf volume becomes
+unmanageable. They do not become another coverage authority and cannot
+hide an atomic leaf. Claims remain a separate level and may link one or
+many leaves.
+
+The decision does not make the present locator complete. The corpus has
+duplicate source text, empty table cells, and rows without unique keys.
+The exact identity and disambiguation grammar for those leaves remains
+the next Phase A decision.
 
 ---
 

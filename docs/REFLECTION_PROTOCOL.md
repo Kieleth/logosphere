@@ -457,9 +457,29 @@ content; silence is never that judgement. Every claim cites at least one
 coverage row and carries its own disposition, dependency set, and
 downstream invalidation identity. Ingested, raised, duplicate,
 contradictory, provisional, and any later claim outcomes belong to the
-claim, not to the coverage row. Exact type names, source-unit grammar,
+claim, not to the coverage row. Exact type names, leaf identity grammar,
 and the closed outcome vocabulary remain implementation decisions and
 must be settled by the Phase A tests. The required topology does not.
+
+**Coverage uses atomic source leaves, DECIDED 2026-08-17 03:12 UTC.**
+The canonical coverage units are headings, prose sentences, table cells
+including header and empty cells, sentences within list items, and an
+opaque leaf for source content the normalizer cannot classify more
+precisely. A file manifest still records every pinned file, including a
+file that produces no content leaves. Markdown separators, blank layout
+lines, and fence delimiters are syntax protected by the source pin, not
+independent semantic judgements. Content inside a fence remains a leaf.
+Nothing unrecognised may disappear: it becomes opaque or enumeration
+fails.
+
+Paragraphs, table rows, sections, and files may later be used for
+filtering, batching, display, and derived roll-ups when leaf volume
+becomes inconvenient. They do not replace the atomic records and do not
+carry a second coverage truth. The owner's reason is foundational: start
+with the smallest addressable evidence and add grouping on top if scale
+requires it. The exact identity grammar for duplicate and empty leaves
+remains open; the current locator cannot uniquely address every such
+leaf, so Phase A may not pretend the existing grammar is sufficient.
 
 The implementation checklist and parallel-session handover live in
 `todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.

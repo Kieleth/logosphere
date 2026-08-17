@@ -41,7 +41,19 @@ assume a historical branch is idle from this document alone.
   closes before play.
 - Option 4 is selected: source coverage and semantic claims are separate
   levels.
-- Coverage units are mechanically enumerable and addressable.
+- Coverage uses atomic source leaves: headings, prose sentences, table
+  cells including header and empty cells, and sentences within list
+  items.
+- Unclassified source content becomes an opaque leaf or fails
+  enumeration. It never disappears.
+- A pinned-file manifest accounts for every source file, including one
+  with no content leaves.
+- Paragraphs, table rows, sections, and files may later provide derived
+  filtering, batching, display, and roll-ups. They never replace leaf
+  records or own a second coverage status.
+- Coverage leaves are mechanically enumerable and addressable. Exact
+  duplicate and empty-leaf identity remains an owner decision because
+  the current locator cannot address all of them uniquely.
 - One source unit may produce zero, one, or many atomic claims.
 - One claim may cite more than one source unit when its meaning crosses
   a source boundary.
@@ -56,7 +68,7 @@ assume a historical branch is idle from this document alone.
 
 `SourceCoverageUnit` and `IngestionClaim` are useful working labels in
 discussion only. The owner has not selected schema type names, the exact
-source-unit grammar, or the closed claim-disposition vocabulary.
+leaf-identity grammar, or the closed claim-disposition vocabulary.
 
 ## Completed
 
@@ -79,6 +91,8 @@ source-unit grammar, or the closed claim-disposition vocabulary.
 - [x] Prove a reversed generic pair and reversed production manifest
   fail before rule-seed mutation.
 - [x] Decide option 4, two-level coverage and atomic claims.
+- [x] Choose atomic leaf coverage over block coverage, with block-level
+  techniques reserved for derived grouping if volume requires them.
 - [x] Reconcile the decision across the protocol, cumulative-ingestion
   rationale, ingestion review, and RPG decision ledger.
 
@@ -101,10 +115,12 @@ was visited and what claims came from it.
 
 Follow this TDD order:
 
-- [ ] Present and decide the mechanical source-unit grammar. It must
-  enumerate prose, headings, tables, and plainly non-rule files without
-  a semantic pre-filter, and produce stable exact locators at one pinned
-  source commit.
+- [x] Decide source-unit grain: atomic headings, prose sentences, table
+  cells, list-item sentences, and opaque leaves, without a semantic
+  pre-filter.
+- [ ] Present and decide the exact leaf-identity grammar. It must address
+  duplicate sentences, repeated headings, empty cells, duplicate or
+  blank row keys, and repeated table labels at one pinned source commit.
 - [ ] Present and decide the minimum closed claim dispositions. Keep
   ontology-gap and rule-language-gap reasons distinct if both enter the
   first slice.
