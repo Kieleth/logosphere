@@ -128,6 +128,34 @@ Verification for the R11 implementation baseline:
   Toolchain, before application compilation;
 - `git diff --check`: clean.
 
+Verification for append-only decision history, implementation commit
+`b5f5990`:
+
+- schema contract first ran red at 83 passes / 5 failures because the
+  ledger records, decision events, typed values, and relations did not
+  exist;
+- append-only write-path tests then ran red at 89 passes / 2 failures
+  because the facet was declared but rewrite and deletion were not yet
+  refused;
+- the reconciliation fixture first failed to compile because the
+  ledger API did not exist;
+- the schema test exposed a generator-class defect: Event subclasses
+  had direct parents in generated registries but no ancestor sets, so
+  runtime subtype checks contradicted LinkML. The generator now emits
+  complete Event ancestry and its unit test prevents recurrence;
+- final focused results: `test_rulebook_pack` 91/0,
+  `test_ingestion_ledger` 10/0, generator plus schema audits 14/0 with
+  15 schemas, 367 classes, 52 enums, and zero findings;
+- complete registered headless profile: effective 94/94. The first run
+  produced the known sandbox-only `test_run_recorder` home-directory
+  denial, which passed with normal filesystem access, and the
+  production-world declaration gate correctly found the four new
+  concrete types had no production seed instances. Their schema now
+  states the exact temporary reason; `test_chargen` passed on rerun.
+  The next real-section slice removes those declarations by creating
+  production instances;
+- `git diff --check`: clean.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
