@@ -1,8 +1,11 @@
 # Source location and provenance micro-spike
 
-State: research completed 2026-08-17. No owner decision is recorded by
-this document. It narrows the open leaf-identity decision in
-`LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
+State: research completed 2026-08-17. Owner selected the combined path
+at 04:30 UTC: option 1 owns the semantic contract, implemented locally
+through replacement of the option 3 locator mechanism. No external
+standards runtime or parallel legacy path is introduced. The binding
+entry is in `RPG_MODULE.md`; this document retains the evidence and
+rejected boundaries.
 
 ## Question
 
@@ -190,7 +193,7 @@ should prove these failures before any production type is added:
 No code should be written from this list until the standards adoption
 boundary below is selected.
 
-## Owner decision required
+## Options presented to the owner
 
 ### Option 1: standards-shaped local profile
 
@@ -228,5 +231,11 @@ same distinctions under private names, keeps the current locator model
 as the conceptual center after its parser authority was rejected, and
 makes later interoperability an archaeological exercise.
 
-The research points to option 1, but that is a recommendation, not a
-recorded decision.
+## Owner decision
+
+Option 1 and the local implementation part of option 3 are combined.
+The external standards shape the semantics and invariants. Local strict
+types implement the minimum required subset and replace the current
+parser-centric locator contract. The private-semantics part of option 3
+is rejected. Full standards serialization from option 2 waits for a
+real second consumer.

@@ -52,8 +52,14 @@ assume a historical branch is idle from this document alone.
   filtering, batching, display, and roll-ups. They never replace leaf
   records or own a second coverage status.
 - Coverage leaves are mechanically enumerable and addressable. Exact
-  duplicate and empty-leaf identity remains an owner decision because
-  the current locator cannot address all of them uniquely.
+  duplicate and empty leaves use a canonical selector within an exact,
+  content-addressed source representation. The current structural
+  locator cannot address all of them uniquely and will be replaced.
+- Source location and provenance use a standards-shaped local profile:
+  W3C target and selector semantics, IIIF image-region and derived-OCR
+  semantics, PROV activity and agent semantics, and CID-style typed
+  digests. External standards services and serializers are not runtime
+  dependencies.
 - One source unit may produce zero, one, or many atomic claims.
 - One claim may cite more than one source unit when its meaning crosses
   a source boundary.
@@ -122,10 +128,9 @@ Follow this TDD order:
 - [x] Decide source-unit grain: atomic headings, prose sentences, table
   cells, list-item sentences, and opaque leaves, without a semantic
   pre-filter.
-- [ ] Decide the standards adoption boundary: a standards-shaped local
-  ontology profile, full standards serialization, or a private locator
-  version 2. The micro-spike recommends the first but records no owner
-  decision.
+- [x] Decide the standards adoption boundary: standards-shaped
+  semantics implemented through a local replacement for the current
+  locator, with no external standards runtime or legacy fallback.
 - [ ] Present and decide the exact leaf-identity grammar. It must address
   duplicate sentences, repeated headings, empty cells, duplicate or
   blank row keys, and repeated table labels at one pinned source commit.
