@@ -160,7 +160,7 @@ classes:
         required: true
       source_file:
         required: true
-      source_commit:
+      source_revision:
         required: true
       source_layer_context:
         required: true
@@ -175,7 +175,7 @@ classes:
     slots:
       - source_layer
       - source_file
-      - source_commit
+      - source_revision
       - source_layer_context
       - source_media_type
       - source_digest_algorithm
@@ -1101,7 +1101,16 @@ slots:
 
   source_commit:
     range: string
-    description: Exact revision of the source document.
+    description: >-
+      Legacy Git commit pin of a SourceDocumentContext. New source
+      representations use source_revision because source systems are not
+      required to be Git repositories.
+
+  source_revision:
+    range: string
+    description: >-
+      Exact source-system revision retained as representation provenance.
+      Revision does not participate in content identity; exact bytes do.
 
   source_media_type:
     range: SourceMediaType

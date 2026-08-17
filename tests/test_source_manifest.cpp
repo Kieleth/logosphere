@@ -45,14 +45,14 @@ struct Fixture {
     }
 
     EntityID representation(const std::string& path, const std::string& bytes,
-                            const std::string& commit = "commit-a") {
+                            const std::string& revision = "revision-a") {
         const auto id = world.createEntity("SourceRepresentationContext");
         world.setProperty(id, "context_key",
                           "source-representation:" + path + ":" +
                               sha256_hex(bytes));
         world.setProperty(id, "source_layer", "test");
         world.setProperty(id, "source_file", path);
-        world.setProperty(id, "source_commit", commit);
+        world.setProperty(id, "source_revision", revision);
         world.setProperty(id, "source_layer_context", std::to_string(layer));
         world.setProperty(id, "source_media_type", "UTF8_TEXT");
         world.setProperty(id, "source_digest_algorithm", "SHA256");
@@ -105,21 +105,24 @@ void test_manifest_encoding_is_pinned_and_order_independent() {
           "the versioned length-prefixed encoding and path sort are pinned");
 }
 
-void test_paths_and_bytes_are_identity_but_commit_is_provenance() {
+void test_paths_and_bytes_are_identity_but_revision_is_provenance() {
     Fixture f;
-    const auto original = f.representation("rules.md", "same", "commit-a");
-    const auto other_commit =
-        f.representation("rules.md", "same", "commit-b");
-    const auto renamed = f.representation("renamed.md", "same", "commit-a");
-    const auto changed = f.representation("rules.md", "changed", "commit-a");
+    const auto original =
+        f.representation("rules.md", "same", "revision-a");
+    const auto other_revision =
+        f.representation("rules.md", "same", "revision-b");
+    const auto renamed =
+        f.representation("renamed.md", "same", "revision-a");
+    const auto changed =
+        f.representation("rules.md", "changed", "revision-a");
 
     const auto a = build_source_manifest(f.world, "test", f.layer, {original});
     const auto b =
-        build_source_manifest(f.world, "test", f.layer, {other_commit});
+        build_source_manifest(f.world, "test", f.layer, {other_revision});
     const auto c = build_source_manifest(f.world, "test", f.layer, {renamed});
     const auto d = build_source_manifest(f.world, "test", f.layer, {changed});
     CHECK(a.ok && b.ok && a.digest == b.digest,
-          "repository commit changes do not invalidate identical source bytes");
+          "source revision changes do not invalidate identical source bytes");
     CHECK(c.ok && c.digest != a.digest,
           "renaming a logical source changes edition identity");
     CHECK(d.ok && d.digest != a.digest,
@@ -215,7 +218,7 @@ void test_context_key_projection_is_unambiguous() {
 int main() {
     std::cout << "Ingestion edition source manifests" << std::endl;
     test_manifest_encoding_is_pinned_and_order_independent();
-    test_paths_and_bytes_are_identity_but_commit_is_provenance();
+    test_paths_and_bytes_are_identity_but_revision_is_provenance();
     test_duplicate_paths_and_empty_manifests_fail_loudly();
     test_every_representation_must_belong_to_the_edition_layer();
     test_missing_required_representation_data_fails_loudly();

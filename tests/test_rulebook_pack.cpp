@@ -371,13 +371,17 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
 
     const auto* media =
         reg.findProperty("SourceRepresentationContext", "source_media_type");
+    const auto* revision =
+        reg.findProperty("SourceRepresentationContext", "source_revision");
     const auto* algorithm = reg.findProperty("SourceRepresentationContext",
                                              "source_digest_algorithm");
     const auto* digest =
         reg.findProperty("SourceRepresentationContext", "source_digest");
     const auto* length = reg.findProperty("SourceRepresentationContext",
                                           "source_byte_length");
-    CHECK(media && media->required &&
+    CHECK(revision && revision->required &&
+              revision->value_kind == kg::PropertyValueKind::String &&
+              media && media->required &&
               media->value_kind == kg::PropertyValueKind::Enum &&
               media->enum_type == "SourceMediaType" &&
               algorithm && algorithm->required &&
@@ -387,7 +391,8 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
               digest->value_kind == kg::PropertyValueKind::String &&
               length && length->required &&
               length->value_kind == kg::PropertyValueKind::Integer,
-          "a representation requires typed media, digest, and byte length");
+          "a representation requires revision provenance, typed media, digest, "
+          "and byte length");
 
     const auto* start =
         reg.findProperty("ByteRangeSelector", "source_byte_start");

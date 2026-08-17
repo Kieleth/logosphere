@@ -17,14 +17,6 @@ constexpr const char* kManifestFormat = "LENGTH_PREFIXED_V1";
 constexpr const char* kDigestAlgorithm = "SHA256";
 constexpr const char* kMembership = "EDITION_INCLUDES_REPRESENTATION";
 
-struct ManifestEntry {
-    std::string source_file;
-    std::string media_type;
-    std::string digest_algorithm;
-    std::string digest;
-    std::uint64_t byte_length = 0;
-};
-
 SourceManifestResult fail(std::string reason) {
     SourceManifestResult result;
     result.reason = std::move(reason);
@@ -128,6 +120,62 @@ std::string canonical_ingestion_edition_key(
 }
 
 SourceManifestResult build_source_manifest(
+    std::string_view source_layer,
+    const std::vector<SourceManifestRepresentation>& representations) {
+    if (source_layer.empty()) return fail("source_layer must not be empty");
+    if (representations.empty()) return fail("source manifest must not be empty");
+
+    std::vector<SourceManifestRepresentation> entries = representations;
+    for (const auto& entry : entries) {
+        if (entry.source_file.empty())
+            return fail("source_file must not be empty in source manifest");
+        switch (entry.source_media_type) {
+            case rule_language::ontology::SourceMediaType::UTF8_TEXT:
+                break;
+            default:
+                return fail("source_media_type is not supported");
+        }
+        if (entry.source_digest_algorithm !=
+            rule_language::ontology::SourceDigestAlgorithm::SHA256)
+            return fail("source_digest_algorithm is not supported");
+        if (!is_lower_sha256(entry.source_digest))
+            return fail(
+                "source_digest must be 64 lowercase hexadecimal digits");
+    }
+    std::sort(entries.begin(), entries.end(),
+              [](const auto& left, const auto& right) {
+                  return left.source_file < right.source_file;
+              });
+    for (std::size_t index = 1; index < entries.size(); ++index)
+        if (entries[index - 1].source_file == entries[index].source_file)
+            return fail("duplicate source_file in source manifest: " +
+                        entries[index].source_file);
+
+    std::string canonical;
+    append_field(canonical, kManifestFormat);
+    append_field(canonical, std::to_string(entries.size()));
+    for (const auto& entry : entries) {
+        append_field(canonical, entry.source_file);
+        append_field(canonical,
+                     rule_language::ontology::to_string(
+                         entry.source_media_type));
+        append_field(canonical,
+                     rule_language::ontology::to_string(
+                         entry.source_digest_algorithm));
+        append_field(canonical, entry.source_digest);
+        append_field(canonical, std::to_string(entry.source_byte_length));
+    }
+
+    SourceManifestResult result;
+    result.ok = true;
+    result.canonical_bytes = std::move(canonical);
+    result.digest = sha256_hex(result.canonical_bytes);
+    result.edition_key =
+        canonical_ingestion_edition_key(source_layer, result.digest);
+    return result;
+}
+
+SourceManifestResult build_source_manifest(
     const kg::KGModule& world, std::string_view source_layer,
     kg::EntityID source_layer_context,
     const std::vector<kg::EntityID>& representations) {
@@ -138,7 +186,7 @@ SourceManifestResult build_source_manifest(
     if (representations.empty()) return fail("source manifest must not be empty");
 
     const auto& ontology = world.getRegistry();
-    std::vector<ManifestEntry> entries;
+    std::vector<SourceManifestRepresentation> entries;
     entries.reserve(representations.size());
     for (const auto representation : representations) {
         if (!world.exists(representation) ||
@@ -148,7 +196,7 @@ SourceManifestResult build_source_manifest(
 
         std::string representation_layer;
         std::string source_file;
-        std::string source_commit;
+        std::string source_revision;
         std::string media_type;
         std::string digest_algorithm;
         std::string digest;
@@ -156,8 +204,8 @@ SourceManifestResult build_source_manifest(
                             representation_layer, reason) ||
             !require_string(world, representation, "source_file", source_file,
                             reason) ||
-            !require_string(world, representation, "source_commit",
-                            source_commit, reason) ||
+            !require_string(world, representation, "source_revision",
+                            source_revision, reason) ||
             !require_string(world, representation, "source_media_type",
                             media_type, reason) ||
             !require_string(world, representation, "source_digest_algorithm",
@@ -187,38 +235,19 @@ SourceManifestResult build_source_manifest(
         if (!parse_nonnegative(world, representation, "source_byte_length",
                                byte_length, reason))
             return fail(reason);
-        entries.push_back({std::move(source_file), std::move(media_type),
-                           std::move(digest_algorithm), std::move(digest),
-                           byte_length});
+        rule_language::ontology::SourceMediaType parsed_media;
+        if (!rule_language::ontology::from_string(media_type.c_str(),
+                                                  parsed_media))
+            return fail("source_media_type has no generated enum member");
+        rule_language::ontology::SourceDigestAlgorithm parsed_algorithm;
+        if (!rule_language::ontology::from_string(digest_algorithm.c_str(),
+                                                  parsed_algorithm))
+            return fail(
+                "source_digest_algorithm has no generated enum member");
+        entries.push_back({std::move(source_file), parsed_media,
+                           parsed_algorithm, std::move(digest), byte_length});
     }
-
-    std::sort(entries.begin(), entries.end(),
-              [](const ManifestEntry& left, const ManifestEntry& right) {
-                  return left.source_file < right.source_file;
-              });
-    for (std::size_t i = 1; i < entries.size(); ++i)
-        if (entries[i - 1].source_file == entries[i].source_file)
-            return fail("duplicate source_file in source manifest: " +
-                        entries[i].source_file);
-
-    std::string canonical;
-    append_field(canonical, kManifestFormat);
-    append_field(canonical, std::to_string(entries.size()));
-    for (const auto& entry : entries) {
-        append_field(canonical, entry.source_file);
-        append_field(canonical, entry.media_type);
-        append_field(canonical, entry.digest_algorithm);
-        append_field(canonical, entry.digest);
-        append_field(canonical, std::to_string(entry.byte_length));
-    }
-
-    SourceManifestResult result;
-    result.ok = true;
-    result.canonical_bytes = std::move(canonical);
-    result.digest = sha256_hex(result.canonical_bytes);
-    result.edition_key =
-        canonical_ingestion_edition_key(source_layer, result.digest);
-    return result;
+    return build_source_manifest(source_layer, entries);
 }
 
 SourceManifestResult resolve_ingestion_edition(const kg::KGModule& world,

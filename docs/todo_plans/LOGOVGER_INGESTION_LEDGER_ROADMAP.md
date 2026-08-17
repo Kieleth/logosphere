@@ -70,8 +70,16 @@ assume a historical branch is idle from this document alone.
   source-representation manifest. Source targets remain scoped to exact
   representations.
 - The canonical manifest includes logical path, media type, digest algorithm,
-  source digest, and byte length. It excludes repository commit, which remains
-  provenance. Source order cannot change identity; a path or byte change does.
+  source digest, and byte length. It excludes source-system revision, which
+  remains provenance. Source order cannot change identity; a path or byte
+  change does.
+- Corpus membership and byte access are separate engine inputs. The application
+  owns an explicit `SourceCorpusDeclaration`; a replaceable `SourceAccess`
+  supplies exact bytes. The engine alone derives digest, length, manifest, and
+  edition identity. A persisted manifest is generated output, never a private
+  Logovger authority.
+- Representation provenance is `source_revision`. Git commit remains only on
+  the legacy document context until that path is deleted.
 - One source unit may produce zero, one, or many atomic claims.
 - One claim may cite more than one source unit when its meaning crosses
   a source boundary.
@@ -86,8 +94,9 @@ assume a historical branch is idle from this document alone.
   preserving every earlier judgement.
 - Seeds remain the verified load format. The ledger does not replace
   seed verification or weaken byte-exact citations.
-- A future reusable ingestion module is promoted only after a second
-  consumer exists. Logovger is consumer one.
+- A standalone reusable ingestion module is promoted only after a second
+  consumer exists. The mechanism remains generic engine work now; Logovger is
+  its first integration consumer, not its definition.
 
 The built schema names are `SourceCoverage`, `IngestionClaim`,
 `CoverageDecision`, and `ClaimDecision`. Exact leaf identity is a
@@ -131,9 +140,14 @@ dispositions are `MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
   layer plus canonical source-manifest digest.
 - [x] Define the edition and typed representation membership in the reusable
   LinkML rule-language pack.
-- [x] Prove manifest identity ignores relation order and repository commit,
+- [x] Prove manifest identity ignores relation order and source revision,
   changes for source path or bytes, and refuses empty, duplicate, cross-layer,
   incomplete, or drifted declarations.
+- [x] Correct the ownership boundary: explicit application corpus declaration
+  plus replaceable source access, with all content identity derived by the
+  engine.
+- [x] Generalize new representation provenance from Git-specific
+  `source_commit` to source-system `source_revision`.
 
 Verification for the R11 implementation baseline:
 
@@ -237,6 +251,11 @@ Follow this TDD order:
   and silent zero-claim coverage each fail mechanically.
 - [x] Establish the sealed ingestion-edition context and canonical manifest
   resolver before changing rule identity.
+- [x] Establish the engine-level corpus declaration and exact-byte access seam
+  before introducing a Logovger adapter.
+- [ ] Materialize a declared corpus as `SourceLayerContext`,
+  `SourceRepresentationContext`, and `IngestionEditionContext` in one validated
+  engine operation.
 - [ ] Atomically migrate rule identity and citations from document context and
   loose locator fields to ingestion edition plus `SourceTarget`. Delete the
   replaced locator path rather than retaining a fallback.

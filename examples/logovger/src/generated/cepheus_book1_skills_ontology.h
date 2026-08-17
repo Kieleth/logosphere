@@ -1868,7 +1868,7 @@ struct SourceDocumentContext : public KnowledgeContext {
     std::string source_layer = {};
     /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Exact revision of the source document.
+    /// Legacy Git commit pin of a SourceDocumentContext. New source representations use source_revision because source systems are not required to be Git repositories.
     std::string source_commit = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
@@ -1897,8 +1897,8 @@ struct SourceRepresentationContext : public KnowledgeContext {
     std::string source_layer = {};
     /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Exact revision of the source document.
-    std::string source_commit = {};
+    /// Exact source-system revision retained as representation provenance. Revision does not participate in content identity; exact bytes do.
+    std::string source_revision = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
     /// Closed media kind governing valid primary selectors.

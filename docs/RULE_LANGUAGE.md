@@ -96,9 +96,12 @@ the tuple `(identity_context, exact concrete type, entity_key)`.
 The entity resolver decodes the context key, exact type, and entity key, then
 requires exactly one matching `Addressable` entity. Zero matches fail as a
 broken reference. Multiple matches are a violated world invariant and also
-fail. Source content normally uses its source-document context; runtime
-content uses its explicit runtime context. Forks receive identity in their new
-context rather than inheriting the source entity's portable key accidentally.
+fail. Published source content uses its exact ingestion-edition context; its
+evidence uses an exact source representation plus selector. The current seed
+loader still injects a source-document context and is the legacy path scheduled
+for atomic migration. Runtime content uses its explicit runtime context. Forks
+receive identity in their new context rather than inheriting the source
+entity's portable key accidentally.
 
 File-local `@alias` bindings remain unchanged. They address entities created
 inside one operation batch. The previous cross-seed `@@Type:Name` form is
@@ -1100,6 +1103,13 @@ their destination context. Canonical references use strict percent encoding
 and resolve only exact context, concrete type, and machine-key tuples. All
 production Logovger cross-seed references were migrated, and the previous
 name and source-alias resolver was deleted and tested dead.
+
+The later ingestion-edition decision supersedes source-document context as the
+target identity scope without changing the canonical reference grammar. The
+generic source-corpus materializer now derives representation and edition
+identity from an explicit declaration plus replaceable exact-byte access. The
+loader migration remains incomplete, so document-scoped loading above is a
+historical implementation state rather than the final contract.
 
 `materialize_ontology_meta_graph` reflects the complete composed registry into
 sorted canonical class, direct-property, relation, facet, value-kind, enum,

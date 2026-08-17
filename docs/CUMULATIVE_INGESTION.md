@@ -291,6 +291,16 @@ representation capability, so it belongs to malleus with the rest of
 the ontology, and this module would consume it. See gap 1 below, which
 makes the same point from the other end.
 
+**Engine-boundary amendment, 2026-08-17 16:03 UTC.** The second-consumer rule
+above delays packaging this protocol as a standalone reusable module. It does
+not make Logovger the owner of source-corpus identity. The engine now accepts
+two distinct inputs: an application-owned `SourceCorpusDeclaration` naming
+the complete membership, layer, typed media, and revision provenance; and a
+replaceable `SourceAccess` that returns exact bytes for each declaration. The
+engine derives representation digests and lengths, the canonical manifest,
+and edition identity. Logovger will supply the first declaration and adapter,
+not a private manifest grammar.
+
 ---
 
 ## The state of the gate today, measured 2026-08-16
@@ -451,10 +461,10 @@ canonical manifest of exact source representations. This lets one claim cite
 several files without assigning the resulting rule to one arbitrary file. The
 manifest is sorted by logical path and length-prefixes every field, so relation
 order and delimiter characters cannot change or collide in its identity.
-Paths and represented bytes participate. Repository commit is kept as
+Paths and represented bytes participate. Source-system revision is kept as
 provenance but excluded, so the same exact corpus remains the same edition
-across an unrelated repository commit. The schema and mechanical resolver are
-built; existing document-scoped rule loading has not yet migrated.
+across an unrelated repository revision. The schema and mechanical resolver
+are built; existing document-scoped rule loading has not yet migrated.
 
 ### Coverage grain: atomic leaves, decided 2026-08-17
 

@@ -61,6 +61,14 @@ above cannot tell, provided it can answer both questions. This is the
 extension point for "absorb a scanned book" and it is the only one
 needed for it.
 
+**IMPLEMENTATION AMENDMENT, 2026-08-17 16:03 UTC.** "Pinned to a commit"
+above means pinned to an exact source-system revision. Git is one possible
+source system, not part of the engine abstraction. The application explicitly
+declares corpus membership, typed media, layer, and revision provenance. A
+replaceable `SourceAccess` returns exact bytes for each declaration. The engine
+derives length, content digest, canonical manifest, and edition identity; the
+application may not assert them.
+
 ### L1 Extraction
 
 **Owns** the reading. Deciding that a three-cell row belongs to an
@@ -437,10 +445,18 @@ creates document-scoped identity and has not yet crossed this boundary.
 The canonical format is `LENGTH_PREFIXED_V1`. Every field is decimal byte
 length, colon, raw bytes. It contains the format, entry count, then each
 representation sorted by logical source path with fields in this order:
-source path, media type, digest algorithm, digest, byte length. Repository
-commit is retained as provenance on the representation but excluded from the
+source path, media type, digest algorithm, digest, byte length. Source-system
+revision is retained as provenance on the representation but excluded from the
 manifest. Therefore changing a path or byte content creates a new edition;
-moving the same exact source through an unrelated repository commit does not.
+moving the same exact source through an unrelated revision does not.
+
+**Ownership amendment, 2026-08-17 16:03 UTC.** The canonical manifest is an
+engine-derived result, not a Logovger-authored input. `SourceCorpusDeclaration`
+states what belongs to the corpus and `SourceAccess` states how to obtain the
+declared bytes. The engine validates both and computes identity. A persisted
+manifest is a generated projection for audit or deployment. Keeping this
+generic mechanism in the engine does not prematurely extract the future
+standalone ingestion module; that promotion still waits for consumer two.
 
 ---
 

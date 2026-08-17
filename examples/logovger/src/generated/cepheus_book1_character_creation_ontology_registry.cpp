@@ -1200,7 +1200,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("SourceLayerContext", "source_layer", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_layer", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_file", kg::PropertyValueKind::String, true);
-    reg.addProperty("SourceRepresentationContext", "source_commit", kg::PropertyValueKind::String, true);
+    reg.addProperty("SourceRepresentationContext", "source_revision", kg::PropertyValueKind::String, true);
     reg.addRefProperty("SourceRepresentationContext", "source_layer_context", true, "SourceLayerContext", true);
     reg.addEnumProperty("SourceRepresentationContext", "source_media_type", "SourceMediaType", true);
     reg.addEnumProperty("SourceRepresentationContext", "source_digest_algorithm", "SourceDigestAlgorithm", true);
