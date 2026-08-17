@@ -19,7 +19,7 @@
    "TableEntry": 150,
    "EnterCareer": 6,
    "MusteringRankBonusEntry": 3,
-   "RuleConstant": 7
+   "RuleConstant": 6
   },
   "unique_name_per_type": [
    "AdvanceSkill",
@@ -13489,19 +13489,6 @@
     "source_section": "Cash Benefits",
     "source_kind": "sentence",
     "source_quote": "Up to 3 benefit rolls can be taken on the Cash table."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "RuleConstant",
-   "as": "@aging_start_age",
-   "properties": {
-    "name": "aging_start_age",
-    "constant_value": "34",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "sentence",
-    "source_quote": "The effects of aging begin when a character reaches 34 years of age."
    }
   },
   {

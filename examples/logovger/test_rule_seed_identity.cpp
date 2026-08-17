@@ -174,12 +174,12 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
-    CHECK(targets.size() == 28 && coverages.size() == 28 &&
-              claims.size() == 24,
-          "Injury Crisis, Medical Care, and Medical Debt persist 28 atomic "
-          "source leaves and 24 atomic claims");
-    CHECK(world.findByType("CoverageDecision").size() == 28 &&
-              world.findByType("ClaimDecision").size() == 24,
+    CHECK(targets.size() == 50 && coverages.size() == 50 &&
+              claims.size() == 36,
+          "the first four migrated sections persist 50 atomic source leaves "
+          "and 36 atomic claims");
+    CHECK(world.findByType("CoverageDecision").size() == 50 &&
+              world.findByType("ClaimDecision").size() == 36,
           "every production coverage and claim has its initial append-only "
           "decision");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
@@ -195,7 +195,7 @@ void test_production_rules_use_exact_edition_identity() {
     const std::string chapter =
         slurp(game_root + "/srd/cepheus/book1/character-creation.md");
     std::multiset<std::string> selected;
-    bool targets_resolve = targets.size() == 28;
+    bool targets_resolve = targets.size() == 50;
     for (const auto target : targets) {
         const auto result =
             logosphere::text::resolve_text_target(world, target, chapter);
@@ -237,7 +237,28 @@ void test_production_rules_use_exact_edition_identity() {
         "Medical Debt",
         "During finishing touches, you must pay any outstanding costs from "
         "medical care or anagathic drugs out of your Benefits before "
-        "anything else."};
+        "anything else.",
+        "Aging",
+        "The effects of aging begin when a character reaches 34 years of age.",
+        "At the end of the fourth term, and at the end of every term "
+        "thereafter, the character must roll 2D6 on the Aging Table.",
+        "Apply the character's total number of terms as a negative Dice "
+        "Modifier on this table.",
+        "2D6", "Effects of Aging",
+        "\\-6",
+        "Reduce three physical characteristics by 2, reduce one mental "
+        "characteristic by 1",
+        "\\-5", "Reduce three physical characteristics by 2.",
+        "\\-4",
+        "Reduce two physical characteristics by 2, reduce one physical "
+        "characteristic by 1",
+        "\\-3",
+        "Reduce one physical characteristic by 2, reduce two physical "
+        "characteristic by 1",
+        "\\-2", "Reduce three physical characteristics by 1",
+        "\\-1", "Reduce two physical characteristics by 1",
+        "0", "Reduce one physical characteristic by 1",
+        "1+", "No effect"};
     CHECK(targets_resolve && selected == expected,
           "every migrated target resolves to its exact source leaf, "
           "including duplicate table values");
@@ -349,6 +370,86 @@ void test_production_rules_use_exact_edition_identity() {
               "not hidden as executable rule data");
     }
 
+    struct ExpectedRule {
+        const char* type;
+        const char* key;
+    };
+    const std::vector<ExpectedRule> aging_rules{
+        {"RuleConstant", "aging_start_age"},
+        {"RollableTable", "aging_table"},
+        {"ModifyAttributesInGroup", "aging_m6_c0"},
+        {"ModifyAttributesInGroup", "aging_m6_c1"},
+        {"OutcomeSequence", "aging_m6"},
+        {"OutcomeStep", "aging_m6_s0"},
+        {"OutcomeStep", "aging_m6_s1"},
+        {"TableEntry", "aging_row_m6"},
+        {"ModifyAttributesInGroup", "aging_m5_c0"},
+        {"TableEntry", "aging_row_m5"},
+        {"ModifyAttributesInGroup", "aging_m4_c0"},
+        {"ModifyAttributesInGroup", "aging_m4_c1"},
+        {"OutcomeSequence", "aging_m4"},
+        {"OutcomeStep", "aging_m4_s0"},
+        {"OutcomeStep", "aging_m4_s1"},
+        {"TableEntry", "aging_row_m4"},
+        {"ModifyAttributesInGroup", "aging_m3_c0"},
+        {"ModifyAttributesInGroup", "aging_m3_c1"},
+        {"OutcomeSequence", "aging_m3"},
+        {"OutcomeStep", "aging_m3_s0"},
+        {"OutcomeStep", "aging_m3_s1"},
+        {"TableEntry", "aging_row_m3"},
+        {"ModifyAttributesInGroup", "aging_m2_c0"},
+        {"TableEntry", "aging_row_m2"},
+        {"ModifyAttributesInGroup", "aging_m1_c0"},
+        {"TableEntry", "aging_row_m1"},
+        {"ModifyAttributesInGroup", "aging_0_c0"},
+        {"TableEntry", "aging_row_0"},
+        {"NoEffect", "aging_1p_none"},
+        {"TableEntry", "aging_row_1p"},
+    };
+    bool every_aging_rule_is_exact = true;
+    for (const auto& expected_rule : aging_rules) {
+        const kg::EntityID rule = find_addressable(
+            world, expected_rule.type, expected_rule.key);
+        every_aging_rule_is_exact =
+            every_aging_rule_is_exact && rule != kg::INVALID_ENTITY &&
+            !has_legacy_locator(world, rule) &&
+            world.getProperty(rule, "origin_context") ==
+                std::to_string(editions.front()) &&
+            !world.getRelatedReverse(rule, "CLAIM_MATERIALIZES").empty();
+    }
+    CHECK(every_aging_rule_is_exact,
+          "all 30 Aging rules use exact claims with no surviving structural "
+          "locator");
+
+    const kg::EntityID aging_floor =
+        find_addressable(world, "TableEntry", "aging_row_m6");
+    const kg::EntityID aging_floor_claim = find_addressable(
+        world, "IngestionClaim", "aging_row_m6_claim");
+    const kg::EntityID aging_floor_decision = find_typed_by_property(
+        world, "ClaimDecision", "decision_subject",
+        std::to_string(aging_floor_claim));
+    CHECK(aging_floor != kg::INVALID_ENTITY &&
+              aging_floor_claim != kg::INVALID_ENTITY &&
+              aging_floor_decision != kg::INVALID_ENTITY &&
+              world.getProperty(aging_floor, "roll_min_unbounded") == "true" &&
+              world.hasProperty(aging_floor, "source_defect") &&
+              world.getProperty(aging_floor_decision, "claim_disposition") ==
+                  "PARTIAL" &&
+              world.getProperty(aging_floor_decision, "claim_gap_kind") ==
+                  "SOURCE_GAP" &&
+              world.getRelated(aging_floor_claim, "CLAIM_SUPPORTED_BY").size() ==
+                  4,
+          "the inferred Aging floor remains executable but is exposed as a "
+          "partial source-gap reading over exact table evidence");
+
+    const kg::EntityID roll_aging =
+        find_addressable(world, "ProcedureStep", "roll_aging");
+    CHECK(roll_aging != kg::INVALID_ENTITY &&
+              has_legacy_locator(world, roll_aging) &&
+              world.getRelatedReverse(roll_aging, "CLAIM_MATERIALIZES").empty(),
+          "the checklist-owned roll_aging step remains on its separate legacy "
+          "evidence until that source leaf is migrated");
+
     std::size_t no_rule = 0;
     std::size_t claims_present = 0;
     for (const auto decision : world.findByType("CoverageDecision")) {
@@ -359,16 +460,19 @@ void test_production_rules_use_exact_edition_identity() {
     }
     std::size_t partial = 0;
     std::size_t raised = 0;
+    std::size_t materialized = 0;
     for (const auto decision : world.findByType("ClaimDecision")) {
         const std::string disposition =
             world.getProperty(decision, "claim_disposition");
         partial += disposition == "PARTIAL";
         raised += disposition == "RAISED";
+        materialized += disposition == "MATERIALIZED";
     }
-    CHECK(no_rule == 4 && claims_present == 24 && partial == 2 &&
-              raised == 22,
-          "the complete production ledger exposes four zero-claim leaves, "
-          "two partial claims, and twenty-two raised claims");
+    CHECK(no_rule == 5 && claims_present == 45 && partial == 3 &&
+              raised == 24 && materialized == 9,
+          "the production ledger exposes five zero-claim leaves, three "
+          "partial claims, twenty-four raised claims, and nine fully "
+          "materialized claims");
 }
 
 }  // namespace

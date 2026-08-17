@@ -15,7 +15,7 @@ transcription: cells addressed by (table, row, column), plus two
 citation sentences reused 168 times. This script does that, and every
 string it writes is the exact bytes from the source.
 
-The remaining 8 are RuleConstants - numbers buried in prose that a
+The remaining RuleConstants are numbers buried in prose that a
 human read the chapter and chose. Those are DECLARED here with the
 sentence that proves each one, because choosing them is judgement and
 judgement belongs somewhere a reader can argue with it. The value
@@ -145,7 +145,7 @@ DM_SECTION = "Characteristic Modifiers"
 DM_TABLE = "Score Range"
 DM_COLUMN = "Characteristic Modifier"
 
-# The eight numbers a human read out of the prose, each with the
+# The numbers this seed owns from prose, each with the
 # sentence that proves it. The verifier checks every one against its
 # quote, so a wrong number or a wrong sentence fails the build rather
 # than shipping. implied_by is for a count the text states without
@@ -162,9 +162,6 @@ RULE_CONSTANTS = [
      "current career and must continue for another term."),
     ("cash_benefit_roll_max", "3", "Cash Benefits",
      "Up to 3 benefit rolls can be taken on the Cash table."),
-    ("aging_start_age", "34", "Aging",
-     "The effects of aging begin when a character reaches 34 years of "
-     "age."),
     ("crisis_restore_value", "1", "Aging Crisis",
      "The character dies unless he can pay 1D6×10,000 Credits for "
      "medical care, which will bring any characteristics back up to 1."),
