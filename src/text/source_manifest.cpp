@@ -196,7 +196,6 @@ SourceManifestResult build_source_manifest(
 
         std::string representation_layer;
         std::string source_file;
-        std::string source_revision;
         std::string media_type;
         std::string digest_algorithm;
         std::string digest;
@@ -204,8 +203,6 @@ SourceManifestResult build_source_manifest(
                             representation_layer, reason) ||
             !require_string(world, representation, "source_file", source_file,
                             reason) ||
-            !require_string(world, representation, "source_revision",
-                            source_revision, reason) ||
             !require_string(world, representation, "source_media_type",
                             media_type, reason) ||
             !require_string(world, representation, "source_digest_algorithm",

@@ -78,8 +78,11 @@ assume a historical branch is idle from this document alone.
   supplies exact bytes. The engine alone derives digest, length, manifest, and
   edition identity. A persisted manifest is generated output, never a private
   Logovger authority.
-- Representation provenance is `source_revision`. Git commit remains only on
-  the legacy document context until that path is deleted.
+- Revision provenance is a separate append-only `SourceRevisionObservation`
+  linked through typed `identity_context` to one exact representation. A
+  representation has no revision property and may be observed at several
+  source revisions without changing content or edition identity. Git commit
+  remains only on the legacy document context until that path is deleted.
 - One source unit may produce zero, one, or many atomic claims.
 - One claim may cite more than one source unit when its meaning crosses
   a source boundary.
@@ -146,8 +149,10 @@ dispositions are `MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
 - [x] Correct the ownership boundary: explicit application corpus declaration
   plus replaceable source access, with all content identity derived by the
   engine.
-- [x] Generalize new representation provenance from Git-specific
-  `source_commit` to source-system `source_revision`.
+- [x] Generalize new provenance from Git-specific `source_commit` to
+  source-system `source_revision`.
+- [x] Separate revision provenance from content identity through one immutable
+  typed observation per representation/revision pair.
 
 Verification for the R11 implementation baseline:
 
@@ -279,9 +284,9 @@ Follow this TDD order:
   resolver before changing rule identity.
 - [x] Establish the engine-level corpus declaration and exact-byte access seam
   before introducing a Logovger adapter.
-- [ ] Materialize a declared corpus as `SourceLayerContext`,
-  `SourceRepresentationContext`, and `IngestionEditionContext` in one validated
-  engine operation.
+- [x] Materialize a declared corpus as `SourceLayerContext`,
+  `SourceRepresentationContext`, append-only `SourceRevisionObservation`, and
+  `IngestionEditionContext` in one validated engine operation.
 - [ ] Atomically migrate rule identity and citations from document context and
   loose locator fields to ingestion edition plus `SourceTarget`. Delete the
   replaced locator path rather than retaining a fallback.

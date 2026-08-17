@@ -6,11 +6,15 @@
 
 #undef NDEBUG
 
+#include "logosphere/kg/kg_module.h"
 #include "logosphere/text/source_corpus.h"
+#include "logosphere/text/source_manifest.h"
 #include "logosphere/text/source_target.h"
+#include "generated/rule_language_ontology_registry.h"
 
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -31,7 +35,12 @@ using logosphere::text::SourceCorpusDeclaration;
 using logosphere::text::SourceReadResult;
 using logosphere::text::SourceRepresentationDeclaration;
 using logosphere::text::materialize_source_corpus;
+using logosphere::text::materialize_source_corpus_into_kg;
 using rule_language::ontology::SourceMediaType;
+
+static_assert(
+    !std::is_default_constructible_v<SourceRepresentationDeclaration>,
+    "source declarations must explicitly provide path, typed media, and revision");
 
 SourceRepresentationDeclaration source(std::string path,
                                        std::string revision = "revision-a") {
@@ -187,6 +196,134 @@ void test_invalid_typed_media_fails_loudly() {
           "an unknown typed media value cannot fall through as text");
 }
 
+void test_one_validated_operation_materializes_the_complete_context_graph() {
+    kg::KGModule world{rule_language::ontology::registry()};
+    world.setMode(kg::KGMode::MINIMAL);
+    MapAccess access{{{"a.md", "alpha"}, {"b.md", "beta"}}};
+    const auto result = materialize_source_corpus_into_kg(
+        {"test", {source("b.md"), source("a.md")}}, access, world);
+
+    CHECK(result.ok && result.source_layer_context != kg::INVALID_ENTITY &&
+              result.ingestion_edition_context != kg::INVALID_ENTITY &&
+              result.source_representations.size() == 2 &&
+              result.source_revision_observations.size() == 2,
+          "one engine operation returns the complete materialized context graph");
+    CHECK(world.findByType("SourceLayerContext").size() == 1 &&
+              world.findByType("SourceRepresentationContext").size() == 2 &&
+              world.findByType("SourceRevisionObservation").size() == 2 &&
+              world.findByType("IngestionEditionContext").size() == 1,
+          "the operation writes layer, representations, observations, and edition");
+    CHECK(world.getRelated(result.ingestion_edition_context,
+                           "EDITION_INCLUDES_REPRESENTATION") ==
+              result.source_representations,
+          "the edition owns its sorted exact representation membership");
+    bool observations_match = true;
+    for (std::size_t index = 0;
+         index < result.source_revision_observations.size(); ++index) {
+        const auto observation = result.source_revision_observations[index];
+        observations_match = observations_match &&
+            world.getProperty(observation, "identity_context") ==
+                std::to_string(result.source_representations[index]) &&
+            world.getProperty(observation, "source_revision") == "revision-a";
+    }
+    CHECK(observations_match,
+          "each immutable observation links one revision to one representation");
+    CHECK(logosphere::text::resolve_ingestion_edition(
+              world, result.ingestion_edition_context).ok,
+          "the persisted edition reproduces the engine-derived manifest identity");
+}
+
+void test_same_content_in_a_new_revision_reuses_identity_and_adds_provenance() {
+    kg::KGModule world{rule_language::ontology::registry()};
+    world.setMode(kg::KGMode::MINIMAL);
+    MapAccess access{{{"rules.md", "same"}}};
+    const auto first = materialize_source_corpus_into_kg(
+        {"test", {source("rules.md", "revision-a")}}, access, world);
+    const auto second = materialize_source_corpus_into_kg(
+        {"test", {source("rules.md", "revision-b")}}, access, world);
+    const auto repeated = materialize_source_corpus_into_kg(
+        {"test", {source("rules.md", "revision-b")}}, access, world);
+
+    CHECK(first.ok && second.ok && repeated.ok &&
+              first.source_layer_context == second.source_layer_context &&
+              first.source_representations == second.source_representations &&
+              first.ingestion_edition_context ==
+                  second.ingestion_edition_context,
+          "revision-only change reuses layer, content, and edition identity");
+    CHECK(world.findByType("SourceRevisionObservation").size() == 2 &&
+              first.source_revision_observations !=
+                  second.source_revision_observations &&
+              second.source_revision_observations ==
+                  repeated.source_revision_observations,
+          "distinct revisions stay queryable and exact replay is idempotent");
+}
+
+void test_one_revision_cannot_claim_two_byte_sequences_for_one_path() {
+    kg::KGModule world{rule_language::ontology::registry()};
+    world.setMode(kg::KGMode::MINIMAL);
+    MapAccess original{{{"rules.md", "original"}}};
+    MapAccess changed{{{"rules.md", "changed"}}};
+    const auto first = materialize_source_corpus_into_kg(
+        {"test", {source("rules.md", "revision-a")}}, original, world);
+    const auto entities_before = world.getStats().entity_count;
+    const auto relations_before = world.getStats().relation_count;
+    const auto conflict = materialize_source_corpus_into_kg(
+        {"test", {source("rules.md", "revision-a")}}, changed, world);
+
+    CHECK(first.ok && !conflict.ok &&
+              conflict.reason.find("revision-a") != std::string::npos &&
+              conflict.reason.find("rules.md") != std::string::npos,
+          "conflicting bytes at one revision and logical path fail loudly");
+    CHECK(world.getStats().entity_count == entities_before &&
+              world.getStats().relation_count == relations_before,
+          "a provenance conflict publishes no partial context graph");
+}
+
+void test_access_failure_publishes_no_contexts() {
+    kg::KGModule world{rule_language::ontology::registry()};
+    world.setMode(kg::KGMode::MINIMAL);
+    MapAccess missing;
+    const auto result = materialize_source_corpus_into_kg(
+        {"test", {source("missing.md")}}, missing, world);
+
+    CHECK(!result.ok && world.findByType("SourceLayerContext").empty() &&
+              world.findByType("SourceRepresentationContext").empty() &&
+              world.findByType("SourceRevisionObservation").empty() &&
+              world.findByType("IngestionEditionContext").empty(),
+          "source access failure occurs before any KG mutation");
+}
+
+void test_representation_identity_is_layer_scoped() {
+    kg::KGModule world{rule_language::ontology::registry()};
+    world.setMode(kg::KGMode::MINIMAL);
+    MapAccess access{{{"rules.md", "same"}}};
+    const auto first = materialize_source_corpus_into_kg(
+        {"first", {source("rules.md")}}, access, world);
+    const auto second = materialize_source_corpus_into_kg(
+        {"second", {source("rules.md")}}, access, world);
+
+    CHECK(first.ok && second.ok &&
+              first.source_representations != second.source_representations &&
+              world.findByType("SourceRepresentationContext").size() == 2,
+          "the same path and bytes in different authored layers remain distinct contexts");
+}
+
+void test_a_later_corpus_can_observe_another_file_at_the_same_revision() {
+    kg::KGModule world{rule_language::ontology::registry()};
+    world.setMode(kg::KGMode::MINIMAL);
+    MapAccess access{{{"a.md", "alpha"}, {"b.md", "beta"}}};
+    const auto first = materialize_source_corpus_into_kg(
+        {"test", {source("a.md", "revision-a")}}, access, world);
+    const auto expanded = materialize_source_corpus_into_kg(
+        {"test", {source("a.md", "revision-a"),
+                  source("b.md", "revision-a")}},
+        access, world);
+
+    CHECK(first.ok && expanded.ok &&
+              world.findByType("SourceRepresentationContext").size() == 2,
+          "provenance observations can grow without mutating an earlier record");
+}
+
 }  // namespace
 
 int main() {
@@ -199,6 +336,12 @@ int main() {
     test_missing_bytes_fail_with_the_declared_source_identity();
     test_empty_representation_bytes_are_valid_and_addressable();
     test_invalid_typed_media_fails_loudly();
+    test_one_validated_operation_materializes_the_complete_context_graph();
+    test_same_content_in_a_new_revision_reuses_identity_and_adds_provenance();
+    test_one_revision_cannot_claim_two_byte_sequences_for_one_path();
+    test_access_failure_publishes_no_contexts();
+    test_representation_identity_is_layer_scoped();
+    test_a_later_corpus_can_observe_another_file_at_the_same_revision();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

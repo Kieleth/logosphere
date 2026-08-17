@@ -371,16 +371,13 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
 
     const auto* media =
         reg.findProperty("SourceRepresentationContext", "source_media_type");
-    const auto* revision =
-        reg.findProperty("SourceRepresentationContext", "source_revision");
     const auto* algorithm = reg.findProperty("SourceRepresentationContext",
                                              "source_digest_algorithm");
     const auto* digest =
         reg.findProperty("SourceRepresentationContext", "source_digest");
     const auto* length = reg.findProperty("SourceRepresentationContext",
                                           "source_byte_length");
-    CHECK(revision && revision->required &&
-              revision->value_kind == kg::PropertyValueKind::String &&
+    CHECK(!reg.hasProperty("SourceRepresentationContext", "source_revision") &&
               media && media->required &&
               media->value_kind == kg::PropertyValueKind::Enum &&
               media->enum_type == "SourceMediaType" &&
@@ -391,8 +388,8 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
               digest->value_kind == kg::PropertyValueKind::String &&
               length && length->required &&
               length->value_kind == kg::PropertyValueKind::Integer,
-          "a representation requires revision provenance, typed media, digest, "
-          "and byte length");
+          "content identity requires typed media, digest, and byte length, "
+          "but never source revision");
 
     const auto* start =
         reg.findProperty("ByteRangeSelector", "source_byte_start");
@@ -424,6 +421,32 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
               quote->ref_target == "TextQuoteSelector",
           "a target requires representation plus typed primary selector, "
           "with an optional typed quote selector");
+}
+
+void test_source_revision_provenance_is_a_separate_typed_observation() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("SourceRevisionObservation", "Addressable") &&
+              reg.hasFacet("SourceRevisionObservation", "append-only") &&
+              reg.hasFacet("SourceRevisionObservation", "seed-owned"),
+          "a representation/revision pair is separate immutable provenance");
+
+    const auto* revision =
+        reg.findProperty("SourceRevisionObservation", "source_revision");
+    const auto* representation =
+        reg.findProperty("SourceRevisionObservation", "identity_context");
+    const auto* key =
+        reg.findProperty("SourceRevisionObservation", "entity_key");
+    CHECK(revision && revision->required &&
+              revision->value_kind == kg::PropertyValueKind::String &&
+              representation && representation->required &&
+              representation->value_kind == kg::PropertyValueKind::EntityRef &&
+              representation->ref_target == "SourceRepresentationContext" &&
+              key && key->required,
+          "revision provenance names one exact typed representation and revision");
+
+    CHECK(!reg.hasRelationType("REVISION_INCLUDES_REPRESENTATION"),
+          "the rejected mutable grouped-revision relation remains deleted");
 }
 
 void test_ingestion_edition_is_a_typed_sealed_context() {
@@ -1125,6 +1148,7 @@ int main() {
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
     test_source_leaf_identity_is_a_typed_schema_tuple();
+    test_source_revision_provenance_is_a_separate_typed_observation();
     test_ingestion_edition_is_a_typed_sealed_context();
     test_ingestion_dispositions_are_append_only_typed_decisions();
     test_ingestion_decision_history_cannot_be_rewritten();

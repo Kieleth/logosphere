@@ -1,10 +1,16 @@
 #pragma once
 
+#include "logosphere/kg/kg_types.h"
 #include "generated/rule_language_ontology.h"
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
+
+namespace kg {
+class KGModule;
+}
 
 namespace logosphere::text {
 
@@ -12,9 +18,16 @@ namespace logosphere::text {
 // length: those are engine-derived facts, never caller assertions.
 struct SourceRepresentationDeclaration {
     std::string source_file;
-    rule_language::ontology::SourceMediaType source_media_type =
-        rule_language::ontology::SourceMediaType::UTF8_TEXT;
+    rule_language::ontology::SourceMediaType source_media_type;
     std::string source_revision;
+
+    SourceRepresentationDeclaration(
+        std::string file,
+        rule_language::ontology::SourceMediaType media_type,
+        std::string revision)
+        : source_file(std::move(file)),
+          source_media_type(media_type),
+          source_revision(std::move(revision)) {}
 };
 
 struct SourceCorpusDeclaration {
@@ -58,6 +71,15 @@ struct SourceCorpusMaterialization {
     std::string reason;
 };
 
+struct SourceCorpusKGMaterialization {
+    bool ok = false;
+    kg::EntityID source_layer_context = kg::INVALID_ENTITY;
+    std::vector<kg::EntityID> source_representations;
+    std::vector<kg::EntityID> source_revision_observations;
+    kg::EntityID ingestion_edition_context = kg::INVALID_ENTITY;
+    std::string reason;
+};
+
 // Validate explicit membership, read every declared representation through
 // SourceAccess, derive exact content identity, and build the canonical edition
 // manifest. Results are sorted by source_file. Failure publishes no partial
@@ -65,5 +87,16 @@ struct SourceCorpusMaterialization {
 SourceCorpusMaterialization materialize_source_corpus(
     const SourceCorpusDeclaration& declaration,
     const SourceAccess& source_access);
+
+// Materialize the complete source context graph through the validated atomic
+// KG-op path. Existing exact contexts are reused. Missing contexts, edition
+// membership, and immutable revision observations commit together or not at
+// all. A later source revision may point to an existing content representation
+// without changing its identity; conflicting bytes for one revision and
+// logical path fail.
+SourceCorpusKGMaterialization materialize_source_corpus_into_kg(
+    const SourceCorpusDeclaration& declaration,
+    const SourceAccess& source_access,
+    kg::KGModule& world);
 
 }  // namespace logosphere::text

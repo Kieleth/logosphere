@@ -46,7 +46,6 @@ struct Fixture {
                           "source-representation:test:" + sha256_hex(bytes));
         world.setProperty(representation, "source_layer", "test");
         world.setProperty(representation, "source_file", "fixture.md");
-        world.setProperty(representation, "source_revision", "fixture");
         world.setProperty(representation, "source_layer_context",
                           std::to_string(layer));
         world.setProperty(representation, "source_media_type", "UTF8_TEXT");

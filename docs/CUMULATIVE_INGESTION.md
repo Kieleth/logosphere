@@ -461,10 +461,11 @@ canonical manifest of exact source representations. This lets one claim cite
 several files without assigning the resulting rule to one arbitrary file. The
 manifest is sorted by logical path and length-prefixes every field, so relation
 order and delimiter characters cannot change or collide in its identity.
-Paths and represented bytes participate. Source-system revision is kept as
-provenance but excluded, so the same exact corpus remains the same edition
-across an unrelated repository revision. The schema and mechanical resolver
-are built; existing document-scoped rule loading has not yet migrated.
+Paths and represented bytes participate. Source-system revision is kept in a
+separate typed observation linked to the exact representation and excluded
+from identity, so the same exact corpus remains the same edition across an
+unrelated source revision. The schema and mechanical resolver are built;
+existing document-scoped rule loading has not yet migrated.
 
 ### Coverage grain: atomic leaves, decided 2026-08-17
 

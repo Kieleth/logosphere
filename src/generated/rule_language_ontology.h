@@ -1759,7 +1759,7 @@ struct SourceDocumentContext : public KnowledgeContext {
     std::string source_layer = {};
     /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Legacy Git commit pin of a SourceDocumentContext. New source representations use source_revision because source systems are not required to be Git repositories.
+    /// Legacy Git commit pin of a SourceDocumentContext. New source revision observations use source_revision because source systems are not required to be Git repositories.
     std::string source_commit = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
@@ -1788,8 +1788,6 @@ struct SourceRepresentationContext : public KnowledgeContext {
     std::string source_layer = {};
     /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Exact source-system revision retained as representation provenance. Revision does not participate in content identity; exact bytes do.
-    std::string source_revision = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
     /// Closed media kind governing valid primary selectors.
@@ -1803,7 +1801,18 @@ struct SourceRepresentationContext : public KnowledgeContext {
 };
 
 
-/// Exact immutable source corpus used by one ingestion run. Its identity is the authored source layer plus the digest of its canonical manifest. Linked representations carry repository revision provenance, but commit IDs do not participate in the manifest digest.
+/// Immutable observation that one exact content-addressed representation occurred at one source-system revision. Each representation/revision pair is independent, so later observations never mutate earlier provenance.
+struct SourceRevisionObservation : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+    /// Exact source-system revision retained in a separate provenance observation. Revision does not participate in content identity; exact bytes do.
+    std::string source_revision = {};
+};
+
+
+/// Exact immutable source corpus used by one ingestion run. Its identity is the authored source layer plus the digest of its canonical manifest. Source revision observations carry provenance separately; revisions do not participate in the representation or manifest identity.
 struct IngestionEditionContext : public KnowledgeContext {
     /// Authored layer declared by a seed envelope.
     std::string source_layer = {};

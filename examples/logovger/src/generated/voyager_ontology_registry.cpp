@@ -283,6 +283,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("SourceDocumentContext", "KnowledgeContext", false);
     reg.addEntityType("SourceLayerContext", "KnowledgeContext", false);
     reg.addEntityType("SourceRepresentationContext", "KnowledgeContext", false);
+    reg.addEntityType("SourceRevisionObservation", "Entity", false);
     reg.addEntityType("SourceSelector", "Entity", true);
     reg.addEntityType("SourceTarget", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
@@ -556,6 +557,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("SourceDocumentContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("SourceLayerContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("SourceRepresentationContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
+    reg.addAncestors("SourceRevisionObservation", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("SourceSelector", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("SourceTarget", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -706,6 +708,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceRepresentationContext", {"sealed-origin", "seed-owned"});
+    reg.addFacets("SourceRevisionObservation", {"append-only", "no-instance-declared", "seed-owned"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("StepRoute", {"rulebook"});
     reg.addFacets("SubjectLookupEntry", {"rulebook"});
@@ -1215,12 +1218,14 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("SourceLayerContext", "source_layer", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_layer", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_file", kg::PropertyValueKind::String, true);
-    reg.addProperty("SourceRepresentationContext", "source_revision", kg::PropertyValueKind::String, true);
     reg.addRefProperty("SourceRepresentationContext", "source_layer_context", true, "SourceLayerContext", true);
     reg.addEnumProperty("SourceRepresentationContext", "source_media_type", "SourceMediaType", true);
     reg.addEnumProperty("SourceRepresentationContext", "source_digest_algorithm", "SourceDigestAlgorithm", true);
     reg.addProperty("SourceRepresentationContext", "source_digest", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_byte_length", kg::PropertyValueKind::Integer, true, true, 0.0, false, 0.0);
+    reg.addRefProperty("SourceRevisionObservation", "identity_context", true, "SourceRepresentationContext", true);
+    reg.addProperty("SourceRevisionObservation", "entity_key", kg::PropertyValueKind::String, true, true);
+    reg.addProperty("SourceRevisionObservation", "source_revision", kg::PropertyValueKind::String, true);
     reg.addRefProperty("SourceTarget", "target_representation", true, "SourceRepresentationContext", true);
     reg.addRefProperty("SourceTarget", "target_primary_selector", true, "SourceSelector", true);
     reg.addRefProperty("SourceTarget", "target_quote_selector", false, "TextQuoteSelector", true);

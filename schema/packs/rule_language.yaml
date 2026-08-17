@@ -160,8 +160,6 @@ classes:
         required: true
       source_file:
         required: true
-      source_revision:
-        required: true
       source_layer_context:
         required: true
       source_media_type:
@@ -175,20 +173,45 @@ classes:
     slots:
       - source_layer
       - source_file
-      - source_revision
       - source_layer_context
       - source_media_type
       - source_digest_algorithm
       - source_digest
       - source_byte_length
 
+  SourceRevisionObservation:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Immutable observation that one exact content-addressed representation
+      occurred at one source-system revision. Each representation/revision pair
+      is independent, so later observations never mutate earlier provenance.
+    annotations:
+      facets: append-only, seed-owned, no-instance-declared
+      no_instance_reason: >-
+        The engine materializer is the first writer; the legacy Logovger
+        loader has not migrated to source-corpus contexts yet.
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      entity_key:
+        required: true
+      source_revision:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+      - source_revision
+
   IngestionEditionContext:
     is_a: KnowledgeContext
     description: >-
       Exact immutable source corpus used by one ingestion run. Its identity is
       the authored source layer plus the digest of its canonical manifest.
-      Linked representations carry repository revision provenance, but commit
-      IDs do not participate in the manifest digest.
+      Source revision observations carry provenance separately; revisions do not
+      participate in the representation or manifest identity.
     annotations:
       facets: sealed-origin, seed-owned, no-instance-declared
       no_instance_reason: >-
@@ -1102,14 +1125,14 @@ slots:
   source_commit:
     range: string
     description: >-
-      Legacy Git commit pin of a SourceDocumentContext. New source
-      representations use source_revision because source systems are not
-      required to be Git repositories.
+      Legacy Git commit pin of a SourceDocumentContext. New source revision
+      observations use source_revision because source systems are not required
+      to be Git repositories.
 
   source_revision:
     range: string
     description: >-
-      Exact source-system revision retained as representation provenance.
+      Exact source-system revision retained in a separate provenance observation.
       Revision does not participate in content identity; exact bytes do.
 
   source_media_type:

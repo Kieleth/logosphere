@@ -446,9 +446,10 @@ The canonical format is `LENGTH_PREFIXED_V1`. Every field is decimal byte
 length, colon, raw bytes. It contains the format, entry count, then each
 representation sorted by logical source path with fields in this order:
 source path, media type, digest algorithm, digest, byte length. Source-system
-revision is retained as provenance on the representation but excluded from the
-manifest. Therefore changing a path or byte content creates a new edition;
-moving the same exact source through an unrelated revision does not.
+revision is retained in a separate typed observation linked to the exact
+representation and excluded from the manifest. Therefore changing a path or
+byte content creates a new edition; moving the same exact source through an
+unrelated revision does not.
 
 **Ownership amendment, 2026-08-17 16:03 UTC.** The canonical manifest is an
 engine-derived result, not a Logovger-authored input. `SourceCorpusDeclaration`
@@ -457,6 +458,16 @@ declared bytes. The engine validates both and computes identity. A persisted
 manifest is a generated projection for audit or deployment. Keeping this
 generic mechanism in the engine does not prematurely extract the future
 standalone ingestion module; that promotion still waits for consumer two.
+
+**Provenance amendment, 2026-08-17 18:12 UTC.** The owner selected separate
+typed provenance rather than including revision in content identity or
+rejecting an identical representation observed at a later revision.
+`SourceRepresentationContext` therefore has no `source_revision` property.
+Each immutable `SourceRevisionObservation` is addressable within one exact
+representation and records one source-system revision. The representation may
+accumulate observations without changing its identity; a repeated observation
+is idempotent, while two byte sequences claimed for the same layer, logical
+path, and revision fail before KG mutation.
 
 ---
 
@@ -520,10 +531,10 @@ exact representation plus selector. The edition is one source layer plus the
 SHA-256 digest of its canonical, sorted, non-empty representation manifest.
 Manifest membership is a typed relation. File order is irrelevant; duplicate
 logical paths, mixed layers, missing members, or declared identity drift fail.
-Repository commit is provenance rather than identity because it may change
-while every represented source byte remains identical. The edition schema and
-resolver exist. The loader and existing rule instances still require an atomic
-migration before this protocol rule is fully gated.
+Source-system revision is separate provenance rather than identity because it
+may change while every represented source byte remains identical. The edition
+schema and resolver exist. The loader and existing rule instances still
+require an atomic migration before this protocol rule is fully gated.
 
 **Coverage uses atomic source leaves, DECIDED 2026-08-17 03:12 UTC.**
 The canonical coverage units are headings, prose sentences, table cells

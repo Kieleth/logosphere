@@ -103,6 +103,14 @@ for atomic migration. Runtime content uses its explicit runtime context. Forks
 receive identity in their new context rather than inheriting the source
 entity's portable key accidentally.
 
+Source revision provenance follows the same structured rule. An exact
+`SourceRepresentationContext` is content identity and has no revision field.
+An append-only `SourceRevisionObservation` is addressable within that
+representation and records one exact source-system revision. The same
+representation may therefore be observed at several revisions without
+changing source targets or edition identity. A revision observation never
+owns source bytes, selectors, or manifest membership.
+
 File-local `@alias` bindings remain unchanged. They address entities created
 inside one operation batch. The previous cross-seed `@@Type:Name` form is
 deleted after migration, not retained as a fallback. Display names no longer

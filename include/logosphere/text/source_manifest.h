@@ -51,7 +51,8 @@ SourceManifestResult build_source_manifest(
 // SourceRepresentationContext entities. Entries are sorted by source_file.
 // Each field is encoded as decimal byte length, ':', then raw bytes. The field
 // order is format, entry count, then for every entry: path, media type, digest
-// algorithm, digest, byte length. source_revision is provenance, not identity.
+// algorithm, digest, byte length. Revision provenance lives in separate typed
+// observations and never participates in this projection.
 SourceManifestResult build_source_manifest(
     const kg::KGModule& world, std::string_view source_layer,
     kg::EntityID source_layer_context,
