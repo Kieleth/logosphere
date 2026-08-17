@@ -173,6 +173,32 @@ Verification for append-only decision history, implementation commit
   production instances;
 - `git diff --check`: clean.
 
+Verification for ingestion-edition identity, implementation commit
+`ac53d17`:
+
+- the LinkML contract first ran red at 91 passes / 4 failures because the
+  edition context, manifest slots, closed format, and membership relation did
+  not exist;
+- the runtime test target then failed to configure because
+  `src/text/source_manifest.cpp` did not exist;
+- the first runtime execution exposed one error in the test oracle: the pinned
+  length prefix called `a.md` five bytes rather than four. The exact-format
+  assertion caught it; correcting the expected literal produced 14/0 without
+  changing the implementation;
+- final focused results: `test_rulebook_pack` 95/0, `test_source_target` 8/0,
+  `test_source_manifest` 14/0, and `test_ingestion_ledger` 10/0;
+- generator tests: 14/0. Schema audit: 15 schemas, 369 classes, 53 enums,
+  and zero findings;
+- complete registered headless profile: effective 95/95. CTest first reported
+  94/95 because `test_run_recorder` could not create its user-session directory
+  inside the filesystem sandbox; the unchanged test passed 12/0 with normal
+  filesystem access;
+- `git diff --check`: clean.
+
+This commit proves edition construction and validation only. Existing rule
+entities still use document identity, and the old locator path is still live.
+Those two facts are the next atomic migration, not hidden compatibility.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
