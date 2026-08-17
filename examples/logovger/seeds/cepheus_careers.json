@@ -19,7 +19,7 @@
    "TableEntry": 150,
    "EnterCareer": 6,
    "MusteringRankBonusEntry": 3,
-   "RuleConstant": 6
+   "RuleConstant": 5
   },
   "unique_name_per_type": [
    "AdvanceSkill",
@@ -13489,19 +13489,6 @@
     "source_section": "Cash Benefits",
     "source_kind": "sentence",
     "source_quote": "Up to 3 benefit rolls can be taken on the Cash table."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "RuleConstant",
-   "as": "@crisis_restore_value",
-   "properties": {
-    "name": "crisis_restore_value",
-    "constant_value": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging Crisis",
-    "source_kind": "sentence",
-    "source_quote": "The character dies unless he can pay 1D6\u00d710,000 Credits for medical care, which will bring any characteristics back up to 1."
    }
   },
   {

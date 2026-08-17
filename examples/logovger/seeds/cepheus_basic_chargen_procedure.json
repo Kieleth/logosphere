@@ -6,6 +6,8 @@
   "layer": "cepheus",
   "invariants": {
     "count_of_type": {
+      "ClaimDecision": 1,
+      "IngestionClaim": 1,
       "Procedure": 1,
       "ProcedureStep": 17,
       "StepRoute": 12,
@@ -176,12 +178,43 @@
       "properties": {
         "name": "aging crisis unpaid",
         "route_label": "died",
-        "next_step": "@finish_character",
-        "source_file": "book1/character-creation.md",
-        "source_section": "Aging Crisis",
-        "source_kind": "sentence",
-        "source_quote": "The character dies unless he can pay 1D6\u00d710,000 Credits for medical care, which will bring any characteristics back up to 1."
+        "next_step": "@finish_character"
       }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@aging_crisis_unpaid_route_claim",
+      "properties": {
+        "claim_statement": "The aging procedure's died route ends character creation when crisis medical care is unpaid."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@aging_crisis_unpaid_route_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@aging_crisis_unpaid_route_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "PARTIAL",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The route represents the death result, but the payment gate remains outside the rule language.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_crisis_unpaid_route_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SourceCoverage/aging_crisis_medical_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_crisis_unpaid_route_claim",
+      "relation": "CLAIM_MATERIALIZES",
+      "to": "@aging_crisis_unpaid"
     },
     {
       "op": "create_entity",

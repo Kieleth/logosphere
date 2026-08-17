@@ -6,17 +6,18 @@
  "layer": "cepheus",
  "invariants": {
   "count_of_type": {
-   "ByteRangeSelector": 4,
-   "ClaimDecision": 6,
-   "CoverageDecision": 4,
+   "ByteRangeSelector": 8,
+   "ClaimDecision": 17,
+   "CoverageDecision": 8,
    "Currency": 1,
    "DiceExpression": 2,
    "DifficultyEntry": 2,
-   "IngestionClaim": 6,
+   "IngestionClaim": 12,
    "LookupTable": 1,
-   "SourceCoverage": 4,
-   "SourceTarget": 4,
-   "TextQuoteSelector": 4
+   "RuleConstant": 1,
+   "SourceCoverage": 8,
+   "SourceTarget": 8,
+   "TextQuoteSelector": 8
   },
   "unique_name_per_type": [
    "DiceExpression",
@@ -65,6 +66,15 @@
    "as": "@credits",
    "properties": {
     "name": "Credits"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@crisis_restore_value",
+   "properties": {
+    "name": "crisis_restore_value",
+    "constant_value": "1"
    }
   },
   {
@@ -261,6 +271,198 @@
   },
   {
    "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_crisis_heading_range",
+   "properties": {
+    "source_byte_start": 28847,
+    "source_byte_end": 28859
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_crisis_heading_quote",
+   "properties": {
+    "source_quote_exact": "Aging Crisis"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_crisis_heading_target",
+   "properties": {
+    "target_primary_selector": "@aging_crisis_heading_range",
+    "target_quote_selector": "@aging_crisis_heading_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_crisis_heading_coverage",
+   "properties": {
+    "coverage_target": "@aging_crisis_heading_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_crisis_heading_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_crisis_heading_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "NO_RULE_CONTENT",
+    "decision_question": "Does this heading state an independent rule claim?",
+    "decision_reason": "The heading names the section but states no rule.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_crisis_trigger_range",
+   "properties": {
+    "source_byte_start": 28861,
+    "source_byte_end": 28952
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_crisis_trigger_quote",
+   "properties": {
+    "source_quote_exact": "If any characteristic is reduced to 0 by aging, then the character suffers an aging crisis."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_crisis_trigger_target",
+   "properties": {
+    "target_primary_selector": "@aging_crisis_trigger_range",
+    "target_quote_selector": "@aging_crisis_trigger_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_crisis_trigger_coverage",
+   "properties": {
+    "coverage_target": "@aging_crisis_trigger_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_crisis_trigger_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_crisis_trigger_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this sentence state one or more rule claims?",
+    "decision_reason": "It defines the aging-specific trigger for a crisis.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_crisis_medical_range",
+   "properties": {
+    "source_byte_start": 28953,
+    "source_byte_end": 29078
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_crisis_medical_quote",
+   "properties": {
+    "source_quote_exact": "The character dies unless he can pay 1D6×10,000 Credits for medical care, which will bring any characteristics back up to 1."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_crisis_medical_target",
+   "properties": {
+    "target_primary_selector": "@aging_crisis_medical_range",
+    "target_quote_selector": "@aging_crisis_medical_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_crisis_medical_coverage",
+   "properties": {
+    "coverage_target": "@aging_crisis_medical_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_crisis_medical_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_crisis_medical_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this sentence state one or more rule claims?",
+    "decision_reason": "It repeats the general death, medical-cost, and restoration consequences.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_crisis_qualification_range",
+   "properties": {
+    "source_byte_start": 29079,
+    "source_byte_end": 29257
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_crisis_qualification_quote",
+   "properties": {
+    "source_quote_exact": "The character automatically fails any Qualification checks from now on – he must either continue in the career he is in or become a Drifter if he wishes to take any more terms."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_crisis_qualification_target",
+   "properties": {
+    "target_primary_selector": "@aging_crisis_qualification_range",
+    "target_quote_selector": "@aging_crisis_qualification_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_crisis_qualification_coverage",
+   "properties": {
+    "coverage_target": "@aging_crisis_qualification_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_crisis_qualification_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_crisis_qualification_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this sentence state one or more rule claims?",
+    "decision_reason": "It repeats the general qualification and future-career constraints.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "IngestionClaim",
    "as": "@injury_crisis_trigger_claim",
    "properties": {
@@ -398,6 +600,219 @@
    }
   },
   {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_crisis_trigger_claim",
+   "properties": {
+    "claim_statement": "A characteristic reduced to zero by aging causes an aging crisis."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_crisis_trigger_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_crisis_trigger_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The rule language cannot express the cause-specific crisis trigger.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@crisis_death_claim",
+   "properties": {
+    "claim_statement": "A character in crisis dies unless crisis medical care is paid for."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@crisis_death_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@crisis_death_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The payment-gated death consequence is not fully represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@crisis_cost_claim",
+   "properties": {
+    "claim_statement": "Crisis medical care costs 1D6 multiplied by 10,000 Credits."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@crisis_cost_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@crisis_cost_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "Credits is typed, but the multiplied payment operation is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@crisis_restore_claim",
+   "properties": {
+    "claim_statement": "Paid crisis medical care restores each characteristic at zero to one."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@crisis_restore_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@crisis_restore_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The restoration value is typed, but its conditional application is not represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@crisis_qualification_claim",
+   "properties": {
+    "claim_statement": "A character who survives a crisis automatically fails future Qualification checks."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@crisis_qualification_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@crisis_qualification_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The persistent automatic-check failure is not represented as rule data.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@crisis_career_claim",
+   "properties": {
+    "claim_statement": "After surviving a crisis, further terms are limited to the current career or Drifter."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@crisis_career_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@crisis_career_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The conditional future-career restriction is not represented as rule data.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_death_claim_superseded",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_death_claim",
+    "decision_sequence": 1,
+    "claim_disposition": "SUPERSEDED",
+    "related_claim": "@crisis_death_claim",
+    "decision_question": "Does this occurrence-specific claim remain canonical?",
+    "decision_reason": "Both crisis passages support the generalized replacement.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_cost_claim_superseded",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_cost_claim",
+    "decision_sequence": 1,
+    "claim_disposition": "SUPERSEDED",
+    "related_claim": "@crisis_cost_claim",
+    "decision_question": "Does this occurrence-specific claim remain canonical?",
+    "decision_reason": "Both crisis passages state the same medical cost.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_restore_claim_superseded",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_restore_claim",
+    "decision_sequence": 1,
+    "claim_disposition": "SUPERSEDED",
+    "related_claim": "@crisis_restore_claim",
+    "decision_question": "Does this occurrence-specific claim remain canonical?",
+    "decision_reason": "Both crisis passages state the same restoration consequence.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_qualification_claim_superseded",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_qualification_claim",
+    "decision_sequence": 1,
+    "claim_disposition": "SUPERSEDED",
+    "related_claim": "@crisis_qualification_claim",
+    "decision_question": "Does this occurrence-specific claim remain canonical?",
+    "decision_reason": "Both crisis passages state the same qualification bar.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@injury_crisis_career_claim_superseded",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@injury_crisis_career_claim",
+    "decision_sequence": 1,
+    "claim_disposition": "SUPERSEDED",
+    "related_claim": "@crisis_career_claim",
+    "decision_question": "Does this occurrence-specific claim remain canonical?",
+    "decision_reason": "Both crisis passages state the same future-career restriction.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
    "op": "set_relation",
    "from": "@injury_crisis_trigger_claim",
    "relation": "CLAIM_SUPPORTED_BY",
@@ -435,9 +850,81 @@
   },
   {
    "op": "set_relation",
-   "from": "@injury_crisis_cost_claim",
+   "from": "@aging_crisis_trigger_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_crisis_trigger_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_death_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_death_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_cost_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_cost_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_restore_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_restore_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_crisis_medical_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_qualification_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_qualification_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_qualification_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_crisis_qualification_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_career_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@injury_crisis_qualification_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_career_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_crisis_qualification_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_cost_claim",
    "relation": "CLAIM_MATERIALIZES",
    "to": "@credits"
+  },
+  {
+   "op": "set_relation",
+   "from": "@crisis_restore_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@crisis_restore_value"
   },
   {
    "op": "create_entity",

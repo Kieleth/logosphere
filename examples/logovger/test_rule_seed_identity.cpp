@@ -71,6 +71,23 @@ kg::EntityID find_typed_by_property(const kg::KGModule& world,
     return kg::INVALID_ENTITY;
 }
 
+kg::EntityID latest_claim_decision(const kg::KGModule& world,
+                                   kg::EntityID claim) {
+    kg::EntityID latest = kg::INVALID_ENTITY;
+    unsigned long long latest_sequence = 0;
+    for (const auto candidate : world.findByProperty(
+             "decision_subject", std::to_string(claim))) {
+        if (world.getType(candidate) != "ClaimDecision") continue;
+        const auto sequence = std::stoull(
+            world.getProperty(candidate, "decision_sequence"));
+        if (latest == kg::INVALID_ENTITY || sequence > latest_sequence) {
+            latest = candidate;
+            latest_sequence = sequence;
+        }
+    }
+    return latest;
+}
+
 bool has_legacy_locator(const kg::KGModule& world, kg::EntityID entity) {
     for (const char* field :
          {"source_file", "source_section", "source_quote", "source_kind",
@@ -174,14 +191,14 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
-    CHECK(targets.size() == 50 && coverages.size() == 50 &&
-              claims.size() == 36,
-          "the first four migrated sections persist 50 atomic source leaves "
-          "and 36 atomic claims");
-    CHECK(world.findByType("CoverageDecision").size() == 50 &&
-              world.findByType("ClaimDecision").size() == 36,
-          "every production coverage and claim has its initial append-only "
-          "decision");
+    CHECK(targets.size() == 54 && coverages.size() == 54 &&
+              claims.size() == 43,
+          "the first five migrated sections persist 54 atomic source leaves "
+          "and 43 enduring atomic claims");
+    CHECK(world.findByType("CoverageDecision").size() == 54 &&
+              world.findByType("ClaimDecision").size() == 48,
+          "production retains five superseded claim decisions in complete "
+          "append-only histories");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
                                         "no-instance-declared") &&
               !world.getRegistry().hasFacet("IngestionClaim",
@@ -195,7 +212,7 @@ void test_production_rules_use_exact_edition_identity() {
     const std::string chapter =
         slurp(game_root + "/srd/cepheus/book1/character-creation.md");
     std::multiset<std::string> selected;
-    bool targets_resolve = targets.size() == 50;
+    bool targets_resolve = targets.size() == 54;
     for (const auto target : targets) {
         const auto result =
             logosphere::text::resolve_text_target(world, target, chapter);
@@ -258,14 +275,22 @@ void test_production_rules_use_exact_edition_identity() {
         "\\-2", "Reduce three physical characteristics by 1",
         "\\-1", "Reduce two physical characteristics by 1",
         "0", "Reduce one physical characteristic by 1",
-        "1+", "No effect"};
+        "1+", "No effect",
+        "Aging Crisis",
+        "If any characteristic is reduced to 0 by aging, then the character "
+        "suffers an aging crisis.",
+        "The character dies unless he can pay 1D6×10,000 Credits for "
+        "medical care, which will bring any characteristics back up to 1.",
+        "The character automatically fails any Qualification checks from "
+        "now on – he must either continue in the career he is in or become "
+        "a Drifter if he wishes to take any more terms."};
     CHECK(targets_resolve && selected == expected,
           "every migrated target resolves to its exact source leaf, "
           "including duplicate table values");
 
     const auto ledger = kg::reconcile_ingestion_ledger(world, targets);
     CHECK(ledger.ok,
-          "the production Injury Crisis and Medical Care ledger closes: " +
+          "the complete production exact-evidence ledger closes: " +
               ledger.error);
 
     const kg::EntityID credits =
@@ -450,6 +475,124 @@ void test_production_rules_use_exact_edition_identity() {
           "the checklist-owned roll_aging step remains on its separate legacy "
           "evidence until that source leaf is migrated");
 
+    const kg::EntityID injury_medical_coverage = find_addressable(
+        world, "SourceCoverage", "injury_crisis_medical_coverage");
+    const kg::EntityID injury_qualification_coverage = find_addressable(
+        world, "SourceCoverage", "injury_crisis_qualification_coverage");
+    const kg::EntityID aging_crisis_medical_coverage = find_addressable(
+        world, "SourceCoverage", "aging_crisis_medical_coverage");
+    const kg::EntityID aging_crisis_qualification_coverage = find_addressable(
+        world, "SourceCoverage", "aging_crisis_qualification_coverage");
+    const std::set<kg::EntityID> medical_evidence{
+        injury_medical_coverage, aging_crisis_medical_coverage};
+    const std::set<kg::EntityID> qualification_evidence{
+        injury_qualification_coverage, aging_crisis_qualification_coverage};
+
+    struct GeneralCrisisClaim {
+        const char* key;
+        const char* disposition;
+        const std::set<kg::EntityID>* evidence;
+    };
+    const std::vector<GeneralCrisisClaim> generalized_claims{
+        {"crisis_death_claim", "RAISED", &medical_evidence},
+        {"crisis_cost_claim", "PARTIAL", &medical_evidence},
+        {"crisis_restore_claim", "PARTIAL", &medical_evidence},
+        {"crisis_qualification_claim", "RAISED", &qualification_evidence},
+        {"crisis_career_claim", "RAISED", &qualification_evidence},
+    };
+    bool generalized_claims_span_both_occurrences = true;
+    for (const auto& expected_claim : generalized_claims) {
+        const kg::EntityID claim = find_addressable(
+            world, "IngestionClaim", expected_claim.key);
+        const kg::EntityID decision = latest_claim_decision(world, claim);
+        const auto evidence = world.getRelated(claim, "CLAIM_SUPPORTED_BY");
+        generalized_claims_span_both_occurrences =
+            generalized_claims_span_both_occurrences &&
+            claim != kg::INVALID_ENTITY && decision != kg::INVALID_ENTITY &&
+            world.getProperty(decision, "claim_disposition") ==
+                expected_claim.disposition &&
+            world.getProperty(decision, "claim_gap_kind") ==
+                "RULE_LANGUAGE_GAP" &&
+            std::set<kg::EntityID>(evidence.begin(), evidence.end()) ==
+                *expected_claim.evidence;
+    }
+    CHECK(generalized_claims_span_both_occurrences,
+          "five generalized crisis claims retain exact evidence from both "
+          "Injury Crisis and Aging Crisis");
+
+    struct SupersededCrisisClaim {
+        const char* old_key;
+        const char* replacement_key;
+    };
+    const std::vector<SupersededCrisisClaim> superseded_claims{
+        {"injury_crisis_death_claim", "crisis_death_claim"},
+        {"injury_crisis_cost_claim", "crisis_cost_claim"},
+        {"injury_crisis_restore_claim", "crisis_restore_claim"},
+        {"injury_crisis_qualification_claim", "crisis_qualification_claim"},
+        {"injury_crisis_career_claim", "crisis_career_claim"},
+    };
+    bool every_narrow_claim_is_superseded = true;
+    for (const auto& expected_claim : superseded_claims) {
+        const kg::EntityID old_claim = find_addressable(
+            world, "IngestionClaim", expected_claim.old_key);
+        const kg::EntityID replacement = find_addressable(
+            world, "IngestionClaim", expected_claim.replacement_key);
+        const kg::EntityID decision = latest_claim_decision(world, old_claim);
+        every_narrow_claim_is_superseded =
+            every_narrow_claim_is_superseded &&
+            old_claim != kg::INVALID_ENTITY &&
+            replacement != kg::INVALID_ENTITY &&
+            world.findByProperty("decision_subject",
+                                 std::to_string(old_claim)).size() == 2 &&
+            decision != kg::INVALID_ENTITY &&
+            world.getProperty(decision, "claim_disposition") ==
+                "SUPERSEDED" &&
+            world.getProperty(decision, "related_claim") ==
+                std::to_string(replacement) &&
+            world.getRelated(old_claim, "CLAIM_MATERIALIZES").empty();
+    }
+    CHECK(every_narrow_claim_is_superseded,
+          "the five occurrence-specific Injury Crisis claims retain their "
+          "initial decisions and point to generalized replacements");
+
+    const kg::EntityID crisis_cost_claim = find_addressable(
+        world, "IngestionClaim", "crisis_cost_claim");
+    const kg::EntityID crisis_restore_claim = find_addressable(
+        world, "IngestionClaim", "crisis_restore_claim");
+    const kg::EntityID crisis_restore_value = find_addressable(
+        world, "RuleConstant", "crisis_restore_value");
+    CHECK(crisis_restore_value != kg::INVALID_ENTITY &&
+              !has_legacy_locator(world, crisis_restore_value) &&
+              world.getRelated(crisis_cost_claim, "CLAIM_MATERIALIZES") ==
+                  std::vector<kg::EntityID>{credits} &&
+              world.getRelated(crisis_restore_claim, "CLAIM_MATERIALIZES") ==
+                  std::vector<kg::EntityID>{crisis_restore_value},
+          "general crisis claims own the shared Credits and restoration-value "
+          "materializations without legacy evidence");
+
+    const kg::EntityID aging_crisis_unpaid = find_addressable(
+        world, "StepRoute", "aging_crisis_unpaid");
+    const kg::EntityID aging_crisis_route_claim = find_addressable(
+        world, "IngestionClaim", "aging_crisis_unpaid_route_claim");
+    const kg::EntityID aging_crisis_route_decision =
+        latest_claim_decision(world, aging_crisis_route_claim);
+    CHECK(aging_crisis_unpaid != kg::INVALID_ENTITY &&
+              aging_crisis_route_claim != kg::INVALID_ENTITY &&
+              aging_crisis_route_decision != kg::INVALID_ENTITY &&
+              !has_legacy_locator(world, aging_crisis_unpaid) &&
+              world.getProperty(aging_crisis_route_decision,
+                                "claim_disposition") == "PARTIAL" &&
+              world.getProperty(aging_crisis_route_decision,
+                                "claim_gap_kind") == "RULE_LANGUAGE_GAP" &&
+              world.getRelated(aging_crisis_route_claim,
+                               "CLAIM_MATERIALIZES") ==
+                  std::vector<kg::EntityID>{aging_crisis_unpaid} &&
+              world.getRelated(aging_crisis_route_claim,
+                               "CLAIM_SUPPORTED_BY") ==
+                  std::vector<kg::EntityID>{aging_crisis_medical_coverage},
+          "the aging-specific procedure route has exact partial evidence "
+          "without pretending it expresses the complete pay-or-die rule");
+
     std::size_t no_rule = 0;
     std::size_t claims_present = 0;
     for (const auto decision : world.findByType("CoverageDecision")) {
@@ -461,18 +604,21 @@ void test_production_rules_use_exact_edition_identity() {
     std::size_t partial = 0;
     std::size_t raised = 0;
     std::size_t materialized = 0;
-    for (const auto decision : world.findByType("ClaimDecision")) {
+    std::size_t superseded = 0;
+    for (const auto claim : claims) {
+        const auto decision = latest_claim_decision(world, claim);
         const std::string disposition =
             world.getProperty(decision, "claim_disposition");
         partial += disposition == "PARTIAL";
         raised += disposition == "RAISED";
         materialized += disposition == "MATERIALIZED";
+        superseded += disposition == "SUPERSEDED";
     }
-    CHECK(no_rule == 5 && claims_present == 45 && partial == 3 &&
-              raised == 24 && materialized == 9,
-          "the production ledger exposes five zero-claim leaves, three "
-          "partial claims, twenty-four raised claims, and nine fully "
-          "materialized claims");
+    CHECK(no_rule == 6 && claims_present == 48 && partial == 5 &&
+              raised == 24 && materialized == 9 && superseded == 5,
+          "the production ledger exposes six zero-claim leaves, five partial "
+          "claims, twenty-four raised claims, nine materialized claims, and "
+          "five superseded narrow claims");
 }
 
 }  // namespace

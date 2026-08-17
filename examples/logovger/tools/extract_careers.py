@@ -162,9 +162,6 @@ RULE_CONSTANTS = [
      "current career and must continue for another term."),
     ("cash_benefit_roll_max", "3", "Cash Benefits",
      "Up to 3 benefit rolls can be taken on the Cash table."),
-    ("crisis_restore_value", "1", "Aging Crisis",
-     "The character dies unless he can pay 1D6×10,000 Credits for "
-     "medical care, which will bring any characteristics back up to 1."),
     ("survival_natural_failure", "2", "Survival",
      "A natural 2 is always a failure."),
 ]
