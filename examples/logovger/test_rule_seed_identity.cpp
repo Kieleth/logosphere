@@ -61,6 +61,16 @@ kg::EntityID find_addressable(const kg::KGModule& world,
     return kg::INVALID_ENTITY;
 }
 
+kg::EntityID find_typed_by_property(const kg::KGModule& world,
+                                    const std::string& type,
+                                    const std::string& property,
+                                    const std::string& value) {
+    for (const auto candidate : world.findByProperty(property, value)) {
+        if (world.getType(candidate) == type) return candidate;
+    }
+    return kg::INVALID_ENTITY;
+}
+
 bool has_legacy_locator(const kg::KGModule& world, kg::EntityID entity) {
     for (const char* field :
          {"source_file", "source_section", "source_quote", "source_kind",
@@ -164,12 +174,12 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
-    CHECK(targets.size() == 26 && coverages.size() == 26 &&
-              claims.size() == 21,
-          "Injury Crisis and Medical Care persist 26 atomic source leaves "
-          "and 21 atomic claims");
-    CHECK(world.findByType("CoverageDecision").size() == 26 &&
-              world.findByType("ClaimDecision").size() == 21,
+    CHECK(targets.size() == 28 && coverages.size() == 28 &&
+              claims.size() == 24,
+          "Injury Crisis, Medical Care, and Medical Debt persist 28 atomic "
+          "source leaves and 24 atomic claims");
+    CHECK(world.findByType("CoverageDecision").size() == 28 &&
+              world.findByType("ClaimDecision").size() == 24,
           "every production coverage and claim has its initial append-only "
           "decision");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
@@ -185,7 +195,7 @@ void test_production_rules_use_exact_edition_identity() {
     const std::string chapter =
         slurp(game_root + "/srd/cepheus/book1/character-creation.md");
     std::multiset<std::string> selected;
-    bool targets_resolve = targets.size() == 26;
+    bool targets_resolve = targets.size() == 28;
     for (const auto target : targets) {
         const auto result =
             logosphere::text::resolve_text_target(world, target, chapter);
@@ -223,7 +233,11 @@ void test_production_rules_use_exact_edition_identity() {
         "Technician",
         "50%", "75%", "100%",
         "Barbarian, Belter, Colonist, Drifter, Rogue",
-        "0%", "50%", "75%"};
+        "0%", "50%", "75%",
+        "Medical Debt",
+        "During finishing touches, you must pay any outstanding costs from "
+        "medical care or anagathic drugs out of your Benefits before "
+        "anything else."};
     CHECK(targets_resolve && selected == expected,
           "every migrated target resolves to its exact source leaf, "
           "including duplicate table values");
@@ -280,6 +294,61 @@ void test_production_rules_use_exact_edition_identity() {
           "a medical-coverage percentage claim retains career, threshold, "
           "and result-cell evidence");
 
+    const kg::EntityID benefit_tables =
+        find_addressable(world, "SubjectLookupTable", "benefit_tables");
+    const kg::EntityID finish_character =
+        find_addressable(world, "ProcedureStep", "finish_character");
+    const kg::EntityID medical_debt_coverage = find_addressable(
+        world, "SourceCoverage", "medical_debt_sentence_coverage");
+    const kg::EntityID medical_debt_medical_claim = find_addressable(
+        world, "IngestionClaim", "medical_debt_medical_claim");
+    const kg::EntityID medical_debt_anagathic_claim = find_addressable(
+        world, "IngestionClaim", "medical_debt_anagathic_claim");
+    const kg::EntityID medical_debt_priority_claim = find_addressable(
+        world, "IngestionClaim", "medical_debt_priority_claim");
+    CHECK(benefit_tables != kg::INVALID_ENTITY &&
+              finish_character != kg::INVALID_ENTITY &&
+              medical_debt_coverage != kg::INVALID_ENTITY &&
+              medical_debt_medical_claim != kg::INVALID_ENTITY &&
+              medical_debt_anagathic_claim != kg::INVALID_ENTITY &&
+              medical_debt_priority_claim != kg::INVALID_ENTITY,
+          "Medical Debt resolves its three claims against existing Benefits, "
+          "Medical Care, and finishing-touch graph concepts");
+    if (medical_debt_medical_claim != kg::INVALID_ENTITY &&
+        medical_debt_anagathic_claim != kg::INVALID_ENTITY &&
+        medical_debt_priority_claim != kg::INVALID_ENTITY) {
+        CHECK(world.getRelated(medical_debt_medical_claim,
+                               "CLAIM_SUPPORTED_BY") ==
+                      std::vector<kg::EntityID>{medical_debt_coverage} &&
+                  world.getRelated(medical_debt_anagathic_claim,
+                                   "CLAIM_SUPPORTED_BY") ==
+                      std::vector<kg::EntityID>{medical_debt_coverage} &&
+                  world.getRelated(medical_debt_priority_claim,
+                                   "CLAIM_SUPPORTED_BY") ==
+                      std::vector<kg::EntityID>{medical_debt_coverage},
+              "one compound Medical Debt source leaf supports three atomic "
+              "claims without duplicating its evidence target");
+        const auto medical_resolved = world.getRelated(
+            medical_debt_medical_claim, "CLAIM_RESOLVED_AGAINST");
+        const std::set<kg::EntityID> expected_medical_resolved{
+            restoration_cost, benefit_tables, finish_character};
+        CHECK(std::set<kg::EntityID>(medical_resolved.begin(),
+                                    medical_resolved.end()) ==
+                  expected_medical_resolved,
+              "the medical-cost debt claim records all three prior concepts "
+              "used during interpretation");
+        const kg::EntityID anagathic_decision = find_typed_by_property(
+            world, "ClaimDecision", "decision_subject",
+            std::to_string(medical_debt_anagathic_claim));
+        CHECK(anagathic_decision != kg::INVALID_ENTITY &&
+                  world.getProperty(anagathic_decision, "claim_disposition") ==
+                      "RAISED" &&
+                  world.getProperty(anagathic_decision, "claim_gap_kind") ==
+                      "ONTOLOGY_GAP",
+              "the absent anagathic concept is exposed as an ontology gap, "
+              "not hidden as executable rule data");
+    }
+
     std::size_t no_rule = 0;
     std::size_t claims_present = 0;
     for (const auto decision : world.findByType("CoverageDecision")) {
@@ -296,10 +365,10 @@ void test_production_rules_use_exact_edition_identity() {
         partial += disposition == "PARTIAL";
         raised += disposition == "RAISED";
     }
-    CHECK(no_rule == 3 && claims_present == 23 && partial == 2 &&
-              raised == 19,
-          "the complete production ledger exposes three zero-claim leaves, "
-          "two partial claims, and nineteen raised claims");
+    CHECK(no_rule == 4 && claims_present == 24 && partial == 2 &&
+              raised == 22,
+          "the complete production ledger exposes four zero-claim leaves, "
+          "two partial claims, and twenty-two raised claims");
 }
 
 }  // namespace

@@ -38,6 +38,9 @@ inline constexpr const char* kRuleSeeds[] = {
     // characteristic-modifier lookup from the careers seed.
     "seeds/cepheus_book1_career_tables.json",
     "seeds/cepheus_basic_chargen_procedure.json",
+    // Medical Debt composes the prior Medical Care cost, Benefits lookup,
+    // and final procedure step. Keep it after all three owners.
+    "seeds/cepheus_book1_medical_debt.json",
 };
 
 inline constexpr std::size_t kRuleSeedCount =
