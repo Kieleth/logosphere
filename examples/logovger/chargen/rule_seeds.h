@@ -29,6 +29,10 @@ inline constexpr const char* kRuleSeeds[] = {
     // the dice and currency it references, before anything else.
     "seeds/cepheus_book1_shared_tables.json",
     "seeds/cepheus_careers.json",
+    // The Medical Care ledger resolves its printed career groups against the
+    // Career entities above. It therefore follows careers even though its
+    // source section appears earlier in the book.
+    "seeds/cepheus_book1_medical_care.json",
     // Last of the rule data: it references the Skills the vocabulary
     // owns, the Currency and dice the earlier seeds create, and the
     // characteristic-modifier lookup from the careers seed.

@@ -15,7 +15,8 @@
    "IngestionClaim": 6,
    "LookupTable": 1,
    "SourceCoverage": 4,
-   "SourceTarget": 4
+   "SourceTarget": 4,
+   "TextQuoteSelector": 4
   },
   "unique_name_per_type": [
    "DiceExpression",
@@ -77,10 +78,19 @@
   },
   {
    "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@injury_crisis_heading_quote",
+   "properties": {
+    "source_quote_exact": "Injury Crisis"
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "SourceTarget",
    "as": "@injury_crisis_heading_target",
    "properties": {
-    "target_primary_selector": "@injury_crisis_heading_range"
+    "target_primary_selector": "@injury_crisis_heading_range",
+    "target_quote_selector": "@injury_crisis_heading_quote"
    }
   },
   {
@@ -116,10 +126,19 @@
   },
   {
    "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@injury_crisis_trigger_quote",
+   "properties": {
+    "source_quote_exact": "If any characteristic is reduced to 0, then the character suffers an injury crisis."
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "SourceTarget",
    "as": "@injury_crisis_trigger_target",
    "properties": {
-    "target_primary_selector": "@injury_crisis_trigger_range"
+    "target_primary_selector": "@injury_crisis_trigger_range",
+    "target_quote_selector": "@injury_crisis_trigger_quote"
    }
   },
   {
@@ -155,10 +174,19 @@
   },
   {
    "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@injury_crisis_medical_quote",
+   "properties": {
+    "source_quote_exact": "The character dies unless he can pay 1D6×10,000 Credits for medical care, which will bring any characteristics back up to 1."
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "SourceTarget",
    "as": "@injury_crisis_medical_target",
    "properties": {
-    "target_primary_selector": "@injury_crisis_medical_range"
+    "target_primary_selector": "@injury_crisis_medical_range",
+    "target_quote_selector": "@injury_crisis_medical_quote"
    }
   },
   {
@@ -194,10 +222,19 @@
   },
   {
    "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@injury_crisis_qualification_quote",
+   "properties": {
+    "source_quote_exact": "The character automatically fails any Qualification checks from now on – he must either continue in the career he is in or become a Drifter if he wishes to take any more terms."
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "SourceTarget",
    "as": "@injury_crisis_qualification_target",
    "properties": {
-    "target_primary_selector": "@injury_crisis_qualification_range"
+    "target_primary_selector": "@injury_crisis_qualification_range",
+    "target_quote_selector": "@injury_crisis_qualification_quote"
    }
   },
   {

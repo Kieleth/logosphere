@@ -610,6 +610,27 @@ void test_exact_evidence_replaces_the_legacy_locator_without_fallback() {
     CHECK(report.quotes_checked == 0,
           "exact evidence does not pass through the legacy quote counter");
 
+    kg::SeedEnvelope missing_quote = seed;
+    kg::KGOpCreateEntity* target = find_create(missing_quote, "target");
+    CHECK(target != nullptr,
+          "the missing-quote fixture finds its exact source target");
+    if (target != nullptr) {
+        target->properties.erase(
+            std::remove_if(
+                target->properties.begin(), target->properties.end(),
+                [](const auto& property) {
+                    return property.first == "target_quote_selector";
+                }),
+            target->properties.end());
+    }
+    const auto missing_quote_report = kg::verify_seed_in_edition(
+        missing_quote, kSourceRoot, corpus, source_access,
+        engine_registry());
+    CHECK(reason_contains(missing_quote_report, "verbatim",
+                          "target_quote_selector"),
+          "UTF-8 ledger evidence requires a quote selector so character "
+          "offsets cannot masquerade as byte offsets");
+
     kg::SeedEnvelope mixed = seed;
     CHECK(add_prop(mixed, "age", "source_section", "Chapter 1"),
           "the mixed-path negative fixture gains a legacy locator field");

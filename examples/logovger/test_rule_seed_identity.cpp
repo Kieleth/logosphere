@@ -52,6 +52,24 @@ kg::OntologyRegistry game_registry() {
     return registry;
 }
 
+kg::EntityID find_addressable(const kg::KGModule& world,
+                              const std::string& type,
+                              const std::string& key) {
+    for (const auto candidate : world.findByProperty("entity_key", key)) {
+        if (world.getType(candidate) == type) return candidate;
+    }
+    return kg::INVALID_ENTITY;
+}
+
+bool has_legacy_locator(const kg::KGModule& world, kg::EntityID entity) {
+    for (const char* field :
+         {"source_file", "source_section", "source_quote", "source_kind",
+          "source_table", "source_row", "source_column"}) {
+        if (world.hasProperty(entity, field)) return true;
+    }
+    return false;
+}
+
 void test_production_rules_use_exact_edition_identity() {
     const std::string game_root =
         std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger";
@@ -146,12 +164,12 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
-    CHECK(targets.size() == 4 && coverages.size() == 4 &&
-              claims.size() == 6,
-          "Injury Crisis persists four atomic source leaves and six atomic "
-          "claims");
-    CHECK(world.findByType("CoverageDecision").size() == 4 &&
-              world.findByType("ClaimDecision").size() == 6,
+    CHECK(targets.size() == 26 && coverages.size() == 26 &&
+              claims.size() == 21,
+          "Injury Crisis and Medical Care persist 26 atomic source leaves "
+          "and 21 atomic claims");
+    CHECK(world.findByType("CoverageDecision").size() == 26 &&
+              world.findByType("ClaimDecision").size() == 21,
           "every production coverage and claim has its initial append-only "
           "decision");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
@@ -166,52 +184,61 @@ void test_production_rules_use_exact_edition_identity() {
 
     const std::string chapter =
         slurp(game_root + "/srd/cepheus/book1/character-creation.md");
-    std::set<std::string> selected;
-    bool targets_resolve = targets.size() == 4;
+    std::multiset<std::string> selected;
+    bool targets_resolve = targets.size() == 26;
     for (const auto target : targets) {
         const auto result =
             logosphere::text::resolve_text_target(world, target, chapter);
         targets_resolve = targets_resolve && result.ok;
         if (result.ok) selected.insert(result.text);
     }
-    CHECK(targets_resolve &&
-              selected.count("Injury Crisis") == 1 &&
-              selected.count(
-                  "If any characteristic is reduced to 0, then the character "
-                  "suffers an injury crisis.") == 1 &&
-              selected.count(
-                  "The character dies unless he can pay 1D6×10,000 Credits "
-                  "for medical care, which will bring any characteristics "
-                  "back up to 1.") == 1 &&
-              selected.count(
-                  "The character automatically fails any Qualification "
-                  "checks from now on – he must either continue in the "
-                  "career he is in or become a Drifter if he wishes to take "
-                  "any more terms.") == 1,
-          "every Injury Crisis target resolves to the exact selected source "
-          "bytes");
+    const std::multiset<std::string> expected{
+        "Injury Crisis",
+        "If any characteristic is reduced to 0, then the character suffers "
+        "an injury crisis.",
+        "The character dies unless he can pay 1D6×10,000 Credits for "
+        "medical care, which will bring any characteristics back up to 1.",
+        "The character automatically fails any Qualification checks from "
+        "now on – he must either continue in the career he is in or become "
+        "a Drifter if he wishes to take any more terms.",
+        "Medical Care",
+        "If your character has been injured, then medical care may be able "
+        "to undo the effects of damage.",
+        "The restoration of a lost characteristic costs Cr5,000 per point.",
+        "If your character was injured in the service of a patron or "
+        "organization, then a portion of his medical care may be paid for "
+        "by that patron.",
+        "Roll 2D6 on the table below, adding your Rank as a DM.",
+        "The result is how much of his medical care is paid for by his "
+        "employer.",
+        "Career",
+        "Roll of 4+",
+        "Roll of 8+",
+        "Roll of 12+",
+        "Aerospace System Defense, Marine, Maritime System Defense, Navy, "
+        "Scout, Surface System Defense",
+        "75%", "100%", "100%",
+        "Agent, Athlete, Bureaucrat, Diplomat, Entertainer, Hunter, "
+        "Mercenary, Merchant, Noble, Physician, Pirate, Scientist, "
+        "Technician",
+        "50%", "75%", "100%",
+        "Barbarian, Belter, Colonist, Drifter, Rogue",
+        "0%", "50%", "75%"};
+    CHECK(targets_resolve && selected == expected,
+          "every migrated target resolves to its exact source leaf, "
+          "including duplicate table values");
 
     const auto ledger = kg::reconcile_ingestion_ledger(world, targets);
     CHECK(ledger.ok,
-          "the production Injury Crisis ledger closes: " + ledger.error);
+          "the production Injury Crisis and Medical Care ledger closes: " +
+              ledger.error);
 
-    kg::EntityID credits = kg::INVALID_ENTITY;
-    for (const auto candidate : world.findByType("Currency")) {
-        if (world.getProperty(candidate, "entity_key") == "credits") {
-            credits = candidate;
-        }
-    }
+    const kg::EntityID credits =
+        find_addressable(world, "Currency", "credits");
     CHECK(credits != kg::INVALID_ENTITY,
           "the migrated Credits rule remains loaded");
     if (credits != kg::INVALID_ENTITY) {
-        bool has_legacy_locator = false;
-        for (const char* field :
-             {"source_file", "source_section", "source_quote", "source_kind",
-              "source_table", "source_row", "source_column"}) {
-            has_legacy_locator =
-                has_legacy_locator || world.hasProperty(credits, field);
-        }
-        CHECK(!has_legacy_locator &&
+        CHECK(!has_legacy_locator(world, credits) &&
                   world.getProperty(credits, "origin_context") ==
                       std::to_string(editions.front()),
               "Credits has edition origin and no surviving legacy locator "
@@ -220,6 +247,59 @@ void test_production_rules_use_exact_edition_identity() {
                   1,
               "one exact evidenced claim materializes the Credits rule");
     }
+
+    const kg::EntityID restoration_cost = find_addressable(
+        world, "RuleConstant", "medical_care_restoration_cost_per_point");
+    CHECK(restoration_cost != kg::INVALID_ENTITY,
+          "Medical Care materializes its fixed restoration cost");
+    if (restoration_cost != kg::INVALID_ENTITY) {
+        CHECK(world.getProperty(restoration_cost, "constant_value") ==
+                      "5000" &&
+                  !has_legacy_locator(world, restoration_cost) &&
+                  world.getProperty(restoration_cost, "origin_context") ==
+                      std::to_string(editions.front()),
+              "the restoration cost is exact, edition-origin rule data with "
+              "no legacy locator");
+    }
+
+    const kg::EntityID cost_claim = find_addressable(
+        world, "IngestionClaim", "medical_care_cost_claim");
+    CHECK(cost_claim != kg::INVALID_ENTITY &&
+              world.getRelated(cost_claim, "CLAIM_MATERIALIZES") ==
+                  std::vector<kg::EntityID>{restoration_cost} &&
+              world.getRelated(cost_claim, "CLAIM_RESOLVED_AGAINST") ==
+                  std::vector<kg::EntityID>{credits},
+          "the partial cost claim materializes the constant and records the "
+          "prior Credits concept it resolved against");
+
+    const kg::EntityID table_claim = find_addressable(
+        world, "IngestionClaim", "medical_care_group1_roll4_claim");
+    CHECK(table_claim != kg::INVALID_ENTITY &&
+              world.getRelated(table_claim, "CLAIM_SUPPORTED_BY").size() ==
+                  3,
+          "a medical-coverage percentage claim retains career, threshold, "
+          "and result-cell evidence");
+
+    std::size_t no_rule = 0;
+    std::size_t claims_present = 0;
+    for (const auto decision : world.findByType("CoverageDecision")) {
+        const std::string judgement =
+            world.getProperty(decision, "coverage_judgement");
+        no_rule += judgement == "NO_RULE_CONTENT";
+        claims_present += judgement == "CLAIMS_PRESENT";
+    }
+    std::size_t partial = 0;
+    std::size_t raised = 0;
+    for (const auto decision : world.findByType("ClaimDecision")) {
+        const std::string disposition =
+            world.getProperty(decision, "claim_disposition");
+        partial += disposition == "PARTIAL";
+        raised += disposition == "RAISED";
+    }
+    CHECK(no_rule == 3 && claims_present == 23 && partial == 2 &&
+              raised == 19,
+          "the complete production ledger exposes three zero-claim leaves, "
+          "two partial claims, and nineteen raised claims");
 }
 
 }  // namespace

@@ -596,6 +596,13 @@ struct Checker {
             why = "target representation source_file is empty";
             return false;
         }
+        if (world.getProperty(representation, "source_media_type") ==
+                "UTF8_TEXT" &&
+            !world.hasProperty(target, "target_quote_selector")) {
+            why = "UTF8_TEXT ingestion evidence requires a "
+                  "target_quote_selector matching its byte range";
+            return false;
+        }
         const std::string* bytes = source_text(file, why);
         if (!bytes) return false;
         const auto result =

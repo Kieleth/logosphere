@@ -150,7 +150,9 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
 // Edition-scoped verification materializes the declared exact corpus into the
 // scratch world, then loads prerequisites and the target through
 // load_seed_in_edition. Each rule may use either the transitional structural
-// locator or exact SourceTarget ledger evidence, never both.
+// locator or exact SourceTarget ledger evidence, never both. Every UTF8_TEXT
+// ledger target requires a TextQuoteSelector that converges with its primary
+// byte range, so character offsets cannot pass as byte offsets.
 SeedVerifyReport verify_seed_in_edition(
     const SeedEnvelope& seed,
     const std::string& source_root,
