@@ -78,6 +78,13 @@ Cepheus corpus uses `text eol=lf`, matching its Git object bytes. A mechanical
 test checks both the declared attribute and the checked-out bytes for every
 vendored Markdown source.
 
+**IMPLEMENTATION AMENDMENT, 2026-08-18 01:05 UTC.** Exact-byte test fixtures
+obey the same checkout contract as production sources. PR #139 exposed that a
+fixture outside the declared LF policy changed from LF to CRLF on Windows,
+invalidating its byte ranges and quote selectors. The mechanical checkout test
+now enumerates both the production corpus and repository-backed exact-byte
+fixtures. Runtime normalization remains forbidden.
+
 ### L1 Extraction
 
 **Owns** the reading. Deciding that a three-cell row belongs to an
@@ -573,6 +580,34 @@ route also has its own partial projection claim because one game route is not
 the whole general pay-or-die rule. The production ledger now has 54 coverage
 records, 43 claims, and 48 claim decisions. Its current dispositions are five
 partial, 24 raised, nine materialized, and five superseded.
+
+**Exact-partition amendment, 2026-08-18 00:33 UTC.** Whole-representation
+completeness is now an explicit, mechanically checked claim. One
+`CompleteSourcePartition` activates the gate for one exact `UTF8_TEXT`
+`SourceRepresentationContext`. Every source byte must then belong to exactly
+one non-empty `SourceTarget` primary byte range or one non-empty
+`SourceExclusion` byte range. Exclusions use the closed `SYNTAX` or `LAYOUT`
+kind. Content that the reader cannot classify is an opaque target, never an
+exclusion. Gaps, overlaps, ranges outside the representation, selectors from
+another representation, disagreement between a target's identity and declared
+representation, duplicate completeness assertions, and missing exact length
+metadata fail reconciliation. Zero-length targets may retain source
+identity but cover no bytes; zero-length exclusions are invalid.
+
+The assertion is opt-in because migration is cumulative. A representation
+without `CompleteSourcePartition` makes no completeness claim and its existing
+partial ledger remains valid. Adding the assertion is the phase boundary at
+which omission becomes a failing test. This avoids making a deterministic
+Markdown parser the authority for semantic leaf boundaries. A reader still
+judges boundaries, while the engine proves exact byte accounting.
+
+The integration also removed a hidden loader rule. Representation scoping is
+now declared by the LinkML `identity_context` range on `SourceSelector`,
+`SourceTarget`, `SourceExclusion`, and `CompleteSourcePartition`. The seed
+loader derives scoping from that schema instead of naming source types in
+code. Runtime ontology lookup now preserves the nearest ancestor's refined
+property contract, so concrete selector subclasses inherit the restriction
+mechanically.
 
 ---
 

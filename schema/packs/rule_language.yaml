@@ -34,6 +34,17 @@ enums:
       UTF8_TEXT:
         description: UTF-8 source text addressed by byte range.
 
+  SourceExclusionKind:
+    description: >-
+      Closed reasons why exact source bytes are not semantic leaves in a
+      complete UTF-8 partition. Unclassified content remains an opaque leaf;
+      it is never an exclusion.
+    permissible_values:
+      SYNTAX:
+        description: Source-format delimiters with no independent content.
+      LAYOUT:
+        description: Whitespace or other source layout with no content.
+
   SourceDigestAlgorithm:
     description: Closed cryptographic digest vocabulary for source bytes.
     permissible_values:
@@ -247,6 +258,12 @@ classes:
       Typed coordinates selecting one fragment of a source
       representation. Selector subclasses own their coordinate grammar;
       no discriminator string chooses semantics at runtime.
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+    slots:
+      - identity_context
 
   ByteRangeSelector:
     is_a: SourceSelector
@@ -284,14 +301,64 @@ classes:
       An optional quote selector is supporting evidence and must converge
       on the same fragment.
     slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
       target_representation:
         required: true
       target_primary_selector:
         required: true
     slots:
+      - identity_context
       - target_representation
       - target_primary_selector
       - target_quote_selector
+
+  CompleteSourcePartition:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Explicit assertion that one exact UTF-8 representation is partitioned
+      completely by its source targets and typed exclusions. Presence enables
+      the mechanical exact-cover gate; absence makes no completeness claim.
+    annotations:
+      facets: source-partition
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      entity_key:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+
+  SourceExclusion:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Exact source bytes excluded from semantic leaves for one closed reason.
+      Exclusions remain visible partition records; they never silently discard
+      unclassified content.
+    annotations:
+      facets: source-partition
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      entity_key:
+        required: true
+      exclusion_selector:
+        required: true
+      exclusion_kind:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+      - exclusion_selector
+      - exclusion_kind
 
   OntologyMetaContext:
     is_a: KnowledgeContext
@@ -1216,6 +1283,18 @@ slots:
     annotations:
       create_only: true
     description: Optional supporting quote required to match the primary.
+
+  exclusion_selector:
+    range: ByteRangeSelector
+    annotations:
+      create_only: true
+    description: Exact byte range omitted from semantic source leaves.
+
+  exclusion_kind:
+    range: SourceExclusionKind
+    annotations:
+      create_only: true
+    description: Closed reason the selected bytes are non-content.
 
   source_layer_context:
     range: SourceLayerContext

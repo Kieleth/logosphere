@@ -750,7 +750,9 @@ struct Checker {
 
     void check_verbatim(const KGModule& world, const SeedLoadReport& load) {
         const auto targets = world.findByType("SourceTarget");
-        if (!targets.empty()) {
+        const bool asserts_complete_partition =
+            !world.findByType("CompleteSourcePartition").empty();
+        if (!targets.empty() || asserts_complete_partition) {
             for (const EntityID target : targets) {
                 std::string selected;
                 std::string why;

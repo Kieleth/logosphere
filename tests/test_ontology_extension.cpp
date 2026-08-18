@@ -437,6 +437,29 @@ void test_unknown_enum_refinement_fails_atomically() {
            "an invalid enum reference leaves the extension unapplied");
 }
 
+void test_nearest_ancestor_property_refinement_wins() {
+    kg::OntologyRegistry registry("schema://property-refinement-test");
+    registry.addEntityType("Context", "", true);
+    registry.addEntityType("ExactContext", "Context", false);
+    registry.addAncestors("ExactContext", {"Context"});
+    registry.addEntityType("Addressable", "", true);
+    registry.addRefProperty(
+        "Addressable", "identity_context", true, "Context", true);
+    registry.addEntityType("Selector", "Addressable", true);
+    registry.addAncestors("Selector", {"Addressable"});
+    registry.addRefProperty(
+        "Selector", "identity_context", true, "ExactContext", true);
+    registry.addEntityType("ByteSelector", "Selector", false);
+    registry.addAncestors(
+        "ByteSelector", {"Selector", "Addressable"});
+
+    const auto* identity =
+        registry.findProperty("ByteSelector", "identity_context");
+    ASSERT(identity && identity->ref_target == "ExactContext",
+           "a concrete subtype inherits the nearest ancestor's refined "
+           "property contract");
+}
+
 // The endpoint machinery was complete and unused. The generator has
 // supported per-relation valid_source_types / valid_target_types all
 // along, the registry validates them on the write path
@@ -485,6 +508,7 @@ int main() {
     test_distinct_enum_names_remain_nominal_with_identical_members();
     test_conflicting_enum_definition_fails_atomically();
     test_unknown_enum_refinement_fails_atomically();
+    test_nearest_ancestor_property_refinement_wins();
 
     std::cout << std::endl;
     std::cout << tests_passed << " passed, " << tests_failed << " failed" << std::endl;

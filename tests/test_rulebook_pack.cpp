@@ -395,21 +395,35 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
         reg.findProperty("ByteRangeSelector", "source_byte_start");
     const auto* end =
         reg.findProperty("ByteRangeSelector", "source_byte_end");
+    const auto* selector_identity =
+        reg.findProperty("SourceSelector", "identity_context");
     CHECK(start && start->required && start->has_min &&
               start->min_value == 0 &&
               start->value_kind == kg::PropertyValueKind::Integer &&
               end && end->required && end->has_min && end->min_value == 0 &&
-              end->value_kind == kg::PropertyValueKind::Integer,
+              end->value_kind == kg::PropertyValueKind::Integer &&
+              selector_identity && selector_identity->required &&
+              selector_identity->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              selector_identity->ref_target ==
+                  "SourceRepresentationContext",
           "a byte selector requires non-negative inclusive-start and "
-          "exclusive-end positions");
+          "exclusive-end positions in one exact representation");
 
+    const auto* target_identity =
+        reg.findProperty("SourceTarget", "identity_context");
     const auto* representation =
         reg.findProperty("SourceTarget", "target_representation");
     const auto* primary =
         reg.findProperty("SourceTarget", "target_primary_selector");
     const auto* quote =
         reg.findProperty("SourceTarget", "target_quote_selector");
-    CHECK(representation && representation->required &&
+    CHECK(target_identity && target_identity->required &&
+              target_identity->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              target_identity->ref_target ==
+                  "SourceRepresentationContext" && representation &&
+              representation->required &&
               representation->value_kind ==
                   kg::PropertyValueKind::EntityRef &&
               representation->ref_target == "SourceRepresentationContext" &&
@@ -421,6 +435,52 @@ void test_source_leaf_identity_is_a_typed_schema_tuple() {
               quote->ref_target == "TextQuoteSelector",
           "a target requires representation plus typed primary selector, "
           "with an optional typed quote selector");
+}
+
+void test_complete_source_partition_is_typed_exact_cover() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("CompleteSourcePartition", "Addressable") &&
+              reg.hasFacet("CompleteSourcePartition", "source-partition") &&
+              !reg.hasFacet("CompleteSourcePartition", "seed-owned"),
+          "a complete source partition is an explicit seed-authored assertion");
+    const auto* partition_context =
+        reg.findProperty("CompleteSourcePartition", "identity_context");
+    CHECK(partition_context && partition_context->required &&
+              partition_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              partition_context->ref_target ==
+                  "SourceRepresentationContext",
+          "a complete partition names one exact source representation");
+
+    CHECK(reg.isSubtypeOf("SourceExclusion", "Addressable") &&
+              reg.hasFacet("SourceExclusion", "source-partition") &&
+              !reg.hasFacet("SourceExclusion", "seed-owned"),
+          "syntax and layout exclusions are addressable source records");
+    const auto* exclusion_context =
+        reg.findProperty("SourceExclusion", "identity_context");
+    const auto* selector =
+        reg.findProperty("SourceExclusion", "exclusion_selector");
+    const auto* kind =
+        reg.findProperty("SourceExclusion", "exclusion_kind");
+    CHECK(exclusion_context && exclusion_context->required &&
+              exclusion_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              exclusion_context->ref_target ==
+                  "SourceRepresentationContext" &&
+              selector && selector->required && selector->create_only &&
+              selector->value_kind == kg::PropertyValueKind::EntityRef &&
+              selector->ref_target == "ByteRangeSelector" && kind &&
+              kind->required && kind->create_only &&
+              kind->value_kind == kg::PropertyValueKind::Enum &&
+              kind->enum_type == "SourceExclusionKind",
+          "an exclusion uses one typed byte range and one closed reason");
+
+    const auto kinds = reg.enumTypes().find("SourceExclusionKind");
+    CHECK(kinds != reg.enumTypes().end() &&
+              kinds->second.members.count("SYNTAX") == 1 &&
+              kinds->second.members.count("LAYOUT") == 1,
+          "only syntax and layout may be excluded from source leaves");
 }
 
 void test_source_revision_provenance_is_a_separate_typed_observation() {
@@ -1155,6 +1215,7 @@ int main() {
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
     test_source_leaf_identity_is_a_typed_schema_tuple();
+    test_complete_source_partition_is_typed_exact_cover();
     test_source_revision_provenance_is_a_separate_typed_observation();
     test_ingestion_edition_is_a_typed_sealed_context();
     test_ingestion_dispositions_are_append_only_typed_decisions();

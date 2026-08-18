@@ -37,6 +37,61 @@ struct Fixture {
         return id;
     }
 
+    EntityID representation(unsigned long long byte_length,
+                            const std::string& media = "UTF8_TEXT") {
+        const auto id = world.createEntity("SourceRepresentationContext");
+        world.setProperty(id, "context_key", "representation:test");
+        world.setProperty(id, "source_media_type", media);
+        world.setProperty(id, "source_byte_length",
+                          std::to_string(byte_length));
+        return id;
+    }
+
+    EntityID range(EntityID representation, unsigned long long start,
+                   unsigned long long end, const std::string& key) {
+        const auto id = world.createEntity("ByteRangeSelector");
+        world.setProperty(id, "identity_context",
+                          std::to_string(representation));
+        world.setProperty(id, "entity_key", key);
+        world.setProperty(id, "source_byte_start", std::to_string(start));
+        world.setProperty(id, "source_byte_end", std::to_string(end));
+        return id;
+    }
+
+    EntityID target_range(EntityID representation, unsigned long long start,
+                          unsigned long long end, const std::string& key) {
+        const auto selector = range(representation, start, end, key + ":range");
+        const auto id = target(key);
+        world.setProperty(id, "identity_context",
+                          std::to_string(representation));
+        world.setProperty(id, "target_representation",
+                          std::to_string(representation));
+        world.setProperty(id, "target_primary_selector",
+                          std::to_string(selector));
+        return id;
+    }
+
+    EntityID exclusion(EntityID representation, unsigned long long start,
+                       unsigned long long end, const std::string& kind,
+                       const std::string& key) {
+        const auto selector = range(representation, start, end, key + ":range");
+        const auto id = world.createEntity("SourceExclusion");
+        world.setProperty(id, "identity_context",
+                          std::to_string(representation));
+        world.setProperty(id, "entity_key", key);
+        world.setProperty(id, "exclusion_selector", std::to_string(selector));
+        world.setProperty(id, "exclusion_kind", kind);
+        return id;
+    }
+
+    EntityID complete_partition(EntityID representation) {
+        const auto id = world.createEntity("CompleteSourcePartition");
+        world.setProperty(id, "identity_context",
+                          std::to_string(representation));
+        world.setProperty(id, "entity_key", "partition:complete");
+        return id;
+    }
+
     EntityID coverage(EntityID target, const std::string& key) {
         const auto id = world.createEntity("SourceCoverage");
         world.setProperty(id, "entity_key", key);
@@ -201,6 +256,199 @@ void test_missing_enumerated_leaf_fails() {
           "an enumerated leaf cannot disappear before coverage");
 }
 
+void test_complete_partition_requires_exact_byte_cover() {
+    {
+        Fixture f;
+        const auto representation = f.representation(6);
+        const auto first =
+            f.target_range(representation, 0, 2, "target:first");
+        const auto second =
+            f.target_range(representation, 4, 6, "target:second");
+        f.exclusion(representation, 2, 4, "LAYOUT", "exclusion:middle");
+        f.complete_partition(representation);
+        const auto first_coverage = f.coverage(first, "coverage:first");
+        const auto second_coverage = f.coverage(second, "coverage:second");
+        f.coverage_decision(first_coverage, 0, "NO_RULE_CONTENT");
+        f.coverage_decision(second_coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(report.ok,
+              "targets and typed exclusions can cover every source byte: " +
+                  report.error);
+    }
+    {
+        Fixture f;
+        const auto representation = f.representation(6);
+        const auto first =
+            f.target_range(representation, 0, 2, "target:first");
+        const auto second =
+            f.target_range(representation, 4, 6, "target:second");
+        f.exclusion(representation, 3, 4, "LAYOUT", "exclusion:middle");
+        f.complete_partition(representation);
+        const auto first_coverage = f.coverage(first, "coverage:first");
+        const auto second_coverage = f.coverage(second, "coverage:second");
+        f.coverage_decision(first_coverage, 0, "NO_RULE_CONTENT");
+        f.coverage_decision(second_coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok && report.error.find("gap [2,3)") != std::string::npos,
+              "one missing source byte fails an asserted complete partition");
+    }
+    {
+        Fixture f;
+        const auto representation = f.representation(6);
+        const auto first =
+            f.target_range(representation, 0, 3, "target:first");
+        const auto second =
+            f.target_range(representation, 4, 6, "target:second");
+        f.exclusion(representation, 2, 4, "SYNTAX", "exclusion:middle");
+        f.complete_partition(representation);
+        const auto first_coverage = f.coverage(first, "coverage:first");
+        const auto second_coverage = f.coverage(second, "coverage:second");
+        f.coverage_decision(first_coverage, 0, "NO_RULE_CONTENT");
+        f.coverage_decision(second_coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok && report.error.find("overlap") != std::string::npos,
+              "one source byte cannot belong to a leaf and an exclusion");
+    }
+    {
+        Fixture f;
+        const auto representation = f.representation(6);
+        const auto target =
+            f.target_range(representation, 0, 2, "target:first");
+        f.exclusion(representation, 2, 7, "LAYOUT", "exclusion:rest");
+        f.complete_partition(representation);
+        const auto coverage = f.coverage(target, "coverage:first");
+        f.coverage_decision(coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok &&
+                  report.error.find("outside representation") !=
+                      std::string::npos,
+              "a partition range cannot exceed the exact source length");
+    }
+}
+
+void test_partial_migration_makes_no_complete_partition_claim() {
+    Fixture f;
+    const auto representation = f.representation(6);
+    const auto first =
+        f.target_range(representation, 0, 2, "target:first");
+    const auto second =
+        f.target_range(representation, 4, 6, "target:second");
+    const auto first_coverage = f.coverage(first, "coverage:first");
+    const auto second_coverage = f.coverage(second, "coverage:second");
+    f.coverage_decision(first_coverage, 0, "NO_RULE_CONTENT");
+    f.coverage_decision(second_coverage, 0, "NO_RULE_CONTENT");
+
+    const auto report =
+        kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+    CHECK(report.ok,
+          "partial migration stays valid until it explicitly asserts a "
+          "complete source partition: " + report.error);
+}
+
+void test_complete_partition_contract_rejects_invalid_structure() {
+    {
+        Fixture f;
+        const auto representation = f.representation(0);
+        f.complete_partition(representation);
+        f.complete_partition(representation);
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok &&
+                  report.error.find("duplicate CompleteSourcePartition") !=
+                      std::string::npos,
+              "one representation cannot make two completeness assertions");
+    }
+    {
+        Fixture f;
+        const auto represented = f.representation(2);
+        const auto other = f.representation(2);
+        const auto selector = f.range(other, 0, 2, "range:other");
+        const auto target = f.target("target:cross-representation");
+        f.world.setProperty(target, "identity_context",
+                            std::to_string(represented));
+        f.world.setProperty(target, "target_representation",
+                            std::to_string(represented));
+        f.world.setProperty(target, "target_primary_selector",
+                            std::to_string(selector));
+        f.complete_partition(represented);
+        const auto coverage = f.coverage(target, "coverage:target");
+        f.coverage_decision(coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok &&
+                  report.error.find("selector belongs to source representation") !=
+                      std::string::npos,
+              "a partition leaf selector cannot belong to another "
+              "representation");
+    }
+    {
+        Fixture f;
+        const auto represented = f.representation(1);
+        const auto other = f.representation(1);
+        const auto target =
+            f.target_range(represented, 0, 1, "target:wrong-identity");
+        f.world.setProperty(target, "identity_context",
+                            std::to_string(other));
+        f.complete_partition(represented);
+        const auto coverage = f.coverage(target, "coverage:target");
+        f.coverage_decision(coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok &&
+                  report.error.find(
+                      "identity_context must equal target_representation") !=
+                      std::string::npos,
+              "a partition target cannot claim identity in another exact "
+              "representation");
+    }
+    {
+        Fixture f;
+        const auto representation = f.representation(1);
+        const auto target =
+            f.target_range(representation, 0, 1, "target:all");
+        f.exclusion(representation, 1, 1, "LAYOUT", "exclusion:empty");
+        f.complete_partition(representation);
+        const auto coverage = f.coverage(target, "coverage:all");
+        f.coverage_decision(coverage, 0, "NO_RULE_CONTENT");
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok &&
+                  report.error.find("must contain at least one byte") !=
+                      std::string::npos,
+              "an exclusion cannot hide an empty interval");
+    }
+    {
+        Fixture f;
+        const auto representation =
+            f.world.createEntity("SourceRepresentationContext");
+        f.world.setProperty(representation, "context_key",
+                            "representation:missing-length");
+        f.world.setProperty(representation, "source_media_type",
+                            "UTF8_TEXT");
+        f.complete_partition(representation);
+
+        const auto report =
+            kg::reconcile_ingestion_ledger(f.world, f.enumerated);
+        CHECK(!report.ok &&
+                  report.error.find("source_byte_length") !=
+                      std::string::npos,
+              "an asserted partition fails loudly without exact source "
+              "length metadata");
+    }
+}
+
 void test_duplicate_coverage_fails() {
     Fixture f;
     const auto target = f.target("byte-range:0:1");
@@ -341,6 +589,9 @@ int main() {
     test_duplicate_and_contradictory_claims_remain_visible();
     test_superseded_claim_points_to_its_generalized_replacement();
     test_missing_enumerated_leaf_fails();
+    test_complete_partition_requires_exact_byte_cover();
+    test_partial_migration_makes_no_complete_partition_claim();
+    test_complete_partition_contract_rejects_invalid_structure();
     test_duplicate_coverage_fails();
     test_unlinked_claim_fails();
     test_silent_zero_claim_coverage_fails();

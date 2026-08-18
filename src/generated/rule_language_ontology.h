@@ -793,6 +793,30 @@ inline bool from_string(const char* str, SourceMediaType& out) {
     return false;
 }
 
+/// Closed reasons why exact source bytes are not semantic leaves in a complete UTF-8 partition. Unclassified content remains an opaque leaf; it is never an exclusion.
+enum class SourceExclusionKind {
+    /// Source-format delimiters with no independent content.
+    SYNTAX,
+    /// Whitespace or other source layout with no content.
+    LAYOUT
+};
+
+/// Convert SourceExclusionKind to its string representation.
+inline const char* to_string(SourceExclusionKind value) {
+    switch (value) {
+        case SourceExclusionKind::SYNTAX: return "SYNTAX";
+        case SourceExclusionKind::LAYOUT: return "LAYOUT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceExclusionKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceExclusionKind& out) {
+    if (std::strcmp(str, "SYNTAX") == 0) { out = SourceExclusionKind::SYNTAX; return true; }
+    if (std::strcmp(str, "LAYOUT") == 0) { out = SourceExclusionKind::LAYOUT; return true; }
+    return false;
+}
+
 /// Closed cryptographic digest vocabulary for source bytes.
 enum class SourceDigestAlgorithm {
     /// SHA-256, encoded as 64 lowercase hexadecimal digits.
@@ -1831,6 +1855,8 @@ struct IngestionEditionContext : public KnowledgeContext {
 
 /// Typed coordinates selecting one fragment of a source representation. Selector subclasses own their coordinate grammar; no discriminator string chooses semantics at runtime.
 struct SourceSelector : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
 };
 
 
@@ -1856,12 +1882,36 @@ struct TextQuoteSelector : public SourceSelector {
 
 /// One source representation plus its canonical primary selector. An optional quote selector is supporting evidence and must converge on the same fragment.
 struct SourceTarget : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
     /// Exact immutable source representation being selected.
     SourceRepresentationContext target_representation = {};
     /// Canonical selector that owns target identity.
     SourceSelector target_primary_selector = {};
     /// Optional supporting quote required to match the primary.
     std::optional<TextQuoteSelector> target_quote_selector = std::nullopt;
+};
+
+
+/// Explicit assertion that one exact UTF-8 representation is partitioned completely by its source targets and typed exclusions. Presence enables the mechanical exact-cover gate; absence makes no completeness claim.
+struct CompleteSourcePartition : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+};
+
+
+/// Exact source bytes excluded from semantic leaves for one closed reason. Exclusions remain visible partition records; they never silently discard unclassified content.
+struct SourceExclusion : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+    /// Exact byte range omitted from semantic source leaves.
+    ByteRangeSelector exclusion_selector = {};
+    /// Closed reason the selected bytes are non-content.
+    SourceExclusionKind exclusion_kind = {};
 };
 
 

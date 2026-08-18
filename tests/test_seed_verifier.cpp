@@ -71,6 +71,8 @@ const char* kDependentFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/prerequisite_dependent.json";
 const char* kStandaloneFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/rulebook_smoke.json";
+const char* kPartitionSourceRoot =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/source_partition";
 
 std::string slurp(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
@@ -368,6 +370,107 @@ kg::SeedEnvelope exact_multileaf_open_bottom_seed(
 }
 
 logosphere::text::SourceCorpusDeclaration exact_evidence_corpus(
+    const kg::SeedEnvelope& seed) {
+    return {seed.layer,
+            {{seed.source.file,
+              rule_language::ontology::SourceMediaType::UTF8_TEXT,
+              seed.source.commit}}};
+}
+
+kg::SeedEnvelope complete_partition_seed(bool leave_gap) {
+    kg::SeedEnvelope seed;
+    seed.source = {"partition.md", "fixture-revision"};
+    seed.layer = "test";
+    auto create = [&](const std::string& type, const std::string& alias,
+                      std::vector<std::pair<std::string, std::string>> props) {
+        seed.ops.push_back(
+            kg::KGOp{kg::KGOpCreateEntity{type, std::move(props), alias}});
+    };
+    auto relate = [&](const std::string& from, const std::string& relation,
+                      const std::string& to) {
+        kg::KGOpSetRelation op;
+        op.from.symbolic = from;
+        op.relation = relation;
+        op.to.symbolic = to;
+        seed.ops.push_back(kg::KGOp{std::move(op)});
+    };
+    auto range = [&](const std::string& alias, std::size_t start,
+                     std::size_t end) {
+        create("ByteRangeSelector", alias,
+               {{"source_byte_start", std::to_string(start)},
+                {"source_byte_end", std::to_string(end)}});
+    };
+    auto target = [&](const std::string& alias, std::size_t start,
+                      std::size_t end, const std::string& exact,
+                      const std::string& judgement) {
+        range(alias + "_range", start, end);
+        create("TextQuoteSelector", alias + "_quote",
+               {{"source_quote_exact", exact}});
+        create("SourceTarget", alias + "_target",
+               {{"target_primary_selector", "@" + alias + "_range"},
+                {"target_quote_selector", "@" + alias + "_quote"}});
+        create("SourceCoverage", alias + "_coverage",
+               {{"coverage_target", "@" + alias + "_target"}});
+        create("CoverageDecision", alias + "_coverage_decision",
+               {{"event_type", "ARBITER_DECISION"},
+                {"decision_subject", "@" + alias + "_coverage"},
+                {"decision_sequence", "0"},
+                {"coverage_judgement", judgement},
+                {"decision_question", "Does this leaf state a rule?"},
+                {"decision_reason", "Fixture judgement."},
+                {"arbiter", "test reader"}});
+    };
+    auto exclude = [&](const std::string& alias, std::size_t start,
+                       std::size_t end, const std::string& kind) {
+        range(alias + "_range", start, end);
+        create("SourceExclusion", alias,
+               {{"exclusion_selector", "@" + alias + "_range"},
+                {"exclusion_kind", kind}});
+    };
+
+    target("heading", 2, 6, "Rule", "NO_RULE_CONTENT");
+    target("sentence", 8, 13, "Rule.", "CLAIMS_PRESENT");
+    exclude("prefix", 0, 2, "SYNTAX");
+    exclude("between", leave_gap ? 7 : 6, 8, "LAYOUT");
+    exclude("suffix", 13, 14, "LAYOUT");
+    create("CompleteSourcePartition", "partition", {});
+    create("NoEffect", "rule", {{"name", "partition fixture rule"}});
+    create("IngestionClaim", "claim",
+           {{"claim_statement", "The fixture states its rule."}});
+    create("ClaimDecision", "claim_decision",
+           {{"event_type", "ARBITER_DECISION"},
+            {"decision_subject", "@claim"},
+            {"decision_sequence", "0"},
+            {"claim_disposition", "MATERIALIZED"},
+            {"decision_question", "Can this claim enter the graph?"},
+            {"decision_reason", "NoEffect expresses the fixture."},
+            {"arbiter", "test reader"}});
+    relate("claim", "CLAIM_SUPPORTED_BY", "sentence_coverage");
+    relate("claim", "CLAIM_MATERIALIZES", "rule");
+    return seed;
+}
+
+kg::SeedEnvelope incomplete_partition_without_targets_seed() {
+    kg::SeedEnvelope seed;
+    seed.source = {"partition.md", "fixture-revision"};
+    seed.layer = "test";
+    seed.ops = {
+        kg::KGOp{kg::KGOpCreateEntity{
+            "ByteRangeSelector",
+            {{"source_byte_start", "0"}, {"source_byte_end", "13"}},
+            "almost_all"}},
+        kg::KGOp{kg::KGOpCreateEntity{
+            "SourceExclusion",
+            {{"exclusion_selector", "@almost_all"},
+             {"exclusion_kind", "LAYOUT"}},
+            "excluded"}},
+        kg::KGOp{kg::KGOpCreateEntity{
+            "CompleteSourcePartition", {}, "partition"}},
+    };
+    return seed;
+}
+
+logosphere::text::SourceCorpusDeclaration partition_corpus(
     const kg::SeedEnvelope& seed) {
     return {seed.layer,
             {{seed.source.file,
@@ -679,6 +782,29 @@ void test_loader_scopes_exact_evidence_to_its_representation() {
           "context");
 }
 
+void test_representation_scoped_content_requires_an_exact_representation() {
+    auto seed = mini_seed(
+        "book1/character-creation.md",
+        "{\"op\":\"create_entity\","
+        "\"type\":\"CompleteSourcePartition\","
+        "\"as\":\"@complete\",\"properties\":{}}");
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+
+    kg::SeedLoadReport report;
+    CHECK(!kg::load_seed(seed, world, report),
+          "representation-scoped content cannot load without an exact "
+          "source representation");
+    CHECK(report.error.find("CompleteSourcePartition") != std::string::npos &&
+              report.error.find("load_seed_in_edition") != std::string::npos,
+          "the missing-representation refusal names the type and required "
+          "loader: " + report.error);
+    CHECK(world.findByType("CompleteSourcePartition").empty() &&
+              world.findByType("SourceLayerContext").empty() &&
+              world.findByType("SourceDocumentContext").empty(),
+          "missing representation data fails before any seed mutation");
+}
+
 void test_exact_evidence_replaces_the_legacy_locator_without_fallback() {
     kg::SeedEnvelope seed = exact_evidence_seed();
     RootSourceAccess source_access(kSourceRoot);
@@ -774,6 +900,34 @@ void test_exact_multileaf_band_requires_a_typed_source_gap() {
     CHECK(reason_contains(rejected, "value", "SOURCE_GAP"),
           "a rule-language gap cannot authorize widening a printed source "
           "band");
+}
+
+void test_seed_verifier_enforces_asserted_complete_partition() {
+    RootSourceAccess source_access(kPartitionSourceRoot);
+    const auto complete = complete_partition_seed(false);
+    const auto accepted = kg::verify_seed_in_edition(
+        complete, kPartitionSourceRoot, partition_corpus(complete),
+        source_access, engine_registry());
+    print_first(accepted, "schema");
+    print_first(accepted, "verbatim");
+    CHECK(accepted.ok(),
+          "a seed whose targets and exclusions exactly cover its source "
+          "passes the shipped verifier");
+
+    const auto gap = complete_partition_seed(true);
+    const auto rejected = kg::verify_seed_in_edition(
+        gap, kPartitionSourceRoot, partition_corpus(gap), source_access,
+        engine_registry());
+    CHECK(reason_contains(rejected, "verbatim", "gap [6,7)"),
+          "the shipped verifier rejects one omitted source byte");
+
+    const auto no_targets = incomplete_partition_without_targets_seed();
+    const auto no_targets_report = kg::verify_seed_in_edition(
+        no_targets, kPartitionSourceRoot, partition_corpus(no_targets),
+        source_access, engine_registry());
+    CHECK(reason_contains(no_targets_report, "verbatim", "gap [13,14)"),
+          "a completeness assertion is verified even when the reader "
+          "declares no semantic targets");
 }
 
 void test_loader_owns_seed_portable_identity() {
@@ -1891,8 +2045,10 @@ int main() {
     test_loader_materializes_seed_origin_contexts();
     test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence();
     test_loader_scopes_exact_evidence_to_its_representation();
+    test_representation_scoped_content_requires_an_exact_representation();
     test_exact_evidence_replaces_the_legacy_locator_without_fallback();
     test_exact_multileaf_band_requires_a_typed_source_gap();
+    test_seed_verifier_enforces_asserted_complete_partition();
     test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();

@@ -12,23 +12,29 @@ It does not supersede the protocol or decision ledger:
 
 ## Repository boundary
 
-Use `/Users/luis/Projects/logosphere-public`, the repository without
-the physics work. Do not use `/Users/luis/Projects/logosphere-public-2`.
+The owner corrected the local-repository choice during implementation. The
+authoritative repository for this work is
+`/Users/luis/Projects/logosphere-public-2`. Work in the isolated
+`/private/tmp/logosphere-logovger-ingestion-ledger` worktree so the other local
+session can continue. Do not edit physics code.
 
-The completed R11 implementation baseline is commit `5111d64` on
-`codex/logovger-ingestion-ledger`, based on `c1c8791`. At the time of
-capture, the four open remote PR heads were unchanged and orthogonal to
-this phase except for possible merge-text overlap in `CMakeLists.txt`
-and `CHANGELOG.md`:
+PR #138 merged the completed ingestion-ledger phase to `main` as
+`9db62b8` on 2026-08-18. Continued work uses
+`codex/logovger-full-ingestion`, created from that exact commit. The prior
+`codex/logovger-ingestion-ledger` remote branch was deleted by the merge.
+
+At the original handover, the four open remote PR heads were unchanged and
+orthogonal to the phase except for possible merge-text overlap in
+`CMakeLists.txt` and `CHANGELOG.md`:
 
 - PR 137: `a33c9b5`
 - PR 134: `9857bf6`
 - PR 129: `5670156`
 - PR 96: `6f88f7c`
 
-Recheck remote state before integrating. Merge current main into the
-working branch. Do not rebase, edit another session's worktree, or
-assume a historical branch is idle from this document alone.
+Recheck remote state before every later integration. Do not rebase, edit
+another session's worktree, touch physics, or assume a historical branch is
+idle from this document alone.
 
 ## Binding decisions
 
@@ -619,10 +625,106 @@ TDD evidence:
 - green: the focused checkout contract passed 1/0 and all seven Logovger
   Python tool suites passed;
 - `git check-attr eol` reports `lf` for both production corpus members;
-- PR #138 CI rerun: pending;
+- PR #138 CI rerun: `headless-windows`, `headless-linux`,
+  `physics-linux`, `ontology-generation`, and `merge-policy` passed;
 - the separate DCO failure is the known repository-policy defect tracked by
-  PR #137. It does not weaken the product gates and will receive the documented
-  admin override only after those gates pass.
+  PR #137. The final fix commit was signed. The full branch was not rewritten;
+- `full-macos` failed only in `test_humanoid_terrain_scenarios`: 118 passed,
+  three failed, and 17 were known-red. Current `main` run 31962521058 had the
+  exact same three `litter underfoot` failures and totals. This branch changed
+  no physics;
+- the owner approved an audited admin squash merge. The PR comment records
+  both overrides, and squash commit `9db62b8` carries a `Signed-off-by`
+  trailer.
+
+## PR #138 integration closure, 2026-08-18 00:07 UTC
+
+The first five production evidence slices and the generic ingestion-ledger
+mechanism are now on `main`. The Windows gate proves that repository checkout
+preserves the exact bytes addressed by source targets. Linux headless also
+passed its complete suite, 60-life run, installation, and external-consumer
+check. The unrelated macOS physics failure and the known DCO-policy defect are
+recorded on the PR before the owner-authorized admin merge.
+
+The next completion defect was narrower than adding more claims: production
+verification passed `world.findByType("SourceTarget")` directly to ledger
+reconciliation. That proved every declared target had coverage, but it could
+not detect source bytes that were never declared. The exact-partition phase
+below closes that defect without making an independently derived Markdown
+parse the semantic authority.
+
+## Exact source partition gate, 2026-08-18 00:33 UTC
+
+Owner selected option 1: one explicit exact-byte partition assertion per
+representation. `CompleteSourcePartition` activates the gate. Its exact UTF-8
+representation must then be covered once, with no gaps or overlaps, by
+`SourceTarget` primary byte ranges plus typed `SourceExclusion` ranges.
+Exclusions are only `SYNTAX` or `LAYOUT`; unclassified content remains an
+opaque target. Without the assertion, partial migrations remain valid.
+
+TDD evidence and integration findings:
+
+- initial ledger red: 16 passes and 3 failures because a one-byte gap, an
+  overlap, and a range past the representation all reconciled;
+- first shipped-verifier red: 298 passes and 2 failures because the new
+  partition records were incorrectly marked loader-owned;
+- second integration red exposed the existing loader's type-name scoping.
+  Moving scoping to the LinkML `identity_context` range then exposed that the
+  runtime registry chose an alphabetically earlier base property instead of
+  the nearest ancestor's refinement;
+- the registry now resolves inherited property refinements by specificity,
+  and a generic ontology test prevents that class of regression;
+- the seed loader refuses representation-scoped content without an exact
+  ingestion edition before any mutation. It derives scope from the schema,
+  with no list of source type names;
+- a later red proved that a completeness assertion with no semantic targets
+  skipped reconciliation. The shipped verifier now gates on the assertion
+  itself, so an all-exclusion partition is still checked;
+- focused `test_ontology_extension`, `test_rulebook_pack`,
+  `test_ingestion_ledger`, and `test_seed_verifier` pass. Negative coverage
+  includes gaps, overlaps, out-of-bounds ranges, duplicate assertions,
+  cross-representation selectors and target identities, empty exclusions,
+  absent byte length, no-target assertions, and one omitted byte through the
+  shipped verifier;
+- schema and generator audits pass 14/0, regeneration is byte-stable, and the
+  complete registered headless suite passes 97/97. The sandboxed run first
+  passed 96 tests and denied `test_run_recorder` access to its normal telemetry
+  directory; that unchanged test passed 1/1 with the required filesystem
+  access.
+
+The next production step is to classify the remaining bytes of one complete
+source representation into semantic or opaque targets and syntax/layout
+exclusions, then add its single completeness assertion. If that integration
+finds a general representation defect, pause the production migration, repair
+the engine contract under a red test, and resume.
+
+## PR #139 exact-fixture checkout guard, 2026-08-18 01:05 UTC
+
+The first Windows run passed DCO, merge policy, ontology generation, and the
+Linux physics lane, but `test_seed_verifier` passed 303 cases and failed the two
+new complete-partition fixture cases. Windows had converted
+`tests/fixtures/source_partition/partition.md` from LF to CRLF because the new
+fixture was outside the repository's source checkout policy. The verifier then
+correctly rejected the authored byte ranges and quote selector against the
+different checked-out bytes.
+
+The repair extends the existing source-integrity boundary instead of changing
+the verifier. `.gitattributes` now fixes the exact-byte fixture path to LF. The
+source-checkout contract enumerates production source Markdown and
+repository-backed exact-byte fixtures together, currently 33 files, and checks
+both effective `eol=lf` and raw absence of CRLF.
+
+TDD and integration state:
+
+- red: the generalized checkout contract reported `eol: unspecified` for the
+  partition fixture before the attribute was added;
+- local green: the checkout contract passes 1/0, `git check-attr eol` reports
+  `lf` for the fixture, and the shipped seed verifier passes 305/0;
+- the fresh Windows run is a merge gate. A failure pauses integration and
+  returns to the general source-integrity contract;
+- the initial macOS failure is the unchanged three-case
+  `test_humanoid_terrain_scenarios` baseline already present on `main`. This
+  branch changes no physics files.
 
 ## Immediate Phase A, minimum honest ledger
 
@@ -658,6 +760,9 @@ Follow this TDD order:
 - [x] Add a reconciliation gate: every enumerated unit has exactly one
   coverage judgement; zero claims requires explicit no-rule-content;
   every claim cites existing coverage; totals close.
+- [x] Add an opt-in exact-byte partition gate so a representation can prove
+  that no source byte was omitted, without imposing parser-authored semantic
+  boundaries on partial migrations.
 - [x] Prove a missing unit, an unlinked claim, a duplicate coverage row,
   and silent zero-claim coverage each fail mechanically.
 - [x] Establish the sealed ingestion-edition context and canonical manifest
@@ -677,6 +782,8 @@ Follow this TDD order:
 - [x] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.
+- [ ] Complete one production representation with opaque leaves and typed
+  syntax/layout exclusions, then add its `CompleteSourcePartition` assertion.
 - [x] Record the observed red tests, implementation commit, focused
   tests, complete registered headless profile, and remaining owner
   decisions in this checklist before integration.

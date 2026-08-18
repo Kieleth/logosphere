@@ -40,6 +40,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("SolverAuthority", {"DYNAMIC", "KINEMATIC"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addEnumType("SourceDigestAlgorithm", {"SHA256"});
+    reg.addEnumType("SourceExclusionKind", {"LAYOUT", "SYNTAX"});
     reg.addEnumType("SourceManifestFormat", {"LENGTH_PREFIXED_V1"});
     reg.addEnumType("SourceMediaType", {"UTF8_TEXT"});
     reg.setSource("https://logosphere.dev/schema");
@@ -86,6 +87,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Cited", "", true);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addEntityType("CollectionExpression", "Expression", true);
+    reg.addEntityType("CompleteSourcePartition", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Constraint", "Entity", false);
     reg.addEntityType("Creature", "LivingEntity", true);
@@ -281,6 +283,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("SourceCoverage", "Entity", false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addEntityType("SourceDocumentContext", "KnowledgeContext", false);
+    reg.addEntityType("SourceExclusion", "Entity", false);
     reg.addEntityType("SourceLayerContext", "KnowledgeContext", false);
     reg.addEntityType("SourceRepresentationContext", "KnowledgeContext", false);
     reg.addEntityType("SourceRevisionObservation", "Entity", false);
@@ -364,6 +367,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("CollectionExpression", {"Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("CollisionEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addAncestors("CompleteSourcePartition", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Constraint", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("ContactFilteredEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -555,6 +561,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("SourceCoverage", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("SourceDocumentContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
+    reg.addAncestors("SourceExclusion", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("SourceLayerContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("SourceRepresentationContext", {"Describable", "Entity", "Identifiable", "KnowledgeContext", "Temporal"});
     reg.addAncestors("SourceRevisionObservation", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
@@ -650,6 +657,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("CharacteristicModifierEntry", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("ClaimDecision", {"append-only", "ingestion-ledger", "rulebook"});
+    reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addFacets("CompleteSourcePartition", {"source-partition"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("CoverageDecision", {"append-only", "ingestion-ledger", "rulebook"});
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addFacets("Currency", {"rulebook"});
@@ -706,6 +716,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("SourceCoverage", {"ingestion-ledger", "rulebook"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addFacets("SourceDocumentContext", {"sealed-origin", "seed-owned"});
+    reg.addFacets("SourceExclusion", {"source-partition"});
     reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceRepresentationContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceRevisionObservation", {"append-only", "no-instance-declared", "seed-owned"});
@@ -914,6 +925,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("CollisionEvent", "approach_speed", kg::PropertyValueKind::Float, false);
     reg.addProperty("CollisionEvent", "source_part_id", kg::PropertyValueKind::String, false);
     reg.addProperty("CollisionEvent", "target_part_id", kg::PropertyValueKind::String, false);
+    reg.setSource("https://logosphere.dev/packs/rule-language");
+    reg.addRefProperty("CompleteSourcePartition", "identity_context", true, "SourceRepresentationContext", true);
+    reg.addProperty("CompleteSourcePartition", "entity_key", kg::PropertyValueKind::String, true, true);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEnumProperty("Constraint", "gluon_type", "GluonType", true);
     reg.addProperty("Constraint", "stiffness", kg::PropertyValueKind::Float, true);
     reg.addProperty("Constraint", "damping", kg::PropertyValueKind::Float, false);
@@ -1215,6 +1230,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("SourceDocumentContext", "source_file", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceDocumentContext", "source_commit", kg::PropertyValueKind::String, true);
     reg.addRefProperty("SourceDocumentContext", "source_layer_context", true, "SourceLayerContext", true);
+    reg.addRefProperty("SourceExclusion", "identity_context", true, "SourceRepresentationContext", true);
+    reg.addProperty("SourceExclusion", "entity_key", kg::PropertyValueKind::String, true, true);
+    reg.addRefProperty("SourceExclusion", "exclusion_selector", true, "ByteRangeSelector", true);
+    reg.addEnumProperty("SourceExclusion", "exclusion_kind", "SourceExclusionKind", true, true);
     reg.addProperty("SourceLayerContext", "source_layer", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_layer", kg::PropertyValueKind::String, true);
     reg.addProperty("SourceRepresentationContext", "source_file", kg::PropertyValueKind::String, true);
@@ -1226,6 +1245,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("SourceRevisionObservation", "identity_context", true, "SourceRepresentationContext", true);
     reg.addProperty("SourceRevisionObservation", "entity_key", kg::PropertyValueKind::String, true, true);
     reg.addProperty("SourceRevisionObservation", "source_revision", kg::PropertyValueKind::String, true);
+    reg.addRefProperty("SourceSelector", "identity_context", true, "SourceRepresentationContext", true);
+    reg.addRefProperty("SourceTarget", "identity_context", true, "SourceRepresentationContext", true);
     reg.addRefProperty("SourceTarget", "target_representation", true, "SourceRepresentationContext", true);
     reg.addRefProperty("SourceTarget", "target_primary_selector", true, "SourceSelector", true);
     reg.addRefProperty("SourceTarget", "target_quote_selector", false, "TextQuoteSelector", true);
