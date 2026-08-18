@@ -698,6 +698,34 @@ exclusions, then add its single completeness assertion. If that integration
 finds a general representation defect, pause the production migration, repair
 the engine contract under a red test, and resume.
 
+## PR #139 exact-fixture checkout guard, 2026-08-18 01:05 UTC
+
+The first Windows run passed DCO, merge policy, ontology generation, and the
+Linux physics lane, but `test_seed_verifier` passed 303 cases and failed the two
+new complete-partition fixture cases. Windows had converted
+`tests/fixtures/source_partition/partition.md` from LF to CRLF because the new
+fixture was outside the repository's source checkout policy. The verifier then
+correctly rejected the authored byte ranges and quote selector against the
+different checked-out bytes.
+
+The repair extends the existing source-integrity boundary instead of changing
+the verifier. `.gitattributes` now fixes the exact-byte fixture path to LF. The
+source-checkout contract enumerates production source Markdown and
+repository-backed exact-byte fixtures together, currently 33 files, and checks
+both effective `eol=lf` and raw absence of CRLF.
+
+TDD and integration state:
+
+- red: the generalized checkout contract reported `eol: unspecified` for the
+  partition fixture before the attribute was added;
+- local green: the checkout contract passes 1/0, `git check-attr eol` reports
+  `lf` for the fixture, and the shipped seed verifier passes 305/0;
+- the fresh Windows run is a merge gate. A failure pauses integration and
+  returns to the general source-integrity contract;
+- the initial macOS failure is the unchanged three-case
+  `test_humanoid_terrain_scenarios` baseline already present on `main`. This
+  branch changes no physics files.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable

@@ -6,13 +6,16 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 ROOT = TOOLS.parents[2]
 SOURCE_ROOT = ROOT / "examples" / "logovger" / "srd" / "cepheus"
+FIXTURE_ROOT = ROOT / "tests" / "fixtures" / "source_partition"
 
 
 class SourceCheckoutContractTests(unittest.TestCase):
-    def test_vendored_markdown_keeps_git_object_line_endings(self):
-        sources = sorted(SOURCE_ROOT.rglob("*.md"))
+    def test_byte_addressed_markdown_keeps_git_object_line_endings(self):
+        sources = sorted(SOURCE_ROOT.rglob("*.md")) + sorted(
+            FIXTURE_ROOT.rglob("*.md")
+        )
         relative = [path.relative_to(ROOT).as_posix() for path in sources]
-        self.assertTrue(relative, "vendored Cepheus Markdown corpus is empty")
+        self.assertTrue(relative, "repository-backed byte sources are empty")
 
         checked = subprocess.run(
             ["git", "-C", str(ROOT), "check-attr", "eol", "--", *relative],

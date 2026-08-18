@@ -1,3 +1,5 @@
 # SourceTarget byte ranges address the Git object bytes. Platform checkout
-# conversion would change those identities, so the vendored text stays LF.
+# conversion would change those identities, so repository-backed UTF-8
+# sources and their exact-byte fixtures stay LF.
 examples/logovger/srd/cepheus/**/*.md text eol=lf
+tests/fixtures/source_partition/*.md text eol=lf

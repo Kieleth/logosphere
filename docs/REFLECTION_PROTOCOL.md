@@ -78,6 +78,13 @@ Cepheus corpus uses `text eol=lf`, matching its Git object bytes. A mechanical
 test checks both the declared attribute and the checked-out bytes for every
 vendored Markdown source.
 
+**IMPLEMENTATION AMENDMENT, 2026-08-18 01:05 UTC.** Exact-byte test fixtures
+obey the same checkout contract as production sources. PR #139 exposed that a
+fixture outside the declared LF policy changed from LF to CRLF on Windows,
+invalidating its byte ranges and quote selectors. The mechanical checkout test
+now enumerates both the production corpus and repository-backed exact-byte
+fixtures. Runtime normalization remains forbidden.
+
 ### L1 Extraction
 
 **Owns** the reading. Deciding that a three-cell row belongs to an
