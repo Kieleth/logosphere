@@ -72,6 +72,223 @@ bool parse_reference(const KGModule& world, EntityID entity,
     return true;
 }
 
+struct PartitionInterval {
+    unsigned long long start = 0;
+    unsigned long long end = 0;
+    EntityID owner = INVALID_ENTITY;
+    std::string label;
+};
+
+bool read_partition_range(const KGModule& world, EntityID selector,
+                          EntityID representation,
+                          unsigned long long representation_length,
+                          bool allow_empty, const std::string& label,
+                          PartitionInterval& out, std::string& error) {
+    if (!world.getRegistry().isSubtypeOf(world.getType(selector),
+                                         "ByteRangeSelector")) {
+        error = label + " " + std::to_string(selector) +
+                ": UTF8_TEXT partitions require a ByteRangeSelector";
+        return false;
+    }
+    EntityID selector_context = INVALID_ENTITY;
+    if (!parse_reference(world, selector, "identity_context",
+                         "SourceRepresentationContext", selector_context,
+                         error))
+        return false;
+    if (selector_context != representation) {
+        error = label + " " + std::to_string(selector) +
+                ": selector belongs to source representation " +
+                std::to_string(selector_context) + ", not " +
+                std::to_string(representation);
+        return false;
+    }
+    if (!parse_nonnegative(world, selector, "source_byte_start", out.start,
+                           error) ||
+        !parse_nonnegative(world, selector, "source_byte_end", out.end,
+                           error))
+        return false;
+    if (out.start > out.end) {
+        error = label + " " + std::to_string(selector) +
+                ": byte range start exceeds end";
+        return false;
+    }
+    if (!allow_empty && out.start == out.end) {
+        error = label + " " + std::to_string(selector) +
+                ": exclusion range must contain at least one byte";
+        return false;
+    }
+    if (out.end > representation_length) {
+        error = label + " " + std::to_string(selector) + " range [" +
+                std::to_string(out.start) + "," +
+                std::to_string(out.end) +
+                ") is outside representation length " +
+                std::to_string(representation_length);
+        return false;
+    }
+    out.owner = selector;
+    out.label = label;
+    return true;
+}
+
+bool validate_complete_source_partitions(
+    const KGModule& world,
+    const std::vector<EntityID>& enumerated_targets, std::string& error) {
+    const auto partitions = world.findByType("CompleteSourcePartition");
+    if (partitions.empty()) return true;
+
+    std::unordered_map<EntityID, EntityID> partition_by_representation;
+    for (const EntityID partition : partitions) {
+        EntityID representation = INVALID_ENTITY;
+        if (!parse_reference(world, partition, "identity_context",
+                             "SourceRepresentationContext", representation,
+                             error))
+            return false;
+        const auto inserted =
+            partition_by_representation.emplace(representation, partition);
+        if (!inserted.second) {
+            error = "source representation " +
+                    std::to_string(representation) +
+                    ": duplicate CompleteSourcePartition assertions " +
+                    std::to_string(inserted.first->second) + " and " +
+                    std::to_string(partition);
+            return false;
+        }
+    }
+
+    std::unordered_map<EntityID, std::vector<EntityID>> targets_by_representation;
+    for (const EntityID target : enumerated_targets) {
+        EntityID representation = INVALID_ENTITY;
+        if (!parse_reference(world, target, "target_representation",
+                             "SourceRepresentationContext", representation,
+                             error))
+            return false;
+        EntityID identity_context = INVALID_ENTITY;
+        if (!parse_reference(world, target, "identity_context",
+                             "SourceRepresentationContext", identity_context,
+                             error))
+            return false;
+        if (identity_context != representation) {
+            error = "source target " + std::to_string(target) +
+                    ": identity_context must equal "
+                    "target_representation";
+            return false;
+        }
+        targets_by_representation[representation].push_back(target);
+    }
+
+    std::unordered_map<EntityID, std::vector<EntityID>>
+        exclusions_by_representation;
+    for (const EntityID exclusion : world.findByType("SourceExclusion")) {
+        EntityID representation = INVALID_ENTITY;
+        if (!parse_reference(world, exclusion, "identity_context",
+                             "SourceRepresentationContext", representation,
+                             error))
+            return false;
+        exclusions_by_representation[representation].push_back(exclusion);
+    }
+
+    for (const auto& [representation, partition] :
+         partition_by_representation) {
+        if (!world.hasProperty(representation, "source_media_type")) {
+            error = "source representation " +
+                    std::to_string(representation) +
+                    ": missing required property 'source_media_type'";
+            return false;
+        }
+        const std::string media =
+            world.getProperty(representation, "source_media_type");
+        if (media != "UTF8_TEXT") {
+            error = "complete source partition " +
+                    std::to_string(partition) + ": media type '" + media +
+                    "' has no exact-byte partition contract";
+            return false;
+        }
+        unsigned long long representation_length = 0;
+        if (!parse_nonnegative(world, representation, "source_byte_length",
+                               representation_length, error))
+            return false;
+
+        std::vector<PartitionInterval> intervals;
+        for (const EntityID target : targets_by_representation[representation]) {
+            EntityID selector = INVALID_ENTITY;
+            if (!parse_reference(world, target, "target_primary_selector",
+                                 "SourceSelector", selector, error))
+                return false;
+            PartitionInterval interval;
+            if (!read_partition_range(world, selector, representation,
+                                      representation_length, true,
+                                      "source target", interval, error))
+                return false;
+            if (interval.start != interval.end) intervals.push_back(interval);
+        }
+
+        for (const EntityID exclusion :
+             exclusions_by_representation[representation]) {
+            if (!world.hasProperty(exclusion, "exclusion_kind")) {
+                error = "source exclusion " + std::to_string(exclusion) +
+                        ": missing required property 'exclusion_kind'";
+                return false;
+            }
+            const std::string kind =
+                world.getProperty(exclusion, "exclusion_kind");
+            if (kind != "SYNTAX" && kind != "LAYOUT") {
+                error = "source exclusion " + std::to_string(exclusion) +
+                        ": unknown exclusion kind '" + kind + "'";
+                return false;
+            }
+            EntityID selector = INVALID_ENTITY;
+            if (!parse_reference(world, exclusion, "exclusion_selector",
+                                 "ByteRangeSelector", selector, error))
+                return false;
+            PartitionInterval interval;
+            if (!read_partition_range(world, selector, representation,
+                                      representation_length, false,
+                                      "source exclusion", interval, error))
+                return false;
+            intervals.push_back(interval);
+        }
+
+        std::sort(intervals.begin(), intervals.end(),
+                  [](const PartitionInterval& left,
+                     const PartitionInterval& right) {
+                      if (left.start != right.start)
+                          return left.start < right.start;
+                      if (left.end != right.end) return left.end < right.end;
+                      return left.owner < right.owner;
+                  });
+        unsigned long long cursor = 0;
+        for (const auto& interval : intervals) {
+            if (interval.start > cursor) {
+                error = "source representation " +
+                        std::to_string(representation) +
+                        ": complete partition has gap [" +
+                        std::to_string(cursor) + "," +
+                        std::to_string(interval.start) + ")";
+                return false;
+            }
+            if (interval.start < cursor) {
+                error = "source representation " +
+                        std::to_string(representation) +
+                        ": complete partition overlap at byte " +
+                        std::to_string(interval.start) + " in " +
+                        interval.label + " " +
+                        std::to_string(interval.owner);
+                return false;
+            }
+            cursor = interval.end;
+        }
+        if (cursor != representation_length) {
+            error = "source representation " +
+                    std::to_string(representation) +
+                    ": complete partition has gap [" +
+                    std::to_string(cursor) + "," +
+                    std::to_string(representation_length) + ")";
+            return false;
+        }
+    }
+    return true;
+}
+
 bool require_decision_metadata(const KGModule& world, EntityID decision,
                                std::string& error) {
     if (!world.hasProperty(decision, "event_type") ||
@@ -301,6 +518,9 @@ IngestionLedgerReport reconcile_ingestion_ledger(
                                     " appears more than once");
         }
     }
+    if (!validate_complete_source_partitions(world, enumerated_targets,
+                                             report.error))
+        return fail(report, report.error);
 
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");

@@ -202,6 +202,17 @@ bool seed_creates_addressable_content(const SeedEnvelope& seed,
     return false;
 }
 
+bool uses_source_representation_identity(const KGModule& kg,
+                                         const std::string& type) {
+    const auto& ontology = kg.getRegistry();
+    const PropertyDef* identity =
+        ontology.findProperty(type, "identity_context");
+    return identity != nullptr &&
+           identity->value_kind == PropertyValueKind::EntityRef &&
+           ontology.isSubtypeOf(identity->ref_target,
+                                "SourceRepresentationContext");
+}
+
 const std::string* create_property(const KGOpCreateEntity& create,
                                    const std::string& property) {
     for (const auto& [name, value] : create.properties)
@@ -578,18 +589,29 @@ static bool load_seed_with_identity(const SeedEnvelope& seed,
         report.failed_op = invalid_op;
         return false;
     }
+    if (source_representation == INVALID_ENTITY) {
+        for (size_t index = 0; index < seed.ops.size(); ++index) {
+            const auto* create =
+                std::get_if<KGOpCreateEntity>(&seed.ops[index]);
+            if (!create ||
+                !uses_source_representation_identity(kg, create->type)) {
+                continue;
+            }
+            report.ok = false;
+            report.failed_op = static_cast<int>(index);
+            report.error =
+                "ops[" + std::to_string(index) +
+                "]: representation-scoped Addressable type '" +
+                create->type + "' requires load_seed_in_edition with an "
+                               "exact source representation";
+            return false;
+        }
+    }
     std::unordered_map<std::string, std::string> selector_keys;
     if (!derive_selector_keys(seed, kg, selector_keys, invalid_op,
                               report.error)) {
         report.ok = false;
         report.failed_op = invalid_op;
-        return false;
-    }
-    if (!selector_keys.empty() && source_representation == INVALID_ENTITY) {
-        report.ok = false;
-        report.error =
-            "source selectors require load_seed_in_edition with an exact "
-            "source representation";
         return false;
     }
     if (!seed_creates_addressable_content(seed, kg)) {
@@ -684,11 +706,11 @@ static bool load_seed_with_identity(const SeedEnvelope& seed,
         if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
             create &&
             kg.getRegistry().isSubtypeOf(create->type, "Addressable")) {
-            const bool is_selector = kg.getRegistry().isSubtypeOf(
-                create->type, "SourceSelector");
+            const bool is_representation_scoped =
+                uses_source_representation_identity(kg, create->type);
             const bool is_target = kg.getRegistry().isSubtypeOf(
                 create->type, "SourceTarget");
-            const std::string scoped_identity = is_selector || is_target
+            const std::string scoped_identity = is_representation_scoped
                 ? std::to_string(source_representation)
                 : identity_ref;
             std::string entity_key = create->as;

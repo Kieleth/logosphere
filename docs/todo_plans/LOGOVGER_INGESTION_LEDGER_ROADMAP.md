@@ -646,12 +646,57 @@ passed its complete suite, 60-life run, installation, and external-consumer
 check. The unrelated macOS physics failure and the known DCO-policy defect are
 recorded on the PR before the owner-authorized admin merge.
 
-The next completion defect is narrower than adding more claims: production
-verification currently passes `world.findByType("SourceTarget")` directly to
-ledger reconciliation. That proves every declared target has coverage, but it
-cannot detect a source leaf that was never declared. Full ingestion therefore
-needs an expected-leaf input derived independently from the ledger before
-section-by-section migration can claim whole-source completeness.
+The next completion defect was narrower than adding more claims: production
+verification passed `world.findByType("SourceTarget")` directly to ledger
+reconciliation. That proved every declared target had coverage, but it could
+not detect source bytes that were never declared. The exact-partition phase
+below closes that defect without making an independently derived Markdown
+parse the semantic authority.
+
+## Exact source partition gate, 2026-08-18 00:33 UTC
+
+Owner selected option 1: one explicit exact-byte partition assertion per
+representation. `CompleteSourcePartition` activates the gate. Its exact UTF-8
+representation must then be covered once, with no gaps or overlaps, by
+`SourceTarget` primary byte ranges plus typed `SourceExclusion` ranges.
+Exclusions are only `SYNTAX` or `LAYOUT`; unclassified content remains an
+opaque target. Without the assertion, partial migrations remain valid.
+
+TDD evidence and integration findings:
+
+- initial ledger red: 16 passes and 3 failures because a one-byte gap, an
+  overlap, and a range past the representation all reconciled;
+- first shipped-verifier red: 298 passes and 2 failures because the new
+  partition records were incorrectly marked loader-owned;
+- second integration red exposed the existing loader's type-name scoping.
+  Moving scoping to the LinkML `identity_context` range then exposed that the
+  runtime registry chose an alphabetically earlier base property instead of
+  the nearest ancestor's refinement;
+- the registry now resolves inherited property refinements by specificity,
+  and a generic ontology test prevents that class of regression;
+- the seed loader refuses representation-scoped content without an exact
+  ingestion edition before any mutation. It derives scope from the schema,
+  with no list of source type names;
+- a later red proved that a completeness assertion with no semantic targets
+  skipped reconciliation. The shipped verifier now gates on the assertion
+  itself, so an all-exclusion partition is still checked;
+- focused `test_ontology_extension`, `test_rulebook_pack`,
+  `test_ingestion_ledger`, and `test_seed_verifier` pass. Negative coverage
+  includes gaps, overlaps, out-of-bounds ranges, duplicate assertions,
+  cross-representation selectors and target identities, empty exclusions,
+  absent byte length, no-target assertions, and one omitted byte through the
+  shipped verifier;
+- schema and generator audits pass 14/0, regeneration is byte-stable, and the
+  complete registered headless suite passes 97/97. The sandboxed run first
+  passed 96 tests and denied `test_run_recorder` access to its normal telemetry
+  directory; that unchanged test passed 1/1 with the required filesystem
+  access.
+
+The next production step is to classify the remaining bytes of one complete
+source representation into semantic or opaque targets and syntax/layout
+exclusions, then add its single completeness assertion. If that integration
+finds a general representation defect, pause the production migration, repair
+the engine contract under a red test, and resume.
 
 ## Immediate Phase A, minimum honest ledger
 
@@ -687,6 +732,9 @@ Follow this TDD order:
 - [x] Add a reconciliation gate: every enumerated unit has exactly one
   coverage judgement; zero claims requires explicit no-rule-content;
   every claim cites existing coverage; totals close.
+- [x] Add an opt-in exact-byte partition gate so a representation can prove
+  that no source byte was omitted, without imposing parser-authored semantic
+  boundaries on partial migrations.
 - [x] Prove a missing unit, an unlinked claim, a duplicate coverage row,
   and silent zero-claim coverage each fail mechanically.
 - [x] Establish the sealed ingestion-edition context and canonical manifest
@@ -706,6 +754,8 @@ Follow this TDD order:
 - [x] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.
+- [ ] Complete one production representation with opaque leaves and typed
+  syntax/layout exclusions, then add its `CompleteSourcePartition` assertion.
 - [x] Record the observed red tests, implementation commit, focused
   tests, complete registered headless profile, and remaining owner
   decisions in this checklist before integration.
