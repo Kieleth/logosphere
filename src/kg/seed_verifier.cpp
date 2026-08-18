@@ -2,14 +2,18 @@
 
 #include "logosphere/text/source_document.h"
 #include "logosphere/text/source_locator.h"
+#include "logosphere/text/source_corpus.h"
 
 #include "logosphere/core/dice_service.h"
+#include "logosphere/kg/ingestion_ledger.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/rules/procedure_runner.h"
 #include "logosphere/rules/lookup_table_selector.h"
+#include "logosphere/text/source_target.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -355,6 +359,26 @@ bool parse_band_cell(const std::string& q, Band& band) {
     return i < q.size() && q[i] == '|';
 }
 
+bool same_band(const Band& left, const Band& right) {
+    return left.lo == right.lo && left.hi == right.hi;
+}
+
+std::vector<Band> evidence_bands(const std::string& evidence) {
+    std::vector<Band> bands;
+    std::istringstream lines(evidence);
+    std::string line;
+    while (std::getline(lines, line)) {
+        line = trim(line);
+        if (line.empty()) continue;
+        Band band;
+        if (parse_band_cell(line, band) ||
+            parse_band_cell("| " + line + " |", band)) {
+            bands.push_back(band);
+        }
+    }
+    return bands;
+}
+
 // A stored band property, parsed. The schema already validated these
 // as integers; a parse failure here means the property is absent.
 bool read_band(const KGModule& kg, EntityID id, const char* min_key,
@@ -399,7 +423,21 @@ bool read_row_band(const KGModule& kg, EntityID id, Band& band) {
     // last row: "| 1+ |". The flag and the number are exclusive, the
     // same contract key_max_unbounded has on a lookup row.
     const std::string top_flag = kg.getProperty(id, "roll_max_unbounded");
-    if (top_flag == "true" || top_flag == "1") {
+    const std::string bottom_flag =
+        kg.getProperty(id, "roll_min_unbounded");
+    const bool top_unbounded = top_flag == "true" || top_flag == "1";
+    const bool bottom_unbounded =
+        bottom_flag == "true" || bottom_flag == "1";
+    if (top_unbounded && bottom_unbounded) return false;
+    if (bottom_unbounded) {
+        const std::string lo = kg.getProperty(id, "roll_min");
+        const std::string hi = kg.getProperty(id, "roll_max");
+        if (lo.empty() || hi.empty()) return false;
+        band.lo.reset();
+        band.hi = std::strtoll(hi.c_str(), nullptr, 10);
+        return true;
+    }
+    if (top_unbounded) {
         const std::string lo = kg.getProperty(id, "roll_min");
         if (lo.empty() || !kg.getProperty(id, "roll_max").empty()) {
             return false;
@@ -419,6 +457,7 @@ struct Checker {
     SeedVerifyReport& report;
     const logosphere::rules::ProcedurePrimitiveRegistry*
         procedure_primitives;
+    EntityID ingestion_edition_context = INVALID_ENTITY;
 
     // rel path -> file content; empty string caches "unreadable".
     std::map<std::string, std::string> files;
@@ -471,7 +510,11 @@ struct Checker {
     // Loads into `world` through the seed loader; the loaded state
     // is what every other check reads.
     bool check_schema(KGModule& world, SeedLoadReport& load) {
-        const bool ok = load_seed(seed, world, load);
+        const bool ok = ingestion_edition_context == INVALID_ENTITY
+                            ? load_seed(seed, world, load)
+                            : load_seed_in_edition(
+                                  seed, ingestion_edition_context, world,
+                                  load);
         report.ops_loaded = load.ops_applied;
         if (!ok) {
             const std::string alias =
@@ -534,7 +577,200 @@ struct Checker {
     // than against a whole line.
     std::map<EntityID, std::string> resolved;
 
+    bool entity_reference(const KGModule& world, EntityID owner,
+                          const char* property, EntityID& out,
+                          std::string& why) const {
+        if (!world.hasProperty(owner, property)) {
+            why = "missing required " + std::string(property);
+            return false;
+        }
+        const std::string value = world.getProperty(owner, property);
+        unsigned long long parsed = 0;
+        const auto result = std::from_chars(
+            value.data(), value.data() + value.size(), parsed);
+        if (value.empty() || result.ec != std::errc{} ||
+            result.ptr != value.data() + value.size() || parsed == 0 ||
+            parsed > std::numeric_limits<EntityID>::max() ||
+            !world.exists(static_cast<EntityID>(parsed))) {
+            why = std::string(property) +
+                  " does not reference an existing entity";
+            return false;
+        }
+        out = static_cast<EntityID>(parsed);
+        return true;
+    }
+
+    bool has_legacy_locator_field(const KGModule& world, EntityID entity,
+                                  std::string& field) const {
+        for (const char* candidate :
+             {"source_file", "source_section", "source_kind",
+              "source_table", "source_row", "source_column"}) {
+            if (world.hasProperty(entity, candidate)) {
+                field = candidate;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool resolve_source_target(const KGModule& world, EntityID target,
+                               std::string& text, std::string& why) {
+        EntityID representation = INVALID_ENTITY;
+        if (!entity_reference(world, target, "target_representation",
+                              representation, why)) {
+            return false;
+        }
+        if (!world.hasProperty(representation, "source_file")) {
+            why = "target representation has no source_file";
+            return false;
+        }
+        const std::string file =
+            world.getProperty(representation, "source_file");
+        if (file.empty()) {
+            why = "target representation source_file is empty";
+            return false;
+        }
+        if (world.getProperty(representation, "source_media_type") ==
+                "UTF8_TEXT" &&
+            !world.hasProperty(target, "target_quote_selector")) {
+            why = "UTF8_TEXT ingestion evidence requires a "
+                  "target_quote_selector matching its byte range";
+            return false;
+        }
+        const std::string* bytes = source_text(file, why);
+        if (!bytes) return false;
+        const auto result =
+            logosphere::text::resolve_text_target(world, target, *bytes);
+        if (!result.ok) {
+            why = result.reason;
+            return false;
+        }
+        text = result.text;
+        return true;
+    }
+
+    bool exact_evidence_for_rule(const KGModule& world, EntityID rule,
+                                 std::string& evidence,
+                                 std::string& why) {
+        const auto claims =
+            world.getRelatedReverse(rule, "CLAIM_MATERIALIZES");
+        if (claims.empty()) {
+            why = "rule has no legacy citation and no "
+                  "CLAIM_MATERIALIZES ingestion claim";
+            return false;
+        }
+
+        std::unordered_set<EntityID> seen_targets;
+        for (const EntityID claim : claims) {
+            if (!ont.isSubtypeOf(world.getType(claim), "IngestionClaim")) {
+                why = "CLAIM_MATERIALIZES source is not an IngestionClaim";
+                return false;
+            }
+            const auto coverages =
+                world.getRelated(claim, "CLAIM_SUPPORTED_BY");
+            if (coverages.empty()) {
+                why = "materializing claim has no CLAIM_SUPPORTED_BY "
+                      "coverage";
+                return false;
+            }
+            for (const EntityID coverage : coverages) {
+                EntityID target = INVALID_ENTITY;
+                if (!entity_reference(world, coverage, "coverage_target",
+                                      target, why)) {
+                    return false;
+                }
+                if (!seen_targets.insert(target).second) continue;
+                std::string selected;
+                if (!resolve_source_target(world, target, selected, why)) {
+                    return false;
+                }
+                if (!evidence.empty()) evidence.push_back('\n');
+                evidence += selected;
+            }
+        }
+        if (evidence.empty()) {
+            why = "materializing claims resolve to no source evidence bytes";
+            return false;
+        }
+        return true;
+    }
+
+    bool has_current_partial_source_gap(const KGModule& world,
+                                        EntityID rule) const {
+        for (const EntityID claim :
+             world.getRelatedReverse(rule, "CLAIM_MATERIALIZES")) {
+            EntityID latest = INVALID_ENTITY;
+            unsigned long long latest_sequence = 0;
+            for (const EntityID decision : world.findByProperty(
+                     "decision_subject", std::to_string(claim))) {
+                if (!ont.isSubtypeOf(world.getType(decision),
+                                     "ClaimDecision")) {
+                    continue;
+                }
+                const std::string sequence_text =
+                    world.getProperty(decision, "decision_sequence");
+                unsigned long long sequence = 0;
+                const auto parsed = std::from_chars(
+                    sequence_text.data(),
+                    sequence_text.data() + sequence_text.size(), sequence);
+                if (parsed.ec != std::errc{} ||
+                    parsed.ptr != sequence_text.data() +
+                                      sequence_text.size()) {
+                    continue;
+                }
+                if (latest == INVALID_ENTITY || sequence > latest_sequence) {
+                    latest = decision;
+                    latest_sequence = sequence;
+                }
+            }
+            if (latest != INVALID_ENTITY &&
+                world.getProperty(latest, "claim_disposition") == "PARTIAL" &&
+                world.getProperty(latest, "claim_gap_kind") == "SOURCE_GAP") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool is_source_gap_widening(const KGModule& world, EntityID row,
+                                const Band& stored,
+                                const Band& printed) const {
+        if (!stored.lo && stored.hi && printed.lo && printed.hi) {
+            const std::string stored_lo = world.getProperty(row, "roll_min");
+            const std::string stored_hi = world.getProperty(row, "roll_max");
+            return stored_lo == std::to_string(*printed.lo) &&
+                   stored_hi == std::to_string(*printed.hi) &&
+                   *stored.hi == *printed.hi;
+        }
+        if (stored.lo && !stored.hi && printed.lo && printed.hi) {
+            return *stored.lo == *printed.lo;
+        }
+        return false;
+    }
+
     void check_verbatim(const KGModule& world, const SeedLoadReport& load) {
+        const auto targets = world.findByType("SourceTarget");
+        const bool asserts_complete_partition =
+            !world.findByType("CompleteSourcePartition").empty();
+        if (!targets.empty() || asserts_complete_partition) {
+            for (const EntityID target : targets) {
+                std::string selected;
+                std::string why;
+                if (!resolve_source_target(world, target, selected, why)) {
+                    violate("verbatim", -1, "",
+                            "source target " + std::to_string(target) +
+                                ": " + why);
+                }
+            }
+            const auto ledger =
+                reconcile_ingestion_ledger(world, targets);
+            if (!ledger.ok) {
+                violate("verbatim", -1, "",
+                        "ingestion ledger does not reconcile: " +
+                            ledger.error);
+            }
+        }
+
         for (size_t i = 0; i < seed.ops.size(); ++i) {
             const EntityID id = load.created_ids[i];
             if (id == INVALID_ENTITY) continue;
@@ -542,14 +778,35 @@ struct Checker {
             const std::string alias = alias_of(seed.ops[i]);
             const std::string quote = world.getProperty(id, "source_quote");
             if (quote.empty()) {
-                // The Cited contract (schema/packs/rulebook.yaml):
-                // ingested data of a type that declares source_quote
-                // must carry one. Types without the slot are exempt.
-                if (ont.hasProperty(type, "source_quote")) {
+                if (!ont.hasProperty(type, "source_quote")) continue;
+                std::string locator_field;
+                if (has_legacy_locator_field(world, id, locator_field)) {
                     violate("verbatim", static_cast<int>(i), alias,
-                            "uncited ingested entity: " + type +
-                            " declares source_quote but none is set");
+                            "exact-evidence rule retains legacy locator "
+                            "field '" + locator_field + "'");
+                    continue;
                 }
+                std::string evidence;
+                std::string why;
+                if (!exact_evidence_for_rule(world, id, evidence, why)) {
+                    violate("verbatim", static_cast<int>(i), alias, why);
+                    continue;
+                }
+                if (ingestion_edition_context == INVALID_ENTITY ||
+                    world.getProperty(id, "origin_context") !=
+                        std::to_string(ingestion_edition_context)) {
+                    violate("verbatim", static_cast<int>(i), alias,
+                            "exact-evidence rule origin_context must be its "
+                            "ingestion edition");
+                    continue;
+                }
+                resolved[id] = std::move(evidence);
+                continue;
+            }
+            if (!world.getRelatedReverse(id, "CLAIM_MATERIALIZES").empty()) {
+                violate("verbatim", static_cast<int>(i), alias,
+                        "rule combines exact ledger evidence with the legacy "
+                        "source_quote path");
                 continue;
             }
             ++report.quotes_checked;
@@ -584,8 +841,9 @@ struct Checker {
         for (size_t i = 0; i < seed.ops.size(); ++i) {
             const EntityID id = load.created_ids[i];
             if (id == INVALID_ENTITY) continue;
-            const std::string quote = world.getProperty(id, "source_quote");
-            if (quote.empty()) continue;
+            const auto evidence = resolved.find(id);
+            if (evidence == resolved.end()) continue;
+            const std::string& quote = evidence->second;
             const std::string type = world.getType(id);
             const std::string alias = alias_of(seed.ops[i]);
             const std::vector<std::string> tokens = number_tokens(quote);
@@ -747,34 +1005,75 @@ struct Checker {
                 }
                 continue;
             }
-            const std::string band_text =
-                addressed_row.empty() ? quote : ("| " + addressed_row + " |");
-            Band cell_band;
-            if (!parse_band_cell(band_text, cell_band)) {
-                violate("value", static_cast<int>(i), alias,
-                        type + ": cannot derive a band from the quoted "
-                        "leading cell (the book's notations: '| N |', "
-                        "'| N-M |', en dash, '| N through M |', "
-                        "'| N or higher |'): \"" +
-                        preview(band_text) + "\"");
-                continue;
-            }
-            ++report.bands_derived;
             Band row_band;
             if (!read_row_band(world, id, row_band)) {
                 violate("value", static_cast<int>(i), alias,
-                        type + ": quote declares band " +
-                        format_band(cell_band) + " but the row has no valid "
-                        "band slots set");
+                        type + ": the row has no valid band slots set");
                 continue;
             }
-            if (row_band.lo != cell_band.lo ||
-                row_band.hi != cell_band.hi) {
-                violate("value", static_cast<int>(i), alias,
-                        type + ": band " + format_band(row_band) +
-                        " does not equal the quoted cell's " +
-                        format_band(cell_band));
+
+            if (!addressed_row.empty()) {
+                const std::string band_text = "| " + addressed_row + " |";
+                Band cell_band;
+                if (!parse_band_cell(band_text, cell_band)) {
+                    violate("value", static_cast<int>(i), alias,
+                            type + ": cannot derive a band from the addressed "
+                            "source row \"" + preview(band_text) + "\"");
+                    continue;
+                }
+                ++report.bands_derived;
+                if (!same_band(row_band, cell_band)) {
+                    violate("value", static_cast<int>(i), alias,
+                            type + ": band " + format_band(row_band) +
+                            " does not equal the quoted cell's " +
+                            format_band(cell_band));
+                }
+                continue;
             }
+
+            const auto candidates = evidence_bands(quote);
+            if (candidates.empty()) {
+                violate("value", static_cast<int>(i), alias,
+                        type + ": cannot derive a band from any exact "
+                        "evidence fragment: \"" + preview(quote) + "\"");
+                continue;
+            }
+            std::vector<Band> exact_matches;
+            std::vector<Band> widened_matches;
+            for (const Band& candidate : candidates) {
+                if (same_band(row_band, candidate)) {
+                    exact_matches.push_back(candidate);
+                } else if (is_source_gap_widening(world, id, row_band,
+                                                  candidate)) {
+                    widened_matches.push_back(candidate);
+                }
+            }
+            if (exact_matches.size() == 1) {
+                ++report.bands_derived;
+                continue;
+            }
+            if (exact_matches.size() > 1 || widened_matches.size() > 1) {
+                violate("value", static_cast<int>(i), alias,
+                        type + ": more than one exact evidence fragment "
+                        "can prove band " + format_band(row_band));
+                continue;
+            }
+            if (widened_matches.size() == 1) {
+                if (has_current_partial_source_gap(world, id)) {
+                    ++report.bands_derived;
+                    continue;
+                }
+                violate("value", static_cast<int>(i), alias,
+                        type + ": widening printed band " +
+                        format_band(widened_matches.front()) + " to " +
+                        format_band(row_band) +
+                        " requires its current materializing decision to be "
+                        "PARTIAL with claim_gap_kind SOURCE_GAP");
+                continue;
+            }
+            violate("value", static_cast<int>(i), alias,
+                    type + ": band " + format_band(row_band) +
+                    " matches no exact evidence fragment");
         }
     }
 
@@ -1256,22 +1555,43 @@ struct Checker {
 
 }  // namespace
 
-SeedVerifyReport verify_seed(const SeedEnvelope& seed,
-                             const std::string& source_root,
-                             const OntologyRegistry& registry,
-                             const logosphere::rules::
-                                 ProcedurePrimitiveRegistry*
-                                     procedure_primitives,
-                             const std::vector<const SeedEnvelope*>&
-                                 prerequisites) {
+static SeedVerifyReport verify_seed_impl(
+    const SeedEnvelope& seed,
+    const std::string& source_root,
+    const OntologyRegistry& registry,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives,
+    const std::vector<const SeedEnvelope*>& prerequisites,
+    const logosphere::text::SourceCorpusDeclaration* corpus,
+    const logosphere::text::SourceAccess* source_access) {
     SeedVerifyReport report;
     Checker checker{seed, source_root, registry, report,
-                    procedure_primitives, {}};
+                    procedure_primitives, INVALID_ENTITY, {}};
 
     checker.check_commit_pin();
 
     KGModule world(registry);
     world.setMode(KGMode::MINIMAL);
+    if (corpus != nullptr) {
+        if (source_access == nullptr) {
+            report.violations.push_back(
+                {"schema", -1, "",
+                 "edition-scoped verification has no source access"});
+            return report;
+        }
+        const auto materialized =
+            logosphere::text::materialize_source_corpus_into_kg(
+                *corpus, *source_access, world);
+        if (!materialized.ok) {
+            report.violations.push_back(
+                {"schema", -1, "",
+                 "source corpus materialization failed: " +
+                     materialized.reason});
+            return report;
+        }
+        checker.ingestion_edition_context =
+            materialized.ingestion_edition_context;
+    }
 
     // What this seed depends on, loaded first and in order, so its
     // Canonical @@entity references resolve against the same world the game
@@ -1281,7 +1601,13 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
     for (const SeedEnvelope* prerequisite : prerequisites) {
         if (!prerequisite) continue;
         SeedLoadReport prior;
-        if (!load_seed(*prerequisite, world, prior)) {
+        const bool loaded = checker.ingestion_edition_context == INVALID_ENTITY
+                                ? load_seed(*prerequisite, world, prior)
+                                : load_seed_in_edition(
+                                      *prerequisite,
+                                      checker.ingestion_edition_context,
+                                      world, prior);
+        if (!loaded) {
             report.violations.push_back(
                 {"schema", prior.failed_op, "",
                  "prerequisite seed '" + prerequisite->source.file +
@@ -1303,6 +1629,137 @@ SeedVerifyReport verify_seed(const SeedEnvelope& seed,
     checker.check_semantics(world, load);
     checker.check_invariants(world, load);
     return report;
+}
+
+SeedVerifyReport verify_seed(const SeedEnvelope& seed,
+                             const std::string& source_root,
+                             const OntologyRegistry& registry,
+                             const logosphere::rules::
+                                 ProcedurePrimitiveRegistry*
+                                     procedure_primitives,
+                             const std::vector<const SeedEnvelope*>&
+                                 prerequisites) {
+    return verify_seed_impl(seed, source_root, registry,
+                            procedure_primitives, prerequisites, nullptr,
+                            nullptr);
+}
+
+SeedVerifyReport verify_seed_in_edition(
+    const SeedEnvelope& seed,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration& corpus,
+    const logosphere::text::SourceAccess& source_access,
+    const OntologyRegistry& registry,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives,
+    const std::vector<const SeedEnvelope*>& prerequisites) {
+    return verify_seed_impl(seed, source_root, registry,
+                            procedure_primitives, prerequisites, &corpus,
+                            &source_access);
+}
+
+static bool verify_and_load_seed_sequence_impl(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration* corpus,
+    const logosphere::text::SourceAccess* source_access,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives) {
+    report = SeedSequenceLoadReport{};
+    if (seeds.empty()) {
+        report.ok = false;
+        report.error = "seed sequence is empty";
+        return false;
+    }
+
+    EntityID edition = INVALID_ENTITY;
+    if (corpus != nullptr) {
+        if (source_access == nullptr) {
+            report.ok = false;
+            report.error = "edition-scoped seed sequence has no source access";
+            return false;
+        }
+        const auto materialized =
+            logosphere::text::materialize_source_corpus_into_kg(
+                *corpus, *source_access, world);
+        if (!materialized.ok) {
+            report.ok = false;
+            report.error = "source corpus materialization failed: " +
+                           materialized.reason;
+            return false;
+        }
+        edition = materialized.ingestion_edition_context;
+    }
+
+    std::vector<const SeedEnvelope*> prerequisites;
+    prerequisites.reserve(seeds.size());
+    for (size_t index = 0; index < seeds.size(); ++index) {
+        const SeedEnvelope& seed = seeds[index];
+        SeedVerifyReport verified = verify_seed_impl(
+            seed, source_root, world.getRegistry(), procedure_primitives,
+            prerequisites, corpus, source_access);
+        report.verifications.push_back(std::move(verified));
+        const SeedVerifyReport& current = report.verifications.back();
+        if (!current.ok()) {
+            report.ok = false;
+            report.failed_seed = static_cast<int>(index);
+            std::ostringstream error;
+            error << "verification failed";
+            for (const auto& violation : current.violations) {
+                error << ": [" << violation.check << "] ";
+                if (!violation.alias.empty()) {
+                    error << "@" << violation.alias << " ";
+                }
+                error << violation.reason;
+            }
+            report.error = error.str();
+            return false;
+        }
+        ++report.seeds_verified;
+
+        SeedLoadReport loaded;
+        const bool loaded_ok = edition == INVALID_ENTITY
+                                   ? load_seed(seed, world, loaded)
+                                   : load_seed_in_edition(
+                                         seed, edition, world, loaded);
+        if (!loaded_ok) {
+            report.ok = false;
+            report.failed_seed = static_cast<int>(index);
+            report.error = "load failed: " + loaded.error;
+            return false;
+        }
+        ++report.seeds_loaded;
+        prerequisites.push_back(&seed);
+    }
+    return true;
+}
+
+bool verify_and_load_seed_sequence(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives) {
+    return verify_and_load_seed_sequence_impl(
+        seeds, source_root, nullptr, nullptr, world, report,
+        procedure_primitives);
+}
+
+bool verify_and_load_seed_sequence_in_edition(
+    const std::vector<SeedEnvelope>& seeds,
+    const std::string& source_root,
+    const logosphere::text::SourceCorpusDeclaration& corpus,
+    const logosphere::text::SourceAccess& source_access,
+    KGModule& world,
+    SeedSequenceLoadReport& report,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives) {
+    return verify_and_load_seed_sequence_impl(
+        seeds, source_root, &corpus, &source_access, world, report,
+        procedure_primitives);
 }
 
 }  // namespace kg

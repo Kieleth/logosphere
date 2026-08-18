@@ -210,12 +210,18 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/space");
     reg.addAncestors("CelestialBody", {"Bondable", "Describable", "EmitsLight", "Entity", "HasSimpleAppearance", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("CollisionEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Constraint", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("ContactFilteredEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Creature", {"Agent", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("DamageEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.addAncestors("DeathEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.addAncestors("DiceRollEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addAncestors("DistantWorldSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://malleus.dev/schema");
     reg.addAncestors("Entity", {"Describable", "Identifiable", "Temporal"});
+    reg.addAncestors("Event", {"Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addAncestors("FallenTree", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/logogenesis/schema");
@@ -257,6 +263,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("OrbitSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("ParticleInteractionProfile", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("PerceptionEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addAncestors("PhysicsRock", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSimpleAppearance", "HasSolverAuthority", "Identifiable", "NaturalFormation", "Rock", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -267,6 +274,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("PlanetSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addAncestors("Plant", {"Bondable", "Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("RelationEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/packs/earth");
     reg.addAncestors("Rock", {"Bondable", "Describable", "Destructible", "Entity", "HasMaterial", "HasSimpleAppearance", "HasSolverAuthority", "Identifiable", "NaturalFormation", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addAncestors("RockSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -282,6 +292,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Sky", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addAncestors("Snake", {"Agent", "Bondable", "Creature", "Describable", "Entity", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("SpawnEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addAncestors("StarfieldSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/schema");
@@ -298,6 +310,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/logogenesis/schema");
     reg.addAncestors("TotemSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/schema");
+    reg.addAncestors("TransformationEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("TransformationRule", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/earth");
     reg.addAncestors("Tree", {"Bondable", "Describable", "Entity", "Growable", "HasHealth", "HasMaterial", "HasOdor", "HasSolverAuthority", "Identifiable", "LivingEntity", "Plant", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -305,10 +318,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("TreeSeed", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("UpperArm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.addAncestors("VolumeEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Wall", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("WallBlock", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "Wall", "WorldEntity"});
     reg.addAncestors("Wing", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("WorldEntity", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal"});
+    reg.addAncestors("WorldEvent", {"Event", "Identifiable", "Temporal"});
 
     // Open property namespaces
     reg.addPropertyNamespace("BodyPart", "rule.0.payload.");

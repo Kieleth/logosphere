@@ -73,29 +73,48 @@ survival roll is death unless the Referee allows the mishap table, a
 mishap can end a career and cost years, and a characteristic driven to
 zero raises a crisis that is paid for or fatal.
 
-Not yet absorbed, and each knowingly so: anagathics, the retirement
-pension, medical care costs and coverage, noble titles, and cascade
-skill specialisation. Rules whose numbers are in the graph but whose
-derivation is not — the per-term benefit count and the prior-career
-qualification penalty — say so on themselves in `unmodelled`, and wait
-on a rule language that today ships a type system and no operators.
+Medical care and medical debt are now absorbed as exact coverage and claims,
+including the Cr5,000 per-point constant, every career-payment cell, and the
+requirement to pay outstanding costs from Benefits first. Their restoration,
+percentage-payment, debt, and precedence operations are not yet executable.
+The medical-debt claim also records the missing anagathic concept as an
+ontology gap. Not yet absorbed, and each knowingly so: the retirement pension,
+noble titles, and cascade skill specialisation. Rules whose numbers are in the
+graph but whose derivation is not, including the per-term benefit count and
+the prior-career qualification penalty, say so on themselves in `unmodelled`
+and wait on a rule language that today ships a type system and no operators.
 
 ## What this demonstrates about the engine
 
 It is the ingestion pipeline end to end, on a real published book
 rather than a toy:
 
-1. **A source is addressable.** `SourceDocument` and `SourceLocator`
-   address a heading, sentence, table, row or cell, so a rule can cite
-   the exact place it came from instead of a page number.
+1. **Corpus identity is exact.** The application declares both source files,
+   and the engine derives one content-addressed ingestion edition from their
+   bytes. Every production rule and cross-seed reference uses that edition.
+   `Injury Crisis`, `Medical Care`, `Medical Debt`, `Aging`, and `Aging Crisis`
+   are the first production sections using exact `SourceTarget` coverage and
+   atomic claims.
+   Medical Debt proves that one compound source leaf can support several
+   independently disposed claims. Aging proves that one rule can cite several
+   exact leaves and that an executable reading beyond the printed text stays
+   visible as `PARTIAL/SOURCE_GAP`. Aging Crisis keeps repeated source
+   occurrences distinct while five generalized claims cite both crisis
+   passages. Every UTF-8 target has a supporting quote that must match its byte
+   range. All 30 Aging rules, Credits, both restoration constants, and the
+   unpaid-aging-crisis route have no legacy locator. The remaining 3,049
+   structural citations retain the explicit transitional path until each
+   section converts; exact evidence never falls back to that path.
 2. **Ingestion is verified, not trusted.** Seeds are refused unless
    every citation resolves in the source and every number appears in
    the text it quotes. A line citation cannot prove a table cell.
-3. **Meaning is judged, and the judgement is audited.** Transcription
-   is mechanical, because a model that retypes a number is wrong in a
-   way that still reads well. What a cell MEANS is classified, and a
-   second model audits that classification; a test fails if the audit
-   has never seen a value the seed ships.
+3. **Structure is judged, content is copied, and judgement is audited.**
+   A model reader decides the structure of irregular source material.
+   For digital text, the source tool returns exact bytes, so the reader
+   never retypes a number. What a cell means is classified, and an
+   independent reader audits that classification; a test fails if the
+   audit has never seen a value the seed ships. The current mechanical
+   extractors predate this accepted target design.
 4. **Rules are data all the way down.** Procedures, steps, routes,
    throws, tables and outcomes are entities. Changing what a career
    teaches is editing a seed, not a rebuild of game code.

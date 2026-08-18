@@ -668,16 +668,28 @@ private:
 
     std::vector<const PropertyDef*> effective_properties(
         const std::string& entity_type) const {
-        std::unordered_map<std::string, const PropertyDef*> by_name;
+        struct OwnedProperty {
+            std::string owner;
+            const PropertyDef* definition;
+        };
+        std::unordered_map<std::string, OwnedProperty> by_name;
         auto add_properties = [&](const std::string& owner) {
             auto it = properties_.find(owner);
             if (it == properties_.end()) return;
             for (const auto& property : it->second) {
-                by_name.emplace(property.name, &property);
+                auto [selected, inserted] = by_name.emplace(
+                    property.name, OwnedProperty{owner, &property});
+                if (inserted || selected->second.owner == entity_type) {
+                    continue;
+                }
+                if (isSubtypeOf(owner, selected->second.owner)) {
+                    selected->second = {owner, &property};
+                }
             }
         };
 
-        // Direct properties override inherited definitions with the same name.
+        // Direct properties override inherited definitions. Among inherited
+        // definitions, the nearest refining ancestor wins over its own base.
         add_properties(entity_type);
         std::vector<std::string> ancestors;
         if (auto it = ancestors_.find(entity_type); it != ancestors_.end()) {
@@ -688,7 +700,8 @@ private:
 
         std::vector<const PropertyDef*> out;
         out.reserve(by_name.size());
-        for (const auto& [name, property] : by_name) out.push_back(property);
+        for (const auto& [name, property] : by_name)
+            out.push_back(property.definition);
         std::sort(out.begin(), out.end(), [](const PropertyDef* a,
                                              const PropertyDef* b) {
             return a->name < b->name;

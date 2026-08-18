@@ -100,11 +100,67 @@ classes:
 # -------------------------------------------------------------------
 
   EdenRelation:
+    abstract: true
     is_a: Relation
-    description: Eden-specific typed relationship.
+    description: >-
+      Abstract parent of Eden's relations. One concrete subclass per
+      member of EdenRelationType, each pinning its predicate. A game
+      schema declares these the same way the engine root does: a
+      relation class that leaves relation_type open across an enum is a
+      family and not a relation, and its endpoints cannot be checked.
     slot_usage:
       relation_type:
         range: EdenRelationType
+
+  # Endpoints stay at Entity. Eden creates three of these five, all in
+  # one place (main.cpp), and the classes on either side are engine
+  # types rather than Eden types, so there is nothing Eden-specific to
+  # narrow to. FORBIDS and DESIRES have no creation site at all.
+
+  BearsRelation:
+    is_a: EdenRelation
+    description: A tree bears fruit.
+    slot_usage:
+      relation_type:
+        range: EdenRelationType
+        required: true
+        equals_string: BEARS
+
+  TemptsRelation:
+    is_a: EdenRelation
+    description: An agent tempts another agent.
+    slot_usage:
+      relation_type:
+        range: EdenRelationType
+        required: true
+        equals_string: TEMPTS
+
+  FollowsRelation:
+    is_a: EdenRelation
+    description: An agent follows another agent.
+    slot_usage:
+      relation_type:
+        range: EdenRelationType
+        required: true
+        equals_string: FOLLOWS
+
+  ForbidsRelation:
+    is_a: EdenRelation
+    description: An entity forbids an action or knowledge.
+    slot_usage:
+      relation_type:
+        range: EdenRelationType
+        required: true
+        equals_string: FORBIDS
+
+  DesiresRelation:
+    is_a: EdenRelation
+    description: An agent desires an entity or knowledge.
+    slot_usage:
+      relation_type:
+        range: EdenRelationType
+        required: true
+        equals_string: DESIRES
 
 # -------------------------------------------------------------------
 # Eden events

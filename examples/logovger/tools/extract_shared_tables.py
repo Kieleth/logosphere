@@ -40,18 +40,20 @@ import os
 import re
 import sys
 
+from rule_source_identity import ingestion_edition_context_key
+
 CHAPTER = "book1/character-creation.md"
 
 
-def qualified(alias, type_name, commit, file=CHAPTER):
+def qualified(alias, type_name, context_key):
     """A reference to an entity another seed owns.
 
-    Names the origin document AND the commit, then the type and the
-    alias the owning seed bound it to. Scoped by construction, so it
-    cannot be answered by a same-named entity from somewhere else.
+    Names the exact corpus edition, then the type and the alias the owning seed
+    bound it to. Scoped by construction, so it cannot be answered by a
+    same-named entity from another edition.
     """
     from urllib.parse import quote
-    context = quote(f"source-document:cepheus:{file}@{commit}", safe="")
+    context = quote(context_key, safe="")
     return f"@@entity/{context}/{type_name}/{alias}"
 
 # The book's own sentence about which abilities are which. Quoted, not
@@ -101,6 +103,14 @@ AGING_FLOOR_DEFECT = (
 AGING_SECTION = "Aging"
 AGING_TABLE = "2D6"
 AGING_COLUMN = "Effects of Aging"
+AGING_START_QUOTE = (
+    "The effects of aging begin when a character reaches 34 years of age.")
+AGING_ROLL_QUOTE = (
+    "At the end of the fourth term, and at the end of every term thereafter, "
+    "the character must roll 2D6 on the Aging Table.")
+AGING_MODIFIER_QUOTE = (
+    "Apply the character's total number of terms as a negative Dice Modifier "
+    "on this table.")
 AGING_ROWS = {
     "-6": [("physical", 3, -2), ("mental", 1, -1)],
     "-5": [("physical", 3, -2)],
@@ -182,6 +192,7 @@ MISHAP_YEARS_UNMODELLED = (
 
 
 COMMIT = ""
+EDITION_CONTEXT = ""
 
 
 def slug(text):
@@ -247,6 +258,10 @@ class Builder:
         self.ops.append({"op": "set_relation", "from": parent,
                          "relation": "HAS_PART", "to": child})
 
+    def link(self, source, relation, target):
+        self.ops.append({"op": "set_relation", "from": source,
+                         "relation": relation, "to": target})
+
     def cite(self, section, table, row, quote, kind="cell", column=None):
         out = {"source_file": CHAPTER, "source_section": section,
                "source_kind": kind, "source_quote": quote}
@@ -261,11 +276,14 @@ class Builder:
 
 def main():
     root, out_path = sys.argv[1], sys.argv[2]
-    lines = open(os.path.join(root, CHAPTER), encoding="utf-8").read().split(
-        "\n")
-    global COMMIT
+    source_path = os.path.join(root, CHAPTER)
+    with open(source_path, "rb") as source:
+        source_bytes = source.read()
+    lines = source_bytes.decode("utf-8").split("\n")
+    global COMMIT, EDITION_CONTEXT
     COMMIT = open(os.path.join(root, "SOURCE_COMMIT"),
                   encoding="utf-8").read().strip()
+    EDITION_CONTEXT = ingestion_edition_context_key(root)
     commit = COMMIT
     b = Builder()
 
@@ -282,7 +300,7 @@ def main():
                      affected_count=str(count), **citation)
         if dice:
             props["attribute_delta_dice"] = qualified(
-                "d" + dice.lower(), "DiceExpression", COMMIT)
+                "d" + dice.lower(), "DiceExpression", EDITION_CONTEXT)
             # A rolled delta carries no sign, so the row has to say
             # which way it goes. Every rolled delta in this chapter is
             # a reduction ("Reduce one physical characteristic by 1D6"),
@@ -313,40 +331,99 @@ def main():
 
     # ---- aging ----------------------------------------------------
     aging_rows = read_table(lines, AGING_TABLE, AGING_COLUMN)
-    # The page escapes negative keys ("| \\-6 |"), and a locator
-    # addresses the row as printed, so keep both forms: the clean one
-    # to look the row up, the printed one to cite it.
     printed = {r[0].replace("\\", ""): r[1] for r in aging_rows}
     as_printed = {r[0].replace("\\", ""): r[0] for r in aging_rows}
+
+    def required_index(needle, start, end=None):
+        found = (source_bytes.find(needle, start) if end is None else
+                 source_bytes.find(needle, start, end))
+        if found < 0:
+            raise RuntimeError(
+                f"Aging evidence is missing exact source bytes {needle!r}")
+        return found
+
+    aging_begin = required_index(b"## Aging\n", 0)
+    aging_end = required_index(b"### Aging Crisis", aging_begin)
+    cursor = aging_begin
+    coverages = {}
+
+    def aging_coverage(alias, exact, judgement, reason):
+        nonlocal cursor
+        encoded = exact.encode("utf-8")
+        begin = required_index(encoded, cursor, aging_end)
+        end = begin + len(encoded)
+        cursor = end
+        range_alias = f"@{alias}_range"
+        quote_alias = f"@{alias}_quote"
+        target_alias = f"@{alias}_target"
+        coverage_alias = f"@{alias}_coverage"
+        b.add("ByteRangeSelector", range_alias, {
+            "source_byte_start": begin, "source_byte_end": end})
+        b.add("TextQuoteSelector", quote_alias, {
+            "source_quote_exact": exact})
+        b.add("SourceTarget", target_alias, {
+            "target_primary_selector": range_alias,
+            "target_quote_selector": quote_alias})
+        b.add("SourceCoverage", coverage_alias, {
+            "coverage_target": target_alias})
+        b.add("CoverageDecision", f"@{alias}_coverage_decision", {
+            "event_type": "ARBITER_DECISION",
+            "decision_subject": coverage_alias,
+            "decision_sequence": 0,
+            "coverage_judgement": judgement,
+            "decision_question":
+                "Does this exact source leaf state or support a rule claim?",
+            "decision_reason": reason,
+            "arbiter": "Codex, owner-directed migration"})
+        coverages[alias] = coverage_alias
+
+    aging_coverage("aging_heading", "Aging", "NO_RULE_CONTENT",
+                   "The heading names the section but states no rule.")
+    aging_coverage("aging_start", AGING_START_QUOTE, "CLAIMS_PRESENT",
+                   "The sentence fixes the age at which aging begins.")
+    aging_coverage("aging_schedule", AGING_ROLL_QUOTE, "CLAIMS_PRESENT",
+                   "The sentence states the roll schedule, dice, and table.")
+    aging_coverage("aging_modifier", AGING_MODIFIER_QUOTE, "CLAIMS_PRESENT",
+                   "The sentence states the total-terms negative modifier.")
+    aging_coverage("aging_header_roll", AGING_TABLE, "CLAIMS_PRESENT",
+                   "The header gives the table result column meaning.")
+    aging_coverage("aging_header_effect", AGING_COLUMN, "CLAIMS_PRESENT",
+                   "The header gives the aging-effect column meaning.")
+    for band in AGING_ROWS:
+        quote = printed.get(band)
+        printed_band = as_printed.get(band)
+        if quote is None or printed_band is None:
+            raise RuntimeError(
+                f"Aging Table has no exact row for declared band {band!r}")
+        alias = band_alias(band)
+        aging_coverage(f"aging_{alias}_band", printed_band,
+                       "CLAIMS_PRESENT",
+                       "The cell supplies one Aging Table result band.")
+        aging_coverage(f"aging_{alias}_effect", quote, "CLAIMS_PRESENT",
+                       "The cell supplies the effect for its result band.")
+
+    b.add("RuleConstant", "@aging_start_age", {
+        "name": "aging_start_age", "constant_value": "34"})
     b.add("RollableTable", "@aging_table", dict(
         name="Effects of Aging",
-        dice=qualified("d2d6", "DiceExpression", COMMIT),
-        **b.cite(AGING_SECTION, None, None,
-                 "At the end of the fourth term, and at the end of every "
-                 "term thereafter, the character must roll 2D6 on the "
-                 "Aging Table.", "sentence")))
+        dice=qualified("d2d6", "DiceExpression", EDITION_CONTEXT)))
+    aging_rule_aliases = {}
     for band, clauses in AGING_ROWS.items():
         quote = printed.get(band)
-        if quote is None:
-            print(f"REFUSED: the aging table has no row {band!r}; the "
-                  f"source prints {sorted(printed)}")
-            return 1
-        citation = b.cite(AGING_SECTION, AGING_TABLE,
-                          as_printed.get(band, band), quote,
-                          column=AGING_COLUMN)
+        alias = band_alias(band)
         parts = []
         for index, (group, count, delta) in enumerate(clauses):
             parts.append(group_clause(
-                f"@aging_{band_alias(band)}_c{index}", group, count, delta, None,
-                citation, ""))
+                f"@aging_{alias}_c{index}", group, count, delta, None, {}, ""))
         if not parts:
-            parts = [b.add("NoEffect", f"@aging_{band_alias(band)}_none",
-                           dict(name="aging: no effect", **citation))]
-        outcome = sequence(f"@aging_{band_alias(band)}", parts, citation)
-        entry = f"@aging_row_{band_alias(band)}"
+            parts = [b.add("NoEffect", f"@aging_{alias}_none",
+                           {"name": "aging: no effect"})]
+        outcome_alias = f"@aging_{alias}"
+        outcome = sequence(outcome_alias, parts, {})
+        entry = f"@aging_row_{alias}"
         open_top = band.endswith("+")
         props = dict(name=f"aging {band}", roll_min=band.rstrip("+"),
-                     outcome=outcome, **citation)
+                     outcome=outcome)
         if open_top:
             props["roll_max_unbounded"] = "true"
         else:
@@ -360,13 +437,90 @@ def main():
             props["suggested_reading"] = "Read as -6 or less."
         b.add("TableEntry", entry, props)
         b.relate("@aging_table", entry)
+        materialized = list(parts)
+        if len(parts) > 1:
+            materialized.extend(
+                [outcome_alias] +
+                [f"{outcome_alias}_s{index}"
+                 for index in range(len(parts))])
+        materialized.append(entry)
+        aging_rule_aliases[band] = materialized
         counts["aging"] += 1
+
+    def aging_claim(alias, statement, disposition, reason, support,
+                    materializes=(), gap=None, resolved=()):
+        claim = f"@{alias}_claim"
+        b.add("IngestionClaim", claim, {"claim_statement": statement})
+        decision = {
+            "event_type": "ARBITER_DECISION",
+            "decision_subject": claim,
+            "decision_sequence": 0,
+            "claim_disposition": disposition,
+            "decision_question": "Can this claim enter the executable graph?",
+            "decision_reason": reason,
+            "arbiter": "Codex, owner-directed migration",
+        }
+        if gap:
+            decision["claim_gap_kind"] = gap
+        b.add("ClaimDecision", f"@{alias}_claim_decision", decision)
+        for coverage in support:
+            b.link(claim, "CLAIM_SUPPORTED_BY", coverage)
+        for rule in materializes:
+            b.link(claim, "CLAIM_MATERIALIZES", rule)
+        for prior in resolved:
+            b.link(claim, "CLAIM_RESOLVED_AGAINST", prior)
+
+    aging_claim(
+        "aging_start", "Aging begins when a character reaches age 34.",
+        "MATERIALIZED", "The exact start age is represented by a typed constant.",
+        [coverages["aging_start"]], ["@aging_start_age"])
+    aging_claim(
+        "aging_schedule",
+        "A character rolls on the Aging Table after the fourth term and every later term.",
+        "RAISED",
+        "The graph has no rule-language expression for this recurring schedule.",
+        [coverages["aging_schedule"]], gap="RULE_LANGUAGE_GAP",
+        resolved=["@aging_start_age", "@aging_table"])
+    aging_claim(
+        "aging_table_roll", "The Aging Table uses 2D6.", "MATERIALIZED",
+        "The dice expression and rollable table are represented.",
+        [coverages["aging_schedule"]], ["@aging_table"],
+        resolved=[qualified("d2d6", "DiceExpression", EDITION_CONTEXT)])
+    aging_claim(
+        "aging_modifier",
+        "A character's total terms apply as a negative modifier to an Aging Table roll.",
+        "RAISED",
+        "The graph has no rule-language expression for negating the total-term count.",
+        [coverages["aging_modifier"]], gap="RULE_LANGUAGE_GAP",
+        resolved=["@aging_table"])
+    for band, clauses in AGING_ROWS.items():
+        alias = band_alias(band)
+        quote = printed[band]
+        stated_band = "-6 or less" if band == AGING_FLOOR_BAND else band
+        disposition = "PARTIAL" if band == AGING_FLOOR_BAND else "MATERIALIZED"
+        gap = "SOURCE_GAP" if band == AGING_FLOOR_BAND else None
+        reason = (
+            "The printed table stops at -6; the executable lower-unbounded "
+            "reading is explicit but not stated by the source."
+            if band == AGING_FLOOR_BAND else
+            "The exact result band and complete typed outcome are represented.")
+        support = [coverages["aging_header_roll"],
+                   coverages["aging_header_effect"],
+                   coverages[f"aging_{alias}_band"],
+                   coverages[f"aging_{alias}_effect"]]
+        groups = [f"@group_{group}" for group, _, _ in clauses]
+        aging_claim(
+            f"aging_row_{alias}",
+            f"An Aging Table result of {stated_band} has this effect: {quote}",
+            disposition, reason, support, aging_rule_aliases[band], gap,
+            sorted(set(groups)))
 
     # ---- injuries -------------------------------------------------
     injury_rows = {r[0]: r[1]
                    for r in read_table(lines, INJURY_TABLE, INJURY_COLUMN)}
     b.add("RollableTable", "@injury_table", dict(
-        name="Injury", dice=qualified("d1d6", "DiceExpression", COMMIT),
+        name="Injury",
+        dice=qualified("d1d6", "DiceExpression", EDITION_CONTEXT),
         **b.cite(INJURY_SECTION, None, None,
                  "Characters that are wounded in combat or accidents "
                  "during character creation must roll on the Injury "
@@ -419,7 +573,7 @@ def main():
     # ---- mishaps --------------------------------------------------
     b.add("RollableTable", "@mishap_table", dict(
         name="Survival Mishaps",
-        dice=qualified("d1d6", "DiceExpression", COMMIT),
+        dice=qualified("d1d6", "DiceExpression", EDITION_CONTEXT),
         **b.cite(MISHAP_SECTION, None, None,
                  "With the Referee's approval, you can keep the character "
                  "that fails a survival roll and roll on the Survival "
@@ -478,7 +632,7 @@ def main():
             elif clause[0] == "money":
                 props.update(amount=str(clause[1]),
                              currency=qualified("credits", "Currency",
-                                                COMMIT))
+                                                EDITION_CONTEXT))
                 parts.append(b.add("GainFixedMoney", alias, props))
             elif clause[0] == "age":
                 props.update(attribute_ref="age_years",
@@ -518,12 +672,15 @@ def main():
         if op.get("op") == "create_entity":
             counts_by_type[op["type"]] = counts_by_type.get(op["type"], 0) + 1
     invariants = seed.setdefault("invariants", {})
+    invariant_types = (
+        "AttributeGroup", "ByteRangeSelector", "ClaimDecision",
+        "CoverageDecision", "IngestionClaim", "RollableTable",
+        "RuleConstant", "SourceCoverage", "SourceTarget", "TableEntry",
+        "TextQuoteSelector")
     invariants["count_of_type"] = {
-        t: counts_by_type[t]
-        for t in ("AttributeGroup", "RollableTable", "TableEntry")
-        if t in counts_by_type}
+        t: counts_by_type[t] for t in invariant_types if t in counts_by_type}
     unique = invariants.setdefault("unique_name_per_type", [])
-    for t in ("AttributeGroup", "RollableTable"):
+    for t in ("AttributeGroup", "RollableTable", "RuleConstant"):
         if t not in unique:
             unique.append(t)
     unique.sort()

@@ -31,18 +31,19 @@ class CareerReferenceTests(unittest.TestCase):
             with open(path, "w", encoding="utf-8") as output:
                 json.dump(seed, output)
             vocabulary = os.path.join(directory, "skills.json")
-            references = load_career_seed_references(vocabulary)
+            references = load_career_seed_references(
+                vocabulary, "ingestion-edition:v1:test")
 
         self.assertEqual(
             references["Career"],
             {"Aerospace Defense":
-             "@@entity/source-document%3Acepheus%3Abook.md%40abc123/"
+             "@@entity/ingestion-edition%3Av1%3Atest/"
              "Career/aerospace_defense"},
         )
         self.assertEqual(
             references["RollableTable"],
             {"Aerospace Defense Service Skills":
-             "@@entity/source-document%3Acepheus%3Abook.md%40abc123/"
+             "@@entity/ingestion-edition%3Av1%3Atest/"
              "RollableTable/aerospace_defense_svc"},
         )
 
@@ -60,6 +61,11 @@ class CareerReferenceTests(unittest.TestCase):
             "entity": "@@entity/context/RollableTable/table",
             "meta": "@@meta/context/EntityType/table",
         })
+
+        with self.assertRaisesRegex(ValueError, "document-scoped identity"):
+            assert_canonical_references({
+                "entity": "@@entity/source-document%3Atest/Type/key",
+            })
 
     def test_every_logovger_seed_uses_canonical_qualified_references(self):
         seed_directory = os.path.abspath(os.path.join(

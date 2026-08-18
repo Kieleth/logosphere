@@ -1608,8 +1608,64 @@ struct DiceRollEvent : public WorldEvent {
 };
 
 
-/// A typed relationship between world entities.
+/// Abstract parent of the engine's world relations. One concrete subclass per member of WorldRelationType, each pinning its own predicate and declaring its own endpoints.
+/// It is abstract because a relation class that leaves relation_type open across an enum is not one relation, it is a family. Malleus refuses that shape ("Concrete relation must fix relation_type with equals_string") and the refusal is right: an edge whose predicate is only known at write time cannot have a checkable domain and range, so endpoint validation degenerates to "does this name exist".
 struct WorldRelation : public Relation {
+};
+
+
+/// Composition: a humanoid has_part a torso. Endpoints are Entity from evidence, not neglect. 81 createRelation sites in C++ plus 1518 seed ops, spanning humanoid to torso, Procedure to ProcedureStep, RollableTable to TableEntry, LookupTable to CharacteristicModifierEntry, and OutcomeSequence to OutcomeStep. There is no narrower pair that covers them.
+struct HasPartRelation : public WorldRelation {
+};
+
+
+/// Spatial subdivision: an arm has_regional_part a forearm. No creation site in C++ or seeds as of 2026-08-16, so there is nothing to learn its endpoints from. Entity until evidenced.
+struct HasRegionalPartRelation : public WorldRelation {
+};
+
+
+/// Physics constraint link. Three creation sites, all body to constraint, but the body side spans humanoid, totem and the generic entity generator, and the constraint side has no class of its own in this schema to narrow to.
+struct HasConstraintRelation : public WorldRelation {
+};
+
+
+/// Spatial containment: a chest contains an item. Four creation sites spanning strata floor to layer, floor to tile, and torso to arm. Heterogeneous, so Entity.
+struct ContainsRelation : public WorldRelation {
+};
+
+
+/// Physical support: a floor supports an entity. One site and it is a test. No production creation site, so the shape is unevidenced.
+struct SupportsRelation : public WorldRelation {
+};
+
+
+/// A light source reaches an entity. The one relation whose endpoints are KNOWN rather than guessed: only a LightSource illuminates, which is what that class exists for, and only something in the world can be lit. Both classes are declared in this file, so the root can name them.
+struct IlluminatesRelation : public WorldRelation {
+};
+
+
+/// Fire spread between entities. No creation site anywhere in the repository, so there is nothing to learn its shape from yet.
+struct BurnsRelation : public WorldRelation {
+};
+
+
+/// An agent perceives a target entity. One site and it is a test (creature to torso). Anything can perceive anything until the perception layer says otherwise.
+struct PerceivesRelation : public WorldRelation {
+};
+
+
+/// A system entity manages another entity. Two sites, both the chunk system to a chunk's entity. Neither side has a class in this schema to narrow to.
+struct ManagesRelation : public WorldRelation {
+};
+
+
+/// Direct bond between two bodies, the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world. No createRelation site: bonds are made through the gluon path, so the KG edge has no writer to learn endpoints from.
+struct BondedToRelation : public WorldRelation {
+};
+
+
+/// A narrower thing refines a broader one: Slug Rifle SPECIALIZES Gun Combat in a skill cascade. Every occurrence measured is Skill to Skill, and Skill is a rulebook-pack class, so this file cannot name it. The pack may declare its own narrowed subclass; the root keeps the generic vocabulary.
+struct SpecializesRelation : public WorldRelation {
 };
 
 
