@@ -65,56 +65,6 @@ TABLE_HEADERS = {
     ("Odds of Winning", "DM", "Payoff", "Maximum Bet"),
 }
 
-# Skills the career tables grant that this chapter never defines. They remain
-# on their character-creation evidence until that representation is migrated.
-UNDEFINED_IN_CHAPTER = {
-    "Perception": {
-        "source_file": "book1/character-creation.md",
-        "source_section": "Career Tables",
-        "source_kind": "cell",
-        "source_table": "Specialist",
-        "source_row": "3",
-        "source_column": "Bureaucrat",
-        "source_quote": "Perception",
-        "source_defect": (
-            "Granted by the Bureaucrat Specialist table but defined "
-            "nowhere: 'Perception' occurs exactly once in the SRD, in "
-            "this cell, and has no entry in book1/skills.md nor a line "
-            "in the Available Skills List."
-        ),
-        "suggested_reading": (
-            "Recon is the only defined skill that covers observing and "
-            "noticing, and it fills the equivalent slot in the "
-            "Aerospace Defense, Agent and Barbarian columns. A guess, "
-            "not a reading the text proves, so nothing acts on it."
-        ),
-    },
-    "Prospecting": {
-        "source_file": "book1/character-creation.md",
-        "source_section": "Career Tables",
-        "source_kind": "cell",
-        "source_table": "Service Skills",
-        "source_row": "5",
-        "source_column": "Belter",
-        "source_quote": "Prospecting",
-        "source_defect": (
-            "Granted by the Belter Service Skills and Belter Specialist "
-            "tables but defined nowhere: 'Prospecting' occurs exactly "
-            "twice in the SRD, both in career tables, and has no entry "
-            "in book1/skills.md nor a line in the Available Skills "
-            "List."
-        ),
-        "suggested_reading": (
-            "No defined skill covers finding and assessing ore. Unlike "
-            "Perception, there is no near neighbour to name: the Belter "
-            "career is built around this skill, so the likely reading "
-            "is that the entry is missing from the chapter rather than "
-            "that the cell is a typo for something else."
-        ),
-    },
-}
-
-
 def alias_slug(name):
     """Return the stable seed alias for a skill name."""
     return "@sk_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
@@ -547,9 +497,6 @@ def build_seed(source_bytes, commit):
             properties["source_aliases"] = "; ".join(skill["aliases"])
         create(ops, "Skill", alias_slug(skill["name"]), properties)
 
-    for name, properties in UNDEFINED_IN_CHAPTER.items():
-        create(ops, "Skill", alias_slug(name), {"name": name, **properties})
-
     for leaf in leaves:
         base = "@" + leaf["base"]
         create(ops, "ByteRangeSelector", base + "_range", {
@@ -666,7 +613,6 @@ def main():
     print(f"source targets: {len(leaves)}")
     print(f"typed exclusions: {len(exclusions)}")
     print(f"ingestion claims: {len(claims)}")
-    print(f"marked defective: {list(UNDEFINED_IN_CHAPTER)}")
     print(f"total ops: {len(seed['ops'])} -> {out_path}")
     return 0
 

@@ -12,7 +12,7 @@
    "CompleteSourcePartition": 1,
    "CoverageDecision": 437,
    "IngestionClaim": 365,
-   "Skill": 70,
+   "Skill": 68,
    "SourceCoverage": 437,
    "SourceExclusion": 844,
    "SourceTarget": 437,
@@ -574,40 +574,6 @@
    "as": "@sk_zero_g",
    "properties": {
     "name": "Zero-G"
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "Skill",
-   "as": "@sk_perception",
-   "properties": {
-    "name": "Perception",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Career Tables",
-    "source_kind": "cell",
-    "source_table": "Specialist",
-    "source_row": "3",
-    "source_column": "Bureaucrat",
-    "source_quote": "Perception",
-    "source_defect": "Granted by the Bureaucrat Specialist table but defined nowhere: 'Perception' occurs exactly once in the SRD, in this cell, and has no entry in book1/skills.md nor a line in the Available Skills List.",
-    "suggested_reading": "Recon is the only defined skill that covers observing and noticing, and it fills the equivalent slot in the Aerospace Defense, Agent and Barbarian columns. A guess, not a reading the text proves, so nothing acts on it."
-   }
-  },
-  {
-   "op": "create_entity",
-   "type": "Skill",
-   "as": "@sk_prospecting",
-   "properties": {
-    "name": "Prospecting",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Career Tables",
-    "source_kind": "cell",
-    "source_table": "Service Skills",
-    "source_row": "5",
-    "source_column": "Belter",
-    "source_quote": "Prospecting",
-    "source_defect": "Granted by the Belter Service Skills and Belter Specialist tables but defined nowhere: 'Prospecting' occurs exactly twice in the SRD, both in career tables, and has no entry in book1/skills.md nor a line in the Available Skills List.",
-    "suggested_reading": "No defined skill covers finding and assessing ore. Unlike Perception, there is no near neighbour to name: the Belter career is built around this skill, so the likely reading is that the entry is missing from the chapter rather than that the cell is a typo for something else."
    }
   },
   {

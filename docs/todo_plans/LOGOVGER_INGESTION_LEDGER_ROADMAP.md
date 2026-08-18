@@ -746,9 +746,8 @@ Current representation totals:
 - 365 claims: 68 materialized skill-definition claims, 68 duplicate
   available-skill-list claims, and 229 raised claims;
 - the listed but locally undefined `Airship` skill remains a raised
-  `SOURCE_GAP`. `Perception` and `Prospecting` retain their separate
-  character-creation defects and legacy evidence because this partition does
-  not own those occurrences;
+  `SOURCE_GAP`. `Perception` and `Prospecting` are not owned by this
+  representation because they occur only in `character-creation.md`;
 - the 68 chapter-defined `Skill` entities no longer carry the legacy locator
   fields. Production now has 491 coverage records, 408 claims, 413 claim
   decisions, and 2,981 legacy structural citations.
@@ -795,6 +794,62 @@ seconds. Both measured paths are about 57 percent faster.
 Grouped and filtered ledger projections stay on the later roadmap if review
 or query volume becomes unmanageable. They are not needed to make this
 production partition viable and cannot replace atomic coverage.
+
+## Career Tables production evidence slice, 2026-08-18 04:30 UTC
+
+The complete `Career Tables` source section now uses exact claims across its
+two generated owners. The reviewed `character-creation.md` bytes are pinned by
+SHA-256. Each migrated cell claim converges on the exact table-title, column,
+row-key, and value cells. Repeated context cells create one coverage record;
+the later career-tables seed references coverage already owned by the careers
+seed instead of duplicating representation-scoped identity.
+
+The migration replaces 1,695 legacy-cited materializations: 217 in
+`cepheus_careers.json` and 1,478 in
+`cepheus_book1_career_tables.json`. The two source defects move to their real
+evidence owners. The careers seed owns the first `Prospecting` occurrence as a
+`PARTIAL/SOURCE_GAP` Skill claim. The career-tables seed owns `Perception` the
+same way and records the later `Prospecting` occurrence as a distinct
+`DUPLICATE` claim linked to the first. The skills representation no longer
+creates either term.
+
+TDD and integration findings:
+
+- initial extractor contracts failed four ways: no exact claims existed, all
+  1,695 entities retained loose locators, the two undefined Skills belonged to
+  the wrong representation, and changed source bytes were accepted;
+- the first engine integration rejected name-uniqueness invariants applied to
+  nameless ledger nodes. Generated seeds now keep count invariants for every
+  type but exclude ledger records from name invariants, with a regression
+  contract;
+- the classification audit had coupled itself to `source_table` and
+  `source_quote`. It now follows `CLAIM_MATERIALIZES` and the exact supporting
+  value coverage. Python and C++ gates compare that projection with the
+  shipped independent audit;
+- the production identity gate now asserts 2,057 exact targets, 1,554 claims,
+  and 1,559 append-only claim decisions. All targets resolve against their
+  own pinned representation;
+- current decisions are 38 `NO_RULE_CONTENT`, 2,019 `CLAIMS_PRESENT`, seven
+  `PARTIAL`, 253 `RAISED`, 1,220 `MATERIALIZED`, five `SUPERSEDED`, and 69
+  `DUPLICATE`;
+- 1,286 rule entities still use legacy structural citations outside this
+  source section. The final locator path remains transitional until those
+  separately owned sections migrate.
+
+Verification:
+
+- all 20 Logovger extractor and ownership contracts pass;
+- `test_seed_verifier` passes 320/320;
+- deterministic regeneration reproduces all four generated seeds;
+- the complete registered headless profile is effectively 97/97. The
+  filesystem sandbox denied the unchanged recorder its normal session
+  directory; the same binary passed 12/0 with normal access;
+- `test_chargen` passes 253/253, including the new assertion that a Career's
+  claim resolves its exact table-title, column, row-key, and value supports;
+- deterministic headless seed 28 completes, but now takes 8.99 seconds versus
+  the prior 2.70-second baseline. Standalone `test_chargen` takes about 336
+  seconds versus 134.42 seconds. Correctness is closed; the larger exact
+  ledger has exposed a new production-verification scaling cost.
 
 ## Immediate Phase A, minimum honest ledger
 
@@ -865,6 +920,10 @@ disposed claims.
 
 ## Later phases, roadmap only
 
+- [ ] Profile and reduce exact-ledger production verification cost at the
+  2,057-target scale. Preserve atomic evidence and the verified-prefix
+  boundary; grouping or indexes may be derived accelerators, never alternate
+  coverage authority.
 - [ ] Claim-level downstream invalidation when a definition or source
   pin changes.
 - [ ] R12 provisional-claim integration after malleus exposes the

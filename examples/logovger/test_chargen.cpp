@@ -26,6 +26,7 @@
 #include "chargen/procedure_catalog.h"
 
 #include "logosphere/rules/lookup_table_selector.h"
+#include "logosphere/text/source_target.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -1747,14 +1748,38 @@ void test_the_rules_are_data() {
         if (kg.getProperty(id, "name") == "Agent") career = id;
     CHECK(career != kg::INVALID_ENTITY, "the career is in the graph");
 
-    // A career's instances are the book's, so a career must be able to
-    // prove its numbers: the table row it was read from, verbatim in
-    // the chapter. This is what the Cited mixin buys.
-    const auto quote = kg.getProperty(career, "source_quote");
+    // A career's instances are the book's, so a career must prove the exact
+    // table title, column, row key, and value cells that identify it. Loose
+    // locator fields are gone after the Career Tables evidence migration.
     const auto chapter = slurp(game_path("srd/cepheus/book1/"
                                          "character-creation.md"));
-    CHECK(!quote.empty() && chapter.find(quote) != std::string::npos,
-          "the career cites the career-table row it came from");
+    const auto claims = kg.getRelatedReverse(career, "CLAIM_MATERIALIZES");
+    std::set<std::string> selected;
+    bool exact_evidence = claims.size() == 1;
+    if (exact_evidence) {
+        const auto supports = kg.getRelated(claims.front(),
+                                            "CLAIM_SUPPORTED_BY");
+        exact_evidence = supports.size() == 4;
+        for (const auto coverage : supports) {
+            const auto target_text = kg.getProperty(coverage,
+                                                    "coverage_target");
+            if (target_text.empty()) {
+                exact_evidence = false;
+                continue;
+            }
+            const auto target = static_cast<kg::EntityID>(
+                std::stoull(target_text));
+            const auto result = logosphere::text::resolve_text_target(
+                kg, target, chapter);
+            exact_evidence = exact_evidence && result.ok;
+            if (result.ok) selected.insert(result.text);
+        }
+    }
+    const std::set<std::string> expected{
+        "Career", "Agent", "Qualifications", "Soc 6+"};
+    CHECK(exact_evidence && selected == expected,
+          "the career's exact claim retains its table, column, row, and "
+          "qualification value");
 
     // The target lives on the career's qualification TaskCheck now, so
     // this reaches through the reference the seed built.

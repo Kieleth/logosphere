@@ -14,6 +14,7 @@
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -193,14 +194,14 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
-    CHECK(targets.size() == 491 && coverages.size() == 491 &&
-              claims.size() == 408,
-          "migrated production content persists 491 atomic source leaves "
-          "and 408 enduring atomic claims");
-    CHECK(world.findByType("CoverageDecision").size() == 491 &&
-              world.findByType("ClaimDecision").size() == 413,
-          "production retains 491 coverage decisions and complete append-only "
-          "histories for 408 claims");
+    CHECK(targets.size() == 2057 && coverages.size() == 2057 &&
+              claims.size() == 1554,
+          "migrated production content persists 2057 atomic source leaves "
+          "and 1554 enduring atomic claims");
+    CHECK(world.findByType("CoverageDecision").size() == 2057 &&
+              world.findByType("ClaimDecision").size() == 1559,
+          "production retains 2057 coverage decisions and complete "
+          "append-only histories for 1554 claims");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
                                         "no-instance-declared") &&
               !world.getRegistry().hasFacet("IngestionClaim",
@@ -216,7 +217,7 @@ void test_production_rules_use_exact_edition_identity() {
     const std::string skills_chapter =
         slurp(game_root + "/srd/cepheus/book1/skills.md");
     std::multiset<std::string> selected;
-    bool targets_resolve = targets.size() == 491;
+    bool targets_resolve = targets.size() == 2057;
     std::size_t character_targets = 0;
     for (const auto target : targets) {
         const std::string representation_text =
@@ -311,9 +312,12 @@ void test_production_rules_use_exact_edition_identity() {
         "The character automatically fails any Qualification checks from "
         "now on – he must either continue in the career he is in or become "
         "a Drifter if he wishes to take any more terms."};
-    CHECK(targets_resolve && character_targets == 54 && selected == expected,
+    const bool retained_previous_targets = std::includes(
+        selected.begin(), selected.end(), expected.begin(), expected.end());
+    CHECK(targets_resolve && character_targets == 1620 &&
+              retained_previous_targets,
           "every migrated target resolves against its own exact source "
-          "representation, including duplicate table values");
+          "representation while retaining the earlier exact leaves");
 
     const auto ledger = kg::reconcile_ingestion_ledger(world, targets);
     CHECK(ledger.ok,
@@ -643,11 +647,11 @@ void test_production_rules_use_exact_edition_identity() {
         superseded += disposition == "SUPERSEDED";
         duplicate += disposition == "DUPLICATE";
     }
-    CHECK(no_rule == 38 && claims_present == 453 && partial == 5 &&
-              raised == 253 && materialized == 77 && superseded == 5 &&
-              duplicate == 68,
+    CHECK(no_rule == 38 && claims_present == 2019 && partial == 7 &&
+              raised == 253 && materialized == 1220 && superseded == 5 &&
+              duplicate == 69,
           "the production ledger exposes all current coverage judgements and "
-          "claim dispositions, including 68 repeated skill-list claims");
+          "claim dispositions, including repeated source occurrences");
 }
 
 }  // namespace

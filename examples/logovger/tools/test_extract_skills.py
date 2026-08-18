@@ -188,6 +188,11 @@ class SkillExtractionTests(unittest.TestCase):
             alias: op for alias, op in entities.items()
             if op["type"] == "Skill"
         }
+        self.assertTrue(
+            UNDEFINED_SKILLS.isdisjoint(
+                skill["properties"]["name"] for skill in skills.values()),
+            "skills.md cannot own terms found only in character-creation.md",
+        )
         materializations = relations(seed, "CLAIM_MATERIALIZES")
         materialized_by = {}
         for relation in materializations:
@@ -196,12 +201,6 @@ class SkillExtractionTests(unittest.TestCase):
 
         for alias, skill in skills.items():
             name = skill["properties"]["name"]
-            if name in UNDEFINED_SKILLS:
-                self.assertEqual(
-                    skill["properties"].get("source_file"),
-                    "book1/character-creation.md",
-                )
-                continue
             self.assertTrue(
                 LEGACY_LOCATORS.isdisjoint(skill["properties"]),
                 f"{name} retains a legacy source locator",
