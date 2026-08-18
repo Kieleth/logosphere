@@ -32,6 +32,28 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
   The 208 previously generated `addRelationType` triples are unchanged
   byte for byte; the only additions are Eden's five.
+
+### Added
+- **A sanitizer lane in CI (`sanitizers-linux`).** Builds the `core`
+  profile with AddressSanitizer and UndefinedBehaviorSanitizer and runs
+  the headless suite plus twelve chargen lives under them. It exists
+  because a use-after-lifetime bug shipped and was invisible on every
+  platform CI ran: a pointer into a vector, read after the vector was
+  cleared, which libc++ and libstdc++ tolerate and MSVC does not. ASan
+  found it in one run. Advisory, not merge-blocking, so a finding is
+  loud without blocking an unrelated merge. Built with clang and libc++,
+  and both are load-bearing: measured against the two real bugs, gcc with
+  libstdc++ detects neither, clang with libstdc++ detects one, and clang
+  with libc++ detects both. Container-overflow detection comes from
+  annotations the standard library emits, so the library is half the
+  tool. `test_chargen` is excluded and the exclusion is named in the
+  workflow: it costs 565s under the sanitizers against 74s without them,
+  and the lives step walks the same code. Known finding on landing:
+  `test_mutation_playback` aborts with a
+  stack-use-after-scope in its own fixture (a `CountingPlay` destructor
+  writes to two counters declared after the registry that owns it, so
+  they die first). The test's subject is unaffected; the fixture is
+  wrong. Not fixed here.
 - **Git integration policy, mechanically enforced.** Rebasing is
   refused by a tracked `pre-rebase` hook with no override; force-pushes
   and pushes to `main` are refused by `pre-push`. A third check refuses
@@ -52,6 +74,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   boundary or on anchored bonds (INV-1).
 
 ### Changed
+- **The DCO sign-off is checked on `main`, not on branch commits.** It
+  runs on the single commit a squash merge produces, over the push
+  event, and no longer walks every commit in a pull request. The old
+  gate could not coexist with the merge policy: a branch behind `main`
+  catches up with `git merge origin/main`, and that merge commit has no
+  authored content, cannot be signed at creation, and cannot be signed
+  later without the force-push the policy refuses. A branch could obey
+  one rule or the other, never both, and it cost a branch (#131,
+  reopened as #133). Contributors see no difference: GitHub builds the
+  squash message from the pull request title plus the branch commit
+  messages, so `git commit -s` carries the trailer through by itself.
+  What the gate catches is a squash message rewritten in the merge box
+  with the trailer deleted. `scripts/check-signoff.sh` is the checker,
+  `scripts/test-signoff-on-main.sh` proves it refuses as well as
+  accepts, and the `merge-policy` CI job runs that test on every PR.
 - **Contact rules now apply in order of meaning, general first.** When
   several rules match one contact they all fire, as before. The
   sequence is no longer whatever the internal hash map produced (which
