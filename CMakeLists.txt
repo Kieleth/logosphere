@@ -1285,7 +1285,27 @@ target_include_directories(test_angular_dissipation PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+target_include_directories(test_angular_dissipation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 target_compile_features(test_angular_dissipation PRIVATE cxx_std_17)
+
+# Visual driver: SEPARATE FILE, SAME SCENE. tests/scenes/scene_spinning_cube.h
+# owns the bodies and the stepping; neither driver holds a body or a
+# threshold, so the two cannot drift apart. Full profile only.
+if(NOT LOGOSPHERE_HEADLESS_ONLY)
+    add_executable(test_angular_dissipation_visual tests/test_angular_dissipation_visual.cpp)
+    target_link_libraries(test_angular_dissipation_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_angular_dissipation_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_angular_dissipation_visual PRIVATE cxx_std_17)
+endif()
 
 # INV-6's first witness: the same press on three axes must resolve the
 # same, or the solver knows which way is down.
