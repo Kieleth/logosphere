@@ -4,10 +4,49 @@ import tempfile
 import unittest
 
 from extract_career_tables import (assert_canonical_references,
-                                   load_career_seed_references)
+                                   load_career_seed_references,
+                                   load_skill_references)
 
 
 class CareerReferenceTests(unittest.TestCase):
+    def test_skill_loader_ignores_ledger_and_relation_operations(self):
+        seed = {
+            "ops": [
+                {"op": "create_entity", "type": "Skill", "as": "@admin",
+                 "properties": {"name": "Admin"}},
+                {"op": "create_entity", "type": "SourceTarget",
+                 "as": "@target", "properties": {
+                     "target_primary_selector": "@range"}},
+                {"op": "set_relation", "from": "@claim",
+                 "relation": "CLAIM_MATERIALIZES", "to": "@admin"},
+            ]
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            vocabulary = os.path.join(directory, "skills.json")
+            with open(vocabulary, "w", encoding="utf-8") as output:
+                json.dump(seed, output)
+            references = load_skill_references(
+                vocabulary, "ingestion-edition:v1:test")
+
+        self.assertEqual(
+            references,
+            {"Admin": "@@entity/ingestion-edition%3Av1%3Atest/Skill/admin"},
+        )
+
+    def test_skill_loader_names_missing_required_properties(self):
+        seed = {
+            "ops": [{"op": "create_entity", "type": "Skill",
+                     "as": "@admin"}]
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            vocabulary = os.path.join(directory, "skills.json")
+            with open(vocabulary, "w", encoding="utf-8") as output:
+                json.dump(seed, output)
+            with self.assertRaisesRegex(
+                    ValueError, r"ops\[0\].*required properties"):
+                load_skill_references(
+                    vocabulary, "ingestion-edition:v1:test")
+
     def test_mixed_seed_operations_only_read_supported_entity_creates(self):
         seed = {
             "source": {"file": "book.md", "commit": "abc123"},

@@ -222,13 +222,27 @@ def qualified_ref(context_key, type_name, entity_key):
 
 def load_skill_references(vocabulary_path, context_key):
     """Canonical skill references, indexed by every source-proven name."""
-    seed = json.load(open(vocabulary_path, encoding="utf-8"))
+    with open(vocabulary_path, encoding="utf-8") as source:
+        seed = json.load(source)
     names = {}
-    for op in seed["ops"]:
-        props = op["properties"]
+    for index, op in enumerate(seed["ops"]):
+        if op.get("op") != "create_entity" or op.get("type") != "Skill":
+            continue
         entity_key = op.get("as", "").removeprefix("@")
+        if not entity_key:
+            raise ValueError(
+                f"Skill vocabulary ops[{index}] is missing its create alias")
+        props = op.get("properties")
+        if not isinstance(props, dict):
+            raise ValueError(
+                f"Skill vocabulary ops[{index}] is missing required "
+                "properties")
+        name = props.get("name")
+        if not name:
+            raise ValueError(
+                f"Skill vocabulary ops[{index}] is missing required name")
         reference = qualified_ref(context_key, op["type"], entity_key)
-        names[props["name"]] = reference
+        names[name] = reference
         for alias in filter(None, props.get("source_aliases", "").split("; ")):
             names[alias] = reference
     return names

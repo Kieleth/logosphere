@@ -1555,6 +1555,21 @@ struct Checker {
 
 }  // namespace
 
+static void verify_seed_against_loaded_prefix(Checker& checker,
+                                              KGModule& world) {
+    SeedLoadReport load;
+    if (!checker.check_schema(world, load)) {
+        // Every other check certifies the loaded state; without one
+        // the schema violation already fails the verification.
+        return;
+    }
+
+    checker.check_verbatim(world, load);
+    checker.check_values(world, load);
+    checker.check_semantics(world, load);
+    checker.check_invariants(world, load);
+}
+
 static SeedVerifyReport verify_seed_impl(
     const SeedEnvelope& seed,
     const std::string& source_root,
@@ -1617,17 +1632,7 @@ static SeedVerifyReport verify_seed_impl(
         }
     }
 
-    SeedLoadReport load;
-    if (!checker.check_schema(world, load)) {
-        // Every other check certifies the loaded state; without one
-        // the schema violation already fails the verification.
-        return report;
-    }
-
-    checker.check_verbatim(world, load);
-    checker.check_values(world, load);
-    checker.check_semantics(world, load);
-    checker.check_invariants(world, load);
+    verify_seed_against_loaded_prefix(checker, world);
     return report;
 }
 
@@ -1693,13 +1698,34 @@ static bool verify_and_load_seed_sequence_impl(
         edition = materialized.ingestion_edition_context;
     }
 
-    std::vector<const SeedEnvelope*> prerequisites;
-    prerequisites.reserve(seeds.size());
+    // Verification owns one scratch prefix. The corpus is materialized once,
+    // then every verified seed remains loaded for the next seed. This keeps
+    // the same dependency-order semantics without rebuilding and replaying
+    // the complete prefix for every item in the sequence.
+    KGModule verified_prefix(world.getRegistry());
+    verified_prefix.setMode(KGMode::MINIMAL);
+    EntityID verification_edition = INVALID_ENTITY;
+    if (corpus != nullptr) {
+        const auto materialized =
+            logosphere::text::materialize_source_corpus_into_kg(
+                *corpus, *source_access, verified_prefix);
+        if (!materialized.ok) {
+            report.ok = false;
+            report.error =
+                "verification source corpus materialization failed: " +
+                materialized.reason;
+            return false;
+        }
+        verification_edition = materialized.ingestion_edition_context;
+    }
+
     for (size_t index = 0; index < seeds.size(); ++index) {
         const SeedEnvelope& seed = seeds[index];
-        SeedVerifyReport verified = verify_seed_impl(
-            seed, source_root, world.getRegistry(), procedure_primitives,
-            prerequisites, corpus, source_access);
+        SeedVerifyReport verified;
+        Checker checker{seed, source_root, world.getRegistry(), verified,
+                        procedure_primitives, verification_edition, {}};
+        checker.check_commit_pin();
+        verify_seed_against_loaded_prefix(checker, verified_prefix);
         report.verifications.push_back(std::move(verified));
         const SeedVerifyReport& current = report.verifications.back();
         if (!current.ok()) {
@@ -1731,7 +1757,6 @@ static bool verify_and_load_seed_sequence_impl(
             return false;
         }
         ++report.seeds_loaded;
-        prerequisites.push_back(&seed);
     }
     return true;
 }

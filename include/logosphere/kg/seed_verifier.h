@@ -164,9 +164,9 @@ SeedVerifyReport verify_seed_in_edition(
     const std::vector<const SeedEnvelope*>& prerequisites = {});
 
 // Verify and load seeds in declared dependency order. This is the single
-// owner of prerequisite accumulation for game startup and verification tools.
-// Empty input is invalid: a caller that requires rule data must not silently
-// start with none.
+// owner of the reusable verified prefix for game startup and verification
+// tools. Empty input is invalid: a caller that requires rule data must not
+// silently start with none.
 bool verify_and_load_seed_sequence(
     const std::vector<SeedEnvelope>& seeds,
     const std::string& source_root,
@@ -175,9 +175,10 @@ bool verify_and_load_seed_sequence(
     const logosphere::rules::ProcedurePrimitiveRegistry*
         procedure_primitives = nullptr);
 
-// Materialize one exact corpus in the caller's world, verify every seed in a
-// scratch world containing the same corpus, then load each seed in dependency
-// order with the resulting IngestionEditionContext as its identity scope.
+// Materialize one exact corpus in the caller's world and once in a reusable
+// scratch world. Each verified seed extends that scratch prefix, then loads in
+// dependency order with the caller's IngestionEditionContext as its identity
+// scope.
 bool verify_and_load_seed_sequence_in_edition(
     const std::vector<SeedEnvelope>& seeds,
     const std::string& source_root,
