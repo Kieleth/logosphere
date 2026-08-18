@@ -51,6 +51,15 @@ constexpr int   RUN_FRAMES = 240;     // 4 s: time to land and then travel
 // rolls further than a cube slides, and should) but "gravity along the
 // slope moved each of them", which is the thing a flat normal denies.
 constexpr float TRAVEL_MIN = 0.30f;   // m downhill
+// A body that leaves the ramp edge and lands on the turtle MUST turn.
+// Steady sliding on a uniform slope legitimately has no angular
+// acceleration (the normal-force distribution balances the friction
+// moment), so this is deliberately NOT a claim about the slide. It is a
+// claim about the launch and the landing: unsupported past the edge,
+// gravity acts about the last contact; landing from a fall, the impulse
+// arrives off the centre of mass. Both are lever arms. Exactly zero is
+// impossible for either, so any positive threshold discriminates.
+constexpr float SPIN_MIN   = 0.05f;   // rad/s, peak over the run
 constexpr float RAMP_LEN   = 8.0f;
 constexpr float RAMP_THICK = 0.4f;
 // Rest the ramp ON the turtle rather than through it. A tilted 8 m box
@@ -67,6 +76,9 @@ inline float ramp_centre_z() {
 struct Scene {
     int ramp = -1, cube = -1, ball = -1;
     float cube_x0 = 0.0f, ball_x0 = 0.0f;
+    // Peak angular speed each body reached at ANY point. Latched, because
+    // a body that spins up and settles is quiet by the deadline.
+    float cube_spin_peak = 0.0f, ball_spin_peak = 0.0f;
 
     void build(ParticleSystem& ps) {
         // The ramp: a long box tilted about Y, so downhill runs along -X.
@@ -121,6 +133,14 @@ struct Scene {
     void step(ParticleSystem& ps, PhysicsSystem& physics) {
         ps.update_bvh();
         physics.update(DT);
+        auto v = ps.lock_particles_for_read();
+        auto mag = [](const Particle& p) {
+            return std::sqrt(p.omega_x * p.omega_x + p.omega_y * p.omega_y
+                           + p.omega_z * p.omega_z);
+        };
+        const float c = mag(v[cube]), b = mag(v[ball]);
+        if (c > cube_spin_peak) cube_spin_peak = c;
+        if (b > ball_spin_peak) ball_spin_peak = b;
     }
 
     // Downhill is +X, so travel is how far each has come from its start.
@@ -135,6 +155,7 @@ struct Scene {
         x = v[id].x; y = v[id].y; z = v[id].z;
     }
     static bool travelled(float d) { return d > TRAVEL_MIN; }
+    static bool turned(float peak_omega) { return peak_omega > SPIN_MIN; }
 };
 
 }  // namespace scene_ramp_race

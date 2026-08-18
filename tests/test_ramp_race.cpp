@@ -72,6 +72,18 @@ int main() {
         std::printf("  [measure] cube   final (%.2f, %.2f, %.2f)\n", cx, cy, cz);
         std::printf("  [measure] sphere final (%.2f, %.2f, %.2f)\n", bx, by, bz);
         auto v = ps.lock_particles_for_read();
+        // Does the cube TURN while it slides? Friction acts at the contact
+        // face, gravity at the centre of mass, so a body sliding on a slope
+        // has a moment arm and should acquire angular velocity. A cube that
+        // slides perfectly flat is a cube whose friction has no torque.
+        std::printf("  [measure] cube rotation_y %.4f rad, omega (%.4f, %.4f, %.4f)\n",
+                    v[scene.cube].rotation_y, v[scene.cube].omega_x,
+                    v[scene.cube].omega_y, v[scene.cube].omega_z);
+        std::printf("  [measure] sphere rotation_y %.4f rad, omega (%.4f, %.4f, %.4f)\n",
+                    v[scene.ball].rotation_y, v[scene.ball].omega_x,
+                    v[scene.ball].omega_y, v[scene.ball].omega_z);
+        std::printf("  [measure] peak |omega|: cube %.4f rad/s, sphere %.4f rad/s\n",
+                    scene.cube_spin_peak, scene.ball_spin_peak);
         std::printf("  [measure] ramp solver_mode = %s, moved %.2f m in z\n",
                     v[scene.ramp].solver_mode == ParticleSolverMode::KINEMATIC
                         ? "KINEMATIC" : "DYNAMIC",
@@ -84,15 +96,21 @@ int main() {
 
     check(Scene::travelled(cube_d),
           "the cube slides down the slope");
+    check(Scene::turned(scene.cube_spin_peak),
+          "the cube TURNS as it goes (D2 1.2: contact rows carry jx/jy/jz "
+          "from the manifold normal and NO LEVER ARM, so no contact in this "
+          "engine can spin a body up. The contact point is computed, carried "
+          "into the solver, and used only to fill a CollisionEvent.)");
     check(Scene::travelled(ball_d),
           "the sphere ALSO moves (INV-12: contacts come from the body's "
           "actual oriented shape, not its bounding slab)");
 
     physics.shutdown();
     std::printf("\n  %s (%d failures)\n",
-                failures == 0 ? "BOTH BODIES FEEL THE SLOPE"
-                              : "F2 CONFIRMED (expected red: the sphere is "
-                                "standing on a normal the engine invented)",
+                failures == 0 ? "BOTH BODIES FEEL THE SLOPE AND BOTH TURN"
+                              : "RED, TWO FRONTS: F2 (the sphere stands on a "
+                                "normal the engine invented) and D2 1.2 "
+                                "(contacts carry no torque, so nothing turns)",
                 failures);
     return failures == 0 ? 0 : 1;
 }

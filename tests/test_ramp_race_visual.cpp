@@ -89,10 +89,11 @@ int main() {
 
     auto* l_cube = add_line(engine, 0, 255, 190, 110);
     auto* l_ball = add_line(engine, 1, 140, 210, 255);
-    auto* l_claim = add_line(engine, 2, 190, 220, 255);
-    auto* l_verdict = add_line(engine, 3, 255, 120, 120);
-    l_claim->set_text("ASSERTS: gravity along a 40 deg slope moves BOTH. "
-                      "pass = each travels > 0.30 m");
+    auto* l_spin  = add_line(engine, 2, 220, 220, 220);
+    auto* l_claim = add_line(engine, 3, 190, 220, 255);
+    auto* l_verdict = add_line(engine, 4, 255, 120, 120);
+    l_claim->set_text("ASSERTS: gravity moves BOTH (> 0.30 m) and BOTH turn "
+                      "(peak |omega| > 0.05 rad/s)");
 
     std::printf("\n=== a cube and a sphere on the same %.0f degree ramp (%s) ===\n",
                 SLOPE_DEG, interactive ? "WINDOW" : "headless");
@@ -119,10 +120,21 @@ int main() {
                       "SPHERE travelled %.3f m   (sphere-vs-AABB: meets an "
                       "upright slab, normal (0,0,1))", bd);
         l_ball->set_text(buf);
+        std::snprintf(buf, sizeof(buf),
+                      "peak |omega|  cube %.4f   sphere %.4f rad/s   "
+                      "(D2 1.2: contact rows carry no lever arm)",
+                      scene.cube_spin_peak, scene.ball_spin_peak);
+        l_spin->set_text(buf);
+        const bool moved = Scene::travelled(cd) && Scene::travelled(bd);
+        const bool spun  = Scene::turned(scene.cube_spin_peak)
+                        && Scene::turned(scene.ball_spin_peak);
         l_verdict->set_text(
-            (Scene::travelled(cd) && Scene::travelled(bd))
-                ? "PASS: both bodies feel the slope"
-                : "FAIL - F2: the sphere is standing on a normal the engine invented");
+            (moved && spun) ? "PASS: both feel the slope and both turn"
+            : !moved && !spun ? "FAIL x2 - F2: the sphere stands on an invented "
+                                "normal.  D2 1.2: nothing turns, contacts have "
+                                "no torque."
+            : !spun ? "FAIL - D2 1.2: it slides without ever turning"
+                    : "FAIL - F2: the sphere is standing on an invented normal");
 
         engine.render();
         if (interactive) {
@@ -151,11 +163,15 @@ int main() {
     }
 
     const float cd = scene.cube_travel(ps), bd = scene.ball_travel(ps);
-    const bool ok = Scene::travelled(cd) && Scene::travelled(bd);
+    const bool ok = Scene::travelled(cd) && Scene::travelled(bd)
+                 && Scene::turned(scene.cube_spin_peak)
+                 && Scene::turned(scene.ball_spin_peak);
     std::printf("  [measure] cube   travelled %.3f m downhill\n", cd);
     std::printf("  [measure] sphere travelled %.3f m downhill\n", bd);
-    std::printf("\n  %s\n", ok ? "BOTH BODIES FEEL THE SLOPE"
-                               : "F2 CONFIRMED (expected red)");
+    std::printf("  [measure] peak |omega|: cube %.4f, sphere %.4f rad/s\n",
+                scene.cube_spin_peak, scene.ball_spin_peak);
+    std::printf("\n  %s\n", ok ? "BOTH FEEL THE SLOPE AND BOTH TURN"
+                               : "RED, TWO FRONTS: F2 and D2 1.2");
     engine.shutdown();
     return ok ? 0 : 1;
 }
