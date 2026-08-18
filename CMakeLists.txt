@@ -1288,6 +1288,32 @@ target_include_directories(test_angular_dissipation PRIVATE
 target_include_directories(test_angular_dissipation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 target_compile_features(test_angular_dissipation PRIVATE cxx_std_17)
 
+# F2 made measurable: a cube and a sphere released on one ramp. Born red.
+add_executable(test_ramp_race tests/test_ramp_race.cpp)
+target_link_libraries(test_ramp_race PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_ramp_race PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_ramp_race PRIVATE cxx_std_17)
+
+if(NOT LOGOSPHERE_HEADLESS_ONLY)
+    add_executable(test_ramp_race_visual tests/test_ramp_race_visual.cpp)
+    target_link_libraries(test_ramp_race_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_ramp_race_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_ramp_race_visual PRIVATE cxx_std_17)
+endif()
+
 # Visual driver: SEPARATE FILE, SAME SCENE. tests/scenes/scene_spinning_cube.h
 # owns the bodies and the stepping; neither driver holds a body or a
 # threshold, so the two cannot drift apart. Full profile only.

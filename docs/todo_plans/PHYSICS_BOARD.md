@@ -126,6 +126,8 @@ external ones.)*
 
 ## F2 — NEW FRONT: a sphere will not slide a ramp that a cube slides
 
+**MEASURED 2026-08-16, and now watchable.** `tests/test_ramp_race` (+ `_visual`) releases a cube and a sphere together on one 40 degree ramp: the cube travels **6.356 m**, the sphere travels **0.000 m**. Born red. Mechanism: the sphere-vs-box branch builds the box side with `aabb_of_box_particle`, which never reads rotation (`src/core/narrow_phase.cpp:957-976`), so the sphere meets the ramp's upright bounding slab and stands on an invented `(0,0,1)` normal. Two lines wide. INV-12 broken live.
+
 Found 2026-08-15 by the machine's twin-path experiment, on its first
 run. Two ramps side by side, same 40-degree slope, same STONE, same
 drop, same mass class; a cube on one lane and a sphere on the other.
