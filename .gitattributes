@@ -1,0 +1,3 @@
+# SourceTarget byte ranges address the Git object bytes. Platform checkout
+# conversion would change those identities, so the vendored text stays LF.
+examples/logovger/srd/cepheus/**/*.md text eol=lf

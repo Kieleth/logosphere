@@ -37,6 +37,48 @@ imports:
   - logosphere
   - rule_language
 
+enums:
+  CoverageJudgement:
+    description: Latest derived judgement for one enumerated source leaf.
+    permissible_values:
+      CLAIMS_PRESENT:
+        description: One or more semantic claims cite this coverage record.
+      NO_RULE_CONTENT:
+        description: The leaf was visited and judged to contain no rule claim.
+
+  ClaimDisposition:
+    description: Outcome recorded by one append-only claim decision.
+    permissible_values:
+      MATERIALIZED:
+        description: The complete claim is represented by typed KG content.
+      PARTIAL:
+        description: Typed KG content represents only part of the claim.
+      RAISED:
+        description: The claim is recorded but cannot yet be represented.
+      DUPLICATE:
+        description: An earlier claim already represents the same meaning.
+      SUPERSEDED:
+        description: A later, broader or corrected claim replaces this claim.
+      CONTRADICTORY:
+        description: The claim conflicts with another claim and both are kept.
+
+  ClaimGapKind:
+    description: Closed reason why a claim is partial or raised.
+    permissible_values:
+      ONTOLOGY_GAP:
+        description: The ontology cannot type a required concept or relation.
+      RULE_LANGUAGE_GAP:
+        description: The rule language cannot express the required operation.
+      SOURCE_GAP:
+        description: The source is ambiguous, inconsistent, or incomplete for the required rule.
+
+  RulebookIngestionRelationType:
+    description: Typed links from ingestion claims to evidence and graph data.
+    permissible_values:
+      CLAIM_SUPPORTED_BY:
+      CLAIM_MATERIALIZES:
+      CLAIM_RESOLVED_AGAINST:
+
 # -------------------------------------------------------------------
 # Classes
 # -------------------------------------------------------------------
@@ -820,11 +862,190 @@ classes:
       - decision_reason
       - arbiter
 
+  SourceCoverage:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Enduring ledger record for one mechanically enumerated source target.
+      Its current judgement is derived from its ordered CoverageDecision
+      history rather than stored as mutable state.
+    annotations:
+      facets: rulebook, ingestion-ledger
+    slot_usage:
+      coverage_target:
+        required: true
+    slots:
+      - coverage_target
+
+  IngestionClaim:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      One atomic semantic claim read from one or more source coverage
+      records. The claim persists while append-only ClaimDecision events
+      record how successive readings disposed it.
+    annotations:
+      facets: rulebook, ingestion-ledger
+    slot_usage:
+      claim_statement:
+        required: true
+    slots:
+      - claim_statement
+
+  CoverageDecision:
+    is_a: ArbiterDecision
+    description: >-
+      One append-only judgement about whether an enumerated source leaf
+      produced semantic claims. Later decisions supersede earlier ones by
+      sequence without rewriting history.
+    annotations:
+      facets: rulebook, ingestion-ledger, append-only
+    slot_usage:
+      decision_subject:
+        range: SourceCoverage
+        required: true
+      decision_sequence:
+        required: true
+      coverage_judgement:
+        required: true
+      decision_question:
+        required: true
+      decision_reason:
+        required: true
+      arbiter:
+        required: true
+    slots:
+      - decision_subject
+      - decision_sequence
+      - coverage_judgement
+
+  ClaimDecision:
+    is_a: ArbiterDecision
+    description: >-
+      One append-only disposition of an atomic claim. The latest sequence is
+      current; previous decisions remain queryable. Reconciliation enforces
+      which optional fields and graph links each disposition requires.
+    annotations:
+      facets: rulebook, ingestion-ledger, append-only
+    slot_usage:
+      decision_subject:
+        range: IngestionClaim
+        required: true
+      decision_sequence:
+        required: true
+      claim_disposition:
+        required: true
+      decision_question:
+        required: true
+      decision_reason:
+        required: true
+      arbiter:
+        required: true
+    slots:
+      - decision_subject
+      - decision_sequence
+      - claim_disposition
+      - claim_gap_kind
+      - related_claim
+
+  RulebookIngestionRelation:
+    abstract: true
+    is_a: Relation
+    description: Abstract parent for typed ingestion-ledger links.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+
+  ClaimSupportedByRelation:
+    is_a: RulebookIngestionRelation
+    description: An atomic claim cites one enumerated coverage record.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+        required: true
+        equals_string: CLAIM_SUPPORTED_BY
+      source_id:
+        range: IngestionClaim
+      target_id:
+        range: SourceCoverage
+
+  ClaimMaterializesRelation:
+    is_a: RulebookIngestionRelation
+    description: A claim is represented by one typed KG entity.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+        required: true
+        equals_string: CLAIM_MATERIALIZES
+      source_id:
+        range: IngestionClaim
+      target_id:
+        range: Entity
+
+  ClaimResolvedAgainstRelation:
+    is_a: RulebookIngestionRelation
+    description: A claim was read against one previously known KG entity.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+        required: true
+        equals_string: CLAIM_RESOLVED_AGAINST
+      source_id:
+        range: IngestionClaim
+      target_id:
+        range: Entity
+
 # -------------------------------------------------------------------
 # Slots
 # -------------------------------------------------------------------
 
 slots:
+  coverage_target:
+    range: SourceTarget
+    annotations:
+      create_only: true
+    description: Exact source leaf this coverage record judges.
+  claim_statement:
+    range: string
+    description: >-
+      Auditable statement of one atomic meaning read from the cited leaves.
+      Executable meaning lives in the typed entities linked by
+      CLAIM_MATERIALIZES, never in this text.
+  decision_subject:
+    range: Entity
+    annotations:
+      create_only: true
+    description: Enduring ledger record judged by this append-only decision.
+  decision_sequence:
+    range: integer
+    minimum_value: 0
+    annotations:
+      create_only: true
+    description: Contiguous zero-based order within one decision subject.
+  coverage_judgement:
+    range: CoverageJudgement
+    annotations:
+      create_only: true
+    description: Typed coverage outcome chosen by this decision.
+  claim_disposition:
+    range: ClaimDisposition
+    annotations:
+      create_only: true
+    description: Typed claim outcome chosen by this decision.
+  claim_gap_kind:
+    range: ClaimGapKind
+    annotations:
+      create_only: true
+    description: Required by reconciliation for PARTIAL and RAISED claims.
+  related_claim:
+    range: IngestionClaim
+    annotations:
+      create_only: true
+    description: >-
+      Required by reconciliation for DUPLICATE and CONTRADICTORY decisions.
+
   origin_context:
     range: KnowledgeContext
     annotations:

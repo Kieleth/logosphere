@@ -173,6 +173,14 @@ calls it the only extension point needed to absorb a scanned book. Nothing
 implements it today, and image regions are reserved in the address grammar
 and unimplemented.
 
+**Open after the 2026-08-17 provenance spike.** If a scan is the
+authoritative source, treating its OCR transcript as the L0 source loses the
+derivation path back to the pixels. `todo_plans/SOURCE_LOCATION_PROVENANCE_SPIKE.md`
+separates the pinned image target from its model-generated transcript and
+records the standards evidence. That is a research finding, not a changed
+protocol. The owner must decide the boundary before the paragraph above or
+`REFLECTION_PROTOCOL.md` changes.
+
 **Ungated, and named as such.** Two rules in the protocol have no automatic
 check: that content is copied rather than retyped (R3), and that
 un-ingested content leaves a row saying so with a reason (R7). R7 is called

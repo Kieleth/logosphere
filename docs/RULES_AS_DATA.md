@@ -108,9 +108,13 @@ comment.
 
 Splitting the work is the other half:
 
-- **Transcription is mechanical.** A model that retypes a number
-  produces a rule that is wrong while the prose still reads fine. Copy
-  bytes; address cells by (table, row, column).
+- **Structure is judged, content is copied.** A model reader decides
+  where irregular tables, rows, cells, footnotes, and wrapped content
+  begin and end. For digital text, a source tool returns the selected
+  bytes and the reader never retypes them. A deterministic parser was
+  rejected after it silently lost and misclassified real SRD rows. The
+  scan and OCR provenance boundary remains open in
+  `todo_plans/SOURCE_LOCATION_PROVENANCE_SPIKE.md`.
 - **Meaning is judgement.** Deciding that `"Low Passage"` is a
   possession and `"+1 Int"` is a characteristic is interpretation, and
   interpretation checked only by the regex that produced it is not

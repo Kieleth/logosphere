@@ -306,7 +306,12 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     # Ancestors (full inheritance chains)
     lines.append("    // Inheritance chains")
     for cn in sorted(sv.all_classes()):
-        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)):
+        # Event is a sibling root of Entity in Malleus. Omitting it here
+        # registered direct Event parents but left isSubtypeOf unable to see
+        # any Event inheritance at runtime. Every registered class family
+        # needs the same complete ancestor projection.
+        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)
+                or _is_event_subtype(sv, cn)):
             continue
         ancestors = _get_ancestors(sv, cn)
         if ancestors:

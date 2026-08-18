@@ -306,6 +306,37 @@ slots:
             rendered,
         )
 
+    def test_event_subclasses_emit_complete_ancestor_sets(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            schema = root / "events.yaml"
+            output = root / "registry.cpp"
+            schema.write_text(
+                """id: schema://events
+name: events
+default_range: string
+classes:
+  Event: {}
+  Decision:
+    is_a: Event
+  ClaimDecision:
+    is_a: Decision
+"""
+            )
+
+            generate_registry_cpp(
+                str(schema), "events::ontology", str(output)
+            )
+            rendered = output.read_text()
+
+        self.assertIn(
+            'reg.addAncestors("Decision", {"Event"});', rendered
+        )
+        self.assertIn(
+            'reg.addAncestors("ClaimDecision", {"Decision", "Event"});',
+            rendered,
+        )
+
     def test_generator_delta_overrides_are_installed(self):
         # scripts/cppgen/ (the vendored copy) is gone; the generator is
         # upstream linkml.generators.cppgen with this repo's two fixes

@@ -31,6 +31,8 @@
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/procedure_runner.h"
+#include "logosphere/text/source_corpus.h"
+#include "logosphere/text/source_target.h"
 #include "generated/earth_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -38,11 +40,13 @@
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/space_ontology_registry.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <variant>
+#include <vector>
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -61,6 +65,12 @@ const char* kSourceRoot =
     LOGOSPHERE_SOURCE_DIR "/examples/logovger/srd/cepheus";
 const char* kFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/chargen_ch1.json";
+const char* kPrerequisiteFixture =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/prerequisite_base.json";
+const char* kDependentFixture =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/prerequisite_dependent.json";
+const char* kStandaloneFixture =
+    LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/rulebook_smoke.json";
 
 std::string slurp(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
@@ -69,6 +79,21 @@ std::string slurp(const std::string& path) {
     ss << f.rdbuf();
     return ss.str();
 }
+
+struct RootSourceAccess final : logosphere::text::SourceAccess {
+    std::string root;
+
+    explicit RootSourceAccess(std::string source_root)
+        : root(std::move(source_root)) {}
+
+    logosphere::text::SourceReadResult read_exact(
+        const logosphere::text::SourceRepresentationDeclaration& declaration)
+        const override {
+        const std::string bytes = slurp(root + "/" + declaration.source_file);
+        if (bytes.empty()) return {false, {}, "unreadable or empty"};
+        return {true, bytes, {}};
+    }
+};
 
 // The same merged registry the CLI uses: core + every engine pack.
 kg::OntologyRegistry engine_registry() {
@@ -110,6 +135,14 @@ kg::SeedEnvelope parse_fixture() {
     return r.seed;
 }
 
+kg::SeedEnvelope parse_seed_fixture(const char* path) {
+    const std::string text = slurp(path);
+    CHECK(!text.empty(), std::string(path) + " is readable");
+    kg::SeedParseResult parsed = kg::parse_seed_envelope(text);
+    CHECK(parsed.ok(), std::string(path) + " parses: " + parsed.error);
+    return parsed.seed;
+}
+
 kg::KGOpCreateEntity* find_create(kg::SeedEnvelope& seed,
                                   const std::string& alias) {
     for (auto& op : seed.ops) {
@@ -129,6 +162,14 @@ bool set_prop(kg::SeedEnvelope& seed, const std::string& alias,
         if (k == key) { v = value; return true; }
     }
     return false;
+}
+
+bool add_prop(kg::SeedEnvelope& seed, const std::string& alias,
+              const std::string& key, const std::string& value) {
+    kg::KGOpCreateEntity* ce = find_create(seed, alias);
+    if (!ce) return false;
+    ce->properties.emplace_back(key, value);
+    return true;
 }
 
 bool has_check(const kg::SeedVerifyReport& report,
@@ -189,6 +230,149 @@ kg::SeedEnvelope mini_seed(const std::string& file,
     kg::SeedParseResult r = kg::parse_seed_envelope(text);
     CHECK(r.ok(), "mini seed parses: " + r.error);
     return r.seed;
+}
+
+kg::SeedEnvelope exact_evidence_seed() {
+    const std::string file = "book1/character-creation.md";
+    const std::string source = slurp(std::string(kSourceRoot) + "/" + file);
+    const std::string sentence =
+        "All characters begin at the age of majority, typically 18.";
+    const std::size_t start = source.find(sentence);
+    CHECK(start != std::string::npos,
+          "the exact-evidence fixture sentence exists in the source");
+    if (start == std::string::npos) return {};
+    const std::size_t end = start + sentence.size();
+
+    const std::string ops =
+        "{\"op\":\"create_entity\",\"type\":\"RuleConstant\","
+        "\"as\":\"@age\",\"properties\":{\"name\":\"age of majority\","
+        "\"constant_value\":\"18\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"ByteRangeSelector\","
+        "\"as\":\"@range\",\"properties\":{\"source_byte_start\":" +
+        std::to_string(start) + ",\"source_byte_end\":" +
+        std::to_string(end) + "}},"
+        "{\"op\":\"create_entity\",\"type\":\"TextQuoteSelector\","
+        "\"as\":\"@quote\",\"properties\":{\"source_quote_exact\":\"" +
+        sentence + "\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"SourceTarget\","
+        "\"as\":\"@target\",\"properties\":{"
+        "\"target_primary_selector\":\"@range\","
+        "\"target_quote_selector\":\"@quote\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"SourceCoverage\","
+        "\"as\":\"@coverage\",\"properties\":{"
+        "\"coverage_target\":\"@target\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"CoverageDecision\","
+        "\"as\":\"@coverage_decision\",\"properties\":{"
+        "\"event_type\":\"ARBITER_DECISION\","
+        "\"decision_subject\":\"@coverage\",\"decision_sequence\":0,"
+        "\"coverage_judgement\":\"CLAIMS_PRESENT\","
+        "\"decision_question\":\"Does this leaf state a rule?\","
+        "\"decision_reason\":\"It states the starting age.\","
+        "\"arbiter\":\"test reader\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"IngestionClaim\","
+        "\"as\":\"@claim\",\"properties\":{"
+        "\"claim_statement\":\"The age of majority is typically 18.\"}},"
+        "{\"op\":\"create_entity\",\"type\":\"ClaimDecision\","
+        "\"as\":\"@claim_decision\",\"properties\":{"
+        "\"event_type\":\"ARBITER_DECISION\","
+        "\"decision_subject\":\"@claim\",\"decision_sequence\":0,"
+        "\"claim_disposition\":\"MATERIALIZED\","
+        "\"decision_question\":\"Can this claim enter the graph?\","
+        "\"decision_reason\":\"RuleConstant expresses it exactly.\","
+        "\"arbiter\":\"test reader\"}},"
+        "{\"op\":\"set_relation\",\"from\":\"@claim\","
+        "\"relation\":\"CLAIM_SUPPORTED_BY\",\"to\":\"@coverage\"},"
+        "{\"op\":\"set_relation\",\"from\":\"@claim\","
+        "\"relation\":\"CLAIM_MATERIALIZES\",\"to\":\"@age\"}";
+    return mini_seed(file, ops);
+}
+
+kg::SeedEnvelope exact_multileaf_open_bottom_seed(
+    const std::string& gap_kind) {
+    const std::string file = "book1/character-creation.md";
+    const std::string source = slurp(std::string(kSourceRoot) + "/" + file);
+    const std::size_t aging = source.find("## Aging");
+    const std::size_t header = source.find("| 2D6 |", aging);
+    const std::size_t band = source.find("\\-6", header);
+    CHECK(aging != std::string::npos && header != std::string::npos &&
+              band != std::string::npos,
+          "the exact multi-leaf band fixture exists in the source");
+    if (aging == std::string::npos || header == std::string::npos ||
+        band == std::string::npos) {
+        return {};
+    }
+
+    kg::SeedEnvelope seed;
+    seed.source = {file, pinned_commit()};
+    seed.layer = "test";
+    auto create = [&](const std::string& type, const std::string& alias,
+                      std::vector<std::pair<std::string, std::string>> props) {
+        seed.ops.push_back(
+            kg::KGOp{kg::KGOpCreateEntity{type, std::move(props), alias}});
+    };
+    auto relate = [&](const std::string& from, const std::string& relation,
+                      const std::string& to) {
+        kg::KGOpSetRelation op;
+        op.from.symbolic = from;
+        op.relation = relation;
+        op.to.symbolic = to;
+        seed.ops.push_back(kg::KGOp{std::move(op)});
+    };
+    auto target = [&](const std::string& alias, std::size_t start,
+                      const std::string& exact) {
+        create("ByteRangeSelector", alias + "_range",
+               {{"source_byte_start", std::to_string(start)},
+                {"source_byte_end", std::to_string(start + exact.size())}});
+        create("TextQuoteSelector", alias + "_quote",
+               {{"source_quote_exact", exact}});
+        create("SourceTarget", alias + "_target",
+               {{"target_primary_selector", "@" + alias + "_range"},
+                {"target_quote_selector", "@" + alias + "_quote"}});
+        create("SourceCoverage", alias + "_coverage",
+               {{"coverage_target", "@" + alias + "_target"}});
+        create("CoverageDecision", alias + "_coverage_decision",
+               {{"event_type", "ARBITER_DECISION"},
+                {"decision_subject", "@" + alias + "_coverage"},
+                {"decision_sequence", "0"},
+                {"coverage_judgement", "CLAIMS_PRESENT"},
+                {"decision_question", "Does this leaf state a rule?"},
+                {"decision_reason", "It is part of the table row."},
+                {"arbiter", "test reader"}});
+    };
+
+    target("header", header + 2, "2D6");
+    target("band", band, "\\-6");
+    create("NoEffect", "effect", {{"name", "test no effect"}});
+    create("TableEntry", "row",
+           {{"name", "test open bottom"},
+            {"roll_min", "-6"},
+            {"roll_max", "-6"},
+            {"roll_min_unbounded", "true"},
+            {"outcome", "@effect"}});
+    create("IngestionClaim", "claim",
+           {{"claim_statement", "The bottom row applies at -6 or less."}});
+    create("ClaimDecision", "claim_decision",
+           {{"event_type", "ARBITER_DECISION"},
+            {"decision_subject", "@claim"},
+            {"decision_sequence", "0"},
+            {"claim_disposition", "PARTIAL"},
+            {"claim_gap_kind", gap_kind},
+            {"decision_question", "Can this claim enter the graph?"},
+            {"decision_reason", "The printed floor leaves lower totals open."},
+            {"arbiter", "test reader"}});
+    relate("claim", "CLAIM_SUPPORTED_BY", "header_coverage");
+    relate("claim", "CLAIM_SUPPORTED_BY", "band_coverage");
+    relate("claim", "CLAIM_MATERIALIZES", "effect");
+    relate("claim", "CLAIM_MATERIALIZES", "row");
+    return seed;
+}
+
+logosphere::text::SourceCorpusDeclaration exact_evidence_corpus(
+    const kg::SeedEnvelope& seed) {
+    return {seed.layer,
+            {{seed.source.file,
+              rule_language::ontology::SourceMediaType::UTF8_TEXT,
+              seed.source.commit}}};
 }
 
 void print_first(const kg::SeedVerifyReport& report,
@@ -370,6 +554,226 @@ void test_loader_materializes_seed_origin_contexts() {
               batch.error.find("sealed origin") != std::string::npos &&
               world.getProperty(check, "target_number") == "8",
           "the validated runtime path cannot mutate a published rule");
+}
+
+void test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence() {
+    kg::SeedEnvelope seed = parse_fixture();
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    RootSourceAccess source_access(kSourceRoot);
+    const logosphere::text::SourceCorpusDeclaration corpus{
+        seed.layer,
+        {{seed.source.file,
+          rule_language::ontology::SourceMediaType::UTF8_TEXT,
+          seed.source.commit}}};
+    const auto materialized =
+        logosphere::text::materialize_source_corpus_into_kg(
+            corpus, source_access, world);
+    CHECK(materialized.ok,
+          "the exact test corpus materializes before seed loading: " +
+              materialized.reason);
+    if (!materialized.ok) return;
+
+    kg::SeedLoadReport report;
+    const bool ok = kg::load_seed_in_edition(
+        seed, materialized.ingestion_edition_context, world, report);
+    CHECK(ok, "a seed loads inside its supplied ingestion edition: " +
+                  report.error);
+    if (!ok) return;
+
+    const auto check = report.bindings.at("int_throw");
+    CHECK(world.getProperty(check, "identity_context") ==
+              std::to_string(materialized.ingestion_edition_context),
+          "the ingestion edition, not the cited document, owns rule identity");
+    CHECK(report.source_document_context != kg::INVALID_ENTITY &&
+              world.getProperty(check, "origin_context") ==
+                  std::to_string(report.source_document_context),
+          "legacy citation evidence retains its document origin during the "
+          "explicit transition");
+
+    kg::SeedEnvelope empty = seed;
+    empty.ops.clear();
+    kg::SeedLoadReport empty_report;
+    CHECK(kg::load_seed_in_edition(
+              empty, materialized.ingestion_edition_context, world,
+              empty_report) &&
+              empty_report.identity_context == kg::INVALID_ENTITY,
+          "a seed with no Addressable creates does not report an identity "
+          "context it never used");
+
+    kg::KGModule wrong_world(engine_registry());
+    wrong_world.setMode(kg::KGMode::MINIMAL);
+    const logosphere::text::SourceCorpusDeclaration wrong_corpus{
+        "other",
+        {{seed.source.file,
+          rule_language::ontology::SourceMediaType::UTF8_TEXT,
+          seed.source.commit}}};
+    const auto wrong_edition =
+        logosphere::text::materialize_source_corpus_into_kg(
+            wrong_corpus, source_access, wrong_world);
+    kg::SeedLoadReport rejected;
+    CHECK(wrong_edition.ok &&
+              !kg::load_seed_in_edition(
+                  seed, wrong_edition.ingestion_edition_context,
+                  wrong_world, rejected) &&
+              rejected.error.find("source_layer") != std::string::npos,
+          "an edition from another source layer fails before rule mutation");
+    CHECK(wrong_world.findByType("RuleConstant").empty(),
+          "a mismatched edition leaves no seed rules behind");
+}
+
+void test_loader_scopes_exact_evidence_to_its_representation() {
+    kg::SeedEnvelope seed = exact_evidence_seed();
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    RootSourceAccess source_access(kSourceRoot);
+    const auto materialized =
+        logosphere::text::materialize_source_corpus_into_kg(
+            exact_evidence_corpus(seed), source_access, world);
+    CHECK(materialized.ok,
+          "the exact-evidence corpus materializes: " + materialized.reason);
+    if (!materialized.ok) return;
+
+    kg::SeedLoadReport report;
+    const bool loaded = kg::load_seed_in_edition(
+        seed, materialized.ingestion_edition_context, world, report);
+    CHECK(loaded, "the edition loader accepts exact evidence: " + report.error);
+    if (!loaded) return;
+
+    const auto representations =
+        world.findByType("SourceRepresentationContext");
+    CHECK(representations.size() == 1,
+          "the exact-evidence corpus has one representation");
+    if (representations.size() != 1) return;
+    const auto representation = representations.front();
+    const auto range = report.bindings.at("range");
+    const auto quote = report.bindings.at("quote");
+    const auto target = report.bindings.at("target");
+    const auto rule = report.bindings.at("age");
+    const std::string canonical = logosphere::text::canonical_byte_range_key(
+        std::stoll(world.getProperty(range, "source_byte_start")),
+        std::stoll(world.getProperty(range, "source_byte_end")));
+
+    CHECK(world.getProperty(range, "identity_context") ==
+                  std::to_string(representation) &&
+              world.getProperty(quote, "identity_context") ==
+                  std::to_string(representation) &&
+              world.getProperty(target, "identity_context") ==
+                  std::to_string(representation),
+          "selectors and targets are representation-scoped");
+    CHECK(world.getProperty(range, "entity_key") == canonical &&
+              world.getProperty(target, "entity_key") == canonical,
+          "the primary selector and target share the canonical byte-range key");
+    CHECK(world.getProperty(target, "target_representation") ==
+              std::to_string(representation),
+          "the loader binds the exact represented bytes into the target");
+    CHECK(world.getProperty(rule, "identity_context") ==
+                  std::to_string(materialized.ingestion_edition_context) &&
+              world.getProperty(rule, "origin_context") ==
+                  std::to_string(materialized.ingestion_edition_context),
+          "the rule keeps edition identity and edition origin while evidence "
+          "stays representation-scoped");
+    CHECK(world.findByType("SourceDocumentContext").empty() &&
+              report.source_document_context == kg::INVALID_ENTITY,
+          "an exact-evidence-only seed does not create a legacy document "
+          "context");
+}
+
+void test_exact_evidence_replaces_the_legacy_locator_without_fallback() {
+    kg::SeedEnvelope seed = exact_evidence_seed();
+    RootSourceAccess source_access(kSourceRoot);
+    const auto corpus = exact_evidence_corpus(seed);
+    const auto report = kg::verify_seed_in_edition(
+        seed, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(report.ok(),
+          "a rule can be verified entirely through ledger evidence");
+    CHECK(report.quotes_checked == 0,
+          "exact evidence does not pass through the legacy quote counter");
+
+    kg::SeedEnvelope missing_quote = seed;
+    kg::KGOpCreateEntity* target = find_create(missing_quote, "target");
+    CHECK(target != nullptr,
+          "the missing-quote fixture finds its exact source target");
+    if (target != nullptr) {
+        target->properties.erase(
+            std::remove_if(
+                target->properties.begin(), target->properties.end(),
+                [](const auto& property) {
+                    return property.first == "target_quote_selector";
+                }),
+            target->properties.end());
+    }
+    const auto missing_quote_report = kg::verify_seed_in_edition(
+        missing_quote, kSourceRoot, corpus, source_access,
+        engine_registry());
+    CHECK(reason_contains(missing_quote_report, "verbatim",
+                          "target_quote_selector"),
+          "UTF-8 ledger evidence requires a quote selector so character "
+          "offsets cannot masquerade as byte offsets");
+
+    kg::SeedEnvelope mixed = seed;
+    CHECK(add_prop(mixed, "age", "source_section", "Chapter 1"),
+          "the mixed-path negative fixture gains a legacy locator field");
+    const auto mixed_report = kg::verify_seed_in_edition(
+        mixed, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(reason_contains(mixed_report, "verbatim", "legacy locator"),
+          "an exact-evidence rule cannot retain part of the legacy locator");
+
+    kg::SeedEnvelope unsupported = seed;
+    unsupported.ops.erase(
+        std::remove_if(
+            unsupported.ops.begin(), unsupported.ops.end(),
+            [](const kg::KGOp& op) {
+                const auto* relation = std::get_if<kg::KGOpSetRelation>(&op);
+                return relation && relation->relation == "CLAIM_MATERIALIZES";
+            }),
+        unsupported.ops.end());
+    const auto unsupported_report = kg::verify_seed_in_edition(
+        unsupported, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(reason_contains(unsupported_report, "verbatim",
+                          "CLAIM_MATERIALIZES"),
+          "a rule without legacy citation must be materialized by an evidenced "
+          "claim");
+
+    kg::SeedEnvelope wrong_value = seed;
+    CHECK(set_prop(wrong_value, "age", "constant_value", "19"),
+          "the wrong-value fixture changes the materialized rule");
+    const auto wrong_value_report = kg::verify_seed_in_edition(
+        wrong_value, kSourceRoot, corpus, source_access, engine_registry());
+    CHECK(reason_contains(wrong_value_report, "value", "19"),
+          "numeric rule values must occur in exact evidence bytes");
+
+    kg::SeedEnvelope mismatched_quote = seed;
+    CHECK(set_prop(mismatched_quote, "quote", "source_quote_exact",
+                   "All characters begin at 19."),
+          "the quote-convergence fixture changes supporting evidence");
+    const auto quote_report = kg::verify_seed_in_edition(
+        mismatched_quote, kSourceRoot, corpus, source_access,
+        engine_registry());
+    CHECK(reason_contains(quote_report, "verbatim", "quote selector"),
+          "a supporting quote that disagrees with the byte range is refused");
+}
+
+void test_exact_multileaf_band_requires_a_typed_source_gap() {
+    RootSourceAccess source_access(kSourceRoot);
+
+    const auto source_gap = exact_multileaf_open_bottom_seed("SOURCE_GAP");
+    const auto accepted = kg::verify_seed_in_edition(
+        source_gap, kSourceRoot, exact_evidence_corpus(source_gap),
+        source_access, engine_registry());
+    print_first(accepted, "value");
+    CHECK(accepted.ok(),
+          "a matching later evidence fragment proves the printed band, and "
+          "PARTIAL SOURCE_GAP permits its explicit open-bottom reading");
+
+    const auto language_gap =
+        exact_multileaf_open_bottom_seed("RULE_LANGUAGE_GAP");
+    const auto rejected = kg::verify_seed_in_edition(
+        language_gap, kSourceRoot, exact_evidence_corpus(language_gap),
+        source_access, engine_registry());
+    CHECK(reason_contains(rejected, "value", "SOURCE_GAP"),
+          "a rule-language gap cannot authorize widening a printed source "
+          "band");
 }
 
 void test_loader_owns_seed_portable_identity() {
@@ -985,8 +1389,8 @@ void test_uncited_entity_of_a_cited_type_fails() {
     const auto report = kg::verify_seed(seed, kSourceRoot,
                                         engine_registry());
     CHECK(!report.ok(), "an uncited RuleConstant fails");
-    CHECK(reason_contains(report, "verbatim", "uncited ingested entity"),
-          "and VERBATIM names it as uncited");
+    CHECK(reason_contains(report, "verbatim", "CLAIM_MATERIALIZES"),
+          "and VERBATIM names the missing exact-evidence link");
 }
 
 void test_type_without_the_slot_is_exempt() {
@@ -1312,7 +1716,7 @@ void test_a_count_written_as_a_word_is_proof() {
         "\"as\":\"@spelled\",\"properties\":{"
         "\"name\":\"aging_physical_count\",\"constant_value\":\"3\","
         "\"source_section\":\"Aging\",\"source_kind\":\"cell\","
-        "\"source_table\":\"2D6\",\"source_row\":\"-5\","
+        "\"source_table\":\"2D6\",\"source_row\":\"\\\\-5\","
         "\"source_column\":\"Effects of Aging\","
         "\"source_quote\":\"Reduce three physical characteristics by 2.\"}}";
     auto seed = mini_seed("book1/character-creation.md", op);
@@ -1328,6 +1732,7 @@ void test_a_count_written_as_a_word_is_proof() {
           "the wrong-count mutation applied");
     const auto wrong = kg::verify_seed(seed, kSourceRoot,
                                        engine_registry());
+    print_first(wrong, "value");
     CHECK(!wrong.ok() && wrong.count("value") > 0,
           "a count the quote does not state still fails");
 }
@@ -1407,6 +1812,72 @@ void test_duplicate_name_fails_invariant() {
           "the reason names the duplicate and how many there are");
 }
 
+void test_seed_sequence_is_cumulative_and_ordered() {
+    kg::KGModule empty_world(engine_registry());
+    empty_world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport empty_report;
+    CHECK(!kg::verify_and_load_seed_sequence(
+              {}, kSourceRoot, empty_world, empty_report),
+          "an empty required seed sequence is refused");
+    CHECK(empty_report.error.find("empty") != std::string::npos,
+          "the empty-sequence refusal is actionable");
+
+    std::vector<kg::SeedEnvelope> ordered{
+        parse_seed_fixture(kPrerequisiteFixture),
+        parse_seed_fixture(kDependentFixture),
+    };
+
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport report;
+    CHECK(kg::verify_and_load_seed_sequence(
+              ordered, kSourceRoot, world, report),
+          "the dependent seed verifies and loads after its prerequisite: " +
+              report.error);
+    std::cout << "  [measure] cumulative sequence loaded "
+              << report.seeds_loaded << " seeds" << std::endl;
+    CHECK(report.seeds_loaded == 2,
+          "the cumulative loader reports both loaded seeds");
+    CHECK(world.findByType("RuleConstant").size() == 2,
+          "both ordered seed consequences reached the world");
+
+    std::vector<kg::SeedEnvelope> reversed{ordered[1], ordered[0]};
+    kg::KGModule reversed_world(engine_registry());
+    reversed_world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport reversed_report;
+    CHECK(!kg::verify_and_load_seed_sequence(
+              reversed, kSourceRoot, reversed_world, reversed_report),
+          "a dependent seed presented before its prerequisite is refused");
+    std::cout << "  [measure] wrong-order refusal: "
+              << reversed_report.error << std::endl;
+    CHECK(reversed_report.failed_seed == 0,
+          "the report identifies the first, wrongly ordered seed");
+    CHECK(reversed_report.error.find(
+              "no matching Addressable entity is loaded") !=
+              std::string::npos,
+          "the refusal names the missing prerequisite entity");
+    CHECK(reversed_world.findByType("RuleConstant").empty(),
+          "wrong order mutates nothing before refusal");
+
+    kg::SeedEnvelope drifted = parse_seed_fixture(kPrerequisiteFixture);
+    drifted.source.commit = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+    std::vector<kg::SeedEnvelope> warning_sequence{
+        std::move(drifted), parse_seed_fixture(kStandaloneFixture)};
+    kg::KGModule warning_world(engine_registry());
+    warning_world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport warning_report;
+    CHECK(kg::verify_and_load_seed_sequence(
+              warning_sequence, kSourceRoot, warning_world,
+              warning_report),
+          "a non-gating prerequisite warning does not fail the sequence: " +
+              warning_report.error);
+    CHECK(warning_report.verifications.size() == 2,
+          "the sequence retains one verification report per seed");
+    CHECK(warning_report.verifications.front().warnings.size() == 1 &&
+              warning_report.verifications.back().warnings.empty(),
+          "an earlier prerequisite warning survives a clean target");
+}
+
 }  // namespace
 
 int main() {
@@ -1418,6 +1889,10 @@ int main() {
     test_loader_binds_and_resolves();
     test_a_second_seed_cannot_recreate_a_name();
     test_loader_materializes_seed_origin_contexts();
+    test_loader_uses_supplied_edition_identity_without_moving_legacy_evidence();
+    test_loader_scopes_exact_evidence_to_its_representation();
+    test_exact_evidence_replaces_the_legacy_locator_without_fallback();
+    test_exact_multileaf_band_requires_a_typed_source_gap();
     test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();
@@ -1454,6 +1929,7 @@ int main() {
     test_duplicate_name_fails_invariant();
     test_source_commit_drift_warns_without_failing();
     test_missing_source_commit_file_has_no_opinion();
+    test_seed_sequence_is_cumulative_and_ordered();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;

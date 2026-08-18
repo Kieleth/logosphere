@@ -3,6 +3,14 @@
 _Engine facility. Address a piece of a source text, resolve it back,
 and prove that captured data says what the source says._
 
+> **IMPLEMENTATION STATUS:** This document describes the built locator
+> and verifier. Its deterministic Markdown normalization is not the
+> authority in the active ingestion design. Since 2026-08-15, a model
+> reader judges structure and a source tool returns exact evidence. The
+> current types also cannot identify all duplicate or empty atomic
+> leaves. The cross-format replacement is being decided from
+> `todo_plans/SOURCE_LOCATION_PROVENANCE_SPIKE.md`.
+
 ## The problem
 
 Ingesting a rulebook turns printed text into typed data. The data is
@@ -37,8 +45,12 @@ is supposed to hold. Resolving it returns what the source *actually*
 has there, and the two are compared.
 
 Shaped after the [W3C Web Annotation](https://www.w3.org/TR/annotation-model/)
-selectors, deliberately **not** byte offsets: offsets mean nothing to a
-human and are invalidated by every re-vendor of the source.
+selectors. The built implementation deliberately excludes byte offsets
+because they do not survive a re-vendored source. The provenance spike
+separates source revision from location: inside an immutable,
+content-addressed representation, a byte range is stable and can
+distinguish duplicate text and empty cells. Human navigation can remain
+a supporting structural selector.
 
 ## The two pieces
 
@@ -48,10 +60,12 @@ A source normalized once into the shapes rules actually live in:
 sections (by heading, with their trail from the root), paragraphs split
 into sentences, tables with columns and keyed rows, and list items.
 
-Markdown has a parser today. **A new source format needs a new parser
-into this model and nothing else changes**: not the locator, not the
-resolver, not any rule data already captured. That is the point of the
-model existing at all.
+Markdown has a parser today. The original design required every new
+source format to provide another deterministic parser into this model.
+That claim is superseded: the parser silently corrupted irregular SRD
+tables, so it cannot define source truth for future ingestion. It
+remains the implementation used by the current verifier until the
+model-driven source-target contract is selected and built.
 
 One thing the markdown parser handles that plain markdown does not: a
 single run of pipe rows can hold several logical tables when the source
@@ -104,7 +118,7 @@ heading repeats.
   under one heading both match, that is a citation that has not said
   enough.
 
-## Using it from a game
+## Current implementation workflow
 
 The engine ships the model and the resolver. A game ingesting a
 rulebook does three things:
