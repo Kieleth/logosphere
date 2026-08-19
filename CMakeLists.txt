@@ -1308,6 +1308,33 @@ target_include_directories(test_cube_drop_ladder PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(test_cube_drop_ladder PRIVATE cxx_std_17)
 
+# Orientation-truth instruments (G-19/20/23), written before the engine
+# changes. Born red on the Euler twin.
+add_executable(test_orientation_truth tests/test_orientation_truth.cpp)
+target_link_libraries(test_orientation_truth PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_orientation_truth PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_orientation_truth PRIVATE cxx_std_17)
+
+if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
+    add_executable(test_orientation_truth_visual tests/test_orientation_truth_visual.cpp)
+    target_link_libraries(test_orientation_truth_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_orientation_truth_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_orientation_truth_visual PRIVATE cxx_std_17)
+endif()
+
 if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
     add_executable(test_cube_drop_ladder_visual tests/test_cube_drop_ladder_visual.cpp)
     target_link_libraries(test_cube_drop_ladder_visual PRIVATE

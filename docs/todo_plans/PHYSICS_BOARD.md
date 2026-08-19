@@ -243,6 +243,26 @@ on an edge forever, with a prediction that contains no material constant
 (20 degrees, nearest face, geometry). Solutions deliberately NOT chosen
 yet — the owner rules after reading the measurements.
 
+## The orientation-truth instruments (2026-08-19, pre-change)
+
+`test_orientation_truth` (+ `_visual`), born red, tracked
+direction-locked in physics-linux beside the drop ladder:
+
+- **O0 GREEN**: the from_euler/to_euler round trip is identity away from
+  the gimbal band, worst basis error 0.000002 over ~1,700 poses. The
+  compass convention survives the trip; the unification cannot blame
+  the conversions.
+- **O1 RED, and the number mirrors**: twin cubes, identical spin about
+  Y. The quat-truth twin ends at visible rot_y **0.3167** with
+  divergence 0.0000; the Euler-truth twin at visible rot_y **0.0000**
+  with divergence **0.3167**. The same angle, once as motion, once as
+  incoherence — the default body's entire turn lands in a quaternion
+  nothing reads. G-23's observable form.
+- **O2 pending**: the G-19 bit-identical baseline slot, waiting for the
+  `LOGOSPHERE_QUAT_TRUTH` lever.
+
+This is the unification's red ladder. The lever lands into it.
+
 ## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
 
 The owner, watching the ramp: *"sphere and cube arrive at the same time,

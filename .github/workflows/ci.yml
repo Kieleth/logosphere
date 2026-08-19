@@ -165,7 +165,8 @@ jobs:
       - name: Run physics ladders (born-red, direction-locked)
         timeout-minutes: 10
         run: |
-          for t in test_cube_drop_ladder test_ramp_race test_angular_dissipation; do
+          for t in test_cube_drop_ladder test_ramp_race test_angular_dissipation \
+                   test_orientation_truth; do
             echo "=== $t (audited: expect RED) ==="
             if ./build/$t; then
               echo "::error::$t went GREEN but TEST_AUDIT says expect=fail."
