@@ -47,15 +47,25 @@
 //   ELLIPSOID: AXIS-ALIGNED. Conservative per-axis AABB, orientation dropped.
 //     Not an oriented ellipsoid and not claimed to be.
 //
-//   SPHERE vs BOX: AXIS-ALIGNED, and this one is a live defect, not a design
-//     choice. narrow_phase_particle_pair builds the box side with
-//     aabb_of_box_particle, which never reads rotation, so a sphere meets a
-//     ROTATED box as its upright bounding slab and gets a world axis back for
-//     a normal. Measured: on one 30-degree ramp a box is correctly told
-//     (0, -0.5, 0.866) and a sphere is told (0, 0, 1), a flat shelf with
-//     nothing to slide down. INV-12 broken, live. Board front F2, "a sphere
-//     will not slide a ramp that a cube slides". Whoever fixes it corrects
-//     this paragraph and the pinned check in the test, in the same commit.
+//   SPHERE vs BOX: ORIENTED when the box is rotated, axis-aligned otherwise.
+//     narrow_phase_particle_pair sends the pair through
+//     narrow_phase_sphere_obb whenever box_particle_is_rotated() is true, so
+//     the sphere meets the box's real solid: closest point found in the box's
+//     own frame, normal taken back to world. An unrotated box keeps the raw
+//     extents on the axis-aligned path, bit-identical, on purpose.
+//
+//     FIXED 2026-08-19, and worth knowing what it was, because the previous
+//     wording understated it. The axis-aligned path handed a tilted box does
+//     not give a wrong normal on the right surface; it gives THE WRONG SOLID.
+//     Measured on a 40-degree ramp (tests/test_ramp_race.cpp): a sphere fell
+//     1.907 m THROUGH the tilted face and came to rest on the horizontal top
+//     of the unrotated box, 2.924 m, where the real face at that column was
+//     4.831 m. A body at rest 1.9 m inside another body is INV-2 as well as
+//     INV-12, and it reached every sphere against every rotated box in the
+//     engine, tree log segments included.
+//     Pinned by tests/test_collision_bounds_rotation.cpp part 5, which now
+//     also covers the deep case: a sphere whose centre is inside the box must
+//     exit along one of the box's OWN axes, never along a world axis.
 // ============================================================================
 
 #include "logosphere/physics/contact_manifold.h"
@@ -128,6 +138,23 @@ bool box_particle_is_rotated(const Particle& p);
 // the Euler triple composed X then Y then Z (Z clockwise-from-+Z, the engine
 // convention — Quat::from_euler owns that composition).
 OBB obb_of_box_particle(const Particle& p, float z_override);
+
+// Sphere against an ORIENTED box. Same contract as narrow_phase_sphere_aabb
+// (normal is the unit vector from B toward A, one contact point, penetration
+// positive when overlapping); the only difference is that the box's extents
+// are read along its OWN axes instead of the world's.
+//
+// This exists because the axis-aligned version, handed a rotated box, does not
+// merely give a wrong normal: it gives the wrong SOLID. Measured on a 40 deg
+// ramp, a sphere fell 1.907 m through the tilted face and came to rest on the
+// horizontal top of the unrotated box, which is an INV-2 violation that never
+// resolves. See tests/test_ramp_race.cpp.
+bool narrow_phase_sphere_obb(
+    float cx, float cy, float cz, float r,
+    const OBB& box,
+    size_t id_a, size_t id_b,
+    float margin,
+    ContactManifold& out);
 
 // Tight world-axis bounds of an oriented box. Per world axis k the extent is
 // sum_i half[i] * |axis[i][k]| — exact for a box, conservative never loose.

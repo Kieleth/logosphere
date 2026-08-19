@@ -597,6 +597,80 @@ bool narrow_phase_sphere_aabb(
     return true;
 }
 
+bool narrow_phase_sphere_obb(
+    float cx, float cy, float cz, float r,
+    const OBB& box,
+    size_t id_a, size_t id_b,
+    float margin,
+    ContactManifold& out)
+{
+    // Sphere centre in the box's own frame: project the offset onto each
+    // local axis, then clamp to the half extents. That clamped triple IS
+    // the closest point, expressed locally.
+    const float dx = cx - box.c[0], dy = cy - box.c[1], dz = cz - box.c[2];
+    float local[3], clamped[3];
+    for (int i = 0; i < 3; ++i) {
+        local[i] = dx * box.axis[i][0] + dy * box.axis[i][1] + dz * box.axis[i][2];
+        clamped[i] = std::max(-box.half[i], std::min(local[i], box.half[i]));
+    }
+
+    // Back to world, by rebuilding from the same axes.
+    float qx = box.c[0], qy = box.c[1], qz = box.c[2];
+    for (int i = 0; i < 3; ++i) {
+        qx += clamped[i] * box.axis[i][0];
+        qy += clamped[i] * box.axis[i][1];
+        qz += clamped[i] * box.axis[i][2];
+    }
+
+    const float ex = cx - qx, ey = cy - qy, ez = cz - qz;
+    const float d_sq = ex * ex + ey * ey + ez * ez;
+    const float r_with_margin = r + margin;
+    if (d_sq > r_with_margin * r_with_margin) return false;
+
+    float nx, ny, nz, penetration;
+    if (d_sq > 1e-12f) {
+        const float d = std::sqrt(d_sq);
+        nx = ex / d; ny = ey / d; nz = ez / d;   // from B toward A (INV-25)
+        penetration = r - d;
+    } else {
+        // Centre inside the box: shallowest exit along a LOCAL axis, then
+        // taken to world through that axis. The axis-aligned version picks
+        // a world face here; the oriented one must not, or a deeply
+        // penetrating sphere is pushed out sideways through the solid.
+        int best = 0;
+        float min_pen = box.half[0] - std::fabs(local[0]);
+        float sign = (local[0] < 0.0f) ? -1.0f : 1.0f;
+        for (int i = 1; i < 3; ++i) {
+            const float pen = box.half[i] - std::fabs(local[i]);
+            if (pen < min_pen) {
+                min_pen = pen;
+                best = i;
+                sign = (local[i] < 0.0f) ? -1.0f : 1.0f;
+            }
+        }
+        nx = sign * box.axis[best][0];
+        ny = sign * box.axis[best][1];
+        nz = sign * box.axis[best][2];
+        penetration = r + min_pen;
+    }
+
+    out.body_a = id_a;
+    out.body_b = id_b;
+    out.normal_x = nx;
+    out.normal_y = ny;
+    out.normal_z = nz;
+    out.num_points = 1;
+    out.points[0].px = qx;
+    out.points[0].py = qy;
+    out.points[0].pz = qz;
+    out.points[0].penetration = penetration;
+    out.points[0].point_id = 0;
+    out.is_face_contact = true;
+    out.reference_axis = 0;
+    out.reference_body = 1;   // the box is the reference shape
+    return true;
+}
+
 // ============================================================================
 // ORIENTED BOXES: SAT (15 axes) + reference-face clipping
 // ============================================================================
@@ -955,6 +1029,18 @@ bool narrow_phase_particle_pair(
             id_a, id_b, margin, out);
     }
     if (a_sphere && b_box) {
+        // A rotated box is a DIFFERENT SOLID from its world-axis extents,
+        // not merely a differently-oriented one. Handing the axis-aligned
+        // path a tilted ramp let a sphere fall 1.907 m through the face and
+        // rest on the unrotated box's flat top for ever (INV-2, measured in
+        // tests/test_ramp_race.cpp). Unrotated boxes keep the raw extents,
+        // bit-identical, on purpose.
+        if (box_particle_is_rotated(b)) {
+            return narrow_phase_sphere_obb(
+                a.x, a.y, a.z, a.size * 0.5f,
+                obb_of_box_particle(b, b.z),
+                id_a, id_b, margin, out);
+        }
         return narrow_phase_sphere_aabb(
             a.x, a.y, a.z, a.size * 0.5f,
             aabb_of_box_particle(b),
@@ -963,10 +1049,15 @@ bool narrow_phase_particle_pair(
     if (a_box && b_sphere) {
         // Run with roles swapped (sphere as A), then re-label and flip normal
         // so the caller still sees (body_a = id_a, body_b = id_b).
-        bool hit = narrow_phase_sphere_aabb(
-            b.x, b.y, b.z, b.size * 0.5f,
-            aabb_of_box_particle(a),
-            id_b, id_a, margin, out);
+        bool hit = box_particle_is_rotated(a)
+            ? narrow_phase_sphere_obb(
+                  b.x, b.y, b.z, b.size * 0.5f,
+                  obb_of_box_particle(a, a.z),
+                  id_b, id_a, margin, out)
+            : narrow_phase_sphere_aabb(
+                  b.x, b.y, b.z, b.size * 0.5f,
+                  aabb_of_box_particle(a),
+                  id_b, id_a, margin, out);
         if (!hit) return false;
         out.body_a = id_a;
         out.body_b = id_b;

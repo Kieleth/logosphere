@@ -1362,3 +1362,46 @@ discarding rotation (`src/core/narrow_phase.cpp:957-976`).
 Recorded because the correction matters more than the finding: I gave
 the same wrong reading twice, and the owner got it right by watching
 the thing move.
+
+## 2026-08-19 — F2 FIXED: spheres meet rotated boxes as the solid they are
+
+Owner: *"make sure that sphere does not fall, I've seen that."*
+
+`narrow_phase_sphere_obb` added (`src/core/narrow_phase.cpp`), and
+`narrow_phase_particle_pair` routes both sphere-box branches through it
+whenever `box_particle_is_rotated()`. Unrotated boxes keep the
+axis-aligned path, bit-identical, on purpose.
+
+The algorithm is the textbook one and deliberately mirrors the
+axis-aligned version so the contract cannot drift: project the offset
+onto each of the box's own axes, clamp to the half extents, rebuild the
+closest point in world, normal from B toward A (INV-25), penetration
+`r - d`. The deep case, sphere centre inside the box, exits along the
+box's OWN axis of least penetration rather than a world face; getting
+that wrong pushes a deeply penetrating sphere sideways through the solid.
+
+**Measured, before and after, same scene** (`test_ramp_race`, 40 deg ramp):
+
+| | before | after |
+|---|---|---|
+| sphere travel | 0.000 m | **6.251 m** |
+| sphere rest, bottom z | 2.924 (inside the ramp) | **0.003 (on the turtle)** |
+| the real face at that column | 4.831 | — |
+
+It no longer falls through. It runs the ramp and lands beside the cube,
+which travelled 6.356 m.
+
+**The tripwire did its job, which is the part worth recording.**
+`test_collision_bounds_rotation` part 5 pinned the WRONG answer on
+purpose so that fixing the pair would force whoever did it to correct
+the canonical table. It went red the same minute, and part 5 and the
+table in `narrow_phase.h` are corrected in this commit. That is the
+mechanism working exactly as designed, on its first firing, and it is
+the reason two comments could rot here before and this one cannot.
+
+Part 5 now also covers the deep case, which the axis-aligned path could
+not express at all.
+
+**Still red, and a different front.** The cube slides 6.356 m and never
+turns: peak |omega| exactly 0.0000 over 240 frames including leaving the
+ramp edge and landing. That is D2 1.2, contacts carry no lever arm.

@@ -20,8 +20,9 @@
 // It is deliberately bounds-level and engine-free. The rotated box-box contact
 // itself (normals, manifold points, penetrations) is test_rotated_box_contact.
 //
-// INV-12 (true-geometry-contacts) is the law under all of it, including the
-// one place the code still breaks it. See part 5.
+// INV-12 (true-geometry-contacts) is the law under all of it. Part 5 used to
+// pin the one place the code broke it; that pair was fixed on 2026-08-19 and
+// part 5 now pins the correct answer, including the deep case.
 // ============================================================================
 
 #include "particle.h"
@@ -211,31 +212,32 @@ int main() {
     }
 
     // ------------------------------------------------------------------
-    // 5. PINNED GAP: SPHERE vs a ROTATED BOX IS STILL AXIS-ALIGNED.
+    // 5. SPHERE vs a ROTATED BOX: ORIENTED, as of 2026-08-19.
     //
-    // narrow_phase_particle_pair builds the box side with
-    // aabb_of_box_particle (src/core/narrow_phase.cpp), which reads
-    // width/height/thickness as world extents and never looks at rotation.
-    // So a sphere meets a rotated ramp as the ramp's upright bounding slab and
-    // the normal it gets back is a world axis. That is INV-12 broken, live,
-    // and it is board front F2 ("a sphere will not slide a ramp that a cube
-    // slides").
+    // This section used to pin the WRONG answer on purpose, as a tripwire for
+    // the canonical table: narrow_phase_particle_pair built the box side with
+    // aabb_of_box_particle, which never reads rotation, so a sphere met a
+    // tilted ramp as an upright slab and got a world-axis normal back.
     //
-    // The assertion below pins the WRONG behaviour on purpose. It is the
-    // tripwire for the canonical comment: the day someone routes this pair
-    // through an oriented handler, this check fails, and whoever makes it fail
-    // has to come here and correct the table. That is the whole point: the
-    // previous comments rotted precisely because nothing could fail when they
-    // stopped being true.
+    // THE TRIPWIRE WORKED. The pair was routed through narrow_phase_sphere_obb
+    // and these two checks went red the same minute, which is what brought
+    // whoever made the change here to correct the table. That is the entire
+    // reason the section existed, and it is why the assertions below are now
+    // the RIGHT answer rather than a description of a defect.
+    //
+    // What the gap actually was, measured before the fix
+    // (tests/test_ramp_race.cpp): on a 40 degree ramp a sphere fell 1.907 m
+    // THROUGH the tilted face and came to rest on the horizontal top of the
+    // unrotated box, permanently, which is INV-2 as well as INV-12. It was not
+    // a wrong normal on the right surface; it was the wrong solid.
     // ------------------------------------------------------------------
-    printf("    [5] PINNED GAP: sphere vs rotated box (INV-12 open, board F2)\n");
+    printf("    [5] sphere vs rotated box: oriented (INV-12 closed, F2 fixed)\n");
     {
         const float tilt = 30.0f * (float)M_PI / 180.0f;
         Particle ramp = box(0, 0, 0, 4.0f, 4.0f, 0.4f, tilt, 0, 0);
 
-        // The ramp's ORIENTED top at the centre column is well below its
-        // world-axis bounding slab's top, so a sphere placed between the two
-        // is touching nothing real. Rotation-blind bounds report a contact.
+        // The oriented box still reaches well past the rotation-blind slab.
+        // That difference is exactly what used to be ignored.
         const AABB6 oriented = aabb_of_obb(obb_of_box_particle(ramp, ramp.z));
         const float slab_top = ramp.z + ramp.thickness * 0.5f;
         printf("        oriented top %.4f   rotation-blind slab top %.4f\n",
@@ -243,22 +245,41 @@ int main() {
         check(oriented.max_z > slab_top + 0.1f,
               "the oriented box reaches well past the raw slab");
 
+        // A sphere resting just above the ramp's REAL face at the centre
+        // column, where the face passes through the box centre.
         Particle ball = {};
         ball.shape = ParticleShape::SPHERE;
         ball.size = 0.3f;
         ball.x = 0.0f; ball.y = 0.0f;
-        ball.z = slab_top + ball.size * 0.5f - 0.01f;   // 10 mm into the SLAB
+        ball.z = slab_top + ball.size * 0.5f - 0.01f;
 
         ContactManifold m;
         const bool hit = narrow_phase_particle_pair(ball, ramp, 0, 1, 0.0f, m);
-        check(hit, "sphere contacts the ramp's world-axis slab");
+        check(hit, "sphere contacts the ramp");
         if (hit) {
             printf("        normal: (%.4f, %.4f, %.4f)\n",
                    m.normal_x, m.normal_y, m.normal_z);
-            check(std::fabs(m.normal_z) > 0.999f,
-                  "normal is +Z exactly: a flat shelf, NOT the 30-degree slope");
-            check(std::fabs(m.normal_y) < 1e-3f,
-                  "no lateral component, so nothing drives the sphere downhill");
+            // The SAME normal part 4 measures for a box on the same ramp.
+            // A sphere and a cube on one slope must meet one surface.
+            check(std::fabs(m.normal_z - std::cos(tilt)) < 1e-3f,
+                  "normal z-component is cos(30), the slope's own");
+            check(std::fabs(std::fabs(m.normal_y) - std::sin(tilt)) < 1e-3f,
+                  "normal carries the sin(30) lateral component, so gravity "
+                  "has something to drive the sphere downhill with");
+        }
+
+        // And the deep case, which the axis-aligned path could not express:
+        // a sphere whose centre is INSIDE the tilted box must be pushed out
+        // along one of the box's OWN axes, never along a world axis.
+        Particle deep = ball;
+        deep.z = ramp.z;                     // dead centre, fully inside
+        ContactManifold dm;
+        if (narrow_phase_particle_pair(deep, ramp, 0, 1, 0.0f, dm)) {
+            printf("        deep normal: (%.4f, %.4f, %.4f)\n",
+                   dm.normal_x, dm.normal_y, dm.normal_z);
+            check(std::fabs(std::fabs(dm.normal_z) - std::cos(tilt)) < 1e-3f,
+                  "a sphere inside the box exits along the box's own axis, "
+                  "not along world Z");
         }
     }
 
