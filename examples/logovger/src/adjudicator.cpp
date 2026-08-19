@@ -113,6 +113,25 @@ bool Adjudicator::initialize(const std::string& lore_path,
     timeout_ms_ = std::atoi(env_or("LOGOVGER_JUDGMENT_TIMEOUT_MS",
                                    "30000").c_str());
     if (timeout_ms_ < 1000) timeout_ms_ = 1000;
+
+    // The reply budget, sized rather than defaulted. It was 200,
+    // written inline at the call, and a model that reasons before
+    // answering spent them all on prose and was cut off mid-sentence:
+    // the CHOICE line never arrived and the life ended. The fleet's
+    // shared client makes max_tokens a REQUIRED argument for exactly
+    // this reason, "a library default became a production ceiling
+    // nobody sized".
+    //
+    // 1024 is sized against the answer we ask for: two lines, a
+    // choice and a clause under fifteen words. That needs tens of
+    // tokens. The rest is headroom for a model that thinks out loud
+    // first, which several do and which the retry no longer punishes.
+    reply_budget_ = std::atoi(env_or("LOGOVGER_JUDGMENT_MAX_TOKENS",
+                                     "1024").c_str());
+    if (reply_budget_ < 64) reply_budget_ = 64;
+
+    attempts_ = std::atoi(env_or("LOGOVGER_JUDGMENT_ATTEMPTS", "3").c_str());
+    if (attempts_ < 1) attempts_ = 1;
     return true;
 }
 
@@ -158,15 +177,40 @@ bool Adjudicator::decide(const Judgment& judgment, uint64_t seed,
     }
 
     const std::string key = cache_key(judgment, seed);
-    std::string reply = slurp(cache_dir_ + "/" + key + ".txt");
+    const std::string cache_file = cache_dir_ + "/" + key + ".txt";
+    std::string reply = slurp(cache_file);
 
-    if (reply.empty()) {
-        // The referee is not optional, so this waits. A rule cannot
-        // move until the call is made.
+    // A cached reply is a reply that already PARSED. Nothing else is
+    // written, so a bad answer cannot be served from disk forever.
+    if (!reply.empty()) {
+        return parse_judgment_answer(reply, judgment.options,
+                                     judgment.count, chosen, reason, error);
+    }
+
+    // The referee is not optional, so this waits. A rule cannot move
+    // until the call is made.
+    //
+    // It also RE-asks. A model that answers in prose instead of the
+    // declared format is not a failed run, it is a model that needs
+    // telling again, and one strike used to end a life outright. The
+    // retry restates the format and says what was wrong with the last
+    // reply, so the second attempt has something the first did not.
+    std::string last_error;
+    for (int attempt = 0; attempt < attempts_; ++attempt) {
+        std::string prompt = build_prompt(judgment);
+        if (attempt > 0) {
+            prompt +=
+                "\n\nYour last answer could not be read: " + last_error +
+                "\nAnswer again. The FIRST line must be exactly "
+                "'CHOICE: <option>' naming the options as given above, "
+                "and the second 'WHY: <one short clause>'. Put nothing "
+                "before the CHOICE line.\n";
+        }
+
         bool done = false;
         std::string got;
         llm_->submit_request(
-            build_prompt(judgment), 200,
+            prompt, reply_budget_,
             [&done, &got](const std::string&, const std::string& response,
                           void*) {
                 got = response;
@@ -179,22 +223,35 @@ bool Adjudicator::decide(const Judgment& judgment, uint64_t seed,
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
         if (!done) {
+            // A timeout is not a wrong answer, and re-asking a model
+            // that has not finished thinking only stacks calls.
             error = "the adjudicator did not answer within " +
                     std::to_string(timeout_ms_) + "ms";
             return false;
         }
         if (got.empty() || got.rfind("[ERROR", 0) == 0) {
-            error = "the adjudicator failed: " +
-                    (got.empty() ? std::string("empty reply") : got);
-            return false;
+            last_error = got.empty() ? std::string("empty reply") : got;
+            // A truncated reply IS worth re-asking: the model was mid
+            // sentence, not wrong. Anything else from the transport is
+            // not the model's fault and re-asking will not fix it.
+            if (got.find("truncated") == std::string::npos) {
+                error = "the adjudicator failed: " + last_error;
+                return false;
+            }
+            continue;
         }
-        reply = got;
-        std::ofstream f(cache_dir_ + "/" + key + ".txt", std::ios::binary);
-        f << reply;
+
+        if (parse_judgment_answer(got, judgment.options, judgment.count,
+                                  chosen, reason, last_error)) {
+            std::ofstream f(cache_file, std::ios::binary);
+            f << got;
+            return true;
+        }
     }
 
-    return parse_judgment_answer(reply, judgment.options,
-                                 judgment.count, chosen, reason, error);
+    error = "the adjudicator did not answer in the required format after " +
+            std::to_string(attempts_) + " attempts: " + last_error;
+    return false;
 }
 
 }  // namespace logovger
