@@ -152,9 +152,28 @@ jobs:
         timeout-minutes: 10
         run: |
           set -e
-          for t in test_humanoid_headless test_pin_gluon_lifecycle; do
+          for t in test_humanoid_headless test_pin_gluon_lifecycle \
+                   test_inv6_gravity_blindness test_refused_momentum_ledger; do
             echo "=== $t ==="
             ./build/$t
+          done
+
+      # Born-red ladders, tracked in BOTH directions. Red is the audited
+      # state (TEST_AUDIT expect=fail): a ladder that silently goes GREEN
+      # means either a mechanism landed without moving it to the smoke
+      # list above, or someone weakened an assertion. Both fail CI loudly.
+      - name: Run physics ladders (born-red, direction-locked)
+        timeout-minutes: 10
+        run: |
+          for t in test_cube_drop_ladder test_ramp_race test_angular_dissipation; do
+            echo "=== $t (audited: expect RED) ==="
+            if ./build/$t; then
+              echo "::error::$t went GREEN but TEST_AUDIT says expect=fail."
+              echo "If the mechanism landed: update tests/invariants/TEST_AUDIT.jsonl"
+              echo "and promote the test to the smoke list. If not: an assertion"
+              echo "was weakened, which the ladder discipline forbids."
+              exit 1
+            fi
           done
 
       - name: Run locomotion guard suite (render-free Engine)
