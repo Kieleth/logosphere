@@ -1298,6 +1298,32 @@ target_include_directories(test_ramp_race PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(test_ramp_race PRIVATE cxx_std_17)
 
+# The rotation drop ladder: G-35/36/37 made executable. Born red.
+add_executable(test_cube_drop_ladder tests/test_cube_drop_ladder.cpp)
+target_link_libraries(test_cube_drop_ladder PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_cube_drop_ladder PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_cube_drop_ladder PRIVATE cxx_std_17)
+
+if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
+    add_executable(test_cube_drop_ladder_visual tests/test_cube_drop_ladder_visual.cpp)
+    target_link_libraries(test_cube_drop_ladder_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_cube_drop_ladder_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_cube_drop_ladder_visual PRIVATE cxx_std_17)
+endif()
+
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
     add_executable(test_ramp_race_visual tests/test_ramp_race_visual.cpp)
     target_link_libraries(test_ramp_race_visual PRIVATE

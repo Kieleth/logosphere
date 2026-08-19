@@ -225,6 +225,24 @@ All three surfaced while defining what interaction words may MEAN
 
 ---
 
+## D2's measurement ladder: the cube drop (2026-08-19)
+
+Owner method: divide and conquer, G's first, asserts from the G's, then
+measure, then solutions. GEDANKEN-35/36/37 -> `test_cube_drop_ladder`
+(+ `_visual`), born red, one mechanism per rung:
+
+| rung | claim (from the G) | measured today | names |
+|---|---|---|---|
+| R0 control | flat drop invents no rotation | **GREEN**: settles flat, z 0.2031, omega 0 | the reds below are physics, not noise |
+| R1 | a cube dropped tilted 20 deg must TIP FLAT | **RED**: rests at rot_y 0.3491 (its release tilt), z 0.2595 (edge height), peak omega_y 0.0000 | D2 1.2 + the gate + the Euler publish (locks 1-3) |
+| R2 | spin survives flight, dies at the face | **RED**: 0.0306 of the spin reaches the floor | D7, ANGULAR_DRAG |
+| R3 | per flight frame, retention 1.0 to noise | **RED**: worst frame 0.8145 = 0.95^4 exactly | the leak is the constant, alone |
+
+R1 is the sharpest single number on the rotation front: a body balanced
+on an edge forever, with a prediction that contains no material constant
+(20 degrees, nearest face, geometry). Solutions deliberately NOT chosen
+yet — the owner rules after reading the measurements.
+
 ## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
 
 The owner, watching the ramp: *"sphere and cube arrive at the same time,
