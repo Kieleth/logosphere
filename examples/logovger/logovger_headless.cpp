@@ -42,6 +42,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 
 namespace {
@@ -282,12 +283,30 @@ int main(int argc, char** argv) {
                 error = "a rule offers a choice with no options";
                 return false;
             }
+            // The ANSWER stays the option index, because that is what
+            // the tape stores and what replay matches on. The PROMPT
+            // carries the labels, because prompt is defined as what a
+            // human would have been shown and is never matched on, so
+            // wording it properly cannot invalidate a tape.
+            //
+            // This dropped the labels until 2026-08-19 and sent bare
+            // "1, 2, 3" to whoever was answering. A human clicking a
+            // button still had the screen; a model had nothing. The
+            // first recorded life stopped here, and the model was right
+            // to stop: it asked what the three training tables were
+            // rather than guess. ChoiceOption has carried `label` all
+            // along.
             replay::Ask ask;
             ask.site = "referee.choice";
-            ask.prompt = "the rule prints a fork; which branch";
+            std::ostringstream prompt;
+            prompt << "the rule prints a fork; which branch";
             for (const auto& choice : request.options) {
                 ask.offered.push_back(std::to_string(choice.option_index));
+                prompt << "\n  " << choice.option_index << " = "
+                       << (choice.label.empty() ? "(unnamed branch)"
+                                                : choice.label);
             }
+            ask.prompt = prompt.str();
             std::string answer;
             if (!tape.ask(ask, answer, error)) return false;
             for (const auto& choice : request.options) {
@@ -312,12 +331,33 @@ int main(int argc, char** argv) {
             std::cout << "gave up after 400 decisions\n";
             return 1;
         }
+        // Same split as referee.choice above: the key is the ANSWER
+        // and the labels go in the PROMPT, which is never matched on.
+        //
+        // The keys alone are what a model was being handed until
+        // 2026-08-19, and the prompts say things like "click one to
+        // read what it can give you". There is nothing to click. A
+        // recorded life stopped at the training tables with the model
+        // saying, correctly, that it could see "CHOOSE EXACTLY 1 OF:
+        // 1, 2, 3" and no indication of what 1, 2 or 3 were. It asked
+        // instead of guessing, which is the behaviour we want and the
+        // reason the gap was visible at all rather than silently
+        // producing an arbitrary life.
+        //
+        // ProcedureChoice has carried label, detail and subject the
+        // whole time, and its own header says a player should be able
+        // to read an option before taking it.
         replay::Ask ask;
         ask.site = "chargen";
-        ask.prompt = session.prompt();
+        std::ostringstream prompt;
+        prompt << session.prompt();
         for (const auto& choice : session.choices()) {
             ask.offered.push_back(choice.key);
+            prompt << "\n  " << choice.key;
+            if (!choice.label.empty()) prompt << " = " << choice.label;
+            if (!choice.detail.empty()) prompt << " (" << choice.detail << ")";
         }
+        ask.prompt = prompt.str();
         std::string answer;
         if (!tape.ask(ask, answer, error)) {
             std::cout << "the run stopped: " << error << "\n";
