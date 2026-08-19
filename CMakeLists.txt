@@ -1298,7 +1298,7 @@ target_include_directories(test_ramp_race PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(test_ramp_race PRIVATE cxx_std_17)
 
-if(NOT LOGOSPHERE_HEADLESS_ONLY)
+if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
     add_executable(test_ramp_race_visual tests/test_ramp_race_visual.cpp)
     target_link_libraries(test_ramp_race_visual PRIVATE
         logosphere glfw
@@ -1316,8 +1316,12 @@ endif()
 
 # Visual driver: SEPARATE FILE, SAME SCENE. tests/scenes/scene_spinning_cube.h
 # owns the bodies and the stepping; neither driver holds a body or a
-# threshold, so the two cannot drift apart. Full profile only.
-if(NOT LOGOSPHERE_HEADLESS_ONLY)
+# threshold, so the two cannot drift apart. FULL PROFILE ONLY, and the
+# gate must be LOGOSPHERE_FULL: NOT LOGOSPHERE_HEADLESS_ONLY only
+# excludes the deprecated core alias, and the Linux physics profile
+# walked through it and tried to compile a GLFW + Metal target
+# (precheck caught it, 2026-08-19).
+if(LOGOSPHERE_FULL)
     add_executable(test_angular_dissipation_visual tests/test_angular_dissipation_visual.cpp)
     target_link_libraries(test_angular_dissipation_visual PRIVATE
         logosphere glfw
