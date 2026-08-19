@@ -14,6 +14,7 @@
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -161,7 +162,9 @@ void test_production_rules_use_exact_edition_identity() {
             if (world.getRegistry().isSubtypeOf(create->type,
                                                 "SourceSelector") ||
                 world.getRegistry().isSubtypeOf(create->type,
-                                                "SourceTarget")) {
+                                                "SourceTarget") ||
+                world.getRegistry().hasFacet(create->type,
+                                             "source-partition")) {
                 continue;
             }
             ++addressable_rules;
@@ -191,14 +194,14 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
-    CHECK(targets.size() == 54 && coverages.size() == 54 &&
-              claims.size() == 43,
-          "the first five migrated sections persist 54 atomic source leaves "
-          "and 43 enduring atomic claims");
-    CHECK(world.findByType("CoverageDecision").size() == 54 &&
-              world.findByType("ClaimDecision").size() == 48,
-          "production retains five superseded claim decisions in complete "
-          "append-only histories");
+    CHECK(targets.size() == 2057 && coverages.size() == 2057 &&
+              claims.size() == 1554,
+          "migrated production content persists 2057 atomic source leaves "
+          "and 1554 enduring atomic claims");
+    CHECK(world.findByType("CoverageDecision").size() == 2057 &&
+              world.findByType("ClaimDecision").size() == 1559,
+          "production retains 2057 coverage decisions and complete "
+          "append-only histories for 1554 claims");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
                                         "no-instance-declared") &&
               !world.getRegistry().hasFacet("IngestionClaim",
@@ -209,15 +212,40 @@ void test_production_rules_use_exact_edition_identity() {
                                              "no-instance-declared"),
           "production ledger types no longer claim to have no instances");
 
-    const std::string chapter =
+    const std::string character_chapter =
         slurp(game_root + "/srd/cepheus/book1/character-creation.md");
+    const std::string skills_chapter =
+        slurp(game_root + "/srd/cepheus/book1/skills.md");
     std::multiset<std::string> selected;
-    bool targets_resolve = targets.size() == 54;
+    bool targets_resolve = targets.size() == 2057;
+    std::size_t character_targets = 0;
     for (const auto target : targets) {
+        const std::string representation_text =
+            world.getProperty(target, "target_representation");
+        if (representation_text.empty()) {
+            targets_resolve = false;
+            continue;
+        }
+        const auto representation = static_cast<kg::EntityID>(
+            std::stoull(representation_text));
+        const std::string source_file =
+            world.getProperty(representation, "source_file");
+        const std::string* source = nullptr;
+        if (source_file == "book1/character-creation.md") {
+            source = &character_chapter;
+            ++character_targets;
+        } else if (source_file == "book1/skills.md") {
+            source = &skills_chapter;
+        } else {
+            targets_resolve = false;
+            continue;
+        }
         const auto result =
-            logosphere::text::resolve_text_target(world, target, chapter);
+            logosphere::text::resolve_text_target(world, target, *source);
         targets_resolve = targets_resolve && result.ok;
-        if (result.ok) selected.insert(result.text);
+        if (result.ok && source_file == "book1/character-creation.md") {
+            selected.insert(result.text);
+        }
     }
     const std::multiset<std::string> expected{
         "Injury Crisis",
@@ -284,9 +312,12 @@ void test_production_rules_use_exact_edition_identity() {
         "The character automatically fails any Qualification checks from "
         "now on – he must either continue in the career he is in or become "
         "a Drifter if he wishes to take any more terms."};
-    CHECK(targets_resolve && selected == expected,
-          "every migrated target resolves to its exact source leaf, "
-          "including duplicate table values");
+    const bool retained_previous_targets = std::includes(
+        selected.begin(), selected.end(), expected.begin(), expected.end());
+    CHECK(targets_resolve && character_targets == 1620 &&
+              retained_previous_targets,
+          "every migrated target resolves against its own exact source "
+          "representation while retaining the earlier exact leaves");
 
     const auto ledger = kg::reconcile_ingestion_ledger(world, targets);
     CHECK(ledger.ok,
@@ -605,6 +636,7 @@ void test_production_rules_use_exact_edition_identity() {
     std::size_t raised = 0;
     std::size_t materialized = 0;
     std::size_t superseded = 0;
+    std::size_t duplicate = 0;
     for (const auto claim : claims) {
         const auto decision = latest_claim_decision(world, claim);
         const std::string disposition =
@@ -613,12 +645,13 @@ void test_production_rules_use_exact_edition_identity() {
         raised += disposition == "RAISED";
         materialized += disposition == "MATERIALIZED";
         superseded += disposition == "SUPERSEDED";
+        duplicate += disposition == "DUPLICATE";
     }
-    CHECK(no_rule == 6 && claims_present == 48 && partial == 5 &&
-              raised == 24 && materialized == 9 && superseded == 5,
-          "the production ledger exposes six zero-claim leaves, five partial "
-          "claims, twenty-four raised claims, nine materialized claims, and "
-          "five superseded narrow claims");
+    CHECK(no_rule == 38 && claims_present == 2019 && partial == 7 &&
+              raised == 253 && materialized == 1220 && superseded == 5 &&
+              duplicate == 69,
+          "the production ledger exposes all current coverage judgements and "
+          "claim dispositions, including repeated source occurrences");
 }
 
 }  // namespace

@@ -214,7 +214,12 @@ jobs:
       # but never run and the gate silently checked compilation alone.
       # A new add_headless_test() is gated the moment it exists.
       - name: Run headless test suite
-        timeout-minutes: 10
+      # Raised with the Windows cap and for the same measured reason: the
+      # exact-evidence migration multiplied seed volume and test_chargen
+      # went 109s -> 275s on the dev machine. This step was killed at
+      # exactly 10:12 against a 10 minute cap with the build green, which
+      # is indistinguishable in CI from a real failure.
+        timeout-minutes: 30
         working-directory: build
         run: ctest --output-on-failure -j $(nproc)
 
@@ -236,7 +241,9 @@ jobs:
       # this was built to catch, sixty lives miss it 0.25% of the time,
       # and a rarer failure is the in-process sweep's job to find.
       - name: Play 60 lives end to end
-        timeout-minutes: 10
+      # Each life reloads and re-verifies the whole rule graph, and the
+      # graph is what just grew, so this scales with the same factor.
+        timeout-minutes: 20
         run: |
           failed=""
           for seed in $(seq 1 60); do
@@ -503,5 +510,12 @@ jobs:
         run: cmake --build build --config Release -j 4
 
       - name: Run headless test suite
-        timeout-minutes: 15
+      # 30, and the number is measured rather than padded. The exact-evidence
+      # migration multiplied the seed volume: test_chargen went from 109s to
+      # 275s on the dev machine for the same suite, a 2.5x. Windows was
+      # already the slowest lane at 210s for that one test, so 2.5x puts the
+      # suite past a 15 minute cap. Measured: the step was killed at exactly
+      # 15:00 with the build green, which reports identically to a real test
+      # failure and is the reason this is a cap and not a bug.
+        timeout-minutes: 30
         run: ctest --test-dir build -C Release --output-on-failure

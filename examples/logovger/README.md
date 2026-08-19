@@ -94,7 +94,9 @@ rather than a toy:
    bytes. Every production rule and cross-seed reference uses that edition.
    `Injury Crisis`, `Medical Care`, `Medical Debt`, `Aging`, and `Aging Crisis`
    are the first production sections using exact `SourceTarget` coverage and
-   atomic claims.
+   atomic claims. `book1/skills.md` is the first complete production
+   representation: 437 atomic targets plus 844 typed syntax/layout exclusions
+   cover all 31,878 bytes under one completeness assertion.
    Medical Debt proves that one compound source leaf can support several
    independently disposed claims. Aging proves that one rule can cite several
    exact leaves and that an executable reading beyond the printed text stays
@@ -102,12 +104,15 @@ rather than a toy:
    occurrences distinct while five generalized claims cite both crisis
    passages. Every UTF-8 target has a supporting quote that must match its byte
    range. All 30 Aging rules, Credits, both restoration constants, and the
-   unpaid-aging-crisis route have no legacy locator. The remaining 3,049
-   structural citations retain the explicit transitional path until each
-   section converts; exact evidence never falls back to that path.
+   unpaid-aging-crisis route have no legacy locator. After the 68
+   chapter-defined skills moved to exact evidence, 2,981 structural citations
+   retain the explicit transitional path until each section converts; exact
+   evidence never falls back to that path.
 2. **Ingestion is verified, not trusted.** Seeds are refused unless
    every citation resolves in the source and every number appears in
-   the text it quotes. A line citation cannot prove a table cell.
+   the text it quotes. A line citation cannot prove a table cell. Ordered
+   startup verification grows one reusable verified-prefix world, while the
+   game world retains one atomic transaction per successful seed.
 3. **Structure is judged, content is copied, and judgement is audited.**
    A model reader decides the structure of irregular source material.
    For digital text, the source tool returns exact bytes, so the reader
@@ -120,8 +125,8 @@ rather than a toy:
    teaches is editing a seed, not a rebuild of game code.
 5. **Dice belong to the engine.** Seeded streams, journalled rolls,
    every result citable by id, so a life replays exactly.
-6. **The LLM cannot cheat.** It receives resolved facts and returns
-   prose. It has no path to a die, a skill or a characteristic.
+6. **Narration cannot cheat.** It receives resolved facts and returns prose.
+   It has no path to a die, a skill or a characteristic.
 
 Absorbing one chapter this way surfaced four defects in the published
 book: a skill granted by two tables and defined nowhere, another that

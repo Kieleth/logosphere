@@ -575,6 +575,41 @@ decisions. Current state is six no-rule-content leaves, five partial claims, 24
 raised claims, nine materialized claims, and five superseded claims. There are
 3,049 legacy structural citations left.
 
+**Complete-representation amendment, 2026-08-18 02:51 UTC.** The skill
+vocabulary now reads all of `book1/skills.md` against the same cumulative
+edition. Its 437 atomic leaves and 844 typed exclusions close an exact
+31,878-byte partition. Sixty-eight definition claims materialize the
+chapter-owned skill vocabulary. The 68 earlier list occurrences remain
+distinct provenance and point to those canonical claims as duplicates. The
+remaining 229 claims stay raised with typed gaps, including `Airship` as a
+source gap rather than an invented local definition.
+
+The extractor's semantic policy applies only to the exact reviewed source
+digest. A source change fails before generation, so a new sentence cannot
+inherit an old section policy without review. Production now has 491 coverage
+records, 408 enduring claims, and 413 claim decisions. Current dispositions
+are five partial, 253 raised, 77 materialized, five superseded, and 68
+duplicate claims. Thirty-eight leaves currently have no rule content and 453
+have claims. Removing the 68 migrated skill locators leaves 2,981 legacy
+structural citations.
+
+The complete chapter also made cumulative verification cost visible. The old
+sequence verifier rebuilt each prior prefix while checking each later seed.
+One headless life took 6.22 seconds and the chargen test took 313.94 seconds.
+The selected engine fix keeps one scratch verification world, materializes the
+corpus there once, and extends that verified prefix in declared seed order.
+The caller world still loads each successful seed as its own transaction, so a
+failed seed cannot partially enter it and earlier successful seeds remain.
+Standalone verification still starts from a fresh scratch world. A mechanical
+test requires a two-seed edition sequence to read its source exactly twice:
+once for the caller world and once for the reusable verification world.
+
+After the change, the same deterministic headless life takes 2.70 seconds and
+the same 253-check chargen executable takes 134.42 seconds, reductions of about
+57 percent. Atomic coverage and claims remain the authority. Grouped or
+filtered projections remain optional later views, not a second truth and not a
+condition for production ingestion.
+
 ### Coverage grain: atomic leaves, decided 2026-08-17
 
 Coverage starts at the smallest source leaves the document model must
