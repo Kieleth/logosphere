@@ -25,6 +25,36 @@ std::string quote(const std::string& text) {
 // Minimal reader for the lines this file writes. Deliberately not a
 // general JSON parser: the tape is our own format, and a parser that
 // accepts more than we emit would hide a malformed tape.
+// The one array the format carries: "offered":["1","2","3"]. Same
+// hand-rolled shape as value_of, because a tape must stay readable by
+// eye and the engine core takes no JSON dependency.
+std::vector<std::string> list_of(const std::string& line,
+                                 const std::string& key, bool& present) {
+    std::vector<std::string> out;
+    const std::string needle = "\"" + key + "\":[";
+    const auto at = line.find(needle);
+    present = at != std::string::npos;
+    if (!present) return out;
+    std::string item;
+    bool inside = false;
+    for (size_t i = at + needle.size(); i < line.size(); ++i) {
+        const char c = line[i];
+        if (!inside && c == ']') break;
+        if (c == '"') {
+            if (inside) { out.push_back(item); item.clear(); }
+            inside = !inside;
+            continue;
+        }
+        if (inside && c == '\\' && i + 1 < line.size()) {
+            const char next = line[++i];
+            item += next == 'n' ? '\n' : next == 't' ? '\t' : next;
+            continue;
+        }
+        if (inside) item += c;
+    }
+    return out;
+}
+
 std::string value_of(const std::string& line, const std::string& key) {
     const std::string needle = "\"" + key + "\":\"";
     const auto at = line.find(needle);
@@ -107,6 +137,13 @@ std::unique_ptr<TapedInput> TapedInput::open(const std::string& path,
         entry.kind = value_of(line, "kind");
         entry.site = value_of(line, "site");
         entry.answer = value_of(line, "answer");
+        entry.prompt = value_of(line, "prompt");
+        bool had_offered = false;
+        entry.offered = list_of(line, "offered", had_offered);
+        // One line carrying the field is enough to know the tape was
+        // written by a build that records them. A free-form ask has an
+        // empty list and would otherwise look like an old tape.
+        if (had_offered) tape->records_offered_ = true;
         if (entry.kind.empty()) {
             error = "malformed tape line: " + line;
             return nullptr;
@@ -157,6 +194,113 @@ uint64_t TapedInput::seed(const std::string& stream, uint64_t fallback) {
     return fallback;
 }
 
+std::vector<TapedInput::Fork> TapedInput::forks() const {
+    std::vector<Fork> out;
+    for (size_t i = 0; i < entries_.size(); ++i) {
+        const Entry& entry = entries_[i];
+        if (entry.kind != "ask") continue;
+        Fork fork;
+        fork.index = i;
+        fork.site = entry.site;
+        fork.prompt = entry.prompt;
+        fork.taken = entry.answer;
+        for (const auto& option : entry.offered) {
+            if (option != entry.answer) fork.untaken.push_back(option);
+        }
+        if (!fork.untaken.empty()) out.push_back(std::move(fork));
+    }
+    return out;
+}
+
+// ------------------------------------------------------------- fork
+
+std::unique_ptr<ForkedInput> ForkedInput::create(
+    std::unique_ptr<TapedInput> trunk, size_t at, const std::string& instead,
+    InputSource& then, std::string& error) {
+    if (!trunk) {
+        error = "a fork needs a trunk";
+        return nullptr;
+    }
+    if (at >= trunk->entries_.size()) {
+        error = "cannot fork at " + std::to_string(at) + ": the tape holds " +
+                std::to_string(trunk->entries_.size()) + " entries";
+        return nullptr;
+    }
+    const auto& entry = trunk->entries_[at];
+    if (entry.kind != "ask") {
+        error = "cannot fork at " + std::to_string(at) + ": that entry is a " +
+                entry.kind + ", not a decision";
+        return nullptr;
+    }
+    if (instead == entry.answer) {
+        error = "forking at " + std::to_string(at) + " onto '" + instead +
+                "' is the answer the run already gave; a fork must differ";
+        return nullptr;
+    }
+    // A fork onto an answer the rules never offered is not a
+    // counterfactual, it is a fiction. Old tapes recorded no
+    // alternatives, so they cannot be forked safely and say so rather
+    // than allowing anything.
+    if (entry.offered.empty()) {
+        error = "cannot fork at " + std::to_string(at) +
+                ": this tape records no alternatives, so there is no way to "
+                "tell a legal branch from an invented one. Re-record it.";
+        return nullptr;
+    }
+    if (std::find(entry.offered.begin(), entry.offered.end(), instead) ==
+        entry.offered.end()) {
+        error = "'" + instead + "' was not offered at entry " +
+                std::to_string(at) + "; that decision offered " +
+                std::to_string(entry.offered.size()) + " answers";
+        return nullptr;
+    }
+    return std::unique_ptr<ForkedInput>(
+        new ForkedInput(std::move(trunk), at, instead, then));
+}
+
+bool ForkedInput::answer(const Ask& ask, std::string& out,
+                         std::string& error) {
+    if (past_) return then_.answer(ask, out, error);
+
+    // Count ASKS, not entries: the trunk's index space includes seed
+    // lines, and the run only asks questions.
+    size_t ask_index = 0;
+    for (size_t i = 0; i < trunk_->entries_.size(); ++i) {
+        if (trunk_->entries_[i].kind != "ask") continue;
+        if (i == at_) break;
+        ++ask_index;
+    }
+
+    if (seen_ == ask_index) {
+        // The fork itself. Validated against what THIS run offers, not
+        // only against what the tape recorded, so a branch cannot be
+        // taken onto an answer the current rules stopped allowing.
+        if (!ask.offered.empty() &&
+            std::find(ask.offered.begin(), ask.offered.end(), instead_) ==
+                ask.offered.end()) {
+            error = "the fork answers '" + instead_ + "' at '" + ask.site +
+                    "', which this run does not offer";
+            return false;
+        }
+        out = instead_;
+        ++seen_;
+        past_ = true;
+        return true;
+    }
+
+    if (!trunk_->answer(ask, out, error)) return false;
+    ++seen_;
+    return true;
+}
+
+uint64_t ForkedInput::seed(const std::string& stream, uint64_t fallback) {
+    // The seed comes off the trunk even after divergence. A branch that
+    // rolled its own dice would differ from its trunk for two reasons
+    // at once, and the point of a counterfactual is to change exactly
+    // one thing.
+    return trunk_->seed(stream, fallback);
+}
+
 // ----------------------------------------------------------------- tape
 
 RunTape::RunTape(InputSource& source, std::string path)
@@ -174,7 +318,15 @@ bool RunTape::ask(const Ask& ask, std::string& answer, std::string& error) {
     std::ostringstream line;
     line << "{\"kind\":\"ask\",\"site\":" << quote(ask.site)
          << ",\"answer\":" << quote(answer)
-         << ",\"prompt\":" << quote(ask.prompt) << "}";
+         << ",\"prompt\":" << quote(ask.prompt) << ",\"offered\":[";
+    // What ELSE was legal here. Recorded so a tape carries its own
+    // forks: without this a replay can only repeat a life, never ask
+    // what the other branch would have done.
+    for (size_t i = 0; i < ask.offered.size(); ++i) {
+        if (i) line << ',';
+        line << quote(ask.offered[i]);
+    }
+    line << "]}";
     lines_.push_back(line.str());
     return true;
 }

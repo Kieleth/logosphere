@@ -115,9 +115,17 @@ int main(int argc, char** argv) {
     std::string mode = "--random";
     std::string argument = "1";
     uint64_t pinned = 0;                 // 0 = not pinned
+    size_t fork_at = 0;                  // --fork: which decision
+    std::string fork_instead;            // --fork: answer it differently
+    bool fork_given = false;
     for (int i = 1; i + 1 < argc; ++i) {
         if (std::strcmp(argv[i], "--seed") == 0) {
             pinned = std::stoull(argv[i + 1]);
+        } else if (std::strcmp(argv[i], "--at") == 0) {
+            fork_at = std::stoull(argv[i + 1]);
+            fork_given = true;
+        } else if (std::strcmp(argv[i], "--instead") == 0) {
+            fork_instead = argv[i + 1];
         } else if (std::strncmp(argv[i], "--", 2) == 0) {
             mode = argv[i];
             argument = argv[i + 1];
@@ -137,6 +145,75 @@ int main(int argc, char** argv) {
         std::cout << "replaying " << argument << " (" << taped->size()
                   << " answers)\n";
         source = std::move(taped);
+    } else if (mode == "--forks") {
+        // What else this life could have done. Reads the tape and
+        // prints every decision that had another legal answer.
+        std::string error;
+        auto taped = replay::TapedInput::open(argument, error);
+        if (!taped) {
+            std::cout << "no tape: " << error << "\n";
+            return 1;
+        }
+        if (!taped->records_alternatives()) {
+            std::cout << argument
+                      << " was recorded before tapes carried their "
+                         "alternatives, so its branches cannot be seen. "
+                         "Re-record it.\n";
+            return 1;
+        }
+        for (const auto& fork : taped->forks()) {
+            std::cout << "[" << fork.index << "] took '" << fork.taken
+                      << "', could have taken";
+            for (const auto& other : fork.untaken) {
+                std::cout << " '" << other << "'";
+            }
+            std::cout << "\n";
+        }
+        return 0;
+    } else if (mode == "--fork") {
+        // The counterfactual. Replay this life up to one decision,
+        // answer that decision differently, and let the rules play out
+        // the rest. The trunk's seed comes with it, so the ONLY thing
+        // that changed is the choice.
+        std::string error;
+        auto trunk = replay::TapedInput::open(argument, error);
+        if (!trunk) {
+            std::cout << "no tape: " << error << "\n";
+            return 1;
+        }
+        if (!fork_given || fork_instead.empty()) {
+            std::cout << "--fork needs --at N and --instead ANSWER. "
+                         "Run --forks " << argument
+                      << " to see which decisions have another road.\n";
+            return 1;
+        }
+        // Everything past the fork has no tape to read, so it is
+        // played by the generator, seeded from the trunk's own seed so
+        // the branch is reproducible.
+        //
+        // Read through a SECOND handle. TapedInput::seed advances the
+        // cursor when the seed is the entry it is sitting on, so asking
+        // the trunk for it here would eat the entry the run itself
+        // needs, the run would fall back to a different seed, and the
+        // branch would differ from its trunk in the dice as well as the
+        // decision. Measured: it changed the character's UPP, which is
+        // rolled before any decision is made and must be identical.
+        std::string peek_error;
+        auto peek = replay::TapedInput::open(argument, peek_error);
+        const uint64_t trunk_seed = peek ? peek->seed("chargen", 1) : 1;
+        static replay::RandomInput beyond(trunk_seed);
+        auto branch = replay::ForkedInput::create(
+            std::move(trunk), fork_at, fork_instead, beyond, error);
+        if (!branch) {
+            std::cout << "no fork: " << error << "\n";
+            return 1;
+        }
+        std::cout << "forking " << argument << " at " << fork_at
+                  << ", answering '" << fork_instead << "' instead\n";
+        tape_path = (std::filesystem::temp_directory_path() /
+                     ("logovger-fork-" + std::to_string(fork_at) + "-" +
+                      fork_instead + ".tape")).string();
+        source = std::move(branch);
     } else if (mode == "--record") {
         tape_path = argument;
 #ifdef LOGOVGER_WITH_LLM
