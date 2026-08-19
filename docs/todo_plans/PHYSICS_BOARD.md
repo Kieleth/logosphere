@@ -282,6 +282,14 @@ four rows are unreachable and only the ice row would pass.
 - **Malleus H2 / H3** — relation domain/range vacuous; generation reproducibility.
 - **Stale-bond lifecycle** — `ParticleSystem::clear_particles()` never clears bonds; 28 stale bonds re-bound (fallback inventory, doored not fixed).
 - **INV-29 residual** — 31 remaining magic-number sites + malleus H4 materials single-source (task #51).
+- **Sweep audit debt: 30 unaudited tests from the rules/logovger lane** —
+  arrived via main (#132, #133 and earlier merges). Until they carry
+  audit rows the sweep verdict cannot read zero and the gate is
+  degraded: a real regression in that lane would drown in the same
+  bucket. The classification belongs to whoever owns those tests (the
+  logosphere2 session); guessing what they prove from here would be
+  worse than the debt. Physics-lane tests are fully audited as of
+  2026-08-19.
 - **GPU campaign** — issues #81-#87, the render session's lane.
 
 ---
