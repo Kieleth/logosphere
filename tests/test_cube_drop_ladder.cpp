@@ -50,9 +50,11 @@ int main() {
 
         std::printf("\n-- %s --\n", spec.name);
         std::printf("  [measure] settled: rot_y %.4f rad, spin %.4f rad/s, z %.4f "
-                    "(edge-rest would be %.4f, flat 0.2000)\n",
+                    "(edge-rest %.4f, flat %.4f; slab top %.2f)\n",
                     scene.settled_rot_y(ps), scene.settled_spin(ps),
-                    scene.settled_z(ps), rest_height(spec.tilt_rad));
+                    scene.settled_z(ps),
+                    FLOOR_TOP + rest_height(spec.tilt_rad),
+                    FLOOR_TOP + CUBE * 0.5f, FLOOR_TOP);
         std::printf("  [measure] peak |omega_y| %.4f rad/s, touchdown frame %d\n",
                     scene.peak_omega_y, scene.touchdown_frame);
 

@@ -46,6 +46,15 @@ constexpr float SETTLED_SPIN_MAX = 0.10f;  // rad/s: friction must brake it (G-3
 constexpr float FRAME_KEEP_MIN   = 0.99f;  // per flight frame (G-37)
 constexpr float TILT_DEG         = 20.0f;  // < 45: nearest face is the original bottom
 constexpr float SPIN0            = 3.0f;   // rad/s about Z
+// The cube lands on a FLOOR SLAB PARTICLE, not on the bare turtle
+// (owner, 2026-08-19: "I'd prefer if it falls on another particle and
+// not some empty blank space"). This also aims the ladder at the right
+// mechanism: a slab contact goes through BOX-BOX rows, which already
+// compute real manifold contact points and throw them away — the row
+// type the rotation campaign converts first. The turtle row has no
+// contact point at all. Slab rests ON the turtle (bottom exactly at 0),
+// so nothing is immovable by declaration (INV-1).
+constexpr float FLOOR_TOP        = 0.2f;   // slab thickness; its top surface
 
 struct RungSpec { const char* name; float tilt_rad; float spin_z; };
 inline const RungSpec RUNGS[3] = {
@@ -54,7 +63,8 @@ inline const RungSpec RUNGS[3] = {
     { "R2/R3 flat, spinning 3 rad/s",   0.0f,                          SPIN0 },
 };
 
-// Resting centre height of a cube tilted t about Y (edge contact), t in [0,45deg].
+// Resting centre height ABOVE THE SLAB TOP of a cube tilted t about Y
+// (edge contact), t in [0,45deg].
 inline float rest_height(float t) {
     return (CUBE * 0.5f) * (std::cos(t) + std::sin(t));
 }
@@ -69,7 +79,24 @@ struct Scene {
     float prev_omega_z = 0.0f;
     float rest_z = 0.0f;              // per-rung expected contact height
 
+    int slab = -1;
+
     void build(ParticleSystem& ps) {
+        {   // the floor: a visible body, held as a fixture
+            Particle f{};
+            f.shape = ParticleShape::BOX;
+            f.width = 4.0f; f.height = 4.0f; f.thickness = FLOOR_TOP;
+            f.size = 4.0f;
+            f.x = 0.0f; f.y = 0.0f; f.z = FLOOR_TOP * 0.5f;  // bottom at z=0
+            f.r = 0.30f; f.g = 0.33f; f.b = 0.42f; f.a = 1.0f;
+            f.SetMaterial(Materials::Type::STONE);
+            slab = ps.queue_particle_addition(f);
+            ps.flush_pending_particles();
+            auto v = ps.lock_particles_for_write();
+            v[slab].solver_mode = ParticleSolverMode::KINEMATIC;
+            v[slab].owner = ParticleOwner::DYNAMICS;
+            v[slab].is_at_rest = true;
+        }
         Particle p{};
         p.shape = ParticleShape::BOX;
         p.width = p.height = p.thickness = CUBE;
@@ -82,7 +109,7 @@ struct Scene {
     }
 
     void arm(ParticleSystem& ps, const RungSpec& r) {
-        rest_z = rest_height(r.tilt_rad);
+        rest_z = FLOOR_TOP + rest_height(r.tilt_rad);
         auto v = ps.lock_particles_for_write();
         Particle& p = v[cube];
         p.x = 0.0f; p.y = 0.0f; p.z = rest_z + DROP;
@@ -128,13 +155,14 @@ struct Scene {
     // untouched by construction, which is why it may live here without
     // breaking the drivers-own-no-bodies rule.
     void add_backdrop(ParticleSystem& ps) {
-        const float tops[3] = { 0.2f, 0.4f, 0.6f };
+        const float tops[3] = { 0.2f, 0.4f, 0.6f };   // above the slab top
         for (int i = 0; i < 3; ++i) {
             Particle q{};
             q.shape = ParticleShape::BOX;
             q.width = 0.08f; q.height = 0.08f; q.thickness = tops[i];
             q.size = tops[i];
-            q.x = -0.5f + 0.5f * i; q.y = 1.5f; q.z = tops[i] * 0.5f;
+            q.x = -0.5f + 0.5f * i; q.y = 1.5f;
+            q.z = FLOOR_TOP + tops[i] * 0.5f;   // standing on the slab
             q.r = 0.20f; q.g = 0.22f; q.b = 0.30f; q.a = 1.0f;
             q.SetMaterial(Materials::Type::STONE);
             int id = ps.queue_particle_addition(q);

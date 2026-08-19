@@ -78,10 +78,10 @@ int main() {
     // cube, which put it dead-centre every frame: a falling body whose
     // camera falls with it does not appear to move ("I see a cube static
     // and nothing else"). The whole ladder spans 0.7 m; frame it once.
-    const Lamps lamps = make_lamps(ps, 0.0f, 0.0f, 0.4f);
+    const Lamps lamps = make_lamps(ps, 0.0f, 0.0f, 0.6f);
     float ppu = 240.0f;
     cam.set_pixels_per_unit(ppu);
-    cam.set_position(0.0f, 0.0f, 0.35f);
+    cam.set_position(0.0f, 0.0f, 0.55f);
 
     // Readout at the BOTTOM: the debug overlay (FPS etc.) owns the top
     // left, and the first version stacked the test lines on top of it.
