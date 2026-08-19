@@ -503,5 +503,12 @@ jobs:
         run: cmake --build build --config Release -j 4
 
       - name: Run headless test suite
-        timeout-minutes: 15
+      # 30, and the number is measured rather than padded. The exact-evidence
+      # migration multiplied the seed volume: test_chargen went from 109s to
+      # 275s on the dev machine for the same suite, a 2.5x. Windows was
+      # already the slowest lane at 210s for that one test, so 2.5x puts the
+      # suite past a 15 minute cap. Measured: the step was killed at exactly
+      # 15:00 with the build green, which reports identically to a real test
+      # failure and is the reason this is a cap and not a bug.
+        timeout-minutes: 30
         run: ctest --test-dir build -C Release --output-on-failure
