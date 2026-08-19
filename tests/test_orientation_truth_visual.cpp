@@ -7,6 +7,16 @@
 // integrates into a quaternion nobody reads, and the cube you see is
 // FROZEN. Same body, same spin, one visible rotation.
 //
+// PRESENTATION, stated on screen too: the cubes are HELD ALOFT and the
+// spin is RE-APPLIED every frame, i.e. a driven spin. A free spin dies
+// in 0.25 s to ANGULAR_DRAG (the cube-drop ladder's R2/R3 disease) and
+// the first version let it, plus a 3 s teleporting re-arm under
+// gravity: the owner saw twitch-freeze-snap ("jerky movements") instead
+// of the contrast. The headless half keeps the free, undriven spin;
+// this window trades free flight for a continuous, honest, labelled
+// demonstration of the one thing it exists to show: same spin, one
+// cube turns.
+//
 // ESC or the red X quits. SPACE moves the camera in.
 // =============================================================================
 
@@ -73,16 +83,18 @@ int main() {
     Scene scene;
     scene.build(ps);
     const Lamps lamps = make_lamps(ps, 0.0f, 0.0f, 40.0f);
+    (void)move_lamps;   // fixed rig; the cubes are held in place
     float ppu = 190.0f;
     cam.set_pixels_per_unit(ppu);
+    cam.set_position(0.0f, 0.0f, 40.0f);
 
     const int base_y = cfg.window_height - 118;   // clear of the debug overlay
     auto* l_head = add_line(engine, 0, base_y, 255, 240, 140);
     auto* l_q    = add_line(engine, 1, base_y, 140, 255, 170);
     auto* l_e    = add_line(engine, 2, base_y, 255, 150, 150);
     auto* l_verd = add_line(engine, 3, base_y, 190, 220, 255);
-    l_head->set_text("twin cubes, identical spin about Y. LEFT quat-truth, "
-                     "RIGHT Euler-truth. re-spun every 3 s");
+    l_head->set_text("twin cubes, DRIVEN spin about Y (free spin dies in "
+                     "0.25 s: ladder R2). LEFT quat-truth, RIGHT Euler-truth");
 
     if (interactive)
         std::printf("\n  ESC or the red X quits.  SPACE moves the camera in.\n\n");
@@ -94,7 +106,7 @@ int main() {
     while (interactive ? (!quit && engine.should_continue())
                        : (frame < RUN_FRAMES)) {
         const auto t0 = std::chrono::steady_clock::now();
-        if (frame > 0 && frame % 180 == 0) {   // re-arm so the contrast repeats
+        {   // hold aloft + drive the spin, every frame (see header)
             auto v = ps.lock_particles_for_write();
             for (int id : { scene.quat_twin, scene.euler_twin }) {
                 v[id].x = 0.0f; v[id].y = (id == scene.quat_twin) ? -0.6f : 0.6f;
@@ -102,18 +114,11 @@ int main() {
                 v[id].vx = v[id].vy = v[id].vz = 0.0f;
                 v[id].omega_x = v[id].omega_z = 0.0f;
                 v[id].omega_y = SPIN_Y;
-                v[id].rotation_x = v[id].rotation_y = v[id].rotation_z = 0.0f;
-                v[id].rotation_q = logosphere::Quat::identity();
                 v[id].is_at_rest = false;
             }
         }
         scene.step(ps, physics);
-
-        float cx, cy, cz;
-        {   auto v = ps.lock_particles_for_read();
-            cx = 0.0f; cy = 0.0f; cz = v[scene.quat_twin].z; }
-        cam.set_position(cx, cy, cz);          // both twins fall together
-        move_lamps(ps, lamps, cx, cy, cz);
+        // camera and lamps are fixed; only orientation moves
 
         std::snprintf(buf, sizeof(buf),
                       "LEFT  (quat-truth):  visible rot_y %+.3f   divergence %.4f rad",
