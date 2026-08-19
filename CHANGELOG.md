@@ -7,6 +7,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- **A sphere no longer falls through a rotated box.** The sphere-vs-box
+  narrow phase treated every box as axis-aligned, so a sphere released
+  onto a tilted ramp fell through the visible face and came to rest
+  inside the box, permanently, on an invented horizontal surface
+  (measured: 1.9 m of penetration on a 40-degree ramp). Rotated boxes
+  now go through an oriented handler: the sphere meets the real solid,
+  slides the real slope, and a sphere resting inside a box exits along
+  the box's own nearest face. Unrotated boxes keep the previous path
+  bit-identical. Affects every sphere against rotated scenery,
+  including fallen tree logs.
+
 ### Added
 - **Git integration policy, mechanically enforced.** Rebasing is
   refused by a tracked `pre-rebase` hook with no override; force-pushes
