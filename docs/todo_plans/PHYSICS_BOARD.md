@@ -225,6 +225,42 @@ All three surfaced while defining what interaction words may MEAN
 
 ---
 
+## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
+
+The owner, watching the ramp: *"sphere and cube arrive at the same time,
+which is a no no unless it was ice surface... we could have ice vs sand
+vs tarmac etc."*
+
+**He is right and the arithmetic makes it a discriminator, not a
+nicety.** A sliding body accelerates at `g(sin - mu*cos)`; a sphere
+rolling without slipping accelerates at `(5/7)g*sin`, INDEPENDENT of mu,
+because rolling dissipates nothing at the contact. On this 40 degree
+ramp `g*sin = 6.31 m/s2`, and a sphere needs `mu >= (2/7)tan = 0.240`
+to roll at all:
+
+| surface | mu | cube | sphere | who wins |
+|---|---|---|---|---|
+| ice | 0.05 | 5.93 | 5.93 (slides, cannot grip) | **tie, and correct** |
+| stone | 0.50 | 2.55 | 4.50 (rolls) | sphere, comfortably |
+| tarmac | 0.80 | 0.29 | 4.50 (rolls) | sphere, hugely |
+| sand | 1.10 | 0.00 (never moves) | 4.50 (rolls) | sphere, absolutely |
+
+Four surfaces, four different orderings, exactly one of them a tie.
+**A test that runs all four cannot be passed by an engine that ignores
+either rotation or friction**, which is what makes it worth building.
+
+Measured today on stone: cube 6.356 m, sphere 6.251 m, a tie inside the
+noise of two shapes sliding. **The engine is giving the ICE answer on
+stone**, because D2 1.2 leaves contacts with no lever arm so the sphere
+never spins up and slides like a ball of ice whatever it is made of.
+
+Cheap: one scene, one material parameter, four runs, and every expected
+value has closed-form arithmetic to check against. GEDANKEN-34.
+**Blocked on D2 1.2** — until a contact can apply torque, three of the
+four rows are unreachable and only the ice row would pass.
+
+---
+
 ## OWNER RULING
 
 | # | Decision | Blocks |
