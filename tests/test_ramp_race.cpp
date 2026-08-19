@@ -115,12 +115,20 @@ int main() {
           "the sphere ALSO moves (INV-12: contacts come from the body's "
           "actual oriented shape, not its bounding slab)");
 
+    // Name only the fronts ACTUALLY failing. A verdict that lists a front
+    // already fixed is the same class of lie as a comment that outlived
+    // its code, which is what this whole area was cleaning up.
+    std::string verdict = "RED: ";
+    if (!Scene::travelled(cube_d) || !Scene::travelled(ball_d))
+        verdict += "F2 (a body does not feel the slope)";
+    if (!Scene::turned(scene.cube_spin_peak) || !Scene::turned(scene.ball_spin_peak)) {
+        if (verdict.size() > 5) verdict += " + ";
+        verdict += "D2 1.2 (contacts carry no torque, so nothing turns)";
+    }
     physics.shutdown();
     std::printf("\n  %s (%d failures)\n",
                 failures == 0 ? "BOTH BODIES FEEL THE SLOPE AND BOTH TURN"
-                              : "RED, TWO FRONTS: F2 (the sphere stands on a "
-                                "normal the engine invented) and D2 1.2 "
-                                "(contacts carry no torque, so nothing turns)",
+                              : verdict.c_str(),
                 failures);
     return failures == 0 ? 0 : 1;
 }

@@ -170,8 +170,18 @@ int main() {
     std::printf("  [measure] sphere travelled %.3f m downhill\n", bd);
     std::printf("  [measure] peak |omega|: cube %.4f, sphere %.4f rad/s\n",
                 scene.cube_spin_peak, scene.ball_spin_peak);
+    // Name only the fronts that are ACTUALLY failing. A verdict that
+    // lists a front already fixed is the same class of lie as a comment
+    // that outlived its code.
+    std::string verdict;
+    if (!Scene::travelled(cd) || !Scene::travelled(bd))
+        verdict += "F2 (a body does not feel the slope)";
+    if (!Scene::turned(scene.cube_spin_peak) || !Scene::turned(scene.ball_spin_peak)) {
+        if (!verdict.empty()) verdict += " + ";
+        verdict += "D2 1.2 (contacts carry no torque, so nothing turns)";
+    }
     std::printf("\n  %s\n", ok ? "BOTH FEEL THE SLOPE AND BOTH TURN"
-                               : "RED, TWO FRONTS: F2 and D2 1.2");
+                               : ("RED: " + verdict).c_str());
     engine.shutdown();
     return ok ? 0 : 1;
 }
