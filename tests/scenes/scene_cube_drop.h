@@ -116,6 +116,11 @@ struct Scene {
         p.vx = p.vy = p.vz = 0.0f;
         p.rotation_x = p.rotation_z = 0.0f;
         p.rotation_y = r.tilt_rad;
+        // One body, one orientation, also on a LIVE write: any writer
+        // that sets the Euler triple keeps the quaternion coherent.
+        // Spawn-time seeding covers newly created bodies; arm() edits an
+        // existing one.
+        p.rotation_q = logosphere::Quat::from_euler(0.0f, r.tilt_rad, 0.0f);
         p.omega_x = p.omega_y = 0.0f;
         p.omega_z = r.spin_z;
         p.is_at_rest = false;

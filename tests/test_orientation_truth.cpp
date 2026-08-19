@@ -57,16 +57,53 @@ int main() {
     check(de < COHERENCE_MAX,
           "Euler-truth twin: ONE body must have ONE orientation (G-23)");
 
-    std::printf("\n-- O2 (G-19): unification baseline --\n");
-    if (std::getenv("LOGOSPHERE_QUAT_TRUTH")) {
-        std::printf("  [measure] lever present; baseline comparison not yet wired\n");
-    } else {
-        std::printf("  [pending] LOGOSPHERE_QUAT_TRUTH does not exist yet; this\n"
-                    "            slot is where the lever's bit-identical baseline\n"
-                    "            lands (G-19).\n");
-    }
-
     physics.shutdown();
+
+    std::printf("\n-- O2 (G-19): the lever changes NOTHING for a body that "
+                "never rotates --\n");
+    auto baseline_hash = [](bool lever) {
+        ParticleSystem bps;
+        PhysicsSystem bphys;
+        if (!bphys.initialize(bps)) return 0ULL;
+        bphys.set_quat_truth(lever);
+        BaselineScene bs;
+        bs.build(bps);
+        unsigned long long h = 1469598103934665603ULL;
+        for (int f = 0; f < RUN_FRAMES; ++f) {
+            bps.update_bvh();
+            bphys.update(DT);
+            bs.hash_state(bps, h);
+        }
+        bphys.shutdown();
+        return h;
+    };
+    const unsigned long long h_off = baseline_hash(false);
+    const unsigned long long h_on  = baseline_hash(true);
+    std::printf("  [measure] trajectory+orientation hash, lever OFF: %016llx\n", h_off);
+    std::printf("  [measure] trajectory+orientation hash, lever ON:  %016llx\n", h_on);
+    check(h_off == h_on && h_off != 0ULL,
+          "the default path is bit-identical under the lever (G-19)");
+
+    std::printf("\n-- O3: the lever HEALS the split --\n");
+    {
+        ParticleSystem lps;
+        PhysicsSystem lphys;
+        if (!lphys.initialize(lps)) { std::printf("  [FAIL] init\n"); return 1; }
+        lphys.set_quat_truth(true);
+        Scene lscene;
+        lscene.build(lps);
+        for (int f = 0; f < RUN_FRAMES; ++f) lscene.step(lps, lphys);
+        const float de2 = lscene.divergence(lps, lscene.euler_twin);
+        const float vy_q = lscene.visible_rot_y(lps, lscene.quat_twin);
+        const float vy_e = lscene.visible_rot_y(lps, lscene.euler_twin);
+        std::printf("  [measure] lever ON: Euler twin divergence %.4f rad, "
+                    "visible rot_y %.4f (quat twin %.4f)\n", de2, vy_e, vy_q);
+        check(de2 < COHERENCE_MAX,
+              "lever ON: the previously frozen twin has one orientation");
+        check(std::fabs(vy_e - vy_q) < 0.01f,
+              "lever ON: identical spins are identically visible");
+        lphys.shutdown();
+    }
     std::printf("\n  %s (%d failures)\n",
                 failures == 0 ? "ONE ORIENTATION"
                               : "TWO TRUTHS (expected red until the "

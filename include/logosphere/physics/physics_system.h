@@ -453,6 +453,17 @@ public:
     // only ever READS the policy; filtered overlaps are recorded below
     // and consumed outside the solver (episode events, volume forces).
     // See the particle-interaction design notes.
+    // THE QUAT-TRUTH LEVER (unification, R7-dissolution ruling). Default
+    // OFF: behavior bit-identical to before it existed (G-19 is the
+    // proof). ON (env LOGOSPHERE_QUAT_TRUTH=1, or this setter for
+    // in-process A/B): every DYNAMIC body's Euler triple is published
+    // from its quaternion after angular integration, so a body has ONE
+    // orientation whichever field a consumer reads. KINEMATIC bodies are
+    // untouched: their orientation belongs to their external writer.
+    // Flip only after owner QA, per the lever discipline.
+    void set_quat_truth(bool on) { quat_truth_ = on; }
+    bool quat_truth() const { return quat_truth_; }
+
     void set_interaction_system(const logosphere::interaction::ParticleInteractionSystem* sys) {
         interaction_ = sys;
     }
@@ -584,6 +595,7 @@ private:
 
     Engine* engine_;
     ParticleSystem* particle_system_;
+    bool quat_truth_ = false;   // the unification lever, see set_quat_truth
     PhysicsConfig config_;
     bool is_initialized_;
 

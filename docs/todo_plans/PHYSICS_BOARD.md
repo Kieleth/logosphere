@@ -258,8 +258,17 @@ direction-locked in physics-linux beside the drop ladder:
   with divergence **0.3167**. The same angle, once as motion, once as
   incoherence — the default body's entire turn lands in a quaternion
   nothing reads. G-23's observable form.
-- **O2 pending**: the G-19 bit-identical baseline slot, waiting for the
-  `LOGOSPHERE_QUAT_TRUTH` lever.
+- **O2 GREEN (lever landed 2026-08-19)**: `LOGOSPHERE_QUAT_TRUTH` exists,
+  default OFF, env + `PhysicsSystem::set_quat_truth` for in-process A/B.
+  Bit-identical baseline holds: hash `45c17b966f908416` lever off and
+  on for a never-rotating body (the publish canonicalizes IEEE -0.0 so
+  identity is a bitwise no-op). Spawn now seeds `rotation_q` from the
+  Euler triple at the single `add_particle` choke point, so every body
+  is born with ONE orientation.
+- **O3 GREEN with the lever on**: the frozen twin turns — divergence
+  0.0000, visible rot_y 0.3167 equal to its quat twin. The lever heals
+  the split. **Remaining: the FLIP (owner QA, then default ON and the
+  flag's deletion begins), which is R3-class: owner ruling territory.**
 
 This is the unification's red ladder. The lever lands into it.
 

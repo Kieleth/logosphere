@@ -128,6 +128,22 @@ int ParticleSystem::add_particle(const Particle& particle) {
         p.entity_id = kg_module_->createEntity("AutoParticle");
     }
 
+    // ORIENTATION SEED: rotation_q is born coherent with the Euler triple
+    // instead of born identity-and-stale. Callers spell orientation in
+    // Euler (worldgen, tests, examples); the quaternion of a body that is
+    // not quat-driven was previously "a stale by-product", which meant a
+    // body spawned tilted carried an IDENTITY quaternion — harmless while
+    // nothing read it, fatal the moment the quaternion becomes the truth
+    // (LOGOSPHERE_QUAT_TRUTH would erase the tilt on frame one). Nothing
+    // in the default path reads q for these bodies, so this is
+    // observable-behavior-neutral today, and it establishes the contract
+    // the unification needs: one body, one orientation, from birth.
+    // Quat-driven callers set rotation_q deliberately and are left alone.
+    if (!p.is_quat_driven) {
+        p.rotation_q = logosphere::Quat::from_euler(
+            p.rotation_x, p.rotation_y, p.rotation_z);
+    }
+
     // AUTO-CALCULATE MASS from density × volume
     // Light sources are exempt - they use density=0 to float (not subject to physics)
     // Mass is now PRIVATE - only CalculateMass() can set it

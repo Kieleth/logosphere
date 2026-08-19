@@ -107,4 +107,36 @@ struct Scene {
     }
 };
 
+// G-19's subject: one cube that NEVER rotates, dropped. Under the lever
+// its publish converts identity to zero; the whole trajectory must be
+// bit-identical with the lever on and off.
+struct BaselineScene {
+    int cube = -1;
+    void build(ParticleSystem& ps) {
+        Particle p{};
+        p.shape = ParticleShape::BOX;
+        p.width = p.height = p.thickness = 0.4f;
+        p.size = 0.4f;
+        p.x = 0.0f; p.y = 0.0f; p.z = 40.0f;
+        p.SetMaterial(Materials::Type::STONE);
+        cube = ps.queue_particle_addition(p);
+        ps.flush_pending_particles();
+        auto v = ps.lock_particles_for_write();
+        v[cube].is_at_rest = false;
+    }
+    // FNV-1a over the full kinematic + orientation state, bitwise.
+    void hash_state(ParticleSystem& ps, unsigned long long& h) const {
+        auto v = ps.lock_particles_for_read();
+        const Particle& p = v[cube];
+        const float f[10] = { p.x, p.y, p.z, p.rotation_x, p.rotation_y,
+                              p.rotation_z, p.rotation_q.w, p.rotation_q.x,
+                              p.rotation_q.y, p.rotation_q.z };
+        const unsigned char* b = reinterpret_cast<const unsigned char*>(f);
+        for (unsigned i = 0; i < sizeof(f); ++i) {
+            h ^= b[i];
+            h *= 1099511628211ULL;
+        }
+    }
+};
+
 }  // namespace scene_orientation_truth
