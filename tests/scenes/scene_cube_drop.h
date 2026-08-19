@@ -120,6 +120,32 @@ struct Scene {
         prev_omega_z = p.omega_z;
     }
 
+    // Reference scenery for the WINDOW only: three dark pillars behind the
+    // action (y = +1.5, the cube never leaves y = 0, so the 1.25 m gap
+    // means no contact is possible) with tops at 0.2 / 0.4 / 0.6 m — a
+    // height ruler the fall and the settle read against. The headless
+    // driver never calls this, and the tested cube's physics is
+    // untouched by construction, which is why it may live here without
+    // breaking the drivers-own-no-bodies rule.
+    void add_backdrop(ParticleSystem& ps) {
+        const float tops[3] = { 0.2f, 0.4f, 0.6f };
+        for (int i = 0; i < 3; ++i) {
+            Particle q{};
+            q.shape = ParticleShape::BOX;
+            q.width = 0.08f; q.height = 0.08f; q.thickness = tops[i];
+            q.size = tops[i];
+            q.x = -0.5f + 0.5f * i; q.y = 1.5f; q.z = tops[i] * 0.5f;
+            q.r = 0.20f; q.g = 0.22f; q.b = 0.30f; q.a = 1.0f;
+            q.SetMaterial(Materials::Type::STONE);
+            int id = ps.queue_particle_addition(q);
+            ps.flush_pending_particles();
+            auto v = ps.lock_particles_for_write();
+            v[id].solver_mode = ParticleSolverMode::KINEMATIC;
+            v[id].owner = ParticleOwner::DYNAMICS;
+            v[id].is_at_rest = true;
+        }
+    }
+
     float settled_rot_y(ParticleSystem& ps) const {
         return std::fabs(ps.lock_particles_for_read()[cube].rotation_y);
     }

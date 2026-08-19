@@ -72,17 +72,28 @@ int main() {
 
     Scene scene;
     scene.build(ps);
+    if (interactive) scene.add_backdrop(ps);   // height ruler, never contacted
     scene.arm(ps, RUNGS[0]);
-    float lx, ly, lz;
-    { auto v = ps.lock_particles_for_read(); lx=v[scene.cube].x; ly=v[scene.cube].y; lz=v[scene.cube].z; }
-    const Lamps lamps = make_lamps(ps, lx, ly, lz);
-    float ppu = 160.0f;
+    // FIXED camera at the action column. The first version FOLLOWED the
+    // cube, which put it dead-centre every frame: a falling body whose
+    // camera falls with it does not appear to move ("I see a cube static
+    // and nothing else"). The whole ladder spans 0.7 m; frame it once.
+    const Lamps lamps = make_lamps(ps, 0.0f, 0.0f, 0.4f);
+    float ppu = 240.0f;
     cam.set_pixels_per_unit(ppu);
+    cam.set_position(0.0f, 0.0f, 0.35f);
 
+    // Readout at the BOTTOM: the debug overlay (FPS etc.) owns the top
+    // left, and the first version stacked the test lines on top of it.
+    const int base_y = cfg.window_height - 118;
     auto* l_rung = add_line(engine, 0, 255, 240, 140);
     auto* l_live = add_line(engine, 1, 220, 220, 220);
     auto* l_meas = add_line(engine, 2, 140, 210, 255);
     auto* l_verdict = add_line(engine, 3, 255, 120, 120);
+    l_rung->set_position(16, base_y);
+    l_live->set_position(16, base_y + 24);
+    l_meas->set_position(16, base_y + 48);
+    l_verdict->set_position(16, base_y + 72);
 
     if (interactive)
         std::printf("\n  ESC or the red X quits.  SPACE moves the camera in.\n"
@@ -97,7 +108,12 @@ int main() {
                        : (frame < total_frames)) {
         const auto t0 = std::chrono::steady_clock::now();
 
-        if (rung_frame >= RUN_FRAMES) {          // next rung, wrap in window mode
+        // Window pacing only: 2.5 s per rung (0.25 s of fall, 2.25 s of
+        // settled viewing) instead of the headless 5 s. The physics per
+        // step is the scene's and identical; only how long a human
+        // watches the settled state differs.
+        const int shown = interactive ? 150 : RUN_FRAMES;
+        if (rung_frame >= shown) {               // next rung, wrap in window mode
             rung = (rung + 1) % 3;
             if (!interactive && rung == 0) break;
             scene.arm(ps, RUNGS[rung]);
@@ -109,8 +125,7 @@ int main() {
         {   auto v = ps.lock_particles_for_read();
             const Particle& p = v[scene.cube];
             x=p.x; y=p.y; z=p.z; oy=p.omega_y; oz=p.omega_z; ry=p.rotation_y; }
-        cam.set_position(x, y, z);
-        move_lamps(ps, lamps, x, y, z);
+        (void)x; (void)y;   // camera and lamps are fixed; the cube moves
 
         std::snprintf(buf, sizeof(buf), "%s   (t %.2fs)", RUNGS[rung].name,
                       rung_frame / 60.0f);
