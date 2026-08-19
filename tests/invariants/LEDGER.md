@@ -1323,3 +1323,42 @@ reason it says.
 Corrected in place: GEDANKEN-26 (rewritten around the real mechanism,
 with the failure recorded in its own notes), the D7 board row,
 `MEDIUM_SPIKE.md`, and the test's own header.
+
+## 2026-08-19 — F2 is a PENETRATION bug, not a friction one, and INV-2 is live
+
+The owner, watching the ramp scene: *"I think sphere just falls behind
+the ramp, not even going down."* Right, and sharper than the reading I
+had published twice.
+
+I had described F2 as "the sphere meets a flat normal so nothing drives
+it downhill". Measured, it is worse and simpler:
+
+```
+sphere rests with its bottom at z =        2.924
+  the ramp's REAL tilted face at that x:   4.831
+  the ramp's UNROTATED box top:            2.924
+```
+
+Exact to three decimals. The sphere does not rest on the ramp at all. It
+falls **1.907 m THROUGH** the tilted face, past the point where it should
+have landed, and comes to rest on the horizontal top of the ramp's
+**unrotated** box: the flat shelf `aabb_of_box_particle` invents by
+discarding rotation (`src/core/narrow_phase.cpp:957-976`).
+
+**Three consequences the earlier framing missed.**
+
+1. **The zero travel needs no explanation about normals or friction.**
+   The shelf really is flat, so there is nothing to slide down. The body
+   is behaving correctly on the surface it was handed; the surface is
+   fiction.
+2. **This is an INV-2 violation, live and permanent.** "No two bodies
+   interpenetrate beyond SLOP (1 mm) in steady state, and penetration is
+   never accepted as a rest state." This sphere rests 1.9 m inside a box,
+   for ever. Not marginal.
+3. **It reaches every sphere against every rotated box in the engine**,
+   which includes tree log segments (`create_segment` sets `rotation_y =
+   pi/2`). Any spherical body meeting a felled log passes through it.
+
+Recorded because the correction matters more than the finding: I gave
+the same wrong reading twice, and the owner got it right by watching
+the thing move.

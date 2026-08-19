@@ -82,6 +82,16 @@ int main() {
         std::printf("  [measure] sphere rotation_y %.4f rad, omega (%.4f, %.4f, %.4f)\n",
                     v[scene.ball].rotation_y, v[scene.ball].omega_x,
                     v[scene.ball].omega_y, v[scene.ball].omega_z);
+        {   // The sharpest statement of F2 available: WHERE it came to rest.
+            const float b = scene.ball_bottom(ps);
+            std::printf("  [measure] sphere rests with its bottom at z = %.3f\n", b);
+            std::printf("  [measure]   the ramp's REAL tilted face at that x: %.3f\n",
+                        Scene::face_z_at(bx));
+            std::printf("  [measure]   the ramp's UNROTATED box top:          %.3f\n",
+                        Scene::shelf_z());
+            std::printf("  [note] it fell THROUGH the face it can see and landed\n"
+                        "         on the flat shelf aabb_of_box_particle invents.\n");
+        }
         std::printf("  [measure] peak |omega|: cube %.4f rad/s, sphere %.4f rad/s\n",
                     scene.cube_spin_peak, scene.ball_spin_peak);
         std::printf("  [measure] ramp solver_mode = %s, moved %.2f m in z\n",

@@ -154,6 +154,19 @@ struct Scene {
         auto v = ps.lock_particles_for_read();
         x = v[id].x; y = v[id].y; z = v[id].z;
     }
+    // Where the ramp's REAL tilted face is at a given x, and where its
+    // UNROTATED box top is. A body resting on the first is on the ramp.
+    // A body resting on the second has fallen through the ramp it can see
+    // and landed on the flat shelf aabb_of_box_particle invents.
+    static float face_z_at(float x)  {
+        return ramp_centre_z() - std::tan(SLOPE_RAD) * x
+             + RAMP_THICK * 0.5f / std::cos(SLOPE_RAD);
+    }
+    static float shelf_z()           { return ramp_centre_z() + RAMP_THICK * 0.5f; }
+
+    float ball_bottom(ParticleSystem& ps) const {
+        return ps.lock_particles_for_read()[ball].z - BODY * 0.5f;
+    }
     static bool travelled(float d) { return d > TRAVEL_MIN; }
     static bool turned(float peak_omega) { return peak_omega > SPIN_MIN; }
 };
