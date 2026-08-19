@@ -32,6 +32,8 @@ Usage:
         examples/logovger/seeds/cepheus_book1_skill_vocabulary.json \
         examples/logovger/seeds/<out>.json
 """
+from collections import defaultdict
+import hashlib
 import json
 import os
 import re
@@ -41,6 +43,19 @@ from urllib.parse import quote
 SECTION = "Career Tables"
 CHAPTER = "book1/character-creation.md"
 GENERATED_BY = "examples/logovger/tools/extract_career_tables.py"
+REVIEWED_SOURCE_SHA256 = (
+    "aec772042129694210d60204031829618a8c71f863d3b381ce8689be60bd14c7"
+)
+ARBITER = "Codex, owner-directed Career Tables migration"
+LEGACY_SOURCE_FIELDS = {
+    "source_file", "source_section", "source_kind", "source_table",
+    "source_row", "source_column", "source_quote",
+}
+LEDGER_ENTITY_TYPES = {
+    "ByteRangeSelector", "TextQuoteSelector", "SourceTarget",
+    "SourceCoverage", "CoverageDecision", "IngestionClaim",
+    "ClaimDecision",
+}
 
 # The sub-tables inside a career block, and what each row means. The
 # second block titles its cash table "Cost Benefits" where the other
@@ -153,6 +168,19 @@ PROVEN_TYPOS = {
               "'Piloting', and no other skill resembles it."),
 }
 
+PERCEPTION_LOCATOR = ("Specialist", "3", "Bureaucrat", "Perception")
+PROSPECTING_SERVICE_LOCATOR = (
+    "Service Skills", "5", "Belter", "Prospecting")
+PROSPECTING_SPECIALIST_LOCATOR = (
+    "Specialist", "4", "Belter", "Prospecting")
+PERCEPTION_DEFECT = (
+    "Granted by the Bureaucrat Specialist table but defined nowhere: "
+    "'Perception' occurs exactly once in the SRD and has no entry in "
+    "book1/skills.md nor a line in the Available Skills List.")
+PERCEPTION_READING = (
+    "Recon is the nearest defined skill, but treating this cell as Recon "
+    "would be a guess, so the graph retains Perception as a source gap.")
+
 
 def slug(text):
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
@@ -162,6 +190,27 @@ def cells(line):
     if not line.startswith("|"):
         return None
     return [c.strip() for c in line.rstrip("\n").split("|")[1:-1]]
+
+
+def cell_records(line, line_byte_start):
+    """Return stripped Markdown cells and their exact UTF-8 byte ranges."""
+    text = line.rstrip("\r\n")
+    if not text.startswith("|") or not text.endswith("|"):
+        return None
+    pipes = [index for index, char in enumerate(text) if char == "|"]
+    records = []
+    for left_pipe, right_pipe in zip(pipes, pipes[1:]):
+        raw = text[left_pipe + 1:right_pipe]
+        left = len(raw) - len(raw.lstrip())
+        right = len(raw.rstrip())
+        begin_char = left_pipe + 1 + left
+        end_char = left_pipe + 1 + right
+        records.append({
+            "text": text[begin_char:end_char],
+            "start": line_byte_start + len(text[:begin_char].encode("utf-8")),
+            "end": line_byte_start + len(text[:end_char].encode("utf-8")),
+        })
+    return records
 
 
 def is_separator(row):
@@ -182,16 +231,27 @@ TABLE_TITLES = frozenset(
 
 def read_tables(path):
     """Every pipe table in the chapter, with its header and rows."""
-    lines = open(path, encoding="utf-8").read().split("\n")
+    with open(path, "rb") as source:
+        source_bytes = source.read()
+    encoded_lines = source_bytes.splitlines(keepends=True)
+    lines = [line.decode("utf-8") for line in encoded_lines]
+    offsets, cursor = [], 0
+    for line in encoded_lines:
+        offsets.append(cursor)
+        cursor += len(line)
+    if not encoded_lines or not encoded_lines[-1].endswith((b"\n", b"\r")):
+        offsets.append(cursor)
     out, i = [], 0
     while i < len(lines):
-        head = cells(lines[i])
+        head_records = cell_records(lines[i], offsets[i])
+        head = [record["text"] for record in head_records or ()]
         if not head or len(head) < 2:
             i += 1
             continue
-        rows, j = [], i + 1
+        rows, row_spans, j = [], [], i + 1
         while j < len(lines):
-            row = cells(lines[j])
+            records = cell_records(lines[j], offsets[j])
+            row = [record["text"] for record in records or ()]
             if not row or len(row) != len(head):
                 break
             if is_separator(row):
@@ -203,12 +263,27 @@ def read_tables(path):
             if row[0] in TABLE_TITLES:
                 break
             rows.append(row)
+            row_spans.append(records)
             j += 1
         if rows:
             out.append({"title": head[0], "columns": head[1:],
-                        "rows": rows, "line": i + 1})
+                        "rows": rows, "line": i + 1,
+                        "title_span": head_records[0],
+                        "column_spans": head_records[1:],
+                        "row_spans": row_spans})
         i = j if rows else i + 1
     return out
+
+
+def validate_character_creation(path):
+    with open(path, "rb") as source:
+        source_bytes = source.read()
+    digest = hashlib.sha256(source_bytes).hexdigest()
+    if digest != REVIEWED_SOURCE_SHA256:
+        raise ValueError(
+            "unreviewed character-creation.md bytes: expected sha256 "
+            f"{REVIEWED_SOURCE_SHA256}, got {digest}")
+    return source_bytes
 
 
 def qualified_ref(context_key, type_name, entity_key):
@@ -222,13 +297,27 @@ def qualified_ref(context_key, type_name, entity_key):
 
 def load_skill_references(vocabulary_path, context_key):
     """Canonical skill references, indexed by every source-proven name."""
-    seed = json.load(open(vocabulary_path, encoding="utf-8"))
+    with open(vocabulary_path, encoding="utf-8") as source:
+        seed = json.load(source)
     names = {}
-    for op in seed["ops"]:
-        props = op["properties"]
+    for index, op in enumerate(seed["ops"]):
+        if op.get("op") != "create_entity" or op.get("type") != "Skill":
+            continue
         entity_key = op.get("as", "").removeprefix("@")
+        if not entity_key:
+            raise ValueError(
+                f"Skill vocabulary ops[{index}] is missing its create alias")
+        props = op.get("properties")
+        if not isinstance(props, dict):
+            raise ValueError(
+                f"Skill vocabulary ops[{index}] is missing required "
+                "properties")
+        name = props.get("name")
+        if not name:
+            raise ValueError(
+                f"Skill vocabulary ops[{index}] is missing required name")
         reference = qualified_ref(context_key, op["type"], entity_key)
-        names[props["name"]] = reference
+        names[name] = reference
         for alias in filter(None, props.get("source_aliases", "").split("; ")):
             names[alias] = reference
     return names
@@ -240,7 +329,7 @@ def load_career_seed_references(vocabulary_path, context_key):
         os.path.dirname(vocabulary_path), "cepheus_careers.json")
     with open(career_path, encoding="utf-8") as source:
         seed = json.load(source)
-    references = {"Career": {}, "RollableTable": {}}
+    references = {"Career": {}, "RollableTable": {}, "Skill": {}}
     for op in seed["ops"]:
         type_name = op.get("type")
         if op.get("op") != "create_entity" or type_name not in references:
@@ -256,6 +345,188 @@ def load_career_seed_references(vocabulary_path, context_key):
         references[type_name][name] = qualified_ref(
             context_key, type_name, entity_key)
     return references
+
+
+def load_career_seed_coverages(vocabulary_path, context_key):
+    """Exact Career-seed coverages indexed by canonical byte range."""
+    career_path = os.path.join(
+        os.path.dirname(vocabulary_path), "cepheus_careers.json")
+    with open(career_path, encoding="utf-8") as source:
+        seed = json.load(source)
+    entities = {
+        op["as"]: op for op in seed["ops"]
+        if op.get("op") == "create_entity"
+    }
+    ranges = {}
+    for alias, entity in entities.items():
+        if entity.get("type") != "SourceCoverage":
+            continue
+        target = entities[entity["properties"]["coverage_target"]]
+        selector = entities[target["properties"]["target_primary_selector"]]
+        properties = selector["properties"]
+        key = (properties["source_byte_start"],
+               properties["source_byte_end"])
+        if key in ranges:
+            raise ValueError(
+                f"Career seed has duplicate SourceCoverage range {key}")
+        ranges[key] = qualified_ref(
+            context_key, "SourceCoverage", alias.removeprefix("@"))
+    return ranges
+
+
+class CareerTableLedger:
+    """Replace Career Tables cell locators with exact, reviewed claims."""
+
+    def __init__(self, source_bytes, tables, prior_coverages=None):
+        self.source_bytes = source_bytes
+        self.prior_coverages = prior_coverages or {}
+        self.coverages = {}
+        self.locators = defaultdict(list)
+        for table in tables:
+            for row, spans in zip(table["rows"], table["row_spans"]):
+                for index, column in enumerate(table["columns"]):
+                    locator = (table["title"], row[0], column,
+                               row[index + 1])
+                    evidence = (table["title_span"],
+                                table["column_spans"][index],
+                                spans[0], spans[index + 1])
+                    self.locators[locator].append(evidence)
+
+    @staticmethod
+    def locator(properties):
+        required = ("source_table", "source_row", "source_column",
+                    "source_quote")
+        missing = [name for name in required if not properties.get(name)]
+        if missing:
+            raise ValueError(
+                "Career Tables cell locator is missing required fields: " +
+                ", ".join(missing))
+        if properties.get("source_kind") != "cell":
+            raise ValueError(
+                "Career Tables exact migration only accepts cell locators")
+        return tuple(properties[name] for name in required)
+
+    def evidence_for(self, locator):
+        matches = self.locators.get(locator, ())
+        if len(matches) != 1:
+            raise ValueError(
+                f"Career Tables locator {locator!r} resolved to "
+                f"{len(matches)} source cells; expected exactly one")
+        unique = []
+        seen = set()
+        for span in matches[0]:
+            key = (span["start"], span["end"])
+            if key not in seen:
+                unique.append(span)
+                seen.add(key)
+        return unique
+
+    @staticmethod
+    def claim_alias(evidence, suffix=""):
+        value = evidence[-1]
+        return (f"@career_table_claim_b{value['start']}_e{value['end']}"
+                f"{suffix}")
+
+    def coverage_for(self, ops, span):
+        key = (span["start"], span["end"])
+        if key in self.prior_coverages:
+            return self.prior_coverages[key]
+        if key in self.coverages:
+            return self.coverages[key]
+        base = f"@career_table_b{span['start']}_e{span['end']}"
+        range_alias = base + "_range"
+        quote_alias = base + "_quote"
+        target_alias = base + "_target"
+        coverage_alias = base + "_coverage"
+        exact = self.source_bytes[span["start"]:span["end"]].decode("utf-8")
+        if exact != span["text"] or not exact:
+            raise ValueError(
+                f"Career Tables byte range {key} does not match its quote")
+        ops.extend([
+            {"op": "create_entity", "type": "ByteRangeSelector",
+             "as": range_alias, "properties": {
+                 "source_byte_start": span["start"],
+                 "source_byte_end": span["end"]}},
+            {"op": "create_entity", "type": "TextQuoteSelector",
+             "as": quote_alias,
+             "properties": {"source_quote_exact": exact}},
+            {"op": "create_entity", "type": "SourceTarget",
+             "as": target_alias, "properties": {
+                 "target_primary_selector": range_alias,
+                 "target_quote_selector": quote_alias}},
+            {"op": "create_entity", "type": "SourceCoverage",
+             "as": coverage_alias,
+             "properties": {"coverage_target": target_alias}},
+            {"op": "create_entity", "type": "CoverageDecision",
+             "as": base + "_coverage_decision", "properties": {
+                 "event_type": "ARBITER_DECISION",
+                 "decision_subject": coverage_alias,
+                 "decision_sequence": 0,
+                 "coverage_judgement": "CLAIMS_PRESENT",
+                 "decision_question":
+                     "Does this exact table cell state or support a rule?",
+                 "decision_reason":
+                     "The reviewed cell supplies table context or value.",
+                 "arbiter": ARBITER}},
+        ])
+        self.coverages[key] = coverage_alias
+        return coverage_alias
+
+    def append_claim(self, ops, locator, statement, disposition,
+                     materializes=(), suffix="", gap_kind=None,
+                     related_claim=None):
+        evidence = self.evidence_for(locator)
+        supports = [self.coverage_for(ops, span) for span in evidence]
+        claim = self.claim_alias(evidence, suffix)
+        ops.append({"op": "create_entity", "type": "IngestionClaim",
+                    "as": claim,
+                    "properties": {"claim_statement": statement}})
+        decision = {
+            "event_type": "ARBITER_DECISION",
+            "decision_subject": claim,
+            "decision_sequence": 0,
+            "claim_disposition": disposition,
+            "decision_question": "Can this table claim enter the typed graph?",
+            "decision_reason": (
+                "The reviewed cell is represented by the listed typed "
+                "entities." if disposition == "MATERIALIZED" else
+                "The decision records the source defect without guessing."),
+            "arbiter": ARBITER,
+        }
+        if gap_kind:
+            decision["claim_gap_kind"] = gap_kind
+        if related_claim:
+            decision["related_claim"] = related_claim
+        ops.append({"op": "create_entity", "type": "ClaimDecision",
+                    "as": claim + "_decision", "properties": decision})
+        for support in supports:
+            ops.append({"op": "set_relation", "from": claim,
+                        "relation": "CLAIM_SUPPORTED_BY", "to": support})
+        for entity in materializes:
+            ops.append({"op": "set_relation", "from": claim,
+                        "relation": "CLAIM_MATERIALIZES", "to": entity})
+        return claim
+
+    def migrate(self, ops):
+        groups = defaultdict(list)
+        for operation in ops:
+            if operation.get("op") != "create_entity":
+                continue
+            properties = operation.get("properties", {})
+            if properties.get("source_section") != SECTION:
+                continue
+            locator = self.locator(properties)
+            groups[locator].append(operation["as"])
+            for field in LEGACY_SOURCE_FIELDS:
+                properties.pop(field, None)
+
+        for locator, aliases in groups.items():
+            table, row, column, value = locator
+            self.append_claim(
+                ops, locator,
+                f"{table} row {row}, column {column} states {value!r}.",
+                "MATERIALIZED", materializes=aliases)
+        return sum(len(aliases) for aliases in groups.values())
 
 
 def assert_canonical_references(value, path="seed"):
@@ -370,6 +641,11 @@ class Builder:
 def main():
     root, vocabulary_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
     chapter = os.path.join(root, "book1", "character-creation.md")
+    try:
+        source_bytes = validate_character_creation(chapter)
+    except ValueError as error:
+        print(f"REFUSED: {error}", file=sys.stderr)
+        return 1
     commit = open(os.path.join(root, "SOURCE_COMMIT"),
                   encoding="utf-8").read().strip()
     from rule_source_identity import ingestion_edition_context_key
@@ -377,9 +653,17 @@ def main():
 
     tables = read_tables(chapter)
     career_seed = load_career_seed_references(vocabulary_path, context_key)
-    builder = Builder(load_skill_references(vocabulary_path, context_key),
+    skills = load_skill_references(vocabulary_path, context_key)
+    skills.update(career_seed["Skill"])
+    skills["Perception"] = "@sk_perception"
+    builder = Builder(skills,
                       career_seed["Career"], career_seed["RollableTable"],
                       context_key)
+    builder.add("Skill", "@sk_perception", {
+        "name": "Perception",
+        "source_defect": PERCEPTION_DEFECT,
+        "suggested_reading": PERCEPTION_READING,
+    })
     # The Draft table is ALSO titled "Career", with columns "Roll of
     # 4+" and friends. A block header is identified by what it
     # contains, not by its title: only a career block has a
@@ -696,6 +980,28 @@ def main():
             print(f"  {value!r}  ({table} row {row}, column {column})")
         return 1
 
+    ledger = CareerTableLedger(
+        source_bytes, tables,
+        load_career_seed_coverages(vocabulary_path, context_key))
+    migrated = ledger.migrate(builder.ops)
+    ledger.append_claim(
+        builder.ops, PERCEPTION_LOCATOR,
+        "The Bureaucrat Specialist table grants a Perception skill that "
+        "the skills chapter does not define.",
+        "PARTIAL", materializes=("@sk_perception",),
+        suffix="_perception_undefined_skill", gap_kind="SOURCE_GAP")
+    prior_prospecting = ledger.claim_alias(
+        ledger.evidence_for(PROSPECTING_SERVICE_LOCATOR),
+        "_prospecting_undefined_skill")
+    ledger.append_claim(
+        builder.ops, PROSPECTING_SPECIALIST_LOCATOR,
+        "The Belter Specialist table repeats the undefined Prospecting "
+        "skill already granted by Service Skills.",
+        "DUPLICATE", suffix="_prospecting_undefined_skill_duplicate",
+        related_claim=qualified_ref(
+            context_key, "IngestionClaim",
+            prior_prospecting.removeprefix("@")))
+
     seed = {
         "source": {"file": CHAPTER, "commit": commit},
         "layer": "cepheus",
@@ -705,13 +1011,13 @@ def main():
         # still verified: empty tables break no citation. The invariant
         # is what turns that silence into a failure.
         "invariants": {"count_of_type": {
-                           "CareerThrowEntry": counts["check"],
-                           "CareerTableEntry": counts["skill_table"] + 24 +
-                                               counts["cash"] +
-                                               counts["material"],
-                           "CareerTrackEntry": counts["rank"],
-                           "SubjectLookupTable": 6,
-                           "ProgressionTrack": counts["rank"]},
+                           type_name: sum(
+                               op.get("op") == "create_entity" and
+                               op.get("type") == type_name
+                               for op in builder.ops)
+                           for type_name in sorted({
+                               op["type"] for op in builder.ops
+                               if op.get("op") == "create_entity"})},
                        "unique_name_per_type": ["RollableTable", "TaskCheck",
                                                 "ProgressionTrack",
                                                 "SubjectLookupTable",
@@ -728,6 +1034,7 @@ def main():
     print(f"rank tracks:     {counts['rank']}")
     print(f"checks:          {counts['check']}")
     print(f"possessions:     {len(builder.possessions)}")
+    print(f"exact Career Tables materializations: {migrated + 1}")
     print(f"total ops:       {len(builder.ops)} -> {out_path}")
     return 0
 

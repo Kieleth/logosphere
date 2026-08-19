@@ -609,6 +609,42 @@ code. Runtime ontology lookup now preserves the nearest ancestor's refined
 property contract, so concrete selector subclasses inherit the restriction
 mechanically.
 
+**First complete-production amendment, 2026-08-18 02:51 UTC.**
+`book1/skills.md` is now a closed production representation: 437 atomic source
+targets and 844 typed syntax/layout exclusions cover its 31,878 bytes exactly
+once under one `CompleteSourcePartition`. Every target has one current
+coverage decision. The chapter produces 365 claims: 68 skill definitions
+materialize the chapter-owned `Skill` entities, 68 earlier available-list
+occurrences are explicit duplicates, and 229 claims remain raised rather than
+being forced into executable data. The list's `Airship` entry is a
+`SOURCE_GAP` because this chapter links elsewhere and contains no matching
+skill definition.
+
+The source-specific extractor is pinned to the exact reviewed source digest.
+It may mechanically find the already-decided atomic forms, but it cannot apply
+its semantic policy to changed text. New bytes fail generation until a reader
+reviews them and updates the pin and decisions. The generated skill seed is
+the only owner; no parallel ledger file or legacy fallback was added. The 68
+migrated skills lose their old locator fields. `Perception` and `Prospecting`
+remain on character-creation evidence because moving them here would falsify
+their provenance.
+
+This first complete representation also measured the cost of preserving the
+ledger in the production graph. A single headless process took 6.22 seconds
+and the full chargen executable took 313.94 seconds because verification
+rebuilt the corpus and replayed the complete prior seed prefix for every later
+seed. The owner selected the foundational engine fix: one reusable scratch
+world materializes the corpus once and grows only through seeds that have
+passed verification. The caller world retains the existing per-seed
+transaction boundary. Standalone verification remains isolated in a fresh
+world. A two-seed regression test requires exactly two corpus reads across the
+whole operation, one per world.
+
+The same deterministic headless life now takes 2.70 seconds and the complete
+253-check chargen executable takes 134.42 seconds, both about 57 percent less.
+Filtering and grouping remain optional derived views if review volume later
+demands them. They do not replace or weaken the atomic records.
+
 ---
 
 ## Decisions this protocol records

@@ -726,6 +726,131 @@ TDD and integration state:
   `test_humanoid_terrain_scenarios` baseline already present on `main`. This
   branch changes no physics files.
 
+## First complete production representation, 2026-08-18 02:51 UTC
+
+`book1/skills.md` is the first production source representation to assert a
+complete exact partition. The existing `extract_skills.py` remains its sole
+generated-seed owner. It now refuses any source whose SHA-256 differs from the
+reviewed 31,878-byte chapter, mechanically addresses atomic headings, prose
+sentences, and lexical table cells, and emits the reviewed semantic decisions
+into the same production seed. It is source-specific extraction, not a general
+Markdown-to-rules authority.
+
+Current representation totals:
+
+- 437 non-empty `SourceTarget` leaves with converging UTF-8 byte ranges and
+  exact quotes;
+- 844 non-empty `SourceExclusion` records, closed to `SYNTAX` or `LAYOUT`;
+- one `CompleteSourcePartition`, so every one of the 31,878 bytes is gated;
+- 437 coverage decisions: 405 `CLAIMS_PRESENT`, 32 `NO_RULE_CONTENT`;
+- 365 claims: 68 materialized skill-definition claims, 68 duplicate
+  available-skill-list claims, and 229 raised claims;
+- the listed but locally undefined `Airship` skill remains a raised
+  `SOURCE_GAP`. `Perception` and `Prospecting` are not owned by this
+  representation because they occur only in `character-creation.md`;
+- the 68 chapter-defined `Skill` entities no longer carry the legacy locator
+  fields. Production now has 491 coverage records, 408 claims, 413 claim
+  decisions, and 2,981 legacy structural citations.
+
+TDD and integration findings:
+
+- initial extractor red: four contract failures for absent completeness,
+  vacuous empty coverage, surviving skill locators, and acceptance of changed
+  source bytes;
+- shipped-verifier red: the real production seed had no completeness
+  assertion or semantic targets. It now passes the engine's schema, ledger,
+  exact-byte, identity, value, semantic, and invariant checks;
+- regeneration exposed that the career loader treated every vocabulary
+  `create_entity` as a `Skill`. A mixed-operation regression test now requires
+  exact type filtering, and required skill name or alias data fails loudly;
+- the production identity gate was scoped too broadly: representation-owned
+  source-partition records were incorrectly tested as edition-owned rules. It
+  now derives that distinction from the `source-partition` ontology facet and
+  resolves each target against its own representation;
+- all 14 extractor contract tests pass. The effective registered headless
+  result is 97/97: the initial run passed 95, the identity totals were updated
+  and passed, and the unchanged telemetry test passed with its normal session
+  directory. A real headless seed-28 life also completed correctly.
+
+The volume exposed an integration-cost blocker before merge. One real
+headless process took 6.22 seconds, and `test_chargen` took 313.94 seconds.
+The root cause was generic sequence verification: it rematerialized the corpus
+for every seed and replayed the full prerequisite prefix before checking each
+later seed.
+
+The owner selected the foundational engine fix on 2026-08-18. Sequence
+verification now owns one scratch verified-prefix world. It materializes an
+edition corpus there once, then leaves each verified seed loaded for the next
+dependency. The caller world still receives each seed through the existing
+atomic loader only after that seed passes every check. Standalone verification
+still creates a fresh world, and a failed later seed leaves earlier caller
+state intact. The TDD guardrail requires a two-seed edition sequence to read
+the corpus exactly twice, once for the caller world and once for the scratch
+prefix; the old implementation read it three times. The focused verifier is
+320/320, the production identity target passes, the deterministic headless
+life fell to 2.70 seconds, and `test_chargen` remains 253/253 at 134.42
+seconds. Both measured paths are about 57 percent faster.
+
+Grouped and filtered ledger projections stay on the later roadmap if review
+or query volume becomes unmanageable. They are not needed to make this
+production partition viable and cannot replace atomic coverage.
+
+## Career Tables production evidence slice, 2026-08-18 04:30 UTC
+
+The complete `Career Tables` source section now uses exact claims across its
+two generated owners. The reviewed `character-creation.md` bytes are pinned by
+SHA-256. Each migrated cell claim converges on the exact table-title, column,
+row-key, and value cells. Repeated context cells create one coverage record;
+the later career-tables seed references coverage already owned by the careers
+seed instead of duplicating representation-scoped identity.
+
+The migration replaces 1,695 legacy-cited materializations: 217 in
+`cepheus_careers.json` and 1,478 in
+`cepheus_book1_career_tables.json`. The two source defects move to their real
+evidence owners. The careers seed owns the first `Prospecting` occurrence as a
+`PARTIAL/SOURCE_GAP` Skill claim. The career-tables seed owns `Perception` the
+same way and records the later `Prospecting` occurrence as a distinct
+`DUPLICATE` claim linked to the first. The skills representation no longer
+creates either term.
+
+TDD and integration findings:
+
+- initial extractor contracts failed four ways: no exact claims existed, all
+  1,695 entities retained loose locators, the two undefined Skills belonged to
+  the wrong representation, and changed source bytes were accepted;
+- the first engine integration rejected name-uniqueness invariants applied to
+  nameless ledger nodes. Generated seeds now keep count invariants for every
+  type but exclude ledger records from name invariants, with a regression
+  contract;
+- the classification audit had coupled itself to `source_table` and
+  `source_quote`. It now follows `CLAIM_MATERIALIZES` and the exact supporting
+  value coverage. Python and C++ gates compare that projection with the
+  shipped independent audit;
+- the production identity gate now asserts 2,057 exact targets, 1,554 claims,
+  and 1,559 append-only claim decisions. All targets resolve against their
+  own pinned representation;
+- current decisions are 38 `NO_RULE_CONTENT`, 2,019 `CLAIMS_PRESENT`, seven
+  `PARTIAL`, 253 `RAISED`, 1,220 `MATERIALIZED`, five `SUPERSEDED`, and 69
+  `DUPLICATE`;
+- 1,286 rule entities still use legacy structural citations outside this
+  source section. The final locator path remains transitional until those
+  separately owned sections migrate.
+
+Verification:
+
+- all 20 Logovger extractor and ownership contracts pass;
+- `test_seed_verifier` passes 320/320;
+- deterministic regeneration reproduces all four generated seeds;
+- the complete registered headless profile is effectively 97/97. The
+  filesystem sandbox denied the unchanged recorder its normal session
+  directory; the same binary passed 12/0 with normal access;
+- `test_chargen` passes 253/253, including the new assertion that a Career's
+  claim resolves its exact table-title, column, row-key, and value supports;
+- deterministic headless seed 28 completes, but now takes 8.99 seconds versus
+  the prior 2.70-second baseline. Standalone `test_chargen` takes about 336
+  seconds versus 134.42 seconds. Correctness is closed; the larger exact
+  ledger has exposed a new production-verification scaling cost.
+
 ## Immediate Phase A, minimum honest ledger
 
 Do not start with model pairing, dashboards, learning layers, a reusable
@@ -782,7 +907,7 @@ Follow this TDD order:
 - [x] Persist one small real Logovger section through the ledger, then
   derive or validate its existing seed without weakening current seed
   verification.
-- [ ] Complete one production representation with opaque leaves and typed
+- [x] Complete one production representation with opaque leaves and typed
   syntax/layout exclusions, then add its `CompleteSourcePartition` assertion.
 - [x] Record the observed red tests, implementation commit, focused
   tests, complete registered headless profile, and remaining owner
@@ -795,6 +920,10 @@ disposed claims.
 
 ## Later phases, roadmap only
 
+- [ ] Profile and reduce exact-ledger production verification cost at the
+  2,057-target scale. Preserve atomic evidence and the verified-prefix
+  boundary; grouping or indexes may be derived accelerators, never alternate
+  coverage authority.
 - [ ] Claim-level downstream invalidation when a definition or source
   pin changes.
 - [ ] R12 provisional-claim integration after malleus exposes the

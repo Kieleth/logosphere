@@ -65,6 +65,9 @@ const char* kSourceRoot =
     LOGOSPHERE_SOURCE_DIR "/examples/logovger/srd/cepheus";
 const char* kFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/chargen_ch1.json";
+const char* kSkillsSeed =
+    LOGOSPHERE_SOURCE_DIR
+    "/examples/logovger/seeds/cepheus_book1_skill_vocabulary.json";
 const char* kPrerequisiteFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/prerequisite_base.json";
 const char* kDependentFixture =
@@ -94,6 +97,21 @@ struct RootSourceAccess final : logosphere::text::SourceAccess {
         const std::string bytes = slurp(root + "/" + declaration.source_file);
         if (bytes.empty()) return {false, {}, "unreadable or empty"};
         return {true, bytes, {}};
+    }
+};
+
+struct CountingSourceAccess final : logosphere::text::SourceAccess {
+    RootSourceAccess files;
+    mutable size_t reads = 0;
+
+    explicit CountingSourceAccess(std::string source_root)
+        : files(std::move(source_root)) {}
+
+    logosphere::text::SourceReadResult read_exact(
+        const logosphere::text::SourceRepresentationDeclaration& declaration)
+        const override {
+        ++reads;
+        return files.read_exact(declaration);
     }
 };
 
@@ -928,6 +946,37 @@ void test_seed_verifier_enforces_asserted_complete_partition() {
     CHECK(reason_contains(no_targets_report, "verbatim", "gap [13,14)"),
           "a completeness assertion is verified even when the reader "
           "declares no semantic targets");
+}
+
+void test_shipped_skill_vocabulary_is_a_verified_complete_partition() {
+    const kg::SeedEnvelope seed = parse_seed_fixture(kSkillsSeed);
+    std::size_t partitions = 0;
+    std::size_t targets = 0;
+    for (const auto& op : seed.ops) {
+        const auto* create = std::get_if<kg::KGOpCreateEntity>(&op);
+        if (!create) continue;
+        if (create->type == "CompleteSourcePartition") ++partitions;
+        if (create->type == "SourceTarget") ++targets;
+    }
+    CHECK(partitions == 1,
+          "the shipped skills representation asserts completeness once");
+    CHECK(targets > 0,
+          "the shipped skills representation enumerates semantic leaves");
+
+    RootSourceAccess source_access(kSourceRoot);
+    const logosphere::text::SourceCorpusDeclaration corpus{
+        seed.layer,
+        {{seed.source.file,
+          rule_language::ontology::SourceMediaType::UTF8_TEXT,
+          seed.source.commit}}};
+    const auto report = kg::verify_seed_in_edition(
+        seed, kSourceRoot, corpus, source_access, engine_registry());
+    for (const auto& violation : report.violations) {
+        std::cout << "  [measure] shipped skills [" << violation.check
+                  << "] " << violation.reason << std::endl;
+    }
+    CHECK(report.ok(),
+          "the shipped skills partition passes the engine verifier");
 }
 
 void test_loader_owns_seed_portable_identity() {
@@ -2032,6 +2081,65 @@ void test_seed_sequence_is_cumulative_and_ordered() {
           "an earlier prerequisite warning survives a clean target");
 }
 
+void test_edition_sequence_materializes_one_verified_prefix() {
+    const auto first = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"RuleConstant","as":"@first",
+            "properties":{"name":"first age rule","constant_value":18,
+              "source_section":"Chapter 1: Character Creation",
+              "source_quote":"All characters begin at the age of majority, typically 18."}})");
+    const auto second = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"RuleConstant","as":"@second",
+            "properties":{"name":"second age rule","constant_value":18,
+              "source_section":"Chapter 1: Character Creation",
+              "source_quote":"All characters begin at the age of majority, typically 18."}})");
+
+    CountingSourceAccess source_access(kSourceRoot);
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport report;
+    CHECK(kg::verify_and_load_seed_sequence_in_edition(
+              {first, second}, kSourceRoot, exact_evidence_corpus(first),
+              source_access, world, report),
+          "both edition-scoped seeds verify and load: " + report.error);
+    CHECK(source_access.reads == 2,
+          "an edition sequence reads its corpus once for the caller world "
+          "and once for one reusable verified-prefix world");
+    CHECK(world.findByType("RuleConstant").size() == 2,
+          "the verified-prefix optimization still loads both rules");
+}
+
+void test_sequence_verification_failure_preserves_committed_prefix() {
+    const auto first = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"RuleConstant","as":"@first",
+            "properties":{"name":"committed age rule","constant_value":18,
+              "source_section":"Chapter 1: Character Creation",
+              "source_quote":"All characters begin at the age of majority, typically 18."}})");
+    const auto invalid = mini_seed(
+        "book1/character-creation.md",
+        R"({"op":"create_entity","type":"RuleConstant","as":"@invalid",
+            "properties":{"name":"invalid age rule","constant_value":19,
+              "source_section":"Chapter 1: Character Creation",
+              "source_quote":"All characters begin at the age of majority, typically 18."}})");
+
+    kg::KGModule world(engine_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    kg::SeedSequenceLoadReport report;
+    CHECK(!kg::verify_and_load_seed_sequence(
+              {first, invalid}, kSourceRoot, world, report),
+          "a later value-verification failure stops the sequence");
+    CHECK(report.failed_seed == 1 && report.seeds_loaded == 1,
+          "the report identifies the failed seed after one committed seed");
+    const auto constants = world.findByType("RuleConstant");
+    CHECK(constants.size() == 1 &&
+              world.getProperty(constants.front(), "name") ==
+                  "committed age rule",
+          "a seed loaded only into the scratch prefix cannot enter the caller "
+          "world after its verification fails");
+}
+
 }  // namespace
 
 int main() {
@@ -2049,6 +2157,7 @@ int main() {
     test_exact_evidence_replaces_the_legacy_locator_without_fallback();
     test_exact_multileaf_band_requires_a_typed_source_gap();
     test_seed_verifier_enforces_asserted_complete_partition();
+    test_shipped_skill_vocabulary_is_a_verified_complete_partition();
     test_loader_owns_seed_portable_identity();
     test_loader_failure_rolls_back_the_whole_seed();
     test_loader_rejects_missing_required_properties_atomically();
@@ -2086,6 +2195,8 @@ int main() {
     test_source_commit_drift_warns_without_failing();
     test_missing_source_commit_file_has_no_opinion();
     test_seed_sequence_is_cumulative_and_ordered();
+    test_edition_sequence_materializes_one_verified_prefix();
+    test_sequence_verification_failure_preserves_committed_prefix();
 
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
