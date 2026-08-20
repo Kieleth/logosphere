@@ -7,6 +7,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Changed
+- **A body has one orientation.** The engine kept every body's
+  orientation twice, as an Euler triple (read by rendering and
+  collision) and a quaternion (written by spin integration), with no
+  copy between them for ordinary bodies: a spinning cube's turn landed
+  in a field nothing read, and the visible world missed rotation
+  wherever physics produced it. The quaternion is now the single truth:
+  every dynamic body's Euler triple is published from it after angular
+  integration, every frame. Bodies that never rotate are bit-for-bit
+  unaffected (proved by trajectory hash), KINEMATIC bodies still belong
+  to their external writer, and `LOGOSPHERE_QUAT_TRUTH=0` restores the
+  old split for bisection.
+
 ### Fixed
 - **A sphere no longer falls through a rotated box.** The sphere-vs-box
   narrow phase treated every box as axis-aligned, so a sphere released
