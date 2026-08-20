@@ -169,10 +169,10 @@ int main() {
                         scene.argus.peak_spin(scene.cube),
                         scene.argus.peak_speed(scene.cube));
             std::printf("  [measure] spin at touchdown / release: %.4f "
-                        "(G-36 predicts today ~0.046 = 0.95^60)\n",
+                        "(derived law: flight barely taxes it now)\n",
                         scene.keep_at_touchdown);
             std::printf("  [measure] worst per-flight-frame retention: %.4f "
-                        "(G-37: 0.95^4 = 0.8145 today)\n", scene.min_frame_keep);
+                        "(derived law: ~1.0 per frame in air)\n", scene.min_frame_keep);
             check(scene.keep_at_touchdown > FLIGHT_KEEP_MIN,
                   "R2: spin SURVIVES flight; it may die only at the contact");
             check(scene.settled_spin(ps) < SETTLED_SPIN_MAX,

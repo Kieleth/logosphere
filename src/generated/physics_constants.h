@@ -304,13 +304,6 @@ constexpr float    REST_VELOCITY_THRESHOLD = 0.1f;   // unit: m/s
 // Exit rest above this (2x hysteresis).
 constexpr float    WAKE_VELOCITY_THRESHOLD = 0.2f;   // unit: m/s
 
-// Per-frame omega_z retention (5% loss per frame), applied to every
-// spinning body as "general air resistance for rotation". Same INV-19
-// exposure as DAMPING_FACTOR: absolute-motion damping whose
-// dissipation story is thin. Extracted as-is by decree; any retuning
-// is ledger follow-up.
-constexpr float    ANGULAR_DRAG = 0.95f;   // unit: 1
-
 // Frames below the rest threshold before resting.
 constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}
 

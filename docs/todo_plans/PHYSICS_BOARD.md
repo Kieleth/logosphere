@@ -407,6 +407,38 @@ test latches its own minima), no min-separation or closest-approach
 query, and `dump()` prints `rotY` only, so a body spinning about Z
 narrates as motionless.
 
+## D7 EXECUTED (2026-08-20): ANGULAR_DRAG is dead, the law is derived
+
+Owner order standing since 08-16, done. The constant (and its frame-one
+theft, fingerprinted by Argus at 6.0 -> 4.887) is deleted from the
+schema; in its place, G-42's derivation: quadratic pressure drag
+integrated over the box's faces, tau = -(RHO_AIR*DRAG_CD*L_i*(L_j^4 +
+L_k^4)/32) w|w| per body axis, body-frame via the quat truth,
+unconditionally stable form, same ambient constants as the linear law
+so D8's declarable medium will feed both. Spheres take bounding extents
+as a sanctioned INV-21 over-estimate; honest sphere spin drag (skin
+friction, viscosity) boarded.
+
+**Proof through mechanism**: test_angular_dissipation GREEN, measured
+0.998541 retained vs derived 0.998941 — promoted to CI smoke. Ladder
+R2/R3 GREEN by default (flight honest). A stone flywheel barely slows
+in air, which is the physics.
+
+**Three findings the honest law surfaced, each charted:**
+1. Speculative contact rows brake spin BEFORE the z-threshold
+   "touchdown": the flight window must end at first CONTACT EVENT
+   (interactions directive), then the lever contracts re-clamp.
+2. **G-21 live**: a real tumble crosses the gimbal band every
+   revolution and the publish's fold trips the per-frame coherence
+   assert — the lossy-view hazard, now measured, needs its ruling.
+3. The lane walk grew to 0.99 m under persistent spin: the per-point
+   seed compounds longer. The block-solve's bill has come due.
+
+Also derived from the witness: a face-spinning top DIES FAST at contact
+(6.0 -> 1.65 in two frames of touch) because face friction is strong —
+G-36's own arithmetic. Real tops last by spinning on a POINT; the
+long-spin drama belongs to the ICE floor of the materials matrix.
+
 ## D9 grows: the owner's materials orders (2026-08-20, post-QA)
 
 Ordered after QA'ing the torque slices, folded here as D9's first

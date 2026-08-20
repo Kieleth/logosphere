@@ -5341,10 +5341,12 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         if (p.omega_z > MAX_OMEGA) p.omega_z = MAX_OMEGA;
         if (p.omega_z < -MAX_OMEGA) p.omega_z = -MAX_OMEGA;
 
-        // Apply angular damping (global damping to prevent infinite spin)
-        // This is separate from gluon damping - it's general air resistance for rotation
-        // ANGULAR_DRAG: INV-29 registry (RestSleepDamping group).
-        p.omega_z *= ANGULAR_DRAG;
+        // ANGULAR_DRAG is dead (owner order, G-42). Air resistance for
+        // rotation is now DERIVED below, from the same ambient constants
+        // the linear law uses, acting on the body's real extents. A
+        // constant that stole 18.5% of every spin per frame was five
+        // orders of magnitude off the derivation for a stone cube, and
+        // it is why every spin experiment was dead air.
 
         // Integrate rotation angle
         p.rotation_z += p.omega_z * dt;
@@ -5366,10 +5368,54 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         if (p.omega_x < -MAX_OMEGA) p.omega_x = -MAX_OMEGA;
         if (p.omega_y >  MAX_OMEGA) p.omega_y =  MAX_OMEGA;
         if (p.omega_y < -MAX_OMEGA) p.omega_y = -MAX_OMEGA;
-        p.omega_x *= ANGULAR_DRAG;
-        p.omega_y *= ANGULAR_DRAG;
         p.torque_x = 0.0f;
         p.torque_y = 0.0f;
+
+        // ================================================================
+        // ROTATIONAL AIR DRAG, DERIVED (G-42; replaces ANGULAR_DRAG).
+        // Quadratic pressure drag integrated over the box's side faces:
+        // about body axis i, tau = -(RHO_AIR * DRAG_CD * L_i *
+        // (L_j^4 + L_k^4) / 32) * w|w|. The 32 is the integral of |y|^3
+        // across a face — a derived coefficient like the 12 in a box
+        // inertia, not a tunable. Same ambient constants as the linear
+        // law, so a declarable medium (D8) will feed both at once.
+        // Spheres take their bounding extents: a sanctioned
+        // over-estimate (INV-21); honest sphere spin drag is skin
+        // friction and is boarded, not faked.
+        // Applied in the BODY frame (rotation_q is the one truth) with
+        // the unconditionally stable form w /= 1 + (c|w|/I) dt, which
+        // can never overshoot or flip sign. For a 166 kg stone cube at
+        // 4 rad/s this is ~0.1% per second — a flywheel, which is
+        // physical. Spins die at contacts, not in thin air.
+        // ================================================================
+        {
+            const float w2 = p.omega_x*p.omega_x + p.omega_y*p.omega_y
+                           + p.omega_z*p.omega_z;
+            if (w2 > 1e-10f) {
+                const float I = p.GetMomentOfInertia();
+                if (I > 0.0f) {
+                    const float Lx = p.width, Ly = p.height, Lz = p.thickness;
+                    const float k  = RHO_AIR * DRAG_CD / 32.0f;
+                    const float cx = k * Lx * (Ly*Ly*Ly*Ly + Lz*Lz*Lz*Lz);
+                    const float cy = k * Ly * (Lx*Lx*Lx*Lx + Lz*Lz*Lz*Lz);
+                    const float cz = k * Lz * (Lx*Lx*Lx*Lx + Ly*Ly*Ly*Ly);
+                    // world -> body
+                    logosphere::Quat qc = p.rotation_q.conjugate();
+                    float m[9];
+                    qc.to_matrix3x3(m);
+                    float bx = m[0]*p.omega_x + m[1]*p.omega_y + m[2]*p.omega_z;
+                    float by = m[3]*p.omega_x + m[4]*p.omega_y + m[5]*p.omega_z;
+                    float bz = m[6]*p.omega_x + m[7]*p.omega_y + m[8]*p.omega_z;
+                    bx /= 1.0f + (cx * std::fabs(bx) / I) * dt;
+                    by /= 1.0f + (cy * std::fabs(by) / I) * dt;
+                    bz /= 1.0f + (cz * std::fabs(bz) / I) * dt;
+                    // body -> world (transpose)
+                    p.omega_x = m[0]*bx + m[3]*by + m[6]*bz;
+                    p.omega_y = m[1]*bx + m[4]*by + m[7]*bz;
+                    p.omega_z = m[2]*bx + m[5]*by + m[8]*bz;
+                }
+            }
+        }
 
         // Integrate rotation_q from the full omega vector. Axis-angle
         // exponential: dq = axis_angle(omega / |omega|, |omega| * dt).
