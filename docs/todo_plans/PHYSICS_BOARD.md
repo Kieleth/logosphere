@@ -346,6 +346,22 @@ four rows are unreachable and only the ice row would pass.
 
 ---
 
+## F5 — the plant anchor pins one foot-width to the SIDE of the foot (2026-08-19, Argus audit)
+
+Found by the assert audit on a GREEN test and deliberately NOT committed
+as a failing assert (the prime directive): `test_pin_gluon_lifecycle`
+measures the plant anchor at x = 0.000, the body midline, while the
+foot it pins stands at x = -0.100. The `FOOT_PLANT` trace agrees at the
+source: `target=(0.000, 0.325, 0.055)` — **the plant target carries no
+body-lateral term**. Sibling finding, same file: the stance foot drifts
+past **0.24 m** from its plant target while plant_blend is 1.0.
+
+Whether a pin gluon is meant to hold a rest offset is a plant-code
+question (humanoid locomotion's heel-strike transfer), not one a wiring
+test may rule on. Needs the locomotion owner's read before any code.
+Evidence printed as `[finding]` lines in the test and recorded in its
+audit gaps.
+
 ## OWNER RULING
 
 | # | Decision | Blocks |

@@ -104,9 +104,10 @@ int main() {
                 "visible rot_y %.4f\n", dq, scene.visible_rot_y(ps, scene.quat_twin));
     std::printf("  [measure] Euler-truth twin: q-vs-Euler divergence %.4f rad, "
                 "visible rot_y %.4f\n", de, scene.visible_rot_y(ps, scene.euler_twin));
-    std::printf("  [note] identical bodies, identical spin. The Euler twin's\n"
-                "         quaternion turned while the triple every consumer\n"
-                "         reads stayed frozen.\n");
+    std::printf("  [note] identical bodies, identical spin. Pre-flip the Euler\n"
+                "         twin's turn was trapped in its quaternion; under quat\n"
+                "         truth (default since 2026-08-19) both ledgers agree\n"
+                "         and both twins read the same rot_y.\n");
     std::printf("\n  the witness's last three frames:\n");
     scene.argus.dump(std::cout, 3);
     check(dq < COHERENCE_MAX,
