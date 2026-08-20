@@ -1618,3 +1618,15 @@ Remaining on the rotation list: rolling-vs-sliding travel contract
 re-clamp (item 2 tail), G-21/G-23 gimbal ruling with measurement (item
 4), CONTACT_TORQUE flip ruling + ice (item 6). FIXED protocol: Argus
 asserts clamped; owner interactive QA pending.
+
+## 2026-08-20 — Certifying sweep after G-43/G-44: CLEAN
+
+SWEEP_VERDICT: new-red 0, gone-green 0. The four moles resolved: inv29
+green (0.25f renamed), refused_momentum green (truth over measured awake
+frames, 107% in band), minimal_v2 green (36.5 s, was 221.5 under the
+unrefined growth gate), tree_wiggly booked known-open pending owner
+ruling (G-44 unmasked a sustained gluon-tree oscillation the old sleep
+entry absorbed; RCA tasked). The 39 unaudited are the other session's
+Kamaji/rules/KG tests plus visual drivers, unchanged from the previous
+sweep. FIXED protocol clause 3 (owner interactive QA) remains open for
+the whole G-43 arc.
