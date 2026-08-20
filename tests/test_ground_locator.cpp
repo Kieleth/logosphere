@@ -240,6 +240,50 @@ void test_only_still_and_substantial_things_are_ground() {
     }
 }
 
+// Litter does not hide the floor it is lying on.
+//
+// Two rules were inconsistent. A span smaller than MIN_SUPPORT_SIZE
+// was rejected as ground, correctly: you cannot stand on a twig. But
+// the blocking pass then let a span of ANY size veto the surface
+// beneath it, so the same twig made the floor unusable. A walker
+// crossing debris reported no ground under her while standing on it,
+// at 27% of the path against the 95% the terrain scenarios ask for.
+//
+// Too small to stand on is too small to stand in the way.
+void test_litter_does_not_hide_the_floor() {
+    {
+        Harness hh;
+        hh.slab(0.0f, 0.0f, 1.0f);                    // the floor
+        // A pebble resting on it, overlapping the surface plane the
+        // way settled debris does.
+        hh.slab(0.0f, 0.0f, 1.10f, /*size=*/0.12f, /*thickness=*/0.12f);
+        hh.settle();
+        float surface = 0.0f;
+        const bool ok = hh.locator.surface_at(0.0f, 0.0f, surface);
+        CHECK(ok, "a pebble on the floor does not hide the floor");
+        CHECK(std::fabs(surface - 1.0f) < 0.01f,
+              "and the floor is still where it was");
+    }
+    {
+        // The control, and the reason this is a size test and not a
+        // blanket removal: something big enough to stand on is big
+        // enough to block. A slab overhead is a ledge, not litter.
+        Harness hh;
+        hh.slab(0.0f, 0.0f, 1.0f);
+        hh.slab(0.0f, 0.0f, 1.30f);                   // full-size, overhead
+        hh.settle();
+        logosphere::PlacementRequest req;
+        req.x = req.y = 0.0f;
+        req.footprint = 0.6f;
+        req.height = 1.75f;                           // a standing body
+        req.mode = logosphere::SupportMode::STANDING;
+        const logosphere::Placement p = hh.locator.locate(req);
+        CHECK(!p.found || std::fabs(p.surface_z - 1.30f) < 0.01f,
+              "a full-size slab overhead still blocks the floor under it "
+              "(a body of 1.75 m does not fit in 0.30 m)");
+    }
+}
+
 // A body must not mistake itself for the floor it stands on.
 void test_a_body_does_not_stand_on_itself() {
     Harness hh;
@@ -268,6 +312,7 @@ int main() {
     test_headroom_is_part_of_the_answer();
     test_only_still_and_substantial_things_are_ground();
     test_a_body_does_not_stand_on_itself();
+    test_litter_does_not_hide_the_floor();
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;

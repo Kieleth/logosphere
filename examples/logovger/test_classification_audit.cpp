@@ -25,6 +25,8 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 
@@ -72,8 +74,9 @@ std::string field_after(const std::string& text, size_t from,
     return out;
 }
 
-// Every cell-cited outcome in the seed, as quote -> classification,
-// using the same outcome-type mapping the audit tool uses.
+// Every exact-evidenced outcome in the seed, as quote -> classification,
+// using the same outcome-type mapping the audit tool uses. The value cell is
+// the final support of each generated Career Tables claim.
 std::map<std::string, std::string> seed_classifications(
     const std::string& seed) {
     static const std::map<std::string, std::string> kinds = {
@@ -87,20 +90,70 @@ std::map<std::string, std::string> seed_classifications(
         "Cash Benefits", "Cost Benefits", "Material Benefits",
         "Service Skills"};
 
-    std::map<std::string, std::string> out;
+    std::map<std::string, std::string> entity_types;
+    std::map<std::string, std::string> claim_statements;
+    std::map<std::string, std::string> quotes;
+    std::map<std::string, std::string> target_quotes;
+    std::map<std::string, std::string> coverage_targets;
+    std::map<std::string, std::vector<std::string>> supports;
+    std::vector<std::pair<std::string, std::string>> materializations;
     size_t at = 0;
-    while ((at = seed.find("\"create_entity\"", at)) != std::string::npos) {
-        const auto next = seed.find("\"create_entity\"", at + 1);
+    while ((at = seed.find("\"op\"", at)) != std::string::npos) {
+        const auto next = seed.find("\"op\"", at + 1);
         const auto end = next == std::string::npos ? seed.size() : next;
         const std::string op = seed.substr(at, end - at);
-        const auto kind = kinds.find(field_after(op, 0, "type"));
-        if (kind != kinds.end() &&
-            field_after(op, 0, "source_kind") == "cell" &&
-            audited.count(field_after(op, 0, "source_table"))) {
-            const auto quote = field_after(op, 0, "source_quote");
-            if (!quote.empty()) out[quote] = kind->second;
+        const std::string operation = field_after(op, 0, "op");
+        if (operation == "create_entity") {
+            const std::string alias = field_after(op, 0, "as");
+            const std::string type = field_after(op, 0, "type");
+            entity_types[alias] = type;
+            if (type == "IngestionClaim") {
+                claim_statements[alias] =
+                    field_after(op, 0, "claim_statement");
+            } else if (type == "TextQuoteSelector") {
+                quotes[alias] = field_after(op, 0, "source_quote_exact");
+            } else if (type == "SourceTarget") {
+                target_quotes[alias] =
+                    field_after(op, 0, "target_quote_selector");
+            } else if (type == "SourceCoverage") {
+                coverage_targets[alias] =
+                    field_after(op, 0, "coverage_target");
+            }
+        } else if (operation == "set_relation") {
+            const std::string relation = field_after(op, 0, "relation");
+            const std::string from = field_after(op, 0, "from");
+            const std::string to = field_after(op, 0, "to");
+            if (relation == "CLAIM_SUPPORTED_BY") {
+                supports[from].push_back(to);
+            } else if (relation == "CLAIM_MATERIALIZES") {
+                materializations.emplace_back(from, to);
+            }
         }
         at = end;
+    }
+
+    std::map<std::string, std::string> out;
+    for (const auto& [claim, outcome] : materializations) {
+        const auto kind = kinds.find(entity_types[outcome]);
+        if (kind == kinds.end()) continue;
+        const auto& statement = claim_statements[claim];
+        bool audited_table = false;
+        for (const auto& table : audited) {
+            if (statement.rfind(table + " row ", 0) == 0) {
+                audited_table = true;
+                break;
+            }
+        }
+        if (!audited_table || supports[claim].empty()) continue;
+        const auto& coverage = supports[claim].back();
+        const auto& target = coverage_targets[coverage];
+        const auto& quote = quotes[target_quotes[target]];
+        const auto prior = out.find(quote);
+        if (prior != out.end() && prior->second != kind->second) {
+            out[quote] = "CONFLICT";
+        } else if (!quote.empty()) {
+            out[quote] = kind->second;
+        }
     }
     return out;
 }
@@ -135,7 +188,7 @@ int main() {
 
     const auto classifications = seed_classifications(seed);
     check(classifications.size() >= 20,
-          "the seed still carries cell-cited outcomes to audit",
+          "the seed still carries exact-evidenced outcomes to audit",
           std::to_string(classifications.size()) + " found");
 
     // Only the classifications block. A settled disagreement records

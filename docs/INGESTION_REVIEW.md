@@ -393,11 +393,22 @@ because it can hold what the seeds cannot.
 
 ## 7. Open questions
 
-Not decided here.
+This review is historical. Later decisions are marked here so it does
+not keep reopening settled questions. The canonical decision record is
+`RPG_MODULE.md`; the active implementation checklist is
+`todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
 
-1. Does the ledger hold the whole book, including passages that will
-   never be mechanised (flavour text, examples of play), or only
-   passages with rule content?
+1. **DECIDED 2026-08-16:** the ledger holds the whole book. "No rule
+   content" is a visible judgement, never a pre-ledger filter.
+   **AMENDED 2026-08-17:** option 4 gives that judgement a mechanically
+   enumerable source-coverage row and records each distinct meaning as
+   an atomic child claim. One source unit may yield zero, one, or many
+   claims, so compound passages no longer force one misleading status.
+   **GRAIN DECIDED 2026-08-17:** coverage units are atomic source leaves:
+   headings, prose sentences, table cells, and sentences within list
+   items, with opaque leaves for unclassified source content. Paragraph,
+   row, section, and file grouping may be derived later but never replace
+   or hide the leaf record.
 2. What does an un-ingestible exception look like when the reason is
    "the ontology cannot say this yet" versus "the rule language has no
    operator for this"? J4 is the second kind and today they are the same

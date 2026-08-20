@@ -28,14 +28,17 @@ struct Particle {
 
     // Shape + per-axis extents.
     //
-    // !!! PHYSICS COLLISION WARNING !!!
-    // Physics treats (width, height, thickness) as WORLD-AXIS extents, ignoring
-    // rotation_x/y/z. If your particle is horizontal (e.g., a root), set
-    // thickness to the CROSS-SECTION, not the length.
+    // Collision geometry follows INV-12 (true-geometry-contacts).
+    // BOX extents are along the particle's own axes. Rotated boxes use
+    // rotation_x/y/z or rotation_q as oriented boxes; boxes below the rotation
+    // epsilons remain axis-aligned, where local and world axes coincide.
+    // SPHERE uses size as its diameter and is unaffected by rotation.
+    // ELLIPSOID currently uses a conservative per-axis AABB fallback and is
+    // not treated as an oriented ellipsoid.
     ParticleShape shape = ParticleShape::BOX;
-    float width     = 1.0f;   // World X extent (≥0.15 for visibility)
-    float height    = 1.0f;   // World Y extent (≥0.15)
-    float thickness = 0.15f;  // World Z extent (≥0.15)
+    float width     = 1.0f;   // Local X extent (≥0.15 for visibility)
+    float height    = 1.0f;   // Local Y extent (≥0.15)
+    float thickness = 0.15f;  // Local Z extent (≥0.15)
 
     // Facing direction (radians, 0 = +Y / north).
     float facing_angle = 0.0f;

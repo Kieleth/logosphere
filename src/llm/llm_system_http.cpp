@@ -1143,8 +1143,29 @@ std::string LLMSystemHTTP::parse_openai_response(const std::string& json) {
 }
 
 std::string LLMSystemHTTP::parse_anthropic_response(const std::string& json) {
-    // Anthropic format: {"content":[{"text":"..."}]}
-    return json_extract_string(json, "text");
+    // Anthropic format: {"content":[{"text":"..."}],"stop_reason":"..."}
+    //
+    // stop_reason was read by nothing until 2026-08-19, so a reply cut
+    // off at max_tokens came back as a short string indistinguishable
+    // from a complete one. A caller then blamed the model for an answer
+    // it was never allowed to finish: a life ended because the required
+    // CHOICE line was three tokens past the ceiling.
+    //
+    // Truncation is now a NAMED state, which is the contract the
+    // fleet's shared client already states ("a turn hit max_tokens; the
+    // run ends and the transcript is preserved rather than raising and
+    // losing it"). It is surfaced through the existing [ERROR ...]
+    // convention because every caller already treats that as a failure,
+    // and the text carries the word "truncated" so a caller that CAN
+    // retry is able to tell "you were cut off" from "you were wrong".
+    // The partial text is preserved after the marker rather than
+    // discarded.
+    const std::string text = json_extract_string(json, "text");
+    if (json_extract_string(json, "stop_reason") == "max_tokens") {
+        return "[ERROR: truncated at max_tokens, the reply is incomplete] " +
+               text;
+    }
+    return text;
 }
 
 // ============================================================================

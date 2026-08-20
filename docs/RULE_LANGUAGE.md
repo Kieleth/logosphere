@@ -96,9 +96,54 @@ the tuple `(identity_context, exact concrete type, entity_key)`.
 The entity resolver decodes the context key, exact type, and entity key, then
 requires exactly one matching `Addressable` entity. Zero matches fail as a
 broken reference. Multiple matches are a violated world invariant and also
-fail. Source content normally uses its source-document context; runtime
-content uses its explicit runtime context. Forks receive identity in their new
-context rather than inheriting the source entity's portable key accidentally.
+fail. Published source content uses its exact ingestion-edition context; its
+evidence uses an exact source representation plus selector. The production
+Logovger loader materializes its declared corpus and injects the resulting
+ingestion edition as rule identity. During the explicit evidence transition,
+each source-authored rule uses exactly one evidence path. Unmigrated rules keep
+a source-document origin and structural locator. Migrated rules have edition
+origin, no legacy locator field, and are materialized by a reconciled
+`IngestionClaim` supported by exact representation-scoped `SourceTarget`
+coverage. The verifier rejects either path when fields from the other remain.
+For `UTF8_TEXT`, every ledger target also carries a `TextQuoteSelector` whose
+exact text must equal the bytes selected by its primary `ByteRangeSelector`.
+This supporting selector does not own identity; it prevents Unicode character
+positions from being accepted as byte positions. `Injury Crisis`,
+`Medical Care`, `Medical Debt`, and `Aging` are the first migrated production
+sections. Medical Debt proves that one exact coverage leaf can support several
+claims with independent dispositions. Aging proves the inverse: one rule may
+need several exact leaves, such as the table headers, result key, and effect.
+The verifier derives a row band from one unique evidence fragment rather than
+assuming evidence order.
+
+An incomplete claim uses the gap kind that names the missing layer.
+`ONTOLOGY_GAP` means the graph lacks a concept. `RULE_LANGUAGE_GAP` means the
+concepts exist but the executable language lacks the required composition.
+`SOURCE_GAP` means the source itself does not fully state the materialized
+reading. A printed finite table boundary may be widened at one side only by a
+current `PARTIAL/SOURCE_GAP` materializing decision. `Aging` uses this for its
+printed `-6` floor; changing that decision to a rule-language gap makes
+verification fail. Runtime content uses its explicit runtime context. Forks
+receive identity in their new context rather than inheriting the source
+entity's portable key accidentally.
+
+Source occurrences and semantic claims have different identity. Repeated text
+keeps one `SourceTarget` and `SourceCoverage` per occurrence, but equivalent
+meaning may become one claim supported by all of them. When a later generalized
+claim replaces an existing narrower claim, the old claim receives an
+append-only `SUPERSEDED` decision naming the replacement. It keeps its earlier
+decision history, but relinquishes materialized graph results. `DUPLICATE`
+remains for the other direction, where a later claim repeats an earlier
+canonical claim. `Aging Crisis` is the production proof: five generalized
+crisis claims cite both its leaves and the prior Injury Crisis leaves.
+
+Source revision provenance follows the same structured rule. An exact
+`SourceRepresentationContext` is content identity and has no revision field.
+An append-only `SourceRevisionObservation` is addressable within that
+representation and records one exact source-system revision. The same
+representation may therefore be observed at several revisions without
+changing source targets or edition identity. A revision observation never
+owns source bytes, selectors, or manifest membership.
 
 File-local `@alias` bindings remain unchanged. They address entities created
 inside one operation batch. The previous cross-seed `@@Type:Name` form is
@@ -1100,6 +1145,13 @@ their destination context. Canonical references use strict percent encoding
 and resolve only exact context, concrete type, and machine-key tuples. All
 production Logovger cross-seed references were migrated, and the previous
 name and source-alias resolver was deleted and tested dead.
+
+The later ingestion-edition decision supersedes source-document context as the
+target identity scope without changing the canonical reference grammar. The
+generic source-corpus materializer now derives representation and edition
+identity from an explicit declaration plus replaceable exact-byte access. The
+loader migration remains incomplete, so document-scoped loading above is a
+historical implementation state rather than the final contract.
 
 `materialize_ontology_meta_graph` reflects the complete composed registry into
 sorted canonical class, direct-property, relation, facet, value-kind, enum,

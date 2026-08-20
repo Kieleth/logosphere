@@ -1,7 +1,38 @@
 name: DCO
+
+# Sign-off is enforced on what LANDS ON MAIN, not on branch commits.
+#
+# This used to run on `pull_request` and require a Signed-off-by trailer on
+# every commit in `base..head`. That gate and the merge policy could not
+# both be satisfied. Rebasing is refused (.githooks/pre-rebase, no
+# override) and force-pushing is refused (.githooks/pre-push), so a branch
+# that falls behind main catches up with `git merge origin/main`. The merge
+# commit that produces has no authored content, cannot be signed at
+# creation, and cannot be signed afterwards because amending it needs the
+# force-push the same policy refuses. A branch behind main could obey the
+# merge rule or pass this gate, never both. It cost a branch: pull request
+# #131, closed and reopened as #133.
+#
+# Branch commits are now not checked at all. They do not survive the merge:
+# squash merging is the only method enabled here, so exactly one commit
+# lands on main per pull request, and that single commit is the artifact
+# the DCO is about.
+#
+# In the normal case nothing changes for a contributor. GitHub composes a
+# squash message as the pull request title plus the concatenated branch
+# commit messages, so `git commit -s` on the branch carries the trailer
+# through by itself. What this catches is the squash message rewritten in
+# the merge box, where the trailer is deleted along with the commit log.
+#
+# The logic and its boundary cases (branch created by the push, several
+# commits in one push, merge commits, a `before` sha absent from the
+# clone) live in scripts/check-signoff.sh. That checker is not vacuous and
+# scripts/test-signoff-on-main.sh proves it in both directions; the
+# merge-policy job in ci.yml runs that test on every pull request, which
+# is what keeps this gate honest now that it no longer runs on branches.
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
 
 jobs:
   signoff:
@@ -10,23 +41,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Full history. The checker walks before..after and a shallow
+          # clone would not have `before`.
           fetch-depth: 0
-      - name: Every commit carries Signed-off-by
-        run: |
-          set -e
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          missing=0
-          while read -r sha; do
-            if ! git log -1 --format=%B "$sha" | grep -q "^Signed-off-by: "; then
-              echo "MISSING sign-off: $sha $(git log -1 --format=%s "$sha")"
-              missing=1
-            fi
-          done < <(git rev-list "$base".."$head")
-          if [ "$missing" -ne 0 ]; then
-            echo ""
-            echo "All commits must be signed off (git commit -s)."
-            echo "See CONTRIBUTING.md, Developer Certificate of Origin."
-            exit 1
-          fi
-          echo "All commits signed off."
+
+      - name: Commits landing on main carry Signed-off-by
+        env:
+          # Through the environment rather than interpolated into the
+          # script body. These are event-payload values, and a workflow
+          # that pastes payload text straight into a shell is how command
+          # injection gets in, even when today's values are only shas.
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: ./scripts/check-signoff.sh "$BEFORE" "$AFTER"

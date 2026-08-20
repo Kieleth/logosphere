@@ -89,6 +89,10 @@ ValidationResult require_mutable(EntityID id, const KGModule& kg,
                     ") belongs to the immutable ontology meta-graph");
     }
     if (options.constructing.count(id)) return ValidationResult{};
+    if (ont.hasFacet(type, "append-only")) {
+        return fail("entity " + std::to_string(id) + " (" + type +
+                    ") is append-only history");
+    }
     if (is_sealed_origin_type(ont, type)) {
         return fail("entity " + std::to_string(id) + " (" + type +
                     ") is a sealed origin context");

@@ -61,6 +61,30 @@ above cannot tell, provided it can answer both questions. This is the
 extension point for "absorb a scanned book" and it is the only one
 needed for it.
 
+**IMPLEMENTATION AMENDMENT, 2026-08-17 16:03 UTC.** "Pinned to a commit"
+above means pinned to an exact source-system revision. Git is one possible
+source system, not part of the engine abstraction. The application explicitly
+declares corpus membership, typed media, layer, and revision provenance. A
+replaceable `SourceAccess` returns exact bytes for each declaration. The engine
+derives length, content digest, canonical manifest, and edition identity; the
+application may not assert them.
+
+**IMPLEMENTATION AMENDMENT, 2026-08-17 23:46 UTC.** Repository checkout is
+part of exact-byte integrity. A platform may not rewrite line endings for a
+byte-addressed source representation, and `SourceAccess` may not silently
+normalize bytes after reading them. Repository-backed corpora therefore
+declare an explicit checkout policy for addressed source files. The initial
+Cepheus corpus uses `text eol=lf`, matching its Git object bytes. A mechanical
+test checks both the declared attribute and the checked-out bytes for every
+vendored Markdown source.
+
+**IMPLEMENTATION AMENDMENT, 2026-08-18 01:05 UTC.** Exact-byte test fixtures
+obey the same checkout contract as production sources. PR #139 exposed that a
+fixture outside the declared LF policy changed from LF to CRLF on Windows,
+invalidating its byte ranges and quote selectors. The mechanical checkout test
+now enumerates both the production corpus and repository-backed exact-byte
+fixtures. Runtime normalization remains forbidden.
+
 ### L1 Extraction
 
 **Owns** the reading. Deciding that a three-cell row belongs to an
@@ -276,9 +300,13 @@ resolves to something the graph already holds, or is a new concept this
 passage defines, or is unresolvable, in which case it is raised and
 accommodated under R12. There is no fourth option, and in particular
 there is no "understood well enough from the sentence alone".
-*Gate*: partial and accidental. Extractors already load prior seeds to
-resolve references, and `verify_seed` already receives `loaded_before`,
-but both are hand-wired rather than required.
+*Gate*: **AMENDED 2026-08-17 00:41 UTC.** Still partial, but seed loading
+is no longer accidental. `verify_and_load_seed_sequence` owns ordered
+prerequisite accumulation; the game, headless runner, chargen gate and
+verifier CLI all enter through it. A two-seed fixture passes only with its
+prerequisite, and both a reversed fixture and the reversed production
+manifest fail before the dependent seed mutates the world. Raw extraction
+output and R12 accommodation remain ungated.
 
 This is the rule the whole module turns on, so it gets its own section
 below.
@@ -417,6 +445,208 @@ before play, and count never promotes.
 
 ---
 
+**R13. Rule identity is edition-scoped; evidence is representation-scoped.**
+A rule belongs to the exact source corpus against which it was read, not to
+one source file chosen as its nominal owner and not to a mutable layer name.
+Its identity context is the source layer plus the digest of a complete source
+manifest. Citations keep pointing to exact representations and selectors, so
+one rule may still draw evidence from several files.
+*Gate*: **PARTIAL, added 2026-08-17 15:42 UTC.** LinkML declares the sealed
+`IngestionEditionContext`, its closed manifest format, and its typed
+representation-membership relation. The resolver rebuilds the sorted manifest
+and refuses empty manifests, duplicate paths, cross-layer members, missing
+data, count drift, digest drift, and context-key drift. The rule loader still
+creates document-scoped identity and has not yet crossed this boundary.
+
+The canonical format is `LENGTH_PREFIXED_V1`. Every field is decimal byte
+length, colon, raw bytes. It contains the format, entry count, then each
+representation sorted by logical source path with fields in this order:
+source path, media type, digest algorithm, digest, byte length. Source-system
+revision is retained in a separate typed observation linked to the exact
+representation and excluded from the manifest. Therefore changing a path or
+byte content creates a new edition; moving the same exact source through an
+unrelated revision does not.
+
+**Ownership amendment, 2026-08-17 16:03 UTC.** The canonical manifest is an
+engine-derived result, not a Logovger-authored input. `SourceCorpusDeclaration`
+states what belongs to the corpus and `SourceAccess` states how to obtain the
+declared bytes. The engine validates both and computes identity. A persisted
+manifest is a generated projection for audit or deployment. Keeping this
+generic mechanism in the engine does not prematurely extract the future
+standalone ingestion module; that promotion still waits for consumer two.
+
+**Provenance amendment, 2026-08-17 18:12 UTC.** The owner selected separate
+typed provenance rather than including revision in content identity or
+rejecting an identical representation observed at a later revision.
+`SourceRepresentationContext` therefore has no `source_revision` property.
+Each immutable `SourceRevisionObservation` is addressable within one exact
+representation and records one source-system revision. The representation may
+accumulate observations without changing its identity; a repeated observation
+is idempotent, while two byte sequences claimed for the same layer, logical
+path, and revision fail before KG mutation.
+
+**Evidence amendment, 2026-08-17 19:16 UTC.** R13 now gates both sides of the
+boundary for migrated rules. `SourceSelector` and `SourceTarget` identity is
+scoped to the exact `SourceRepresentationContext`; rule and claim identity is
+scoped to the exact `IngestionEditionContext`. A migrated `Cited` rule has no
+legacy locator properties, has edition origin, and is the object of a
+`CLAIM_MATERIALIZES` relation from a reconciled claim supported by exact
+targets. An unmigrated rule retains document origin and its structural
+locator. The verifier rejects a mixture, so the transition cannot become a
+fallback chain.
+
+`Injury Crisis` is the first production section through that gate. Four exact
+byte-range targets cover its heading and three sentences. The heading is
+explicitly judged `NO_RULE_CONTENT`; the sentences produce six claims. Five
+claims are raised for missing rule-language expression, and the medical-cost
+claim is partial because its existing `Currency` entity captures Credits but
+not the 1D6 times 10,000 calculation. That entity's old section and quote
+locator is deleted. The remaining production transition contains 3,081
+legacy structural citations.
+
+**UTF-8 evidence amendment, 2026-08-17 19:46 UTC.** The second production
+slice exposed that a valid byte range is not proof that it addresses the
+intended text. The first `Medical Care` draft calculated Unicode character
+positions; multibyte characters earlier in the representation shifted every
+range by 20 bytes. Raised claims had no numeric value to expose the drift and
+could otherwise have passed against the wrong source leaves. Edition-scoped
+verification now requires every `UTF8_TEXT` ledger target to carry a
+`TextQuoteSelector` whose exact text converges with the primary byte range.
+The generic `SourceTarget` schema keeps that selector optional because other
+media do not have text quotes. The ingestion verifier makes it mandatory only
+where the representation contract can prove it.
+
+`Medical Care` now contributes 22 exact leaves and 15 claims. Its fixed 5,000
+Credits per restored characteristic point is a partial claim materializing a
+`RuleConstant`; fourteen claims remain raised for missing rule-language
+operations. Percentage claims cite career, threshold, and result cells and
+record the exact prior dice and Career entities used to interpret them. The
+production ledger now totals 26 coverage records and 21 claims. The legacy
+citation count remains 3,081 because this section had no prior structural
+citation to replace.
+
+**Compound-leaf amendment, 2026-08-17 20:08 UTC.** The third production slice,
+`Medical Debt`, contains only a heading and one compound sentence. The heading
+is explicitly `NO_RULE_CONTENT`. The sentence has one exact coverage record
+and supports three separate `IngestionClaim` records, so evidence identity is
+not copied merely because interpretation splits a sentence.
+
+All three claims remain visible and non-executable. Medical-care payment from
+Benefits and payment precedence are `RULE_LANGUAGE_GAP` findings. Anagathic
+debt is an `ONTOLOGY_GAP` because no anagathic concept exists in the current
+graph. `CLAIM_RESOLVED_AGAINST` still records the exact prior concepts used:
+the medical-care cost constant, Benefits lookup, and final character step.
+The production ledger now totals 28 coverage records and 24 claims. This slice
+needed no new generic mechanism; the existing ledger represented the source
+shape and both gap kinds without a fallback or invented rule entity.
+
+**Source-gap amendment, 2026-08-17 21:08 UTC.** The fourth production slice,
+`Aging`, adds 22 exact leaves and 12 claims. It converts 30 existing rule
+entities to exact evidence, including the start-age constant, table,
+consequences, ordered outcome composition, entries, and explicit no-effect
+outcome. The separate checklist-owned `roll_aging` procedure step remains
+legacy because this slice does not cover its source leaf.
+
+The source prints the bottom table key as `-6`, not `-6 or less`, although the
+runtime must decide lower totals. The executable open-bottom reading therefore
+has a `PARTIAL` decision with `SOURCE_GAP`. `SOURCE_GAP` means the source itself
+does not fully specify the materialized reading. It is distinct from an absent
+ontology concept and from an absent rule-language expression.
+
+This case also closes a verifier failure class. A claim can cite header, key,
+and effect leaves, so exact evidence is a set of fragments rather than one
+synthetic row string. Band verification now finds one unique matching fragment
+and rejects ambiguity. A one-sided expansion beyond the printed boundary is
+accepted only through the current partial source-gap decision. Production now
+totals 50 coverage records and 36 claims: five no-rule-content leaves, three
+partial claims, 24 raised claims, and nine materialized claims.
+
+**Claim-generalization amendment, 2026-08-17 21:38 UTC.** `Aging Crisis`
+repeats the two consequence sentences from `Injury Crisis` byte for byte. The
+four Aging Crisis leaves remain distinct coverage records because provenance
+answers where each occurrence appeared. The five shared consequences become
+generalized claims supported by both passages because claim identity answers
+what was asserted.
+
+The five old Injury Crisis claims remain enduring records. Their original
+decisions stay at sequence zero; sequence one is `SUPERSEDED` and points to the
+new canonical claim. `SUPERSEDED` is not `DUPLICATE` in reverse. A duplicate is
+a later redundant claim pointing backward. A superseded claim points forward
+to a broader or corrected replacement. Reconciliation requires that link and
+forbids the old claim from retaining gap or materialization authority.
+
+The aging-specific trigger remains separate. The procedure's unpaid-crisis
+route also has its own partial projection claim because one game route is not
+the whole general pay-or-die rule. The production ledger now has 54 coverage
+records, 43 claims, and 48 claim decisions. Its current dispositions are five
+partial, 24 raised, nine materialized, and five superseded.
+
+**Exact-partition amendment, 2026-08-18 00:33 UTC.** Whole-representation
+completeness is now an explicit, mechanically checked claim. One
+`CompleteSourcePartition` activates the gate for one exact `UTF8_TEXT`
+`SourceRepresentationContext`. Every source byte must then belong to exactly
+one non-empty `SourceTarget` primary byte range or one non-empty
+`SourceExclusion` byte range. Exclusions use the closed `SYNTAX` or `LAYOUT`
+kind. Content that the reader cannot classify is an opaque target, never an
+exclusion. Gaps, overlaps, ranges outside the representation, selectors from
+another representation, disagreement between a target's identity and declared
+representation, duplicate completeness assertions, and missing exact length
+metadata fail reconciliation. Zero-length targets may retain source
+identity but cover no bytes; zero-length exclusions are invalid.
+
+The assertion is opt-in because migration is cumulative. A representation
+without `CompleteSourcePartition` makes no completeness claim and its existing
+partial ledger remains valid. Adding the assertion is the phase boundary at
+which omission becomes a failing test. This avoids making a deterministic
+Markdown parser the authority for semantic leaf boundaries. A reader still
+judges boundaries, while the engine proves exact byte accounting.
+
+The integration also removed a hidden loader rule. Representation scoping is
+now declared by the LinkML `identity_context` range on `SourceSelector`,
+`SourceTarget`, `SourceExclusion`, and `CompleteSourcePartition`. The seed
+loader derives scoping from that schema instead of naming source types in
+code. Runtime ontology lookup now preserves the nearest ancestor's refined
+property contract, so concrete selector subclasses inherit the restriction
+mechanically.
+
+**First complete-production amendment, 2026-08-18 02:51 UTC.**
+`book1/skills.md` is now a closed production representation: 437 atomic source
+targets and 844 typed syntax/layout exclusions cover its 31,878 bytes exactly
+once under one `CompleteSourcePartition`. Every target has one current
+coverage decision. The chapter produces 365 claims: 68 skill definitions
+materialize the chapter-owned `Skill` entities, 68 earlier available-list
+occurrences are explicit duplicates, and 229 claims remain raised rather than
+being forced into executable data. The list's `Airship` entry is a
+`SOURCE_GAP` because this chapter links elsewhere and contains no matching
+skill definition.
+
+The source-specific extractor is pinned to the exact reviewed source digest.
+It may mechanically find the already-decided atomic forms, but it cannot apply
+its semantic policy to changed text. New bytes fail generation until a reader
+reviews them and updates the pin and decisions. The generated skill seed is
+the only owner; no parallel ledger file or legacy fallback was added. The 68
+migrated skills lose their old locator fields. `Perception` and `Prospecting`
+remain on character-creation evidence because moving them here would falsify
+their provenance.
+
+This first complete representation also measured the cost of preserving the
+ledger in the production graph. A single headless process took 6.22 seconds
+and the full chargen executable took 313.94 seconds because verification
+rebuilt the corpus and replayed the complete prior seed prefix for every later
+seed. The owner selected the foundational engine fix: one reusable scratch
+world materializes the corpus once and grows only through seeds that have
+passed verification. The caller world retains the existing per-seed
+transaction boundary. Standalone verification remains isolated in a fresh
+world. A two-seed regression test requires exactly two corpus reads across the
+whole operation, one per world.
+
+The same deterministic headless life now takes 2.70 seconds and the complete
+253-check chargen executable takes 134.42 seconds, both about 57 percent less.
+Filtering and grouping remain optional derived views if review volume later
+demands them. They do not replace or weaken the atomic records.
+
+---
+
 ## Decisions this protocol records
 
 Taken 2026-08-16 04:57 UTC, except where marked OPEN. R11 above is one
@@ -434,14 +664,80 @@ judges "this is flavour" a few thousand times, and every one of those
 is a judgement that can be wrong. It is a judgement that will at least
 be visible.
 
-**The grain of a ledger row is OPEN.** Paragraph, sentence, or cell was
-put as a question and answered with R11 instead, which changes the
-question: a row that also records what it resolved against is not
-obviously the same size as a row that records only ingested-or-raised.
-What survives from the question is its constraint. The mustering-out
-paragraph carries two rules and the graph holds one, so any grain at
-which that is a single row forces the record to lie in one direction or
-the other. Decide this before Phase A writes rows.
+**The ledger has two levels, DECIDED 2026-08-17 01:41 UTC.** The owner
+selected option 4, "belt and suspenders": mechanically enumerable
+source-coverage rows plus atomic semantic claims linked to them. This
+supersedes the single-row-grain question. A coverage row proves that an
+addressed part of the pinned source was visited. A claim records one
+meaning judged from that source, what it resolved against, and what
+happened to it. One source unit may produce zero, one, or many claims;
+one claim may cite more than one source unit when its meaning crosses an
+address boundary. The mustering-out paragraph therefore gets one
+coverage judgement and separate claims for its separate rules. It no
+longer has to lie about a mixed outcome.
+
+The two levels have separate invariants. Every mechanically enumerated
+source unit has exactly one coverage judgement. Zero claims is legal
+only when the coverage row explicitly judges that the unit has no rule
+content; silence is never that judgement. Every claim cites at least one
+coverage row and carries its own disposition, dependency set, and
+downstream invalidation identity. Ingested, raised, duplicate,
+contradictory, provisional, and any later claim outcomes belong to the
+claim, not to the coverage row. Exact type names, leaf identity grammar,
+and the closed outcome vocabulary remain implementation decisions and
+must be settled by the Phase A tests. The required topology does not.
+
+**Phase A contract, 2026-08-17 15:25 UTC.** The selected names are
+`SourceCoverage`, `IngestionClaim`, `CoverageDecision`, and
+`ClaimDecision`. Outcomes are append-only `ArbiterDecision` histories,
+ordered contiguously per subject, never mutable status fields. Current
+state is the latest decision. The closed coverage vocabulary is
+`CLAIMS_PRESENT` / `NO_RULE_CONTENT`; the closed claim vocabulary is
+`MATERIALIZED`, `PARTIAL`, `RAISED`, `DUPLICATE`, and
+`CONTRADICTORY`. Partial and raised decisions distinguish
+`ONTOLOGY_GAP` from `RULE_LANGUAGE_GAP`. The reconciliation gate
+accounts for every enumerated source target, every coverage record,
+every claim-to-coverage link, and every current decision while retaining
+the prior events. R12 provisional state remains upstream Malleus work.
+
+**Rule identity context, decided 2026-08-17 15:42 UTC.** The owner selected
+the exact ingestion-edition option. Rule entities will use one sealed
+`IngestionEditionContext` as `identity_context`; source evidence remains an
+exact representation plus selector. The edition is one source layer plus the
+SHA-256 digest of its canonical, sorted, non-empty representation manifest.
+Manifest membership is a typed relation. File order is irrelevant; duplicate
+logical paths, mixed layers, missing members, or declared identity drift fail.
+Source-system revision is separate provenance rather than identity because it
+may change while every represented source byte remains identical. The edition
+schema and resolver exist. Production Logovger rules now use the materialized
+edition as `identity_context`, and every cross-seed qualified reference names
+that edition. Evidence remains on the structural document-locator path until
+the separate source-target migration is complete. This split was selected
+explicitly so identity no longer waits on conversion of 3,082 legacy citation
+records.
+
+**Coverage uses atomic source leaves, DECIDED 2026-08-17 03:12 UTC.**
+The canonical coverage units are headings, prose sentences, table cells
+including header and empty cells, sentences within list items, and an
+opaque leaf for source content the normalizer cannot classify more
+precisely. A file manifest still records every pinned file, including a
+file that produces no content leaves. Markdown separators, blank layout
+lines, and fence delimiters are syntax protected by the source pin, not
+independent semantic judgements. Content inside a fence remains a leaf.
+Nothing unrecognised may disappear: it becomes opaque or enumeration
+fails.
+
+Paragraphs, table rows, sections, and files may later be used for
+filtering, batching, display, and derived roll-ups when leaf volume
+becomes inconvenient. They do not replace the atomic records and do not
+carry a second coverage truth. The owner's reason is foundational: start
+with the smallest addressable evidence and add grouping on top if scale
+requires it. The exact identity grammar for duplicate and empty leaves
+remains open; the current locator cannot uniquely address every such
+leaf, so Phase A may not pretend the existing grammar is sufficient.
+
+The implementation checklist and parallel-session handover live in
+`todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
 
 **A derived value that contradicts a stated one is kept, both of them,
 with the divergence recorded.** Not refused, not silently resolved.

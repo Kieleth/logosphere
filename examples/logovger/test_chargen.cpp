@@ -22,12 +22,11 @@
 #undef NDEBUG
 
 #include "chargen/chargen.h"
-#include "chargen/rule_seeds.h"
+#include "chargen/rule_seed_loader.h"
 #include "chargen/procedure_catalog.h"
 
-#include "logosphere/kg/seed_loader.h"
-#include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/lookup_table_selector.h"
+#include "logosphere/text/source_target.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -82,42 +81,46 @@ kg::OntologyRegistry game_registry() {
 bool build_world(kg::KGModule& kg, std::string& why) {
     kg.setMode(kg::KGMode::MINIMAL);
     const auto procedures = logovger::make_chargen_procedure_registry();
-    // The same list the game loads. See chargen/rule_seeds.h.
-    const auto& seeds = logovger::kRuleSeeds;
-    // A seed may reference what an earlier one owns, so verification
-    // sees the same growing world the game does.
-    std::vector<kg::SeedEnvelope> kept;
-    kept.reserve(logovger::kRuleSeedCount);
-    std::vector<const kg::SeedEnvelope*> loaded_before;
-    for (const char* seed : seeds) {
-        const std::string json = slurp(game_path(seed));
-        if (json.empty()) { why = std::string(seed) + " unreadable"; return false; }
+    return logovger::load_rule_seeds(
+        kg, std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger",
+        procedures, why);
+}
 
-        auto parsed = kg::parse_seed_envelope(json);
-        if (!parsed.ok()) { why = "envelope: " + parsed.error; return false; }
+void test_rule_seed_manifest_rejects_wrong_order() {
+    std::vector<kg::SeedEnvelope> seeds;
+    std::string error;
+    CHECK(logovger::parse_rule_seeds(
+              std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger",
+              seeds, error),
+          "the production rule-seed manifest parses: " + error);
+    if (seeds.size() != logovger::kRuleSeedCount || seeds.empty()) return;
 
-        const auto v = kg::verify_seed(parsed.seed,
-                                       game_path("srd/cepheus"),
-                                       game_registry(), &procedures,
-                                       loaded_before);
-        if (!v.ok()) {
-            std::ostringstream o;
-            for (const auto& viol : v.violations)
-                o << "[" << viol.check << "] " << viol.alias << ": "
-                  << viol.reason << "; ";
-            why = "verify: " + o.str();
-            return false;
-        }
+    kg::SeedEnvelope dependent = std::move(seeds.back());
+    seeds.pop_back();
+    seeds.insert(seeds.begin(), std::move(dependent));
 
-        kg::SeedLoadReport report;
-        if (!kg::load_seed(parsed.seed, kg, report)) {
-            why = "load: " + report.error;
-            return false;
-        }
-        kept.push_back(std::move(parsed.seed));
-        loaded_before.push_back(&kept.back());
-    }
-    return true;
+    kg::KGModule world(game_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    const auto procedures = logovger::make_chargen_procedure_registry();
+    logosphere::text::SourceCorpusDeclaration corpus;
+    CHECK(logovger::declare_rule_source_corpus(seeds, corpus, error),
+          "the production corpus is declared before order verification: " +
+              error);
+    logovger::RuleSourceAccess source_access(game_path("srd/cepheus"));
+    kg::SeedSequenceLoadReport report;
+    CHECK(!kg::verify_and_load_seed_sequence_in_edition(
+              seeds, game_path("srd/cepheus"), corpus, source_access,
+              world, report, &procedures),
+          "the procedure seed is refused before the rules it references");
+    std::cout << "  [measure] production wrong-order refusal: "
+              << report.error << std::endl;
+    CHECK(report.failed_seed == 0 && report.seeds_loaded == 0,
+          "wrong order fails at the first seed before loading anything");
+    CHECK(report.error.find("no matching Addressable entity is loaded") !=
+              std::string::npos,
+          "the production refusal names its missing prerequisite entity");
+    CHECK(world.findByType("Procedure").empty(),
+          "the refused procedure leaves no partial procedure in the world");
 }
 
 kg::EntityID agent_training_table(kg::KGModule& world) {
@@ -1745,14 +1748,38 @@ void test_the_rules_are_data() {
         if (kg.getProperty(id, "name") == "Agent") career = id;
     CHECK(career != kg::INVALID_ENTITY, "the career is in the graph");
 
-    // A career's instances are the book's, so a career must be able to
-    // prove its numbers: the table row it was read from, verbatim in
-    // the chapter. This is what the Cited mixin buys.
-    const auto quote = kg.getProperty(career, "source_quote");
+    // A career's instances are the book's, so a career must prove the exact
+    // table title, column, row key, and value cells that identify it. Loose
+    // locator fields are gone after the Career Tables evidence migration.
     const auto chapter = slurp(game_path("srd/cepheus/book1/"
                                          "character-creation.md"));
-    CHECK(!quote.empty() && chapter.find(quote) != std::string::npos,
-          "the career cites the career-table row it came from");
+    const auto claims = kg.getRelatedReverse(career, "CLAIM_MATERIALIZES");
+    std::set<std::string> selected;
+    bool exact_evidence = claims.size() == 1;
+    if (exact_evidence) {
+        const auto supports = kg.getRelated(claims.front(),
+                                            "CLAIM_SUPPORTED_BY");
+        exact_evidence = supports.size() == 4;
+        for (const auto coverage : supports) {
+            const auto target_text = kg.getProperty(coverage,
+                                                    "coverage_target");
+            if (target_text.empty()) {
+                exact_evidence = false;
+                continue;
+            }
+            const auto target = static_cast<kg::EntityID>(
+                std::stoull(target_text));
+            const auto result = logosphere::text::resolve_text_target(
+                kg, target, chapter);
+            exact_evidence = exact_evidence && result.ok;
+            if (result.ok) selected.insert(result.text);
+        }
+    }
+    const std::set<std::string> expected{
+        "Career", "Agent", "Qualifications", "Soc 6+"};
+    CHECK(exact_evidence && selected == expected,
+          "the career's exact claim retains its table, column, row, and "
+          "qualification value");
 
     // The target lives on the career's qualification TaskCheck now, so
     // this reaches through the reference the seed built.
@@ -3009,6 +3036,7 @@ void test_the_aging_crisis_is_paid_for_or_kills() {
 int main() {
     std::cout << "Logovger chargen (a life, from the book, in the graph)"
               << std::endl;
+    test_rule_seed_manifest_rejects_wrong_order();
     test_a_life_is_generated();
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();

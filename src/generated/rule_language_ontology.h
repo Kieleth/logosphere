@@ -773,6 +773,90 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
+/// Closed media vocabulary implemented by source resolvers.
+enum class SourceMediaType {
+    /// UTF-8 source text addressed by byte range.
+    UTF8_TEXT
+};
+
+/// Convert SourceMediaType to its string representation.
+inline const char* to_string(SourceMediaType value) {
+    switch (value) {
+        case SourceMediaType::UTF8_TEXT: return "UTF8_TEXT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceMediaType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceMediaType& out) {
+    if (std::strcmp(str, "UTF8_TEXT") == 0) { out = SourceMediaType::UTF8_TEXT; return true; }
+    return false;
+}
+
+/// Closed reasons why exact source bytes are not semantic leaves in a complete UTF-8 partition. Unclassified content remains an opaque leaf; it is never an exclusion.
+enum class SourceExclusionKind {
+    /// Source-format delimiters with no independent content.
+    SYNTAX,
+    /// Whitespace or other source layout with no content.
+    LAYOUT
+};
+
+/// Convert SourceExclusionKind to its string representation.
+inline const char* to_string(SourceExclusionKind value) {
+    switch (value) {
+        case SourceExclusionKind::SYNTAX: return "SYNTAX";
+        case SourceExclusionKind::LAYOUT: return "LAYOUT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceExclusionKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceExclusionKind& out) {
+    if (std::strcmp(str, "SYNTAX") == 0) { out = SourceExclusionKind::SYNTAX; return true; }
+    if (std::strcmp(str, "LAYOUT") == 0) { out = SourceExclusionKind::LAYOUT; return true; }
+    return false;
+}
+
+/// Closed cryptographic digest vocabulary for source bytes.
+enum class SourceDigestAlgorithm {
+    /// SHA-256, encoded as 64 lowercase hexadecimal digits.
+    SHA256
+};
+
+/// Convert SourceDigestAlgorithm to its string representation.
+inline const char* to_string(SourceDigestAlgorithm value) {
+    switch (value) {
+        case SourceDigestAlgorithm::SHA256: return "SHA256";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceDigestAlgorithm. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceDigestAlgorithm& out) {
+    if (std::strcmp(str, "SHA256") == 0) { out = SourceDigestAlgorithm::SHA256; return true; }
+    return false;
+}
+
+/// Closed canonical encoding vocabulary for source manifests.
+enum class SourceManifestFormat {
+    /// Source representations sorted by logical source path, encoded as decimal byte-length-prefixed fields in the version-one field order.
+    LENGTH_PREFIXED_V1
+};
+
+/// Convert SourceManifestFormat to its string representation.
+inline const char* to_string(SourceManifestFormat value) {
+    switch (value) {
+        case SourceManifestFormat::LENGTH_PREFIXED_V1: return "LENGTH_PREFIXED_V1";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceManifestFormat. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceManifestFormat& out) {
+    if (std::strcmp(str, "LENGTH_PREFIXED_V1") == 0) { out = SourceManifestFormat::LENGTH_PREFIXED_V1; return true; }
+    return false;
+}
+
 /// Typed links inside the immutable ontology meta-graph.
 enum class OntologyMetaRelationType {
     ONTOLOGY_META_CONTAINS,
@@ -822,8 +906,9 @@ inline bool from_string(const char* str, OntologyMetaRelationType& out) {
     return false;
 }
 
-/// Closed ownership links inside stored rule programs.
+/// Closed typed links owned by the reusable rule-language pack.
 enum class RuleLanguageRelationType {
+    EDITION_INCLUDES_REPRESENTATION,
     FUNCTION_SIGNATURE_HAS_PARAMETER,
     LET_EXPRESSION_HAS_BINDING
 };
@@ -831,6 +916,7 @@ enum class RuleLanguageRelationType {
 /// Convert RuleLanguageRelationType to its string representation.
 inline const char* to_string(RuleLanguageRelationType value) {
     switch (value) {
+        case RuleLanguageRelationType::EDITION_INCLUDES_REPRESENTATION: return "EDITION_INCLUDES_REPRESENTATION";
         case RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER: return "FUNCTION_SIGNATURE_HAS_PARAMETER";
         case RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING: return "LET_EXPRESSION_HAS_BINDING";
     }
@@ -839,6 +925,7 @@ inline const char* to_string(RuleLanguageRelationType value) {
 
 /// Parse a string into RuleLanguageRelationType. Returns false if the string is not a valid value.
 inline bool from_string(const char* str, RuleLanguageRelationType& out) {
+    if (std::strcmp(str, "EDITION_INCLUDES_REPRESENTATION") == 0) { out = RuleLanguageRelationType::EDITION_INCLUDES_REPRESENTATION; return true; }
     if (std::strcmp(str, "FUNCTION_SIGNATURE_HAS_PARAMETER") == 0) { out = RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER; return true; }
     if (std::strcmp(str, "LET_EXPRESSION_HAS_BINDING") == 0) { out = RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING; return true; }
     return false;
@@ -1615,8 +1702,64 @@ struct DiceRollEvent : public WorldEvent {
 };
 
 
-/// A typed relationship between world entities.
+/// Abstract parent of the engine's world relations. One concrete subclass per member of WorldRelationType, each pinning its own predicate and declaring its own endpoints.
+/// It is abstract because a relation class that leaves relation_type open across an enum is not one relation, it is a family. Malleus refuses that shape ("Concrete relation must fix relation_type with equals_string") and the refusal is right: an edge whose predicate is only known at write time cannot have a checkable domain and range, so endpoint validation degenerates to "does this name exist".
 struct WorldRelation : public Relation {
+};
+
+
+/// Composition: a humanoid has_part a torso. Endpoints are Entity from evidence, not neglect. 81 createRelation sites in C++ plus 1518 seed ops, spanning humanoid to torso, Procedure to ProcedureStep, RollableTable to TableEntry, LookupTable to CharacteristicModifierEntry, and OutcomeSequence to OutcomeStep. There is no narrower pair that covers them.
+struct HasPartRelation : public WorldRelation {
+};
+
+
+/// Spatial subdivision: an arm has_regional_part a forearm. No creation site in C++ or seeds as of 2026-08-16, so there is nothing to learn its endpoints from. Entity until evidenced.
+struct HasRegionalPartRelation : public WorldRelation {
+};
+
+
+/// Physics constraint link. Three creation sites, all body to constraint, but the body side spans humanoid, totem and the generic entity generator, and the constraint side has no class of its own in this schema to narrow to.
+struct HasConstraintRelation : public WorldRelation {
+};
+
+
+/// Spatial containment: a chest contains an item. Four creation sites spanning strata floor to layer, floor to tile, and torso to arm. Heterogeneous, so Entity.
+struct ContainsRelation : public WorldRelation {
+};
+
+
+/// Physical support: a floor supports an entity. One site and it is a test. No production creation site, so the shape is unevidenced.
+struct SupportsRelation : public WorldRelation {
+};
+
+
+/// A light source reaches an entity. The one relation whose endpoints are KNOWN rather than guessed: only a LightSource illuminates, which is what that class exists for, and only something in the world can be lit. Both classes are declared in this file, so the root can name them.
+struct IlluminatesRelation : public WorldRelation {
+};
+
+
+/// Fire spread between entities. No creation site anywhere in the repository, so there is nothing to learn its shape from yet.
+struct BurnsRelation : public WorldRelation {
+};
+
+
+/// An agent perceives a target entity. One site and it is a test (creature to torso). Anything can perceive anything until the perception layer says otherwise.
+struct PerceivesRelation : public WorldRelation {
+};
+
+
+/// A system entity manages another entity. Two sites, both the chunk system to a chunk's entity. Neither side has a class in this schema to narrow to.
+struct ManagesRelation : public WorldRelation {
+};
+
+
+/// Direct bond between two bodies, the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world. No createRelation site: bonds are made through the gluon path, so the KG edge has no writer to learn endpoints from.
+struct BondedToRelation : public WorldRelation {
+};
+
+
+/// A narrower thing refines a broader one: Slug Rifle SPECIALIZES Gun Combat in a skill cascade. Every occurrence measured is Skill to Skill, and Skill is a rulebook-pack class, so this file cannot name it. The pack may declare its own narrowed subclass; the root keeps the generic vocabulary.
+struct SpecializesRelation : public WorldRelation {
 };
 
 
@@ -1640,7 +1783,7 @@ struct SourceDocumentContext : public KnowledgeContext {
     std::string source_layer = {};
     /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Exact revision of the source document.
+    /// Legacy Git commit pin of a SourceDocumentContext. New source revision observations use source_revision because source systems are not required to be Git repositories.
     std::string source_commit = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
@@ -1660,6 +1803,115 @@ struct Addressable {
     KnowledgeContext identity_context = {};
     /// Immutable machine key within a context and concrete type.
     std::string entity_key = {};
+};
+
+
+/// Exact immutable bytes of one source representation. A new byte sequence is a new context even when it represents the same logical document or edition.
+struct SourceRepresentationContext : public KnowledgeContext {
+    /// Authored layer declared by a seed envelope.
+    std::string source_layer = {};
+    /// Path of the source document relative to its source root.
+    std::string source_file = {};
+    /// Immutable parent source layer of a document context.
+    SourceLayerContext source_layer_context = {};
+    /// Closed media kind governing valid primary selectors.
+    SourceMediaType source_media_type = {};
+    /// Cryptographic algorithm used by source_digest.
+    SourceDigestAlgorithm source_digest_algorithm = {};
+    /// Digest of the exact source representation bytes.
+    std::string source_digest = {};
+    /// Exact size of the source representation in bytes.
+    int32_t source_byte_length = {};
+};
+
+
+/// Immutable observation that one exact content-addressed representation occurred at one source-system revision. Each representation/revision pair is independent, so later observations never mutate earlier provenance.
+struct SourceRevisionObservation : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+    /// Exact source-system revision retained in a separate provenance observation. Revision does not participate in content identity; exact bytes do.
+    std::string source_revision = {};
+};
+
+
+/// Exact immutable source corpus used by one ingestion run. Its identity is the authored source layer plus the digest of its canonical manifest. Source revision observations carry provenance separately; revisions do not participate in the representation or manifest identity.
+struct IngestionEditionContext : public KnowledgeContext {
+    /// Authored layer declared by a seed envelope.
+    std::string source_layer = {};
+    /// Immutable parent source layer of a document context.
+    SourceLayerContext source_layer_context = {};
+    /// Canonical encoding used to produce the source manifest digest.
+    SourceManifestFormat source_manifest_format = {};
+    /// Cryptographic algorithm used by source_manifest_digest.
+    SourceDigestAlgorithm source_manifest_digest_algorithm = {};
+    /// Digest of the edition's canonical source manifest.
+    std::string source_manifest_digest = {};
+    /// Exact number of representations in the source manifest.
+    int32_t source_representation_count = {};
+};
+
+
+/// Typed coordinates selecting one fragment of a source representation. Selector subclasses own their coordinate grammar; no discriminator string chooses semantics at runtime.
+struct SourceSelector : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+};
+
+
+/// Half-open byte range [start, end) within one immutable source representation. Equal bounds select an empty leaf.
+struct ByteRangeSelector : public SourceSelector {
+    /// Inclusive zero-based byte position in a representation.
+    int32_t source_byte_start = {};
+    /// Exclusive zero-based byte position in a representation.
+    int32_t source_byte_end = {};
+};
+
+
+/// Supporting exact text plus optional immediate context. It aids inspection and convergence checks but never owns leaf identity.
+struct TextQuoteSelector : public SourceSelector {
+    /// Exact decoded text expected at the primary selector.
+    std::string source_quote_exact = {};
+    /// Optional text immediately before the selected text.
+    std::optional<std::string> source_quote_prefix = std::nullopt;
+    /// Optional text immediately after the selected text.
+    std::optional<std::string> source_quote_suffix = std::nullopt;
+};
+
+
+/// One source representation plus its canonical primary selector. An optional quote selector is supporting evidence and must converge on the same fragment.
+struct SourceTarget : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Exact immutable source representation being selected.
+    SourceRepresentationContext target_representation = {};
+    /// Canonical selector that owns target identity.
+    SourceSelector target_primary_selector = {};
+    /// Optional supporting quote required to match the primary.
+    std::optional<TextQuoteSelector> target_quote_selector = std::nullopt;
+};
+
+
+/// Explicit assertion that one exact UTF-8 representation is partitioned completely by its source targets and typed exclusions. Presence enables the mechanical exact-cover gate; absence makes no completeness claim.
+struct CompleteSourcePartition : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+};
+
+
+/// Exact source bytes excluded from semantic leaves for one closed reason. Exclusions remain visible partition records; they never silently discard unclassified content.
+struct SourceExclusion : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+    /// Exact byte range omitted from semantic source leaves.
+    ByteRangeSelector exclusion_selector = {};
+    /// Closed reason the selected bytes are non-content.
+    SourceExclusionKind exclusion_kind = {};
 };
 
 
@@ -2091,6 +2343,78 @@ struct LetFunctionExpression : public FunctionExpression, public LetExpression {
 struct LetOutcomePlanExpression : public OutcomePlanExpression, public LetExpression {
     /// Typed body evaluated after every eager local binding.
     OutcomePlanExpression let_body = {};
+};
+
+
+/// A meta context contains a meta entity.
+struct OntologyMetaContainsRelation : public Relation {
+};
+
+
+/// A class meta points at its direct parent class meta.
+struct OntologyClassDirectParentRelation : public Relation {
+};
+
+
+/// A class meta carries a facet meta.
+struct OntologyClassHasFacetRelation : public Relation {
+};
+
+
+/// A property meta points at the class that declares it.
+struct OntologyPropertyDeclaringClassRelation : public Relation {
+};
+
+
+/// A property meta points at its value kind.
+struct OntologyPropertyValueKindRelation : public Relation {
+};
+
+
+/// A reference-valued property meta names its target class.
+struct OntologyPropertyReferenceTargetRelation : public Relation {
+};
+
+
+/// An enum-valued property meta names its enum.
+struct OntologyPropertyEnumTypeRelation : public Relation {
+};
+
+
+/// A relation meta names a class valid as its source.
+struct OntologyRelationValidSourceRelation : public Relation {
+};
+
+
+/// A relation meta names a class valid as its target.
+struct OntologyRelationValidTargetRelation : public Relation {
+};
+
+
+/// An enum meta carries a member meta.
+struct OntologyEnumHasMemberRelation : public Relation {
+};
+
+
+/// A member meta points back at the enum that owns it.
+struct OntologyEnumMemberOwnerRelation : public Relation {
+};
+
+
+/// A function signature owns a typed parameter spec.
+struct FunctionSignatureHasParameterRelation : public Relation {
+};
+
+
+/// An ingestion edition contains one exact source representation.
+struct EditionIncludesRepresentationRelation : public Relation {
+};
+
+
+/// A let expression owns a local binding.
+/// The source is Expression rather than LetExpression, and the difference is forced. LetExpression is a MIXIN marker, not an Entity subtype, so it cannot be an endpoint: an endpoint names a class instances can belong to. The thirteen classes that carry the marker (LetBooleanExpression through LetOutcomePlanExpression, one per result family) all descend from Expression, which is the narrowest Entity subtype that covers them. This is wider than the truth by exactly the non-let expressions, and it is as narrow as the type system permits.
+/// This endpoint read LetExpression until 2026-08-16 and was always wrong; the old enum-annotation path only checked that the name was a class, and a mixin is a class.
+struct LetExpressionHasBindingRelation : public Relation {
 };
 
 
