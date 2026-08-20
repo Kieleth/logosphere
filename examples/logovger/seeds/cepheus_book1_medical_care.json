@@ -65,7 +65,7 @@
         "coverage_judgement": "NO_RULE_CONTENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The heading names the section but states no rule.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -113,7 +113,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The sentence states that medical care can reverse injury damage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -161,7 +161,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The sentence fixes the restoration cost per characteristic point.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -209,7 +209,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The sentence makes employer payment conditional on service injury.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -257,7 +257,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The sentence defines the payment roll and Rank modifier.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -305,7 +305,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The sentence defines the table result as employer payment share.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -353,7 +353,7 @@
         "coverage_judgement": "NO_RULE_CONTENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell labels the career-group column but states no independent claim.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -401,7 +401,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The header supplies the 4+ threshold for its result cells.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -449,7 +449,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The header supplies the 8+ threshold for its result cells.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -497,7 +497,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The header supplies the 12+ threshold for its result cells.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -545,7 +545,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell identifies the careers governed by the first payment row.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -593,7 +593,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the first row's 4+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -641,7 +641,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the first row's 8+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -689,7 +689,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the first row's 12+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -737,7 +737,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell identifies the careers governed by the second payment row.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -785,7 +785,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the second row's 4+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -833,7 +833,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the second row's 8+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -881,7 +881,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the second row's 12+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -929,7 +929,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell identifies the careers governed by the third payment row.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -977,7 +977,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the third row's 4+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -1025,7 +1025,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the third row's 8+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -1073,7 +1073,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The cell supplies the third row's 12+ employer-payment percentage.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -1104,7 +1104,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The rule language cannot express the conditional and unspecified restoration.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1127,7 +1127,7 @@
         "claim_disposition": "PARTIAL",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The fixed amount is typed, but per-point payment and restoration are not represented.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1150,7 +1150,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The conditional employer-payment rule is not represented.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1173,7 +1173,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The rule language cannot express this two-dimensional career and threshold lookup.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1196,7 +1196,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The rule language cannot project a character's career Rank into this roll.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1219,7 +1219,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The rule language cannot apply a percentage payer split to a medical cost.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1296,7 +1296,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1379,7 +1379,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1462,7 +1462,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1545,7 +1545,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1670,7 +1670,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1795,7 +1795,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1920,7 +1920,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -1997,7 +1997,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -2074,7 +2074,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },

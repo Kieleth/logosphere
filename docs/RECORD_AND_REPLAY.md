@@ -280,6 +280,79 @@ have since stopped allowing.
 
 ---
 
+## Every decision has a name
+
+A decision is named by the path that reached it, and by nothing else:
+
+```
+name = sha256(parent's name + "\n" + the answer)
+```
+
+The parent's name already contains its own parent's, so one short string
+carries the whole path back to the root. `RunTape::node()` returns the
+name of the decision most recently recorded.
+
+Three properties fall out, and none of them is bookkeeping anyone
+maintains:
+
+**Shared prefixes are shared by construction.** Two runs that answered
+identically from the root compute identical names, with no comparison
+pass and no coordination. Measured on two real lives, a trunk and a
+fork of it:
+
+```
+trunk : c69f819b 4c5e58d9 e81ad008 c561adb7 70d1081a
+branch: c69f819b 4c5e58d9 e81ad008 d25c6c35 b81e1a57
+```
+
+Identical for three decisions, then they part. Nothing compared them.
+
+**History cannot form a cycle.** A run that returns to a state it was in
+before does not return to a name it was at before. This is the reason a
+node is NOT named by the world it produces. Go north, then south: the
+walker is where she started, and if the name came from the world that is
+a loop, at which point the history can no longer say how she got there
+or how many times she went round. Mercurial's author hit exactly this in
+2005 and folded the parents into the id for the same reason.
+
+**A tape cannot be quietly edited.** Change any past answer and every
+name after it changes.
+
+Reuses `text::sha256_hex`, already in the core profile for source
+digests, rather than adding a hash.
+
+## The rulebook is part of a tape
+
+A tape holds the seed and the answers. The world is derived from those
+**through the rules**, so a tape is a recipe rather than a photograph,
+and it only reproduces if the rules have not moved.
+
+The offered-answers check catches a changed MENU. Nothing catches
+changed CONSEQUENCES: the same answers against a rewritten table replay
+green and produce a different life, which is the worst result available,
+because it reports success.
+
+So a tape names the rulebook it was played against, on its first line:
+
+```
+{"kind":"rules","edition":"ingestion-edition:v1:7:cepheus:sha256:76ecc50c..."}
+```
+
+`RunTape::set_edition` writes it; `TapedInput::fits_edition` refuses a
+replay or a fork when it does not match, before a single decision is
+played. Optional: a game with no notion of an edition passes nothing and
+loses only this check.
+
+Both unanswerable cases stay unanswerable rather than becoming
+mismatches. A tape that names no edition, and a run that names none,
+each say WHICH question cannot be judged and continue, because refusing
+every tape recorded before editions existed would be its own kind of
+wrong.
+
+One consequence for anything cached: a stored world belongs to the rules
+that produced it, so cache it under `(node, edition)` and not under the
+node alone.
+
 ## What replay can and cannot promise
 
 **Byte-exact replay holds for**: headless runs at a fixed dt, with no

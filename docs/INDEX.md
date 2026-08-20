@@ -53,7 +53,7 @@ For the rules on where to add new sources/tests so they work in both profiles, s
 - **[examples/logogenesis](../examples/logogenesis/README.md)** — conversational world creation: type a wish, an LLM authors validated KG operations, the engine grows the world
 - **[examples/eden](../examples/eden/EDEN.md)** — the knowledge-garden tableau exercising the KG and capability stack end to end
 - **[examples/logotron](../examples/logotron/LOGOTRON.md)** — light-cycle arena with an LLM Director that redesigns opponents between rounds
-- **[examples/logovger](../examples/logovger/README.md)** — a published RPG rulebook read into the graph until it plays: verified ingestion, rules that cite the cell they came from, engine dice, and a character generator where every value on the sheet answers where it came from. Design record in [RPG_MODULE.md](RPG_MODULE.md), addressing scheme in [SOURCE_LOCATORS.md](SOURCE_LOCATORS.md), and what we learned doing it in [RULES_AS_DATA.md](RULES_AS_DATA.md)
+- **[examples/logovger](../examples/logovger/README.md)** — a published RPG rulebook read into the graph until it plays: verified ingestion, rules that cite the cell they came from, engine dice, and a character generator where every value on the sheet answers where it came from. How to play it in [PLAYING.md](../examples/logovger/PLAYING.md), design record in [RPG_MODULE.md](RPG_MODULE.md), addressing scheme in [SOURCE_LOCATORS.md](SOURCE_LOCATORS.md), and what we learned doing it in [RULES_AS_DATA.md](RULES_AS_DATA.md)
 
 
 ## Contributing

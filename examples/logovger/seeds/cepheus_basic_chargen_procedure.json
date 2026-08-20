@@ -201,7 +201,7 @@
         "claim_gap_kind": "RULE_LANGUAGE_GAP",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The route represents the death result, but the payment gate remains outside the rule language.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {

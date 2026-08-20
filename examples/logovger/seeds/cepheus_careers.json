@@ -12056,7 +12056,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12104,7 +12104,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12152,7 +12152,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12200,7 +12200,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12222,7 +12222,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12306,7 +12306,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12354,7 +12354,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12376,7 +12376,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12454,7 +12454,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12502,7 +12502,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12524,7 +12524,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12608,7 +12608,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12630,7 +12630,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12708,7 +12708,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12756,7 +12756,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12778,7 +12778,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12862,7 +12862,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12884,7 +12884,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -12962,7 +12962,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13010,7 +13010,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13032,7 +13032,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13116,7 +13116,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13138,7 +13138,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13216,7 +13216,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13264,7 +13264,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13286,7 +13286,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13370,7 +13370,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13392,7 +13392,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13470,7 +13470,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13518,7 +13518,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13540,7 +13540,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13624,7 +13624,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13646,7 +13646,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13724,7 +13724,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13772,7 +13772,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13820,7 +13820,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13868,7 +13868,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13890,7 +13890,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -13974,7 +13974,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14022,7 +14022,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14044,7 +14044,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14122,7 +14122,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14170,7 +14170,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14192,7 +14192,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14276,7 +14276,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14298,7 +14298,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14376,7 +14376,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14424,7 +14424,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14446,7 +14446,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14530,7 +14530,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14552,7 +14552,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14630,7 +14630,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14678,7 +14678,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14700,7 +14700,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14784,7 +14784,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14806,7 +14806,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14884,7 +14884,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14932,7 +14932,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -14954,7 +14954,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15038,7 +15038,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15060,7 +15060,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15138,7 +15138,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15186,7 +15186,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15208,7 +15208,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15292,7 +15292,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15314,7 +15314,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15392,7 +15392,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15440,7 +15440,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15488,7 +15488,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15536,7 +15536,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15558,7 +15558,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15642,7 +15642,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15690,7 +15690,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15712,7 +15712,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15790,7 +15790,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15838,7 +15838,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15860,7 +15860,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15944,7 +15944,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -15966,7 +15966,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16044,7 +16044,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16092,7 +16092,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16114,7 +16114,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16198,7 +16198,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16220,7 +16220,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16298,7 +16298,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16346,7 +16346,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16368,7 +16368,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16452,7 +16452,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16474,7 +16474,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16552,7 +16552,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16600,7 +16600,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16622,7 +16622,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16706,7 +16706,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16728,7 +16728,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16806,7 +16806,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16854,7 +16854,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16876,7 +16876,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16960,7 +16960,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -16982,7 +16982,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17060,7 +17060,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17108,7 +17108,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17156,7 +17156,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17204,7 +17204,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17226,7 +17226,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17310,7 +17310,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17358,7 +17358,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17380,7 +17380,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17458,7 +17458,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17506,7 +17506,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17528,7 +17528,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17612,7 +17612,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17634,7 +17634,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17712,7 +17712,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17760,7 +17760,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17782,7 +17782,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17866,7 +17866,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17888,7 +17888,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -17966,7 +17966,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18014,7 +18014,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18036,7 +18036,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18120,7 +18120,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18142,7 +18142,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18220,7 +18220,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18268,7 +18268,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18290,7 +18290,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18374,7 +18374,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18396,7 +18396,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18474,7 +18474,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18522,7 +18522,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18544,7 +18544,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18628,7 +18628,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18650,7 +18650,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18728,7 +18728,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18776,7 +18776,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18824,7 +18824,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18872,7 +18872,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18894,7 +18894,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -18972,7 +18972,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19020,7 +19020,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19042,7 +19042,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19120,7 +19120,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19168,7 +19168,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19190,7 +19190,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19268,7 +19268,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19316,7 +19316,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19338,7 +19338,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19416,7 +19416,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19464,7 +19464,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19486,7 +19486,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19564,7 +19564,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19612,7 +19612,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19634,7 +19634,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19712,7 +19712,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19760,7 +19760,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19782,7 +19782,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19860,7 +19860,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19882,7 +19882,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19960,7 +19960,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -19982,7 +19982,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20060,7 +20060,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20082,7 +20082,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20160,7 +20160,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20182,7 +20182,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20260,7 +20260,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20282,7 +20282,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20360,7 +20360,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20408,7 +20408,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20430,7 +20430,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20508,7 +20508,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20530,7 +20530,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20608,7 +20608,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20630,7 +20630,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20708,7 +20708,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20730,7 +20730,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20808,7 +20808,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20830,7 +20830,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20908,7 +20908,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -20930,7 +20930,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21008,7 +21008,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21056,7 +21056,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21078,7 +21078,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21156,7 +21156,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21178,7 +21178,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21256,7 +21256,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21278,7 +21278,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21356,7 +21356,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21378,7 +21378,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21456,7 +21456,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21478,7 +21478,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21556,7 +21556,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21578,7 +21578,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21656,7 +21656,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21704,7 +21704,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21726,7 +21726,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21804,7 +21804,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21826,7 +21826,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21904,7 +21904,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -21926,7 +21926,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22004,7 +22004,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22026,7 +22026,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22104,7 +22104,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22126,7 +22126,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22204,7 +22204,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22226,7 +22226,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22304,7 +22304,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22352,7 +22352,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22374,7 +22374,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22452,7 +22452,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22474,7 +22474,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22552,7 +22552,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22574,7 +22574,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22652,7 +22652,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22674,7 +22674,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22752,7 +22752,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22774,7 +22774,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22852,7 +22852,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22874,7 +22874,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -22952,7 +22952,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23000,7 +23000,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23048,7 +23048,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23096,7 +23096,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23118,7 +23118,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23196,7 +23196,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23244,7 +23244,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23266,7 +23266,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23344,7 +23344,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23392,7 +23392,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23414,7 +23414,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23492,7 +23492,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23540,7 +23540,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23562,7 +23562,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23640,7 +23640,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23688,7 +23688,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23710,7 +23710,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23788,7 +23788,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23836,7 +23836,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23858,7 +23858,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23936,7 +23936,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -23984,7 +23984,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24006,7 +24006,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24084,7 +24084,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24106,7 +24106,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24184,7 +24184,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24206,7 +24206,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24284,7 +24284,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24306,7 +24306,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24384,7 +24384,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24406,7 +24406,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24484,7 +24484,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24506,7 +24506,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24584,7 +24584,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24632,7 +24632,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24654,7 +24654,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24732,7 +24732,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24754,7 +24754,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24832,7 +24832,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24854,7 +24854,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24932,7 +24932,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -24954,7 +24954,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25032,7 +25032,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25054,7 +25054,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25132,7 +25132,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25154,7 +25154,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25232,7 +25232,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25280,7 +25280,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25302,7 +25302,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25380,7 +25380,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25402,7 +25402,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25480,7 +25480,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25502,7 +25502,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25580,7 +25580,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25602,7 +25602,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25680,7 +25680,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25702,7 +25702,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25780,7 +25780,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25802,7 +25802,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25880,7 +25880,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25928,7 +25928,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -25950,7 +25950,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26028,7 +26028,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26050,7 +26050,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26128,7 +26128,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26150,7 +26150,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26228,7 +26228,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26250,7 +26250,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26328,7 +26328,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26350,7 +26350,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26428,7 +26428,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26450,7 +26450,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26528,7 +26528,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26576,7 +26576,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26598,7 +26598,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26676,7 +26676,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26698,7 +26698,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26776,7 +26776,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26798,7 +26798,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26876,7 +26876,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26898,7 +26898,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26976,7 +26976,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -26998,7 +26998,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27076,7 +27076,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27098,7 +27098,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27176,7 +27176,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27224,7 +27224,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27272,7 +27272,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27320,7 +27320,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27342,7 +27342,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27420,7 +27420,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27468,7 +27468,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27490,7 +27490,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27568,7 +27568,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27616,7 +27616,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27638,7 +27638,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27716,7 +27716,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27764,7 +27764,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27786,7 +27786,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27864,7 +27864,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27912,7 +27912,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -27934,7 +27934,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28012,7 +28012,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28060,7 +28060,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28082,7 +28082,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28160,7 +28160,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28208,7 +28208,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28230,7 +28230,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28308,7 +28308,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28330,7 +28330,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28408,7 +28408,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28430,7 +28430,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28508,7 +28508,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28530,7 +28530,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28608,7 +28608,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28630,7 +28630,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28708,7 +28708,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28730,7 +28730,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28808,7 +28808,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28856,7 +28856,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28878,7 +28878,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28956,7 +28956,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -28978,7 +28978,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29056,7 +29056,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29078,7 +29078,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29156,7 +29156,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29178,7 +29178,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29256,7 +29256,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29278,7 +29278,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29356,7 +29356,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29378,7 +29378,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29456,7 +29456,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29504,7 +29504,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29526,7 +29526,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29604,7 +29604,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29626,7 +29626,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29704,7 +29704,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29726,7 +29726,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29804,7 +29804,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29826,7 +29826,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29904,7 +29904,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -29926,7 +29926,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30004,7 +30004,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30026,7 +30026,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30104,7 +30104,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30152,7 +30152,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30174,7 +30174,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30252,7 +30252,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30274,7 +30274,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30352,7 +30352,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30374,7 +30374,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30452,7 +30452,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30474,7 +30474,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30552,7 +30552,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30574,7 +30574,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30652,7 +30652,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30674,7 +30674,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30752,7 +30752,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30800,7 +30800,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30822,7 +30822,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30900,7 +30900,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -30922,7 +30922,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31000,7 +31000,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31022,7 +31022,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31100,7 +31100,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31122,7 +31122,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31200,7 +31200,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31222,7 +31222,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31300,7 +31300,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31322,7 +31322,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31400,7 +31400,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31448,7 +31448,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31496,7 +31496,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31544,7 +31544,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31566,7 +31566,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31644,7 +31644,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31692,7 +31692,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31714,7 +31714,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31792,7 +31792,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31840,7 +31840,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31862,7 +31862,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31940,7 +31940,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -31988,7 +31988,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32010,7 +32010,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32088,7 +32088,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32136,7 +32136,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32158,7 +32158,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32236,7 +32236,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32284,7 +32284,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32306,7 +32306,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32384,7 +32384,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32432,7 +32432,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32454,7 +32454,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32532,7 +32532,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32554,7 +32554,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32632,7 +32632,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32654,7 +32654,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32732,7 +32732,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32754,7 +32754,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32832,7 +32832,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32854,7 +32854,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32932,7 +32932,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -32954,7 +32954,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33032,7 +33032,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33080,7 +33080,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33102,7 +33102,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33180,7 +33180,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33202,7 +33202,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33280,7 +33280,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33302,7 +33302,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33380,7 +33380,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33402,7 +33402,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33480,7 +33480,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33502,7 +33502,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33580,7 +33580,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33602,7 +33602,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33680,7 +33680,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33728,7 +33728,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33750,7 +33750,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33828,7 +33828,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33850,7 +33850,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33928,7 +33928,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -33950,7 +33950,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34028,7 +34028,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34050,7 +34050,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34128,7 +34128,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34150,7 +34150,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34228,7 +34228,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34250,7 +34250,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34328,7 +34328,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34376,7 +34376,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34398,7 +34398,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34476,7 +34476,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34498,7 +34498,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34576,7 +34576,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34598,7 +34598,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34676,7 +34676,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34698,7 +34698,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34776,7 +34776,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34798,7 +34798,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34876,7 +34876,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34898,7 +34898,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -34976,7 +34976,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35024,7 +35024,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35046,7 +35046,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35124,7 +35124,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35146,7 +35146,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35224,7 +35224,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35246,7 +35246,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35324,7 +35324,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35346,7 +35346,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35424,7 +35424,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35446,7 +35446,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35524,7 +35524,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this exact table cell state or support a rule?",
     "decision_reason": "The reviewed cell supplies table context or value.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35546,7 +35546,7 @@
     "claim_disposition": "MATERIALIZED",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The reviewed cell is represented by the listed typed entities.",
-    "arbiter": "Codex, owner-directed Career Tables migration"
+    "arbiter": "Codex, Career Tables migration"
    }
   },
   {
@@ -35598,7 +35598,7 @@
     "claim_disposition": "PARTIAL",
     "decision_question": "Can this table claim enter the typed graph?",
     "decision_reason": "The decision records the source defect without guessing.",
-    "arbiter": "Codex, owner-directed Career Tables migration",
+    "arbiter": "Codex, Career Tables migration",
     "claim_gap_kind": "SOURCE_GAP"
    }
   },

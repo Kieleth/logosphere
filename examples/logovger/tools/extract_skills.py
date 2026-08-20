@@ -35,7 +35,7 @@ GENERATED_BY = "examples/logovger/tools/extract_skills.py"
 REVIEWED_SOURCE_SHA256 = (
     "5ea1976cce85c5b9dad5d4db40653c5ad20e30ba09f450ea497c5c850ca62a90"
 )
-ARBITER = "Codex, owner-directed skills migration"
+ARBITER = "Codex, skills migration"
 
 # These exact sentences describe the document or navigate elsewhere. Every
 # other prose sentence in the hash-pinned chapter states gameplay or ontology
