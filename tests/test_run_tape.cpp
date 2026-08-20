@@ -329,6 +329,138 @@ void an_old_tape_admits_it_cannot_see_the_branches() {
     std::remove(path.c_str());
 }
 
+// ------------------------------------------------- naming a path
+
+// Two runs that answer the same way from the root compute the same
+// names, with nothing comparing them. That is prefix sharing, and it
+// is a consequence of the naming rather than a feature maintained.
+void two_runs_that_agree_compute_the_same_names() {
+    auto play = [](const std::vector<std::string>& answers,
+                   std::vector<std::string>& names) {
+        size_t at = 0;
+        replay::LiveInput source(
+            [&](const replay::Ask&, std::string& out, std::string&) {
+                out = answers[at++];
+                return true;
+            });
+        replay::RunTape tape(source, "");
+        std::string answer, error;
+        for (size_t i = 0; i < answers.size(); ++i) {
+            tape.ask(pick("chargen", {"1", "2", "3"}), answer, error);
+            names.push_back(tape.node());
+        }
+    };
+    std::vector<std::string> a, b;
+    play({"1", "2", "3"}, a);
+    play({"1", "2", "1"}, b);
+
+    CHECK(a.size() == 3 && b.size() == 3, "both runs named three steps");
+    CHECK(a[0] == b[0] && a[1] == b[1],
+          "the shared prefix has identical names, computed independently");
+    CHECK(a[2] != b[2], "and the step where they part does not");
+    CHECK(!a[0].empty() && a[0] != a[1], "each step has its own name");
+}
+
+// The cycle, which is the whole reason a node is not named by its
+// state. Go north, then south. The world is where it started. The
+// history is not, and must not be.
+void a_round_trip_does_not_return_to_its_own_name() {
+    std::vector<std::string> answers{"north", "south", "north", "south"};
+    size_t at = 0;
+    replay::LiveInput source(
+        [&](const replay::Ask&, std::string& out, std::string&) {
+            out = answers[at++];
+            return true;
+        });
+    replay::RunTape tape(source, "");
+    std::vector<std::string> names;
+    std::string answer, error;
+    for (size_t i = 0; i < answers.size(); ++i) {
+        tape.ask(pick("walk", {"north", "south"}), answer, error);
+        names.push_back(tape.node());
+    }
+    std::sort(names.begin(), names.end());
+    CHECK(std::unique(names.begin(), names.end()) == names.end(),
+          "four steps, four distinct names, though the walker is back "
+          "where she started twice over");
+}
+
+// Changing a past answer changes every name after it, so a tape cannot
+// be quietly edited.
+void editing_the_past_changes_every_name_after_it() {
+    auto tail = [](const std::vector<std::string>& answers) {
+        size_t at = 0;
+        replay::LiveInput source(
+            [&](const replay::Ask&, std::string& out, std::string&) {
+                out = answers[at++];
+                return true;
+            });
+        replay::RunTape tape(source, "");
+        std::string answer, error;
+        for (size_t i = 0; i < answers.size(); ++i) {
+            tape.ask(pick("chargen", {"1", "2", "3"}), answer, error);
+        }
+        return tape.node();
+    };
+    CHECK(tail({"1", "2", "3"}) != tail({"2", "2", "3"}),
+          "the last name differs although the last two answers match: "
+          "the first answer is inside it");
+}
+
+// ------------------------------------------------ naming the rules
+
+void a_tape_records_the_rulebook_it_was_played_against() {
+    const std::string path = tape_path("edition");
+    {
+        replay::RandomInput source(5);
+        replay::RunTape tape(source, path);
+        tape.set_edition("cepheus:sha256:aaaa");
+        std::string answer, error;
+        tape.ask(pick("chargen", {"1", "2"}), answer, error);
+    }
+    std::string error;
+    auto taped = replay::TapedInput::open(path, error);
+    CHECK(taped != nullptr, "the tape reads back: " + error);
+    if (!taped) return;
+    CHECK(taped->edition() == "cepheus:sha256:aaaa",
+          "and it remembers the rulebook");
+
+    std::string why;
+    CHECK(taped->fits_edition("cepheus:sha256:aaaa", why),
+          "the same rulebook fits");
+    CHECK(!taped->fits_edition("cepheus:sha256:bbbb", why),
+          "a different one does NOT, because the same answers against "
+          "different rules do not make the same life");
+    CHECK(why.find("do not make the same life") != std::string::npos,
+          "and it says why: " + why);
+
+    // The unanswerable cases are not failures. Refusing every tape that
+    // predates editions would be its own kind of wrong.
+    CHECK(taped->fits_edition("", why),
+          "a run that names no rulebook cannot judge the tape");
+    std::remove(path.c_str());
+}
+
+void a_tape_without_an_edition_says_so_rather_than_pretending() {
+    const std::string path = tape_path("noedition");
+    {
+        replay::RandomInput source(5);
+        replay::RunTape tape(source, path);      // no set_edition
+        std::string answer, error;
+        tape.ask(pick("chargen", {"1", "2"}), answer, error);
+    }
+    std::string error, why;
+    auto taped = replay::TapedInput::open(path, error);
+    CHECK(taped != nullptr, "it still opens: " + error);
+    if (!taped) return;
+    CHECK(taped->edition().empty(), "it names no rulebook");
+    CHECK(taped->fits_edition("cepheus:sha256:aaaa", why),
+          "which is unanswerable, not a mismatch");
+    CHECK(why.find("cannot be judged") != std::string::npos,
+          "and it says which: " + why);
+    std::remove(path.c_str());
+}
+
 }  // namespace
 
 int main() {
@@ -343,6 +475,11 @@ int main() {
     a_fork_replays_the_trunk_then_diverges();
     a_fork_refuses_what_was_never_offered();
     an_old_tape_admits_it_cannot_see_the_branches();
+    two_runs_that_agree_compute_the_same_names();
+    a_round_trip_does_not_return_to_its_own_name();
+    editing_the_past_changes_every_name_after_it();
+    a_tape_records_the_rulebook_it_was_played_against();
+    a_tape_without_an_edition_says_so_rather_than_pretending();
     std::cout << "\n[measure] " << passed << " passed, " << failed
               << " failed\n";
     return failed == 0 ? 0 : 1;
