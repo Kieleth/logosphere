@@ -269,6 +269,32 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Which rulebook this life is played against. The tape holds the
+    // seed and the answers; the world comes from those THROUGH THE
+    // RULES, so without this a tape replayed after the rules move can
+    // run green and produce a different life. The graph already knows
+    // its own edition, so the tape just has to write it down.
+    std::string edition;
+    {
+        const auto editions = world.findByType("IngestionEditionContext");
+        if (!editions.empty()) {
+            edition = world.getProperty(editions.front(), "context_key");
+        }
+    }
+    tape.set_edition(edition);
+
+    if (mode == "--replay" || mode == "--fork") {
+        // Read back through a second handle: the one driving the run is
+        // already positioned, and asking it anything moves the cursor.
+        std::string open_error, why_not;
+        auto check = replay::TapedInput::open(argument, open_error);
+        if (check && !check->fits_edition(edition, why_not)) {
+            std::cout << "the tape does not fit these rules: " << why_not
+                      << "\n";
+            return 1;
+        }
+    }
+
     // Attached AFTER the rulebook is in. Loading the seeds writes tens
     // of thousands of properties, and a trace of the library swamps
     // the trace of the life: 35k facts before the first die is rolled.
