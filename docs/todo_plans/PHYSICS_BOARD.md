@@ -126,6 +126,8 @@ external ones.)*
 
 ## F2 — NEW FRONT: a sphere will not slide a ramp that a cube slides
 
+**MEASURED 2026-08-16, and now watchable.** `tests/test_ramp_race` (+ `_visual`) releases a cube and a sphere together on one 40 degree ramp: the cube travels **6.356 m**, the sphere travels **0.000 m**. Born red. Mechanism: the sphere-vs-box branch builds the box side with `aabb_of_box_particle`, which never reads rotation (`src/core/narrow_phase.cpp:957-976`), so the sphere meets the ramp's upright bounding slab and stands on an invented `(0,0,1)` normal. Two lines wide. INV-12 broken live.
+
 Found 2026-08-15 by the machine's twin-path experiment, on its first
 run. Two ramps side by side, same 40-degree slope, same STONE, same
 drop, same mass class; a cube on one lane and a sphere on the other.
@@ -139,12 +141,24 @@ engine's own friction angle (mu=0.5 gives 26.6 degrees), so nothing
 should hold it, and the cube beside it leaves at 2.65 m/s. Whatever the
 sphere is resting on is not the surface the cube is resting on.
 
-**Suspect, unproven:** the sphere-vs-rotated-box narrow phase reporting
-an axis-aligned normal instead of the ramp's true one, which would make
-the contact behave like a horizontal shelf. The rotation study already
-records that sphere and ellipsoid handlers are orientation-blind
-(`ROTATION_CAMPAIGN_DESIGN.md`), so this may be that gap with a
-consequence attached — but nobody has traced this contact yet.
+**Mechanism located 2026-08-16, and it is the suspect.** The call site is
+`narrow_phase_particle_pair` (`src/core/narrow_phase.cpp:957-977`): for a
+sphere-vs-box pair it builds the box side with `aabb_of_box_particle`
+(`:459-466`), which reads `width`/`height`/`thickness` as world extents and
+never looks at rotation. So a sphere meets a ROTATED ramp as the ramp's
+upright bounding slab. Measured in `tests/test_collision_bounds_rotation.cpp`
+part 5: on one 30-degree ramp, a box is correctly told `(0, -0.5, 0.866)`
+and a sphere is told `(0, 0, 1)`. A flat shelf, with no lateral component
+to drive it downhill, which is exactly the "lands and never moves again"
+in the numbers above.
+
+The gap is the sphere-vs-box PAIR, not the sphere: broad-phase bounds,
+BVH leaves, turtle down-reach and box-box narrow phase all went oriented on
+2026-08-12. That makes this INV-12 broken in one handler rather than a
+missing capability, and the test now pins the wrong answer so a fix cannot
+land silently. Still owed: the fix itself (an oriented sphere-vs-OBB
+closest-point handler), and confirmation on the live ramp scene that this
+is the whole of F2 rather than the first half of it.
 
 Marked as the machine's frontier stage (SR TWIN PATHS), placed last so
 a red measurement cannot starve the passing stages of coverage. When
@@ -164,7 +178,7 @@ for a rolling solid sphere, every run.
 | D2 | **Rotation campaign** | `ROTATION_CAMPAIGN_DESIGN.md` | **Study complete.** The full-Jacobian row already exists on `feat/joint-block-solver` (`4c92518`, stalls −96%) and both reasons it was parked have since landed. Slices S0-S10. **6 questions owed.** Collides with D1: both specify the same `inv_inertia_momentum` predicate — whichever lands first must own it, or the angular side grows a fifth immovability formula. |
 | D3 | **The substrate: model the effect of what we don't simulate** | **none yet — owed** | The owner's direction: gravity is the effect of unmodelled mass, ground support is that same substrate pushing back, floating is an exemption from the field. Retires the entire "pin it so it doesn't fall over" class, subsumes task #48 (gravity as a lever), and is the honest replacement for the worldgen pins in P1. Needs a study before any code. |
 | D4 | **The unexplained 500:1 / 1044:1 bond tear** | KINEMATIC audit, residual risk | Established: the resolver did not cause it and the old pricing quirk concealed it (`SLEEP_LAW_OFF=1` with the resolver off reproduces it to three decimals). Unexplained: why a bond between unequal masses amplifies 1.2 m/s into 1.79 m/s. An open INV-17 suspect that the flip makes visible in CI. |
-| D7 | **THE AMBIENT MEDIUM: what is a body surrounded by?** (owner, 2026-08-16) | **none yet, owed** | Media exist and the model is sound (drag against RELATIVE velocity, buoyancy, fields, per `InteractionProfile`), and there IS an ambient air model (quadratic drag against `RHO_AIR = 1.225`, every moving body, every substep, `physics_system_v4.cpp:4674-4683`), which I first reported as absent because the grep searched for the word `ambient` and the mechanism is spelled `RHO_AIR`. The real defect is worse: **two drag laws run at once and neither knows about the other**, ambient quadratic booked to dissipation and medium linear booked nowhere, so a body in declared water is in water AND in air simultaneously. Neither is declarable, so no scene can be placed in vacuum. And the medium path is **linear only**, never touching `omega` or `torque`, so a paddle spins in water exactly as long as in air. `ANGULAR_DRAG = 0.95` per substep papers over BOTH holes with one number that ignores body, fluid and relative velocity: a body spinning in vacuum keeps 4.5 parts per million of its spin after one second. Its own comment confesses the INV-19 exposure and defers it; we then eradicated its linear twin `DAMPING_FACTOR` and left this one standing, **and the file said they were twins**. A fourth damper hides as a bare literal at `humanoid_locomotion.cpp:5277` (`const float ANGULAR_DRAG = 0.98f`), never extracted, a live INV-29 violation. **Same shape as D3**: gravity is the effect of mass we do not simulate, ambient drag is the effect of air we do not simulate. Design them together. Ontology work, Malleus discipline. GEDANKEN-25/26/27. **Owner: "maybe even before rotation"**, and the sequencing argument agrees: deleting the constant without filling the holes leaves free bodies spinning forever, so this precedes D2's baseline rather than following it. |
+| D7 | **THE AMBIENT MEDIUM: what is a body surrounded by?** (owner, 2026-08-16) | **none yet, owed** | Media exist and the model is sound (drag against RELATIVE velocity, buoyancy, fields, per `InteractionProfile`), and there IS an ambient air model (quadratic drag against `RHO_AIR = 1.225`, every moving body, every substep, `physics_system_v4.cpp:4674-4683`), which I first reported as absent because the grep searched for the word `ambient` and the mechanism is spelled `RHO_AIR`. The real defect is worse: **two drag laws run at once and neither knows about the other**, ambient quadratic booked to dissipation and medium linear booked nowhere, so a body in declared water is in water AND in air simultaneously. Neither is declarable, so no scene can be placed in vacuum. And the medium path is **linear only**, never touching `omega` or `torque`, so a paddle spins in water exactly as long as in air. `ANGULAR_DRAG = 0.95` per substep papers over BOTH holes with one number that ignores body, fluid and relative velocity: a body spinning in vacuum keeps 4.5 parts per million of its spin after one second. Its own comment confesses the INV-19 exposure and defers it; we then eradicated its linear twin `DAMPING_FACTOR` and left this one standing, **and the file said they were twins**. A fourth damper hides as a bare literal at `humanoid_locomotion.cpp:5277` (`const float ANGULAR_DRAG = 0.98f`), never extracted, a live INV-29 violation. **Same shape as D3**: gravity is the effect of mass we do not simulate, ambient drag is the effect of air we do not simulate. Design them together. Ontology work, Malleus discipline. GEDANKEN-25/26/27. **REVIEW ON LANDING: `tests/test_angular_dissipation` is born red against this front** (`tests/scenes/scene_spinning_cube.h` + the two drivers). It goes green when angular dissipation derives from a medium's density and the body's extents acting on RELATIVE angular velocity. It would ALSO go green if `ANGULAR_DRAG` were simply deleted, which would be wrong, because a body in real air must still slow. So the test does not by itself force the correct fix: GEDANKEN-27's half does, and that half is not instrumentable until the medium path touches `omega` and ambient air is declarable. Re-read the test's assertion when this front lands and do not weaken it. **Owner: "maybe even before rotation"**, and the sequencing argument agrees: deleting the constant without filling the holes leaves free bodies spinning forever, so this precedes D2's baseline rather than following it. |
 | D5 | **Order-capture slices 2+** | `PHYSICS_PIPELINE_SEQUENCE.md`, task #52 | Slice 1 landed (23 nodes, six seed edges, three carrier hazards). The load-bearing deliverable — the producer/consumer hazard scan — is still owed, and every solve-loop change above compounds the need. |
 
 ---
@@ -211,6 +225,143 @@ All three surfaced while defining what interaction words may MEAN
 
 ---
 
+## D2's measurement ladder: the cube drop (2026-08-19)
+
+Owner method: divide and conquer, G's first, asserts from the G's, then
+measure, then solutions. GEDANKEN-35/36/37 -> `test_cube_drop_ladder`
+(+ `_visual`), born red, one mechanism per rung:
+
+| rung | claim (from the G) | measured today | names |
+|---|---|---|---|
+| R0 control | flat drop invents no rotation | **GREEN**: settles flat, z 0.2031, omega 0 | the reds below are physics, not noise |
+| R1 | a cube dropped tilted 20 deg must TIP FLAT | **RED**: rests at rot_y 0.3491 (its release tilt), z 0.2595 (edge height), peak omega_y 0.0000 | D2 1.2 + the gate + the Euler publish (locks 1-3) |
+| R2 | spin survives flight, dies at the face | **RED**: 0.0306 of the spin reaches the floor | D7, ANGULAR_DRAG |
+| R3 | per flight frame, retention 1.0 to noise | **RED**: worst frame 0.8145 = 0.95^4 exactly | the leak is the constant, alone |
+
+R1 is the sharpest single number on the rotation front: a body balanced
+on an edge forever, with a prediction that contains no material constant
+(20 degrees, nearest face, geometry). Solutions deliberately NOT chosen
+yet — the owner rules after reading the measurements.
+
+## The orientation-truth instruments (2026-08-19, pre-change)
+
+`test_orientation_truth` (+ `_visual`), born red, tracked
+direction-locked in physics-linux beside the drop ladder:
+
+- **O0 GREEN**: the from_euler/to_euler round trip is identity away from
+  the gimbal band, worst basis error 0.000002 over ~1,700 poses. The
+  compass convention survives the trip; the unification cannot blame
+  the conversions.
+- **O1 RED, and the number mirrors**: twin cubes, identical spin about
+  Y. The quat-truth twin ends at visible rot_y **0.3167** with
+  divergence 0.0000; the Euler-truth twin at visible rot_y **0.0000**
+  with divergence **0.3167**. The same angle, once as motion, once as
+  incoherence — the default body's entire turn lands in a quaternion
+  nothing reads. G-23's observable form.
+- **O2 GREEN (lever landed 2026-08-19)**: `LOGOSPHERE_QUAT_TRUTH` exists,
+  default OFF, env + `PhysicsSystem::set_quat_truth` for in-process A/B.
+  Bit-identical baseline holds: hash `45c17b966f908416` lever off and
+  on for a never-rotating body (the publish canonicalizes IEEE -0.0 so
+  identity is a bitwise no-op). Spawn now seeds `rotation_q` from the
+  Euler triple at the single `add_particle` choke point, so every body
+  is born with ONE orientation.
+- **O3 GREEN, and THE FLIP IS RULED AND DONE (2026-08-19, ledger)**:
+  quaternion truth is the DEFAULT. `test_orientation_truth` fully green
+  (ONE ORIENTATION, 0 failures) and promoted to the CI smoke list;
+  `LOGOSPHERE_QUAT_TRUTH=0` is the kill switch. Per-frame Argus
+  testimony post-flip: every body coherent every frame, identical spins
+  identically visible, trajectories and omegas exactly equal across the
+  ledger flag. **Next on this front: `is_quat_driven` dies — six
+  representation reads become unconditional, seven authority reads fold
+  into `solver_mode` (the R7-dissolution work proper).**
+
+This is the unification's red ladder. The lever lands into it.
+
+## ARGUS (landed 2026-08-19) + the assert-or-waive discipline
+
+`src/core/argus.h`, pure engine module (owner: "not only in physics...
+combat etc."), engine accessor beside the ParticleTracer. Declarative
+watch-list; per-frame state; relative queries (separation, approach,
+spin, peaks, divergence); narration dump; read-only by construction;
+zero cost unwatched. Both skills now carry the full-state-narration /
+assert-or-waive directive, with the cube-drop ladder as the pattern.
+The witness does not perturb: every audited ladder number unchanged.
+
+**Rollout, 2026-08-19.** Ten physics tests re-run one at a time and
+audited against the narration discipline; every verdict matched
+TEST_AUDIT and none moved. Asserts went from 41 to 122. Argus is wired
+into eight of them (n/a by judgement in `test_collision_bounds_rotation`,
+which has no ParticleSystem and no time). Two defects the new eyes
+caught, both now fixed in the tests: `test_humanoid_knockback` called a
+run-wide velocity minimum a strike (a boulder braked by the turtle
+downrange reads identically), and `test_refused_momentum_ledger` summed
+its off-axis ledger columns and dropped them — the Z column holds
+-132.449 kg*m/s of real friction refusal, 99% of the striker's own
+vertical momentum deficit, which is the F1 RCA's second door proved to
+book in the right direction. Two NEW fronts, measured and recorded in
+the audit gaps rather than asserted: `test_pin_gluon_lifecycle`'s anchor
+sits exactly one foot width (0.1000 m) to the side of the foot it pins,
+because the plant target carries no body-lateral term; and
+`test_ramp_race`'s sphere now has its own D2 1.2 assert (peak |omega|
+exactly 0.0000 over 240 frames on a 40 degree slope, which a sphere
+cannot do — friction acts a full radius from its centre). Argus wishlist
+from the rollout: no history query beyond `latest`/`previous` (every
+test latches its own minima), no min-separation or closest-approach
+query, and `dump()` prints `rotY` only, so a body spinning about Z
+narrates as motionless.
+
+## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
+
+The owner, watching the ramp: *"sphere and cube arrive at the same time,
+which is a no no unless it was ice surface... we could have ice vs sand
+vs tarmac etc."*
+
+**He is right and the arithmetic makes it a discriminator, not a
+nicety.** A sliding body accelerates at `g(sin - mu*cos)`; a sphere
+rolling without slipping accelerates at `(5/7)g*sin`, INDEPENDENT of mu,
+because rolling dissipates nothing at the contact. On this 40 degree
+ramp `g*sin = 6.31 m/s2`, and a sphere needs `mu >= (2/7)tan = 0.240`
+to roll at all:
+
+| surface | mu | cube | sphere | who wins |
+|---|---|---|---|---|
+| ice | 0.05 | 5.93 | 5.93 (slides, cannot grip) | **tie, and correct** |
+| stone | 0.50 | 2.55 | 4.50 (rolls) | sphere, comfortably |
+| tarmac | 0.80 | 0.29 | 4.50 (rolls) | sphere, hugely |
+| sand | 1.10 | 0.00 (never moves) | 4.50 (rolls) | sphere, absolutely |
+
+Four surfaces, four different orderings, exactly one of them a tie.
+**A test that runs all four cannot be passed by an engine that ignores
+either rotation or friction**, which is what makes it worth building.
+
+Measured today on stone: cube 6.356 m, sphere 6.251 m, a tie inside the
+noise of two shapes sliding. **The engine is giving the ICE answer on
+stone**, because D2 1.2 leaves contacts with no lever arm so the sphere
+never spins up and slides like a ball of ice whatever it is made of.
+
+Cheap: one scene, one material parameter, four runs, and every expected
+value has closed-form arithmetic to check against. GEDANKEN-34.
+**Blocked on D2 1.2** — until a contact can apply torque, three of the
+four rows are unreachable and only the ice row would pass.
+
+---
+
+## F5 — the plant anchor pins one foot-width to the SIDE of the foot (2026-08-19, Argus audit)
+
+Found by the assert audit on a GREEN test and deliberately NOT committed
+as a failing assert (the prime directive): `test_pin_gluon_lifecycle`
+measures the plant anchor at x = 0.000, the body midline, while the
+foot it pins stands at x = -0.100. The `FOOT_PLANT` trace agrees at the
+source: `target=(0.000, 0.325, 0.055)` — **the plant target carries no
+body-lateral term**. Sibling finding, same file: the stance foot drifts
+past **0.24 m** from its plant target while plant_blend is 1.0.
+
+Whether a pin gluon is meant to hold a rest offset is a plant-code
+question (humanoid locomotion's heel-strike transfer), not one a wiring
+test may rule on. Needs the locomotion owner's read before any code.
+Evidence printed as `[finding]` lines in the test and recorded in its
+audit gaps.
+
 ## OWNER RULING
 
 | # | Decision | Blocks |
@@ -232,6 +383,14 @@ All three surfaced while defining what interaction words may MEAN
 - **Malleus H2 / H3** — relation domain/range vacuous; generation reproducibility.
 - **Stale-bond lifecycle** — `ParticleSystem::clear_particles()` never clears bonds; 28 stale bonds re-bound (fallback inventory, doored not fixed).
 - **INV-29 residual** — 31 remaining magic-number sites + malleus H4 materials single-source (task #51).
+- **Sweep audit debt: 30 unaudited tests from the rules/logovger lane** —
+  arrived via main (#132, #133 and earlier merges). Until they carry
+  audit rows the sweep verdict cannot read zero and the gate is
+  degraded: a real regression in that lane would drown in the same
+  bucket. The classification belongs to whoever owns those tests (the
+  logosphere2 session); guessing what they prove from here would be
+  worse than the debt. Physics-lane tests are fully audited as of
+  2026-08-19.
 - **GPU campaign** — issues #81-#87, the render session's lane.
 
 ---

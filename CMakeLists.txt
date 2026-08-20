@@ -412,6 +412,7 @@ add_headless_test(test_kg_setproperty_events)
 add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
+add_headless_test(test_collision_bounds_rotation)  # which shapes get oriented bounds, and which do not
 add_headless_test(test_iso_azimuth)
 add_headless_test(test_ontology_packs)
 add_headless_test(test_entity_type_strings)
@@ -1317,7 +1318,110 @@ target_include_directories(test_angular_dissipation PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+target_include_directories(test_angular_dissipation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 target_compile_features(test_angular_dissipation PRIVATE cxx_std_17)
+
+# F2 made measurable: a cube and a sphere released on one ramp. Born red.
+add_executable(test_ramp_race tests/test_ramp_race.cpp)
+target_link_libraries(test_ramp_race PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_ramp_race PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_ramp_race PRIVATE cxx_std_17)
+
+# The rotation drop ladder: G-35/36/37 made executable. Born red.
+add_executable(test_cube_drop_ladder tests/test_cube_drop_ladder.cpp)
+target_link_libraries(test_cube_drop_ladder PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_cube_drop_ladder PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_cube_drop_ladder PRIVATE cxx_std_17)
+
+# Orientation-truth instruments (G-19/20/23), written before the engine
+# changes. Born red on the Euler twin.
+add_executable(test_orientation_truth tests/test_orientation_truth.cpp)
+target_link_libraries(test_orientation_truth PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_orientation_truth PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_orientation_truth PRIVATE cxx_std_17)
+
+if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
+    add_executable(test_orientation_truth_visual tests/test_orientation_truth_visual.cpp)
+    target_link_libraries(test_orientation_truth_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_orientation_truth_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_orientation_truth_visual PRIVATE cxx_std_17)
+endif()
+
+if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
+    add_executable(test_cube_drop_ladder_visual tests/test_cube_drop_ladder_visual.cpp)
+    target_link_libraries(test_cube_drop_ladder_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_cube_drop_ladder_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_cube_drop_ladder_visual PRIVATE cxx_std_17)
+endif()
+
+if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
+    add_executable(test_ramp_race_visual tests/test_ramp_race_visual.cpp)
+    target_link_libraries(test_ramp_race_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_ramp_race_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_ramp_race_visual PRIVATE cxx_std_17)
+endif()
+
+# Visual driver: SEPARATE FILE, SAME SCENE. tests/scenes/scene_spinning_cube.h
+# owns the bodies and the stepping; neither driver holds a body or a
+# threshold, so the two cannot drift apart. FULL PROFILE ONLY, and the
+# gate must be LOGOSPHERE_FULL: NOT LOGOSPHERE_HEADLESS_ONLY only
+# excludes the deprecated core alias, and the Linux physics profile
+# walked through it and tried to compile a GLFW + Metal target
+# (precheck caught it, 2026-08-19).
+if(LOGOSPHERE_FULL)
+    add_executable(test_angular_dissipation_visual tests/test_angular_dissipation_visual.cpp)
+    target_link_libraries(test_angular_dissipation_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_angular_dissipation_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_angular_dissipation_visual PRIVATE cxx_std_17)
+endif()
 
 # INV-6's first witness: the same press on three axes must resolve the
 # same, or the solver knows which way is down.

@@ -1323,3 +1323,157 @@ reason it says.
 Corrected in place: GEDANKEN-26 (rewritten around the real mechanism,
 with the failure recorded in its own notes), the D7 board row,
 `MEDIUM_SPIKE.md`, and the test's own header.
+
+## 2026-08-19 — F2 is a PENETRATION bug, not a friction one, and INV-2 is live
+
+The owner, watching the ramp scene: *"I think sphere just falls behind
+the ramp, not even going down."* Right, and sharper than the reading I
+had published twice.
+
+I had described F2 as "the sphere meets a flat normal so nothing drives
+it downhill". Measured, it is worse and simpler:
+
+```
+sphere rests with its bottom at z =        2.924
+  the ramp's REAL tilted face at that x:   4.831
+  the ramp's UNROTATED box top:            2.924
+```
+
+Exact to three decimals. The sphere does not rest on the ramp at all. It
+falls **1.907 m THROUGH** the tilted face, past the point where it should
+have landed, and comes to rest on the horizontal top of the ramp's
+**unrotated** box: the flat shelf `aabb_of_box_particle` invents by
+discarding rotation (`src/core/narrow_phase.cpp:957-976`).
+
+**Three consequences the earlier framing missed.**
+
+1. **The zero travel needs no explanation about normals or friction.**
+   The shelf really is flat, so there is nothing to slide down. The body
+   is behaving correctly on the surface it was handed; the surface is
+   fiction.
+2. **This is an INV-2 violation, live and permanent.** "No two bodies
+   interpenetrate beyond SLOP (1 mm) in steady state, and penetration is
+   never accepted as a rest state." This sphere rests 1.9 m inside a box,
+   for ever. Not marginal.
+3. **It reaches every sphere against every rotated box in the engine**,
+   which includes tree log segments (`create_segment` sets `rotation_y =
+   pi/2`). Any spherical body meeting a felled log passes through it.
+
+Recorded because the correction matters more than the finding: I gave
+the same wrong reading twice, and the owner got it right by watching
+the thing move.
+
+## 2026-08-19 — F2 FIXED: spheres meet rotated boxes as the solid they are
+
+Owner: *"make sure that sphere does not fall, I've seen that."*
+
+`narrow_phase_sphere_obb` added (`src/core/narrow_phase.cpp`), and
+`narrow_phase_particle_pair` routes both sphere-box branches through it
+whenever `box_particle_is_rotated()`. Unrotated boxes keep the
+axis-aligned path, bit-identical, on purpose.
+
+The algorithm is the textbook one and deliberately mirrors the
+axis-aligned version so the contract cannot drift: project the offset
+onto each of the box's own axes, clamp to the half extents, rebuild the
+closest point in world, normal from B toward A (INV-25), penetration
+`r - d`. The deep case, sphere centre inside the box, exits along the
+box's OWN axis of least penetration rather than a world face; getting
+that wrong pushes a deeply penetrating sphere sideways through the solid.
+
+**Measured, before and after, same scene** (`test_ramp_race`, 40 deg ramp):
+
+| | before | after |
+|---|---|---|
+| sphere travel | 0.000 m | **6.251 m** |
+| sphere rest, bottom z | 2.924 (inside the ramp) | **0.003 (on the turtle)** |
+| the real face at that column | 4.831 | — |
+
+It no longer falls through. It runs the ramp and lands beside the cube,
+which travelled 6.356 m.
+
+**The tripwire did its job, which is the part worth recording.**
+`test_collision_bounds_rotation` part 5 pinned the WRONG answer on
+purpose so that fixing the pair would force whoever did it to correct
+the canonical table. It went red the same minute, and part 5 and the
+table in `narrow_phase.h` are corrected in this commit. That is the
+mechanism working exactly as designed, on its first firing, and it is
+the reason two comments could rot here before and this one cannot.
+
+Part 5 now also covers the deep case, which the axis-aligned path could
+not express at all.
+
+**Still red, and a different front.** The cube slides 6.356 m and never
+turns: peak |omega| exactly 0.0000 over 240 frames including leaving the
+ramp edge and landing. That is D2 1.2, contacts carry no lever arm.
+
+## 2026-08-19 — Argus, and the assert-or-waive discipline
+
+Owner, diagnosing the week's loose assertions and prescribing the cure:
+
+> "what can we adjust in the physics skill that prevents these loose
+> assertions... and then there's a physics-aware in the logs that tracks
+> from high level, particle position, distance to other particles, xyz
+> and relative to others, so you 'see' each particle and gets logged,
+> when doing these experiments or engine needs it."
+
+And on scope: **"pure engine module to use not only in physics, we
+might have to use it for others too, like combat etc."** Named by the
+owner: **ARGUS**, the many-eyed watchman.
+
+**The disease, named precisely**: assertions were sampled from a
+partial expectation instead of derived from a complete narration. The
+ramp test asserted travel and never rotation; the drop test could not
+say WHERE the sphere rested. The owner's eye kept doing the job of an
+observer that should have existed in code.
+
+**The two-part cure, both landed:**
+
+1. **Discipline (both skills)**: before the asserts, the full-state
+   narration — every DOF of every tracked body, per phase — then every
+   narrated DOF is asserted or waived by name. An unasserted DOF is a
+   visible decision.
+2. **Instrument (`src/core/argus.h`)**: declarative watch-list,
+   per-frame state records, relative queries (separation, approach
+   speed, spin, peaks, q-vs-Euler divergence), narration dump.
+   Read-only over particles by construction, zero cost unwatched, core
+   profile, engine accessor beside the ParticleTracer. The Tracer
+   answers "who wrote this" (causal); Argus answers "what is the state
+   and geometry, continuously" (observational).
+
+**Proving ground**: the cube-drop ladder observes through Argus. Every
+audited number unchanged (the witness does not perturb), and the new
+eyes immediately earned their keep: separation 0.3002 against the
+derived 0.3000 resting contact, and peak spin 2.4435 = 3.0 x 0.8145,
+one frame of ANGULAR_DRAG, the disease fingerprinted by the witness on
+its first frame of duty.
+
+## 2026-08-19 — RULED: the flip. Quaternion truth is the DEFAULT.
+
+Owner: *"add this decision into our ledger for physics, and enable."*
+
+The lever `LOGOSPHERE_QUAT_TRUTH` becomes the default: every DYNAMIC
+body's Euler ledger is published from its quaternion after angular
+integration, always. KINEMATIC bodies remain their external writer's.
+The env var inverts to a kill switch: `LOGOSPHERE_QUAT_TRUTH=0`
+restores the old split for A/B and bisection, and
+`PhysicsSystem::set_quat_truth(false)` remains for in-process baselines
+(O2 keeps proving the no-rotation case bit-identical both ways).
+
+Evidence the ruling stands on, all measured: O0 round trip identity to
+0.000002 over 1,700 poses; O2 bit-identical hash for a never-rotating
+body; O3 the frozen twin healed, divergence 0.0000, twins visually
+identical; per-frame Argus testimony that the flag never moved a body
+and never touched spin (exact zeros, 60 frames). Owner QA'd the
+lever-on twins interactively (both cubes turning) before ruling. The
+full-scene run (Eden / Rube under the lever) was offered and the owner
+ruled directly; recorded as his call.
+
+Consequences, in order: O1 goes green and test_orientation_truth is
+promoted from the CI red-list to the smoke list with its audit row
+(the direction-locked ratchet demanding exactly this bookkeeping);
+then `is_quat_driven` dies as a truth-selector — six representation
+reads become unconditional, seven authority reads fold into
+solver_mode, the R7-dissolution work proper. What the flip does NOT
+fix, so nothing is oversold: contacts still carry no lever arm (D2)
+and ANGULAR_DRAG still eats spin (D7); the flip makes rotation VISIBLE
+wherever it exists, which is lock 3 of 3 removed.

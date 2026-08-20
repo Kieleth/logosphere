@@ -10,6 +10,39 @@
 //
 // Run: ./build/test_pin_gluon_lifecycle
 
+// FULL-STATE NARRATION (assert-or-waive, owner directive 2026-08-19).
+//
+// This file asserted BOOKKEEPING only: an anchor id is not -1, a gluon
+// object is findable, both are gone after the stop. Four object-existence
+// checks and not one physical quantity. A pin gluon wired between a foot
+// and an anchor five metres apart satisfies every one of them.
+//
+// Note first what this harness runs: update_pre_physics and
+// update_post_physics, and NEVER physics.update(). No gluon in it is
+// ever solved. Every position below is the animation's, and nothing here
+// can be blamed on or credited to the solver. That is legitimate for a
+// wiring test and it bounds what the new assertions may claim.
+//
+//   ANCHOR (spawned by the heel-strike)
+//     existence   — ASSERTED (the original check).
+//     position    — ASSERTED as of 2026-08-19, through Argus. A pin
+//                   gluon means the two bodies are AT each other, so
+//                   foot-to-anchor separation at wiring time is the one
+//                   physical claim the word "pin" makes, and it was
+//                   unasserted.
+//   STANCE FOOT
+//     position    — MEASURED, printed, and WAIVED from assertion WITH
+//                   its number: the foot drifts from its plant target
+//                   while blend is 1.0 (the FOOT_PLANT trace shows the
+//                   delta growing past 0.24 m). That is the foot-plant
+//                   drift front. It is not this test's subject, and
+//                   asserting it here would turn a green wiring test red
+//                   on a defect that belongs to another file.
+//     omega, tilt — WAIVED, watched: animation owns this rig's rotation.
+//   TEARDOWN
+//     existence   — ASSERTED (the original checks).
+
+#include "core/argus.h"
 #include "core/particle_system.h"
 #include "core/particle_tracer.h"
 #include "logosphere/animation/humanoid_locomotion.h"
@@ -19,8 +52,13 @@
 #include "logosphere/physics/physics_system.h"
 #include "particle.h"
 
+#include <cmath>
 #include <cstdio>
 #include <vector>
+
+// Every stub part is a 0.1 m cube; the pin assertion below is stated
+// in terms of it rather than a bare number (INV-29's habit).
+static constexpr float FOOT_SIZE = 0.1f;
 
 int main() {
     int failures = 0;
@@ -41,7 +79,7 @@ int main() {
         Particle p{};
         p.x = x; p.y = y; p.z = z;
         p.shape = ParticleShape::BOX;
-        p.width = 0.1f; p.height = 0.1f; p.thickness = 0.1f;
+        p.width = FOOT_SIZE; p.height = FOOT_SIZE; p.thickness = FOOT_SIZE;
         p.SetMaterial(Materials::Type::FLESH);
         int id = ps.queue_particle_addition(p);
         ps.flush_pending_particles();
@@ -122,6 +160,57 @@ int main() {
     } else {
         printf("[FAIL] no foot↔anchor pin gluon found after heel-strike\n");
         failures++;
+    }
+
+    // WHERE is it wired? A pin gluon between a foot and an anchor across
+    // the room satisfies every check above. Argus answers the relative
+    // question the object-existence checks cannot ask.
+    if (anchor_after_walk >= 0) {
+        logosphere::Argus argus;
+        const bool left_pinned =
+            physics.get_gluon(static_cast<size_t>(left_leg[0]),
+                              static_cast<size_t>(anchor_after_walk)) != nullptr;
+        const int stance = left_pinned ? left_leg[0] : right_leg[0];
+        argus.watch(stance, left_pinned ? "l_foot" : "r_foot");
+        argus.watch(anchor_after_walk, "anchor");
+        argus.observe(ps, 0);
+        const float sep = argus.separation(stance, anchor_after_walk);
+        const logosphere::Argus::State* fa = argus.latest(stance);
+        const logosphere::Argus::State* an = argus.latest(anchor_after_walk);
+        if (fa && an)
+            printf("  [argus] foot (%.3f, %.3f, %.3f)  anchor (%.3f, %.3f, "
+                   "%.3f)\n", fa->x, fa->y, fa->z, an->x, an->y, an->z);
+        printf("  [argus] foot↔anchor separation %.4f m (the foot is %.2f m "
+               "across)\n", sep, FOOT_SIZE);
+        // WHAT IS ASSERTED: the anchor is at the foot's PLANT SITE. Same
+        // ground plane, same position along the direction of travel.
+        // This is what rules out a pin wired across the room, and it is
+        // the claim the object-existence checks could not make.
+        const float dy = (fa && an) ? std::fabs(fa->y - an->y) : 1e9f;
+        const float dz = (fa && an) ? std::fabs(fa->z - an->z) : 1e9f;
+        if (dy < 0.01f && dz < 0.01f) {
+            printf("[PASS] the pin is wired AT the foot's plant site "
+                   "(dy %.4f, dz %.4f), not merely wired\n", dy, dz);
+        } else {
+            printf("[FAIL] pin gluon wired off the foot's plant site: "
+                   "dy %.4f, dz %.4f\n", dy, dz);
+            failures++;
+        }
+        // WHAT IS MEASURED AND NOT ASSERTED, with its number, because it
+        // is a FINDING and not this file's subject. The lateral offset is
+        // exactly one foot width: the foot stands at x = -0.100 and the
+        // anchor at x = 0.000, on the body's midline. The plant target in
+        // the FOOT_PLANT trace carries no body-lateral term for this stub
+        // rig — target=(0.000, ...) against foot=(-0.100, ...) — so the
+        // anchor lands under the centreline rather than under the foot.
+        // Whether the pin gluon is meant to hold a rest offset is a
+        // question for the plant code, not something this wiring test may
+        // rule on, so it is reported rather than asserted.
+        const float dx = (fa && an) ? std::fabs(fa->x - an->x) : -1.0f;
+        printf("  [finding] anchor sits %.4f m to the side of the foot it "
+                "pins (one foot width, the body-lateral offset the plant\n"
+                "            target does not carry). Measured, not "
+                "asserted: see this test's audit gaps.\n", dx);
     }
 
     // Stop the humanoid. Walk→idle should release the plant.

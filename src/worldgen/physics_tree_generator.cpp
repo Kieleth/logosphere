@@ -12,23 +12,24 @@
 // CONSTRUCTOR / DESTRUCTOR
 // ============================================================================
 
-namespace { bool g_legacy_placement = false; }
+namespace
+{
+    bool g_legacy_placement = false;
+}
 void PhysicsTreeGenerator::set_legacy_placement(bool on) { g_legacy_placement = on; }
 bool PhysicsTreeGenerator::legacy_placement() { return g_legacy_placement; }
 
 PhysicsTreeGenerator::PhysicsTreeGenerator()
-    : engine_(nullptr)
-    , physics_(nullptr)
-    , particles_(nullptr)
-    , kg_(nullptr)
-    , rng_state_(0)
+    : engine_(nullptr), physics_(nullptr), particles_(nullptr), kg_(nullptr), rng_state_(0)
 {
 }
 
-PhysicsTreeGenerator::~PhysicsTreeGenerator() {
+PhysicsTreeGenerator::~PhysicsTreeGenerator()
+{
 }
 
-void PhysicsTreeGenerator::initialize(Engine* engine) {
+void PhysicsTreeGenerator::initialize(Engine* engine)
+{
     engine_ = engine;
     physics_ = &engine->get_physics_system();
     particles_ = &engine->get_particle_system();
@@ -41,9 +42,10 @@ void PhysicsTreeGenerator::initialize(Engine* engine) {
 
 PhysicsTreeResult PhysicsTreeGenerator::generate_tree(
     float world_x, float world_y, float world_z,
-    const TreeSpec& spec)
+    const TreeSpec &spec)
 {
-    if (!engine_ || !physics_ || !particles_) {
+    if (!engine_ || !physics_ || !particles_)
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: Not initialized!" << std::endl;
         return PhysicsTreeResult();
     }
@@ -63,24 +65,27 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree(
     int floor_tile_id = find_floor_tile_at(world_x, world_y);
     float floor_top_z = world_z;
 
-    if (floor_tile_id >= 0) {
+    if (floor_tile_id >= 0)
+    {
         // Use existing floor tile as anchor
         result.floor_id = floor_tile_id;
 
         // Get floor tile's top surface Z
         auto particles = particles_->lock_particles_for_read();
-        const Particle& tile = particles[floor_tile_id];
-        floor_top_z = tile.z + tile.thickness * 0.5f;  // Top of floor tile
+        const Particle &tile = particles[floor_tile_id];
+        floor_top_z = tile.z + tile.thickness * 0.5f; // Top of floor tile
         std::cout << "  Using existing floor tile id=" << floor_tile_id
                   << " (top at z=" << floor_top_z << ")" << std::endl;
-    } else {
+    }
+    else
+    {
         // NO DEFAULTS: Tree MUST gluon to existing floor tile
         // If no floor tile exists at this position, tree creation fails
         std::cerr << "[PhysicsTreeGenerator] ERROR: No floor tile found at ("
                   << world_x << ", " << world_y << "). "
                   << "Trees must be gluoned to existing floor tiles. "
                   << "Ensure floor is generated before creating trees." << std::endl;
-        return PhysicsTreeResult();  // Return empty/invalid result
+        return PhysicsTreeResult(); // Return empty/invalid result
     }
 
     // Generate tree on this floor
@@ -90,9 +95,10 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree(
 PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
     float world_x, float world_y, float world_z,
     int floor_particle_id,
-    const TreeSpec& spec)
+    const TreeSpec &spec)
 {
-    if (!engine_ || !physics_ || !particles_ || !kg_) {
+    if (!engine_ || !physics_ || !particles_ || !kg_)
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: Not initialized!" << std::endl;
         return PhysicsTreeResult();
     }
@@ -117,44 +123,43 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
     // Make trunk substantial and impressive - the visual anchor of the tree
 
     // GRANDIOUS: Taller, thicker trunk (25-40% of height, not 10-24%)
-    float trunk_ratio = random_variance(0.32f, 0.08f);  // 0.24 to 0.40
+    float trunk_ratio = random_variance(0.32f, 0.08f); // 0.24 to 0.40
     float trunk_length = varied_spec.height * trunk_ratio;
     // Thicker trunk for grandeur (1.2x to 1.6x base diameter)
     float trunk_thickness = varied_spec.trunk_diameter * random_variance(1.4f, 0.2f);
 
     // Create trunk particle
     Particle trunk = create_branch_particle(
-        world_x, world_y, world_z + trunk_length * 0.5f,  // Center of trunk
+        world_x, world_y, world_z + trunk_length * 0.5f, // Center of trunk
         trunk_length, trunk_thickness,
-        0.0f, 90.0f,  // Pointing straight up
-        varied_spec, varied_spec.branch_depth
-    );
+        0.0f, 90.0f, // Pointing straight up
+        varied_spec, varied_spec.branch_depth);
 
     // Attach trunk to floor with OrganicGluon (tree roots)
     // Roots spread underground - large contact area = massive breaking force
     // Requires bulldozer-level force to uproot an established tree
     auto root = std::make_unique<OrganicGluon>();
     // Get floor particle's actual thickness for correct offset to top surface
-    float floor_half_thickness = 0.1f;  // Default fallback
+    float floor_half_thickness = 0.1f; // Default fallback
     {
         auto particles_read = particles_->lock_particles_for_read();
-        const Particle& floor_p = particles_read[floor_particle_id];
+        const Particle &floor_p = particles_read[floor_particle_id];
         floor_half_thickness = floor_p.thickness * 0.5f;
     }
     // Offset from floor center to tree position (floor is one big tile)
     float floor_x = 0.0f, floor_y = 0.0f;
     {
         auto particles_read = particles_->lock_particles_for_read();
-        const Particle& floor_p = particles_read[floor_particle_id];
+        const Particle &floor_p = particles_read[floor_particle_id];
         floor_x = floor_p.x;
         floor_y = floor_p.y;
     }
     root->offset_a = Vec3(world_x - floor_x, world_y - floor_y, floor_half_thickness);
-    root->offset_b = Vec3(0.0f, 0.0f, -trunk_length * 0.5f);  // Bottom of trunk
+    root->offset_b = Vec3(0.0f, 0.0f, -trunk_length * 0.5f); // Bottom of trunk
     root->target_distance = 0.0f;
     // Root system contact area (m²) - larger trees have more extensive roots
     // Ancient oak roots spread 2-3x crown radius underground
-    root->contact_area = trunk_thickness * trunk_thickness * 4.0f;  // ~2-5 m² for typical trees
+    root->contact_area = trunk_thickness * trunk_thickness * 4.0f; // ~2-5 m² for typical trees
     // Force law derived at registration from materials (Phase C).
     // Breaking force = contact_area × avg_material_strength
     // With 2m² × 25MPa avg = 50MN (bulldozer territory)
@@ -176,17 +181,18 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
 
     // Initial branching parameters - GRANDIOUS wide-spreading crown
     // Start more horizontal for DRAMATIC wide crown like old oaks
-    float initial_elevation = random_variance(45.0f, 15.0f);  // 30-60° (more horizontal!)
-    float initial_direction = random_variance(0.0f, 180.0f);  // Random horizontal
+    float initial_elevation = random_variance(45.0f, 15.0f); // 30-60° (more horizontal!)
+    float initial_direction = random_variance(0.0f, 180.0f); // Random horizontal
 
     // GRANDIOUS: 4-5 main branches for dramatic silhouette
     int num_main_branches = std::max(4, varied_spec.branches_per_split + 2);
 
     // GRANDIOUS: Use reduced depth for simpler, bolder structure
-    int effective_depth = std::max(2, varied_spec.branch_depth - 2);  // Reduce complexity
+    int effective_depth = std::max(2, varied_spec.branch_depth - 2); // Reduce complexity
 
     // Generate main branches from trunk top
-    for (int i = 0; i < num_main_branches; ++i) {
+    for (int i = 0; i < num_main_branches; ++i)
+    {
         // Distribute evenly around trunk with variance
         float base_angle = (360.0f / num_main_branches) * i;
         float angle_offset = base_angle + random_variance(0.0f, varied_spec.angle_variance);
@@ -201,15 +207,14 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
 
         generate_branch(
             result.trunk_id,
-            world_x, world_y, trunk_top_z,   // trunk is upright: tip x,y = centre x,y
+            world_x, world_y, trunk_top_z, // trunk is upright: tip x,y = centre x,y
             branch_direction,
             branch_elevation,
             branch_length,
             branch_thickness,
-            effective_depth,  // GRANDIOUS: Use reduced depth for simpler structure
+            effective_depth, // GRANDIOUS: Use reduced depth for simpler structure
             varied_spec,
-            result
-        );
+            result);
     }
 
     std::cout << "  Total segments: " << result.total_segments
@@ -220,22 +225,27 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
         auto particles = particles_->lock_particles_for_read();
 
         // Bind trunk
-        if (result.trunk_id >= 0 && static_cast<size_t>(result.trunk_id) < particles.size()) {
+        if (result.trunk_id >= 0 && static_cast<size_t>(result.trunk_id) < particles.size())
+        {
             kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, result.trunk_id);
             kg_->setKGParticleData(kg_id, particles[result.trunk_id]);
         }
 
         // Bind branches
-        for (int branch_id : result.branch_ids) {
-            if (branch_id >= 0 && static_cast<size_t>(branch_id) < particles.size()) {
+        for (int branch_id : result.branch_ids)
+        {
+            if (branch_id >= 0 && static_cast<size_t>(branch_id) < particles.size())
+            {
                 kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, branch_id);
                 kg_->setKGParticleData(kg_id, particles[branch_id]);
             }
         }
 
         // Bind leaves
-        for (int leaf_id : result.leaf_ids) {
-            if (leaf_id >= 0 && static_cast<size_t>(leaf_id) < particles.size()) {
+        for (int leaf_id : result.leaf_ids)
+        {
+            if (leaf_id >= 0 && static_cast<size_t>(leaf_id) < particles.size())
+            {
                 kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, leaf_id);
                 kg_->setKGParticleData(kg_id, particles[leaf_id]);
             }
@@ -254,9 +264,10 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_on_floor(
 
 PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     float world_x, float world_y, float ground_z,
-    const TreeSpec& spec)
+    const TreeSpec &spec)
 {
-    if (!engine_ || !physics_ || !particles_ || !kg_) {
+    if (!engine_ || !physics_ || !particles_ || !kg_)
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: Not initialized!" << std::endl;
         return PhysicsTreeResult();
     }
@@ -286,10 +297,10 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     int root_plate_id = generate_root_system(
         world_x, world_y, ground_z,
         varied_spec.height, varied_spec.trunk_diameter,
-        result
-    );
+        result);
 
-    if (root_plate_id < 0) {
+    if (root_plate_id < 0)
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: Failed to create root system!" << std::endl;
         return PhysicsTreeResult();
     }
@@ -299,12 +310,12 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     // ========================================================================
     // GRANDIOUS STYLE trunk (same as generate_tree_on_floor)
 
-    float trunk_ratio = random_variance(0.32f, 0.08f);  // 0.24 to 0.40
+    float trunk_ratio = random_variance(0.32f, 0.08f); // 0.24 to 0.40
     float trunk_length = varied_spec.height * trunk_ratio;
     float trunk_thickness = varied_spec.trunk_diameter * random_variance(1.4f, 0.2f);
 
     // Trunk sits on the ground surface (root plate is now below ground)
-    float plate_height = 0.25f;  // Must match generate_root_system
+    float plate_height = 0.25f; // Must match generate_root_system
     // The plate SITS ON the turtle now (bottom at ground_z), so its top is a
     // full plate_height above ground rather than at it. This still read
     // ground_z, which left the trunk — and through it all four first-level
@@ -316,14 +327,13 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     Particle trunk = create_branch_particle(
         world_x, world_y, root_plate_top_z + trunk_length * 0.5f,
         trunk_length, trunk_thickness,
-        0.0f, 90.0f,  // Pointing straight up
-        varied_spec, varied_spec.branch_depth
-    );
+        0.0f, 90.0f, // Pointing straight up
+        varied_spec, varied_spec.branch_depth);
 
     // Attach trunk to root plate with OrganicGluon
     auto trunk_gluon = std::make_unique<OrganicGluon>();
     trunk_gluon->offset_a = Vec3(0.0f, 0.0f, plate_height * 0.5f);  // Top of root plate
-    trunk_gluon->offset_b = Vec3(0.0f, 0.0f, -trunk_length * 0.5f);  // Bottom of trunk
+    trunk_gluon->offset_b = Vec3(0.0f, 0.0f, -trunk_length * 0.5f); // Bottom of trunk
     trunk_gluon->target_distance = 0.0f;
     // Large contact area for stability (root system)
     trunk_gluon->contact_area = trunk_thickness * trunk_thickness * 4.0f;
@@ -348,7 +358,8 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
     int num_main_branches = std::max(4, varied_spec.branches_per_split + 2);
     int effective_depth = std::max(2, varied_spec.branch_depth - 2);
 
-    for (int i = 0; i < num_main_branches; ++i) {
+    for (int i = 0; i < num_main_branches; ++i)
+    {
         float base_angle = (360.0f / num_main_branches) * i;
         float angle_offset = base_angle + random_variance(0.0f, varied_spec.angle_variance);
 
@@ -359,15 +370,14 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
 
         generate_branch(
             result.trunk_id,
-            world_x, world_y, trunk_top_z,   // trunk is upright: tip x,y = centre x,y
+            world_x, world_y, trunk_top_z, // trunk is upright: tip x,y = centre x,y
             branch_direction,
             branch_elevation,
             branch_length,
             branch_thickness,
             effective_depth,
             varied_spec,
-            result
-        );
+            result);
     }
 
     std::cout << "  Total segments: " << result.total_segments
@@ -379,36 +389,44 @@ PhysicsTreeResult PhysicsTreeGenerator::generate_tree_with_roots(
         auto particles = particles_->lock_particles_for_read();
 
         // Bind root plate
-        if (result.root_plate_id >= 0 && static_cast<size_t>(result.root_plate_id) < particles.size()) {
+        if (result.root_plate_id >= 0 && static_cast<size_t>(result.root_plate_id) < particles.size())
+        {
             kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, result.root_plate_id);
             kg_->setKGParticleData(kg_id, particles[result.root_plate_id]);
         }
 
         // Bind roots
-        for (int root_id : result.root_ids) {
-            if (root_id >= 0 && static_cast<size_t>(root_id) < particles.size()) {
+        for (int root_id : result.root_ids)
+        {
+            if (root_id >= 0 && static_cast<size_t>(root_id) < particles.size())
+            {
                 kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, root_id);
                 kg_->setKGParticleData(kg_id, particles[root_id]);
             }
         }
 
         // Bind trunk
-        if (result.trunk_id >= 0 && static_cast<size_t>(result.trunk_id) < particles.size()) {
+        if (result.trunk_id >= 0 && static_cast<size_t>(result.trunk_id) < particles.size())
+        {
             kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, result.trunk_id);
             kg_->setKGParticleData(kg_id, particles[result.trunk_id]);
         }
 
         // Bind branches
-        for (int branch_id : result.branch_ids) {
-            if (branch_id >= 0 && static_cast<size_t>(branch_id) < particles.size()) {
+        for (int branch_id : result.branch_ids)
+        {
+            if (branch_id >= 0 && static_cast<size_t>(branch_id) < particles.size())
+            {
                 kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, branch_id);
                 kg_->setKGParticleData(kg_id, particles[branch_id]);
             }
         }
 
         // Bind leaves
-        for (int leaf_id : result.leaf_ids) {
-            if (leaf_id >= 0 && static_cast<size_t>(leaf_id) < particles.size()) {
+        for (int leaf_id : result.leaf_ids)
+        {
+            if (leaf_id >= 0 && static_cast<size_t>(leaf_id) < particles.size())
+            {
                 kg::KGParticleID kg_id = kg_->createKGParticle(result.entity_id, leaf_id);
                 kg_->setKGParticleData(kg_id, particles[leaf_id]);
             }
@@ -432,11 +450,12 @@ int PhysicsTreeGenerator::generate_branch(
     float length,
     float thickness,
     int depth,
-    const TreeSpec& spec,
-    PhysicsTreeResult& result)
+    const TreeSpec &spec,
+    PhysicsTreeResult &result)
 {
     // Base case: too deep or too thin - stop branching
-    if (depth <= 0 || thickness < 0.02f) {
+    if (depth <= 0 || thickness < 0.02f)
+    {
         return -1;
     }
 
@@ -484,8 +503,7 @@ int PhysicsTreeGenerator::generate_branch(
         branch_center_x, branch_center_y, branch_center_z,
         length, thickness,
         direction_angle, elevation_angle,
-        spec, depth
-    );
+        spec, depth);
 
     // Create OrganicGluon to attach branch to parent
     auto gluon = std::make_unique<OrganicGluon>();
@@ -541,15 +559,16 @@ int PhysicsTreeGenerator::generate_branch(
     // number we compute is discarded. Measure it instead of assuming either way.
     const float want_x = branch.x, want_y = branch.y, want_z = branch.z;
     int branch_id = physics_->add_particle_with_gluon_to(parent_id, branch, std::move(gluon),
-                                                        /*use_config_position=*/!g_legacy_placement);
+                                                         /*use_config_position=*/!g_legacy_placement);
     {
         static const bool place_dbg = std::getenv("PLACE_DEBUG") != nullptr;
-        if (place_dbg && branch_id >= 0) {
+        if (place_dbg && branch_id >= 0)
+        {
             auto pv = particles_->lock_particles_for_read();
-            const Particle& got = pv[branch_id];
+            const Particle &got = pv[branch_id];
             const float dx = got.x - want_x, dy = got.y - want_y, dz = got.z - want_z;
-            const float moved = std::sqrt(dx*dx + dy*dy + dz*dz);
-            const Particle& par = pv[parent_id];
+            const float moved = std::sqrt(dx * dx + dy * dy + dz * dz);
+            const Particle &par = pv[parent_id];
             std::cout << "[PLACE] depth=" << depth
                       << " P" << parent_id << "->P" << branch_id
                       << " wanted=(" << want_x << "," << want_y << "," << want_z << ")"
@@ -581,12 +600,13 @@ int PhysicsTreeGenerator::generate_branch(
     // ========================================================================
     // Add leaves at terminal branches with WIDER sphere distribution like kinematic
 
-    bool is_terminal = (depth == 1);  // This branch won't have children
-    float leaf_threshold = spec.trunk_diameter * 0.25f;  // Increased threshold
+    bool is_terminal = (depth == 1);                    // This branch won't have children
+    float leaf_threshold = spec.trunk_diameter * 0.25f; // Increased threshold
 
-    if (is_terminal || thickness < leaf_threshold) {
+    if (is_terminal || thickness < leaf_threshold)
+    {
         // GRANDIOUS: More leaves per cluster (6-10 instead of 4-8)
-        int num_leaves = 6 + (rng_state_ % 5);  // 6-10 leaves per tip
+        int num_leaves = 6 + (rng_state_ % 5); // 6-10 leaves per tip
         std::cout << "[PhysicsTreeGenerator] Adding " << num_leaves << " leaves at depth=" << depth << std::endl;
         rng_state_ = (1103515245 * rng_state_ + 12345) % 2147483648;
 
@@ -600,12 +620,13 @@ int PhysicsTreeGenerator::generate_branch(
         float tip_z = branch_top_z;
 
         // GRANDIOUS: Use SPHERE distribution like kinematic (wider 1.0-2.0m spread)
-        for (int i = 0; i < num_leaves; ++i) {
+        for (int i = 0; i < num_leaves; ++i)
+        {
             // Spherical distribution with random angles (like kinematic)
-            float theta = random_variance(0.0f, 180.0f);  // Random horizontal angle
-            float phi = random_variance(0.0f, 90.0f);     // Random vertical angle (0-180°)
+            float theta = random_variance(0.0f, 180.0f); // Random horizontal angle
+            float phi = random_variance(0.0f, 90.0f);    // Random vertical angle (0-180°)
             // GRANDIOUS: Wider spread radius (1.0-2.0m like kinematic instead of 0.12-0.18m)
-            float offset_radius = random_variance(1.5f, 0.5f);  // 1.0-2.0m radius
+            float offset_radius = random_variance(1.5f, 0.5f); // 1.0-2.0m radius
 
             float theta_rad = theta * M_PI / 180.0f;
             float phi_rad = phi * M_PI / 180.0f;
@@ -618,7 +639,9 @@ int PhysicsTreeGenerator::generate_branch(
             leaf.x = leaf_x;
             leaf.y = leaf_y;
             leaf.z = leaf_z;
-            leaf.vx = 0.0f; leaf.vy = 0.0f; leaf.vz = 0.0f;
+            leaf.vx = 0.0f;
+            leaf.vy = 0.0f;
+            leaf.vz = 0.0f;
 
             // Green color with variation
             leaf.r = spec.leaf_r + random_variance(0.0f, 0.1f);
@@ -630,17 +653,17 @@ int PhysicsTreeGenerator::generate_branch(
             leaf.a = 1.0f;
 
             leaf.shape = ParticleShape::BOX;
-            float this_leaf_width = random_variance(base_leaf_width, leaf_width_variance);  // 0.25-0.45m
+            float this_leaf_width = random_variance(base_leaf_width, leaf_width_variance); // 0.25-0.45m
             leaf.width = this_leaf_width;
             leaf.height = this_leaf_width * 0.7f;
-            leaf.thickness = 0.02f;  // 2cm thin (matches kinematic)
-            leaf.facing_angle = theta;  // Random orientation (theta is now in degrees)
+            leaf.thickness = 0.02f;    // 2cm thin (matches kinematic)
+            leaf.facing_angle = theta; // Random orientation (theta is now in degrees)
             leaf.reflectivity = 0.20f;
 
             // DYNAMIC LEAVES: Follow parent branch via gluon constraint
-            leaf.material_density = 100.0f;  // Light leaf material (100 kg/m³)
+            leaf.material_density = 100.0f; // Light leaf material (100 kg/m³)
             // Mass will auto-calculate from dimensions and material_density when particle is added
-            leaf.material_strength = 1000.0f;  // Weak - leaves tear easily
+            leaf.material_strength = 1000.0f; // Weak - leaves tear easily
 
             // COLLISION CHECK: Retry placement until non-overlapping position found
             // This prevents leaf-to-leaf overlap that causes physics oscillation
@@ -657,7 +680,8 @@ int PhysicsTreeGenerator::generate_branch(
             // With the position now honoured, this number decides canopy
             // density directly. Attempts raised to 60 because a tight gap needs
             // more tries in a crowded crown, and a dropped leaf is lost detail.
-            if (!particles_->try_place_with_retry(leaf, 60, 1.5f, 0.02f)) {
+            if (!particles_->try_place_with_retry(leaf, 60, 1.5f, 0.02f))
+            {
                 // All attempts failed - skip this leaf rather than create overlap
                 std::cout << "[PhysicsTreeGenerator] WARNING: Skipping leaf - no valid position found"
                           << std::endl;
@@ -669,17 +693,17 @@ int PhysicsTreeGenerator::generate_branch(
             float actual_dx = leaf.x - tip_x;
             float actual_dy = leaf.y - tip_y;
             float actual_dz = leaf.z - tip_z;
-            float actual_distance = std::sqrt(actual_dx*actual_dx + actual_dy*actual_dy + actual_dz*actual_dz);
+            float actual_distance = std::sqrt(actual_dx * actual_dx + actual_dy * actual_dy + actual_dz * actual_dz);
 
             auto leaf_gluon = std::make_unique<OrganicGluon>();
             leaf_gluon->particle_a = branch_id;
-            leaf_gluon->particle_b = 0;  // Will be set by add_particle_with_gluon_to
-            leaf_gluon->offset_a = Vec3(0, 0, length * 0.5f);  // Branch tip
-            leaf_gluon->offset_b = Vec3(0, 0, 0);  // Leaf center
-            leaf_gluon->target_distance = actual_distance;  // Maintain placed distance (may have been jittered)
+            leaf_gluon->particle_b = 0;                       // Will be set by add_particle_with_gluon_to
+            leaf_gluon->offset_a = Vec3(0, 0, length * 0.5f); // Branch tip
+            leaf_gluon->offset_b = Vec3(0, 0, 0);             // Leaf center
+            leaf_gluon->target_distance = actual_distance;    // Maintain placed distance (may have been jittered)
             // Force law derived at registration from materials (Phase C).
-            leaf_gluon->contact_area = 0.0001f;  // Tiny stem (1 cm²)
-            leaf_gluon->angular_stiffness = 0.0f;  // Leaves swing freely
+            leaf_gluon->contact_area = 0.0001f;   // Tiny stem (1 cm²)
+            leaf_gluon->angular_stiffness = 0.0f; // Leaves swing freely
             leaf_gluon->enable_angular_constraint = false;
 
             // KEEP THE POSITION try_place_with_retry FOUND. Without this the
@@ -698,7 +722,7 @@ int PhysicsTreeGenerator::generate_branch(
     // Only 1-2 branches per split to prevent crown collision
 
     // Drop more aggressively per depth - outer branches spread WIDE
-    float elevation_drop = random_variance(25.0f, 10.0f);  // 15-35° drop per level
+    float elevation_drop = random_variance(25.0f, 10.0f); // 15-35° drop per level
     float child_elevation = elevation_angle - elevation_drop;
     // Clamp - allow more horizontal spread
     child_elevation = std::max(10.0f, std::min(60.0f, child_elevation));
@@ -706,15 +730,19 @@ int PhysicsTreeGenerator::generate_branch(
     // SIMPLIFIED: Only 1-2 branches (not full spec.branches_per_split)
     int num_children = std::min(2, spec.branches_per_split);
 
-    for (int i = 0; i < num_children; ++i) {
+    for (int i = 0; i < num_children; ++i)
+    {
         // WIDER spread angle - branches go opposite directions
         float angle_offset;
-        if (num_children == 2) {
+        if (num_children == 2)
+        {
             // Two branches spread 120-180° apart (wide V shape)
-            float spread = random_variance(150.0f, 30.0f);  // 120-180° spread
+            float spread = random_variance(150.0f, 30.0f); // 120-180° spread
             angle_offset = (i == 0) ? -spread * 0.5f : spread * 0.5f;
-        } else {
-            angle_offset = random_variance(0.0f, 45.0f);  // Single branch with slight offset
+        }
+        else
+        {
+            angle_offset = random_variance(0.0f, 45.0f); // Single branch with slight offset
         }
 
         float child_direction = direction_angle + angle_offset;
@@ -734,8 +762,7 @@ int PhysicsTreeGenerator::generate_branch(
             child_thickness,
             depth - 1,
             spec,
-            result
-        );
+            result);
     }
 
     return branch_id;
@@ -749,7 +776,7 @@ Particle PhysicsTreeGenerator::create_branch_particle(
     float x, float y, float z,
     float length, float thickness,
     float angle_h, float angle_v,
-    const TreeSpec& spec,
+    const TreeSpec &spec,
     int depth)
 {
     Particle p;
@@ -819,15 +846,15 @@ Particle PhysicsTreeGenerator::create_branch_particle(
     p.facing_angle = twist;
 
     p.reflectivity = 0.3f;
-    p.pattern_id = 1;  // PATTERN_WOOD for bark texture
+    p.pattern_id = 1; // PATTERN_WOOD for bark texture
 
     // ========================================================================
     // PHYSICS PROPERTIES (the key difference from TreeGenerator!)
     // ========================================================================
 
     // Material properties for wood
-    p.material_density = spec.trunk_diameter > 0.5f ? 750.0f : 600.0f;  // Oak vs lighter wood
-    p.material_strength = 50e6f;  // 50 MPa (typical wood strength)
+    p.material_density = spec.trunk_diameter > 0.5f ? 750.0f : 600.0f; // Oak vs lighter wood
+    p.material_strength = 50e6f;                                       // 50 MPa (typical wood strength)
 
     // Mass will auto-calculate from dimensions and material_density when particle is added to system
 
@@ -839,14 +866,16 @@ Particle PhysicsTreeGenerator::create_branch_particle(
     return p;
 }
 
-float PhysicsTreeGenerator::calculate_mass(float length, float thickness, float density) {
+float PhysicsTreeGenerator::calculate_mass(float length, float thickness, float density)
+{
     // Approximate branch as cylinder
     float radius = thickness * 0.5f;
     float volume = M_PI * radius * radius * length;
     return volume * density;
 }
 
-float PhysicsTreeGenerator::calculate_contact_area(float thickness) {
+float PhysicsTreeGenerator::calculate_contact_area(float thickness)
+{
     // Cross-sectional area of branch
     float radius = thickness * 0.5f;
     return M_PI * radius * radius;
@@ -859,7 +888,7 @@ float PhysicsTreeGenerator::calculate_contact_area(float thickness) {
 int PhysicsTreeGenerator::generate_root_system(
     float world_x, float world_y, float ground_z,
     float tree_height, float trunk_thickness,
-    PhysicsTreeResult& result)
+    PhysicsTreeResult &result)
 {
     // ========================================================================
     // ROOT PLATE - Central anchor for the root system
@@ -870,7 +899,7 @@ int PhysicsTreeGenerator::generate_root_system(
     // Plate diameter should be MUCH larger than trunk for visible root spread
     // Use tree height as reference: plate radius = 30% of height for stability
     float plate_diameter = std::max(trunk_thickness * 4.0f, tree_height * 0.3f);
-    float plate_height = 0.25f;                      // 25cm tall - thicker for visibility
+    float plate_height = 0.25f; // 25cm tall - thicker for visibility
     // Root plate fully below ground — top face well under floor surface
     // NOTHING GOES BELOW THE TURTLE. TURTLE_Z = 0 is an absolute world floor,
     // and enforce_turtle_boundary() lifts anything beneath it EVERY SUBSTEP,
@@ -899,7 +928,7 @@ int PhysicsTreeGenerator::generate_root_system(
     Particle root_plate = {};
     root_plate.x = world_x;
     root_plate.y = world_y;
-    root_plate.z = plate_center_z;  // Center of plate above ground
+    root_plate.z = plate_center_z; // Center of plate above ground
     // A TREE IS ROOTED. The plate was DYNAMIC and unsupported: it sat with its
     // bottom exactly on the turtle, and the boundary only corrects a body whose
     // bottom goes BELOW it, so nothing held it up. It fell, and it dragged the
@@ -919,7 +948,9 @@ int PhysicsTreeGenerator::generate_root_system(
     root_plate.solver_mode = ParticleSolverMode::KINEMATIC;
     root_plate.is_at_rest = true;
 
-    root_plate.vx = 0.0f; root_plate.vy = 0.0f; root_plate.vz = 0.0f;
+    root_plate.vx = 0.0f;
+    root_plate.vy = 0.0f;
+    root_plate.vz = 0.0f;
 
     // Dark bark color (root plate is mostly underground)
     root_plate.r = 0.3f;
@@ -934,10 +965,10 @@ int PhysicsTreeGenerator::generate_root_system(
     root_plate.thickness = plate_height;
 
     // Wood material properties
-    root_plate.material_density = 800.0f;  // Dense root wood
+    root_plate.material_density = 800.0f; // Dense root wood
     root_plate.material_strength = 50e6f;
     root_plate.reflectivity = 0.2f;
-    root_plate.friction = 0.7f;  // Roots grip the ground
+    root_plate.friction = 0.7f; // Roots grip the ground
 
     // Add root plate as free particle (rests on turtle via collision)
     // Particle will participate in physics automatically through collision detection
@@ -954,15 +985,28 @@ int PhysicsTreeGenerator::generate_root_system(
     // ========================================================================
     //
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // !!  CRITICAL WARNING: PHYSICS COLLISION IS AXIS-ALIGNED ONLY        !!
+    // !!  HISTORICAL WARNING, AND IT IS NO LONGER TRUE                    !!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //
-    // The physics system (physics_system_v4.cpp) computes particle collision
-    // bounds using width/height/thickness as WORLD-AXIS-ALIGNED extents:
+    // WHAT THIS SAID, AND WHY IT WAS RIGHT IN 2024: physics computed
+    // collision bounds from width/height/thickness as WORLD-AXIS-ALIGNED
+    // extents and ignored rotation entirely, so a rotated body collided
+    // as though it were not rotated.
     //
-    //     particle_bottom = p.z - (p.thickness * 0.5f)   // LINE ~414, ~2094
+    // WHAT IS TRUE NOW: a rotated BOX collides as an ORIENTED box.
+    // physics_system_v4.cpp:1025 takes the oriented bounds for any BOX
+    // where box_particle_is_rotated() holds, and its own comment gives
+    // the reason: "a ROTATED box's raw extents under-cover its world
+    // span (a tilted blade's length leaves Z and enters Y), so its
+    // bounds come from the oriented box instead - exact for a box,
+    // never loose." Unrotated boxes keep the raw arithmetic to the bit.
+    // ELLIPSOID is the remaining approximation, colliding as its
+    // enclosing AABB; that one is tracked as invariant debt against
+    // INV-12 rather than as a rule.
     //
-    // IT COMPLETELY IGNORES rotation_x, rotation_y, rotation_z FOR COLLISION!
+    // The segments below ARE rotated boxes, so they get oriented
+    // bounds. The sizing convention here is kept anyway: it is correct
+    // regardless, and it is what the 2024 session paid for.
     //
     // WHAT WENT WRONG (2024-12 debugging session, hours wasted):
     //   - We set root.thickness = root_length (1.25m, the root's LENGTH)
@@ -972,10 +1016,11 @@ int PhysicsTreeGenerator::generate_root_system(
     //   - Roots appeared to "float above" the slab instead of at its sides
     //
     // THE FIX:
-    //   - Set width/height/thickness to match WORLD axes, not local particle axes
-    //   - For horizontal East/West roots: width=length, height=cross, thickness=cross
-    //   - For horizontal North/South roots: width=cross, height=length, thickness=cross
-    //   - DO NOT use rotation_x/y for horizontal particles - it only affects rendering
+    // - Set width/height/thickness to match WORLD axes, not local particle axes
+    // - For horizontal East/West roots: width=length, height=cross, thickness=cross
+    // - For horizontal North/South roots: width=cross, height=length, thickness=cross
+    // - Do not rely on rotation_x/y to orient collision bounds;
+    //   collision extents are determined by width/height/thickness.
     //
     // FUTURE PREVENTION:
     //   - Always think "what is the WORLD Z extent?" when setting thickness
@@ -984,9 +1029,16 @@ int PhysicsTreeGenerator::generate_root_system(
     //   - See test_physics_tree_roots.cpp Case 0 for baseline test pattern
     //
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //
+    // CANONICAL TABLE: which shapes get oriented collision treatment and
+    // which stay axis-aligned lives in ONE place,
+    // include/logosphere/physics/narrow_phase.h, pinned by
+    // tests/test_collision_bounds_rotation.cpp so it cannot rot in
+    // silence. When this history note and that table disagree, the
+    // table is the truth.
 
-    int num_roots = 3 + (rng_state_ % 2);  // 3-4 roots
-    float root_length = tree_height * 0.25f;  // Each root = 25% of height
+    int num_roots = 3 + (rng_state_ % 2);    // 3-4 roots
+    float root_length = tree_height * 0.25f; // Each root = 25% of height
     // A ROOT CANNOT BE THICKER THAN THE PLATE IT GROWS OUT OF.
     // Roots attach at the plate's side faces, which are at the plate's CENTRE
     // height, so a root whose Z cross-section exceeds plate_height hangs below
@@ -999,9 +1051,10 @@ int PhysicsTreeGenerator::generate_root_system(
     // BOX has 4 side surfaces: +X, -X, +Y, -Y
     // Place one root on each side surface
     num_roots = 4;
-    const float cardinal_angles[4] = {0.0f, 90.0f, 180.0f, 270.0f};  // +X, +Y, -X, -Y
+    const float cardinal_angles[4] = {0.0f, 90.0f, 180.0f, 270.0f}; // +X, +Y, -X, -Y
 
-    for (int i = 0; i < num_roots; ++i) {
+    for (int i = 0; i < num_roots; ++i)
+    {
         // Use cardinal direction + small variance
         float radial_angle = cardinal_angles[i] + random_variance(0.0f, 5.0f);
 
@@ -1013,11 +1066,13 @@ int PhysicsTreeGenerator::generate_root_system(
         // Root direction: purely horizontal (axis-aligned boxes don't support rotation)
         float dir_x = radial_x;
         float dir_y = radial_y;
-        float dir_z = 0.0f;  // Horizontal - physics can't handle rotated boxes
+        float dir_z = 0.0f; // Horizontal - physics can't handle rotated boxes
 
         // Root particle config
         Particle root = {};
-        root.vx = 0.0f; root.vy = 0.0f; root.vz = 0.0f;
+        root.vx = 0.0f;
+        root.vy = 0.0f;
+        root.vz = 0.0f;
 
         // BRIGHT BLUE for roots - unmistakably visible for debugging
         root.r = 0.0f;
@@ -1025,17 +1080,21 @@ int PhysicsTreeGenerator::generate_root_system(
         root.b = 1.0f;
         root.a = 1.0f;
 
-        // BOX dimensions must match WORLD axes (physics ignores rotation!)
+        // BOX collision dimensions must match WORLD axes (rotation is not applied
+        // to collision bounds).
         // For nearly horizontal roots at cardinal directions:
         //   X-axis roots (East/West): width=length, height=cross, thickness=cross
         //   Y-axis roots (North/South): width=cross, height=length, thickness=cross
         root.shape = ParticleShape::BOX;
-        if (std::abs(radial_x) > std::abs(radial_y)) {
+        if (std::abs(radial_x) > std::abs(radial_y))
+        {
             // X-axis dominant (East/West)
             root.width = root_length;        // X = root length
             root.height = root_thickness;    // Y = cross-section
             root.thickness = root_thickness; // Z = cross-section (small!)
-        } else {
+        }
+        else
+        {
             // Y-axis dominant (North/South)
             root.width = root_thickness;     // X = cross-section
             root.height = root_length;       // Y = root length
@@ -1062,10 +1121,13 @@ int PhysicsTreeGenerator::generate_root_system(
 
         // Determine which side face based on radial direction (dominant axis)
         float face_offset_x = 0.0f, face_offset_y = 0.0f;
-        if (std::abs(radial_x) > std::abs(radial_y)) {
+        if (std::abs(radial_x) > std::abs(radial_y))
+        {
             // X face (±X)
             face_offset_x = (radial_x > 0) ? plate_half_w : -plate_half_w;
-        } else {
+        }
+        else
+        {
             // Y face (±Y)
             face_offset_y = (radial_y > 0) ? plate_half_w : -plate_half_w;
         }
@@ -1073,7 +1135,7 @@ int PhysicsTreeGenerator::generate_root_system(
         // Face center in world coordinates
         float face_center_x = world_x + face_offset_x;
         float face_center_y = world_y + face_offset_y;
-            // The plate's side faces are at the plate's OWN centre height, and
+        // The plate's side faces are at the plate's OWN centre height, and
         // offset_a below carries z = 0 to say exactly that. This read
         // ground_z + plate_height*0.5 — a guess at where the plate centre is
         // rather than where it actually is — and was wrong by 0.375 m, which
@@ -1097,7 +1159,7 @@ int PhysicsTreeGenerator::generate_root_system(
         auto root_gluon = std::make_unique<OrganicGluon>();
         // Offset A: Attachment point on plate (side face center in plate's local coords)
         // Plate has no rotation, so local = world
-        root_gluon->offset_a = Vec3(face_offset_x, face_offset_y, 0.0f);  // Side face at plate center Z
+        root_gluon->offset_a = Vec3(face_offset_x, face_offset_y, 0.0f); // Side face at plate center Z
         // Offset B: Attachment point on root (inner end in WORLD coords)
         // Inner end is at root_center - half_length in the direction of the root
         // In world coords: inner_end = root_center - dir * root_length/2
@@ -1106,8 +1168,8 @@ int PhysicsTreeGenerator::generate_root_system(
         float inner_offset_y = -dir_y * root_length * 0.5f;
         float inner_offset_z = -dir_z * root_length * 0.5f;
         root_gluon->offset_b = Vec3(inner_offset_x, inner_offset_y, inner_offset_z);
-        root_gluon->target_distance = 0.0f;  // Touch attachment
-        root_gluon->contact_area = root_thickness * root_thickness;  // Root cross-section
+        root_gluon->target_distance = 0.0f;                         // Touch attachment
+        root_gluon->contact_area = root_thickness * root_thickness; // Root cross-section
         // Force law derived at registration from materials (Phase C).
 
         // KEEP THE COMPUTED POSITION. root_center_x/y/z are worked out above
@@ -1118,14 +1180,15 @@ int PhysicsTreeGenerator::generate_root_system(
             plate_id, root, std::move(root_gluon),
             /*use_config_position=*/!g_legacy_placement);
 
-        if (root_id >= 0) {
+        if (root_id >= 0)
+        {
             result.root_ids.push_back(root_id);
             result.total_segments++;
 
             // MILLIMETER PRECISION DEBUG: Log actual position with full dimensions
             auto particles = particles_->lock_particles_for_read();
-            const Particle& p = particles[root_id];
-            const Particle& plate = particles[plate_id];
+            const Particle &p = particles[root_id];
+            const Particle &plate = particles[plate_id];
 
             std::cout << "  ┌─[ROOT " << i << "] id=" << root_id << " (GLUONED to plate)" << std::endl;
             std::cout << "  │ GLUON OFFSETS:" << std::endl;
@@ -1134,7 +1197,7 @@ int PhysicsTreeGenerator::generate_root_system(
             std::cout << "  │   dir=(" << dir_x << ", " << dir_y << ", " << dir_z << ")" << std::endl;
             std::cout << "  │ Face center=(" << face_center_x << ", " << face_center_y << ", " << face_center_z << ")" << std::endl;
             std::cout << "  │ PLATE: center=(" << plate.x << ", " << plate.y << ", " << plate.z << ")" << std::endl;
-            std::cout << "  │        Z range: [" << (plate.z - plate.thickness*0.5f) << " to " << (plate.z + plate.thickness*0.5f) << "]" << std::endl;
+            std::cout << "  │        Z range: [" << (plate.z - plate.thickness * 0.5f) << " to " << (plate.z + plate.thickness * 0.5f) << "]" << std::endl;
             std::cout << "  │ ROOT:  center=(" << p.x << ", " << p.y << ", " << p.z << ")" << std::endl;
             std::cout << "  │        expected=(" << root_center_x << ", " << root_center_y << ", " << root_center_z << ")" << std::endl;
 
@@ -1142,9 +1205,11 @@ int PhysicsTreeGenerator::generate_root_system(
             float plate_z_min = plate.z - plate.thickness * 0.5f;
             float plate_z_max = plate.z + plate.thickness * 0.5f;
             bool z_ok = (p.z >= plate_z_min - 0.01f) && (p.z <= plate_z_max + 0.01f);
-            std::cout << "  └─ ROOT Z=" << p.z*1000 << "mm vs PLATE Z=[" << plate_z_min*1000 << "," << plate_z_max*1000 << "]mm: "
+            std::cout << "  └─ ROOT Z=" << p.z * 1000 << "mm vs PLATE Z=[" << plate_z_min * 1000 << "," << plate_z_max * 1000 << "]mm: "
                       << (z_ok ? "OK" : "*** OUT OF RANGE ***") << std::endl;
-        } else {
+        }
+        else
+        {
             std::cerr << "  [ROOT " << i << "] FAILED to create" << std::endl;
         }
     }
@@ -1161,7 +1226,8 @@ int PhysicsTreeGenerator::generate_root_system(
 // FLOOR TILE SEARCH
 // ============================================================================
 
-int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y) {
+int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y)
+{
     // Search for a floor tile that contains (world_x, world_y)
     // Returns particle ID if found, -1 otherwise
     // NOTE: Floor tiles identified by position (z<1m) and shape (flat box)
@@ -1169,37 +1235,43 @@ int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y) {
     auto particles = particles_->lock_particles_for_read();
     const size_t count = particles.size();
 
-    for (size_t i = 0; i < count; ++i) {
-        const Particle& p = particles[i];
+    for (size_t i = 0; i < count; ++i)
+    {
+        const Particle &p = particles[i];
 
         // Must be near ground level (Z center < 1m)
-        if (p.z > 1.0f) continue;
+        if (p.z > 1.0f)
+            continue;
 
         // Must be a flat box (thickness < width/height, typical for floor tiles)
-        if (p.thickness > p.width || p.thickness > p.height) continue;
+        if (p.thickness > p.width || p.thickness > p.height)
+            continue;
 
         // Check if (world_x, world_y) is within the tile's XY bounds
         float half_w = p.width * 0.5f;
         float half_h = p.height * 0.5f;
 
         if (world_x >= p.x - half_w && world_x <= p.x + half_w &&
-            world_y >= p.y - half_h && world_y <= p.y + half_h) {
+            world_y >= p.y - half_h && world_y <= p.y + half_h)
+        {
             return static_cast<int>(i);
         }
     }
 
-    return -1;  // No floor tile found
+    return -1; // No floor tile found
 }
 
 // ============================================================================
 // RANDOM NUMBER GENERATION
 // ============================================================================
 
-void PhysicsTreeGenerator::seed_rng(unsigned int seed) {
+void PhysicsTreeGenerator::seed_rng(unsigned int seed)
+{
     rng_state_ = seed;
 }
 
-float PhysicsTreeGenerator::random_variance(float base, float variance) {
+float PhysicsTreeGenerator::random_variance(float base, float variance)
+{
     rng_state_ = (1103515245 * rng_state_ + 12345) % 2147483648;
     float normalized = (float)rng_state_ / 2147483648.0f;
     float offset = (normalized * 2.0f - 1.0f) * variance;
@@ -1212,10 +1284,11 @@ float PhysicsTreeGenerator::random_variance(float base, float variance) {
 
 kg::EntityID PhysicsTreeGenerator::store_tree_entity(
     float world_x, float world_y, float ground_z,
-    const TreeSpec& spec,
+    const TreeSpec &spec,
     float chunk_size)
 {
-    if (!kg_ || !kg_->isEnabled()) {
+    if (!kg_ || !kg_->isEnabled())
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: KG not enabled!" << std::endl;
         return kg::INVALID_ENTITY;
     }
@@ -1225,7 +1298,8 @@ kg::EntityID PhysicsTreeGenerator::store_tree_entity(
     std::vector<GluonSpec> gluons;
     collect_tree_specs(world_x, world_y, ground_z, spec, particles, gluons);
 
-    if (particles.empty()) {
+    if (particles.empty())
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: No particles generated!" << std::endl;
         return kg::INVALID_ENTITY;
     }
@@ -1233,7 +1307,8 @@ kg::EntityID PhysicsTreeGenerator::store_tree_entity(
     // Create KG entity with chunk coordinates
     // Type is "PhysicsTree" (not "tree") - uses physics_tree_activator with gluon support
     kg::EntityID entity_id = kg_->createEntityAtPosition("PhysicsTree", world_x, world_y, chunk_size);
-    if (entity_id == kg::INVALID_ENTITY) {
+    if (entity_id == kg::INVALID_ENTITY)
+    {
         std::cerr << "[PhysicsTreeGenerator] ERROR: Failed to create KG entity!" << std::endl;
         return kg::INVALID_ENTITY;
     }
@@ -1245,19 +1320,20 @@ kg::EntityID PhysicsTreeGenerator::store_tree_entity(
 
     // Store particles in KG
     std::vector<kg::KGParticleID> kg_particle_ids;
-    for (const auto& p : particles) {
+    for (const auto &p : particles)
+    {
         kg::KGParticleID kg_pid = kg_->createKGParticle(entity_id, kg::INVALID_RENDER_INDEX);
         kg_->setKGParticleData(kg_pid, p);
         kg_particle_ids.push_back(kg_pid);
     }
 
     // Store gluons in KG
-    for (const auto& gs : gluons) {
+    for (const auto &gs : gluons)
+    {
         kg::KGGluonID gluon_id = kg_->createKGGluon(
             entity_id,
             kg_particle_ids[gs.parent_index],
-            kg_particle_ids[gs.child_index]
-        );
+            kg_particle_ids[gs.child_index]);
         kg_->setKGGluonData(gluon_id, gs.data);
     }
 
@@ -1274,9 +1350,9 @@ kg::EntityID PhysicsTreeGenerator::store_tree_entity(
 
 void PhysicsTreeGenerator::collect_tree_specs(
     float world_x, float world_y, float ground_z,
-    const TreeSpec& spec,
-    std::vector<Particle>& out_particles,
-    std::vector<GluonSpec>& out_gluons)
+    const TreeSpec &spec,
+    std::vector<Particle> &out_particles,
+    std::vector<GluonSpec> &out_gluons)
 {
     // Seed RNG for reproducible results
     seed_rng(spec.random_seed);
@@ -1305,7 +1381,9 @@ void PhysicsTreeGenerator::collect_tree_specs(
     root_plate.width = plate_diameter;
     root_plate.height = plate_diameter;
     root_plate.thickness = plate_height;
-    root_plate.r = 0.4f; root_plate.g = 0.25f; root_plate.b = 0.1f;  // Brown
+    root_plate.r = 0.4f;
+    root_plate.g = 0.25f;
+    root_plate.b = 0.1f; // Brown
     root_plate.a = 1.0f;
     root_plate.material_density = 800.0f;
     root_plate.material_strength = 50e6f;
@@ -1325,23 +1403,29 @@ void PhysicsTreeGenerator::collect_tree_specs(
     float root_thickness = std::min(varied_spec.trunk_diameter * 0.4f, plate_height);
     const float cardinal_angles[4] = {0.0f, 90.0f, 180.0f, 270.0f};
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         float radial_angle = cardinal_angles[i] + random_variance(0.0f, 5.0f);
         float rad_h = radial_angle * M_PI / 180.0f;
         float radial_x = std::cos(rad_h);
         float radial_y = std::sin(rad_h);
 
         Particle root = {};
-        root.r = 0.35f; root.g = 0.2f; root.b = 0.08f;  // Dark brown
+        root.r = 0.35f;
+        root.g = 0.2f;
+        root.b = 0.08f; // Dark brown
         root.a = 1.0f;
         root.shape = ParticleShape::BOX;
 
-        // Axis-aligned dimensions (physics ignores rotation)
-        if (std::abs(radial_x) > std::abs(radial_y)) {
+        // Axis-aligned collision dimensions (rotation is not applied to bounds)
+        if (std::abs(radial_x) > std::abs(radial_y))
+        {
             root.width = root_length;
             root.height = root_thickness;
             root.thickness = root_thickness;
-        } else {
+        }
+        else
+        {
             root.width = root_thickness;
             root.height = root_length;
             root.thickness = root_thickness;
@@ -1349,10 +1433,8 @@ void PhysicsTreeGenerator::collect_tree_specs(
 
         // Position: attached to plate side face
         float plate_half_w = plate_diameter * 0.5f;
-        float face_offset_x = (std::abs(radial_x) > std::abs(radial_y)) ?
-                              ((radial_x > 0) ? plate_half_w : -plate_half_w) : 0.0f;
-        float face_offset_y = (std::abs(radial_y) >= std::abs(radial_x)) ?
-                              ((radial_y > 0) ? plate_half_w : -plate_half_w) : 0.0f;
+        float face_offset_x = (std::abs(radial_x) > std::abs(radial_y)) ? ((radial_x > 0) ? plate_half_w : -plate_half_w) : 0.0f;
+        float face_offset_y = (std::abs(radial_y) >= std::abs(radial_x)) ? ((radial_y > 0) ? plate_half_w : -plate_half_w) : 0.0f;
 
         root.x = world_x + face_offset_x + radial_x * root_length * 0.5f;
         root.y = world_y + face_offset_y + radial_y * root_length * 0.5f;
@@ -1396,8 +1478,7 @@ void PhysicsTreeGenerator::collect_tree_specs(
         world_x, world_y, root_plate_top_z + trunk_length * 0.5f,
         trunk_length, trunk_thickness,
         0.0f, 90.0f,
-        varied_spec, varied_spec.branch_depth
-    );
+        varied_spec, varied_spec.branch_depth);
 
     size_t trunk_index = out_particles.size();
     out_particles.push_back(trunk);
@@ -1430,7 +1511,8 @@ void PhysicsTreeGenerator::collect_tree_specs(
     int num_main_branches = std::max(4, varied_spec.branches_per_split + 2);
     int effective_depth = std::max(2, varied_spec.branch_depth - 2);
 
-    for (int i = 0; i < num_main_branches; ++i) {
+    for (int i = 0; i < num_main_branches; ++i)
+    {
         float base_angle = (360.0f / num_main_branches) * i;
         float angle_offset = base_angle + random_variance(0.0f, varied_spec.angle_variance);
         float branch_direction = initial_direction + angle_offset;
@@ -1448,8 +1530,7 @@ void PhysicsTreeGenerator::collect_tree_specs(
             effective_depth,
             varied_spec,
             out_particles,
-            out_gluons
-        );
+            out_gluons);
     }
 }
 
@@ -1465,11 +1546,12 @@ void PhysicsTreeGenerator::collect_branch(
     float length,
     float thickness,
     int depth,
-    const TreeSpec& spec,
-    std::vector<Particle>& particles,
-    std::vector<GluonSpec>& gluons)
+    const TreeSpec &spec,
+    std::vector<Particle> &particles,
+    std::vector<GluonSpec> &gluons)
 {
-    if (depth <= 0 || thickness < 0.02f) {
+    if (depth <= 0 || thickness < 0.02f)
+    {
         return;
     }
 
@@ -1481,7 +1563,7 @@ void PhysicsTreeGenerator::collect_branch(
     float dir_z = std::sin(rad_v);
 
     // Parent position
-    const Particle& parent = particles[parent_index];
+    const Particle &parent = particles[parent_index];
     float parent_x = parent.x;
     float parent_y = parent.y;
 
@@ -1495,8 +1577,7 @@ void PhysicsTreeGenerator::collect_branch(
         branch_center_x, branch_center_y, branch_center_z,
         length, thickness,
         direction_angle, elevation_angle,
-        spec, depth
-    );
+        spec, depth);
 
     size_t branch_index = particles.size();
     particles.push_back(branch);
@@ -1538,7 +1619,8 @@ void PhysicsTreeGenerator::collect_branch(
     bool is_terminal = (depth == 1);
     float leaf_threshold = spec.trunk_diameter * 0.25f;
 
-    if (is_terminal || thickness < leaf_threshold) {
+    if (is_terminal || thickness < leaf_threshold)
+    {
         int num_leaves = 6 + (rng_state_ % 5);
         rng_state_ = (1103515245 * rng_state_ + 12345) % 2147483648;
 
@@ -1549,7 +1631,8 @@ void PhysicsTreeGenerator::collect_branch(
         float tip_y = branch_center_y + dir_y * length * 0.5f;
         float tip_z = branch_top_z;
 
-        for (int i = 0; i < num_leaves; ++i) {
+        for (int i = 0; i < num_leaves; ++i)
+        {
             float theta = random_variance(0.0f, 180.0f);
             float phi = random_variance(0.0f, 90.0f);
             float offset_radius = random_variance(1.5f, 0.5f);
@@ -1589,8 +1672,7 @@ void PhysicsTreeGenerator::collect_branch(
             float actual_distance = std::sqrt(
                 (leaf_x - tip_x) * (leaf_x - tip_x) +
                 (leaf_y - tip_y) * (leaf_y - tip_y) +
-                (leaf_z - tip_z) * (leaf_z - tip_z)
-            );
+                (leaf_z - tip_z) * (leaf_z - tip_z));
 
             GluonSpec leaf_gs;
             leaf_gs.parent_index = branch_index;
@@ -1620,12 +1702,16 @@ void PhysicsTreeGenerator::collect_branch(
 
     int num_children = std::min(2, spec.branches_per_split);
 
-    for (int i = 0; i < num_children; ++i) {
+    for (int i = 0; i < num_children; ++i)
+    {
         float angle_offset;
-        if (num_children == 2) {
+        if (num_children == 2)
+        {
             float spread = random_variance(150.0f, 30.0f);
             angle_offset = (i == 0) ? -spread * 0.5f : spread * 0.5f;
-        } else {
+        }
+        else
+        {
             angle_offset = random_variance(0.0f, 45.0f);
         }
 
@@ -1644,7 +1730,6 @@ void PhysicsTreeGenerator::collect_branch(
             depth - 1,
             spec,
             particles,
-            gluons
-        );
+            gluons);
     }
 }

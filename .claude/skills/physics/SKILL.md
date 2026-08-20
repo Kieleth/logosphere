@@ -190,6 +190,32 @@ Three rules that make the registry worth having:
   arguments in the design (GEDANKEN-16 is the whole justification for
   hierarchical addresses). Do not rush them to `settled`.
 
+## FULL-STATE NARRATION: assert or waive, per degree of freedom (directive, 2026-08-19)
+
+Owner-approved after a week in which every loose assertion had the same
+shape: a test asserted ONE degree of freedom while the experiment had
+thirteen, and the owner's eye kept catching what the asserts never
+looked at (a cube that slid 6.36 m without ever turning; a sphere
+resting 1.9 m inside a ramp that no assert could see).
+
+**Before the asserts, the test writes the full-state narration**: for
+every tracked body, what each degree of freedom does in each phase —
+position, velocity, orientation (BOTH ledgers), angular velocity, and
+the RELATIVE quantities (separation, approach, height above a surface).
+**Then every narrated DOF gets an assertion or an explicit one-line
+waiver naming why not.** An unasserted DOF is a visible decision, never
+a blind spot. `tests/test_cube_drop_ladder.cpp` is the pattern.
+
+**ARGUS is the instrument** (`src/core/argus.h`, pure engine module,
+owner-named): declare the experiment's cast with `watch(id, label)`,
+call `observe(ps, frame)` after each step, and assert the SAME
+quantities the dump prints — `separation`, `approach_speed`, `spin`,
+`peak_spin`, `divergence` (q-vs-Euler coherence). One source for the
+assert and the log, so what is checked and what is seen cannot drift.
+Read-only over particles by construction: the witness cannot perturb
+the experiment. Zero cost unwatched. Engine-wide by owner ruling —
+combat and AI observe through the same eyes.
+
 ## Ruling protocol
 
 0. **Gedankenexperimente first.** Before options exist, the simplest
