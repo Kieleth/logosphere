@@ -36,8 +36,19 @@ seven of the eight would vanish against an ASan-instrumented libc++.
 That is the distinction the `finding` field carries, and it is the only
 field added to the nine that TEST_AUDIT already has.
 
+WHY THE CTEST EXIT CODE IS AN INPUT. CTest writes
+LastTestsFailed.log only when something failed. Measured: an all-pass
+run leaves Testing/Temporary/ with LastTest.log and no LastTestsFailed.
+So an absent log means one of two opposite things — every test passed,
+or the step died before finishing — and this gate must not confuse them.
+The step therefore records ctest's exit code beside the log, and this
+reads it: 0 means the failing set is genuinely empty (all nine audited
+findings went quiet, which is a change and fails), non-zero with no log
+means the run did not finish (which is not a result at all).
+
 Usage:
-    check-sanitizer-audit.py --last-failed build-san/Testing/Temporary/LastTestsFailed.log
+    check-sanitizer-audit.py --last-failed build-san/Testing/Temporary/LastTestsFailed.log \
+                             --ctest-exit  build-san/Testing/Temporary/ctest.exit
     check-sanitizer-audit.py --last-failed <log> --audit <jsonl>
 
 Exit 0 = the set matches the audit exactly. Exit 1 = it does not, with
@@ -102,6 +113,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--last-failed", type=Path, required=True,
                         help="CTest's Testing/Temporary/LastTestsFailed.log")
+    parser.add_argument("--ctest-exit", type=Path,
+                        help="file holding ctest's exit code. Without it, an "
+                             "absent log is treated as a run that did not "
+                             "finish, because it cannot be told from a run "
+                             "in which everything passed.")
     parser.add_argument("--audit", type=Path,
                         default=repo / "tests/invariants/SANITIZER_AUDIT.jsonl")
     args = parser.parse_args()
@@ -117,17 +133,27 @@ def main() -> int:
             print(f"  {problem}")
         return 2
 
-    if not args.last_failed.is_file():
-        # ctest writes this file whenever it ran at all. Absent means the
-        # step died before finishing, and a lane that reported nothing is
-        # not a lane that reported clean.
-        print(f"::error::{args.last_failed} is absent. CTest writes it on "
-              f"every run, so the suite did not finish: a build failure, a "
-              f"timeout kill, or a wrong path. This is NOT a clean run.",
-              file=sys.stderr)
-        return 2
+    ctest_exit = None
+    if args.ctest_exit and args.ctest_exit.is_file():
+        text = args.ctest_exit.read_text().strip()
+        if text.lstrip("-").isdigit():
+            ctest_exit = int(text)
 
-    failed = load_failed(args.last_failed)
+    if not args.last_failed.is_file():
+        # CTest writes this file only when something failed, so an absent
+        # log means one of two opposite things. Its exit code is what
+        # tells them apart.
+        if ctest_exit == 0:
+            failed = []          # everything passed. A change, handled below.
+        else:
+            print(f"::error::{args.last_failed} is absent and ctest did not "
+                  f"report success (exit {ctest_exit if ctest_exit is not None else 'unknown'}). "
+                  f"The suite did not finish: a build failure, a timeout kill, "
+                  f"or a wrong path. This is NOT a clean run.",
+                  file=sys.stderr)
+            return 2
+    else:
+        failed = load_failed(args.last_failed)
     failed_set = set(failed)
     audited_set = set(audit)
 

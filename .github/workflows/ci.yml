@@ -505,11 +505,23 @@ jobs:
       # set in both directions. `continue-on-error` rather than `|| true`:
       # the step keeps its own colour in the UI and the shell's exit code
       # is not swallowed on the way past.
+      #
+      # The exit code is recorded beside the log because CTest writes
+      # LastTestsFailed.log ONLY when something failed. An absent log
+      # therefore means one of two opposite things — everything passed, or
+      # the step died before finishing — and the audit must not confuse
+      # them.
       - name: Run headless test suite under the sanitizers (minus test_chargen)
         continue-on-error: true
         timeout-minutes: 10
         working-directory: build-san
-        run: ctest --output-on-failure -j $(nproc) -E '^test_chargen$'
+        run: |
+          set +e
+          ctest --output-on-failure -j $(nproc) -E '^test_chargen$'
+          code=$?
+          mkdir -p Testing/Temporary
+          echo "$code" > Testing/Temporary/ctest.exit
+          exit $code
 
       # TWELVE lives, and the number is argued rather than picked.
       #
@@ -571,7 +583,8 @@ jobs:
         if: always()
         run: |
           python3 scripts/check-sanitizer-audit.py \
-            --last-failed build-san/Testing/Temporary/LastTestsFailed.log
+            --last-failed build-san/Testing/Temporary/LastTestsFailed.log \
+            --ctest-exit  build-san/Testing/Temporary/ctest.exit
 
   # ---------------------------------------------------------------------------
   # macOS: full engine (Metal, GLFW, physics, examples). Free on public

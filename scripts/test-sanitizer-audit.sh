@@ -13,7 +13,11 @@
 #   CASE 2  a tenth test fails                  -> FIRE, and name it
 #   CASE 3  an audited test stops failing       -> FIRE, and name it
 #   CASE 4  every test passes                   -> FIRE (nine went quiet)
-#   CASE 5  no LastTestsFailed.log at all       -> FIRE, exit 2, not clean
+#   CASE 5  no log, ctest died                  -> FIRE, exit 2, not clean
+#   CASE 5b no log, ctest exit 0                -> FIRE as "went quiet",
+#           because CTest writes that file only on failure and an absent
+#           log means one of two opposite things
+#   CASE 5c no log, ctest exit non-zero         -> FIRE, exit 2
 #   CASE 6  an audit row with expect != fail    -> FIRE, exit 2
 #
 # CASE 1 is built FROM the real tests/invariants/SANITIZER_AUDIT.jsonl,
@@ -48,11 +52,21 @@ FIRST_AUDITED="$(head -1 "$TMP/audited.log" | cut -d: -f2)"
 
 failures=0
 
-# check <name> <log-arg> <expect: quiet|fire|unreadable> [needle] [audit override]
+# check <name> <log-arg> <expect: quiet|fire|unreadable> [needle] [audit] [exit-file]
 check () {
     local name="$1" log="$2" expect="$3" needle="${4:-}" audit="${5:-$AUDIT}"
+    local exitfile="${6:-}"
     local out rc verdict
-    out="$(python3 "$CHECKER" --last-failed "$log" --audit "$audit" 2>&1)"; rc=$?
+    # Written as two calls rather than one with an array: `set -u` and an
+    # empty "${arr[@]}" are a syntax error on bash 3.2, which is what
+    # macOS ships and where this test is also run.
+    if [ -n "$exitfile" ]; then
+        out="$(python3 "$CHECKER" --last-failed "$log" --audit "$audit" \
+               --ctest-exit "$exitfile" 2>&1)"; rc=$?
+    else
+        out="$(python3 "$CHECKER" --last-failed "$log" --audit "$audit" \
+               2>&1)"; rc=$?
+    fi
     case "$rc" in
         0) verdict=quiet ;;
         1) verdict=fire ;;
@@ -90,8 +104,23 @@ check "an audited finding stops reporting" "$TMP/minus_one.log" fire "$FIRST_AUD
 : > "$TMP/all_green.log"
 check "every test passes" "$TMP/all_green.log" fire "WENT QUIET"
 
-# CASE 5 — the log is missing. A lane that reported nothing is not clean.
-check "no LastTestsFailed.log" "$TMP/absent.log" unreadable "NOT a clean run"
+# CASE 5 — the log is missing and ctest did not succeed. Not a result.
+check "no LastTestsFailed.log, ctest died" "$TMP/absent.log" unreadable \
+      "NOT a clean run"
+
+# CASE 5b — the log is missing because EVERYTHING PASSED. CTest writes
+# that file only on failure, so absent means one of two opposite things
+# and the exit code is what tells them apart. Measured: an all-pass ctest
+# run leaves Testing/Temporary/ with LastTest.log and no LastTestsFailed.
+echo 0 > "$TMP/ctest_ok.exit"
+check "no LastTestsFailed.log, ctest exit 0" "$TMP/absent.log" fire \
+      "WENT QUIET" "$AUDIT" "$TMP/ctest_ok.exit"
+
+# CASE 5c — the log is missing and ctest exited non-zero. Still not a
+# result, even with the exit file present.
+echo 8 > "$TMP/ctest_bad.exit"
+check "no LastTestsFailed.log, ctest exit 8" "$TMP/absent.log" unreadable \
+      "NOT a clean run" "$AUDIT" "$TMP/ctest_bad.exit"
 
 # CASE 6 — an audit row that is not an accepted red.
 python3 - "$AUDIT" "$TMP/bad_audit.jsonl" <<'PY'
@@ -107,7 +136,7 @@ check "an audit row says expect=pass" "$TMP/audited.log" unreadable \
 
 echo
 if [ "$failures" -eq 0 ]; then
-    echo "sanitizer audit gate: 6/6 cases behaved (fires on a new red, on a red that went quiet, and on nothing to read)"
+    echo "sanitizer audit gate: 8/8 cases behaved (fires on a new red, on a red that went quiet, and on nothing to read)"
     exit 0
 fi
 echo "sanitizer audit gate: $failures case(s) wrong"

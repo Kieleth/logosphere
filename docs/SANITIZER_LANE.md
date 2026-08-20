@@ -209,7 +209,13 @@ audited set in **both** directions:
   the same direction-locking `physics-linux` applies to its born-red
   ladders.
 
-`scripts/test-sanitizer-audit.sh` proves the gate on six cases and runs
+One thing that is not obvious and cost a case: CTest writes
+`LastTestsFailed.log` **only when something failed**, so an absent log
+means either that every test passed or that the step died before
+finishing. The step records ctest's exit code beside the log, and the
+checker reads both.
+
+`scripts/test-sanitizer-audit.sh` proves the gate on eight cases and runs
 on every pull request, in `merge-policy`, because the lane it guards
 does not.
 

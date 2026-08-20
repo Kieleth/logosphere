@@ -66,8 +66,8 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   fails on any difference in **either** direction: a red with no
   audited row, and an audited row that stopped reporting. That is the
   same direction-locking `physics-linux` applies to its born-red
-  ladders. `scripts/test-sanitizer-audit.sh` proves it on six cases and
-  runs on every pull request, in `merge-policy`, because the lane it
+  ladders. `scripts/test-sanitizer-audit.sh` proves it on eight cases
+  and runs on every pull request, in `merge-policy`, because the lane it
   guards does not.
 
   The file is a sibling of `TEST_AUDIT.jsonl` rather than rows inside
