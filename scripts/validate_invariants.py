@@ -66,13 +66,22 @@ def main() -> int:
             errors.append(f'derives_from cycle: {" -> ".join(hit)}')
             break
 
-    for a in (REPO / "tests/invariants/TEST_AUDIT.jsonl").read_text().splitlines():
-        if not a.strip():
+    # SANITIZER_AUDIT.jsonl carries TEST_AUDIT's row shape plus a
+    # `finding` field, for reds the sanitizer lane accepts. Same link
+    # rule: a ledger that can name an invariant that does not exist is
+    # not a ledger.
+    for audit in ("TEST_AUDIT.jsonl", "SANITIZER_AUDIT.jsonl"):
+        path = REPO / "tests/invariants" / audit
+        if not path.exists():
             continue
-        row = json.loads(a)
-        for link in (row.get("proves") or []) + (row.get("touches") or []):
-            if link not in ids:
-                errors.append(f'TEST_AUDIT {row["test"]}: links unknown invariant {link}')
+        for a in path.read_text().splitlines():
+            if not a.strip():
+                continue
+            row = json.loads(a)
+            for link in (row.get("proves") or []) + (row.get("touches") or []):
+                if link not in ids:
+                    errors.append(
+                        f'{audit} {row["test"]}: links unknown invariant {link}')
 
     tree_paths = subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True,
                                 text=True).stdout

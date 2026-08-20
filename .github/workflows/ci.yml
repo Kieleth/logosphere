@@ -73,6 +73,7 @@ jobs:
           test -x scripts/check-signoff.sh
           test -x scripts/test-signoff-on-main.sh
           test -x scripts/test-posix-portability.sh
+          test -x scripts/test-sanitizer-audit.sh
           # And it refuses. An unconditional hook that returns 0 is a decoration.
           if .githooks/pre-rebase origin/main test-branch >/dev/null 2>&1; then
             echo "pre-rebase exited 0. It must refuse unconditionally."
@@ -135,6 +136,14 @@ jobs:
       # ---------------------------------------------------------------------
       - name: The POSIX-portability gate is not vacuous
         run: ./scripts/test-posix-portability.sh
+
+      # The sanitizer lane's "red means new" gate lives on a lane that
+      # only runs on main, so its proof lives here, where every pull
+      # request sees it. Six cases against the shipped audit file,
+      # including the two that matter: a tenth red must fire, and an
+      # audited red that goes quiet must fire too.
+      - name: The sanitizer audit is not vacuous
+        run: ./scripts/test-sanitizer-audit.sh
 
       - name: Core-profile sources carry no unguarded POSIX-only construct
         run: |
@@ -479,7 +488,15 @@ jobs:
       # be.
       #
       # Everything else in the profile runs here, all 89 of them.
+      # NINE of these are red on every run and every one of them is
+      # audited by name in tests/invariants/SANITIZER_AUDIT.jsonl. This
+      # step is therefore NOT the verdict — the audit step at the end of
+      # the job is, and it compares the failing set against the audited
+      # set in both directions. `continue-on-error` rather than `|| true`:
+      # the step keeps its own colour in the UI and the shell's exit code
+      # is not swallowed on the way past.
       - name: Run headless test suite under the sanitizers (minus test_chargen)
+        continue-on-error: true
         timeout-minutes: 10
         working-directory: build-san
         run: ctest --output-on-failure -j $(nproc) -E '^test_chargen$'
@@ -522,6 +539,29 @@ jobs:
             exit 1
           fi
           echo "12 lives, none aborted"
+
+      # ---------------------------------------------------------------------
+      # THE VERDICT. Nine tests fail here on every run, and nine is not a
+      # number anyone reads: a tenth appearing — the entire reason this
+      # lane exists — looked exactly like the nine, because a red job is a
+      # red job. This step ends that. It compares the failing set against
+      # tests/invariants/SANITIZER_AUDIT.jsonl and fails on ANY difference:
+      # a red with no audited entry (a new memory error), and an audited
+      # entry that stopped reporting (fixed, or the test stopped running).
+      #
+      # The same direction-locking physics-linux applies to its born-red
+      # ladders, for the same reason: a red that silently goes green is as
+      # much a change as a new one.
+      #
+      # `if: always()` because a step that only reports when the steps
+      # before it were green cannot be the verdict on a lane that is red
+      # by construction.
+      # ---------------------------------------------------------------------
+      - name: Red means NEW — the failing set is the audited set
+        if: always()
+        run: |
+          python3 scripts/check-sanitizer-audit.py \
+            --last-failed build-san/Testing/Temporary/LastTestsFailed.log
 
   # ---------------------------------------------------------------------------
   # macOS: full engine (Metal, GLFW, physics, examples). Free on public

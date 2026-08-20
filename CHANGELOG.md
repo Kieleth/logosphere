@@ -19,6 +19,37 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   is suppressed: what changed is when the three report. A pull request
   now runs `merge-policy`, `ontology-generation`, `physics-linux` and
   `headless-linux`.
+- **Every accepted red in the sanitizer lane has an audited entry, so
+  red means new.** `sanitizers-linux` lands red on every run with nine
+  failing tests, and nine is not a number anyone reads: a tenth
+  appearing — the entire reason the lane exists — looked exactly like
+  the nine, because a red job is a red job. Each of the nine now has a
+  row in `tests/invariants/SANITIZER_AUDIT.jsonl` naming the finding,
+  the throw or the line that raises it, and whether it is a real defect
+  or an artifact of Ubuntu's non-instrumented libc++.
+  `scripts/check-sanitizer-audit.py` is the lane's verdict now and
+  fails on any difference in **either** direction: a red with no
+  audited row, and an audited row that stopped reporting. That is the
+  same direction-locking `physics-linux` applies to its born-red
+  ladders. `scripts/test-sanitizer-audit.sh` proves it on six cases and
+  runs on every pull request, in `merge-policy`, because the lane it
+  guards does not.
+
+  The file is a sibling of `TEST_AUDIT.jsonl` rather than rows inside
+  it, and carries that file's exact nine keys plus one, `finding`.
+  `TEST_AUDIT.jsonl` is keyed on the test name with one row each and
+  its `expect` field is lane-agnostic; six of these nine already have a
+  row there saying `expect: pass`, which is true in `headless-linux`
+  and false under the sanitizers. `finding` is what separates "an
+  instrument reported this" from "a test failed", which is the
+  distinction the existing format has no way to make.
+
+  `docs/SANITIZER_LANE.md` is corrected in the same change. It said all
+  eight non-real failures print `alloc-dealloc-mismatch`; seven do, and
+  the eighth (`test_kg_property_gate`) is two ordinary assertion
+  failures whose death-test fixture is subverted by the same artifact.
+  The `test_mutation_playback` fixture bug is recorded and still **not
+  fixed and not suppressed**.
 - **A static POSIX-portability gate runs on every pull request.**
   `headless-windows` found six root causes in ten days and four of them
   were constructs MSVC does not ship, visible in the source with no
