@@ -61,7 +61,7 @@
         "coverage_judgement": "NO_RULE_CONTENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The heading names the section but states no rule.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -109,7 +109,7 @@
         "coverage_judgement": "CLAIMS_PRESENT",
         "decision_question": "Does this exact source leaf state or support a rule claim?",
         "decision_reason": "The compound sentence states two debt-payment obligations and their precedence during finishing touches.",
-        "arbiter": "Codex, owner-directed migration"
+        "arbiter": "Codex, migration"
       }
     },
     {
@@ -131,7 +131,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The graph identifies finishing, Benefits, and the medical-care cost, but cannot debit outstanding costs from awarded Benefits.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },
@@ -154,7 +154,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The graph has no anagathic-drug or corresponding outstanding-cost concept to compose into the rule.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "ONTOLOGY_GAP"
       }
     },
@@ -177,7 +177,7 @@
         "claim_disposition": "RAISED",
         "decision_question": "Can this claim enter the executable graph?",
         "decision_reason": "The procedure graph has no precedence primitive for debt payment before every other finishing-touch action.",
-        "arbiter": "Codex, owner-directed migration",
+        "arbiter": "Codex, migration",
         "claim_gap_kind": "RULE_LANGUAGE_GAP"
       }
     },

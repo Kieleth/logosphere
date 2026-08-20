@@ -122,7 +122,7 @@
     "coverage_judgement": "NO_RULE_CONTENT",
     "decision_question": "Does this heading state an independent rule claim?",
     "decision_reason": "The heading names the section but states no rule.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -170,7 +170,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this sentence state one or more rule claims?",
     "decision_reason": "It defines the trigger for an injury crisis.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -218,7 +218,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this sentence state one or more rule claims?",
     "decision_reason": "It states death, medical cost, and restoration consequences.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -266,7 +266,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this sentence state one or more rule claims?",
     "decision_reason": "It states qualification and future-career constraints.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -314,7 +314,7 @@
     "coverage_judgement": "NO_RULE_CONTENT",
     "decision_question": "Does this heading state an independent rule claim?",
     "decision_reason": "The heading names the section but states no rule.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -362,7 +362,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this sentence state one or more rule claims?",
     "decision_reason": "It defines the aging-specific trigger for a crisis.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -410,7 +410,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this sentence state one or more rule claims?",
     "decision_reason": "It repeats the general death, medical-cost, and restoration consequences.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -458,7 +458,7 @@
     "coverage_judgement": "CLAIMS_PRESENT",
     "decision_question": "Does this sentence state one or more rule claims?",
     "decision_reason": "It repeats the general qualification and future-career constraints.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -481,7 +481,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The current rule language cannot express the crisis trigger.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -504,7 +504,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The payment-gated death consequence is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -527,7 +527,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "Credits is typed, but the multiplied payment rule is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -550,7 +550,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The conditional restoration consequence is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -573,7 +573,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The persistent automatic-check failure is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -596,7 +596,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The conditional future-career restriction is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -619,7 +619,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The rule language cannot express the cause-specific crisis trigger.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -642,7 +642,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The payment-gated death consequence is not fully represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -665,7 +665,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "Credits is typed, but the multiplied payment operation is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -688,7 +688,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The restoration value is typed, but its conditional application is not represented.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -711,7 +711,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The persistent automatic-check failure is not represented as rule data.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -734,7 +734,7 @@
     "claim_gap_kind": "RULE_LANGUAGE_GAP",
     "decision_question": "Can this claim enter the executable graph?",
     "decision_reason": "The conditional future-career restriction is not represented as rule data.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -749,7 +749,7 @@
     "related_claim": "@crisis_death_claim",
     "decision_question": "Does this occurrence-specific claim remain canonical?",
     "decision_reason": "Both crisis passages support the generalized replacement.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -764,7 +764,7 @@
     "related_claim": "@crisis_cost_claim",
     "decision_question": "Does this occurrence-specific claim remain canonical?",
     "decision_reason": "Both crisis passages state the same medical cost.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -779,7 +779,7 @@
     "related_claim": "@crisis_restore_claim",
     "decision_question": "Does this occurrence-specific claim remain canonical?",
     "decision_reason": "Both crisis passages state the same restoration consequence.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -794,7 +794,7 @@
     "related_claim": "@crisis_qualification_claim",
     "decision_question": "Does this occurrence-specific claim remain canonical?",
     "decision_reason": "Both crisis passages state the same qualification bar.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {
@@ -809,7 +809,7 @@
     "related_claim": "@crisis_career_claim",
     "decision_question": "Does this occurrence-specific claim remain canonical?",
     "decision_reason": "Both crisis passages state the same future-career restriction.",
-    "arbiter": "Codex, owner-directed migration"
+    "arbiter": "Codex, migration"
    }
   },
   {

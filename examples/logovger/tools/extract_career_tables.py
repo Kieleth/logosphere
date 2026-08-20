@@ -46,7 +46,7 @@ GENERATED_BY = "examples/logovger/tools/extract_career_tables.py"
 REVIEWED_SOURCE_SHA256 = (
     "aec772042129694210d60204031829618a8c71f863d3b381ce8689be60bd14c7"
 )
-ARBITER = "Codex, owner-directed Career Tables migration"
+ARBITER = "Codex, Career Tables migration"
 LEGACY_SOURCE_FIELDS = {
     "source_file", "source_section", "source_kind", "source_table",
     "source_row", "source_column", "source_quote",
