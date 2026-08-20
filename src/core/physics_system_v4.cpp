@@ -254,9 +254,11 @@ PhysicsSystem::~PhysicsSystem() {
 // ============================================================================
 
 bool PhysicsSystem::initialize(ParticleSystem& particle_system, const PhysicsConfig& config) {
-    // The unification lever reads its default from the environment; the
-    // setter exists for in-process A/B (test_orientation_truth O2).
-    if (std::getenv("LOGOSPHERE_QUAT_TRUTH")) quat_truth_ = true;
+    // Quaternion truth is the DEFAULT (owner ruling 2026-08-19, ledger).
+    // LOGOSPHERE_QUAT_TRUTH=0 is the kill switch for A/B and bisection;
+    // the setter exists for in-process baselines (orientation O2).
+    if (const char* qt = std::getenv("LOGOSPHERE_QUAT_TRUTH"))
+        quat_truth_ = !(qt[0] == '0' && qt[1] == '\0');
     particle_system_ = &particle_system;
     config_ = config;
 

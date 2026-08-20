@@ -265,10 +265,15 @@ direction-locked in physics-linux beside the drop ladder:
   identity is a bitwise no-op). Spawn now seeds `rotation_q` from the
   Euler triple at the single `add_particle` choke point, so every body
   is born with ONE orientation.
-- **O3 GREEN with the lever on**: the frozen twin turns — divergence
-  0.0000, visible rot_y 0.3167 equal to its quat twin. The lever heals
-  the split. **Remaining: the FLIP (owner QA, then default ON and the
-  flag's deletion begins), which is R3-class: owner ruling territory.**
+- **O3 GREEN, and THE FLIP IS RULED AND DONE (2026-08-19, ledger)**:
+  quaternion truth is the DEFAULT. `test_orientation_truth` fully green
+  (ONE ORIENTATION, 0 failures) and promoted to the CI smoke list;
+  `LOGOSPHERE_QUAT_TRUTH=0` is the kill switch. Per-frame Argus
+  testimony post-flip: every body coherent every frame, identical spins
+  identically visible, trajectories and omegas exactly equal across the
+  ledger flag. **Next on this front: `is_quat_driven` dies — six
+  representation reads become unconditional, seven authority reads fold
+  into `solver_mode` (the R7-dissolution work proper).**
 
 This is the unification's red ladder. The lever lands into it.
 

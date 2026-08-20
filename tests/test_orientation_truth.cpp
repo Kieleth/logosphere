@@ -50,17 +50,22 @@ int main() {
     //                 fingerprint). Asserted.
     //   rot_y       — quat twin shows the turn, Euler twin frozen:
     //                 asserted at the end (the headline claim).
-    //   coherence   — the MIRROR IDENTITY, asserted every frame: the
-    //                 Euler twin's divergence must equal the quat
-    //                 twin's visible rot_y, because it is the SAME
-    //                 accumulated angle, once shown, once trapped.
+    //   coherence   — asserted every frame, era-aware. Under the SPLIT
+    //                 (pre-flip) the mirror identity held: the Euler
+    //                 twin's divergence equalled the quat twin's visible
+    //                 rot_y, the same angle once shown, once trapped.
+    //                 Under QUAT TRUTH (default since 2026-08-19) that
+    //                 identity is unreachable because nothing is trapped;
+    //                 the healthy claim is STRONGER: both twins coherent
+    //                 (divergence ~0) and visually equal, every frame.
     //   rot_x/rot_z — nothing excites them: WAIVED, watched.
     ParticleSystem ps;
     PhysicsSystem physics;
     if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
     Scene scene;
     scene.build(ps);
-    float max_z_diff = 0.0f, max_omega_diff = 0.0f, max_mirror_err = 0.0f;
+    float max_z_diff = 0.0f, max_omega_diff = 0.0f;
+    float max_div = 0.0f, max_visual_diff = 0.0f;
     for (int f = 0; f < RUN_FRAMES; ++f) {
         scene.step(ps, physics, f);
         const auto* sq = scene.argus.latest(scene.quat_twin);
@@ -68,23 +73,30 @@ int main() {
         if (sq && se) {
             const float zd = std::fabs(sq->z - se->z);
             const float od = std::fabs(sq->oy - se->oy);
-            const float me = std::fabs(scene.argus.divergence(scene.euler_twin)
-                                       - sq->ry);
+            const float dq = scene.argus.divergence(scene.quat_twin);
+            const float de = scene.argus.divergence(scene.euler_twin);
+            const float vd = std::fabs(se->ry - sq->ry);
             if (zd > max_z_diff) max_z_diff = zd;
             if (od > max_omega_diff) max_omega_diff = od;
-            if (me > max_mirror_err) max_mirror_err = me;
+            if (dq > max_div) max_div = dq;
+            if (de > max_div) max_div = de;
+            if (vd > max_visual_diff) max_visual_diff = vd;
         }
     }
     std::printf("  [measure] argus, per frame over %d frames:\n", RUN_FRAMES);
     std::printf("    twins' z differ by at most     %.9f m\n", max_z_diff);
     std::printf("    twins' omega differ by at most %.9f rad/s\n", max_omega_diff);
-    std::printf("    mirror identity error at most  %.6f rad\n", max_mirror_err);
+    std::printf("    worst coherence (either twin)  %.6f rad\n", max_div);
+    std::printf("    twins' visible rot_y differ by %.6f rad at most\n",
+                max_visual_diff);
     check(max_z_diff == 0.0f,
           "the ledger flag never moves a body: twin trajectories identical");
     check(max_omega_diff == 0.0f,
           "the ledger flag never touches spin: twin omegas identical");
-    check(max_mirror_err < 1e-3f,
-          "mirror identity: the trapped angle IS the shown angle, every frame");
+    check(max_div < 1e-3f,
+          "quat truth: EVERY body coherent, every frame (nothing trapped)");
+    check(max_visual_diff < 1e-3f,
+          "quat truth: identical spins identically visible, every frame");
 
     const float dq = scene.divergence(ps, scene.quat_twin);
     const float de = scene.divergence(ps, scene.euler_twin);

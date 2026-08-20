@@ -1446,3 +1446,34 @@ eyes immediately earned their keep: separation 0.3002 against the
 derived 0.3000 resting contact, and peak spin 2.4435 = 3.0 x 0.8145,
 one frame of ANGULAR_DRAG, the disease fingerprinted by the witness on
 its first frame of duty.
+
+## 2026-08-19 — RULED: the flip. Quaternion truth is the DEFAULT.
+
+Owner: *"add this decision into our ledger for physics, and enable."*
+
+The lever `LOGOSPHERE_QUAT_TRUTH` becomes the default: every DYNAMIC
+body's Euler ledger is published from its quaternion after angular
+integration, always. KINEMATIC bodies remain their external writer's.
+The env var inverts to a kill switch: `LOGOSPHERE_QUAT_TRUTH=0`
+restores the old split for A/B and bisection, and
+`PhysicsSystem::set_quat_truth(false)` remains for in-process baselines
+(O2 keeps proving the no-rotation case bit-identical both ways).
+
+Evidence the ruling stands on, all measured: O0 round trip identity to
+0.000002 over 1,700 poses; O2 bit-identical hash for a never-rotating
+body; O3 the frozen twin healed, divergence 0.0000, twins visually
+identical; per-frame Argus testimony that the flag never moved a body
+and never touched spin (exact zeros, 60 frames). Owner QA'd the
+lever-on twins interactively (both cubes turning) before ruling. The
+full-scene run (Eden / Rube under the lever) was offered and the owner
+ruled directly; recorded as his call.
+
+Consequences, in order: O1 goes green and test_orientation_truth is
+promoted from the CI red-list to the smoke list with its audit row
+(the direction-locked ratchet demanding exactly this bookkeeping);
+then `is_quat_driven` dies as a truth-selector — six representation
+reads become unconditional, seven authority reads fold into
+solver_mode, the R7-dissolution work proper. What the flip does NOT
+fix, so nothing is oversold: contacts still carry no lever arm (D2)
+and ANGULAR_DRAG still eats spin (D7); the flip makes rotation VISIBLE
+wherever it exists, which is lock 3 of 3 removed.

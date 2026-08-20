@@ -153,7 +153,8 @@ jobs:
         run: |
           set -e
           for t in test_humanoid_headless test_pin_gluon_lifecycle \
-                   test_inv6_gravity_blindness test_refused_momentum_ledger; do
+                   test_inv6_gravity_blindness test_refused_momentum_ledger \
+                   test_orientation_truth; do
             echo "=== $t ==="
             ./build/$t
           done
@@ -165,8 +166,7 @@ jobs:
       - name: Run physics ladders (born-red, direction-locked)
         timeout-minutes: 10
         run: |
-          for t in test_cube_drop_ladder test_ramp_race test_angular_dissipation \
-                   test_orientation_truth; do
+          for t in test_cube_drop_ladder test_ramp_race test_angular_dissipation; do
             echo "=== $t (audited: expect RED) ==="
             if ./build/$t; then
               echo "::error::$t went GREEN but TEST_AUDIT says expect=fail."
