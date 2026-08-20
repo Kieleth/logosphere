@@ -439,6 +439,23 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Rotation item 3 RESOLVES into G-43: corner balance is an attractor
+
+The 45-degree parking was never 45 degrees. The traced rest is z =
+0.346 = HALF THE SPACE DIAGONAL with a fully 3-D rotation: the cube
+stands ON ONE CORNER, deterministically, across four mechanism edits
+that each left the rest byte-identical (drag law, patch, weighting,
+basis). The most unstable pose a cube has behaves as a stable
+attractor, which means the formulation is missing or mis-signing the
+toppling channel: the coupling by which the contact force acquires
+gravity's offset (the normal row's omega x r half, the Baumgarte term's
+angular blindness, or substep ordering). G-43 carries the analysis and
+the eliminations. The next instrument is the drop ladder's natural R7:
+one cube placed corner-down at a tiny tilt, expected to FALL, narrated
+by Argus. Items 1-2 are landed (lever ladder fully green, flight ends
+at first contact); item 4 (G-21 gimbal ruling) and item 5 (the seed)
+remain; item 6 waits on 3-5.
+
 ## F7 + F8 — PARKED by owner ruling (2026-08-20): rotation first
 
 Owner: F7 is humanoid territory ("I'd not get into humanoid now"), and

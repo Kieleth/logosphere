@@ -1032,10 +1032,27 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // each priced with its own arm (INV-20). The base row
                 // above carries the shared bias/caps machinery; each
                 // clone re-derives what depends on ITS corner.
-                const float share = 1.0f / (float)patch_n;
+                // PENETRATION-WEIGHTED SHARES (rotation item 3). Equal
+                // shares made the patch a STABILIZER of the 45-degree
+                // balance: at that angle two corners tie inside the 5 mm
+                // band, the symmetric row pair produces zero net torque
+                // with a restoring bias, and honest friction then parks
+                // the cube on a knife-edge widened into a ~2-degree trap
+                // (measured: every wild 3-D tumble ended at z = 0.346,
+                // edge height, omega 0). Real contact pressure loads the
+                // deeper corner harder; weighting each row's share by its
+                // positive penetration restores the knife-edge to a
+                // knife-edge, with the equal split kept as the fallback
+                // when nothing penetrates yet (speculative band).
+                float wsum = 0.0f;
+                for (int q = 0; q < patch_n; ++q)
+                    wsum += (patch_pen[q] > 0.0f) ? patch_pen[q] : 0.0f;
                 const float I = pi.GetMomentOfInertia();
                 const float m_i = pi.GetMass();
                 for (int q = 0; q < patch_n; ++q) {
+                    const float share = (wsum > 1e-6f)
+                        ? std::max(patch_pen[q], 0.0f) / wsum
+                        : 1.0f / (float)patch_n;
                     Constraint ck = c;
                     ck.apply_anchor_torque = true;
                     ck.anchor_rax = patch_r[q][0];

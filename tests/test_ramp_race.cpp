@@ -135,6 +135,11 @@ int main() {
         // face, gravity at the centre of mass, so a body sliding on a slope
         // has a moment arm and should acquire angular velocity. A cube that
         // slides perfectly flat is a cube whose friction has no torque.
+        {   auto v = ps.lock_particles_for_read();
+            const Particle& cb = v[scene.cube];
+            std::printf("  [measure] cube final rotation (%.4f, %.4f, %.4f) rad\n",
+                        cb.rotation_x, cb.rotation_y, cb.rotation_z);
+        }
         std::printf("  [measure] cube rotation_y %.4f rad, omega (%.4f, %.4f, %.4f)\n",
                     v[scene.cube].rotation_y, v[scene.cube].omega_x,
                     v[scene.cube].omega_y, v[scene.cube].omega_z);
