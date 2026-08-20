@@ -15,7 +15,7 @@ transcription: cells addressed by (table, row, column), plus two
 citation sentences reused 168 times. This script does that, and every
 string it writes is the exact bytes from the source.
 
-The remaining 8 are RuleConstants - numbers buried in prose that a
+The remaining RuleConstants are numbers buried in prose that a
 human read the chapter and chose. Those are DECLARED here with the
 sentence that proves each one, because choosing them is judgement and
 judgement belongs somewhere a reader can argue with it. The value
@@ -38,9 +38,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from extract_career_tables import (ATTRIBUTES, CHAPTER, cells, is_separator,
+from extract_career_tables import (ATTRIBUTES, CHAPTER, CareerTableLedger,
+                                   LEDGER_ENTITY_TYPES, cells, is_separator,
                                    load_skill_references, qualified_ref,
-                                   read_tables, seed_context_key, slug)
+                                   read_tables, slug,
+                                   validate_character_creation)
+from rule_source_identity import ingestion_edition_context_key
 
 GENERATED_BY = "examples/logovger/tools/extract_careers.py"
 SECTION = "Career Tables"
@@ -144,7 +147,7 @@ DM_SECTION = "Characteristic Modifiers"
 DM_TABLE = "Score Range"
 DM_COLUMN = "Characteristic Modifier"
 
-# The eight numbers a human read out of the prose, each with the
+# The numbers this seed owns from prose, each with the
 # sentence that proves it. The verifier checks every one against its
 # quote, so a wrong number or a wrong sentence fails the build rather
 # than shipping. implied_by is for a count the text states without
@@ -161,23 +164,29 @@ RULE_CONSTANTS = [
      "current career and must continue for another term."),
     ("cash_benefit_roll_max", "3", "Cash Benefits",
      "Up to 3 benefit rolls can be taken on the Cash table."),
-    ("aging_start_age", "34", "Aging",
-     "The effects of aging begin when a character reaches 34 years of "
-     "age."),
-    ("crisis_restore_value", "1", "Aging Crisis",
-     "The character dies unless he can pay 1D6×10,000 Credits for "
-     "medical care, which will bring any characteristics back up to 1."),
     ("survival_natural_failure", "2", "Survival",
      "A natural 2 is always a failure."),
 ]
+
+PROSPECTING_LOCATOR = (
+    "Service Skills", "5", "Belter", "Prospecting")
+PROSPECTING_DEFECT = (
+    "Granted by the Belter Service Skills and Belter Specialist tables but "
+    "defined nowhere: 'Prospecting' occurs exactly twice in the SRD, both "
+    "in career tables, and has no entry in book1/skills.md nor a line in "
+    "the Available Skills List.")
+PROSPECTING_READING = (
+    "No defined skill covers finding and assessing ore. The likely reading "
+    "is that the skill entry is missing from the chapter, but the source "
+    "does not prove a replacement.")
 
 
 class Builder:
     """Ops in the order a loader can resolve them."""
 
-    def __init__(self, commit, skills):
+    def __init__(self, context_key, skills):
         self.ops = []
-        self.commit = commit
+        self.context_key = context_key
         self.skills = skills
 
     def add(self, type_name, alias, properties):
@@ -190,9 +199,7 @@ class Builder:
                          "relation": "HAS_PART", "to": child})
 
     def dice(self, key):
-        return qualified_ref(
-            "source-document:cepheus:%s@%s" % (CHAPTER, self.commit),
-            "DiceExpression", key)
+        return qualified_ref(self.context_key, "DiceExpression", key)
 
     def cite(self, section, table, row, column, quote, kind="cell"):
         out = {"source_file": CHAPTER, "source_section": section,
@@ -219,11 +226,24 @@ def parse_throw(text):
 
 def main():
     root, vocabulary_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    chapter = os.path.join(root, CHAPTER)
+    try:
+        source_bytes = validate_character_creation(chapter)
+    except ValueError as error:
+        print(f"REFUSED: {error}", file=sys.stderr)
+        return 1
     commit = open(os.path.join(root, "SOURCE_COMMIT"),
                   encoding="utf-8").read().strip()
-    skills = load_skill_references(vocabulary_path)
-    tables = read_tables(os.path.join(root, CHAPTER))
-    b = Builder(commit, skills)
+    context_key = ingestion_edition_context_key(root)
+    skills = load_skill_references(vocabulary_path, context_key)
+    skills["Prospecting"] = "@sk_prospecting"
+    tables = read_tables(chapter)
+    b = Builder(context_key, skills)
+    b.add("Skill", "@sk_prospecting", {
+        "name": "Prospecting",
+        "source_defect": PROSPECTING_DEFECT,
+        "suggested_reading": PROSPECTING_READING,
+    })
 
     careers = {}
     counts = {"career": 0, "check": 0, "service_row": 0, "draft": 0, "dm": 0}
@@ -484,12 +504,22 @@ def main():
             source_section=section, source_kind="sentence",
             source_quote=quote))
 
+    ledger = CareerTableLedger(source_bytes, tables)
+    migrated = ledger.migrate(b.ops)
+    ledger.append_claim(
+        b.ops, PROSPECTING_LOCATOR,
+        "The Belter tables grant a Prospecting skill that the skills "
+        "chapter does not define.",
+        "PARTIAL", materializes=("@sk_prospecting",),
+        suffix="_prospecting_undefined_skill", gap_kind="SOURCE_GAP")
+
     print("careers:      %d" % counts["career"])
     print("throws:       %d" % counts["check"])
     print("service rows: %d" % counts["service_row"])
     print("draft rows:   %d" % counts["draft"])
     print("modifiers:    %d" % counts["dm"])
     print("constants:    %d" % len(RULE_CONSTANTS))
+    print("exact Career Tables materializations: %d" % (migrated + 1))
     # Counts and coverage, asserted. A change that silently drops a
     # career or half a table still verifies - every citation left
     # behind is still true - and the invariant is what turns that
@@ -506,7 +536,8 @@ def main():
             "invariants": {
                 "count_of_type": counted,
                 "unique_name_per_type": sorted(
-                    set(counted) | {"DiceExpression"}),
+                    (set(counted) - LEDGER_ENTITY_TYPES) |
+                    {"DiceExpression"}),
                 "band_coverage": bands,
             },
             "ops": b.ops}

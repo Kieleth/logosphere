@@ -679,6 +679,11 @@ struct OutcomeExecutor::Planner {
                     std::to_string(outcome);
             return false;
         }
+        // On the way in, so a sequence, its steps and the choice above
+        // them all count as reached rather than only the leaf that
+        // produced ops. This is planning: apply() decides whether any
+        // of it happened.
+        plan.rules_reached.push_back(outcome);
 
         bool ok = true;
         if (type == "OutcomeSequence") {
@@ -1016,6 +1021,11 @@ OutcomeResult OutcomeExecutor::apply(
         return result;
     }
     dice_transaction.commit();
+
+    // Past the batch, so nothing here is a rule that merely planned to
+    // act. A pending choice or a refused batch returns above.
+    rules_reached_.insert(planner.plan.rules_reached.begin(),
+                          planner.plan.rules_reached.end());
 
     result.status = OutcomeStatus::APPLIED;
     result.ops_applied = batch.ops_applied;

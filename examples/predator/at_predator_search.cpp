@@ -182,7 +182,7 @@ int main() {
         p.size = std::max(w, d);
         p.r = 0.42f; p.g = 0.40f; p.b = 0.38f; p.a = 1.0f;
         p.SetMaterial(Materials::Type::STONE);
-        p.solver_mode = ParticleSolverMode::STATIC;
+        p.solver_mode = ParticleSolverMode::KINEMATIC;
         p.is_at_rest = true;
         engine.add_particle(p);
         grid.set_blocked_rect(x - w * 0.5f - 0.6f, y - d * 0.5f - 0.6f,
@@ -206,7 +206,7 @@ int main() {
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;
                 p.r = t - 0.03f; p.g = t + 0.05f; p.b = t; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::DIRT);
-                p.solver_mode = ParticleSolverMode::STATIC;
+                p.solver_mode = ParticleSolverMode::KINEMATIC;
                 p.is_at_rest = true;
                 engine.add_particle(p);
             }

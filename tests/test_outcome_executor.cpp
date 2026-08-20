@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "test_env_portable.h"
+
 static int tests_passed = 0;
 static int tests_failed = 0;
 
@@ -798,7 +800,7 @@ void an_absent_roll_count_means_one() {
     // KG_GATE_LENIENT is the documented lever for planting malformed
     // data, and the point here is the executor's OWN refusal — defense
     // in depth behind the gate.
-    setenv("KG_GATE_LENIENT", "1", 1);
+    test_env::set("KG_GATE_LENIENT", "1");
     for (const char* bad : {"0", "-1", "many"}) {
         Fixture g;
         rules::OutcomeExecutor ex(g.world, g.dice);
@@ -811,7 +813,7 @@ void an_absent_roll_count_means_one() {
                 std::string("a written roll_count of '") + bad +
                     "' is refused, not defaulted");
     }
-    unsetenv("KG_GATE_LENIENT");
+    test_env::unset("KG_GATE_LENIENT");
 }
 
 void a_sequence_rolls_back_kg_dice_and_events_on_late_failure() {

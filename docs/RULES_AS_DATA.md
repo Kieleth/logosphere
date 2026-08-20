@@ -108,9 +108,13 @@ comment.
 
 Splitting the work is the other half:
 
-- **Transcription is mechanical.** A model that retypes a number
-  produces a rule that is wrong while the prose still reads fine. Copy
-  bytes; address cells by (table, row, column).
+- **Structure is judged, content is copied.** A model reader decides
+  where irregular tables, rows, cells, footnotes, and wrapped content
+  begin and end. For digital text, a source tool returns the selected
+  bytes and the reader never retypes them. A deterministic parser was
+  rejected after it silently lost and misclassified real SRD rows. The
+  scan and OCR provenance boundary remains open in
+  `todo_plans/SOURCE_LOCATION_PROVENANCE_SPIKE.md`.
 - **Meaning is judgement.** Deciding that `"Low Passage"` is a
   possession and `"+1 Int"` is a characteristic is interpretation, and
   interpretation checked only by the regex that produced it is not
@@ -141,6 +145,55 @@ No test is written for any individual rule. A rule added to the graph
 tomorrow is checked automatically, because the checker reads the graph
 rather than a list someone maintained. That is the property a
 hand-written checklist can never have.
+
+### Three claims, and the one everybody forgets
+
+Checks on absorbed rules answer three separate questions, and a wall of
+green on the first two reads as assurance about the third:
+
+- **Fidelity.** The data matches the source. Citations resolve, numbers
+  appear in the text they quote.
+- **Coherence.** The assembled graph is sound. Nothing dangles, bands
+  tile, ordered parts are contiguous.
+- **Consequence.** The engine acts on it.
+
+We held the first two to an unusual standard and had no vocabulary for
+the third, and the strength of the first two is exactly what made the
+absence invisible. Twenty-three careers had a rank 0 skill grant that
+was cited to its cell, verified against the book, counted by an
+invariant, and read by no code at all. Every generated character was a
+skill level short for as long as the feature existed.
+
+Note what does **not** catch this. A reader census at the level of
+types is satisfied by one reader touching one instance: the type was
+read, just not those instances. Static reachability over the graph
+catches a table nothing points at, and would have caught 6 of the 23,
+because a neighbouring path reached the rest through a side door.
+
+What catches it is asking the executor, after the fact, which rule
+entities it actually applied, and comparing that against everything
+absorbed. Record the id on apply, union it across a sweep, and fail
+when a table in the graph was reached by nothing. One row reached is
+enough to prove a table is wired, so the gate survives the dice while
+still catching a table wired to nothing.
+
+Two things to get right, or the number lies:
+
+- **Only count applied plans.** A rule that planned to act and stopped
+  on an unanswered choice reached nobody.
+- **Vary the choices the book leaves open.** Our auto-player always
+  trained on Service Skills and always took cash. Both are defensible
+  defaults, and both are invisible in a green suite: 84 of 171 tables
+  had never been reached by any test in any release, including every
+  Personal Development, Specialist and Advanced Education table for all
+  24 careers. A coverage number taken under fixed taste measures the
+  harness, not the book.
+
+The gate paid for itself on its first run beyond rank 0. The Draft's
+six services are `EnterCareer` outcomes, and the code reached into the
+entity for a property instead of applying it. It worked, so nothing
+complained, and it meant the one rule that changes which career you are
+in was the only rule the executor never ran.
 
 ---
 

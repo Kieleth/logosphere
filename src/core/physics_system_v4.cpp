@@ -196,6 +196,32 @@ static EnergyBuckets measure_energy(
 struct RowEnergy { double contact = 0.0, turtle = 0.0, gluon = 0.0; };
 static RowEnergy g_row_energy;
 
+// WHERE THE ENERGY WENT (INV-19's commitment).
+//
+// The invariant says damping exists only where a real dissipation
+// process is being modelled — a material turning motion into heat —
+// and that the conversion is BOOKED. Until 2026-08-15 the ledger
+// tracked kinetic, potential and strain, and every joule that left the
+// world left silently: a reader could see energy vanish and had no way
+// to ask which mechanism took it, or whether that mechanism had any
+// right to.
+//
+// Each bucket names a process, not a fudge:
+//   friction  Coulomb friction at contacts. Real: surfaces heat.
+//   material  gluon material damping, c = eta*sqrt(k*mu). Real:
+//             internal friction of the bonded material.
+//   drag      quadratic air drag during integration. Real: the
+//             particle stirs the medium.
+//   sleep     residue the sleep cache absorbs below its quietness
+//             bound (INV-31's resolver). NOT a physical process — it
+//             is the cache being a cache, and it is booked separately
+//             precisely so it can never hide inside the honest ones.
+struct Dissipation {
+    double friction = 0.0, material = 0.0, drag = 0.0, sleep = 0.0;
+    double total() const { return friction + material + drag + sleep; }
+};
+static Dissipation g_dissipation;
+
 static bool energy_ledger_on() {
     static const bool v = std::getenv("ENERGY_LEDGER") != nullptr;
     return v;
@@ -338,7 +364,8 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
         const bool ledger = energy_ledger_on();
         if (ledger) { e_before = measure_energy(particles, gluon_constraints_v2_);
-                      g_row_energy = RowEnergy{}; }
+                      g_row_energy = RowEnergy{};
+                      g_dissipation = Dissipation{}; }
 
         {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsForces);
@@ -415,6 +442,10 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                           << " | rows: contact=" << g_row_energy.contact
                           << " turtleRow=" << g_row_energy.turtle
                           << " gluon=" << g_row_energy.gluon
+                          << " | dissipated: friction=" << g_dissipation.friction
+                          << " material=" << g_dissipation.material
+                          << " drag=" << g_dissipation.drag
+                          << " sleepCache=" << g_dissipation.sleep
                           << " | d_TOTAL=" << d_all
                           << (d_all > 1.0 ? "   *** ENERGY CREATED ***" : "")
                           << std::endl;
@@ -480,9 +511,27 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 // different question with a different predicate (inv_mass_positional in the
 // split-impulse position pass), on purpose: a sleeping body's overlap is as
 // real as an awake one's.
+// INV-31 (owner decree 2026-08-14): WAKE IS SOLVED PHYSICS. With the
+// resolver on, a sleeping body stops claiming immovability — INV-1 says
+// the turtle is the only immovable thing, and a 45 kg crate that has
+// been still for a second is not the turtle. It is priced at its TRUE
+// mass, the solver computes the interaction honestly, and the wake
+// decision is the RESULT: above the quietness bound that admitted it to
+// sleep it wakes and keeps what physics gave it; below, the cache
+// absorbs the residue (resolve_sleep_wakes, end of this file's solve).
+// Gravity is skipped for sleepers at its own site, on its own reason:
+// a resting body's weight is balanced by its support, so skipping the
+// pair is exact rather than an immovability claim.
+//
+// Default OFF until measured: WAKE_RESOLVER=1.
+static bool wake_resolver_on() {
+    static const bool on = std::getenv("WAKE_RESOLVER") != nullptr;
+    return on;
+}
+
 static inline float inv_mass_momentum(const Particle& p) {
     if (p.solver_mode == ParticleSolverMode::KINEMATIC) return 0.0f;
-    if (p.is_at_rest) return 0.0f;
+    if (p.is_at_rest && !wake_resolver_on()) return 0.0f;
     const float m = p.GetMass();
     return (m > 0.0f) ? (1.0f / m) : 0.0f;
 }
@@ -498,6 +547,78 @@ static inline void apply_pair_impulse(Particle& a, Particle& b,
     b.vx -= jx * ib;  b.vy -= jy * ib;  b.vz -= jz * ib;
 }
 
+// THE SLEEP-AWAKE RESOLVER (INV-31). Runs once per substep, after the
+// solve, before integration — so a body that stays asleep never
+// integrates a velocity it was not allowed to keep.
+//
+// Three outcomes per sleeping body, and the solved velocity decides:
+//   |v| > REST_VELOCITY_THRESHOLD  -> WAKE. The interaction was real;
+//        the body keeps exactly what the solver gave it and rejoins
+//        the world (gravity, integration, its own contacts).
+//   |v| <= bound, |v| > 0          -> the cache ABSORBS it. The residue
+//        is below the quietness that defines sleep, so zeroing it is
+//        the cache being a cache. Booked as dissipation (task #44).
+//   |v| == 0                       -> nothing happened. The common case:
+//        resting stacks whose rows see no approach cost nothing here.
+//
+// What this replaces: a pre-solve guess
+// ((m_a/(m_a+m_s))*v_a >= WAKE_TRANSFER_SPEED) that priced the sleeper
+// as immovable whenever it said no — which annihilated 343 kg*m/s
+// against a sleeping equal-mass crate in the Rube Goldberg machine
+// (probe f271) and made a grain of sand and a castle wall the same
+// question.
+static void resolve_sleep_wakes(ParticleSystem::WriteView& particles) {
+    const size_t count = particles.size();
+    for (size_t i = 0; i < count; ++i) {
+        Particle& p = particles[i];
+        if (!p.is_at_rest) continue;
+        if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+        const float v_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
+        const float w_sq = p.omega_x * p.omega_x + p.omega_y * p.omega_y +
+                           p.omega_z * p.omega_z;
+        if (v_sq == 0.0f && w_sq == 0.0f) continue;
+        if (w_sq > 0.0f && v_sq <= REST_VELOCITY_THRESHOLD *
+                                   REST_VELOCITY_THRESHOLD) {
+            // Spin the cache cannot hold: below the linear bound but
+            // turning. Absorb it with the rest of the residue rather than
+            // leaving a sleeper rotating.
+            p.omega_x = p.omega_y = p.omega_z = 0.0f;
+        }
+        if (v_sq > REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
+            p.is_at_rest = false;
+            p.low_velocity_frames = 0;
+            PHYS_TRACE_F(::logosphere::phystrace::Pair, "resolver_wake",
+                         (int)i, -1, "solved_impulse",
+                         std::sqrt(v_sq), 0.0f, 0.0f);
+        } else {
+            // The cache absorbs it. Book the kinetic energy destroyed
+            // here, separately from the modelled processes: this is
+            // bookkeeping about an optimisation, not physics, and INV-19
+            // only sanctions the latter.
+            if (energy_ledger_on()) {
+                const double m = p.GetMass();
+                if (m > 0.0) g_dissipation.sleep += 0.5 * m * double(v_sq);
+            }
+            p.vx = p.vy = p.vz = 0.0f;
+        }
+    }
+}
+
+void PhysicsSystem::record_refused_impulse(size_t particle_id,
+                                           float jx, float jy, float jz) {
+    auto& e = refused_impulses_[particle_id];
+    e[0] += jx; e[1] += jy; e[2] += jz;
+}
+
+bool PhysicsSystem::take_refused_impulse(size_t particle_id,
+                                         float& jx, float& jy, float& jz) {
+    auto it = refused_impulses_.find(particle_id);
+    if (it == refused_impulses_.end()) return false;
+    jx = it->second[0]; jy = it->second[1]; jz = it->second[2];
+    refused_impulses_.erase(it);
+    return true;
+}
+
 void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float dt) {
     const size_t count = particles.size();
 
@@ -510,6 +631,11 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
         // Gravity is momentum input, and who may receive momentum is the
         // door's one question: massless, KINEMATIC and sleeping bodies no.
         if (inv_mass_momentum(p) == 0.0f) continue;
+        // THE SLEEP CACHE, stated: a resting body's weight is carried by
+        // its support, and skipping both sides of that balanced pair is
+        // exact. This is why sleep is cheap — not because the body is
+        // immovable (INV-1: only the turtle is).
+        if (p.is_at_rest) continue;
         if (const char* cenv = std::getenv("CANARY_PID"); cenv && (int)i == std::atoi(cenv)) {
             std::cout << "[CANARY GRAVITY] P" << i << " receives gravity, vz_pre=" << p.vz
                       << " at_rest=" << (int)p.is_at_rest << std::endl;
@@ -534,6 +660,11 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
 
     // Phase 2-4: Detect contacts, build constraints, solve
     solve_contacts_v3(particles, dt);
+
+    // Phase 5: THE SLEEP-AWAKE RESOLVER (INV-31). Every sleeping body
+    // that the solve actually moved is judged here, on the solved
+    // result, against the same bound that admitted it to sleep.
+    if (wake_resolver_on()) resolve_sleep_wakes(particles);
 }
 
 // IMPULSE_MEMORY_OFF=1 disables the bond integral term (warm_ix/iy/iz) at both
@@ -1230,8 +1361,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
 
                 // Effective mass (shared across all contact points in manifold)
-                float inv_ma = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
-                float inv_mb = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                // THE ONE PREDICATE (INV-7). These two lines carried
+                // their own opinion until 2026-08-14 — no KINEMATIC
+                // check, and a sleep test that contradicted the door
+                // once the resolver priced sleepers honestly (the
+                // striker stopped dead against a crate the door was
+                // simultaneously moving: priced in one model, spent in
+                // another, which is INV-20 exactly).
+                // Routing these through the door's predicate also fixes a
+                // real pricing/spending mismatch: a KINEMATIC body that is
+                // not at_rest was priced MOVABLE here while the apply site
+                // refused to move it. Both corrections ride the resolver
+                // lever together, because the KINEMATIC half shifts the
+                // effective mass of every kinematic contact and the
+                // ringing ladder + grass yield tests measure exactly that.
+                // Default path stays bit-identical until the flip.
+                float inv_ma, inv_mb;
+                if (wake_resolver_on()) {
+                    inv_ma = inv_mass_momentum(pi);
+                    inv_mb = inv_mass_momentum(pj);
+                } else {
+                    inv_ma = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
+                    inv_mb = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                }
                 float inv_mass_sum = inv_ma + inv_mb;
                 // inv_mass_sum == 0 means BOTH bodies are immovable (KINEMATIC,
                 // at rest, or the turtle). Their effective mass is infinite, so
@@ -1447,8 +1599,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             c.jz = normal_sign;
 
                             // at_rest particles act as infinite mass (don't move until woken)
-                            float inv_ma_spec = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
-                            float inv_mb_spec = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                            float inv_ma_spec, inv_mb_spec;
+                            if (wake_resolver_on()) {
+                                inv_ma_spec = inv_mass_momentum(pi);
+                                inv_mb_spec = inv_mass_momentum(pj);
+                            } else {
+                                inv_ma_spec = pi.is_at_rest ? 0.0f : (1.0f / pi.GetMass());
+                                inv_mb_spec = pj.is_at_rest ? 0.0f : (1.0f / pj.GetMass());
+                            }
                             float inv_mass_sum = inv_ma_spec + inv_mb_spec;
                             // 0, not 1: both bodies immovable means infinite
                             // effective mass, so this row's correct
@@ -2689,6 +2847,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     pb.vx -= c.jx * warm_impulse * inv_mb;
                     pb.vy -= c.jy * warm_impulse * inv_mb;
                     pb.vz -= c.jz * warm_impulse * inv_mb;
+                    // BOOK WHAT THIS SPENDS. The warm start is momentum
+                    // like any other; it just arrives before the
+                    // iterations. Measured before this line existed: a
+                    // KINEMATIC target refused 1357.8 kg*m/s and the
+                    // ledger held 33.6 of it — 2.5% — because the warm
+                    // apply lived outside the booking loop.
+                    if (inv_mb == 0.0f && warm_impulse != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -c.jx * warm_impulse,
+                                               -c.jy * warm_impulse,
+                                               -c.jz * warm_impulse);
+                    }
+                }
+                if (!c.is_turtle_contact && inv_ma == 0.0f &&
+                    warm_impulse != 0.0f) {
+                    record_refused_impulse(c.body_a,
+                                           c.jx * warm_impulse,
+                                           c.jy * warm_impulse,
+                                           c.jz * warm_impulse);
                 }
 
                 // CANARY_DEBUG: Log warm start impulse applied to canary
@@ -3229,10 +3406,44 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             pa.vy += c.jy * impulse * inv_ma;
             pa.vz += c.jz * impulse * inv_ma;
 
-            if (!c.is_turtle_contact && !pb.is_at_rest && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+            // THE DOOR DECIDES, NOT THE CALL SITE (INV-7). This guard
+            // used to re-ask the immovability question inline
+            // (`!pb.is_at_rest && !KINEMATIC`) on top of inv_mb, which
+            // is exactly what the predicate already answered. Harmless
+            // while both agreed; the moment the resolver priced
+            // sleepers honestly it made body A pay an impulse body B
+            // never received — momentum destroyed at the door itself.
+            // inv_mb is 0 for anyone immovable, so multiplying is the
+            // whole guard.
+            if (!c.is_turtle_contact) {
                 pb.vx -= c.jx * impulse * inv_mb;
                 pb.vy -= c.jy * impulse * inv_mb;
                 pb.vz -= c.jz * impulse * inv_mb;
+                // Book the half that could not be delivered. inv_mb == 0
+                // means an external writer owns this body; the momentum
+                // is real and belongs to that writer, not to the void.
+                // ANY refusal, not just KINEMATIC ones. inv_mb is 0
+                // whenever this body cannot take momentum — held by an
+                // external writer, or asleep. A resting body books
+                // nothing (no approach, no impulse); a STRUCK one books
+                // exactly what it refused, which is the whole point.
+                if (inv_mb == 0.0f && impulse != 0.0f) {
+                    record_refused_impulse(c.body_b,
+                                           -c.jx * impulse,
+                                           -c.jy * impulse,
+                                           -c.jz * impulse);
+                }
+            }
+            // Turtle rows are excluded on BOTH sides: the turtle is the
+            // world boundary (INV-1), not a body delivering a shove, and
+            // its support force fires every frame under every resting
+            // body. Booking it swamped the ledger with -14.23 N*s of
+            // "someone pushed you" on a humanoid that was merely standing.
+            if (!c.is_turtle_contact && inv_ma == 0.0f && impulse != 0.0f) {
+                record_refused_impulse(c.body_a,
+                                       c.jx * impulse,
+                                       c.jy * impulse,
+                                       c.jz * impulse);
             }
 
             // ANCHOR TORQUE: the same impulse, applied at the anchor, spins
@@ -3334,8 +3545,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
                 // Friction constraint 1 (tangent 1)
                 // Start with pa's velocity; subtract pb's only if pb is moving
+                // MEASURE THE TRUTH, always. Skipping a sleeper's
+                // velocity here was harmless only because rest-entry
+                // zeroes it; under the resolver a sleeping body carries
+                // real velocity mid-substep, and a relative velocity that
+                // ignores one side is not a relative velocity. Only the
+                // turtle is exempt: it is a boundary, not a body, and has
+                // no velocity to subtract.
                 float v_rel_t1 = t1x * pa.vx + t1y * pa.vy + t1z * pa.vz;
-                if (!c.is_turtle_contact && !pb.is_at_rest) {
+                if (!c.is_turtle_contact) {
                     v_rel_t1 -= t1x * pb.vx + t1y * pb.vy + t1z * pb.vz;
                 }
                 float friction_impulse_1 = -v_rel_t1 * c.effective_mass;
@@ -3344,6 +3562,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                         std::min(friction_limit, old_f1 + friction_impulse_1));
                 friction_impulse_1 = c.friction_impulse_t1 - old_f1;
 
+                if (energy_ledger_on() && friction_impulse_1 != 0.0f) {
+                    // Work removed along this tangent: J * v_rel plus the
+                    // J^2/2m the impulse itself carries, same shape as the
+                    // normal row's accounting above.
+                    const double inv_sum = double(inv_ma) + double(inv_mb);
+                    if (inv_sum > 0.0) {
+                        const double j = friction_impulse_1;
+                        g_dissipation.friction -= j * double(v_rel_t1)
+                                                + j * j * inv_sum * 0.5;
+                    }
+                }
                 pa.vx += t1x * friction_impulse_1 * inv_ma;
                 pa.vy += t1y * friction_impulse_1 * inv_ma;
                 pa.vz += t1z * friction_impulse_1 * inv_ma;
@@ -3356,16 +3585,36 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << std::endl;
                 }
 
-                if (!c.is_turtle_contact && !pb.is_at_rest && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                // THE DOOR DECIDES (INV-7). inv_mb is already 0 for
+                // anyone immovable; re-asking the question here made body
+                // A pay friction body B never received the moment the two
+                // disagreed. Same cure as the normal-impulse apply.
+                if (!c.is_turtle_contact) {
                     pb.vx -= t1x * friction_impulse_1 * inv_mb;
                     pb.vy -= t1y * friction_impulse_1 * inv_mb;
                     pb.vz -= t1z * friction_impulse_1 * inv_mb;
+                    // Friction is momentum too. The whole block booked
+                    // nothing until 2026-08-14, so a body braced against
+                    // a shove absorbed all the tangential load silently.
+                    if (inv_mb == 0.0f && friction_impulse_1 != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -t1x * friction_impulse_1,
+                                               -t1y * friction_impulse_1,
+                                               -t1z * friction_impulse_1);
+                    }
+                }
+                if (!c.is_turtle_contact && inv_ma == 0.0f &&
+                    friction_impulse_1 != 0.0f) {
+                    record_refused_impulse(c.body_a,
+                                           t1x * friction_impulse_1,
+                                           t1y * friction_impulse_1,
+                                           t1z * friction_impulse_1);
                 }
 
                 // Friction constraint 2 (tangent 2)
                 // Start with pa's velocity; subtract pb's only if pb is moving
                 float v_rel_t2 = t2x * pa.vx + t2y * pa.vy + t2z * pa.vz;
-                if (!c.is_turtle_contact && !pb.is_at_rest) {
+                if (!c.is_turtle_contact) {
                     v_rel_t2 -= t2x * pb.vx + t2y * pb.vy + t2z * pb.vz;
                 }
                 float friction_impulse_2 = -v_rel_t2 * c.effective_mass;
@@ -3374,14 +3623,35 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                         std::min(friction_limit, old_f2 + friction_impulse_2));
                 friction_impulse_2 = c.friction_impulse_t2 - old_f2;
 
+                if (energy_ledger_on() && friction_impulse_2 != 0.0f) {
+                    const double inv_sum = double(inv_ma) + double(inv_mb);
+                    if (inv_sum > 0.0) {
+                        const double j = friction_impulse_2;
+                        g_dissipation.friction -= j * double(v_rel_t2)
+                                                + j * j * inv_sum * 0.5;
+                    }
+                }
                 pa.vx += t2x * friction_impulse_2 * inv_ma;
                 pa.vy += t2y * friction_impulse_2 * inv_ma;
                 pa.vz += t2z * friction_impulse_2 * inv_ma;
 
-                if (!c.is_turtle_contact && !pb.is_at_rest && pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                if (!c.is_turtle_contact && inv_ma == 0.0f &&
+                    friction_impulse_2 != 0.0f) {
+                    record_refused_impulse(c.body_a,
+                                           t2x * friction_impulse_2,
+                                           t2y * friction_impulse_2,
+                                           t2z * friction_impulse_2);
+                }
+                if (!c.is_turtle_contact) {
                     pb.vx -= t2x * friction_impulse_2 * inv_mb;
                     pb.vy -= t2y * friction_impulse_2 * inv_mb;
                     pb.vz -= t2z * friction_impulse_2 * inv_mb;
+                    if (inv_mb == 0.0f && friction_impulse_2 != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -t2x * friction_impulse_2,
+                                               -t2y * friction_impulse_2,
+                                               -t2z * friction_impulse_2);
+                    }
                 }
             }
         }
@@ -4445,6 +4715,14 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
 
                 if (damping_factor < 0.5f) damping_factor = 0.5f;  // Clamp to prevent reversal
 
+                if (energy_ledger_on()) {
+                    // The medium takes what the factor removes.
+                    const double m = p.GetMass();
+                    const double v2 = double(p.vx)*p.vx + double(p.vy)*p.vy
+                                    + double(p.vz)*p.vz;
+                    const double f2 = double(damping_factor) * damping_factor;
+                    g_dissipation.drag += 0.5 * m * v2 * (1.0 - f2);
+                }
                 p.vx *= damping_factor;
                 p.vy *= damping_factor;
                 p.vz *= damping_factor;
@@ -4452,52 +4730,34 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
         }
 
         // ====================================================================
-        // FRAME-GATED DAMPING (2025-12-11)
+        // FRAME-GATED DAMPING: ERADICATED (2026-08-14, owner decree)
         // ====================================================================
-        // Track consecutive frames at low velocity, then apply damping.
-        // This preserves real physics reactions (rock hits tree - velocity varies)
-        // while eventually stopping numerical oscillation (steady 0.1-0.3 m/s).
+        // A speed-gated *0.90/tick velocity tax lived here from 2025-12-11.
+        // It was written to kill numerical oscillation and could not tell
+        // oscillation from coasting, because it looked at SPEED — and
+        // oscillation is a signature, not a speed. Measured consequence
+        // (sleep-wake resolver ladder R1 + machine S3 RCA): any body below
+        // 0.8 m/s with a saturated low_velocity_frames counter lost 10% of
+        // its velocity per tick — 72 kg*m/s ground to 11 in 17 frames on a
+        // mu=0.02 floor, with contacts ferrying neighbours' momentum into
+        // the sink. The engine forbade slow coasting outright.
         //
-        // WHY: Hard clamping caused instability - clamping one gluon-connected
-        // particle while neighbor was above threshold created large v_rel,
-        // causing solver to apply destabilizing impulses (max vel grew to 0.84 m/s).
+        // Owner ruling (LEDGER.md 2026-08-14): "a dampening is a dampening
+        // if it's a dampening; anything else is energy transference between
+        // materials and consequences of that — physics." Rest belongs to
+        // the sleep law (INV-18/24); dissipation belongs to modeled
+        // processes (INV-19). Nothing else may touch velocity.
         //
-        // RESULTS: 98% particles at rest (was 10%), max velocity 0.016 m/s (stable)
-        //
-        // Constants from physics_solver.h (see that file for full documentation)
-        // THE SLEEP LAW's corollary: a constraint-dissatisfied body's
-        // velocity is the correction in progress — the rest damper must
-        // not crush it.
-        if (i < constraint_dissatisfied_.size() && constraint_dissatisfied_[i]) {
-            p.low_velocity_frames = 0;
-        }
-        float vel_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
-
-        // Track low-velocity frames with hysteresis (V4.7)
-        // - Increment counter when below threshold
-        // - Only RESET counter if velocity is 2x above threshold (real motion, not oscillation)
-        // - Velocities in between don't change counter (hysteresis band)
-        constexpr float DAMPING_RESET_THRESHOLD_SQ = DAMPING_VELOCITY_THRESHOLD_SQ * 4.0f;  // 2x velocity = 4x squared
-
-        if (vel_sq < DAMPING_VELOCITY_THRESHOLD_SQ) {
-            if (p.low_velocity_frames < 65535) p.low_velocity_frames++;
-        } else if (vel_sq > DAMPING_RESET_THRESHOLD_SQ) {
-            p.low_velocity_frames = 0;  // Real motion - reset counter
-        }
-        // Velocity between threshold and 2x threshold: don't change counter (hysteresis)
-
-        // Apply damping only after sustained low velocity
-        if (p.low_velocity_frames >= DAMPING_FRAMES_REQUIRED) {
-            if (vel_sq < ZERO_VELOCITY_SQ) {
-                // Below noise floor: hard clamp to exactly zero
-                p.vx = p.vy = p.vz = 0.0f;
-                vel_sq = 0.0f;
-            } else {
-                // Apply gradual damping
-                p.vx *= DAMPING_FACTOR;
-                p.vy *= DAMPING_FACTOR;
-                p.vz *= DAMPING_FACTOR;
-                vel_sq *= DAMPING_FACTOR * DAMPING_FACTOR;
+        // The low_velocity_frames counter still ticks (wake sites reset
+        // it); its only remaining reader is diagnostics.
+        {
+            float vel_sq_track = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
+            constexpr float DAMPING_RESET_THRESHOLD_SQ =
+                DAMPING_VELOCITY_THRESHOLD_SQ * 4.0f;
+            if (vel_sq_track < DAMPING_VELOCITY_THRESHOLD_SQ) {
+                if (p.low_velocity_frames < 65535) p.low_velocity_frames++;
+            } else if (vel_sq_track > DAMPING_RESET_THRESHOLD_SQ) {
+                p.low_velocity_frames = 0;
             }
         }
 
@@ -4639,8 +4899,15 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
             if (p.frames_at_rest < 255) p.frames_at_rest++;
             if (p.frames_at_rest >= REST_FRAMES_REQUIRED) {
                 p.is_at_rest = true;
-                // Zero velocity when entering rest to prevent drift
+                // Zero velocity when entering rest to prevent drift.
+                // BOTH halves: a body that kept its angular velocity went
+                // on spinning while asleep forever — enter-rest zeroed
+                // only the linear part, angular integration gates only on
+                // KINEMATIC, and nothing downstream judged spin. Sleep is
+                // a cache over dynamics (INV-18) and a cache that keeps
+                // one field live is a leak.
                 p.vx = p.vy = p.vz = 0.0f;
+                p.omega_x = p.omega_y = p.omega_z = 0.0f;
             }
         } else if (vel_sq > WAKE_VELOCITY_THRESHOLD * WAKE_VELOCITY_THRESHOLD) {
             // Velocity above wake threshold - actually moving
@@ -4747,6 +5014,11 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         // DYNAMICS particles are controlled by ParticleDynamicsSystem (humanoids, etc.)
         // Skip angular integration here - dynamics handles their rotation
         if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+        // A sleeping body does not spin. The linear half of this has been
+        // true since the sleep law existed; the angular half was simply
+        // never written, so a sleeper kept whatever omega it fell asleep
+        // with (INV-18: sleep hides nothing).
+        if (p.is_at_rest) continue;
 
         // Get moment of inertia (calculate if not cached)
         //

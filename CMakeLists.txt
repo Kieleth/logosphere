@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(logosphere VERSION 0.4.2)
+project(logosphere VERSION 0.4.5)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,6 +32,12 @@ endif()
 # standalone, so this changes nothing for the engine's own builds.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_info.cmake)
+
+# Point this clone's git at the tracked .githooks/ directory (never
+# rebase, never force-push, never push to main). Configure time is the
+# install step because .git/hooks does not survive a clone and a
+# documented "run this once" step does not survive an agent session.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/git_hooks.cmake)
 
 # ----------------------------------------------------------------------
 # Build profiles
@@ -116,9 +122,13 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/qualified_reference.cpp
     src/kg/ontology_meta_graph.cpp
     src/kg/ontology_validator.cpp
-    # Source locators: address a piece of a rulebook, resolve it back
+    # Source evidence: address exact fragments and seal corpus editions
     src/text/source_document.cpp
     src/text/source_locator.cpp
+    src/text/source_target.cpp
+    src/text/source_manifest.cpp
+    src/text/source_corpus.cpp
+    src/kg/ingestion_ledger.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
     # validated write path, and the ingestion verifier (verbatim /
     # schema / value / semantic / invariants). docs/RPG_MODULE.md.
@@ -413,6 +423,10 @@ add_headless_test(test_source_locator)
 # Resolves locators against the vendored SRD in the tree.
 target_compile_definitions(test_source_locator
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_source_target)
+add_headless_test(test_source_manifest)
+add_headless_test(test_source_corpus)
+add_headless_test(test_ingestion_ledger)
 add_headless_test(test_rulebook_pack)
 add_headless_test(test_rule_fork)
 # Verbatim-checks its citations against the vendored SRD in the tree.
@@ -431,16 +445,16 @@ register_headless_test(test_seed_verifier)
 target_compile_definitions(test_seed_verifier
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
-# The ingestion verifier CLI: logosphere-verify <seed.json> <source-root>.
+# The ingestion verifier CLI accepts an ordered prerequisite chain before the
+# target seed. Game seed files still verify through game-side registries.
 # Links the ENGINE registries only (core + rulebook + earth + space,
 # merged); game seed files with game types verify through game-side
 # targets calling kg::verify_seed with their own registry.
 add_executable(logosphere-verify tools/logosphere_verify.cpp)
 target_link_libraries(logosphere-verify PRIVATE logosphere_core)
 target_compile_features(logosphere-verify PRIVATE cxx_std_17)
-# The CLI under ctest, both directions: the positive fixture must
-# verify clean (exit 0), the misquote fixture must fail (exit 1,
-# expressed as WILL_FAIL).
+# The CLI under ctest: a standalone seed passes, a misquote fails, and a
+# cross-seed reference passes only when its prerequisite is supplied.
 add_test(NAME logosphere_verify_positive
     COMMAND logosphere-verify
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/rulebook_smoke.json
@@ -450,6 +464,18 @@ add_test(NAME logosphere_verify_negative
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
+add_test(NAME logosphere_verify_prerequisite
+    COMMAND logosphere-verify
+        --prerequisite
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_base.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+add_test(NAME logosphere_verify_missing_prerequisite
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+set_tests_properties(logosphere_verify_missing_prerequisite
+    PROPERTIES WILL_FAIL TRUE)
 
 # Logovger with no window: a life played by an InputSource. Proves the
 # replay harness on a real game, and gives a fuzzing entry point that
@@ -531,6 +557,19 @@ target_compile_definitions(test_chargen
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(NAME test_chargen COMMAND test_chargen)
 
+add_executable(test_logovger_rule_seed_identity
+    examples/logovger/test_rule_seed_identity.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_logovger_rule_seed_identity PRIVATE logosphere_core)
+target_compile_features(test_logovger_rule_seed_identity PRIVATE cxx_std_17)
+target_include_directories(test_logovger_rule_seed_identity PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(test_logovger_rule_seed_identity
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+register_headless_test(test_logovger_rule_seed_identity)
+
 # Pure arithmetic: where the panels sit. No engine, no GPU, no window.
 # It catches the failures a screenshot cannot, starting with a window
 # too wide for the display to show at all.
@@ -557,6 +596,7 @@ add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_contact_producer)
 add_headless_test(test_contact_bounce)
+add_headless_test(test_rule_order_determinism)  # two rules, one contact
 add_headless_test(test_goap_executors)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
@@ -1225,6 +1265,71 @@ target_include_directories(test_humanoid_headless PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(test_humanoid_headless PRIVATE cxx_std_17)
+
+# KINEMATIC is a transient authority: when locomotion lets go of a
+# humanoid, physics must get it back. Proves the corpse falls.
+add_executable(test_humanoid_ragdoll tests/test_humanoid_ragdoll.cpp)
+target_link_libraries(test_humanoid_ragdoll PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core)
+target_include_directories(test_humanoid_ragdoll PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_humanoid_ragdoll PRIVATE cxx_std_17)
+
+# KNOCKBACK: momentum a braced (KINEMATIC) body refuses is booked and
+# handed to whoever owns that body, not dropped.
+add_executable(test_humanoid_knockback tests/test_humanoid_knockback.cpp)
+target_link_libraries(test_humanoid_knockback PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core)
+target_include_directories(test_humanoid_knockback PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_humanoid_knockback PRIVATE cxx_std_17)
+
+# The refusal ledger must hold what a braced body refused. It booked
+# 2.5% of it until 2026-08-14; this is what keeps it honest.
+add_executable(test_refused_momentum_ledger tests/test_refused_momentum_ledger.cpp)
+# logosphere_core and logosphere_dynamics reference each other, and
+# this test names neither directly, so GNU ld (left-to-right, one pass
+# per archive) drops dynamics before core asks for
+# notify_particle_swap. Apple's linker resolves it either way, which is
+# why it built here and failed the Linux precheck. Repeat the archive.
+target_link_libraries(test_refused_momentum_ledger PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_refused_momentum_ledger PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
+
+# D7, born red: what slows a spinning body down? Today, a constant.
+# ANGULAR_DRAG is multiplied into omega four times a frame for every
+# body in every surrounding, so a cube spinning in vacuum stops in a
+# second. Measures GEDANKEN-25 and names GEDANKEN-27's blocker.
+add_executable(test_angular_dissipation tests/test_angular_dissipation.cpp)
+target_link_libraries(test_angular_dissipation PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_angular_dissipation PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_angular_dissipation PRIVATE cxx_std_17)
+
+# INV-6's first witness: the same press on three axes must resolve the
+# same, or the solver knows which way is down.
+add_executable(test_inv6_gravity_blindness tests/test_inv6_gravity_blindness.cpp)
+target_link_libraries(test_inv6_gravity_blindness PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_inv6_gravity_blindness PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_inv6_gravity_blindness PRIVATE cxx_std_17)
 
 # Phase 4b C2 — pin-gluon lifecycle round-trip. Same headless setup as
 # test_humanoid_headless. Spawns a stub humanoid, opts in via
@@ -2106,6 +2211,8 @@ set(TEST_SOURCES
     tests/test_constraint_order_matters.cpp    # S19 re-run: does constraint order change it?
     tests/test_physics_battery.cpp             # scenario ladder: one mechanism per rung
     tests/test_rotation_ladder.cpp             # rotation TDD: red first, one rung at a time
+    tests/test_rube_goldberg_machine.cpp       # one chain reaction, every stage an invariant
+    tests/test_sleep_wake_resolver.cpp         # INV-31 red-first: twin-scene invisibility
     tests/test_grass_natures.cpp               # the palette on real grass + human over a blade
     tests/test_settling.cpp                    # focused TDD: wiggle-free rest, and resting ON the ground
     tests/test_async_prep_churn.cpp            # issue #31: KG lookup must stay on the frame thread

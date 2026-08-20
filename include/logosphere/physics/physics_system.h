@@ -27,6 +27,7 @@
 #include <vector>
 #include <deque>
 #include <unordered_set>
+#include <array>
 #include <unordered_map>
 #include <cmath>
 
@@ -396,6 +397,30 @@ public:
     // Particle deletion support - called by ParticleSystem during particle removal
     // Removes all gluons that reference this particle (must be called BEFORE swap-and-pop)
     void remove_gluons_for_particle(size_t particle_id);
+
+    // --- REFUSED MOMENTUM (the KINEMATIC ledger) -------------------------
+    //
+    // A KINEMATIC body has inverse mass 0, so a contact against it
+    // computes an impulse and then delivers HALF of it: the striker is
+    // stopped, and the momentum the pinned body should have taken goes
+    // nowhere. Physically that momentum is real — it is what a shove
+    // against a braced body IS — and dropping it silently is why a
+    // boulder could hit a humanoid and change nothing at all.
+    //
+    // So the solver books it instead of discarding it. This is pure
+    // bookkeeping and stays blind to game categories (INV-15): physics
+    // records what it could not deliver, keyed by particle, and whoever
+    // holds that body's authority drains it and decides what a push
+    // means — stagger, ragdoll, or brace and ignore it. Sparse: only
+    // bodies actually struck appear.
+    void record_refused_impulse(size_t particle_id,
+                                float jx, float jy, float jz);
+
+    // Drain the refused momentum for a body, clearing it. False when
+    // nothing was waiting. Accumulates between drains, so two hits in
+    // one frame from opposite sides cancel rather than race.
+    bool take_refused_impulse(size_t particle_id,
+                              float& jx, float& jy, float& jz);
     // Updates gluon indices after swap-and-pop (must be called AFTER swap)
     void notify_particle_swap(size_t old_index, size_t new_index);
 
@@ -523,6 +548,9 @@ public:
                                          ParticleSystem::WriteView& particles);
 
 private:
+    // Refused momentum, keyed by particle id. See the accessors above.
+    std::unordered_map<size_t, std::array<float, 3>> refused_impulses_;
+
     // Refactored physics phases (extracted for modularity)
     void apply_all_forces(ParticleSystem::WriteView& particles, float dt);     // Phase 1: Force application
     void integrate_velocities(ParticleSystem::WriteView& particles, float dt); // Phase 2: Velocity integration

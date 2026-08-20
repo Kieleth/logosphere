@@ -22,13 +22,56 @@ Done when: a test writes an undeclared property and a wrong-typed value via
 `ontology_registry.h:46` is corrected.
 
 ### H2. Relation domain/range is vacuous  [rubric: bound_endpoints]
-Where: `scripts/generate_registry.py:100-127`: every relation type gets
-`({"Entity"}, {"Entity"})`; `_is_relation_subtype` (line 44) is dead code;
-`WorldRelation`/`EdenRelation` reach no generated registry.
-Fix: revive the dead path: generate relation types with domain/range from
-`Relation` subclasses in the schema, not from the enum.
-Done when: an edge with a wrong-typed endpoint is rejected in a test, and
-the generator emits at least one non-Entity source/target pair.
+**HEALED 2026-08-16.** Also partly WRONG as written, and the wrong part
+is worth keeping: by the time it was read again the generator did NOT
+give every relation `({"Entity"}, {"Entity"})`. It harvested endpoints
+from `valid_source_types` / `valid_target_types` annotations on enum
+permissible values, and thirteen relations were already narrow. The
+finding aged badly because it named a symptom in a file that then
+changed underneath it.
+
+The real defect was the one it pointed at from the start: the contract
+lived on the ENUM instead of on `Relation` subclasses, and
+`_is_relation_subtype` stayed dead. Three consequences, all measured
+before the fix:
+
+1. `WorldRelation` was a concrete class leaving `relation_type` open
+   across an eleven-member enum, so malleus refused to construct the
+   root schema. Every schema in the repo inherits that failure, so
+   **no schema here had ever been judged past construction** and eight
+   rites reported nothing. Their silence was not a pass.
+2. The enum path needed an opt-in annotation (`relation_type_enum:
+   true`) to see a pack's enum. Eden never set it, so Eden's five
+   relation types (`BEARS`, `TEMPTS`, `FOLLOWS`, `FORBIDS`, `DESIRES`)
+   reached no registry at all while game code wrote them.
+3. It validated only that an endpoint NAME was a class. `LetExpression`
+   is a mixin marker and not an Entity subtype, so
+   `LET_EXPRESSION_HAS_BINDING` had an endpoint no instance can belong
+   to, and nothing said so.
+
+Fixed by declaring one concrete relation class per predicate, each
+pinning `relation_type` with `equals_string` and declaring its own
+endpoints: 11 in the engine root, 13 in `rule_language`, 5 in Eden. The
+generator now reads `Relation` subclasses (the dead
+`_is_relation_subtype` revived) and the enum-harvesting path is
+deleted rather than kept as a fallback. Enums remain the vocabulary.
+
+Evidence: the 208 previously generated `addRelationType` triples are
+byte-identical before and after, so the source of truth moved without
+the behaviour moving; the only additions are Eden's five. Eight schemas
+now hold a PURITY SEAL; before this, zero did.
+
+Residual, deliberately: `HAS_PART`, `SUPPORTS`, `SPECIALIZES`,
+`BONDED_TO` and others keep Entity endpoints and the rite still marks
+them SUSPICION. That is the measured truth rather than neglect, and
+each class says why in its description. `HAS_PART` spans 81 C++ sites
+and 1518 seed ops across twelve distinct type pairs; `SPECIALIZES` is
+Skill to Skill in every occurrence, and `Skill` is a rulebook-pack
+class the root cannot name without inverting the dependency.
+
+Still open from the original "done when": no test yet rejects an edge
+with a wrong-typed endpoint. The generator emits non-Entity pairs, so
+half the criterion is met.
 
 ### H3. Committed generated code with no reproducible generation  [rubric: dependency_pin]
 Where: `scripts/generate_ontology.py:45-52` lists only `logosphere.yaml`,
@@ -47,6 +90,34 @@ Fix: one MaterialType -> 8-column property lookup (in the KG or generated
 from the schema); derive stiffness (`k = E*A/L`) instead of declaring it.
 Done when: the 34 magic-number sites read the lookup; the 9 switches are
 deleted.
+
+### H5. `ArbiterDecision.event_type` is an open string  [rubric: constrained_tongues]
+**FOUND 2026-08-16, NOT FIXED.** Surfaced for the first time by the H2
+fix: `schema/packs/rulebook.yaml` could not construct before it, so
+this rite had never run against that pack.
+
+Where: `ArbiterDecision` in `schema/packs/rulebook.yaml`. Its
+`event_type` is neither constrained to an enum nor pinned with
+`equals_string`, so any string validates.
+
+It is the same defect as H2 one primitive over. A concrete Event that
+does not pin its type has an unknowable predicate at write time, which
+is why the endpoint contract on a relation and the type contract on an
+event are the same rite in different clothes.
+
+It matters more here than the general case. `ArbiterDecision` is the
+record of who decided what during ingestion, written by exactly one
+writer (`ChargenSession::record_decision`). A record whose own type
+nothing constrains is a poor foundation for a claim about provenance.
+
+Fix: pin it with `equals_string`, or constrain it to an event enum, and
+prove the gate rejects an unpinned value.
+Done when: a test writes an `ArbiterDecision` with an arbitrary
+`event_type` and the write is rejected.
+
+Left open deliberately. Fixing it here would widen a slice whose claim
+was relations, and the doctrine says an open gate found mid-slice is
+recorded and surfaced rather than closed silently or deferred silently.
 
 ## Suspicions
 

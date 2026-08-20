@@ -37,6 +37,48 @@ imports:
   - logosphere
   - rule_language
 
+enums:
+  CoverageJudgement:
+    description: Latest derived judgement for one enumerated source leaf.
+    permissible_values:
+      CLAIMS_PRESENT:
+        description: One or more semantic claims cite this coverage record.
+      NO_RULE_CONTENT:
+        description: The leaf was visited and judged to contain no rule claim.
+
+  ClaimDisposition:
+    description: Outcome recorded by one append-only claim decision.
+    permissible_values:
+      MATERIALIZED:
+        description: The complete claim is represented by typed KG content.
+      PARTIAL:
+        description: Typed KG content represents only part of the claim.
+      RAISED:
+        description: The claim is recorded but cannot yet be represented.
+      DUPLICATE:
+        description: An earlier claim already represents the same meaning.
+      SUPERSEDED:
+        description: A later, broader or corrected claim replaces this claim.
+      CONTRADICTORY:
+        description: The claim conflicts with another claim and both are kept.
+
+  ClaimGapKind:
+    description: Closed reason why a claim is partial or raised.
+    permissible_values:
+      ONTOLOGY_GAP:
+        description: The ontology cannot type a required concept or relation.
+      RULE_LANGUAGE_GAP:
+        description: The rule language cannot express the required operation.
+      SOURCE_GAP:
+        description: The source is ambiguous, inconsistent, or incomplete for the required rule.
+
+  RulebookIngestionRelationType:
+    description: Typed links from ingestion claims to evidence and graph data.
+    permissible_values:
+      CLAIM_SUPPORTED_BY:
+      CLAIM_MATERIALIZES:
+      CLAIM_RESOLVED_AGAINST:
+
 # -------------------------------------------------------------------
 # Classes
 # -------------------------------------------------------------------
@@ -389,7 +431,14 @@ classes:
       DiceExpression. The 1D6x10000 medical bill is the first instance.
       The executor journals the roll and applies its total.
     annotations:
-      facets: rulebook
+      facets: rulebook, no-instance-declared
+      no_instance_reason: >-
+        The instance this description names does not exist. Cepheus'
+        medical bill was absorbed as a RuleConstant carrying the dice
+        text and the procedure rolls it directly, so this type has a
+        registered handler and no user. Either a seed emits this and
+        the procedure stops rolling by hand, or this description stops
+        claiming an instance it has never had. Tracked in #104.
     slot_usage:
       amount_dice:
         required: true
@@ -617,7 +666,14 @@ classes:
       on it is something that happened. Same shape as SkillRating and
       CurrencyBalance, for the same reason.
     annotations:
-      facets: rulebook
+      facets: rulebook, no-instance-declared
+      no_instance_reason: >-
+        Its two named siblings are in the graph and this one is not.
+        Rank lives in the C++ character sheet and nothing writes a
+        standing, so a character's skills and money are queryable and
+        their rank is not. The asymmetry is the finding: the schema
+        says these three are the same shape, and only two of them
+        behave that way. Tracked in #104.
     slot_usage:
       track:
         required: true
@@ -741,15 +797,255 @@ classes:
       asked to judge, in the book's own words; the LLM referee
       receives it as its brief for that judgment.
     annotations:
-      facets: rulebook
+      facets: rulebook, no-instance-declared
+      no_instance_reason: >-
+        The last sentence above is not true yet. No seed creates one of
+        these, and the adjudicator builds its prompt from a hardcoded
+        string, so the referee has never received a brief from the
+        graph. This is the rank 0 shape at one remove: a declared
+        capability that reads as working. Tracked in #101, which needs
+        a typed judgment record and should make these its input.
     slots:
       - prompt_text
+
+  ArbiterDecision:
+    is_a: Event
+    description: >-
+      A question a rule left open, and the answer an arbiter gave it.
+
+      JudgmentPoint is the QUESTION and comes from the book. This is
+      the ANSWER and comes from play, so it carries no citation, for
+      the same reason SkillRating does not: the rule is the book's,
+      what happened is not.
+
+      It exists because an arbiter's decision was the one input to a
+      character with no provenance at all. Every other value on a sheet
+      traces to a rule and a roll, and DiceRoll.rule links a throw to
+      the rule entity that produced it. This traced to a line of
+      console output that scrolled away, a hole in the replay claim
+      exactly where a model acted, which is the worst place for one.
+
+      ARBITER, not judge, and the word is load-bearing. There is
+      exactly ONE arbiter per decision. Two would mean two authorities
+      over the same record with no way to say which of them wrote it,
+      and the whole point is that a decision traces to who made it.
+      Readers may be many and may disagree; the arbiter resolves them.
+
+      `arbiter` is readable text and deliberately never a hash. Who
+      decided lived only inside a one-way cache key, so the graph could
+      not answer "which model chose this" even in principle. An
+      identity you cannot read back is a checksum, not provenance.
+
+      Generic on purpose. An arbiter choosing which characteristic ages
+      and an arbiter choosing between two readings of a sentence during
+      ingestion are the same shape: a question, the options, the one
+      taken, who took it, and why. The ingestion arbiter reuses this
+      rather than growing a parallel record.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      # Pinned rather than left to the malleus root's open string. This
+      # class is exactly one kind of event, so equals_string states that
+      # and the gate can check it. Unpinned, any string validated, which
+      # in a record whose whole purpose is provenance means the record
+      # of who decided what could not be told apart by type at read
+      # time. It descends straight from Event, so it inherited no
+      # constraint from an intermediate the way WorldEvent's subtypes
+      # do; the shape has one other instance in this repository
+      # (ServiceTerm) and both are fixed together.
+      event_type:
+        equals_string: ARBITER_DECISION
+    slots:
+      - decision_question
+      - decision_options
+      - decision_taken
+      - decision_reason
+      - arbiter
+
+  SourceCoverage:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Enduring ledger record for one mechanically enumerated source target.
+      Its current judgement is derived from its ordered CoverageDecision
+      history rather than stored as mutable state.
+    annotations:
+      facets: rulebook, ingestion-ledger
+    slot_usage:
+      coverage_target:
+        required: true
+    slots:
+      - coverage_target
+
+  IngestionClaim:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      One atomic semantic claim read from one or more source coverage
+      records. The claim persists while append-only ClaimDecision events
+      record how successive readings disposed it.
+    annotations:
+      facets: rulebook, ingestion-ledger
+    slot_usage:
+      claim_statement:
+        required: true
+    slots:
+      - claim_statement
+
+  CoverageDecision:
+    is_a: ArbiterDecision
+    description: >-
+      One append-only judgement about whether an enumerated source leaf
+      produced semantic claims. Later decisions supersede earlier ones by
+      sequence without rewriting history.
+    annotations:
+      facets: rulebook, ingestion-ledger, append-only
+    slot_usage:
+      decision_subject:
+        range: SourceCoverage
+        required: true
+      decision_sequence:
+        required: true
+      coverage_judgement:
+        required: true
+      decision_question:
+        required: true
+      decision_reason:
+        required: true
+      arbiter:
+        required: true
+    slots:
+      - decision_subject
+      - decision_sequence
+      - coverage_judgement
+
+  ClaimDecision:
+    is_a: ArbiterDecision
+    description: >-
+      One append-only disposition of an atomic claim. The latest sequence is
+      current; previous decisions remain queryable. Reconciliation enforces
+      which optional fields and graph links each disposition requires.
+    annotations:
+      facets: rulebook, ingestion-ledger, append-only
+    slot_usage:
+      decision_subject:
+        range: IngestionClaim
+        required: true
+      decision_sequence:
+        required: true
+      claim_disposition:
+        required: true
+      decision_question:
+        required: true
+      decision_reason:
+        required: true
+      arbiter:
+        required: true
+    slots:
+      - decision_subject
+      - decision_sequence
+      - claim_disposition
+      - claim_gap_kind
+      - related_claim
+
+  RulebookIngestionRelation:
+    abstract: true
+    is_a: Relation
+    description: Abstract parent for typed ingestion-ledger links.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+
+  ClaimSupportedByRelation:
+    is_a: RulebookIngestionRelation
+    description: An atomic claim cites one enumerated coverage record.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+        required: true
+        equals_string: CLAIM_SUPPORTED_BY
+      source_id:
+        range: IngestionClaim
+      target_id:
+        range: SourceCoverage
+
+  ClaimMaterializesRelation:
+    is_a: RulebookIngestionRelation
+    description: A claim is represented by one typed KG entity.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+        required: true
+        equals_string: CLAIM_MATERIALIZES
+      source_id:
+        range: IngestionClaim
+      target_id:
+        range: Entity
+
+  ClaimResolvedAgainstRelation:
+    is_a: RulebookIngestionRelation
+    description: A claim was read against one previously known KG entity.
+    slot_usage:
+      relation_type:
+        range: RulebookIngestionRelationType
+        required: true
+        equals_string: CLAIM_RESOLVED_AGAINST
+      source_id:
+        range: IngestionClaim
+      target_id:
+        range: Entity
 
 # -------------------------------------------------------------------
 # Slots
 # -------------------------------------------------------------------
 
 slots:
+  coverage_target:
+    range: SourceTarget
+    annotations:
+      create_only: true
+    description: Exact source leaf this coverage record judges.
+  claim_statement:
+    range: string
+    description: >-
+      Auditable statement of one atomic meaning read from the cited leaves.
+      Executable meaning lives in the typed entities linked by
+      CLAIM_MATERIALIZES, never in this text.
+  decision_subject:
+    range: Entity
+    annotations:
+      create_only: true
+    description: Enduring ledger record judged by this append-only decision.
+  decision_sequence:
+    range: integer
+    minimum_value: 0
+    annotations:
+      create_only: true
+    description: Contiguous zero-based order within one decision subject.
+  coverage_judgement:
+    range: CoverageJudgement
+    annotations:
+      create_only: true
+    description: Typed coverage outcome chosen by this decision.
+  claim_disposition:
+    range: ClaimDisposition
+    annotations:
+      create_only: true
+    description: Typed claim outcome chosen by this decision.
+  claim_gap_kind:
+    range: ClaimGapKind
+    annotations:
+      create_only: true
+    description: Required by reconciliation for PARTIAL and RAISED claims.
+  related_claim:
+    range: IngestionClaim
+    annotations:
+      create_only: true
+    description: >-
+      Required by reconciliation for DUPLICATE and CONTRADICTORY decisions.
+
   origin_context:
     range: KnowledgeContext
     annotations:
@@ -1187,3 +1483,39 @@ slots:
     range: string
     description: What the referee is asked to judge, in the book's
       own words.
+  decision_question:
+    range: string
+    description: >-
+      What the arbiter was actually asked, as it was put to them.
+      Recorded rather than reconstructed: the question is assembled at
+      the moment of asking from the rule and the character's state, and
+      re-deriving it later would give a different sentence.
+  decision_options:
+    range: string
+    description: >-
+      Everything the rule allowed, comma-separated, in the order
+      offered. Kept because a choice means nothing without the field it
+      was chosen from: "Dexterity" is a different decision when the
+      alternatives were Strength and Endurance than when it was the
+      only option left.
+  decision_taken:
+    range: string
+    description: >-
+      What was chosen, comma-separated when a rule asks for more than
+      one. Spelled exactly as decision_options spells it, so the two
+      can be compared without guessing.
+  decision_reason:
+    range: string
+    description: >-
+      Why, in the arbiter's own words. May be empty: the rule needs the
+      choice and not the argument, so a missing reason is not a
+      failure. An empty one is still worth storing as empty rather
+      than omitting the record.
+  arbiter:
+    range: string
+    description: >-
+      Who decided, readable. Backend and model for an LLM arbiter, so
+      a life generated last month can say which model shaped it. One
+      per decision, never a set: two authorities over one record leaves
+      no way to say which wrote it. Never a hash, because an identity
+      you cannot read back is a checksum and not provenance.

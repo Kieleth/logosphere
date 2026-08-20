@@ -6,6 +6,8 @@
   "layer": "cepheus",
   "invariants": {
     "count_of_type": {
+      "ClaimDecision": 1,
+      "IngestionClaim": 1,
       "Procedure": 1,
       "ProcedureStep": 17,
       "StepRoute": 12,
@@ -41,7 +43,7 @@
         "source_section": "Survival",
         "source_kind": "sentence",
         "source_quote": "With the Referee's approval, you can keep the character that fails a survival roll and roll on the Survival Mishaps table instead. This mishap is always enough to force you to leave the service after half a term, or two years of service. You lose the benefit roll for the current term only.",
-        "table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/RollableTable/mishap_table"
+        "table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/RollableTable/mishap_table"
       }
     },
     {
@@ -102,7 +104,7 @@
         "primitive_ref": "roll_training",
         "source_section": "Character Creation Checklist",
         "source_quote": "Choose one of the Skills and Training tables for this career and roll on it.",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/training_tables"
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/training_tables"
       }
     },
     {
@@ -142,7 +144,7 @@
         "source_section": "Character Creation Checklist",
         "source_kind": "sentence",
         "source_quote": "If your character is 34 or older, roll for aging.",
-        "table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/RollableTable/aging_table"
+        "table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/RollableTable/aging_table"
       }
     },
     {
@@ -176,12 +178,43 @@
       "properties": {
         "name": "aging crisis unpaid",
         "route_label": "died",
-        "next_step": "@finish_character",
-        "source_file": "book1/character-creation.md",
-        "source_section": "Aging Crisis",
-        "source_kind": "sentence",
-        "source_quote": "The character dies unless he can pay 1D6\u00d710,000 Credits for medical care, which will bring any characteristics back up to 1."
+        "next_step": "@finish_character"
       }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@aging_crisis_unpaid_route_claim",
+      "properties": {
+        "claim_statement": "The aging procedure's died route ends character creation when crisis medical care is unpaid."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@aging_crisis_unpaid_route_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@aging_crisis_unpaid_route_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "PARTIAL",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The route represents the death result, but the payment gate remains outside the rule language.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_crisis_unpaid_route_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SourceCoverage/aging_crisis_medical_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@aging_crisis_unpaid_route_claim",
+      "relation": "CLAIM_MATERIALIZES",
+      "to": "@aging_crisis_unpaid"
     },
     {
       "op": "create_entity",
@@ -195,7 +228,7 @@
         "source_section": "Qualifying and the Draft",
         "source_kind": "sentence",
         "source_quote": "If you fail this check then you cannot enter your chosen career this term. You must either submit to the Draft or take the Drifter career for this term.",
-        "table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/RollableTable/draft_table"
+        "table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/RollableTable/draft_table"
       }
     },
     {
@@ -206,7 +239,7 @@
         "name": "basic_training",
         "step_index": "3",
         "primitive_ref": "basic_training",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/training_tables",
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/training_tables",
         "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
         "source_kind": "sentence",
@@ -221,7 +254,7 @@
         "name": "grant_rank_zero",
         "step_index": "4",
         "primitive_ref": "grant_rank_zero",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/rank_tracks",
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/rank_tracks",
         "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
         "source_kind": "sentence",
@@ -248,7 +281,7 @@
         "name": "muster_out",
         "step_index": "14",
         "primitive_ref": "muster_out",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/benefit_tables",
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/benefit_tables",
         "source_file": "book1/character-creation.md",
         "source_section": "Mustering Out Benefits",
         "source_kind": "sentence",
@@ -439,7 +472,7 @@
         "name": "roll_reenlistment",
         "step_index": "11",
         "primitive_ref": "roll_reenlistment",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/reenlistment_table",
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/reenlistment_table",
         "source_file": "book1/character-creation.md",
         "source_section": "Reenlistment and Retirement",
         "source_kind": "sentence",
@@ -520,7 +553,7 @@
         "name": "roll_commission",
         "step_index": "6",
         "primitive_ref": "roll_commission",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/commission_table",
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/commission_table",
         "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
         "source_kind": "sentence",
@@ -541,7 +574,7 @@
         "name": "roll_advancement",
         "step_index": "7",
         "primitive_ref": "roll_advancement",
-        "subject_table": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/SubjectLookupTable/advancement_table",
+        "subject_table": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/advancement_table",
         "source_file": "book1/character-creation.md",
         "source_section": "Character Creation Checklist",
         "source_kind": "sentence",

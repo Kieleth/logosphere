@@ -1,4 +1,7 @@
-#include <execinfo.h>
+#if __has_include(<execinfo.h>)
+#include <execinfo.h>  // TURTLE_TRACE caller naming; absent under MSVC
+#define LOGOSPHERE_HAS_EXECINFO 1
+#endif
 #include "logosphere/physics/physics_solver.h"
 #include <cstdio>
 #include <string>
@@ -89,6 +92,7 @@ static void assert_above_turtle(const Particle& p, const char* where) {
     // computed rather than literal, and searching for it burned several
     // rounds. A guard that reports WHO placed the body ends that class of
     // hunt permanently: the next violation identifies its own source.
+#if defined(LOGOSPHERE_HAS_EXECINFO)
     if (std::getenv("TURTLE_TRACE")) {
         void* frames[12];
         const int n = backtrace(frames, 12);
@@ -100,6 +104,7 @@ static void assert_above_turtle(const Particle& p, const char* where) {
             std::free(syms);
         }
     }
+#endif
     // STRICT BY DEFAULT. All 51 sites the sweep found are fixed and the whole
     // suite reports zero, so a violation from here on is a NEW one and should
     // stop the world rather than scroll past. TURTLE_LENIENT=1 downgrades it

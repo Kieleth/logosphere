@@ -1,0 +1,69 @@
+id: https://logosphere.dev/packs/math
+name: math
+title: Math, the numeric types the engine actually stores
+description: >-
+  Named numeric types, so a schema can say what precision the engine
+  holds a value at instead of approximating it with whatever the
+  nearest tool understands.
+
+  WHY THIS EXISTS. LinkML ships nineteen built-in types and `double` is
+  one of them. Our schemas used it correctly, and the C++ registry does
+  store those fields as `double` (include/logosphere/kg/
+  ontology_registry.h:112). But the malleus loader recognises five of
+  the nineteen (string, integer, float, boolean, datetime), so an
+  honest `range: double` made the schema fail to CONSTRUCT.
+
+  That failure is not proportional to its cause. Construction is rite
+  one, and a schema that fails it short-circuits the whole inquisition:
+  seven further rites never execute, on that file or on anything
+  importing it. Five of our thirteen schemas and seven of eight
+  mechanical checks were dark because one word was missing from a set
+  in someone else's allowlist.
+
+  The wrong fix was to write `float` and move on. The registry stores a
+  double; a schema saying float would be describing an engine we do not
+  have, to satisfy a tool. Schemas exist to be true.
+
+  So the type is declared here with its real name and its real meaning,
+  and resolves to float underneath, which is as much as the loader can
+  currently carry. When malleus widens its allowlist this pack can
+  point straight at the built-in and nothing else changes.
+
+  WHAT BELONGS HERE. Numeric types that carry a claim about storage or
+  precision, used by more than one schema. Today that is one type with
+  one consumer, which breaks the usual rule of two; the owner chose the
+  pack over a local declaration deliberately, so the second consumer
+  finds a home rather than a decision. What does NOT belong here is
+  units, quantities and dimensions: a length in metres is a slot with a
+  range and a description, and turning it into a type hierarchy buys
+  nothing the description does not already say.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  math: https://logosphere.dev/packs/math/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+
+types:
+  Float64:
+    typeof: float
+    base: float
+    uri: xsd:double
+    description: >-
+      IEEE 754 double precision, and the engine means it: the ontology
+      registry holds property bounds in C++ `double`
+      (ontology_registry.h:112-113), and the generator already maps
+      this to its Float value kind.
+
+      Named Float64 rather than `double` on purpose. `double` is a
+      LinkML built-in, and shadowing a built-in name is how an import
+      closure starts resolving to whichever definition it met first.
+      The name here says the width out loud and cannot collide.
+
+      `typeof: float` is a floor, not a claim about precision. It is
+      the widest thing the malleus loader can currently resolve to; the
+      description carries what the loader cannot.

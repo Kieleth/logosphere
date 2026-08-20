@@ -1,0 +1,2136 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "ByteRangeSelector": 22,
+      "ClaimDecision": 15,
+      "CoverageDecision": 22,
+      "IngestionClaim": 15,
+      "RuleConstant": 1,
+      "SourceCoverage": 22,
+      "SourceTarget": 22,
+      "TextQuoteSelector": 22
+    },
+    "unique_name_per_type": [
+      "RuleConstant"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_heading_range",
+      "properties": {
+        "source_byte_start": 26994,
+        "source_byte_end": 27006
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_heading_quote",
+      "properties": {
+        "source_quote_exact": "Medical Care"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_heading_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_heading_range",
+        "target_quote_selector": "@medical_care_heading_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_heading_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_heading_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_heading_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_heading_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "NO_RULE_CONTENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The heading names the section but states no rule.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_undo_range",
+      "properties": {
+        "source_byte_start": 27008,
+        "source_byte_end": 27104
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_undo_quote",
+      "properties": {
+        "source_quote_exact": "If your character has been injured, then medical care may be able to undo the effects of damage."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_undo_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_undo_range",
+        "target_quote_selector": "@medical_care_undo_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_undo_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_undo_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_undo_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_undo_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The sentence states that medical care can reverse injury damage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_cost_range",
+      "properties": {
+        "source_byte_start": 27105,
+        "source_byte_end": 27170
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_cost_quote",
+      "properties": {
+        "source_quote_exact": "The restoration of a lost characteristic costs Cr5,000 per point."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_cost_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_cost_range",
+        "target_quote_selector": "@medical_care_cost_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_cost_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_cost_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_cost_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_cost_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The sentence fixes the restoration cost per characteristic point.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_patron_range",
+      "properties": {
+        "source_byte_start": 27172,
+        "source_byte_end": 27312
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_patron_quote",
+      "properties": {
+        "source_quote_exact": "If your character was injured in the service of a patron or organization, then a portion of his medical care may be paid for by that patron."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_patron_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_patron_range",
+        "target_quote_selector": "@medical_care_patron_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_patron_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_patron_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_patron_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_patron_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The sentence makes employer payment conditional on service injury.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_roll_range",
+      "properties": {
+        "source_byte_start": 27313,
+        "source_byte_end": 27367
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_roll_quote",
+      "properties": {
+        "source_quote_exact": "Roll 2D6 on the table below, adding your Rank as a DM."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_roll_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_roll_range",
+        "target_quote_selector": "@medical_care_roll_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_roll_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_roll_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_roll_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_roll_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The sentence defines the payment roll and Rank modifier.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_result_range",
+      "properties": {
+        "source_byte_start": 27368,
+        "source_byte_end": 27439
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_result_quote",
+      "properties": {
+        "source_quote_exact": "The result is how much of his medical care is paid for by his employer."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_result_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_result_range",
+        "target_quote_selector": "@medical_care_result_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_result_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_result_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_result_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_result_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The sentence defines the table result as employer payment share.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_header_career_range",
+      "properties": {
+        "source_byte_start": 27443,
+        "source_byte_end": 27449
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_header_career_quote",
+      "properties": {
+        "source_quote_exact": "Career"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_header_career_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_header_career_range",
+        "target_quote_selector": "@medical_care_header_career_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_header_career_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_header_career_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_header_career_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_header_career_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "NO_RULE_CONTENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell labels the career-group column but states no independent claim.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_header_roll4_range",
+      "properties": {
+        "source_byte_start": 27452,
+        "source_byte_end": 27462
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_header_roll4_quote",
+      "properties": {
+        "source_quote_exact": "Roll of 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_header_roll4_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_header_roll4_range",
+        "target_quote_selector": "@medical_care_header_roll4_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_header_roll4_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_header_roll4_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_header_roll4_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_header_roll4_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The header supplies the 4+ threshold for its result cells.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_header_roll8_range",
+      "properties": {
+        "source_byte_start": 27465,
+        "source_byte_end": 27475
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_header_roll8_quote",
+      "properties": {
+        "source_quote_exact": "Roll of 8+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_header_roll8_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_header_roll8_range",
+        "target_quote_selector": "@medical_care_header_roll8_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_header_roll8_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_header_roll8_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_header_roll8_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_header_roll8_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The header supplies the 8+ threshold for its result cells.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_header_roll12_range",
+      "properties": {
+        "source_byte_start": 27478,
+        "source_byte_end": 27489
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_header_roll12_quote",
+      "properties": {
+        "source_quote_exact": "Roll of 12+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_header_roll12_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_header_roll12_range",
+        "target_quote_selector": "@medical_care_header_roll12_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_header_roll12_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_header_roll12_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_header_roll12_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_header_roll12_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The header supplies the 12+ threshold for its result cells.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group1_careers_range",
+      "properties": {
+        "source_byte_start": 27520,
+        "source_byte_end": 27614
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group1_careers_quote",
+      "properties": {
+        "source_quote_exact": "Aerospace System Defense, Marine, Maritime System Defense, Navy, Scout, Surface System Defense"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group1_careers_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group1_careers_range",
+        "target_quote_selector": "@medical_care_group1_careers_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group1_careers_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group1_careers_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group1_careers_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_careers_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell identifies the careers governed by the first payment row.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group1_roll4_range",
+      "properties": {
+        "source_byte_start": 27617,
+        "source_byte_end": 27620
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group1_roll4_quote",
+      "properties": {
+        "source_quote_exact": "75%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group1_roll4_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group1_roll4_range",
+        "target_quote_selector": "@medical_care_group1_roll4_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group1_roll4_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group1_roll4_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group1_roll4_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_roll4_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the first row's 4+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group1_roll8_range",
+      "properties": {
+        "source_byte_start": 27623,
+        "source_byte_end": 27627
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group1_roll8_quote",
+      "properties": {
+        "source_quote_exact": "100%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group1_roll8_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group1_roll8_range",
+        "target_quote_selector": "@medical_care_group1_roll8_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group1_roll8_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group1_roll8_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group1_roll8_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_roll8_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the first row's 8+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group1_roll12_range",
+      "properties": {
+        "source_byte_start": 27630,
+        "source_byte_end": 27634
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group1_roll12_quote",
+      "properties": {
+        "source_quote_exact": "100%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group1_roll12_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group1_roll12_range",
+        "target_quote_selector": "@medical_care_group1_roll12_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group1_roll12_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group1_roll12_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group1_roll12_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_roll12_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the first row's 12+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group2_careers_range",
+      "properties": {
+        "source_byte_start": 27639,
+        "source_byte_end": 27766
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group2_careers_quote",
+      "properties": {
+        "source_quote_exact": "Agent, Athlete, Bureaucrat, Diplomat, Entertainer, Hunter, Mercenary, Merchant, Noble, Physician, Pirate, Scientist, Technician"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group2_careers_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group2_careers_range",
+        "target_quote_selector": "@medical_care_group2_careers_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group2_careers_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group2_careers_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group2_careers_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_careers_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell identifies the careers governed by the second payment row.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group2_roll4_range",
+      "properties": {
+        "source_byte_start": 27769,
+        "source_byte_end": 27772
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group2_roll4_quote",
+      "properties": {
+        "source_quote_exact": "50%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group2_roll4_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group2_roll4_range",
+        "target_quote_selector": "@medical_care_group2_roll4_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group2_roll4_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group2_roll4_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group2_roll4_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_roll4_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the second row's 4+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group2_roll8_range",
+      "properties": {
+        "source_byte_start": 27775,
+        "source_byte_end": 27778
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group2_roll8_quote",
+      "properties": {
+        "source_quote_exact": "75%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group2_roll8_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group2_roll8_range",
+        "target_quote_selector": "@medical_care_group2_roll8_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group2_roll8_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group2_roll8_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group2_roll8_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_roll8_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the second row's 8+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group2_roll12_range",
+      "properties": {
+        "source_byte_start": 27781,
+        "source_byte_end": 27785
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group2_roll12_quote",
+      "properties": {
+        "source_quote_exact": "100%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group2_roll12_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group2_roll12_range",
+        "target_quote_selector": "@medical_care_group2_roll12_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group2_roll12_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group2_roll12_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group2_roll12_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_roll12_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the second row's 12+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group3_careers_range",
+      "properties": {
+        "source_byte_start": 27790,
+        "source_byte_end": 27833
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group3_careers_quote",
+      "properties": {
+        "source_quote_exact": "Barbarian, Belter, Colonist, Drifter, Rogue"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group3_careers_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group3_careers_range",
+        "target_quote_selector": "@medical_care_group3_careers_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group3_careers_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group3_careers_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group3_careers_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_careers_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell identifies the careers governed by the third payment row.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group3_roll4_range",
+      "properties": {
+        "source_byte_start": 27836,
+        "source_byte_end": 27838
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group3_roll4_quote",
+      "properties": {
+        "source_quote_exact": "0%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group3_roll4_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group3_roll4_range",
+        "target_quote_selector": "@medical_care_group3_roll4_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group3_roll4_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group3_roll4_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group3_roll4_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_roll4_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the third row's 4+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group3_roll8_range",
+      "properties": {
+        "source_byte_start": 27841,
+        "source_byte_end": 27844
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group3_roll8_quote",
+      "properties": {
+        "source_quote_exact": "50%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group3_roll8_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group3_roll8_range",
+        "target_quote_selector": "@medical_care_group3_roll8_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group3_roll8_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group3_roll8_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group3_roll8_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_roll8_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the third row's 8+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_care_group3_roll12_range",
+      "properties": {
+        "source_byte_start": 27847,
+        "source_byte_end": 27850
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_care_group3_roll12_quote",
+      "properties": {
+        "source_quote_exact": "75%"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_care_group3_roll12_target",
+      "properties": {
+        "target_primary_selector": "@medical_care_group3_roll12_range",
+        "target_quote_selector": "@medical_care_group3_roll12_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_care_group3_roll12_coverage",
+      "properties": {
+        "coverage_target": "@medical_care_group3_roll12_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_care_group3_roll12_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_roll12_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The cell supplies the third row's 12+ employer-payment percentage.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@medical_care_restoration_cost_per_point",
+      "properties": {
+        "name": "medical care restoration cost per point",
+        "constant_value": 5000
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_undo_claim",
+      "properties": {
+        "claim_statement": "Medical care may undo characteristic damage caused by injury."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_undo_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_undo_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The rule language cannot express the conditional and unspecified restoration.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_cost_claim",
+      "properties": {
+        "claim_statement": "Restoring one lost characteristic point costs 5,000 Credits."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_cost_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_cost_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "PARTIAL",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The fixed amount is typed, but per-point payment and restoration are not represented.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_patron_claim",
+      "properties": {
+        "claim_statement": "A patron or organization may pay part of medical care for an injury suffered in its service."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_patron_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_patron_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The conditional employer-payment rule is not represented.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_roll_claim",
+      "properties": {
+        "claim_statement": "Employer medical-care payment is determined by a 2D6 roll."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_roll_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_roll_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The rule language cannot express this two-dimensional career and threshold lookup.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_rank_dm_claim",
+      "properties": {
+        "claim_statement": "The character adds Rank as a dice modifier to the medical-care payment roll."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_rank_dm_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_rank_dm_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The rule language cannot project a character's career Rank into this roll.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_result_claim",
+      "properties": {
+        "claim_statement": "The medical-care table result is the percentage paid by the employer."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_result_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_result_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The rule language cannot apply a percentage payer split to a medical cost.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_undo_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_undo_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_cost_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_cost_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_patron_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_patron_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_roll_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_roll_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_rank_dm_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_roll_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_result_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_result_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_cost_claim",
+      "relation": "CLAIM_MATERIALIZES",
+      "to": "@medical_care_restoration_cost_per_point"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_cost_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Currency/credits"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_roll_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group1_roll4_claim",
+      "properties": {
+        "claim_statement": "For the Aerospace System Defense, Marine, Maritime System Defense, Navy, Scout, and Surface System Defense careers, a medical-care roll of 4+ makes the employer pay 75%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group1_roll4_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_roll4_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group1_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll4_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group1_roll4_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/aerospace_defense"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/marine"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/maritime_defense"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/navy"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/scout"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/surface_defense"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group1_roll8_claim",
+      "properties": {
+        "claim_statement": "For the Aerospace System Defense, Marine, Maritime System Defense, Navy, Scout, and Surface System Defense careers, a medical-care roll of 8+ makes the employer pay 100%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group1_roll8_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_roll8_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group1_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll8_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group1_roll8_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/aerospace_defense"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/marine"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/maritime_defense"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/navy"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/scout"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/surface_defense"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group1_roll12_claim",
+      "properties": {
+        "claim_statement": "For the Aerospace System Defense, Marine, Maritime System Defense, Navy, Scout, and Surface System Defense careers, a medical-care roll of 12+ makes the employer pay 100%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group1_roll12_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group1_roll12_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group1_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll12_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group1_roll12_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/aerospace_defense"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/marine"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/maritime_defense"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/navy"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/scout"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group1_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/surface_defense"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group2_roll4_claim",
+      "properties": {
+        "claim_statement": "For the Agent, Athlete, Bureaucrat, Diplomat, Entertainer, Hunter, Mercenary, Merchant, Noble, Physician, Pirate, Scientist, and Technician careers, a medical-care roll of 4+ makes the employer pay 50%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group2_roll4_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_roll4_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group2_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll4_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group2_roll4_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/agent"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/athlete"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/bureaucrat"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/diplomat"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/entertainer"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/hunter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/mercenary"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/merchant"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/noble"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/physician"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/pirate"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/scientist"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/technician"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group2_roll8_claim",
+      "properties": {
+        "claim_statement": "For the Agent, Athlete, Bureaucrat, Diplomat, Entertainer, Hunter, Mercenary, Merchant, Noble, Physician, Pirate, Scientist, and Technician careers, a medical-care roll of 8+ makes the employer pay 75%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group2_roll8_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_roll8_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group2_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll8_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group2_roll8_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/agent"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/athlete"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/bureaucrat"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/diplomat"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/entertainer"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/hunter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/mercenary"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/merchant"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/noble"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/physician"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/pirate"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/scientist"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/technician"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group2_roll12_claim",
+      "properties": {
+        "claim_statement": "For the Agent, Athlete, Bureaucrat, Diplomat, Entertainer, Hunter, Mercenary, Merchant, Noble, Physician, Pirate, Scientist, and Technician careers, a medical-care roll of 12+ makes the employer pay 100%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group2_roll12_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group2_roll12_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group2_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll12_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group2_roll12_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/agent"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/athlete"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/bureaucrat"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/diplomat"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/entertainer"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/hunter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/mercenary"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/merchant"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/noble"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/physician"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/pirate"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/scientist"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group2_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/technician"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group3_roll4_claim",
+      "properties": {
+        "claim_statement": "For the Barbarian, Belter, Colonist, Drifter, and Rogue careers, a medical-care roll of 4+ makes the employer pay 0%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group3_roll4_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_roll4_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group3_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll4_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group3_roll4_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/barbarian"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/belter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/colonist"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/drifter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll4_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/rogue"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group3_roll8_claim",
+      "properties": {
+        "claim_statement": "For the Barbarian, Belter, Colonist, Drifter, and Rogue careers, a medical-care roll of 8+ makes the employer pay 50%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group3_roll8_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_roll8_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group3_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll8_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group3_roll8_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/barbarian"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/belter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/colonist"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/drifter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll8_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/rogue"
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_care_group3_roll12_claim",
+      "properties": {
+        "claim_statement": "For the Barbarian, Belter, Colonist, Drifter, and Rogue careers, a medical-care roll of 12+ makes the employer pay 75%."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_care_group3_roll12_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_care_group3_roll12_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The career-group threshold and percentage mapping is not represented as executable rule data.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group3_careers_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_header_roll12_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_care_group3_roll12_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/barbarian"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/belter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/colonist"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/drifter"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_care_group3_roll12_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Career/rogue"
+    }
+  ]
+}

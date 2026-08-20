@@ -21,10 +21,8 @@
 
 #include "chargen/chargen.h"
 #include "chargen/procedure_catalog.h"
-#include "chargen/rule_seeds.h"
+#include "chargen/rule_seed_loader.h"
 
-#include "logosphere/kg/seed_loader.h"
-#include "logosphere/kg/seed_verifier.h"
 #include "logosphere/events/event_bus.h"
 #include "logosphere/kg/kg_query.h"
 #include "logosphere/replay/run_recorder.h"
@@ -42,7 +40,6 @@
 #include <chrono>
 #include <filesystem>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -60,14 +57,6 @@ std::string game_path(const std::string& rel) {
     return std::string(LOGOVGER_GAME_DIR) + "/" + rel;
 }
 
-std::string slurp(const std::string& path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) return {};
-    std::ostringstream out;
-    out << f.rdbuf();
-    return out.str();
-}
-
 kg::OntologyRegistry game_registry() {
     auto out = logosphere::ontology::registry();
     out.extend(rulebook::ontology::registry());
@@ -80,40 +69,8 @@ kg::OntologyRegistry game_registry() {
 bool load_rules(kg::KGModule& world, std::string& why) {
     world.setMode(kg::KGMode::MINIMAL);
     const auto primitives = logovger::make_chargen_procedure_registry();
-    std::vector<kg::SeedEnvelope> kept;
-    // Reserve, or every pointer below dangles. A seed may reference
-    // what an earlier one owns, so verification is handed pointers
-    // into this vector; letting it reallocate turns those into garbage
-    // and the failure reads as "the reference does not resolve".
-    kept.reserve(logovger::kRuleSeedCount);
-    std::vector<const kg::SeedEnvelope*> loaded;
-    for (const char* seed : logovger::kRuleSeeds) {
-        const std::string json = slurp(game_path(seed));
-        if (json.empty()) { why = std::string(seed) + " unreadable"; return false; }
-        auto parsed = kg::parse_seed_envelope(json);
-        if (!parsed.ok()) { why = "envelope: " + parsed.error; return false; }
-        const auto verdict = kg::verify_seed(parsed.seed,
-                                             game_path("srd/cepheus"),
-                                             game_registry(), &primitives,
-                                             loaded);
-        if (!verdict.ok()) {
-            std::ostringstream o;
-            for (const auto& v : verdict.violations) {
-                o << "[" << v.check << "] " << v.alias << ": " << v.reason
-                  << "; ";
-            }
-            why = "verify: " + o.str();
-            return false;
-        }
-        kg::SeedLoadReport report;
-        if (!kg::load_seed(parsed.seed, world, report)) {
-            why = "load: " + report.error;
-            return false;
-        }
-        kept.push_back(std::move(parsed.seed));
-        loaded.push_back(&kept.back());
-    }
-    return true;
+    return logovger::load_rule_seeds(
+        world, LOGOVGER_GAME_DIR, primitives, why);
 }
 
 #ifdef LOGOVGER_WITH_LLM
@@ -158,9 +115,17 @@ int main(int argc, char** argv) {
     std::string mode = "--random";
     std::string argument = "1";
     uint64_t pinned = 0;                 // 0 = not pinned
+    size_t fork_at = 0;                  // --fork: which decision
+    std::string fork_instead;            // --fork: answer it differently
+    bool fork_given = false;
     for (int i = 1; i + 1 < argc; ++i) {
         if (std::strcmp(argv[i], "--seed") == 0) {
             pinned = std::stoull(argv[i + 1]);
+        } else if (std::strcmp(argv[i], "--at") == 0) {
+            fork_at = std::stoull(argv[i + 1]);
+            fork_given = true;
+        } else if (std::strcmp(argv[i], "--instead") == 0) {
+            fork_instead = argv[i + 1];
         } else if (std::strncmp(argv[i], "--", 2) == 0) {
             mode = argv[i];
             argument = argv[i + 1];
@@ -180,6 +145,75 @@ int main(int argc, char** argv) {
         std::cout << "replaying " << argument << " (" << taped->size()
                   << " answers)\n";
         source = std::move(taped);
+    } else if (mode == "--forks") {
+        // What else this life could have done. Reads the tape and
+        // prints every decision that had another legal answer.
+        std::string error;
+        auto taped = replay::TapedInput::open(argument, error);
+        if (!taped) {
+            std::cout << "no tape: " << error << "\n";
+            return 1;
+        }
+        if (!taped->records_alternatives()) {
+            std::cout << argument
+                      << " was recorded before tapes carried their "
+                         "alternatives, so its branches cannot be seen. "
+                         "Re-record it.\n";
+            return 1;
+        }
+        for (const auto& fork : taped->forks()) {
+            std::cout << "[" << fork.index << "] took '" << fork.taken
+                      << "', could have taken";
+            for (const auto& other : fork.untaken) {
+                std::cout << " '" << other << "'";
+            }
+            std::cout << "\n";
+        }
+        return 0;
+    } else if (mode == "--fork") {
+        // The counterfactual. Replay this life up to one decision,
+        // answer that decision differently, and let the rules play out
+        // the rest. The trunk's seed comes with it, so the ONLY thing
+        // that changed is the choice.
+        std::string error;
+        auto trunk = replay::TapedInput::open(argument, error);
+        if (!trunk) {
+            std::cout << "no tape: " << error << "\n";
+            return 1;
+        }
+        if (!fork_given || fork_instead.empty()) {
+            std::cout << "--fork needs --at N and --instead ANSWER. "
+                         "Run --forks " << argument
+                      << " to see which decisions have another road.\n";
+            return 1;
+        }
+        // Everything past the fork has no tape to read, so it is
+        // played by the generator, seeded from the trunk's own seed so
+        // the branch is reproducible.
+        //
+        // Read through a SECOND handle. TapedInput::seed advances the
+        // cursor when the seed is the entry it is sitting on, so asking
+        // the trunk for it here would eat the entry the run itself
+        // needs, the run would fall back to a different seed, and the
+        // branch would differ from its trunk in the dice as well as the
+        // decision. Measured: it changed the character's UPP, which is
+        // rolled before any decision is made and must be identical.
+        std::string peek_error;
+        auto peek = replay::TapedInput::open(argument, peek_error);
+        const uint64_t trunk_seed = peek ? peek->seed("chargen", 1) : 1;
+        static replay::RandomInput beyond(trunk_seed);
+        auto branch = replay::ForkedInput::create(
+            std::move(trunk), fork_at, fork_instead, beyond, error);
+        if (!branch) {
+            std::cout << "no fork: " << error << "\n";
+            return 1;
+        }
+        std::cout << "forking " << argument << " at " << fork_at
+                  << ", answering '" << fork_instead << "' instead\n";
+        tape_path = (std::filesystem::temp_directory_path() /
+                     ("logovger-fork-" + std::to_string(fork_at) + "-" +
+                      fork_instead + ".tape")).string();
+        source = std::move(branch);
     } else if (mode == "--record") {
         tape_path = argument;
 #ifdef LOGOVGER_WITH_LLM
@@ -268,6 +302,15 @@ int main(int argc, char** argv) {
     g_seed = seed;
 #endif
 
+    // Who is answering, in words, for the record each decision leaves.
+    // The session writes that record itself; this driver only says who
+    // made it. A decision is a decision whoever made it, off a tape,
+    // from a model, or invented from the seed, and writing the record
+    // in each driver is how a third driver comes to write nothing.
+    session.set_arbiter(mode == "--replay"  ? "tape:" + tape_path
+                        : mode == "--record" ? "model, taped to " + tape_path
+                                             : "seeded generator");
+
     // The referee, through the same seam as the player. In --random
     // this answers with no model and no key; in --replay it comes off
     // the tape. Either way the engine still holds the answer to the
@@ -300,6 +343,58 @@ int main(int argc, char** argv) {
             return true;
         });
 
+    // A rule that prints a fork asks it here. Injury 3 offers Strength
+    // or Dexterity; mishap 1 offers "the same as a result of 2" or
+    // "roll twice and take the lower". The executor refuses to guess,
+    // by design, so a driver that leaves this unanswered ends the life
+    // at the fork: measured at 19 of 200 seeds before this was wired.
+    //
+    // It goes to the same answer source as everything else rather than
+    // taking option 0, so --record tapes which branch was taken and
+    // --replay reproduces it. A silently collapsed fork would look
+    // identical on the sheet and be invisible in the tape.
+    session.set_choice_resolver(
+        [&tape](const logosphere::rules::PendingChoice& request,
+                int& option, std::string& error) {
+            if (request.options.empty()) {
+                error = "a rule offers a choice with no options";
+                return false;
+            }
+            // The ANSWER stays the option index, because that is what
+            // the tape stores and what replay matches on. The PROMPT
+            // carries the labels, because prompt is defined as what a
+            // human would have been shown and is never matched on, so
+            // wording it properly cannot invalidate a tape.
+            //
+            // This dropped the labels until 2026-08-19 and sent bare
+            // "1, 2, 3" to whoever was answering. A human clicking a
+            // button still had the screen; a model had nothing. The
+            // first recorded life stopped here, and the model was right
+            // to stop: it asked what the three training tables were
+            // rather than guess. ChoiceOption has carried `label` all
+            // along.
+            replay::Ask ask;
+            ask.site = "referee.choice";
+            std::ostringstream prompt;
+            prompt << "the rule prints a fork; which branch";
+            for (const auto& choice : request.options) {
+                ask.offered.push_back(std::to_string(choice.option_index));
+                prompt << "\n  " << choice.option_index << " = "
+                       << (choice.label.empty() ? "(unnamed branch)"
+                                                : choice.label);
+            }
+            ask.prompt = prompt.str();
+            std::string answer;
+            if (!tape.ask(ask, answer, error)) return false;
+            for (const auto& choice : request.options) {
+                if (std::to_string(choice.option_index) != answer) continue;
+                option = choice.option_index;
+                return true;
+            }
+            error = "'" + answer + "' is not a branch this rule offers";
+            return false;
+        });
+
     std::string error;
     if (!session.begin(seed, error)) {
         std::cout << "could not begin: " << error << "\n";
@@ -313,12 +408,33 @@ int main(int argc, char** argv) {
             std::cout << "gave up after 400 decisions\n";
             return 1;
         }
+        // Same split as referee.choice above: the key is the ANSWER
+        // and the labels go in the PROMPT, which is never matched on.
+        //
+        // The keys alone are what a model was being handed until
+        // 2026-08-19, and the prompts say things like "click one to
+        // read what it can give you". There is nothing to click. A
+        // recorded life stopped at the training tables with the model
+        // saying, correctly, that it could see "CHOOSE EXACTLY 1 OF:
+        // 1, 2, 3" and no indication of what 1, 2 or 3 were. It asked
+        // instead of guessing, which is the behaviour we want and the
+        // reason the gap was visible at all rather than silently
+        // producing an arbitrary life.
+        //
+        // ProcedureChoice has carried label, detail and subject the
+        // whole time, and its own header says a player should be able
+        // to read an option before taking it.
         replay::Ask ask;
         ask.site = "chargen";
-        ask.prompt = session.prompt();
+        std::ostringstream prompt;
+        prompt << session.prompt();
         for (const auto& choice : session.choices()) {
             ask.offered.push_back(choice.key);
+            prompt << "\n  " << choice.key;
+            if (!choice.label.empty()) prompt << " = " << choice.label;
+            if (!choice.detail.empty()) prompt << " (" << choice.detail << ")";
         }
+        ask.prompt = prompt.str();
         std::string answer;
         if (!tape.ask(ask, answer, error)) {
             std::cout << "the run stopped: " << error << "\n";

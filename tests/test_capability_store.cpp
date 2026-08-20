@@ -137,7 +137,10 @@ void test_a_part_of_a_part_still_reaches_the_root() {
     w.store.track(b.entity);
     const int before = w.store.recompute_count(b.entity);
 
-    w.kg.setProperty(toe, "some_state", "changed");
+    // ANY part write must recompute the creature; the key is
+    // incidental, but it has to be a declared one to pass the write
+    // gate — body_part_name is a plain String on every BodyPart.
+    w.kg.setProperty(toe, "body_part_name", "changed");
     std::cout << "  [measure] toe write: recomputes " << before << " -> "
               << w.store.recompute_count(b.entity) << std::endl;
     check(w.store.recompute_count(b.entity) == before + 1,

@@ -60,6 +60,7 @@ classes:
       frame entirely.
     mixins:
       - EmitsLight
+      - HasSimpleAppearance
     slots:
       - celestial_kind
       - period_days

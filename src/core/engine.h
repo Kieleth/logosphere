@@ -153,6 +153,14 @@ public:
     
     // Convenience methods
     void present();  // Present framebuffer to window
+    // Windowed frame chain instrumentation. A windowed app must drive
+    // update() -> render() -> present(); forgetting present() shows an
+    // unpainted (white) window while the framebuffer renders perfectly
+    // offscreen — a failure mode that cost a full debugging session.
+    // render() warns loudly when a display exists and nothing has been
+    // presented after 60 renders; tests assert the counters directly.
+    uint64_t renders_completed() const { return renders_completed_; }
+    uint64_t presents_completed() const { return presents_completed_; }
     void stop() { is_running_ = false; }
     bool should_continue() const;  // Check if engine should keep running
     
@@ -422,6 +430,8 @@ private:
     // Engine state
     bool is_running_;
     bool is_initialized_;
+    uint64_t renders_completed_ = 0;    // frame-chain instrumentation
+    uint64_t presents_completed_ = 0;
     EngineConfig config_;
     EngineMode mode_;  // Current execution mode
     bool create_display_ = true;  // Whether the Engine created a Display.

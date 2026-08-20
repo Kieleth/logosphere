@@ -396,7 +396,27 @@ bool run_case_2_boulder_impact(Engine& engine, bool is_interactive, HumanoidStat
 
     // This test passes if impact was detected (collision system working)
     // The knockback amount tells us about friction absorption
-    bool pass = impact_detected;
+    // ASSERT WHAT THE NAME CLAIMS. This read `bool pass =
+    // impact_detected` — the boulder having been thrown was the entire
+    // test. Displacements were computed, printed, and never checked, so
+    // the test passed identically whether the humanoid was knocked
+    // across the floor or bolted to the world (2026-08-14 audit).
+    //
+    // This rig's humanoid is NOT registered with locomotion, so nothing
+    // holds authority over it: it is loose bodies with mass, and a
+    // 25 kg*m/s strike must move them. Measured on the unpinned rig:
+    // 0.13 m of hips travel. The gate is set well below that so it
+    // fails on a REGRESSION rather than on scene noise, and it fails
+    // loudly if the body ever becomes unmovable again.
+    const bool moved_under_impact =
+        max_hips_displacement > 0.02f || max_chest_displacement > 0.02f;
+    if (!moved_under_impact) {
+        std::cout << "  [FAIL] impact delivered no displacement at all: "
+                  << "hips " << max_hips_displacement << " m, chest "
+                  << max_chest_displacement << " m. A struck body with "
+                  << "mass and no authority holder must move." << std::endl;
+    }
+    bool pass = impact_detected && moved_under_impact;
 
     std::cout << "\n" << (pass ? "  ✅ PASS: Collision detected" : "  ❌ FAIL: No collision") << std::endl;
 
@@ -635,7 +655,27 @@ bool run_case_3_boulder_from_west(Engine& engine, bool is_interactive, HumanoidS
     }
 
     // This test passes if impact was detected (collision system working)
-    bool pass = impact_detected;
+    // ASSERT WHAT THE NAME CLAIMS. This read `bool pass =
+    // impact_detected` — the boulder having been thrown was the entire
+    // test. Displacements were computed, printed, and never checked, so
+    // the test passed identically whether the humanoid was knocked
+    // across the floor or bolted to the world (2026-08-14 audit).
+    //
+    // This rig's humanoid is NOT registered with locomotion, so nothing
+    // holds authority over it: it is loose bodies with mass, and a
+    // 25 kg*m/s strike must move them. Measured on the unpinned rig:
+    // 0.13 m of hips travel. The gate is set well below that so it
+    // fails on a REGRESSION rather than on scene noise, and it fails
+    // loudly if the body ever becomes unmovable again.
+    const bool moved_under_impact =
+        max_hips_displacement > 0.02f || max_chest_displacement > 0.02f;
+    if (!moved_under_impact) {
+        std::cout << "  [FAIL] impact delivered no displacement at all: "
+                  << "hips " << max_hips_displacement << " m, chest "
+                  << max_chest_displacement << " m. A struck body with "
+                  << "mass and no authority holder must move." << std::endl;
+    }
+    bool pass = impact_detected && moved_under_impact;
 
     std::cout << "\n" << (pass ? "  ✅ PASS: Collision detected" : "  ❌ FAIL: No collision") << std::endl;
 

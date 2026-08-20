@@ -691,10 +691,10 @@ inline bool from_string(const char* str, WorldEventType& out) {
 enum class SolverAuthority {
     /// Physics owns it. Gravity pulls it, contacts push it, impulses move it. The default, and right for anything loose, alive, or meant to be knocked about.
     DYNAMIC,
-    /// The body owns its own position. Nothing moves it - not gravity, not impact - and it still collides, so things stand and land on it. This is what terrain IS: floors, worlds, anything that must simply be there.
-    KINEMATIC,
-    /// Immovable and inert. Like KINEMATIC, but never expected to be repositioned by anyone.
-    STATIC
+    /// An external writer owns this body's position RIGHT NOW: animation, locomotion, a scripted driver. Physics will not move it while that lasts, and it still collides, so things land on it.
+    /// It is a TRANSIENT AUTHORITY, not a label. Whoever sets it owns releasing it: a body left KINEMATIC after its driver stops can never fall, tip or ragdoll again. Driving complex animation through physics is the thing this escape hatch exists to avoid - nothing else.
+    /// NOT for scenery. Terrain, floors and worlds are not immovable by declaration (INV-1: the turtle boundary is the only intrinsically immovable thing). They rest on the turtle, on anchored bonds, or on the modelled EFFECT of the mass we choose not to simulate - which is also where gravity comes from. A body that should float escapes the field; it is not nailed to the air.
+    KINEMATIC
 };
 
 /// Convert SolverAuthority to its string representation.
@@ -702,7 +702,6 @@ inline const char* to_string(SolverAuthority value) {
     switch (value) {
         case SolverAuthority::DYNAMIC: return "DYNAMIC";
         case SolverAuthority::KINEMATIC: return "KINEMATIC";
-        case SolverAuthority::STATIC: return "STATIC";
     }
     return "unknown";
 }
@@ -711,7 +710,6 @@ inline const char* to_string(SolverAuthority value) {
 inline bool from_string(const char* str, SolverAuthority& out) {
     if (std::strcmp(str, "DYNAMIC") == 0) { out = SolverAuthority::DYNAMIC; return true; }
     if (std::strcmp(str, "KINEMATIC") == 0) { out = SolverAuthority::KINEMATIC; return true; }
-    if (std::strcmp(str, "STATIC") == 0) { out = SolverAuthority::STATIC; return true; }
     return false;
 }
 
@@ -1001,10 +999,10 @@ struct Signal : public Identifiable, public Temporal {
 struct Relation : public Identifiable, public Temporal {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
     std::string relation_type = {};
-    /// ID of the source entity.
-    std::string source_id = {};
-    /// ID of the target entity.
-    std::string target_id = {};
+    /// Reference to the source Entity.
+    Entity source_id = {};
+    /// Reference to the target Entity.
+    Entity target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };
@@ -1055,6 +1053,19 @@ struct EmitsLight {
     std::optional<float> emission_strength = std::nullopt;
     /// Maximum light reach distance.
     std::optional<float> emission_radius = std::nullopt;
+};
+
+
+/// The simple-entity contract read by the engine's simple_entity_activator (src/entities/simple_entity.cpp): one particle built from a uniform size plus RGB color. Runtime keys are the slot names verbatim. Known drift siblings, unification pending an owner ruling: PhysicsRock.color_r/g/b and CelestialBody.moon_r/g/b.
+struct HasSimpleAppearance {
+    /// Uniform particle size in meters (width = height = thickness for simple entities; also the rock spec's characteristic size).
+    std::optional<float> size = std::nullopt;
+    /// Red color component, 0..1.
+    std::optional<float> r = std::nullopt;
+    /// Green color component, 0..1.
+    std::optional<float> g = std::nullopt;
+    /// Blue color component, 0..1.
+    std::optional<float> b = std::nullopt;
 };
 
 
@@ -1141,6 +1152,11 @@ struct WorldEntity : public Entity, public Statusable, public Spatial, public Ha
 
 /// An entity that is alive and can take damage.
 struct LivingEntity : public WorldEntity, public HasHealth, public HasMaterial, public HasOdor {
+    std::optional<float> capability_speed_cap = std::nullopt;
+    std::optional<float> capability_locomotion = std::nullopt;
+    std::optional<float> capability_manipulation = std::nullopt;
+    std::optional<float> capability_rotation = std::nullopt;
+    std::optional<float> capability_perception = std::nullopt;
     std::optional<int32_t> cap_locomotion_expected_count = std::nullopt;
     std::optional<std::string> cap_locomotion_default_mode = std::nullopt;
     std::optional<int32_t> cap_manipulation_expected_count = std::nullopt;
@@ -1251,6 +1267,12 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
+    /// Ground red tint component, 0..1.
+    std::optional<float> ground_r = std::nullopt;
+    /// Ground green tint component, 0..1.
+    std::optional<float> ground_g = std::nullopt;
+    /// Ground blue tint component, 0..1.
+    std::optional<float> ground_b = std::nullopt;
 };
 
 
@@ -1270,7 +1292,7 @@ struct NaturalFormation : public WorldEntity, public HasMaterial, public Destruc
 
 
 /// Entity that emits light.
-struct LightSource : public WorldEntity, public EmitsLight {
+struct LightSource : public WorldEntity, public EmitsLight, public HasSimpleAppearance {
 };
 
 
@@ -1653,7 +1675,7 @@ struct TransformationEvent : public WorldEvent {
 struct DiceRollEvent : public WorldEvent {
     /// Monotonic id of the roll, unique per session, citable.
     std::optional<int32_t> roll_id = std::nullopt;
-    /// The expression rolled, canonical form ("2D6+1").
+    /// The expression rolled, canonical form ("2D6+1"). EXECUTED, and by a named thing: DiceService::parse turns this string into a DiceExpression and DiceService::roll evaluates it (include/logosphere/core/dice_service.h:56,110). Recorded here because a formula-shaped slot is the fleet's most common way of writing knowledge down and never running it, and the only defence against that is naming the executor next to the slot. If the parser ever stops being the sole reader of this string, this line is wrong and the slot has become documentation.
     std::optional<std::string> dice_expression = std::nullopt;
     /// Individual die results, comma-separated, in roll order.
     std::optional<std::string> roll_values = std::nullopt;
@@ -1666,8 +1688,64 @@ struct DiceRollEvent : public WorldEvent {
 };
 
 
-/// A typed relationship between world entities.
+/// Abstract parent of the engine's world relations. One concrete subclass per member of WorldRelationType, each pinning its own predicate and declaring its own endpoints.
+/// It is abstract because a relation class that leaves relation_type open across an enum is not one relation, it is a family. Malleus refuses that shape ("Concrete relation must fix relation_type with equals_string") and the refusal is right: an edge whose predicate is only known at write time cannot have a checkable domain and range, so endpoint validation degenerates to "does this name exist".
 struct WorldRelation : public Relation {
+};
+
+
+/// Composition: a humanoid has_part a torso. Endpoints are Entity from evidence, not neglect. 81 createRelation sites in C++ plus 1518 seed ops, spanning humanoid to torso, Procedure to ProcedureStep, RollableTable to TableEntry, LookupTable to CharacteristicModifierEntry, and OutcomeSequence to OutcomeStep. There is no narrower pair that covers them.
+struct HasPartRelation : public WorldRelation {
+};
+
+
+/// Spatial subdivision: an arm has_regional_part a forearm. No creation site in C++ or seeds as of 2026-08-16, so there is nothing to learn its endpoints from. Entity until evidenced.
+struct HasRegionalPartRelation : public WorldRelation {
+};
+
+
+/// Physics constraint link. Three creation sites, all body to constraint, but the body side spans humanoid, totem and the generic entity generator, and the constraint side has no class of its own in this schema to narrow to.
+struct HasConstraintRelation : public WorldRelation {
+};
+
+
+/// Spatial containment: a chest contains an item. Four creation sites spanning strata floor to layer, floor to tile, and torso to arm. Heterogeneous, so Entity.
+struct ContainsRelation : public WorldRelation {
+};
+
+
+/// Physical support: a floor supports an entity. One site and it is a test. No production creation site, so the shape is unevidenced.
+struct SupportsRelation : public WorldRelation {
+};
+
+
+/// A light source reaches an entity. The one relation whose endpoints are KNOWN rather than guessed: only a LightSource illuminates, which is what that class exists for, and only something in the world can be lit. Both classes are declared in this file, so the root can name them.
+struct IlluminatesRelation : public WorldRelation {
+};
+
+
+/// Fire spread between entities. No creation site anywhere in the repository, so there is nothing to learn its shape from yet.
+struct BurnsRelation : public WorldRelation {
+};
+
+
+/// An agent perceives a target entity. One site and it is a test (creature to torso). Anything can perceive anything until the perception layer says otherwise.
+struct PerceivesRelation : public WorldRelation {
+};
+
+
+/// A system entity manages another entity. Two sites, both the chunk system to a chunk's entity. Neither side has a class in this schema to narrow to.
+struct ManagesRelation : public WorldRelation {
+};
+
+
+/// Direct bond between two bodies, the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world. No createRelation site: bonds are made through the gluon path, so the KG edge has no writer to learn endpoints from.
+struct BondedToRelation : public WorldRelation {
+};
+
+
+/// A narrower thing refines a broader one: Slug Rifle SPECIALIZES Gun Combat in a skill cascade. Every occurrence measured is Skill to Skill, and Skill is a rulebook-pack class, so this file cannot name it. The pack may declare its own narrowed subclass; the root keeps the generic vocabulary.
+struct SpecializesRelation : public WorldRelation {
 };
 
 
@@ -1772,6 +1850,10 @@ struct TrailSegment : public WorldEntity {
 
 /// Boundary wall of the arena. Static. Lethal on contact.
 struct ArenaWall : public Structure {
+    /// Column in the arena grid.
+    std::optional<int32_t> grid_x = std::nullopt;
+    /// Row in the arena grid.
+    std::optional<int32_t> grid_y = std::nullopt;
 };
 
 

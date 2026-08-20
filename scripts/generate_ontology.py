@@ -36,8 +36,6 @@ SCHEMA_DIR = ROOT / "schema"
 PACK_DIR = SCHEMA_DIR / "packs"
 OUTPUT_DIR = ROOT / "src" / "generated"
 
-MINIMUM_MALLEUS_VERSION = (0, 2)
-
 
 def write_if_changed(path: Path, content: str) -> bool:
     """Write content to path only if it differs from current on-disk content.
@@ -152,47 +150,61 @@ def generate_constants_header(schema: dict) -> bool:
     return True
 
 
-def parse_version(version_str: str) -> tuple[int, int, int]:
-    parts = version_str.split(".")
-    return (int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
-
-
 def check_malleus_version() -> bool:
-    malleus_path = SCHEMA_DIR / "malleus.yaml"
-    if not malleus_path.exists():
-        print("ERROR: schema/malleus.yaml not found (pinned vendored copy expected in-repo)", file=sys.stderr)
+    """The vendored root must BE the installed root, byte for byte.
+
+    This used to read the vendored file's own `version:` field and
+    compare it to a constant in this script, which is a gate that
+    validates the thing it is meant to be validating. It reported OK
+    for months while the copy sat a minor version behind, and every
+    divergence loosened a constraint we believed we had: Relation was
+    instantiable where the root makes it abstract, relation endpoints
+    were free strings where the root says Entity, and strength was
+    unbounded where the root bounds it to [0, 1]. A generated header
+    is only as strict as the root it was generated from, and nothing
+    anywhere would have said so.
+
+    Byte-identical rather than "compatible" on purpose. A tolerance is
+    where drift lives, and a schema that needs to say more than the
+    root says has logosphere.yaml to say it in.
+    """
+    vendored = SCHEMA_DIR / "malleus.yaml"
+    if not vendored.exists():
+        print("ERROR: schema/malleus.yaml not found (pinned vendored copy "
+              "expected in-repo)", file=sys.stderr)
         return False
 
-    with open(malleus_path) as f:
-        schema = yaml.safe_load(f)
-
-    version_str = schema.get("version")
-    if not version_str:
-        print("ERROR: malleus.yaml has no version field", file=sys.stderr)
+    # No installed malleus is an error, never a skip. A gate that
+    # quietly does not run reads exactly like one that passed.
+    try:
+        from malleus.ontology import bundled_ontology_path
+    except ImportError as exc:
+        print(f"ERROR: malleus is not importable ({exc}). The vendored root "
+              f"cannot be checked against anything, so generation would be "
+              f"guessing. Install it: pip install -U malleus-dev",
+              file=sys.stderr)
         return False
 
-    major, minor, _ = parse_version(version_str)
-    req_major, req_minor = MINIMUM_MALLEUS_VERSION
+    installed = Path(bundled_ontology_path("malleus.yaml"))
+    if vendored.read_bytes() == installed.read_bytes():
+        version_str = yaml.safe_load(vendored.read_text()).get("version")
+        print(f"malleus root v{version_str} matches the installed package")
+        return True
 
-    if major != req_major:
-        print(
-            f"ERROR: malleus version {version_str} incompatible. "
-            f"Requires malleus {req_major}.x.\n"
-            f"See ../malleus/CHANGELOG.md for migration steps.",
-            file=sys.stderr,
-        )
-        return False
-
-    if minor < req_minor:
-        print(
-            f"ERROR: malleus version {version_str} too old. "
-            f"Requires >= {req_major}.{req_minor}.0.",
-            file=sys.stderr,
-        )
-        return False
-
-    print(f"malleus v{version_str} OK (requires >= {req_major}.{req_minor}.0)")
-    return True
+    ours = yaml.safe_load(vendored.read_text()).get("version")
+    theirs = yaml.safe_load(installed.read_text()).get("version")
+    print(
+        f"ERROR: the vendored malleus root does not match the installed "
+        f"package.\n"
+        f"  vendored  schema/malleus.yaml  v{ours}\n"
+        f"  installed {installed}  v{theirs}\n"
+        f"Regenerating against a stale root produces headers that enforce "
+        f"less than the root does, with no error anywhere. Re-pin with:\n"
+        f"  cp {installed} schema/malleus.yaml\n"
+        f"then rerun this script and commit the regenerated output.",
+        file=sys.stderr,
+    )
+    return False
 
 
 def generate(schema: dict) -> bool:

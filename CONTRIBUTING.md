@@ -178,16 +178,55 @@ defects and proposals belong in issues.
    The one that catches contributors most often: a magnitude threshold
    (`if (v.z > 1.0f)`) standing in for a state that should be named and asked
    for (`if (!is_grounded())`).
-3. **Sign off every commit** (`git commit -s`) — see the DCO section.
+3. **Sign off with `git commit -s`** — see the DCO section. The check is
+   on the commit that lands on `main`, not on your branch commits, and
+   signing as you go is what carries the trailer into it.
 4. **Open a pull request.** CI runs the headless-core and
-   headless-physics builds and test suites on Linux plus the DCO
-   sign-off check; all are required before merge. Keep the PR to one
+   headless-physics builds and test suites on Linux, plus the
+   merge-policy lane; all are required before merge. Keep the PR to one
    logical change.
 5. **Review.** The maintainer reviews every PR (CODEOWNERS). Merges
    are squash merges; your branch is deleted automatically after.
 
 Direct pushes to `main` are disabled. There is no path into the tree
 that skips the checks.
+
+### Never rebase
+
+Squash merging is the only merge method this repository has enabled,
+which means the shape of your branch history is irrelevant: it is
+collapsed to a single commit when it lands. Two consequences, and the
+second one is the important one.
+
+- **Do not tidy your commits.** No interactive rebase, no amend
+  chains, no local squashing. Nothing you do to them survives the
+  merge, so it buys nothing and costs the risk below.
+- **Never rebase, at all.** Not `git rebase`, not `git pull --rebase`,
+  not "Rebase and merge". A rebase replays your commits onto a base
+  they were not written against, and whatever the replay drops, or
+  whatever a conflict resolution keeps from your side, is deleted
+  without a word. This repository lost three already-merged pull
+  requests exactly that way, with CI green throughout: a branch that
+  reverts `main` still compiles and still passes its tests.
+
+When your branch is behind, merge `main` into it:
+
+```bash
+git fetch origin main
+git merge origin/main      # or: git merge --ff-only origin/main
+```
+
+The merge commit lives inside your branch and vanishes at squash time.
+
+This is enforced, not requested. `.githooks/pre-rebase` refuses every
+rebase and has no override; `.githooks/pre-push` refuses force-pushes,
+pushes to `main`, and branches that delete lines which landed on `main`
+after the branch started. The hooks install themselves the first time
+you run `cmake -S . -B build`, or explicitly:
+
+```bash
+./scripts/install-git-hooks.sh
+```
 
 ## Developer Certificate of Origin
 
@@ -196,15 +235,33 @@ Contributions are accepted under the
 By signing off you certify that you wrote the change or otherwise have
 the right to submit it under the project license.
 
-Add a sign-off line to every commit:
+Add a sign-off line to your commits:
 
 ```
 Signed-off-by: Your Name <your@email.example>
 ```
 
-`git commit -s` adds it for you. Pull requests with unsigned commits
-will be asked to amend before merge. There is no separate CLA to
-sign; the grant below travels with your pull request.
+`git commit -s` adds it for you. There is no separate CLA to sign; the
+grant below travels with your pull request.
+
+**What is actually checked, and where.** The gate runs on `main`, on the
+single commit your pull request becomes when it is squash-merged. Your
+branch commits are not checked, which is deliberate: a branch that falls
+behind `main` catches up with `git merge origin/main`, and the resulting
+merge commit has no authored content, cannot be signed at creation, and
+cannot be signed later without the force-push this repository refuses. A
+branch behind `main` could satisfy the merge rule or the old per-commit
+gate, never both.
+
+You will not notice the difference. GitHub composes a squash message as
+the pull request title followed by your branch commit messages, so a
+`git commit -s` habit carries the trailer through on its own. The one way
+to lose it is to rewrite the squash message in the merge box and delete
+the commit log along with the trailer, and that is what the gate catches.
+
+The checker is `scripts/check-signoff.sh`; `scripts/test-signoff-on-main.sh`
+proves it refuses as well as accepts, and CI runs that test on every pull
+request.
 
 ## Contribution License Grant
 

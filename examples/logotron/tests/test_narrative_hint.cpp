@@ -35,6 +35,16 @@ static kg::OntologyRegistry make_registry() {
     kg::OntologyRegistry r;
     r.addEntityType("Cycle",        "", false);
     r.addEntityType("TrailSegment", "", false);
+    // The crash telemetry the fixtures stamp. Kinds mirror the real
+    // logotron registry (logotron_ontology_registry.cpp) — the write
+    // gate refuses undeclared keys even in a tiny test registry.
+    r.addProperty("Cycle", "crash_cause",      kg::PropertyValueKind::String,  false);
+    r.addProperty("Cycle", "crash_x",          kg::PropertyValueKind::Float,   false);
+    r.addProperty("Cycle", "crash_y",          kg::PropertyValueKind::Float,   false);
+    r.addProperty("Cycle", "crash_hit_entity", kg::PropertyValueKind::Integer, false);
+    r.addProperty("Cycle", "crash_hit_age",    kg::PropertyValueKind::Float,   false);
+    r.addProperty("TrailSegment", "director_origin",
+                  kg::PropertyValueKind::String, false);
     return r;
 }
 

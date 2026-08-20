@@ -18,6 +18,77 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Git integration policy. The only lane here that is not about whether the
+  # code works: it is about whether the branch is honest about what it changes.
+  #
+  # A branch that reverts main still compiles and its tests still pass, so
+  # every other job in this file stays green while merged work is being
+  # deleted. That happened here: three merged pull requests were undone by a
+  # rebased branch and nothing in CI noticed. This job is the thing that
+  # notices.
+  # ---------------------------------------------------------------------------
+  merge-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A hook without the executable bit is silently ignored by git. That
+      # is a failure mode with no symptom, so it gets a test.
+      - name: Hooks are present and executable
+        run: |
+          set -e
+          for h in .githooks/pre-rebase .githooks/pre-push; do
+            test -f "$h" || { echo "MISSING $h"; exit 1; }
+            test -x "$h" || { echo "NOT EXECUTABLE (git will ignore it): $h"; exit 1; }
+          done
+          test -x scripts/check-merged-work-deletion.sh
+          test -x scripts/install-git-hooks.sh
+          test -x scripts/test-merged-work-deletion.sh
+          test -x scripts/test-pre-push-hook.sh
+          test -x scripts/check-signoff.sh
+          test -x scripts/test-signoff-on-main.sh
+          # And it refuses. An unconditional hook that returns 0 is a decoration.
+          if .githooks/pre-rebase origin/main test-branch >/dev/null 2>&1; then
+            echo "pre-rebase exited 0. It must refuse unconditionally."
+            exit 1
+          fi
+          echo "hooks present, executable, and refusing"
+
+      # A guard that never fires and a guard that always fires are the same
+      # colour in CI. This builds a throwaway repo and asserts both
+      # directions, control included.
+      - name: The merged-work detector is not vacuous
+        run: ./scripts/test-merged-work-deletion.sh
+
+      # And the hook that calls it actually refuses a real `git push` to a
+      # real remote: push to main, force-push, and a stale branch that
+      # reverts main. The last one got through the first version of the
+      # hook, so it has a permanent case here.
+      - name: The pre-push hook refuses what it claims to
+        run: ./scripts/test-pre-push-hook.sh
+
+      # The sign-off gate moved off pull requests and onto main (see
+      # .github/workflows/dco.yml for why). It therefore no longer runs on
+      # anything a contributor can see before merging, which makes it
+      # exactly the kind of check that can rot unnoticed. This is the lane
+      # that keeps it honest: twelve cases in a throwaway repository,
+      # accept and refuse both asserted, including the case the gate
+      # exists for (a squash message hand-edited in the merge box, with
+      # the trailer deleted along with the commit log).
+      - name: The sign-off gate is not vacuous
+        run: ./scripts/test-signoff-on-main.sh
+
+      - name: This branch deletes no work merged after it started
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --quiet origin "${{ github.base_ref }}"
+          ./scripts/check-merged-work-deletion.sh \
+            "origin/${{ github.base_ref }}" \
+            "${{ github.event.pull_request.head.sha }}"
+
+  # ---------------------------------------------------------------------------
   # Ontology generation: schema import safety, vendored generator integrity,
   # and committed-output drift. Uses the same pinned environment developers use.
   # ---------------------------------------------------------------------------
@@ -36,6 +107,16 @@ jobs:
       - name: Run generator contract tests
         run: python -m unittest scripts/test_generate_registry.py
 
+      # The schema contracts malleus cannot check for us. Its rites ask
+      # two of these three questions and ask them well, but only of
+      # schemas its inspector can LOAD, and this repo's packs import by
+      # bare name so several need an explicit import map and had never
+      # been judged at all. ServiceTerm sat in exactly that gap with an
+      # open event_type. This audit reads the YAML directly and asks
+      # every schema, loadable or not.
+      - name: Run schema contract audit
+        run: python -m unittest scripts/test_schema_contracts.py
+
       # The seed extractors have contract tests too, and nothing ran
       # them. Written when the career extractor was, never wired up.
       - name: Run seed extractor contract tests
@@ -51,8 +132,19 @@ jobs:
       - name: Regenerate rule seeds from the vendored SRD
         run: ./examples/logovger/tools/regenerate_seeds.sh
 
+      # `git diff` is blind to files that did not exist before it ran, so
+      # a NEW schema emits new generated output and this step stays green
+      # while that output sits uncommitted. Measured on a fresh pack:
+      # `git diff --exit-code` returned 0 with three untracked generated
+      # files present. The untracked check is the half that catches it.
       - name: Reject generated-output drift
-        run: git diff --exit-code
+        run: |
+          git diff --exit-code
+          if [ -n "$(git status --porcelain -uall)" ]; then
+            echo "generated output is untracked or unstaged:"
+            git status --porcelain -uall
+            exit 1
+          fi
 
   # ---------------------------------------------------------------------------
   # Linux: headless-physics profile (core + physics + dynamics + worldgen,
@@ -122,9 +214,50 @@ jobs:
       # but never run and the gate silently checked compilation alone.
       # A new add_headless_test() is gated the moment it exists.
       - name: Run headless test suite
-        timeout-minutes: 10
+      # Raised with the Windows cap and for the same measured reason: the
+      # exact-evidence migration multiplied seed volume and test_chargen
+      # went 109s -> 275s on the dev machine. This step was killed at
+      # exactly 10:12 against a 10 minute cap with the build green, which
+      # is indistinguishable in CI from a real failure.
+        timeout-minutes: 30
         working-directory: build
         run: ctest --output-on-failure -j $(nproc)
+
+      # ctest proves the rules behave. It does not prove the binary that
+      # plays them can finish a life. Those are different failures: a
+      # driver that leaves a rule's printed fork unanswered ends the run
+      # right there, and 19 seeds in 200 did exactly that while every
+      # test stayed green. Only a sweep sees it.
+      # SIXTY, and the number is argued rather than picked. Each life is
+      # its own process and reloads and re-verifies the whole rule graph,
+      # so a life costs about 1.5s: 200 of them ran past a five-minute
+      # cap on the dev machine before CI's slower hardware was even
+      # involved, which is how this step first failed.
+      #
+      # Sixty is enough because of what this gate is FOR. It proves the
+      # BINARY and its driver wiring can carry a life to the end. It is
+      # not the rule-space sweep; test_chargen already plays 288 lives
+      # in-process, loading the graph once. Against the 9.5% abort rate
+      # this was built to catch, sixty lives miss it 0.25% of the time,
+      # and a rarer failure is the in-process sweep's job to find.
+      - name: Play 60 lives end to end
+      # Each life reloads and re-verifies the whole rule graph, and the
+      # graph is what just grew, so this scales with the same factor.
+        timeout-minutes: 20
+        run: |
+          failed=""
+          for seed in $(seq 1 60); do
+            ./build/logovger-headless --random "$seed" >/tmp/life.txt 2>&1 \
+              || failed="$failed $seed"
+          done
+          if [ -n "$failed" ]; then
+            echo "lives that never finished:$failed"
+            set -- $failed
+            echo "--- seed $1, in full ---"
+            ./build/logovger-headless --random "$1" 2>&1 | tail -20
+            exit 1
+          fi
+          echo "60 lives, none abandoned"
 
       - name: Install package to a prefix
         run: cmake --install build --prefix "$PWD/_install"
@@ -137,6 +270,169 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
           cmake --build build-consumer
           ./build-consumer/consumer-smoke
+
+  # ---------------------------------------------------------------------------
+  # Linux: the same headless profile under AddressSanitizer and
+  # UndefinedBehaviorSanitizer.
+  #
+  # WHY THIS LANE EXISTS. A use-after-lifetime bug shipped and sat
+  # undetected on every platform CI runs. find_choice returned a pointer
+  # INTO choices_, callers cleared choices_, and the answer was read
+  # afterwards. libc++ and libstdc++ leave a cleared vector's bytes where
+  # they were, so Linux and macOS were green for as long as those were the
+  # only compilers in play; MSVC zeroes a destroyed small string, so
+  # everyone who submitted to the Draft quietly became a Drifter and
+  # headless-windows went red for a reason no lane could explain. Nothing
+  # in this file could see it. ASan saw it in one run, as a
+  # container-overflow with a line number (fixed in a7870c5, #132).
+  #
+  # A test suite answers "does the code do the right thing". This answers
+  # "is the code allowed to do it at all", and those are different
+  # questions. It is the only lane here that asks the second one.
+  #
+  # PROFILE: core. Two reasons, and the first is the one that matters.
+  # The code that had the bug (examples/logovger/chargen) is compiled and
+  # run by this profile and no other, so this is where the sanitizer's
+  # value actually is. It is also the cheapest profile: no GLFW, no Metal,
+  # no Objective-C++, nothing that needs a display.
+  #
+  # ADVISORY, not merge-blocking. It is not in the required contexts on
+  # main, which is deliberate and matches full-macos: a sanitizer finding
+  # should be loud and visible rather than hidden, without holding up
+  # somebody else's unrelated merge.
+  #
+  # MEASURED COST (dev machine, AppleClang, 16 cores, against Release):
+  #   build                     770s CPU / 80s wall
+  #   ctest minus test_chargen  13s wall at -j4, 32s CPU
+  #   12 sanitized lives        102s wall, 8.5s each
+  #   test_chargen              565s, against 74s unsanitized. 7.6x.
+  # The sanitizers cost between 5.5x and 7.6x here, not the 2x they are
+  # usually quoted at. On the runner a life costs about 30s, so 12 of them
+  # is roughly 6 minutes.
+  #
+  # TOOLCHAIN: clang AND libc++, both of them load-bearing, and the first
+  # version of this lane had neither.
+  #
+  # It was written with the runner's default g++ and libstdc++, it went
+  # green, and green was worth nothing: measured against both bugs this
+  # lane exists to catch, that toolchain reports neither. The standard
+  # library is half of ASan. Container overflow is detected through
+  # annotations the library itself emits around its buffers, and libc++
+  # emits them where libstdc++ does not; use-after-scope is the
+  # compiler's, and clang instruments it where gcc does not, at -O0, -O1
+  # and -O2 alike and with -fsanitize-address-use-after-scope passed
+  # explicitly.
+  #
+  # Measured on the two real bugs, not on a hypothetical:
+  #
+  #                          | #132 container-overflow | use-after-scope
+  #   gcc 13  + libstdc++    |         MISS            |     MISS
+  #   clang 18 + libstdc++   |         MISS            |     CATCH
+  #   clang 18 + libc++      |         CATCH           |     CATCH
+  #
+  # The first row is what this lane shipped as for one CI run. It built
+  # 313 targets, ran 89 tests, played 12 lives, reported success, and
+  # would have let #132 through exactly as every other lane did.
+  # ---------------------------------------------------------------------------
+  sanitizers-linux:
+    runs-on: ubuntu-latest
+    env:
+      # A stack trace with a line number, or the report is a puzzle.
+      UBSAN_OPTIONS: print_stacktrace=1
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v4
+
+      # libc++ is not optional here. See the table above: with libstdc++
+      # this lane does not see the bug it was built for.
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang libc++-dev libc++abi-dev
+
+      # RelWithDebInfo, not Debug: the reports need symbols and line
+      # numbers, and the tests need to finish. -fno-sanitize-recover=all
+      # makes UBSan abort on the first finding instead of printing it and
+      # carrying on, which is the difference between a gate and a log.
+      - name: Configure (core profile, clang + libc++, ASan + UBSan)
+        run: |
+          cmake -S . -B build-san -G Ninja \
+            -DLOGOSPHERE_PROFILE=core \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all -stdlib=libc++" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined -stdlib=libc++"
+
+      # 15 rather than the 10 the test steps use, and the number is
+      # measured: the g++ build of this same profile took 8m46s on this
+      # runner, 88% of a 10-minute cap, and a build that fails on the cap
+      # reports as a lane failure indistinguishable from a real finding.
+      # A compile is not a test; the cap here is a runaway guard, not a
+      # performance budget.
+      - name: Build logosphere_core + headless tests
+        timeout-minutes: 15
+        run: cmake --build build-san -j $(nproc)
+
+      # EXCLUDED, and named rather than dropped quietly: test_chargen.
+      #
+      # It plays 288 lives in one process and costs 565s under the
+      # sanitizers against 74s without them, measured on hardware faster
+      # than this runner. It would blow the 10-minute cap on its own and
+      # tell us nothing the next step does not.
+      #
+      # What it would have covered is covered, by the step below: the
+      # translation unit that had the bug is examples/logovger/chargen,
+      # and logovger-headless compiles and runs the same file. A memory
+      # error on the chargen path shows on the first life that walks it,
+      # not on the 288th. test_chargen still runs unsanitized in
+      # headless-linux, where it is the rule-space sweep it was built to
+      # be.
+      #
+      # Everything else in the profile runs here, all 89 of them.
+      - name: Run headless test suite under the sanitizers (minus test_chargen)
+        timeout-minutes: 10
+        working-directory: build-san
+        run: ctest --output-on-failure -j $(nproc) -E '^test_chargen$'
+
+      # TWELVE lives, and the number is argued rather than picked.
+      #
+      # A sanitized life costs 8.5s here against 1.5s clean, so the 60
+      # that headless-linux plays would cost around 500s on this runner
+      # and probably more. Twelve is what fits with room to spare.
+      #
+      # Twelve is enough because of what this step is FOR. It is not the
+      # rule-space sweep (headless-linux plays 60 unsanitized, and
+      # test_chargen plays 288 in-process); it is a walk down the chargen
+      # code path with the sanitizers watching, and a lifetime error there
+      # is deterministic once the path is walked at all. Measured on seeds
+      # 1 through 12: three reach the Draft branch and four the Drifter
+      # branch, which is both sides of the exact fork the shipped bug
+      # corrupted.
+      #
+      # `if: always()` because without it this step is SKIPPED whenever
+      # ctest above goes red, and the chargen path is then not walked at
+      # all. That is how it behaved on its first red run: one failing
+      # test silently took the whole reason this lane exists off the
+      # board. A lane that stops reporting the moment it has something to
+      # report is worse than no lane.
+      - name: Play 12 lives under the sanitizers
+        if: always()
+        timeout-minutes: 10
+        run: |
+          failed=""
+          for seed in $(seq 1 12); do
+            ./build-san/logovger-headless --random "$seed" >/tmp/life-$seed.txt 2>&1 \
+              || failed="$failed $seed"
+          done
+          if [ -n "$failed" ]; then
+            echo "lives that aborted under the sanitizers:$failed"
+            set -- $failed
+            echo "--- seed $1, in full ---"
+            cat "/tmp/life-$1.txt"
+            exit 1
+          fi
+          echo "12 lives, none aborted"
 
   # ---------------------------------------------------------------------------
   # macOS: full engine (Metal, GLFW, physics, examples). Free on public
@@ -167,6 +463,36 @@ jobs:
         timeout-minutes: 1
         run: ./build/logosphere-tests --test
 
+      # Engine tests that NO lane ran. They are macOS-only (Cocoa,
+      # Metal, a real Engine), so this is the only lane that can, and
+      # they were compiled on every build and executed by nothing. Both
+      # had been failing on main for as long as anyone can tell, which
+      # is what "main is green" was actually worth.
+      #
+      # EXPECTED RED, deliberately. test_humanoid_terrain_scenarios
+      # fails three litter-underfoot cases: a walker over ground for 27%
+      # to 40% of a path that should be 100%. That is locomotion and
+      # belongs to whoever owns the physics work. Hiding it until they
+      # get to it is exactly how it stayed hidden. This lane is advisory
+      # and not a required check, so the red is loud without blocking
+      # anyone's merge.
+      #
+      # Add tests here as they earn it. Anything macOS-only that nothing
+      # else runs belongs in this list, not in a comment saying it
+      # should be.
+      - name: Run engine tests no other lane covers
+        timeout-minutes: 15
+        run: |
+          failed=""
+          for t in test_determinism_guards test_humanoid_terrain_scenarios; do
+            echo "=== $t ==="
+            ./build/$t || failed="$failed $t"
+          done
+          if [ -n "$failed" ]; then
+            echo "engine tests failing:$failed"
+            exit 1
+          fi
+
   # ---------------------------------------------------------------------------
   # Windows: headless subset under MSVC. Verifies the core profile is the
   # portable C++17 it claims to be (issue #7). Advisory: not merge-blocking
@@ -184,5 +510,12 @@ jobs:
         run: cmake --build build --config Release -j 4
 
       - name: Run headless test suite
-        timeout-minutes: 15
+      # 30, and the number is measured rather than padded. The exact-evidence
+      # migration multiplied the seed volume: test_chargen went from 109s to
+      # 275s on the dev machine for the same suite, a 2.5x. Windows was
+      # already the slowest lane at 210s for that one test, so 2.5x puts the
+      # suite past a 15 minute cap. Measured: the step was killed at exactly
+      # 15:00 with the build green, which reports identically to a real test
+      # failure and is the reason this is a cap and not a bug.
+        timeout-minutes: 30
         run: ctest --test-dir build -C Release --output-on-failure

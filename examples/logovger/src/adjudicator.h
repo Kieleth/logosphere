@@ -63,6 +63,16 @@ public:
 
     bool ready() const { return llm_ != nullptr; }
 
+    // Who is deciding, readable, for the record a judgment leaves in
+    // the graph. This existed only inside voice_version_, a one-way
+    // hash of the prompt and the model, so nothing could answer "which
+    // model chose this" after the fact, not even in principle. Empty
+    // until initialize() succeeds.
+    std::string judge() const {
+        if (backend_.empty() && model_.empty()) return {};
+        return backend_ + "/" + model_;
+    }
+
     // Blocks until the model answers, then holds it to the rule: the
     // reply must name exactly `count` distinct options drawn from
     // `options`. A timeout, a transport failure, or an answer that
@@ -91,6 +101,11 @@ private:
     std::string voice_version_;
     std::string cache_dir_;
     int         timeout_ms_ = 30000;
+    // Sized at initialize() from LOGOVGER_JUDGMENT_MAX_TOKENS. Never a
+    // magic number at the call site: see the note in initialize().
+    int         reply_budget_ = 1024;
+    // How many times a malformed reply is re-asked before the run ends.
+    int         attempts_ = 3;
 };
 
 }  // namespace logovger
