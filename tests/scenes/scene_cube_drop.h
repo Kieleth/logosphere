@@ -63,11 +63,26 @@ constexpr float WOBBLE_MAX_LEVER = 0.05f;  // rad/s: R0's transient (measured 0.
 // so nothing is immovable by declaration (INV-1).
 constexpr float FLOOR_TOP        = 0.2f;   // slab thickness; its top surface
 
-struct RungSpec { const char* name; float tilt_rad; float spin_z; };
-inline const RungSpec RUNGS[3] = {
-    { "R0 control: flat, no spin",      0.0f,                          0.0f  },
-    { "R1 tilted 20 deg, no spin",      TILT_DEG * 3.14159265f/180.f,  0.0f  },
-    { "R2/R3 flat, spinning 3 rad/s",   0.0f,                          SPIN0 },
+struct RungSpec {
+    const char* name;
+    float tilt_rad;
+    float spin_x, spin_y, spin_z;
+    float drop;          // per-rung: spin rungs use a SHORT flight so the
+                         // spin survives ANGULAR_DRAG to touchdown (G-41)
+};
+constexpr float SPIN_FAST  = 5.0f;    // rad/s, under MAX_OMEGA 6.28
+constexpr float DROP_SHORT = 0.05f;   // ~4 frames: drag steals ~26%, not 95%
+inline const RungSpec RUNGS[6] = {
+    { "R0 control: flat, no spin",      0.0f, 0.0f, 0.0f, 0.0f,  DROP },
+    { "R1 tilted 20 deg, no spin",      TILT_DEG * 3.14159265f/180.f,
+                                              0.0f, 0.0f, 0.0f,  DROP },
+    { "R2/R3 flat, spinning 3 rad/s",   0.0f, 0.0f, 0.0f, SPIN0, DROP },
+    { "R4 fast top: spin Z 5 rad/s, short drop (G-41)",
+                                        0.0f, 0.0f, 0.0f, SPIN_FAST, DROP_SHORT },
+    { "R5 wheel X: spin X 5 rad/s, short drop (G-41)",
+                                        0.0f, SPIN_FAST, 0.0f, 0.0f, DROP_SHORT },
+    { "R6 wheel Y: spin Y 5 rad/s, short drop (G-41)",
+                                        0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_SHORT },
 };
 
 // Resting centre height ABOVE THE SLAB TOP of a cube tilted t about Y
@@ -122,7 +137,7 @@ struct Scene {
         rest_z = FLOOR_TOP + rest_height(r.tilt_rad);
         auto v = ps.lock_particles_for_write();
         Particle& p = v[cube];
-        p.x = 0.0f; p.y = 0.0f; p.z = rest_z + DROP;
+        p.x = 0.0f; p.y = 0.0f; p.z = rest_z + r.drop;
         p.vx = p.vy = p.vz = 0.0f;
         p.rotation_x = p.rotation_z = 0.0f;
         p.rotation_y = r.tilt_rad;
@@ -131,7 +146,8 @@ struct Scene {
         // Spawn-time seeding covers newly created bodies; arm() edits an
         // existing one.
         p.rotation_q = logosphere::Quat::from_euler(0.0f, r.tilt_rad, 0.0f);
-        p.omega_x = p.omega_y = 0.0f;
+        p.omega_x = r.spin_x;
+        p.omega_y = r.spin_y;
         p.omega_z = r.spin_z;
         p.is_at_rest = false;
         peak_omega_y = 0.0f; min_frame_keep = 1.0f;
@@ -190,6 +206,12 @@ struct Scene {
         }
     }
 
+    float displaced_x(ParticleSystem& ps) const {
+        return ps.lock_particles_for_read()[cube].x;   // armed at x = 0
+    }
+    float displaced_y(ParticleSystem& ps) const {
+        return ps.lock_particles_for_read()[cube].y;   // armed at y = 0
+    }
     float settled_rot_y(ParticleSystem& ps) const {
         return std::fabs(ps.lock_particles_for_read()[cube].rotation_y);
     }

@@ -407,6 +407,26 @@ test latches its own minima), no min-separation or closest-approach
 query, and `dump()` prints `rotY` only, so a body spinning about Z
 narrates as motionless.
 
+## D9 grows: the owner's materials orders (2026-08-20, post-QA)
+
+Ordered after QA'ing the torque slices, folded here as D9's first
+concrete instances, G-first when built:
+
+- **Drop ladder**: floor MATERIALS under the spinning rungs — ice, rock,
+  and onward ("what happens... just for fun"). G-41 already names the
+  expectation: ice barely converts spin to translation, rock converts
+  hard.
+- **Ramp**: (1) a PLATE BODY instead of the turtle as the next landing
+  case (box-box rows all the way down); (2) an ICE body on the slope;
+  (3) the materials play — which is D9's original matrix, now with its
+  first three assignments.
+
+Landed already (G-41, rungs R4-R6 of the drop ladder): per-axis spin
+touchdown. Measured under the lever: the Z-top brakes in place; the
+X-wheel drives itself +0.0525 m along Y; the Y-wheel drives itself
+-0.0526 m along X — the same magnitude on mirrored axes, one mechanism,
+no axis preferred. Default mode: nothing moves, as audited.
+
 ## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
 
 The owner, watching the ramp: *"sphere and cube arrive at the same time,

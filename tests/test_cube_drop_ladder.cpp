@@ -54,7 +54,7 @@ void check(bool ok, const std::string& what) {
 int main() {
     std::printf("\n=== the cube drop ladder: rotation, one mechanism per rung ===\n");
 
-    for (int r = 0; r < 3; ++r) {
+    for (int r = 0; r < 6; ++r) {
         const RungSpec& spec = RUNGS[r];
         ParticleSystem ps;
         PhysicsSystem physics;
@@ -114,6 +114,33 @@ int main() {
                 check(scene.argus.divergence(scene.cube) < 0.01f,
                       "R1 lever: the righting is COHERENT, one orientation "
                       "through the whole tip (Argus)");
+        } else if (r >= 3) {
+            // G-41: the spinning cube meets the floor, one axis at a time.
+            // OBSERVATIONAL rungs first (owner: "observe what happens"),
+            // with the invariant-level truths asserted and the rest
+            // measured and printed for the contract to be written from.
+            const float dx = scene.displaced_x(ps);
+            const float dy = scene.displaced_y(ps);
+            std::printf("  [measure] G-41: displaced (%.4f, %.4f) m, settled "
+                        "spin %.4f rad/s, peak |omega_y| %.4f\n",
+                        dx, dy, scene.settled_spin(ps), scene.peak_omega_y);
+            std::printf("  [measure] argus: peak spin %.4f, peak speed %.4f, "
+                        "divergence %.6f\n",
+                        scene.argus.peak_spin(scene.cube),
+                        scene.argus.peak_speed(scene.cube),
+                        scene.argus.divergence(scene.cube));
+            check(scene.argus.divergence(scene.cube) < 0.01f,
+                  "G-41: one body, one orientation through the whole event");
+            check(scene.argus.peak_speed(scene.cube) < 10.0f,
+                  "G-41: no energy invented: speeds stay bounded (INV-3)");
+            static const bool lever2 = std::getenv("CONTACT_TORQUE") != nullptr;
+            if (lever2 && r == 4)
+                check(std::fabs(dy) > 0.02f && std::fabs(dx) < std::fabs(dy),
+                      "R5 lever: an X-spin wheel DRIVES itself along Y "
+                      "(spin bought translation, on the right axis)");
+            if (lever2 && r == 5)
+                check(std::fabs(dx) > 0.02f && std::fabs(dy) < std::fabs(dx),
+                      "R6 lever: a Y-spin wheel DRIVES itself along X");
         } else {
             std::printf("  [measure] argus: peak spin %.4f, peak speed %.4f\n",
                         scene.argus.peak_spin(scene.cube),

@@ -1509,3 +1509,45 @@ away from silently becoming false. The lever-mode contracts are being
 clamped now, and no interactive QA of the torque work has happened yet,
 so nothing in slices A-D is "fixed" under this decree until both halves
 close.
+
+## 2026-08-20 — Owner QA closes the decree on slices A-D: FIXED
+
+Owner, after watching the drop ladder and the ramp race under
+CONTACT_TORQUE interactively, with the education delivered first:
+"its working!!! nice!!!" — and the confirmation question that matters:
+"no hacks, no conditional trees have been used, we're solving physics,
+right?"
+
+**ACK, with the evidence enumerated rather than asserted.** What the
+four slices added is mechanics, not policy:
+
+- Torque = r x J at the REAL contact point the narrow phase computes
+  (box-box manifold points; the turtle's corner patch). No invented
+  geometry: the one invented corner that existed for a single commit
+  was measured lying (the lane walk) and replaced by the patch.
+- Pricing: every row's effective mass carries (r x J)^2/I for each body
+  its torque may spin (INV-20, measure = apply).
+- Friction measures the contact-point relative velocity (v + omega x r,
+  both bodies) and its tangents are derived IN the contact plane from
+  the normal. Rolling emerges from slip-braking; it is not scripted.
+- Gates: solver_mode == DYNAMIC, one authority question, no owner
+  reads (INV-15), no material/size/shape special cases, no per-scene
+  tuning; the two constants added (SUPPORT_PATCH_BAND, the lever-mode
+  test bounds) are declared in schema/scene with their measurements.
+
+**The honest caveats attached to the word FIXED:**
+1. `CONTACT_TORQUE` itself is a conditional — the lever discipline's
+   temporary kind, default-off, awaiting its flip ruling; at the flip it
+   is deleted, not kept.
+2. Two named numeric residuals are NOT covered by the word: the
+   per-point omega seed (block-solve territory) and the 45-degree
+   parking (D7's damper), both boarded, the lane bound ratcheted at
+   0.30 m until they fall.
+
+**New experiments ordered by the owner, G-first:** the drop ladder
+gains a fast-spinning touchdown rung and per-axis spin rungs (X, then
+Y, then Z, one at a time, observe the surface interaction); floor
+materials (ice, rock, ...) later, for fun. The ramp gains: a plate
+BODY instead of the turtle as a next case, an ice body, and the
+materials play — folded into D9's matrix as its first concrete
+instances.
