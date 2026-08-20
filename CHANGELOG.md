@@ -99,8 +99,9 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   two root causes were real behaviour differences and no static check
   can see those, which is why the Windows lane is kept rather than
   dropped. `scripts/test-posix-portability.sh` proves the gate in both
-  directions on nine planted cases, four that must fire and five that
-  must stay quiet.
+  directions on ten planted cases, four that must fire and six that
+  must stay quiet, including the four constructs as dead text inside
+  comments.
 - **A body has one orientation.** The engine kept every body's
   orientation twice, as an Euler triple (read by rendering and
   collision) and a quaternion (written by spin integration), with no

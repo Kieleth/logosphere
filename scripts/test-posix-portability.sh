@@ -12,9 +12,10 @@
 #               each unguarded, exactly as they were when they broke it.
 #   MUST BE
 #   QUIET       the same four constructs, each behind the guard that
-#               fixed it. This is the control: without it, a checker
-#               that reports every occurrence would pass the fire cases
-#               and be useless.
+#               fixed it, and once more as dead text inside comments.
+#               These are the control: without them, a checker that
+#               reports every occurrence would pass the fire cases and
+#               be useless.
 #
 # Prints what it measured. Exit 0 = every case behaved.
 
@@ -160,15 +161,29 @@ int main() {
 }
 EOF
 
+cat > "$TMP/quiet_commented.cpp" <<'EOF'
+/*
+ * The history of this file, in a block comment:
+ *   #include <execinfo.h>
+ *   setenv("K", "1", 1);
+ *   fopen("/tmp/old.log", "w");
+ * All three are dead text and none of them is a finding.
+ */
+#include <string>
+// #include <sys/wait.h>   was here before the shim
+int main() { return 0; }
+EOF
+
 check "CONTROL __has_include-guarded execinfo + backtrace" quiet_execinfo.cpp  quiet
 check "CONTROL _WIN32/#else setenv shim"                   quiet_setenv.h      quiet
 check "CONTROL whole-file _WIN32 SKIP envelope"            quiet_syswait.cpp   quiet
 check "CONTROL temp_directory_path + /tmp in a comment"    quiet_tmp_path.cpp  quiet
 check "CONTROL portable code, member named pipe()"         quiet_portable.cpp  quiet
+check "CONTROL all three constructs, commented out"        quiet_commented.cpp quiet
 
 echo
 if [ "$failures" -eq 0 ]; then
-    echo "POSIX portability gate: 9/9 cases behaved (fires on all four root causes, quiet on all four fixes)"
+    echo "POSIX portability gate: 10/10 cases behaved (fires on all four root causes, quiet on every guard and on dead text)"
     exit 0
 fi
 echo "POSIX portability gate: $failures case(s) wrong"

@@ -96,21 +96,27 @@ SYMBOL_RE = re.compile(
 # --------------------------------------------------------------------------
 
 def split_line(line: str, in_block_comment: bool):
-    """Return (code, literals, still_in_block_comment).
+    """Return (code, uncommented, literals, still_in_block_comment).
 
     `code` has every string/char literal replaced by spaces and every
-    comment removed, so a symbol match in it is a real call. `literals`
-    is the list of string-literal contents, which is where a "/tmp" path
-    can hide. Raw strings and escapes are handled; trigraphs are not,
-    and nothing in this tree uses them.
+    comment removed, so a symbol match in it is a real call.
+    `uncommented` drops only the comments and keeps the literals, which
+    is what an `#include "x.h"` line needs to survive. `literals` is the
+    list of string-literal contents, which is where a "/tmp" path can
+    hide.
+
+    Escapes are handled. Raw string literals (`R"(...)"`) are NOT: one
+    is read as an ordinary literal ending at the next quote. Nothing in
+    the core profile uses one, and the failure mode is a missed finding
+    rather than a false one. Trigraphs are not handled either.
     """
-    code, literals = [], []
+    code, uncommented, literals = [], [], []
     i, n = 0, len(line)
     while i < n:
         if in_block_comment:
             end = line.find("*/", i)
             if end < 0:
-                return "".join(code), literals, True
+                return "".join(code), "".join(uncommented), literals, True
             i = end + 2
             in_block_comment = False
             continue
@@ -137,12 +143,15 @@ def split_line(line: str, in_block_comment: bool):
                 j += 1
             if quote == '"':
                 literals.append("".join(buf))
-            code.append(" " * (min(j, n - 1) - i + 1))
+            end = min(j, n - 1)
+            code.append(" " * (end - i + 1))
+            uncommented.append(line[i:end + 1])
             i = j + 1
             continue
         code.append(c)
+        uncommented.append(c)
         i += 1
-    return "".join(code), literals, in_block_comment
+    return "".join(code), "".join(uncommented), literals, in_block_comment
 
 
 # --------------------------------------------------------------------------
@@ -175,7 +184,8 @@ def scan_file(path: Path, text: str):
     in_block_comment = False
 
     for line_no, raw in enumerate(text.splitlines(), 1):
-        code, literals, in_block_comment = split_line(raw, in_block_comment)
+        code, uncommented, literals, in_block_comment = split_line(
+            raw, in_block_comment)
 
         directive = DIRECTIVE_RE.match(code)
         if directive:
@@ -212,7 +222,10 @@ def scan_file(path: Path, text: str):
 
         shielded = any(stack)
 
-        include = INCLUDE_RE.match(code)
+        # Matched on `uncommented`, not `code`: blanking literals eats the
+        # path out of `#include "x.h"`, and a commented-out include must
+        # not report.
+        include = INCLUDE_RE.match(uncommented)
         if include and include.group(1) in POSIX_HEADERS and not shielded:
             yield (line_no, "header", f"<{include.group(1)}>", raw.strip())
             continue
