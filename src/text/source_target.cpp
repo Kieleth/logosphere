@@ -5,8 +5,10 @@
 #include <array>
 #include <charconv>
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 namespace logosphere::text {
 namespace {
@@ -166,6 +168,59 @@ std::string sha256_hex(std::string_view bytes) {
     return out.str();
 }
 
+namespace {
+
+// The digest of a source file, remembered so the same file is not hashed
+// again for the next target that cites it.
+//
+// A verifier resolves one SourceTarget per citation, and every resolution
+// re-hashes the WHOLE file the target cites to prove the declared digest
+// still describes those bytes. Logovger's rule seeds hold 2064 targets over
+// two source files, and test_chargen builds the rule world 49 times: that
+// was 785,489 SHA-256 passes over 44.5 GB, 114 of the test's 263 seconds,
+// to compute two distinct digests.
+//
+// Reuse is safe because it is earned by comparison, not assumed. An entry
+// is used only when the incoming bytes are byte-for-byte the cached ones,
+// which is a memcmp instead of a SHA-256 pass. Nothing is taken on trust:
+// no pointer identity, no length-and-mtime, no digest supplied by a caller.
+// sha256_hex is a pure function, so a hit returns exactly what a fresh pass
+// would have returned.
+//
+// Small and thread-local on purpose. A corpus is a handful of files, so
+// four MRU entries cover it (measured: 1,487 passes instead of 785,489),
+// and per-thread state keeps a const resolver free of shared mutable state.
+std::string memoized_digest(std::string_view bytes) {
+    struct Remembered {
+        std::string bytes;
+        std::string digest;
+    };
+    static thread_local std::vector<Remembered> remembered;
+    constexpr std::size_t kCapacity = 4;
+
+    for (std::size_t i = 0; i < remembered.size(); ++i) {
+        if (remembered[i].bytes.size() != bytes.size()) continue;
+        // Empty bytes compare equal on the size alone. memcmp is skipped
+        // rather than called with a length of zero: a string_view over
+        // nothing may carry a null data pointer, and passing it is
+        // undefined even when nothing would be read.
+        if (!bytes.empty() &&
+            std::memcmp(remembered[i].bytes.data(), bytes.data(),
+                        bytes.size()) != 0)
+            continue;
+        if (i != 0) std::swap(remembered[0], remembered[i]);
+        return remembered[0].digest;
+    }
+
+    std::string digest = sha256_hex(bytes);
+    if (remembered.size() >= kCapacity) remembered.pop_back();
+    remembered.insert(remembered.begin(),
+                      Remembered{std::string(bytes), digest});
+    return digest;
+}
+
+}  // namespace
+
 std::string canonical_byte_range_key(long long start, long long end) {
     return "byte-range:" + std::to_string(start) + ":" +
            std::to_string(end);
@@ -213,7 +268,7 @@ SourceTargetResult resolve_text_target(const kg::KGModule& world,
     const auto digest = world.getProperty(representation, "source_digest");
     if (!is_lower_hex_digest(digest))
         return fail("source digest must be 64 lowercase hexadecimal digits");
-    if (digest != sha256_hex(source_bytes))
+    if (digest != memoized_digest(source_bytes))
         return fail("source digest does not match the representation bytes");
 
     kg::EntityID selector = kg::INVALID_ENTITY;

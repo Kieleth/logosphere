@@ -139,6 +139,23 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   byte for byte; the only additions are Eden's five.
 
 ### Fixed
+- **Seed verification hashes a source file once, not once per
+  citation.** `resolve_text_target` re-hashed the entire cited file on
+  every `SourceTarget` it resolved, to check the file still matches its
+  declared digest. Logovger's rule seeds carry 2064 targets over two
+  files, so verifying them meant 785,489 SHA-256 passes over 44.5 GB to
+  arrive at two distinct digests: 114 of `test_chargen`'s 264 seconds,
+  and a cost every consumer of the verifier paid in proportion to how
+  much evidence it absorbed. The resolver now remembers the last four
+  (bytes, digest) pairs and reuses one only when the bytes in hand are
+  byte-for-byte the remembered ones, which is a `memcmp` rather than a
+  SHA-256 pass. Nothing is taken on trust: not a pointer, not a length,
+  not a digest handed in by a caller. Measured on one machine, same
+  method both sides: `test_chargen` 262.8 s to 151.2 s with
+  byte-identical output, one `logovger-headless` life 5.33 s to 3.05 s
+  with byte-identical output. 1,487 SHA-256 passes remain where
+  785,489 were.
+
 - **A sphere no longer falls through a rotated box.** The sphere-vs-box
   narrow phase treated every box as axis-aligned, so a sphere released
   onto a tilted ramp fell through the visible face and came to rest
