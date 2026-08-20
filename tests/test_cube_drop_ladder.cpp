@@ -55,7 +55,7 @@ void check(bool ok, const std::string& what) {
 int main() {
     std::printf("\n=== the cube drop ladder: rotation, one mechanism per rung ===\n");
 
-    for (int r = 0; r < 6; ++r) {
+    for (int r = 0; r < RUNG_COUNT; ++r) {
         const RungSpec& spec = RUNGS[r];
         ParticleSystem ps;
         PhysicsSystem physics;
@@ -125,6 +125,34 @@ int main() {
                 check(scene.argus.divergence(scene.cube) < 0.01f,
                       "R1 lever: the righting is COHERENT, one orientation "
                       "through the whole tip (Argus)");
+        } else if (r == 6) {
+            // R7 THE CORNER STAND — G-43's instrument. Full state named:
+            // z must END at a face; spin must PEAK (falling is rotating);
+            // orientation stays coherent; the face-resting twin is the
+            // contrast and stays put. x/y drift waived by name: which
+            // way it falls is chaos's choice and no law constrains it.
+            const int H = scene.hero;
+            std::printf("  [measure] R7 hero: z %.4f (standing %.4f, "
+                        "fallen-face %.4f), peak spin %.4f rad/s\n",
+                        scene.settled_z(ps, H), scene.rest_z,
+                        FLOOR_TOP + HERO * 0.5f, scene.argus.peak_spin(H));
+            static const bool lever7 = std::getenv("CONTACT_TORQUE") != nullptr;
+            if (lever7) {
+                check(scene.settled_z(ps, H) < CORNER_FALLEN_Z_MAX,
+                      "R7 lever: the corner stand FALLS to a face (a cube "
+                      "cannot balance on a corner; G-43 says ours does)");
+                check(scene.argus.peak_spin(H) > CORNER_TOPPLE_SPIN_MIN,
+                      "R7 lever: and it ROTATED on the way down");
+                check(scene.argus.divergence(H) < 0.01f,
+                      "R7 lever: one orientation through the fall (Argus)");
+                const float tdy = scene.displaced_y(ps, scene.twin) - 1.5f;
+                check(std::fabs(tdy) < 0.02f,
+                      "R7 control: the face-resting twin stays put");
+            } else {
+                std::printf("  [waive] R7 default: no contact torque law "
+                            "by default, a corner stand is trivially "
+                            "eternal; the claim is the lever's\n");
+            }
         } else if (r >= 3) {
             // G-41 as a LECTURE (skill standard): the hero performs, the
             // still twin is the on-stage control, and both are asserted.

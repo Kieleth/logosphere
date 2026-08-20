@@ -114,14 +114,14 @@ int main() {
         // never on a timer — the human decides when they have seen
         // enough of a case. Headless keeps the full audited run.
         if (!interactive && rung_frame >= RUN_FRAMES) {
-            rung = (rung + 1) % 6;
+            rung = (rung + 1) % RUNG_COUNT;
             if (rung == 0) break;
             scene.arm(ps, RUNGS[rung], rung);
             rung_frame = 0;
         }
         if (advance_case) {                      // SPACE, edge-triggered
             advance_case = false;
-            rung = (rung + 1) % 6;
+            rung = (rung + 1) % RUNG_COUNT;
             scene.arm(ps, RUNGS[rung], rung);
             rung_frame = 0;
         }

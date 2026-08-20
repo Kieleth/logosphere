@@ -80,7 +80,17 @@ constexpr float DROP_SHORT = 0.05f;   // ~4 frames: drag steals ~26%, not 95%
 // are real (resizing a live body without re-deriving both would be
 // exactly the hack the no-hacks ACK forbids).
 constexpr float HERO       = 0.8f;
-inline const RungSpec RUNGS[6] = {
+// R7, THE CORNER STAND (G-43): the hero is PLACED corner-down, body
+// diagonal vertical, nudged a hair off balance. Physics says a corner
+// is the most unstable pose a cube has: it must fall to a face, and it
+// must ROTATE to get there. G-43's measured attractor says the solver
+// keeps it standing. Born red until the toppling channel exists.
+constexpr float CORNER_NUDGE          = 0.02f;  // rad off the diagonal
+constexpr float CORNER_TOPPLE_SPIN_MIN = 0.5f;  // rad/s: falling IS rotating
+// fallen = resting on a FACE (with slack); standing = half diagonal up
+constexpr float CORNER_FALLEN_Z_MAX   = 0.2f /*FLOOR_TOP*/ + HERO * 0.5f + 0.05f;
+constexpr int   RUNG_COUNT = 7;
+inline const RungSpec RUNGS[RUNG_COUNT] = {
     { "R0 control: flat, no spin",      0.0f, 0.0f, 0.0f, 0.0f,  DROP },
     { "R1 tilted 20 deg, no spin",      TILT_DEG * 3.14159265f/180.f,
                                               0.0f, 0.0f, 0.0f,  DROP },
@@ -91,6 +101,8 @@ inline const RungSpec RUNGS[6] = {
                                         0.0f, SPIN_FAST, 0.0f, 0.0f, DROP_SHORT },
     { "R6 THE WALKING WHEEL: hero spins Y, drives along X, twin still",
                                         0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_SHORT },
+    { "R7 THE CORNER STAND: corner-down, a hair off balance, it MUST fall (G-43)",
+                                        0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
 };
 
 // Resting centre height ABOVE THE SLAB TOP of a cube tilted t about Y
@@ -193,14 +205,27 @@ struct Scene {
         } else {
             park(ps, twin, 33.0f);
         }
+        const bool corner = (rung_index == 6);
         const float half = spin_case ? HERO * 0.5f : CUBE * 0.5f;
-        rest_z = FLOOR_TOP + (spin_case
-                     ? half
-                     : rest_height(r.tilt_rad));
+        rest_z = FLOOR_TOP + (corner
+                     ? HERO * 0.5f * 1.7320508f      // half space diagonal
+                     : (spin_case ? half : rest_height(r.tilt_rad)));
         auto v = ps.lock_particles_for_write();
         Particle& p = v[actor(rung_index)];
         p.x = 0.0f; p.y = 0.0f; p.z = rest_z + r.drop;
         p.vx = p.vy = p.vz = 0.0f;
+        if (corner) {
+            // Body diagonal vertical: rotate (1,1,1) onto +Z so corner
+            // (-h,-h,-h) points down, then a hair of tilt about X so the
+            // balance is broken and physics has no excuse.
+            logosphere::Quat q = logosphere::Quat::from_axis_angle(
+                                     1, 0, 0, CORNER_NUDGE)
+                               * logosphere::Quat::from_two_vectors(
+                                     1, 1, 1, 0, 0, 1);
+            p.rotation_q = q;
+            // One body, one orientation: the Euler ledger follows the quat.
+            q.to_euler_zyx(p.rotation_x, p.rotation_y, p.rotation_z);
+        } else {
         p.rotation_x = p.rotation_z = 0.0f;
         p.rotation_y = r.tilt_rad;
         // One body, one orientation, also on a LIVE write: any writer
@@ -208,6 +233,7 @@ struct Scene {
         // Spawn-time seeding covers newly created bodies; arm() edits an
         // existing one.
         p.rotation_q = logosphere::Quat::from_euler(0.0f, r.tilt_rad, 0.0f);
+        }
         p.omega_x = r.spin_x;
         p.omega_y = r.spin_y;
         p.omega_z = r.spin_z;
@@ -301,8 +327,8 @@ struct Scene {
         return std::sqrt(p.omega_x*p.omega_x + p.omega_y*p.omega_y
                        + p.omega_z*p.omega_z);
     }
-    float settled_z(ParticleSystem& ps) const {
-        return ps.lock_particles_for_read()[cube].z;
+    float settled_z(ParticleSystem& ps, int id = -1) const {
+        return ps.lock_particles_for_read()[id < 0 ? cube : id].z;
     }
 };
 
