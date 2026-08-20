@@ -927,18 +927,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             c.jy = 0.0f;
             c.jz = 1.0f;
 
-            // TURTLE CONTACT TORQUE (G-39 slice C, same CONTACT_TORQUE
-            // lever). A ROTATED box meets the plane at its lowest
-            // support VERTEX, not under its centre; without the lever
-            // arm a tumbling cube leaving a ramp freezes mid-tumble,
-            // balanced on its edge on the turtle for ever (measured:
-            // rot_y 0.8345, z 0.29, omega 0). The support point of an
-            // oriented box against z = 0 is centre minus the signed sum
-            // of half-extent axes — plane geometry, not a gravity
-            // assumption (the plane's normal is +Z by definition,
-            // INV-6). Unrotated boxes keep no lever arm on purpose: a
-            // flat face's point torques cancel by symmetry, and the
-            // no-torque row is exact for them.
+            // TURTLE CONTACT PATCH (G-39 slice C, corrected; same
+            // CONTACT_TORQUE lever). The first version used ONE support
+            // vertex — a step function in orientation. A tumbling cube
+            // landing near-flat struck one invented corner: the lane
+            // trace showed y = -1.200 exact for the entire 135-frame
+            // descent, then -1.20 -> -2.07 beginning at turtle
+            // touchdown, with no lateral force in the scene. The honest
+            // contact of a near-flat landing is a PATCH: every corner
+            // within SUPPORT_PATCH_BAND of the lowest carries a row,
+            // load shared, each with its own lever arm — the same
+            // answer box-box already gives through manifold clipping.
+            // Rows are emitted at the push site below; here the corners
+            // are collected. Unrotated boxes keep the legacy single
+            // row: a flat face's torques cancel by symmetry.
+            int   patch_n = 0;
+            float patch_r[4][3];
+            float patch_pen[4];
             {
                 static const bool contact_torque_on2 =
                     std::getenv("CONTACT_TORQUE") != nullptr;
@@ -947,18 +952,31 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     pi.shape == ParticleShape::BOX &&
                     box_particle_is_rotated(pi)) {
                     const OBB o = obb_of_box_particle(pi, z_predicted[i]);
-                    float sx = 0.0f, sy = 0.0f, sz = 0.0f;
-                    for (int ax = 0; ax < 3; ++ax) {
-                        const float sgn = (o.axis[ax][2] > 0.0f) ? -1.0f : 1.0f;
-                        sx += sgn * o.half[ax] * o.axis[ax][0];
-                        sy += sgn * o.half[ax] * o.axis[ax][1];
-                        sz += sgn * o.half[ax] * o.axis[ax][2];
+                    float cz[8], cx[8], cy[8];
+                    float zmin = 1e30f;
+                    int k = 0;
+                    for (int s0 = -1; s0 <= 1; s0 += 2)
+                    for (int s1 = -1; s1 <= 1; s1 += 2)
+                    for (int s2 = -1; s2 <= 1; s2 += 2) {
+                        cx[k] = s0*o.half[0]*o.axis[0][0] + s1*o.half[1]*o.axis[1][0]
+                              + s2*o.half[2]*o.axis[2][0];
+                        cy[k] = s0*o.half[0]*o.axis[0][1] + s1*o.half[1]*o.axis[1][1]
+                              + s2*o.half[2]*o.axis[2][1];
+                        cz[k] = s0*o.half[0]*o.axis[0][2] + s1*o.half[1]*o.axis[1][2]
+                              + s2*o.half[2]*o.axis[2][2];
+                        if (cz[k] < zmin) zmin = cz[k];
+                        ++k;
                     }
-                    c.apply_anchor_torque = true;
-                    c.anchor_rax = sx;   // support vertex relative to centre
-                    c.anchor_ray = sy;
-                    c.anchor_raz = sz;
-                    c.anchor_rbx = c.anchor_rby = c.anchor_rbz = 0.0f;
+                    for (int q = 0; q < 8 && patch_n < 4; ++q) {
+                        if (cz[q] - zmin <= SUPPORT_PATCH_BAND) {
+                            patch_r[patch_n][0] = cx[q];
+                            patch_r[patch_n][1] = cy[q];
+                            patch_r[patch_n][2] = cz[q];
+                            patch_pen[patch_n] =
+                                TURTLE_Z - (z_predicted[i] + cz[q]);
+                            ++patch_n;
+                        }
+                    }
                 }
             }
 
@@ -983,19 +1001,6 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     continue;   // lenient: drop the row, never invent a mass
                 }
                 c.effective_mass = m_turtle;
-            if (c.apply_anchor_torque) {
-                // INV-20: price the angular response the lever arm adds,
-                // or every turtle impulse over-corrects the spin it now
-                // creates. K = 1/m + |r x z|^2 / I.
-                const float I = pi.GetMomentOfInertia();
-                const float m_i = pi.GetMass();
-                if (I > 0.0f && m_i > 0.0f) {
-                    const float cx = c.anchor_ray * 1.0f;   // r x (0,0,1)
-                    const float cy = -c.anchor_rax * 1.0f;
-                    const float k = 1.0f / m_i + (cx*cx + cy*cy) / I;
-                    if (k > 0.0f) c.effective_mass = 1.0f / k;
-                }
-            }
             }
 
             // Bias for position correction (Baumgarte)
@@ -1022,10 +1027,53 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             c.friction_impulse_t1 = 0.0f;
             c.friction_impulse_t2 = 0.0f;
 
-            PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
-                         (int)c.body_a, (int)c.body_b, "turtle",
-                         c.bias, c.effective_mass, c.jz);
-            constraints.push_back(c);
+            if (patch_n > 0) {
+                // The patch: one row per support corner, load shared,
+                // each priced with its own arm (INV-20). The base row
+                // above carries the shared bias/caps machinery; each
+                // clone re-derives what depends on ITS corner.
+                const float share = 1.0f / (float)patch_n;
+                const float I = pi.GetMomentOfInertia();
+                const float m_i = pi.GetMass();
+                for (int q = 0; q < patch_n; ++q) {
+                    Constraint ck = c;
+                    ck.apply_anchor_torque = true;
+                    ck.anchor_rax = patch_r[q][0];
+                    ck.anchor_ray = patch_r[q][1];
+                    ck.anchor_raz = patch_r[q][2];
+                    ck.anchor_rbx = ck.anchor_rby = ck.anchor_rbz = 0.0f;
+                    const float pen_q = patch_pen[q];
+                    ck.bias = (pen_q > SLOP)
+                        ? std::min(BETA * (pen_q - SLOP) / dt,
+                                   MAX_BIAS_VELOCITY)
+                        : 0.0f;
+                    ck.penetration = pen_q;
+                    float k_row = (m_i > 0.0f) ? 1.0f / m_i : 0.0f;
+                    if (I > 0.0f) {
+                        const float rx = ck.anchor_ray;   // r x (0,0,1)
+                        const float ry = -ck.anchor_rax;
+                        k_row += (rx*rx + ry*ry) / I;
+                    }
+                    ck.effective_mass =
+                        (k_row > 0.0f) ? (1.0f / k_row) * share : 0.0f;
+                    ck.eff_mass_share = share;
+                    {
+                        const float approach = std::fabs(pi.vz);
+                        ck.max_impulse = ck.effective_mass *
+                            (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                    }
+                    PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                                 (int)ck.body_a, (int)ck.body_b,
+                                 "turtle_patch", ck.bias, ck.effective_mass,
+                                 ck.jz);
+                    constraints.push_back(ck);
+                }
+            } else {
+                PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
+                             (int)c.body_a, (int)c.body_b, "turtle",
+                             c.bias, c.effective_mass, c.jz);
+                constraints.push_back(c);
+            }
 
             // Turtle contacts provide equilibrium for BFS distance calculation
             active_contacts_.push_back(std::make_pair(i, i));
@@ -3643,7 +3691,41 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float t1x, t1y, t1z;  // Tangent 1
                 float t2x, t2y, t2z;  // Tangent 2
 
-                if (std::abs(c.jz) > 0.5f) {
+                static const bool contact_torque_basis =
+                    std::getenv("CONTACT_TORQUE") != nullptr;
+                if (contact_torque_basis) {
+                    // THE TANGENTS LIVE IN THE CONTACT PLANE (G-40, same
+                    // CONTACT_TORQUE lever). The axis-dominant picks below
+                    // leave t1 with a sin(40) = 0.64 component ALONG a
+                    // 40-degree ramp's normal: two thirds of a unit of
+                    // every t1 impulse acted off-plane, a normal impulse
+                    // in disguise, bypassing the unilateral clamp and the
+                    // mu cap. Harmless-looking without torque; with it,
+                    // r x t1 of an off-plane tangent has components no
+                    // symmetry cancels, and the tumbling ramp cube walked
+                    // out of its lane (y -1.20 -> -2.05, no lateral force
+                    // in the scene) — which is how study question 6.4
+                    // answered itself. Basis: the world axis LEAST aligned
+                    // with the normal (deterministic tie-break, and
+                    // least-aligned means no world-up preference, INV-6),
+                    // then t1 = normalize(a x n), t2 = n x t1. For the
+                    // ramp this yields t1 exactly downhill, t2 exactly
+                    // lateral.
+                    const float ax_ = std::abs(c.jx), ay_ = std::abs(c.jy),
+                                az_ = std::abs(c.jz);
+                    float rx = 0.0f, ry = 0.0f, rz = 0.0f;
+                    if (ax_ <= ay_ && ax_ <= az_)      rx = 1.0f;
+                    else if (ay_ <= az_)               ry = 1.0f;
+                    else                               rz = 1.0f;
+                    t1x = ry * c.jz - rz * c.jy;
+                    t1y = rz * c.jx - rx * c.jz;
+                    t1z = rx * c.jy - ry * c.jx;
+                    const float len = std::sqrt(t1x*t1x + t1y*t1y + t1z*t1z);
+                    t1x /= len; t1y /= len; t1z /= len;   // |a x n| > 0 by choice of a
+                    t2x = c.jy * t1z - c.jz * t1y;
+                    t2y = c.jz * t1x - c.jx * t1z;
+                    t2z = c.jx * t1y - c.jy * t1x;
+                } else if (std::abs(c.jz) > 0.5f) {
                     // Normal is mostly Z, tangents are X and Y
                     t1x = 1.0f; t1y = 0.0f; t1z = 0.0f;
                     t2x = 0.0f; t2y = 1.0f; t2z = 0.0f;

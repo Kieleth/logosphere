@@ -182,6 +182,17 @@ constexpr float    BOX_ROTATION_EPS = 1e-4f;   // unit: rad
 // admits ~3 mrad and under as unrotated.
 constexpr float    QUAT_UNROTATED_EPS = 1e-6f;   // unit: 1
 
+// Corners of a rotated box within this height of its lowest corner
+// form the turtle CONTACT PATCH: one row per corner, load shared, each
+// with its own lever arm. A single support vertex was a step function
+// in orientation — a tumbling cube landing near-flat struck one
+// invented corner and walked out of its lane (measured: y -1.20 to
+// -2.07 with no lateral force; the drift began exactly at turtle
+// touchdown, frame 135-150 of the ramp race, lane perfect for the
+// whole descent before it). The patch is the same answer box-box
+// already gives through manifold clipping.
+constexpr float    SUPPORT_PATCH_BAND = 0.005f;   // unit: m
+
 // Face manifolds (up to 4 points, stable frame to frame) are
 // preferred; an edge axis wins only when clearly smaller by this
 // margin (1 mm, the SLOP scale) — sign-safe, unlike a relative factor,

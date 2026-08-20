@@ -93,7 +93,20 @@ int main() {
 
     Scene scene;
     scene.build(ps);
-    for (int f = 0; f < RUN_FRAMES; ++f) scene.step(ps, physics, f);
+    // ARGUS_TRACE=1: narrate the cube's lane per 15 frames, so a lateral
+    // drift names the PHASE it starts in (on-ramp box-box vs turtle).
+    static const bool lane_trace = std::getenv("ARGUS_TRACE") != nullptr;
+    for (int f = 0; f < RUN_FRAMES; ++f) {
+        scene.step(ps, physics, f);
+        if (lane_trace && f % 15 == 0) {
+            auto v = ps.lock_particles_for_read();
+            const Particle& cb = v[scene.cube];
+            std::printf("  [trace f%3d] cube x %+7.3f  y %+7.3f  z %6.3f  "
+                        "omega(%+6.2f,%+6.2f,%+6.2f)\n",
+                        f, cb.x, cb.y, cb.z,
+                        cb.omega_x, cb.omega_y, cb.omega_z);
+        }
+    }
 
     const float cube_d = scene.cube_travel(ps);
     const float ball_d = scene.ball_travel(ps);

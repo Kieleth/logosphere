@@ -279,6 +279,35 @@ torques cancel by symmetry.
 - Ceilings: true rolling wants omega = v/r ~ 29 rad/s; MAX_OMEGA caps
   at 6.28 and ANGULAR_DRAG (D7) fights every spin. Both boarded already.
 
+## D2 1.2 SLICE D LANDED (2026-08-19): in-plane friction basis + turtle contact patch
+
+Same lever, default bit-identical (audited reds hold, harness 27/27).
+
+**The basis (G-40)**: tangents derive from the contact — least-aligned
+world axis, t1 = normalize(a x n), t2 = n x t1 — so on the ramp t1 is
+exactly downhill and t2 exactly lateral, where the old axis-pick put
+sin40 = 0.64 of t1 ALONG the normal, a normal impulse in disguise.
+
+**The patch**: the single turtle support vertex was a step function in
+orientation, and the lane trace convicted it precisely — y = -1.200
+EXACT for the entire 135-frame descent, then the walk begins at
+touchdown. Every corner within SUPPORT_PATCH_BAND (5 mm, schema) of the
+lowest now carries a row, load shared, priced per corner (INV-20), the
+same answer box-box gives through clipping. Lane kick cut 3.4x:
+worst deviation 0.877 -> 0.261 m.
+
+**The two mechanisms left, named by the trace, neither guessed:**
+- **Seed asymmetry**: omega_x = +-0.08 appears at the FIRST slab strike
+  (f15), before anything lateral exists — sequential per-point
+  Gauss-Seidel order inside one manifold. The charted remedy is the
+  block/manifold-simultaneous solve (`feat/joint-block-solver` prior
+  art, stalls -96%); a per-manifold two-pass symmetrisation is the
+  cheaper sibling. Needs its own slice.
+- **The 45-degree parking**: the tumbling cube ends BALANCED AT EXACTLY
+  45 deg (z = 0.346 = 0.2(cos45+sin45)), the unstable equilibrium,
+  because ANGULAR_DRAG (D7) eats the angular momentum that would carry
+  it past the balance point. The basics keep pointing at D7, again.
+
 ## D2's measurement ladder: the cube drop (2026-08-19)
 
 Owner method: divide and conquer, G's first, asserts from the G's, then

@@ -1075,6 +1075,21 @@ classes:
         description: >-
           Quaternion twin: 1 - |w| threshold. 1 - |w| ~ theta^2/8, so
           1e-6 admits ~3 mrad and under as unrotated.
+      SUPPORT_PATCH_BAND:
+        range: float
+        ifabsent: float(0.005)
+        unit: { ucum_code: m }
+        description: >-
+          Corners of a rotated box within this height of its lowest
+          corner form the turtle CONTACT PATCH: one row per corner,
+          load shared, each with its own lever arm. A single support
+          vertex was a step function in orientation — a tumbling cube
+          landing near-flat struck one invented corner and walked out
+          of its lane (measured: y -1.20 to -2.07 with no lateral
+          force; the drift began exactly at turtle touchdown, frame
+          135-150 of the ramp race, lane perfect for the whole descent
+          before it). The patch is the same answer box-box already
+          gives through manifold clipping.
       EDGE_TOL:
         range: float
         ifabsent: float(0.001)
