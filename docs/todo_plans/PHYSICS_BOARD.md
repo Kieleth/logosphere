@@ -439,6 +439,28 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## F7 + F8 — what the TRUE sweep found under D7 (2026-08-20)
+
+The first fresh-binary sweep of the week (the stale-gate finding,
+ledgered) returned new-red 4. Triage: one stale-law test asserting the
+pre-flip world (quat_euler_sync, rewrite owed), one phantom (async prep
+passes alone, fails under sweep load, the run-ALONE class), and two
+REAL:
+
+- **F7: the gluon PD drives no longer converge**
+  (`test_gluon_angular_drive_converges`: final rel rotation off >5%,
+  hold-phase oscillation >10%). The drives were leaning on
+  ANGULAR_DRAG as free world-damping; the derived law is honest and
+  tiny at bone scale, exposing an under-damped controller. The fix is
+  the controller's own damping term doing its job — same doctrine as
+  the look-at shadow: control-loop damping belongs to the control
+  loop, never to the world's air.
+- **F8: the grass trophy is red again** (`test_grass_yields`). Blade
+  dynamics shifted under the derived drag — light, large-area bodies
+  are where the new law differs most from the dead constant, in either
+  direction. RCA owed before any touch; the trophy is not re-won by
+  tuning.
+
 ## D9 grows: the owner's materials orders (2026-08-20, post-QA)
 
 Ordered after QA'ing the torque slices, folded here as D9's first
