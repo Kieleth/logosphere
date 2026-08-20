@@ -73,7 +73,7 @@ int main() {
     Scene scene;
     scene.build(ps);
     if (interactive) scene.add_backdrop(ps);   // height ruler, never contacted
-    scene.arm(ps, RUNGS[0]);
+    scene.arm(ps, RUNGS[0], 0);
     // FIXED camera at the action column. The first version FOLLOWED the
     // cube, which put it dead-centre every frame: a falling body whose
     // camera falls with it does not appear to move ("I see a cube static
@@ -116,21 +116,28 @@ int main() {
         if (!interactive && rung_frame >= RUN_FRAMES) {
             rung = (rung + 1) % 6;
             if (rung == 0) break;
-            scene.arm(ps, RUNGS[rung]);
+            scene.arm(ps, RUNGS[rung], rung);
             rung_frame = 0;
         }
         if (advance_case) {                      // SPACE, edge-triggered
             advance_case = false;
             rung = (rung + 1) % 6;
-            scene.arm(ps, RUNGS[rung]);
+            scene.arm(ps, RUNGS[rung], rung);
             rung_frame = 0;
         }
         scene.step(ps, physics, rung_frame, RUNGS[rung].spin_z);
 
+        const int actor = scene.actor(rung);
         float x, y, z, oy, oz, ry;
         {   auto v = ps.lock_particles_for_read();
-            const Particle& p = v[scene.cube];
+            const Particle& p = v[actor];
             x=p.x; y=p.y; z=p.z; oy=p.omega_y; oz=p.omega_z; ry=p.rotation_y; }
+        // Spin lectures: wider stage so hero AND twin are both in frame.
+        {   const float want = (rung >= 3) ? 120.0f : 160.0f;
+            if (ppu > want + 1.0f || ppu < want - 1.0f) {
+                ppu = want; cam.set_pixels_per_unit(ppu);
+            }
+        }
         (void)x; (void)y;   // camera and lamps are fixed; the cube moves
 
         std::snprintf(buf, sizeof(buf),

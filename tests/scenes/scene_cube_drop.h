@@ -70,18 +70,26 @@ struct RungSpec {
     float drop;          // per-rung: spin rungs use a SHORT flight so the
                          // spin survives ANGULAR_DRAG to touchdown (G-41)
 };
-constexpr float SPIN_FAST  = 5.0f;    // rad/s, under MAX_OMEGA 6.28
+constexpr float SPIN_FAST  = 6.0f;    // rad/s, just under MAX_OMEGA 6.28
 constexpr float DROP_SHORT = 0.05f;   // ~4 frames: drag steals ~26%, not 95%
+// THE LECTURE STANDARD (skill, 2026-08-20): the spin cases run on a
+// HERO cube, 0.8 m — twice the extent, double the contact radius, so
+// the same honest physics buys visibly more travel (omega x r budget
+// 2.4 m/s at 6 rad/s) — with a STILL TWIN beside it as the on-stage
+// contrast. Both pre-spawned at their own sizes so mass and inertia
+// are real (resizing a live body without re-deriving both would be
+// exactly the hack the no-hacks ACK forbids).
+constexpr float HERO       = 0.8f;
 inline const RungSpec RUNGS[6] = {
     { "R0 control: flat, no spin",      0.0f, 0.0f, 0.0f, 0.0f,  DROP },
     { "R1 tilted 20 deg, no spin",      TILT_DEG * 3.14159265f/180.f,
                                               0.0f, 0.0f, 0.0f,  DROP },
     { "R2/R3 flat, spinning 3 rad/s",   0.0f, 0.0f, 0.0f, SPIN0, DROP },
-    { "R4 fast top: spin Z 5 rad/s, short drop (G-41)",
+    { "R4 THE BIG TOP: hero spins Z at 6, twin still (G-41)",
                                         0.0f, 0.0f, 0.0f, SPIN_FAST, DROP_SHORT },
-    { "R5 wheel X: spin X 5 rad/s, short drop (G-41)",
+    { "R5 THE WALKING WHEEL: hero spins X, drives along Y, twin still",
                                         0.0f, SPIN_FAST, 0.0f, 0.0f, DROP_SHORT },
-    { "R6 wheel Y: spin Y 5 rad/s, short drop (G-41)",
+    { "R6 THE WALKING WHEEL: hero spins Y, drives along X, twin still",
                                         0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_SHORT },
 };
 
@@ -94,6 +102,7 @@ inline float rest_height(float t) {
 struct Scene {
     logosphere::Argus argus;   // the witness: same values asserted and logged
     int cube = -1;
+    int hero = -1, twin = -1;   // the 0.8 m pair for the spin lectures
     // latched by step():
     float peak_omega_y = 0.0f;        // did it rotate while settling?
     float min_frame_keep = 1.0f;      // worst per-frame spin retention in flight
@@ -129,14 +138,67 @@ struct Scene {
         p.z = 5.0f;   // parked; arm() places it
         cube = ps.queue_particle_addition(p);
         ps.flush_pending_particles();
+        // The hero pair, spawned at their true size so mass and inertia
+        // are derived honestly. Parked far on the slab until their cases.
+        Particle h = p;
+        h.width = h.height = h.thickness = HERO;
+        h.size = HERO;
+        h.x = 30.0f; h.z = FLOOR_TOP + HERO * 0.5f;
+        hero = ps.queue_particle_addition(h);
+        ps.flush_pending_particles();
+        h.x = 33.0f;
+        h.r = 0.35f; h.g = 0.75f; h.b = 0.95f;   // twin in blue
+        twin = ps.queue_particle_addition(h);
+        ps.flush_pending_particles();
         argus.watch(cube, "cube");
         argus.watch(slab, "slab");
+        argus.watch(hero, "hero");
+        argus.watch(twin, "twin");
     }
 
-    void arm(ParticleSystem& ps, const RungSpec& r) {
-        rest_z = FLOOR_TOP + rest_height(r.tilt_rad);
+    // Which body a rung performs on.
+    int actor(int r) const { return r >= 3 ? hero : cube; }
+
+    void park(ParticleSystem& ps, int id, float x) {
         auto v = ps.lock_particles_for_write();
-        Particle& p = v[cube];
+        Particle& p = v[id];
+        const float half = p.thickness * 0.5f;
+        p.x = x; p.y = 0.0f; p.z = FLOOR_TOP + half;
+        p.vx = p.vy = p.vz = 0.0f;
+        p.omega_x = p.omega_y = p.omega_z = 0.0f;
+        p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
+        p.rotation_q = logosphere::Quat::identity();
+        p.is_at_rest = true;
+    }
+
+    void arm(ParticleSystem& ps, const RungSpec& r, int rung_index = 0) {
+        const bool spin_case = rung_index >= 3;
+        // Stage the non-performers out of the experiment.
+        park(ps, spin_case ? cube : hero, 30.0f);
+        if (spin_case) {
+            // The still twin: same size, same floor, no spin — the
+            // on-stage contrast the lecture standard demands. Placed
+            // clear of the drive axis (R5 drives Y, R6 drives X).
+            const float tx = (r.spin_x != 0.0f) ? 1.5f : 0.0f;
+            const float ty = (r.spin_x != 0.0f) ? 0.0f : 1.5f;
+            auto v2 = ps.lock_particles_for_write();
+            Particle& t = v2[twin];
+            t.x = tx; t.y = ty;
+            t.z = FLOOR_TOP + HERO * 0.5f + r.drop;
+            t.vx = t.vy = t.vz = 0.0f;
+            t.omega_x = t.omega_y = t.omega_z = 0.0f;
+            t.rotation_x = t.rotation_y = t.rotation_z = 0.0f;
+            t.rotation_q = logosphere::Quat::identity();
+            t.is_at_rest = false;
+        } else {
+            park(ps, twin, 33.0f);
+        }
+        const float half = spin_case ? HERO * 0.5f : CUBE * 0.5f;
+        rest_z = FLOOR_TOP + (spin_case
+                     ? half
+                     : rest_height(r.tilt_rad));
+        auto v = ps.lock_particles_for_write();
+        Particle& p = v[actor(rung_index)];
         p.x = 0.0f; p.y = 0.0f; p.z = rest_z + r.drop;
         p.vx = p.vy = p.vz = 0.0f;
         p.rotation_x = p.rotation_z = 0.0f;
@@ -206,17 +268,19 @@ struct Scene {
         }
     }
 
-    float displaced_x(ParticleSystem& ps) const {
-        return ps.lock_particles_for_read()[cube].x;   // armed at x = 0
+    float displaced_x(ParticleSystem& ps, int id = -1) const {
+        return ps.lock_particles_for_read()[id < 0 ? cube : id].x;
     }
-    float displaced_y(ParticleSystem& ps) const {
-        return ps.lock_particles_for_read()[cube].y;   // armed at y = 0
+    float displaced_y(ParticleSystem& ps, int id = -1) const {
+        return ps.lock_particles_for_read()[id < 0 ? cube : id].y;
     }
     float settled_rot_y(ParticleSystem& ps) const {
         return std::fabs(ps.lock_particles_for_read()[cube].rotation_y);
     }
-    float settled_spin(ParticleSystem& ps) const {
-        return std::fabs(ps.lock_particles_for_read()[cube].omega_z);
+    float settled_spin(ParticleSystem& ps, int id = -1) const {
+        const Particle& p = ps.lock_particles_for_read()[id < 0 ? cube : id];
+        return std::sqrt(p.omega_x*p.omega_x + p.omega_y*p.omega_y
+                       + p.omega_z*p.omega_z);
     }
     float settled_z(ParticleSystem& ps) const {
         return ps.lock_particles_for_read()[cube].z;
