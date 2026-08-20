@@ -8,6 +8,33 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **The three advisory CI lanes come off pull requests.** A pull
+  request ran seven jobs and two of them gated the merge, so the
+  required gate finished in 26.5 minutes while contributors waited on
+  lanes that block nothing: `headless-windows` (25 to 28 minutes),
+  `sanitizers-linux` (17 to 26) and `full-macos` (10 to 13). All three
+  still run on every push to `main`, where a finding lands on the
+  commit that caused it within minutes of the squash, and
+  `headless-windows` also runs nightly. Nothing is dropped and nothing
+  is suppressed: what changed is when the three report. A pull request
+  now runs `merge-policy`, `ontology-generation`, `physics-linux` and
+  `headless-linux`.
+- **A static POSIX-portability gate runs on every pull request.**
+  `headless-windows` found six root causes in ten days and four of them
+  were constructs MSVC does not ship, visible in the source with no
+  compiler involved: `<execinfo.h>`, `setenv`/`unsetenv`,
+  `<sys/wait.h>` with `fork()`, and a hardcoded `/tmp` path in a test.
+  `scripts/check-posix-portability.py` reads the translation units the
+  `core` profile configures out of `compile_commands.json`, walks every
+  in-repo header they reach (374 files today) and reports only
+  UNGUARDED uses — `__has_include` and the POSIX side of a `_WIN32`
+  conditional are the fixes, not findings. It runs in the
+  `merge-policy` job in about a second. It replaces nothing: the other
+  two root causes were real behaviour differences and no static check
+  can see those, which is why the Windows lane is kept rather than
+  dropped. `scripts/test-posix-portability.sh` proves the gate in both
+  directions on nine planted cases, four that must fire and five that
+  must stay quiet.
 - **A body has one orientation.** The engine kept every body's
   orientation twice, as an Euler triple (read by rendering and
   collision) and a quaternion (written by spin integration), with no

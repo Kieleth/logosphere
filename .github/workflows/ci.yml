@@ -3,10 +3,31 @@ name: CI
 # Pull requests are the gate, so the matrix runs on the PR ref. Pushes are
 # only watched on main, which keeps the release branch guarded without
 # firing a second identical matrix for every branch push behind a PR.
+#
+# NOT EVERY JOB RUNS ON EVERY EVENT, and the split is measured rather than
+# felt. Seven jobs used to run on every pull request and two of them gate a
+# merge. The required gate took 26.5 minutes and the three advisory lanes
+# were the reason:
+#
+#   headless-windows   25-28 min   advisory
+#   sanitizers-linux   17-26 min   advisory
+#   full-macos         10-13 min   advisory
+#
+# They now run on main and on a nightly, where a finding is exactly as loud
+# and blocks nobody's merge. Each job carries the `if:` that says so, next
+# to the reason.
 on:
   push:
     branches: [main]
   pull_request:
+  # Nightly, for headless-windows specifically. It has the strongest
+  # measured case for existing and the weakest case for standing in front
+  # of a merge: in a ten-day window it went red 67 times across six
+  # distinct root causes, and on 51 of the 53 test-class failures
+  # headless-linux was GREEN on the same commit. It sees what nothing else
+  # sees. It does not need to see it before a merge.
+  schedule:
+    - cron: '17 4 * * *'
 
 # One live run per PR (or per main push). A force-push supersedes its own
 # earlier run instead of leaving it to burn a runner to completion. main is
@@ -28,6 +49,8 @@ jobs:
   # notices.
   # ---------------------------------------------------------------------------
   merge-policy:
+    # Everything except the nightly, which exists for headless-windows.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +72,7 @@ jobs:
           test -x scripts/test-pre-push-hook.sh
           test -x scripts/check-signoff.sh
           test -x scripts/test-signoff-on-main.sh
+          test -x scripts/test-posix-portability.sh
           # And it refuses. An unconditional hook that returns 0 is a decoration.
           if .githooks/pre-rebase origin/main test-branch >/dev/null 2>&1; then
             echo "pre-rebase exited 0. It must refuse unconditionally."
@@ -88,11 +112,48 @@ jobs:
             "origin/${{ github.base_ref }}" \
             "${{ github.event.pull_request.head.sha }}"
 
+      # ---------------------------------------------------------------------
+      # The half of headless-windows that does not need Windows.
+      #
+      # That lane came off pull requests because it costs 25 to 28 minutes
+      # (see the `on:` block). Four of the six root causes it found in ten
+      # days were not behaviour differences at all — they were constructs
+      # MSVC does not ship, sitting in the source: <execinfo.h>,
+      # setenv/unsetenv, <sys/wait.h> with fork(), and a literal "/tmp"
+      # path in a test. Each took a full Windows run to surface and a
+      # second to see once seen.
+      #
+      # This is that second, on every pull request. It scans exactly the
+      # translation units the `core` profile configures plus every in-repo
+      # header they reach, taken from compile_commands.json so it cannot go
+      # stale, and it reports only UNGUARDED uses: __has_include and the
+      # POSIX side of a _WIN32 conditional are the fixes, not findings.
+      #
+      # It is not a replacement. The other two root causes were real
+      # behaviour differences (a destroyed small string MSVC zeroes and
+      # libc++ does not, and a timeout) and no static check can see those.
+      # ---------------------------------------------------------------------
+      - name: The POSIX-portability gate is not vacuous
+        run: ./scripts/test-posix-portability.sh
+
+      - name: Core-profile sources carry no unguarded POSIX-only construct
+        run: |
+          set -e
+          command -v cmake >/dev/null || {
+            sudo apt-get update && sudo apt-get install -y cmake g++
+          }
+          cmake -S . -B build-portability \
+            -DLOGOSPHERE_PROFILE=core \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null
+          python3 scripts/check-posix-portability.py \
+            --compile-commands build-portability/compile_commands.json
+
   # ---------------------------------------------------------------------------
   # Ontology generation: schema import safety, vendored generator integrity,
   # and committed-output drift. Uses the same pinned environment developers use.
   # ---------------------------------------------------------------------------
   ontology-generation:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -153,6 +214,7 @@ jobs:
   # correctness, previously guarded only by manual macOS runs.
   # ---------------------------------------------------------------------------
   physics-linux:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -210,6 +272,7 @@ jobs:
   # Linux: all CTest-registered headless tests. This is the gating CI for PRs.
   # ---------------------------------------------------------------------------
   headless-linux:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -355,6 +418,12 @@ jobs:
   # would have let #132 through exactly as every other lane did.
   # ---------------------------------------------------------------------------
   sanitizers-linux:
+    # PUSHES TO MAIN ONLY. Measured 17 to 26 minutes, and it is already
+    # advisory: a lane that blocks nothing has no argument for standing in
+    # front of a merge. The finding still lands within minutes of the
+    # squash, on the commit that caused it, which is what "loud" needed to
+    # mean and did not.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
       # A stack trace with a line number, or the report is a puzzle.
@@ -459,7 +528,10 @@ jobs:
   # repositories; advisory (not merge-blocking) while runtimes settle.
   # ---------------------------------------------------------------------------
   full-macos:
-    if: true
+    # PUSHES TO MAIN ONLY. 10 to 13 minutes, advisory, and expected red
+    # (see the engine-tests step below): it cannot gate anything today, so
+    # every minute it spent on a pull request was pure delay.
+    if: github.event_name == 'push'
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -519,6 +591,17 @@ jobs:
   # until it has a green track record.
   # ---------------------------------------------------------------------------
   headless-windows:
+    # PUSHES TO MAIN AND THE NIGHTLY. The slowest lane in the file at 25
+    # to 28 minutes and the single largest term in a 26.5 minute required
+    # gate. Kept rather than dropped, and the evidence is in the `on:`
+    # block: 67 reds in ten days across six root causes, with
+    # headless-linux green on the same commit 51 times out of 53. What
+    # changes is only WHEN it reports.
+    #
+    # Four of those six root causes were POSIX constructs MSVC does not
+    # have, and those are now caught on every pull request by the static
+    # check in merge-policy, in under a second, without a Windows runner.
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
