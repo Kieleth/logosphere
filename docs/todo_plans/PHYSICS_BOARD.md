@@ -287,6 +287,29 @@ zero cost unwatched. Both skills now carry the full-state-narration /
 assert-or-waive directive, with the cube-drop ladder as the pattern.
 The witness does not perturb: every audited ladder number unchanged.
 
+**Rollout, 2026-08-19.** Ten physics tests re-run one at a time and
+audited against the narration discipline; every verdict matched
+TEST_AUDIT and none moved. Asserts went from 41 to 122. Argus is wired
+into eight of them (n/a by judgement in `test_collision_bounds_rotation`,
+which has no ParticleSystem and no time). Two defects the new eyes
+caught, both now fixed in the tests: `test_humanoid_knockback` called a
+run-wide velocity minimum a strike (a boulder braked by the turtle
+downrange reads identically), and `test_refused_momentum_ledger` summed
+its off-axis ledger columns and dropped them — the Z column holds
+-132.449 kg*m/s of real friction refusal, 99% of the striker's own
+vertical momentum deficit, which is the F1 RCA's second door proved to
+book in the right direction. Two NEW fronts, measured and recorded in
+the audit gaps rather than asserted: `test_pin_gluon_lifecycle`'s anchor
+sits exactly one foot width (0.1000 m) to the side of the foot it pins,
+because the plant target carries no body-lateral term; and
+`test_ramp_race`'s sphere now has its own D2 1.2 assert (peak |omega|
+exactly 0.0000 over 240 frames on a 40 degree slope, which a sphere
+cannot do — friction acts a full radius from its centre). Argus wishlist
+from the rollout: no history query beyond `latest`/`previous` (every
+test latches its own minima), no min-separation or closest-approach
+query, and `dump()` prints `rotY` only, so a body spinning about Z
+narrates as motionless.
+
 ## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
 
 The owner, watching the ramp: *"sphere and cube arrive at the same time,
