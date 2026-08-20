@@ -152,6 +152,69 @@ public:
         return 2.0f * std::acos(w);
     }
 
+    // ---- the live narration (owner order, 2026-08-20) ----------------
+    // "a higher-level Argus in the tests themselves showing the logs so I
+    // can see and track what's going on." One compact line per body, and
+    // milestone detection so the log names the ARC: touchdown, spin
+    // death, motion stop. The test calls narrate() every N frames; the
+    // milestones print themselves the frame they happen.
+    void narrate(std::ostream& os, int id) const {
+        const State* s = latest(id);
+        auto it = eyes_.find(id);
+        if (!s || it == eyes_.end()) return;
+        char line[192];
+        std::snprintf(line, sizeof(line),
+            "  [argus f%-4d %-10s] pos(%+7.3f,%+7.3f,%6.3f) "
+            "|v| %6.3f  |omega| %6.3f  rotY %+7.4f\n",
+            s->frame, it->second.label.c_str(), s->x, s->y, s->z,
+            std::sqrt(s->vx*s->vx + s->vy*s->vy + s->vz*s->vz),
+            std::sqrt(s->ox*s->ox + s->oy*s->oy + s->oz*s->oz), s->ry);
+        os << line;
+    }
+    // Milestones since the previous call for this body; prints any that
+    // fired. rest_z: the height at which touchdown is declared.
+    void milestones(std::ostream& os, int id, float rest_z) {
+        const State* s = latest(id);
+        auto it = eyes_.find(id);
+        if (!s || it == eyes_.end()) return;
+        Eye& e = it->second;
+        const float spin = std::sqrt(s->ox*s->ox + s->oy*s->oy + s->oz*s->oz);
+        const float speed = std::sqrt(s->vx*s->vx + s->vy*s->vy + s->vz*s->vz);
+        char line[160];
+        if (!e.ms_touch && s->z <= rest_z + 0.005f) {
+            e.ms_touch = true;
+            std::snprintf(line, sizeof(line),
+                "  [argus === f%-4d %s TOUCHDOWN, |omega| %.3f of %.3f armed "
+                "(flight kept %.0f%%) ===]\n",
+                s->frame, e.label.c_str(), spin, e.peak_spin,
+                e.peak_spin > 0 ? 100.0f * spin / e.peak_spin : 0.0f);
+            os << line;
+        }
+        if (!e.ms_spin_dead && e.peak_spin > 0.5f && spin < 0.1f) {
+            e.ms_spin_dead = true;
+            std::snprintf(line, sizeof(line),
+                "  [argus === f%-4d %s SPIN DEAD ===]\n", s->frame,
+                e.label.c_str());
+            os << line;
+        }
+        if (!e.ms_stopped && e.peak_speed > 0.1f && speed < 0.01f &&
+            e.ms_touch) {
+            e.ms_stopped = true;
+            std::snprintf(line, sizeof(line),
+                "  [argus === f%-4d %s MOTION STOPPED at (%.4f, %.4f): the "
+                "experiment is OVER here ===]\n",
+                s->frame, e.label.c_str(), s->x, s->y);
+            os << line;
+        }
+    }
+    void reset_milestones(int id) {
+        auto it = eyes_.find(id);
+        if (it == eyes_.end()) return;
+        it->second.ms_touch = it->second.ms_spin_dead =
+            it->second.ms_stopped = false;
+        it->second.peak_spin = it->second.peak_speed = 0.0f;
+    }
+
     // ---- the narration ------------------------------------------------
     void dump(std::ostream& os, int last_n = 10) const {
         os << "[ARGUS] watching " << eyes_.size() << " particle(s)\n";
@@ -180,6 +243,7 @@ private:
         size_t head = 0;
         float peak_spin = 0.0f;
         float peak_speed = 0.0f;
+        bool ms_touch = false, ms_spin_dead = false, ms_stopped = false;
     };
     static float div_of(const State& s) {
         Quat qe = Quat::from_euler(s.rx, s.ry, s.rz);

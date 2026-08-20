@@ -39,6 +39,7 @@
 #include "scenes/scene_cube_drop.h"
 
 #include <cstdio>
+#include <iostream>
 #include <string>
 
 using namespace scene_cube_drop;
@@ -62,8 +63,18 @@ int main() {
         Scene scene;
         scene.build(ps);
         scene.arm(ps, spec, r);
-        for (int f = 0; f < RUN_FRAMES; ++f)
+        scene.argus.reset_milestones(scene.actor(r));
+        const int A = scene.actor(r);
+        for (int f = 0; f < RUN_FRAMES; ++f) {
             scene.step(ps, physics, f, spec.spin_z);
+            if (r >= 3) {
+                // The experiment NARRATES itself (owner order): the story
+                // in the log, milestones the frame they happen, so dead
+                // air is visible as dead air.
+                if (f % 10 == 0) scene.argus.narrate(std::cout, A);
+                scene.argus.milestones(std::cout, A, scene.rest_z);
+            }
+        }
 
         std::printf("\n-- %s --\n", spec.name);
         std::printf("  [measure] settled: rot_y %.4f rad, spin %.4f rad/s, z %.4f "
