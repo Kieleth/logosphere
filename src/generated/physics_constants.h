@@ -326,6 +326,14 @@ constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}
 // not trends.
 constexpr float    REST_GROWTH_TOLERANCE = 1.01f;   // unit: 1
 
+// G-44 refined by test_tree_wiggly. A topple grows MONOTONICALLY
+// (exponential envelope), an oscillation alternates growth and decay
+// every few frames. Only this many CONSECUTIVE growing frames mark a
+// body as mid-instability and block sleep; alternating solver jitter
+// never sustains a run and sleeps, which is the residue the sleep
+// cache exists to absorb.
+constexpr uint8_t  REST_GROWTH_RUN = 3;   // unit: {frame}
+
 // G-44's absolute floor on the growth test. At the bottom of the well,
 // quietness ratios between near-zero values are noise; growth smaller
 // than this speed (1 mm/s class, same scale as ZERO_VELOCITY_SQ) never

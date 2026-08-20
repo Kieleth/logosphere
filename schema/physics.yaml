@@ -1308,6 +1308,19 @@ classes:
           speed-only gate. The rest counter accumulates only while the
           per-frame quietness ratio stays at or below this tolerance,
           which exists to forgive solver jitter, not trends.
+      REST_GROWTH_RUN:
+        range: integer
+        ifabsent: int(3)
+        unit: { ucum_code: "{frame}" }
+        annotations:
+          cpp_type: uint8_t
+        description: >-
+          G-44 refined by test_tree_wiggly. A topple grows MONOTONICALLY
+          (exponential envelope), an oscillation alternates growth and
+          decay every few frames. Only this many CONSECUTIVE growing
+          frames mark a body as mid-instability and block sleep;
+          alternating solver jitter never sustains a run and sleeps,
+          which is the residue the sleep cache exists to absorb.
       REST_GROWTH_FLOOR:
         range: float
         ifabsent: float(0.001)

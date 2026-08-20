@@ -167,6 +167,10 @@ public:
     // a cache may only cache a fixed point. Seeded huge so the first
     // observation can never read as growth.
     float    rest_quiet_sq = 1e9f;
+    // consecutive growing-quietness frames (G-44 refined): a topple
+    // grows monotonically, jitter alternates. Only a sustained run
+    // blocks sleep.
+    uint8_t  quiet_growth_run = 0;
 
     ParticleOwner owner = ParticleOwner::PHYSICS;
     // Physics-layer solver authority. Independent of `owner` (which is a

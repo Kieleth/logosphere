@@ -5157,19 +5157,34 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
         //     inverted pendulum's launch). The counter accumulates only
         //     while quietness does not grow beyond jitter tolerance.
         //     No gravity term, no world-up: zero-g safe.
-        const float r_ext_sq = (p.shape == ParticleShape::BOX)
-            ? 0.25f * (p.width * p.width + p.height * p.height +
-                       p.thickness * p.thickness)
-            : 0.25f * p.size * p.size;
+        float r_ext_sq;
+        if (p.shape == ParticleShape::BOX) {
+            const float hw = 0.5f * p.width, hh = 0.5f * p.height,
+                        ht = 0.5f * p.thickness;
+            r_ext_sq = hw * hw + hh * hh + ht * ht;
+        } else {
+            const float hr = 0.5f * p.size;
+            r_ext_sq = hr * hr;
+        }
         const float omega_sq = p.omega_x * p.omega_x +
                                p.omega_y * p.omega_y +
                                p.omega_z * p.omega_z;
         const float q_sq = vel_sq + omega_sq * r_ext_sq;
         const float prev_q_sq = p.rest_quiet_sq;
         p.rest_quiet_sq = q_sq;
-        const bool quiet_growing =
+        const bool grew_this_frame =
             q_sq > prev_q_sq * (REST_GROWTH_TOLERANCE * REST_GROWTH_TOLERANCE)
                  + REST_GROWTH_FLOOR * REST_GROWTH_FLOOR;
+        // G-44 refined (test_tree_wiggly): a topple grows MONOTONICALLY,
+        // solver jitter ALTERNATES. Only a sustained run of growing
+        // frames is an instability doing its work; alternating residue
+        // is exactly what the sleep cache exists to absorb.
+        if (grew_this_frame) {
+            if (p.quiet_growth_run < 255) p.quiet_growth_run++;
+        } else {
+            p.quiet_growth_run = 0;
+        }
+        const bool quiet_growing = p.quiet_growth_run >= REST_GROWTH_RUN;
 
         // THE SLEEP LAW: a body may rest only while its constraint set is
         // satisfied. Low speed with screaming constraints is a body mid-

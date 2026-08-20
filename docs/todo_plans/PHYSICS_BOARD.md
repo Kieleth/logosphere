@@ -439,6 +439,22 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Sweep triage post-G-43 (2026-08-20): 4 moles, all resolved or booked
+
+- test_inv29_constants_gate: my 0.25f, renamed to derived half-extents. GREEN.
+- test_refused_momentum_ledger: not a leak. The full-Jacobian warm start
+  quiets the rows so completely the striker legitimately sleeps pressed
+  flat at frame 13; sleep suspends gravity (INV-18), so the test's truth
+  now integrates over MEASURED awake frames. 107% booked, in band. GREEN.
+- test_tree_wiggly: G-44 UNMASKED a sustained 0.0294 m/s oscillation in
+  depth-3/4 oaks that speed-only sleep was absorbing. Depth-5 sleeps.
+  TASK: RCA the gluon-tree energy source (deeper-law family). Pending
+  owner ruling on the known-open classification.
+- test_physics_minimal_v2: measuring (221 s runtime; suspected settle-wait
+  on sleep timing).
+- G-44 refined: REST_GROWTH_RUN (3 consecutive growing frames) separates
+  monotone topples from alternating jitter; topples preserved.
+
 ## G-43 SOLVED (2026-08-20): three confiscations, three laws — see LEDGER
 
 Sleep's speed-only gate (G-44), rotation-blind turtle rows (measure-gate
