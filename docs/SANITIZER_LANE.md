@@ -145,22 +145,84 @@ the original bug corrupted. A silent exclusion would read as coverage.
 
 ## The known noise, and why it is not suppressed
 
-Nine failures on landing. **One is real**: the fixture bug above, not
-fixed and not suppressed.
+Nine failures on landing, unchanged across four runs (jobs 95769694816,
+96317436155, 96331614800, 96465620076 — same nine names every time).
+**One is real**: the fixture bug above, not fixed and not suppressed.
 
-**Eight are the instrument.** All `alloc-dealloc-mismatch`, every frame
-inside prebuilt libc++/libc++abi, triggered by throwing a parse error.
-Reproduced with a six-line program that only throws and catches a
-`std::runtime_error`, with zero allocation of our own. Ubuntu's libc++
-is not itself built with ASan, so `new` is intercepted inside our
-instrumented binary while the matching `free` happens inside the
-uninstrumented library, and the sanitizer sees a mismatched pair that
-is entirely an artifact of the packaging.
+**Eight are the instrument**, and the earlier version of this section
+said all eight print `alloc-dealloc-mismatch`. Read off the runs, seven
+do:
 
-One line of `ASAN_OPTIONS=alloc_dealloc_mismatch=0` silences all eight.
+| test | throw that raises it |
+|---|---|
+| `test_kg_ops_parse` | `kg_ops_parse.cpp:217`, caught `:221` |
+| `test_ontology_extension` | `test_ontology_extension.cpp:193`, caught `:201` |
+| `test_ontology_validator` | `ontology_validator.cpp:217` |
+| `test_outcome_executor` | same, via `KGModule::setProperty` |
+| `test_kg_parse_safety` | `finite_float.cpp:76`, the `std::stod` refusal |
+| `test_rule_fork` | same, via `validate_create` |
+| `test_logotron_director` | `director_parser.cpp:32`, caught `:36` |
+
+Every frame between the `new` and the `free` is inside prebuilt
+libc++/libc++abi. Reproduced with a six-line program that only throws
+and catches a `std::runtime_error`, with zero allocation of our own.
+Ubuntu's libc++ is not itself built with ASan, so `new` is intercepted
+inside our instrumented binary while the matching `free` happens inside
+the uninstrumented library, and the sanitizer sees a mismatched pair
+that is entirely an artifact of the packaging.
+
+**The eighth is not a sanitizer report at all**, and calling it one hid
+what it is. `test_kg_property_gate` exits 1 with two ordinary assertion
+failures out of fourteen checks: `wrong-typed value write aborts under
+strict gate` and `message states the expected value type`. Those two
+are the only checks in the file whose fixture needs a *throw*:
+`write_aborts()` forks and requires the child to die by `SIGABRT`, and
+the child runs `std::stod("banana")` through `parse_finite_binary64`.
+Under ASan that throw raises the packaging artifact, ASan reports and
+exits without an abort, and the death test sees no abort. The gate is
+fine — its two red paths that reach `abort()` without throwing both
+pass here. The cause is inferred rather than read: the child's stderr
+is captured into a string the test only greps and never prints.
+
+One line of `ASAN_OPTIONS=alloc_dealloc_mismatch=0` silences the seven.
 It also gives up every genuine new/free mismatch in our own code, which
 is a real detector traded for a quiet log. Left as an open decision
 rather than taken quietly.
+
+## Red means new
+
+Nine is not a number anyone reads. A red job is a red job, so a *tenth*
+failure — the entire reason this lane exists — was indistinguishable
+from the nine it already had.
+
+Every one of the nine now has a row in
+`tests/invariants/SANITIZER_AUDIT.jsonl`, carrying `TEST_AUDIT.jsonl`'s
+shape plus one field, `finding`, which is what separates "an instrument
+reported this" from "a test failed". `scripts/check-sanitizer-audit.py`
+runs at the end of the lane and compares the failing set against the
+audited set in **both** directions:
+
+- a test failing with no audited row is a new memory error, and fails
+  the job;
+- an audited row that stops reporting fails the job too, because a red
+  that silently goes green is as much a change as a new one. That is
+  the same direction-locking `physics-linux` applies to its born-red
+  ladders.
+
+One thing that is not obvious and cost a case: CTest writes
+`LastTestsFailed.log` **only when something failed**, so an absent log
+means either that every test passed or that the step died before
+finishing. The step records ctest's exit code beside the log, and the
+checker reads both.
+
+`scripts/test-sanitizer-audit.sh` proves the gate on nine cases and runs
+on every pull request, in `merge-policy`, because the lane it guards
+does not.
+
+Why a second file rather than rows in `TEST_AUDIT.jsonl`: that file is
+keyed on the test name with one row each, and its `expect` field is
+lane-agnostic. Six of these nine already have a row there saying
+`expect: pass`, which is true in `headless-linux` and false here.
 
 ## The one-sentence version
 

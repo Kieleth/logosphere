@@ -10,11 +10,19 @@ dependencies:
   # >=1.11.0 is the first release carrying linkml.generators.cppgen
   # (upstream linkml#3332). scripts/gen_cpp_header.py imports it
   # directly; below this floor, ontology codegen cannot run.
-  # CAVEAT (verified 2026-08-13): the dev machine's editable install
-  # reports 1.10.0.post230.dev0+2909900a4 — code-identical to the
-  # v1.11.1 generator (empty diff over generators/cppgen, headers
-  # byte-identical) but the version STRING fails this pin. A strict
-  # resolver on that machine must use the editable install as-is.
+  #
+  # The pin is satisfiable and measured: `conda env create -f
+  # environment.yml` resolves conda-forge's noarch linkml 1.11.1 on
+  # osx-arm64 (2026-08-20) and on linux-64 (every ontology-generation
+  # CI run), and the generator then leaves zero drift.
+  #
+  # A CAVEAT used to sit here saying the dev machine's editable
+  # 1.10.0.post230.dev0+2909900a4 was code-identical and could be used
+  # as-is. It could not: that env was never created, the generator ran
+  # from `base` for weeks, and a comment cannot notice. The mechanism
+  # that does is scripts/env_gate.py, which every run of
+  # scripts/generate_ontology.py passes through before it imports
+  # linkml. There is no override.
   - linkml >=1.11.0
   - pip
   - pip:

@@ -8,6 +8,100 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **The three advisory CI lanes come off pull requests.** A pull
+  request ran seven jobs and two of them gated the merge, so the
+  required gate finished in 26.5 minutes while contributors waited on
+  lanes that block nothing: `headless-windows` (25 to 28 minutes),
+  `sanitizers-linux` (17 to 26) and `full-macos` (10 to 13). All three
+  still run on every push to `main`, where a finding lands on the
+  commit that caused it within minutes of the squash, and
+  `headless-windows` also runs nightly. Nothing is dropped and nothing
+  is suppressed: what changed is when the three report. A pull request
+  now runs `merge-policy`, `ontology-generation`, `physics-linux` and
+  `headless-linux`.
+- **The ontology generator refuses to run outside the environment
+  `environment.yml` declares.** Measured on the dev machine
+  2026-08-20: the declared environment (`logosphere`) did not exist.
+  What existed was `logosphere_env`, which had no linkml at all. The
+  only interpreter on the machine with linkml was `base`, carrying an
+  editable install reporting `1.10.0.post230.dev0+2909900a4` — a
+  version string that fails this repository's own `linkml >=1.11.0`
+  pin. So every regeneration, including several that day, ran from
+  `base` against an unpinned checkout while CI ran against the pinned
+  file. The generator writes committed source, which makes it the one
+  place where that drift has nothing downstream to catch it.
+
+  The file itself was not wrong: `conda env create -f environment.yml`
+  resolves conda-forge's noarch linkml 1.11.1 on osx-arm64 and
+  linux-64 alike, and `python scripts/generate_ontology.py` in that
+  environment leaves zero drift. Both verified. What was wrong is that
+  nothing made you use it, and a `CAVEAT` comment in the file blessed
+  the editable install instead. That comment is deleted;
+  `scripts/env_gate.py` replaces it. It runs before
+  `generate_ontology.py` imports linkml and refuses, with the exact
+  commands to fix it, when linkml is missing, below the declared floor,
+  a development or local build (which is what an editable checkout
+  reports), or the interpreter is not the declared python. Every floor
+  is read out of `environment.yml`, so there is no second declaration
+  to drift. **There is no override.** It does not check the
+  environment's *name*, because CI legitimately materialises the same
+  file under a different one.
+
+  `scripts/test_env_gate.py` asserts 14 cases in both directions,
+  including the exact version string the drift was live on, and that
+  `generate_ontology.py` still calls the gate *before* importing
+  linkml. It runs in the `ontology-generation` lane.
+  `docs/GETTING_STARTED.md` no longer offers `pip install
+  linkml-runtime pyyaml` as an alternative: that combination cannot run
+  the generator, which needs `linkml.generators.cppgen`.
+- **Every accepted red in the sanitizer lane has an audited entry, so
+  red means new.** `sanitizers-linux` lands red on every run with nine
+  failing tests, and nine is not a number anyone reads: a tenth
+  appearing — the entire reason the lane exists — looked exactly like
+  the nine, because a red job is a red job. Each of the nine now has a
+  row in `tests/invariants/SANITIZER_AUDIT.jsonl` naming the finding,
+  the throw or the line that raises it, and whether it is a real defect
+  or an artifact of Ubuntu's non-instrumented libc++.
+  `scripts/check-sanitizer-audit.py` is the lane's verdict now and
+  fails on any difference in **either** direction: a red with no
+  audited row, and an audited row that stopped reporting. That is the
+  same direction-locking `physics-linux` applies to its born-red
+  ladders. `scripts/test-sanitizer-audit.sh` proves it on nine cases
+  and runs on every pull request, in `merge-policy`, because the lane it
+  guards does not.
+
+  The file is a sibling of `TEST_AUDIT.jsonl` rather than rows inside
+  it, and carries that file's exact nine keys plus one, `finding`.
+  `TEST_AUDIT.jsonl` is keyed on the test name with one row each and
+  its `expect` field is lane-agnostic; six of these nine already have a
+  row there saying `expect: pass`, which is true in `headless-linux`
+  and false under the sanitizers. `finding` is what separates "an
+  instrument reported this" from "a test failed", which is the
+  distinction the existing format has no way to make.
+
+  `docs/SANITIZER_LANE.md` is corrected in the same change. It said all
+  eight non-real failures print `alloc-dealloc-mismatch`; seven do, and
+  the eighth (`test_kg_property_gate`) is two ordinary assertion
+  failures whose death-test fixture is subverted by the same artifact.
+  The `test_mutation_playback` fixture bug is recorded and still **not
+  fixed and not suppressed**.
+- **A static POSIX-portability gate runs on every pull request.**
+  `headless-windows` found six root causes in ten days and four of them
+  were constructs MSVC does not ship, visible in the source with no
+  compiler involved: `<execinfo.h>`, `setenv`/`unsetenv`,
+  `<sys/wait.h>` with `fork()`, and a hardcoded `/tmp` path in a test.
+  `scripts/check-posix-portability.py` reads the translation units the
+  `core` profile configures out of `compile_commands.json`, walks every
+  in-repo header they reach (374 files today) and reports only
+  UNGUARDED uses — `__has_include` and the POSIX side of a `_WIN32`
+  conditional are the fixes, not findings. It runs in the
+  `merge-policy` job in about a second. It replaces nothing: the other
+  two root causes were real behaviour differences and no static check
+  can see those, which is why the Windows lane is kept rather than
+  dropped. `scripts/test-posix-portability.sh` proves the gate in both
+  directions on ten planted cases, four that must fire and six that
+  must stay quiet, including the four constructs as dead text inside
+  comments.
 - **A body has one orientation.** The engine kept every body's
   orientation twice, as an Euler triple (read by rendering and
   collision) and a quaternion (written by spin integration), with no

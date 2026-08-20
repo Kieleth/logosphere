@@ -14,11 +14,18 @@ By the end you will have:
 
 - macOS arm64 (Apple Silicon), the only supported platform
 - CMake 3.20+, C++17 compiler, GLFW 3, pkg-config
-- Python 3 + `linkml-runtime` (for the ontology generator)
+- The conda environment `environment.yml` declares (for the ontology
+  generator). Not a subset of it: the generator imports
+  `linkml.generators.cppgen`, which `linkml-runtime` alone does not
+  provide, and the pinned malleus root arrives through pip in the same
+  file. `scripts/generate_ontology.py` refuses to run outside it and
+  says so.
 
 ```bash
 brew install glfw pkg-config cmake
-conda env create -f environment.yml  # or pip install linkml-runtime pyyaml
+conda env create -f environment.yml
+# then run the generator inside it
+conda run -n logosphere python scripts/generate_ontology.py
 ```
 
 ## Step 1: Write your game ontology
