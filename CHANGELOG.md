@@ -19,6 +19,41 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   is suppressed: what changed is when the three report. A pull request
   now runs `merge-policy`, `ontology-generation`, `physics-linux` and
   `headless-linux`.
+- **The ontology generator refuses to run outside the environment
+  `environment.yml` declares.** Measured on the dev machine
+  2026-08-20: the declared environment (`logosphere`) did not exist.
+  What existed was `logosphere_env`, which had no linkml at all. The
+  only interpreter on the machine with linkml was `base`, carrying an
+  editable install reporting `1.10.0.post230.dev0+2909900a4` — a
+  version string that fails this repository's own `linkml >=1.11.0`
+  pin. So every regeneration, including several that day, ran from
+  `base` against an unpinned checkout while CI ran against the pinned
+  file. The generator writes committed source, which makes it the one
+  place where that drift has nothing downstream to catch it.
+
+  The file itself was not wrong: `conda env create -f environment.yml`
+  resolves conda-forge's noarch linkml 1.11.1 on osx-arm64 and
+  linux-64 alike, and `python scripts/generate_ontology.py` in that
+  environment leaves zero drift. Both verified. What was wrong is that
+  nothing made you use it, and a `CAVEAT` comment in the file blessed
+  the editable install instead. That comment is deleted;
+  `scripts/env_gate.py` replaces it. It runs before
+  `generate_ontology.py` imports linkml and refuses, with the exact
+  commands to fix it, when linkml is missing, below the declared floor,
+  a development or local build (which is what an editable checkout
+  reports), or the interpreter is not the declared python. Every floor
+  is read out of `environment.yml`, so there is no second declaration
+  to drift. **There is no override.** It does not check the
+  environment's *name*, because CI legitimately materialises the same
+  file under a different one.
+
+  `scripts/test_env_gate.py` asserts 14 cases in both directions,
+  including the exact version string the drift was live on, and that
+  `generate_ontology.py` still calls the gate *before* importing
+  linkml. It runs in the `ontology-generation` lane.
+  `docs/GETTING_STARTED.md` no longer offers `pip install
+  linkml-runtime pyyaml` as an alternative: that combination cannot run
+  the generator, which needs `linkml.generators.cppgen`.
 - **Every accepted red in the sanitizer lane has an audited entry, so
   red means new.** `sanitizers-linux` lands red on every run with nine
   failing tests, and nine is not a number anyone reads: a tenth

@@ -174,6 +174,16 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with: { environment-file: environment.yml }
 
+      # The generator now refuses to run outside the environment this
+      # file declares (scripts/env_gate.py). That gate stands in front of
+      # the step that writes committed source, so a false refusal would
+      # stop this lane: it is asserted in both directions, on the exact
+      # version string the dev machine reported while the drift was live.
+      # The wiring case matters most — a gate generate_ontology.py stops
+      # calling would pass every other test and protect nothing.
+      - name: The declared-environment gate is not vacuous
+        run: python -m unittest scripts/test_env_gate.py
+
       - name: Run generator contract tests
         run: python -m unittest scripts/test_generate_registry.py
 
