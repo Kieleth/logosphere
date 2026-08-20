@@ -156,10 +156,27 @@ Placement GroundLocator::locate(const PlacementRequest& req,
         // this surface - a ledge, a canopy, the underside of a floor
         // above. This is the "surrounding space" question: a point can
         // have perfectly good ground and still be unusable.
+        //
+        // Except that something too small to STAND ON is also too small
+        // to STAND IN THE WAY. Those two rules were inconsistent: a
+        // span was rejected as ground for being smaller than
+        // MIN_SUPPORT_SIZE, then allowed to veto the ground underneath
+        // it at any size at all. A 12 cm block of firewood resting on a
+        // floor tile made that tile unusable, so a walker crossing
+        // litter reported no ground beneath her while standing on it.
+        // Measured on the terrain scenarios: she registered over ground
+        // for 27% of the path across debris, against the 95% the test
+        // asks for, and the same walk on bare ground is 100%.
+        //
+        // Size, not solidity, is the right test here. `solid` also
+        // folds in speed, and a large object occupying this space
+        // blocks it whether it is moving or not: you cannot stand where
+        // a boulder is, falling or resting. You can walk over a twig.
         float ceiling = inf;
         bool blocked = false;
         for (const Span& other : spans) {
             if (other.top <= s.top + 1e-4f) continue;   // at or below us
+            if (other.size < need_size) continue;       // litter, not a ledge
             if (other.bottom < need_top && other.top > base) {
                 blocked = true;
                 break;
