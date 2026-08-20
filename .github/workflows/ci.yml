@@ -347,16 +347,25 @@ jobs:
       # graph is what just grew, so this scales with the same factor.
         timeout-minutes: 20
         run: |
-          failed=""
-          for seed in $(seq 1 60); do
-            ./build/logovger-headless --random "$seed" >/tmp/life.txt 2>&1 \
-              || failed="$failed $seed"
-          done
+          # In parallel, because each life is its OWN PROCESS and they
+          # share nothing: a seed decides the whole run, and the tape and
+          # transcript are named after it. Serial, this was the single
+          # most expensive step in the gating lane. Measured on the dev
+          # machine after the digest fix: 190s serial, 99s at -P2 (a CI
+          # runner's core count), 31s at -P8.
+          #
+          # Each life writes its OWN transcript. It used to write them all
+          # to one /tmp/life.txt, which was harmless while this ran one at
+          # a time and would have interleaved sixty processes into garbage
+          # the moment it did not.
+          failed=$(seq 1 60 | xargs -P "$(nproc)" -I{} sh -c \
+            './build/logovger-headless --random {} >/tmp/life-{}.txt 2>&1 \
+             || echo {}' | sort -n | tr '\n' ' ')
           if [ -n "$failed" ]; then
-            echo "lives that never finished:$failed"
+            echo "lives that never finished: $failed"
             set -- $failed
             echo "--- seed $1, in full ---"
-            ./build/logovger-headless --random "$1" 2>&1 | tail -20
+            tail -20 "/tmp/life-$1.txt"
             exit 1
           fi
           echo "60 lives, none abandoned"
@@ -551,13 +560,13 @@ jobs:
         if: always()
         timeout-minutes: 10
         run: |
-          failed=""
-          for seed in $(seq 1 12); do
-            ./build-san/logovger-headless --random "$seed" >/tmp/life-$seed.txt 2>&1 \
-              || failed="$failed $seed"
-          done
+          # Parallel for the same reason as the gating lane's sixty. These
+          # already wrote per-seed transcripts, so only the loop changes.
+          failed=$(seq 1 12 | xargs -P "$(nproc)" -I{} sh -c \
+            './build-san/logovger-headless --random {} >/tmp/life-{}.txt 2>&1 \
+             || echo {}' | sort -n | tr '\n' ' ')
           if [ -n "$failed" ]; then
-            echo "lives that aborted under the sanitizers:$failed"
+            echo "lives that aborted under the sanitizers: $failed"
             set -- $failed
             echo "--- seed $1, in full ---"
             cat "/tmp/life-$1.txt"
