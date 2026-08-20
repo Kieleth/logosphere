@@ -11,23 +11,31 @@
 // rolls, and rolls further, because rolling without slipping dissipates
 // nothing at the contact.
 //
-// THE DEFECT. The narrow phase builds the box side of a SPHERE-vs-BOX
-// pair with `aabb_of_box_particle`, which never reads rotation
-// (src/core/narrow_phase.cpp:957-976). So the sphere does not meet a
-// tilted surface at all; it meets the ramp's upright bounding slab, and
-// the contact normal comes back (0,0,1). A flat shelf. There is no
-// along-slope component, so nothing drives it downhill. The cube, which
-// goes through the 15-axis OBB path, gets (0,-0.5,0.866) and behaves.
+// THE DEFECT THIS SCENE WAS BUILT FOR, and its fix (2026-08-19). The
+// narrow phase used to build the box side of a SPHERE-vs-BOX pair with
+// `aabb_of_box_particle`, which never reads rotation. The sphere met the
+// ramp's upright bounding slab, got a (0,0,1) normal, and sat on a flat
+// shelf while the cube — which goes through the 15-axis OBB path and
+// gets (0,-0.5,0.866) — slid away. `narrow_phase_sphere_obb` closed
+// that: the sphere now travels 6.251 m against the cube's 6.356 m.
 //
-// So: same slope, same release, and only one of them moves. That is
-// INV-12 (contacts come from bodies' actual oriented shapes) broken in
-// one dispatch branch, and it is visible in three seconds.
+// WHAT IS STILL RED HERE is a different mechanism, D2 1.2: contact rows
+// carry jx/jy/jz from the manifold normal and NO LEVER ARM, so no
+// contact in this engine can spin a body up. Both bodies leave the ramp
+// edge, fall, and land on the turtle with peak |omega| of exactly 0.
+//
+// THE WITNESS. Argus watches all three bodies (ramp, cube, ball) every
+// frame, so the asserts, the stdout log and the window readout read the
+// same numbers. The scene latches what only a per-frame observer can
+// see: lane deviation, the fixture's drift, the two-ledger divergence,
+// and how close the two racers ever came to each other.
 //
 // The scene is written ONCE here and both drivers run it. Neither holds
 // a body, a force or a threshold.
 // =============================================================================
 #pragma once
 
+#include "core/argus.h"
 #include "core/particle_system.h"
 #include "logosphere/physics/physics_system.h"
 #include "particle.h"
@@ -62,6 +70,25 @@ constexpr float TRAVEL_MIN = 0.30f;   // m downhill
 constexpr float SPIN_MIN   = 0.05f;   // rad/s, peak over the run
 constexpr float RAMP_LEN   = 8.0f;
 constexpr float RAMP_THICK = 0.4f;
+// --- thresholds for the DOFs the witness added ------------------------
+// Lanes: no lateral force exists in this experiment. The ramp is tilted
+// about Y only, gravity is -Z, and the two bodies are 2.4 m apart, so
+// neither may wander out of its lane. Slop-sized, not tuned.
+constexpr float LANE_DEV_MAX = 0.02f;   // m off its release lane
+// A KINEMATIC fixture is held by its external writer. If the ramp moves
+// at all, every travel number below is measured against a moving datum.
+constexpr float FIXTURE_DRIFT_MAX = 1e-4f;  // m, any axis
+// Each racer must reach the turtle and stop there. Bottom at z = 0 is
+// the turtle plane; the solver's slop is 0.001 m and a settled body
+// rides one slop above it.
+constexpr float REST_BOTTOM_MAX = 0.01f;   // m above the turtle
+constexpr float REST_SPEED_MAX  = 0.05f;   // m/s at the deadline
+// One body, one orientation (G-23). Quaternion truth is the default
+// since 2026-08-19; a body whose two ledgers disagree is a defect.
+constexpr float COHERENCE_MAX = 0.01f;     // rad
+// The lanes exist so the two experiments cannot contaminate each other.
+// Centre-to-centre must never fall to where their shapes could meet.
+constexpr float LANE_GAP_MIN = 2.0f * BODY;   // m, centre to centre
 // Rest the ramp ON the turtle rather than through it. A tilted 8 m box
 // has a Z half-extent of len*sin/2 + thick*cos/2 = 2.724 m at 40 deg, so
 // a centre at z = 2.0 puts its lowest corner 0.72 m UNDER the turtle and
@@ -74,11 +101,18 @@ inline float ramp_centre_z() {
 }
 
 struct Scene {
+    logosphere::Argus argus;   // the witness: asserts and logs, one source
     int ramp = -1, cube = -1, ball = -1;
     float cube_x0 = 0.0f, ball_x0 = 0.0f;
     // Peak angular speed each body reached at ANY point. Latched, because
     // a body that spins up and settles is quiet by the deadline.
     float cube_spin_peak = 0.0f, ball_spin_peak = 0.0f;
+    // --- latched by step() from the witness, per frame ----------------
+    float cube_lane_dev = 0.0f, ball_lane_dev = 0.0f;   // worst |y - lane|
+    float ramp_drift    = 0.0f;                          // worst fixture move
+    float cube_div_max  = 0.0f, ball_div_max  = 0.0f;   // worst q-vs-Euler
+    float lane_gap_min  = 1e9f;                          // closest approach
+    float ramp_x0 = 0.0f, ramp_y0 = 0.0f, ramp_z0 = 0.0f;
 
     void build(ParticleSystem& ps) {
         // The ramp: a long box tilted about Y, so downhill runs along -X.
@@ -128,19 +162,44 @@ struct Scene {
             v[ramp].is_at_rest = true;
         }
         cube_x0 = sx; ball_x0 = sx;
+        {   // The fixture's datum, read back from the engine rather than
+            // from the constants: the turtle clamp may have moved it.
+            auto v = ps.lock_particles_for_read();
+            ramp_x0 = v[ramp].x; ramp_y0 = v[ramp].y; ramp_z0 = v[ramp].z;
+        }
+        argus.watch(ramp, "ramp");
+        argus.watch(cube, "cube");
+        argus.watch(ball, "ball");
     }
 
-    void step(ParticleSystem& ps, PhysicsSystem& physics) {
+    void step(ParticleSystem& ps, PhysicsSystem& physics, int frame = -1) {
         ps.update_bvh();
         physics.update(DT);
-        auto v = ps.lock_particles_for_read();
-        auto mag = [](const Particle& p) {
-            return std::sqrt(p.omega_x * p.omega_x + p.omega_y * p.omega_y
-                           + p.omega_z * p.omega_z);
-        };
-        const float c = mag(v[cube]), b = mag(v[ball]);
+        argus.observe(ps, frame);
+        // Everything below reads the WITNESS, not the particles: the
+        // asserts and the log cannot drift apart if there is one source.
+        const float c = argus.spin(cube), b = argus.spin(ball);
         if (c > cube_spin_peak) cube_spin_peak = c;
         if (b > ball_spin_peak) ball_spin_peak = b;
+        if (const auto* s = argus.latest(cube)) {
+            const float d = std::fabs(s->y - (-LANE));
+            if (d > cube_lane_dev) cube_lane_dev = d;
+        }
+        if (const auto* s = argus.latest(ball)) {
+            const float d = std::fabs(s->y - (+LANE));
+            if (d > ball_lane_dev) ball_lane_dev = d;
+        }
+        if (const auto* s = argus.latest(ramp)) {
+            const float dx = s->x - ramp_x0, dy = s->y - ramp_y0,
+                        dz = s->z - ramp_z0;
+            const float d = std::sqrt(dx*dx + dy*dy + dz*dz);
+            if (d > ramp_drift) ramp_drift = d;
+        }
+        const float dc = argus.divergence(cube), db = argus.divergence(ball);
+        if (dc > cube_div_max) cube_div_max = dc;
+        if (db > ball_div_max) ball_div_max = db;
+        const float gap = argus.separation(cube, ball);
+        if (gap >= 0.0f && gap < lane_gap_min) lane_gap_min = gap;
     }
 
     // Downhill is +X, so travel is how far each has come from its start.
@@ -167,8 +226,26 @@ struct Scene {
     float ball_bottom(ParticleSystem& ps) const {
         return ps.lock_particles_for_read()[ball].z - BODY * 0.5f;
     }
+
+    // --- the witness answers the rest of the state ---------------------
+    float speed(int id) const {
+        const logosphere::Argus::State* s = argus.latest(id);
+        return s ? std::sqrt(s->vx*s->vx + s->vy*s->vy + s->vz*s->vz) : -1.0f;
+    }
+    float bottom(int id) const {
+        const logosphere::Argus::State* s = argus.latest(id);
+        return s ? s->z - BODY * 0.5f : -1.0f;
+    }
+
     static bool travelled(float d) { return d > TRAVEL_MIN; }
     static bool turned(float peak_omega) { return peak_omega > SPIN_MIN; }
+    static bool in_lane(float dev)        { return dev < LANE_DEV_MAX; }
+    static bool held(float drift)         { return drift < FIXTURE_DRIFT_MAX; }
+    static bool coherent(float div)       { return div < COHERENCE_MAX; }
+    static bool lanes_kept(float gap)     { return gap > LANE_GAP_MIN; }
+    static bool landed_and_stopped(float bottom_z, float spd) {
+        return std::fabs(bottom_z) < REST_BOTTOM_MAX && spd < REST_SPEED_MAX;
+    }
 };
 
 }  // namespace scene_ramp_race

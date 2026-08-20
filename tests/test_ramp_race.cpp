@@ -3,16 +3,17 @@
 // =============================================================================
 // Board front F2, made measurable: "a sphere will not slide a ramp that a
 // cube slides". The mechanism was located 2026-08-16 and is two lines
-// wide: `narrow_phase_particle_pair` builds the box side of a
+// wide: `narrow_phase_particle_pair` built the box side of a
 // SPHERE-vs-BOX pair with `aabb_of_box_particle`, which never reads
-// rotation (src/core/narrow_phase.cpp:957-976). The sphere therefore
-// meets the ramp's upright bounding slab and its contact normal comes
-// back (0,0,1): a flat shelf, with no along-slope component to move it.
+// rotation. The sphere met the ramp's upright bounding slab and its
+// contact normal came back (0,0,1): a flat shelf with no along-slope
+// component. FIXED 2026-08-19 by `narrow_phase_sphere_obb`; the travel
+// asserts below are green and stay as the regression.
 //
-// BORN RED against that. The assertion is not that the two travel the
-// same distance — a rolling sphere should outrun a sliding cube — but
-// that BOTH travel at all, which is what gravity on a 30 degree slope
-// does to anything resting on it.
+// STILL BORN RED on a different mechanism, D2 1.2: contact rows carry
+// jx/jy/jz from the manifold normal and NO LEVER ARM, so nothing in this
+// engine can be spun up by a contact. Both bodies launch off the ramp
+// edge and land on the turtle with peak |omega| of exactly zero.
 //
 // Scene and stepping: tests/scenes/scene_ramp_race.h, shared with
 // test_ramp_race_visual.cpp. No body, force or threshold lives here.
@@ -21,10 +22,55 @@
 //   INTERACTIVE=1 ./build/test_ramp_race_visual    window
 // =============================================================================
 
+// FULL-STATE NARRATION (assert-or-waive, per DOF, owner directive
+// 2026-08-19). Three bodies; every degree of freedom of each is
+// asserted below or waived here, by name. Everything is read through
+// Argus, so the asserts, the stdout log and the window readout are one
+// source.
+//
+//   RAMP (KINEMATIC fixture, tilted 40 deg about Y)
+//     position xyz  — must not move at all: ASSERTED (worst drift over
+//                     the run, all three axes at once). It is the datum
+//                     every travel number is measured against.
+//     velocity      — implied by the drift assert; WAIVED, watched.
+//     orientation   — nothing writes it after build; WAIVED, watched.
+//                     A turn would show as drift in the bodies riding it.
+//     omega         — WAIVED, watched; same argument.
+//
+//   CUBE and BALL (DYNAMIC racers, one lane each)
+//     x  (downhill) — ASSERTED: each must travel (gravity along the
+//                     slope moves anything resting on it). Not "equal
+//                     distance": a rolling sphere should outrun a
+//                     sliding cube.
+//     y  (lateral)  — ASSERTED: no lateral force exists in this
+//                     experiment, so neither may leave its lane. This
+//                     is what makes the two runs independent.
+//     z             — ASSERTED at the deadline: each ends resting ON
+//                     the turtle (bottom at 0), not sunk through it and
+//                     not perched on the shelf a rotation-blind bound
+//                     would invent. This is the assert that would have
+//                     caught the pre-fix sphere resting 2.7 m up.
+//     velocity      — ASSERTED at the deadline (stopped). Peak speed
+//                     over the run is printed, WAIVED from a ceiling:
+//                     the explosion detector owns velocity ceilings
+//                     engine-wide.
+//     omega         — ASSERTED, and RED for both: a body that leaves a
+//                     ramp edge and lands on the turtle must turn.
+//                     D2 1.2.
+//     orientation   — the Euler triple follows omega and is not
+//                     independently claimed; WAIVED, watched. Its
+//                     COHERENCE with the quaternion IS asserted
+//                     (G-23): one body, one orientation.
+//     separation    — ASSERTED: the two racers never come within reach
+//                     of each other, so neither result contaminates the
+//                     other. approach_speed is WAIVED: with the gap
+//                     assert holding, there is no approach to bound.
+
 #include "scenes/scene_ramp_race.h"
 
 #include <cmath>
 #include <cstdio>
+#include <iostream>
 #include <string>
 
 using namespace scene_ramp_race;
@@ -47,7 +93,7 @@ int main() {
 
     Scene scene;
     scene.build(ps);
-    for (int f = 0; f < RUN_FRAMES; ++f) scene.step(ps, physics);
+    for (int f = 0; f < RUN_FRAMES; ++f) scene.step(ps, physics, f);
 
     const float cube_d = scene.cube_travel(ps);
     const float ball_d = scene.ball_travel(ps);
@@ -83,14 +129,19 @@ int main() {
                     v[scene.ball].rotation_y, v[scene.ball].omega_x,
                     v[scene.ball].omega_y, v[scene.ball].omega_z);
         {   // The sharpest statement of F2 available: WHERE it came to rest.
+            // Kept as the regression witness now that F2 is fixed — the
+            // shelf height is printed so a relapse is visible, not
+            // inferred from a travel number going to zero.
             const float b = scene.ball_bottom(ps);
             std::printf("  [measure] sphere rests with its bottom at z = %.3f\n", b);
             std::printf("  [measure]   the ramp's REAL tilted face at that x: %.3f\n",
                         Scene::face_z_at(bx));
             std::printf("  [measure]   the ramp's UNROTATED box top:          %.3f\n",
                         Scene::shelf_z());
-            std::printf("  [note] it fell THROUGH the face it can see and landed\n"
-                        "         on the flat shelf aabb_of_box_particle invents.\n");
+            std::printf("  [note] F2 fixed 2026-08-19: it runs the face it can\n"
+                        "         see and lands on the turtle. A relapse to the\n"
+                        "         invented flat shelf would park it up at %.3f.\n",
+                        Scene::shelf_z());
         }
         std::printf("  [measure] peak |omega|: cube %.4f rad/s, sphere %.4f rad/s\n",
                     scene.cube_spin_peak, scene.ball_spin_peak);
@@ -100,10 +151,34 @@ int main() {
                     rz - ramp_centre_z());
     }
     std::printf("  [note] the cube goes through the 15-axis OBB path and\n"
-                "         meets a tilted face. The sphere goes through\n"
-                "         narrow_phase_sphere_aabb and meets an upright\n"
-                "         slab: normal (0,0,1), a flat shelf.\n");
+                "         meets a tilted face. Since 2026-08-19 the sphere\n"
+                "         goes through narrow_phase_sphere_obb and meets the\n"
+                "         same tilted face: both normals carry the slope.\n");
 
+    // --- what only a per-frame witness can say ------------------------
+    std::printf("\n  [argus] worst lane deviation: cube %.4f m, sphere %.4f m "
+                "(bound %.2f)\n", scene.cube_lane_dev, scene.ball_lane_dev,
+                LANE_DEV_MAX);
+    std::printf("  [argus] fixture drift over the run: %.6f m (bound %.0e)\n",
+                scene.ramp_drift, (double)FIXTURE_DRIFT_MAX);
+    std::printf("  [argus] closest the two racers ever came: %.3f m "
+                "(their shapes meet below %.2f)\n",
+                scene.lane_gap_min, LANE_GAP_MIN);
+    std::printf("  [argus] worst q-vs-Euler divergence: cube %.6f rad, "
+                "sphere %.6f rad\n", scene.cube_div_max, scene.ball_div_max);
+    std::printf("  [argus] peak speed: cube %.3f m/s, sphere %.3f m/s\n",
+                scene.argus.peak_speed(scene.cube),
+                scene.argus.peak_speed(scene.ball));
+    std::printf("  [argus] at the deadline: cube bottom %.4f m speed %.4f m/s, "
+                "sphere bottom %.4f m speed %.4f m/s\n",
+                scene.bottom(scene.cube), scene.speed(scene.cube),
+                scene.bottom(scene.ball), scene.speed(scene.ball));
+    std::printf("\n  the witness's last two frames:\n");
+    scene.argus.dump(std::cout, 2);
+    std::printf("\n");
+
+    check(Scene::held(scene.ramp_drift),
+          "the ramp never moved: every travel number has a fixed datum");
     check(Scene::travelled(cube_d),
           "the cube slides down the slope");
     check(Scene::turned(scene.cube_spin_peak),
@@ -114,6 +189,26 @@ int main() {
     check(Scene::travelled(ball_d),
           "the sphere ALSO moves (INV-12: contacts come from the body's "
           "actual oriented shape, not its bounding slab)");
+    check(Scene::turned(scene.ball_spin_peak),
+          "the sphere TURNS TOO. A sphere on a 40 deg slope cannot slide "
+          "without rolling: the friction that resists its motion acts a "
+          "full radius from its centre, which is a torque and nothing "
+          "else. Same mechanism as the cube's, D2 1.2, and harder to "
+          "excuse — the cube at least has a flat face to slide on.");
+    check(Scene::in_lane(scene.cube_lane_dev) && Scene::in_lane(scene.ball_lane_dev),
+          "neither leaves its lane: no lateral force exists, so the two "
+          "runs are independent measurements");
+    check(Scene::lanes_kept(scene.lane_gap_min),
+          "the racers never touch: neither result is contaminated by the "
+          "other body");
+    check(Scene::landed_and_stopped(scene.bottom(scene.cube), scene.speed(scene.cube)),
+          "the cube ends AT REST ON THE TURTLE, not sunk through it and "
+          "not perched on a shelf");
+    check(Scene::landed_and_stopped(scene.bottom(scene.ball), scene.speed(scene.ball)),
+          "the sphere ends AT REST ON THE TURTLE (the assert that would "
+          "have caught it resting 2.7 m up inside the ramp)");
+    check(Scene::coherent(scene.cube_div_max) && Scene::coherent(scene.ball_div_max),
+          "one body, one orientation, every frame for both racers (G-23)");
 
     // Name only the fronts ACTUALLY failing. A verdict that lists a front
     // already fixed is the same class of lie as a comment that outlived
