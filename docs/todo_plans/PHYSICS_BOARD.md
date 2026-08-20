@@ -271,9 +271,16 @@ direction-locked in physics-linux beside the drop ladder:
   `LOGOSPHERE_QUAT_TRUTH=0` is the kill switch. Per-frame Argus
   testimony post-flip: every body coherent every frame, identical spins
   identically visible, trajectories and omegas exactly equal across the
-  ledger flag. **Next on this front: `is_quat_driven` dies — six
-  representation reads become unconditional, seven authority reads fold
-  into `solver_mode` (the R7-dissolution work proper).**
+  ledger flag. **Next on this front: `is_quat_driven` dies — and the 2026-08-19
+  survey on merged main found 32 reads across 6 files, not the study's
+  13 (the extra 19 live mostly in humanoid_locomotion). G-38 states the
+  hazard that orders the work: the flip's publish excludes KINEMATIC,
+  so a KINEMATIC FK bone still carries a stale quaternion and the flag
+  still selects correctly for exactly those bodies. The deletion is a
+  WRITE-CONTRACT change first (every KINEMATIC orientation writer
+  maintains BOTH ledgers at its write site, guarded by the fifteen
+  locomotion tests), read-site cleanup second, field deletion last.
+  Doing it in the other order breaks humanoids visibly.**
 
 This is the unification's red ladder. The lever lands into it.
 
@@ -361,6 +368,19 @@ question (humanoid locomotion's heel-strike transfer), not one a wiring
 test may rule on. Needs the locomotion owner's read before any code.
 Evidence printed as `[finding]` lines in the test and recorded in its
 audit gaps.
+
+## F6 — the sanitizer lane is red ON MAIN, and it is blocking every merge (2026-08-19)
+
+Not physics, boarded because it gates all of us. The new required lane
+`sanitizers-linux` (arrived via #137) fails on main's own commits:
+`AddressSanitizer: alloc-dealloc-mismatch (operator new vs free)`
+across the KG/ontology tests (`test_kg_ops_parse`,
+`test_ontology_extension`, `test_ontology_validator`,
+`test_outcome_executor`, more). Something in KG core allocates with
+`new` and frees with `free` — a real defect the lane caught on day one.
+PR #146 merged by owner admin override with every other lane green;
+the ruling stands recorded there. **Owner: the KG/rules lane owns the
+fix, and until it lands every PR needs the same override.**
 
 ## OWNER RULING
 
