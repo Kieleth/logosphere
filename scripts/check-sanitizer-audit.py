@@ -139,21 +139,25 @@ def main() -> int:
         if text.lstrip("-").isdigit():
             ctest_exit = int(text)
 
-    if not args.last_failed.is_file():
-        # CTest writes this file only when something failed, so an absent
-        # log means one of two opposite things. Its exit code is what
-        # tells them apart.
-        if ctest_exit == 0:
-            failed = []          # everything passed. A change, handled below.
-        else:
-            print(f"::error::{args.last_failed} is absent and ctest did not "
-                  f"report success (exit {ctest_exit if ctest_exit is not None else 'unknown'}). "
-                  f"The suite did not finish: a build failure, a timeout kill, "
-                  f"or a wrong path. This is NOT a clean run.",
-                  file=sys.stderr)
-            return 2
+    if ctest_exit == 0:
+        # Authoritative, and it comes first: ctest exiting 0 means no test
+        # failed, whatever a LastTestsFailed.log left over from an earlier
+        # run in a reused build directory happens to say.
+        failed = []
+    elif not args.last_failed.is_file():
+        # CTest writes this file ONLY when something failed. Having ruled
+        # out the all-pass case above, an absent log means the run did not
+        # finish, and a lane that reported nothing is not a lane that
+        # reported clean.
+        seen = ctest_exit if ctest_exit is not None else "unknown"
+        print(f"::error::{args.last_failed} is absent and ctest did not "
+              f"report success (exit {seen}). The suite did not finish: a "
+              f"build failure, a timeout kill, or a wrong path. This is NOT "
+              f"a clean run.", file=sys.stderr)
+        return 2
     else:
         failed = load_failed(args.last_failed)
+
     failed_set = set(failed)
     audited_set = set(audit)
 

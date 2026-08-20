@@ -497,8 +497,11 @@ jobs:
       # headless-linux, where it is the rule-space sweep it was built to
       # be.
       #
-      # Everything else in the profile runs here, all 89 of them.
-      # NINE of these are red on every run and every one of them is
+      # Everything else in the profile runs here: 97 tests, read off the
+      # runs. (The comment said 89 and had been overtaken by the tests
+      # added since.)
+      #
+      # NINE of them are red on every run and every one of them is
       # audited by name in tests/invariants/SANITIZER_AUDIT.jsonl. This
       # step is therefore NOT the verdict — the audit step at the end of
       # the job is, and it compares the failing set against the audited

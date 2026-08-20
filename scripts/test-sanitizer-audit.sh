@@ -18,6 +18,7 @@
 #           because CTest writes that file only on failure and an absent
 #           log means one of two opposite things
 #   CASE 5c no log, ctest exit non-zero         -> FIRE, exit 2
+#   CASE 5d a stale log against ctest exit 0    -> FIRE, exit code wins
 #   CASE 6  an audit row with expect != fail    -> FIRE, exit 2
 #
 # CASE 1 is built FROM the real tests/invariants/SANITIZER_AUDIT.jsonl,
@@ -122,6 +123,12 @@ echo 8 > "$TMP/ctest_bad.exit"
 check "no LastTestsFailed.log, ctest exit 8" "$TMP/absent.log" unreadable \
       "NOT a clean run" "$AUDIT" "$TMP/ctest_bad.exit"
 
+# CASE 5d — the audited log is PRESENT but ctest exited 0. That is a
+# stale file in a reused build directory, and reading it would report
+# nine findings that did not happen this run. The exit code wins.
+check "a stale log against ctest exit 0" "$TMP/audited.log" fire \
+      "WENT QUIET" "$AUDIT" "$TMP/ctest_ok.exit"
+
 # CASE 6 — an audit row that is not an accepted red.
 python3 - "$AUDIT" "$TMP/bad_audit.jsonl" <<'PY'
 import json, sys
@@ -136,7 +143,7 @@ check "an audit row says expect=pass" "$TMP/audited.log" unreadable \
 
 echo
 if [ "$failures" -eq 0 ]; then
-    echo "sanitizer audit gate: 8/8 cases behaved (fires on a new red, on a red that went quiet, and on nothing to read)"
+    echo "sanitizer audit gate: 9/9 cases behaved (fires on a new red, on a red that went quiet, and on nothing to read)"
     exit 0
 fi
 echo "sanitizer audit gate: $failures case(s) wrong"

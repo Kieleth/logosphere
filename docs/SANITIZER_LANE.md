@@ -215,7 +215,7 @@ means either that every test passed or that the step died before
 finishing. The step records ctest's exit code beside the log, and the
 checker reads both.
 
-`scripts/test-sanitizer-audit.sh` proves the gate on eight cases and runs
+`scripts/test-sanitizer-audit.sh` proves the gate on nine cases and runs
 on every pull request, in `merge-policy`, because the lane it guards
 does not.
 
