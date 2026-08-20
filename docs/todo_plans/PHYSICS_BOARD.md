@@ -246,6 +246,39 @@ BOUNDARY BY INSTRUMENT: a sphere's normal passes through its centre
 (r x n = 0 exactly) and a face-slider's point torques cancel — rolling
 and tumbling are FRICTION torque, slice B.
 
+## D2 1.2 SLICES B+C LANDED (2026-08-19): friction torque + turtle support vertex
+
+Same `CONTACT_TORQUE` lever, default off, default path bit-identical
+(audited reds hold, harness 27/27).
+
+**B, friction torque**: friction measures the CONTACT-POINT relative
+velocity (v + omega x r, both bodies), prices each tangent with its own
+(r x t)^2/I (the normal row's K is the wrong Jacobian for a tangent),
+and twists DYNAMIC bodies. **THE SPHERE ROLLS**: peak 5.30 rad/s, and
+it now out-travels the sliding cube (6.259 vs 6.225 m), the physically
+correct ordering. The cube tumbles at 4.07 rad/s.
+
+**C, turtle support vertex**: a rotated box meets the plane at its
+lowest vertex (centre minus signed half-extent axes — plane geometry,
+INV-6-clean), priced per INV-20. Fixed: the cube that froze mid-tumble
+balanced on its edge on the turtle (rot_y 0.8345, for ever). Bonus,
+measured: proper pricing cut R0's flat-drop wobble 0.1929 -> 0.0198
+rad/s. Unrotated boxes keep the no-torque row: a flat face's point
+torques cancel by symmetry.
+
+**Residuals, all measured, none papered:**
+- **6.4 ANSWERED BY INSTRUMENT: the friction-basis fix comes WITH the
+  row work, not after.** Under the lever the tumbling cube WALKS OUT OF
+  ITS LANE (y -1.20 -> -2.05) in a scene with no lateral force: the
+  axis-aligned tangent picks (study 1.5) put t1=(1,0,0) out of the
+  ramp's face plane, and torque coupling turns that long-known wrongness
+  into visible sideways drift. Next slice: tangents from the actual
+  contact plane.
+- The tumbling cube is still settling at frame 240 on the turtle
+  (z 0.35): rocking under ANGULAR_DRAG; needs longer runs or the D7 fix.
+- Ceilings: true rolling wants omega = v/r ~ 29 rad/s; MAX_OMEGA caps
+  at 6.28 and ANGULAR_DRAG (D7) fights every spin. Both boarded already.
+
 ## D2's measurement ladder: the cube drop (2026-08-19)
 
 Owner method: divide and conquer, G's first, asserts from the G's, then

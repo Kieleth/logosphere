@@ -927,6 +927,41 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             c.jy = 0.0f;
             c.jz = 1.0f;
 
+            // TURTLE CONTACT TORQUE (G-39 slice C, same CONTACT_TORQUE
+            // lever). A ROTATED box meets the plane at its lowest
+            // support VERTEX, not under its centre; without the lever
+            // arm a tumbling cube leaving a ramp freezes mid-tumble,
+            // balanced on its edge on the turtle for ever (measured:
+            // rot_y 0.8345, z 0.29, omega 0). The support point of an
+            // oriented box against z = 0 is centre minus the signed sum
+            // of half-extent axes — plane geometry, not a gravity
+            // assumption (the plane's normal is +Z by definition,
+            // INV-6). Unrotated boxes keep no lever arm on purpose: a
+            // flat face's point torques cancel by symmetry, and the
+            // no-torque row is exact for them.
+            {
+                static const bool contact_torque_on2 =
+                    std::getenv("CONTACT_TORQUE") != nullptr;
+                if (contact_torque_on2 &&
+                    pi.solver_mode == ParticleSolverMode::DYNAMIC &&
+                    pi.shape == ParticleShape::BOX &&
+                    box_particle_is_rotated(pi)) {
+                    const OBB o = obb_of_box_particle(pi, z_predicted[i]);
+                    float sx = 0.0f, sy = 0.0f, sz = 0.0f;
+                    for (int ax = 0; ax < 3; ++ax) {
+                        const float sgn = (o.axis[ax][2] > 0.0f) ? -1.0f : 1.0f;
+                        sx += sgn * o.half[ax] * o.axis[ax][0];
+                        sy += sgn * o.half[ax] * o.axis[ax][1];
+                        sz += sgn * o.half[ax] * o.axis[ax][2];
+                    }
+                    c.apply_anchor_torque = true;
+                    c.anchor_rax = sx;   // support vertex relative to centre
+                    c.anchor_ray = sy;
+                    c.anchor_raz = sz;
+                    c.anchor_rbx = c.anchor_rby = c.anchor_rbz = 0.0f;
+                }
+            }
+
             // Effective mass: only particle's mass (Turtle has infinite mass)
             // effective_mass = 1 / (1/ma + 0) = ma
             //
@@ -948,6 +983,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     continue;   // lenient: drop the row, never invent a mass
                 }
                 c.effective_mass = m_turtle;
+            if (c.apply_anchor_torque) {
+                // INV-20: price the angular response the lever arm adds,
+                // or every turtle impulse over-corrects the spin it now
+                // creates. K = 1/m + |r x z|^2 / I.
+                const float I = pi.GetMomentOfInertia();
+                const float m_i = pi.GetMass();
+                if (I > 0.0f && m_i > 0.0f) {
+                    const float cx = c.anchor_ray * 1.0f;   // r x (0,0,1)
+                    const float cy = -c.anchor_rax * 1.0f;
+                    const float k = 1.0f / m_i + (cx*cx + cy*cy) / I;
+                    if (k > 0.0f) c.effective_mass = 1.0f / k;
+                }
+            }
             }
 
             // Bias for position correction (Baumgarte)
@@ -3609,6 +3657,71 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     t2x = 0.0f; t2y = 0.0f; t2z = 1.0f;
                 }
 
+                // FRICTION TORQUE (G-39 slice B, same CONTACT_TORQUE
+                // lever; active only when the build stage set anchors on
+                // this row). Friction acts AT THE CONTACT POINT, so its
+                // truth is the contact-point relative velocity — v plus
+                // omega x r per body — and its price is the tangent's own
+                // K = 1/m + (r x t)^2/I (INV-20; the normal row's
+                // effective mass carries the NORMAL's angular term, which
+                // is the wrong Jacobian for a tangent). Its consequence
+                // is the twist that makes a sphere roll instead of skate:
+                // friction brakes the contact-point slip, the torque
+                // spins the body, and rolling-without-slipping emerges
+                // when omega x r cancels v. Gate per G-39: measurement
+                // includes every body's omega (measuring is not
+                // applying); application spins DYNAMIC bodies only.
+                struct TangentTorque {
+                    float rax, ray, raz, rbx, rby, rbz;   // r x t per body
+                    float eff;                            // tangent's own K
+                    bool  spin_a, spin_b;
+                    float inv_Ia, inv_Ib;
+                };
+                auto tangent_terms = [&](float tx, float ty, float tz,
+                                         float& v_rel) -> TangentTorque {
+                    TangentTorque tt{};
+                    tt.eff = c.effective_mass;   // lever off: unchanged
+                    if (!(c.is_contact && c.apply_anchor_torque)) return tt;
+                    v_rel += tx*(pa.omega_y*c.anchor_raz - pa.omega_z*c.anchor_ray)
+                           + ty*(pa.omega_z*c.anchor_rax - pa.omega_x*c.anchor_raz)
+                           + tz*(pa.omega_x*c.anchor_ray - pa.omega_y*c.anchor_rax);
+                    if (!c.is_turtle_contact) {
+                        v_rel -= tx*(pb.omega_y*c.anchor_rbz - pb.omega_z*c.anchor_rby)
+                               + ty*(pb.omega_z*c.anchor_rbx - pb.omega_x*c.anchor_rbz)
+                               + tz*(pb.omega_x*c.anchor_rby - pb.omega_y*c.anchor_rbx);
+                    }
+                    tt.rax = c.anchor_ray*tz - c.anchor_raz*ty;
+                    tt.ray = c.anchor_raz*tx - c.anchor_rax*tz;
+                    tt.raz = c.anchor_rax*ty - c.anchor_ray*tx;
+                    tt.rbx = c.anchor_rby*tz - c.anchor_rbz*ty;
+                    tt.rby = c.anchor_rbz*tx - c.anchor_rbx*tz;
+                    tt.rbz = c.anchor_rbx*ty - c.anchor_rby*tx;
+                    float k = inv_ma + inv_mb;
+                    tt.spin_a = pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                                inv_ma > 0.0f;
+                    tt.spin_b = !c.is_turtle_contact &&
+                                pb.solver_mode == ParticleSolverMode::DYNAMIC &&
+                                inv_mb > 0.0f;
+                    if (tt.spin_a) {
+                        const float I = pa.GetMomentOfInertia();
+                        if (I > 0.0f) {
+                            tt.inv_Ia = 1.0f / I;
+                            k += (tt.rax*tt.rax + tt.ray*tt.ray + tt.raz*tt.raz)
+                                 * tt.inv_Ia;
+                        } else tt.spin_a = false;
+                    }
+                    if (tt.spin_b) {
+                        const float I = pb.GetMomentOfInertia();
+                        if (I > 0.0f) {
+                            tt.inv_Ib = 1.0f / I;
+                            k += (tt.rbx*tt.rbx + tt.rby*tt.rby + tt.rbz*tt.rbz)
+                                 * tt.inv_Ib;
+                        } else tt.spin_b = false;
+                    }
+                    if (k > 0.0f) tt.eff = (1.0f / k) * c.eff_mass_share;
+                    return tt;
+                };
+
                 // Friction constraint 1 (tangent 1)
                 // Start with pa's velocity; subtract pb's only if pb is moving
                 // MEASURE THE TRUTH, always. Skipping a sleeper's
@@ -3622,7 +3735,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (!c.is_turtle_contact) {
                     v_rel_t1 -= t1x * pb.vx + t1y * pb.vy + t1z * pb.vz;
                 }
-                float friction_impulse_1 = -v_rel_t1 * c.effective_mass;
+                const TangentTorque tt1 = tangent_terms(t1x, t1y, t1z, v_rel_t1);
+                float friction_impulse_1 = -v_rel_t1 * tt1.eff;
                 float old_f1 = c.friction_impulse_t1;
                 c.friction_impulse_t1 = std::max(-friction_limit,
                                         std::min(friction_limit, old_f1 + friction_impulse_1));
@@ -3642,6 +3756,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pa.vx += t1x * friction_impulse_1 * inv_ma;
                 pa.vy += t1y * friction_impulse_1 * inv_ma;
                 pa.vz += t1z * friction_impulse_1 * inv_ma;
+                if (tt1.spin_a && friction_impulse_1 != 0.0f) {
+                    pa.omega_x += tt1.rax * friction_impulse_1 * tt1.inv_Ia;
+                    pa.omega_y += tt1.ray * friction_impulse_1 * tt1.inv_Ia;
+                    pa.omega_z += tt1.raz * friction_impulse_1 * tt1.inv_Ia;
+                }
 
                 // DEBUG: Log turtle friction (once per frame)
                 if (c.is_turtle_contact && canary_active && (int)c.body_a == canary_pid && iter == 0) {
@@ -3659,6 +3778,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     pb.vx -= t1x * friction_impulse_1 * inv_mb;
                     pb.vy -= t1y * friction_impulse_1 * inv_mb;
                     pb.vz -= t1z * friction_impulse_1 * inv_mb;
+                    if (tt1.spin_b && friction_impulse_1 != 0.0f) {
+                        pb.omega_x -= tt1.rbx * friction_impulse_1 * tt1.inv_Ib;
+                        pb.omega_y -= tt1.rby * friction_impulse_1 * tt1.inv_Ib;
+                        pb.omega_z -= tt1.rbz * friction_impulse_1 * tt1.inv_Ib;
+                    }
                     // Friction is momentum too. The whole block booked
                     // nothing until 2026-08-14, so a body braced against
                     // a shove absorbed all the tangential load silently.
@@ -3683,7 +3807,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (!c.is_turtle_contact) {
                     v_rel_t2 -= t2x * pb.vx + t2y * pb.vy + t2z * pb.vz;
                 }
-                float friction_impulse_2 = -v_rel_t2 * c.effective_mass;
+                const TangentTorque tt2 = tangent_terms(t2x, t2y, t2z, v_rel_t2);
+                float friction_impulse_2 = -v_rel_t2 * tt2.eff;
                 float old_f2 = c.friction_impulse_t2;
                 c.friction_impulse_t2 = std::max(-friction_limit,
                                         std::min(friction_limit, old_f2 + friction_impulse_2));
@@ -3700,6 +3825,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pa.vx += t2x * friction_impulse_2 * inv_ma;
                 pa.vy += t2y * friction_impulse_2 * inv_ma;
                 pa.vz += t2z * friction_impulse_2 * inv_ma;
+                if (tt2.spin_a && friction_impulse_2 != 0.0f) {
+                    pa.omega_x += tt2.rax * friction_impulse_2 * tt2.inv_Ia;
+                    pa.omega_y += tt2.ray * friction_impulse_2 * tt2.inv_Ia;
+                    pa.omega_z += tt2.raz * friction_impulse_2 * tt2.inv_Ia;
+                }
 
                 if (!c.is_turtle_contact && inv_ma == 0.0f &&
                     friction_impulse_2 != 0.0f) {
@@ -3712,6 +3842,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     pb.vx -= t2x * friction_impulse_2 * inv_mb;
                     pb.vy -= t2y * friction_impulse_2 * inv_mb;
                     pb.vz -= t2z * friction_impulse_2 * inv_mb;
+                    if (tt2.spin_b && friction_impulse_2 != 0.0f) {
+                        pb.omega_x -= tt2.rbx * friction_impulse_2 * tt2.inv_Ib;
+                        pb.omega_y -= tt2.rby * friction_impulse_2 * tt2.inv_Ib;
+                        pb.omega_z -= tt2.rbz * friction_impulse_2 * tt2.inv_Ib;
+                    }
                     if (inv_mb == 0.0f && friction_impulse_2 != 0.0f) {
                         record_refused_impulse(c.body_b,
                                                -t2x * friction_impulse_2,
