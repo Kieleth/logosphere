@@ -1435,6 +1435,53 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.eff_mass_share = split_off ? 1.0f : 1.0f / (float)manifold.num_points;
                     c.effective_mass = effective_mass * c.eff_mass_share;
 
+                    // CONTACT TORQUE (G-39, lever CONTACT_TORQUE=1, default
+                    // off). The manifold point was computed, carried here,
+                    // and used only to fill a CollisionEvent; with the
+                    // lever on it becomes the row's lever arm, so an
+                    // off-centre contact can rotate a DYNAMIC body: the
+                    // tilted cube rights itself instead of freezing on its
+                    // edge (G-35). INV-20: the row's effective mass gains
+                    // (r x J)^2/I for every body the torque may spin, or
+                    // the impulse over-corrects. Gate is solver_mode ==
+                    // DYNAMIC alone: KINEMATIC bones are excluded without
+                    // reading owner (INV-15), and inv_m = 0 bodies cannot
+                    // spin regardless.
+                    static const bool contact_torque_on =
+                        std::getenv("CONTACT_TORQUE") != nullptr;
+                    if (contact_torque_on) {
+                        c.apply_anchor_torque = true;
+                        c.anchor_rax = manifold.points[cp].px - pi.x;
+                        c.anchor_ray = manifold.points[cp].py - pi.y;
+                        c.anchor_raz = manifold.points[cp].pz - pi.z;
+                        c.anchor_rbx = manifold.points[cp].px - pj.x;
+                        c.anchor_rby = manifold.points[cp].py - pj.y;
+                        c.anchor_rbz = manifold.points[cp].pz - pj.z;
+                        float k = inv_mass_sum;
+                        if (pi.solver_mode == ParticleSolverMode::DYNAMIC &&
+                            inv_ma > 0.0f) {
+                            const float I = pi.GetMomentOfInertia();
+                            if (I > 0.0f) {
+                                const float cx = c.anchor_ray*c.jz - c.anchor_raz*c.jy;
+                                const float cy = c.anchor_raz*c.jx - c.anchor_rax*c.jz;
+                                const float cz = c.anchor_rax*c.jy - c.anchor_ray*c.jx;
+                                k += (cx*cx + cy*cy + cz*cz) / I;
+                            }
+                        }
+                        if (pj.solver_mode == ParticleSolverMode::DYNAMIC &&
+                            inv_mb > 0.0f) {
+                            const float I = pj.GetMomentOfInertia();
+                            if (I > 0.0f) {
+                                const float cx = c.anchor_rby*c.jz - c.anchor_rbz*c.jy;
+                                const float cy = c.anchor_rbz*c.jx - c.anchor_rbx*c.jz;
+                                const float cz = c.anchor_rbx*c.jy - c.anchor_rby*c.jx;
+                                k += (cx*cx + cy*cy + cz*cz) / I;
+                            }
+                        }
+                        if (k > 0.0f)
+                            c.effective_mass = (1.0f / k) * c.eff_mass_share;
+                    }
+
                     // Bias = target relative velocity along the contact normal.
                     // Active penetration (pen > SLOP): positive bias pushes bodies
                     // apart (Baumgarte). Speculative (pen < 0, gap within margin):
@@ -3470,8 +3517,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // them spun 20 of the human's 30 particles at 10 rad/s
                 // (owner: 'VERY WEIRD STUFF'). Same discriminator as the
                 // gravity exemption.
-                if (pa.is_quat_driven && pa.owner == ParticleOwner::PHYSICS &&
-                    inv_ma > 0.0f) {
+                // Contact rows gate on solver_mode == DYNAMIC alone
+                // (G-39): after the flip a DYNAMIC body's rotation is
+                // visible and collidable the moment it is written, and
+                // KINEMATIC excludes every animation-driven bone without
+                // reading owner. Gluon rows keep their historical gate
+                // untouched in this slice.
+                const bool a_may_spin = c.is_contact
+                    ? (pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                       inv_ma > 0.0f)
+                    : (pa.is_quat_driven &&
+                       pa.owner == ParticleOwner::PHYSICS && inv_ma > 0.0f);
+                if (a_may_spin) {
                     const float I = pa.GetMomentOfInertia();
                     if (I > 0.0f) {
                         const float inv = 1.0f / I;
@@ -3480,8 +3537,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         pa.omega_z += (c.anchor_rax * fy - c.anchor_ray * fx) * inv;
                     }
                 }
-                if (!c.is_turtle_contact && pb.is_quat_driven &&
-                    pb.owner == ParticleOwner::PHYSICS && inv_mb > 0.0f) {
+                const bool b_may_spin = c.is_contact
+                    ? (pb.solver_mode == ParticleSolverMode::DYNAMIC &&
+                       inv_mb > 0.0f)
+                    : (!c.is_turtle_contact && pb.is_quat_driven &&
+                       pb.owner == ParticleOwner::PHYSICS && inv_mb > 0.0f);
+                if (b_may_spin) {
                     const float I = pb.GetMomentOfInertia();
                     if (I > 0.0f) {
                         const float inv = 1.0f / I;

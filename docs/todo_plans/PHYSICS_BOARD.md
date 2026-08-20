@@ -225,6 +225,27 @@ All three surfaced while defining what interaction words may MEAN
 
 ---
 
+## D2 1.2 SLICE A LANDED (2026-08-19): normal-row contact torque, levered
+
+Behind `CONTACT_TORQUE=1`, default off, default path bit-identical
+(audited ladder numbers hold exactly). The manifold point the solver
+computed and discarded is now the row's lever arm; effective mass gains
+(r x J)^2/I per INV-20; the gate is `solver_mode == DYNAMIC` alone
+(G-39: no owner read, no representation flag, KINEMATIC excluded by
+what it IS).
+
+**Measured under the lever: THE DIE FALLS FLAT.** Drop-ladder R1 green:
+the 20-degree cube spins to 5.97 rad/s, rights itself, settles at
+rot_y 0.0001 on the slab. Two honest residuals, both recorded, neither
+papered: R0's flat-drop control acquires a deterministic 0.1929 rad/s
+transient wobble (unstable equilibrium + sequential per-point solving),
+decaying to 0.0002 — the control stays strict on the default path and
+the lever's flip will need it rewritten as decay-bounded, owner ruling.
+And the ramp stays at zero spin under the lever, WHICH IS THE SLICE
+BOUNDARY BY INSTRUMENT: a sphere's normal passes through its centre
+(r x n = 0 exactly) and a face-slider's point torques cancel — rolling
+and tumbling are FRICTION torque, slice B.
+
 ## D2's measurement ladder: the cube drop (2026-08-19)
 
 Owner method: divide and conquer, G's first, asserts from the G's, then
