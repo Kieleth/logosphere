@@ -108,6 +108,8 @@
 #include <cmath>
 #include "../math/quat.h"
 #include <queue>
+#include <map>
+#include <tuple>
 #include <climits>
 #include <algorithm>
 #include <chrono>
@@ -254,6 +256,12 @@ PhysicsSystem::~PhysicsSystem() {
 // ============================================================================
 
 bool PhysicsSystem::initialize(ParticleSystem& particle_system, const PhysicsConfig& config) {
+    // The decision tracer's env contract (LOGOSPHERE_PHYS_TRACE...)
+    // must hold wherever physics runs. Engine init also calls this;
+    // headless standalone tests construct no Engine, and a tracer
+    // that ignores its documented switches is a lying contract.
+    // init_from_env is idempotent.
+    logosphere::phystrace::init_from_env();
     // Quaternion truth is the DEFAULT (owner ruling 2026-08-19, ledger).
     // LOGOSPHERE_QUAT_TRUTH=0 is the kill switch for A/B and bisection;
     // the setter exists for in-process baselines (orientation O2).
@@ -2893,174 +2901,126 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     }
 
     if (ENABLE_WARM_STARTING) {
+        // WARM START = ITERATION ZERO, THROUGH THE FULL JACOBIAN (G-43).
+        //
+        // The old apply pushed the cached support through the LINEAR
+        // channel only, on the first row of each key (a hash dedup
+        // skipped the rest). Support without its lever arms is support
+        // without torque: the turtle patch row never saw an approach
+        // again, never fired, and a cube stood on its corner forever
+        // (R8) while the identical pose fell through box-box rows whose
+        // cache missed (R7). A warm start with different physics than
+        // the iterations is not a warm start, it is a second solver.
+        //
+        // Now: contact rows GROUP by their full ContactKey (comparing
+        // full keys also retires the documented hash-collision defect
+        // that silently dropped one pair's warm start), the cached
+        // impulse distributes across the group by eff_mass_share, and
+        // each row applies its share through linear AND angular halves
+        // with the same gates the solve uses. accumulated_impulse
+        // starts at the share, so the iterations correct residuals
+        // instead of rediscovering equilibrium.
+        std::map<std::tuple<size_t, size_t, int>, std::vector<size_t>> key_groups;
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
-            Constraint& c = constraints[ci];
-
-            // Only warm start CONTACTS (turtle and box-box contacts)
-            // Gluons are persistent constraints - they don't need warm starting
-            if (c.is_angular) {
-                // CANARY_DEBUG: Log skipped angular
-                if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
-                    std::cout << "[CANARY F" << phys_frame << " SKIP_ANG] P" << c.body_a << "<->P" << c.body_b << std::endl;
-                }
-                continue;
-            }
-            if (!c.is_contact && !c.is_turtle_contact) {
-                // CANARY_DEBUG: Log skipped gluon
-                if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
-                    std::cout << "[CANARY F" << phys_frame << " SKIP_GLUON] P" << c.body_a << "<->P" << c.body_b << std::endl;
-                }
-                continue;  // Skip gluons
-            }
-
-            // Build normalized ContactKey (smaller ID first)
-            ContactKey key;
+            const Constraint& c = constraints[ci];
+            if (c.is_angular) continue;
+            if (!c.is_contact && !c.is_turtle_contact) continue;
             if (c.is_turtle_contact) {
-                key.particle_a = c.body_a;
-                key.particle_b = c.body_a;  // Turtle contact uses same ID for both
-                key.contact_type = 0;
+                key_groups[{c.body_a, c.body_a, 0}].push_back(ci);
             } else {
-                // Normalize: smaller ID first, canonicalize Jacobian sign
-                bool swapped = c.body_a > c.body_b;
-                key.particle_a = std::min(c.body_a, c.body_b);
-                key.particle_b = std::max(c.body_a, c.body_b);
-
-                // Canonical Jacobian (flip if swapped)
-                float jx_can = swapped ? -c.jx : c.jx;
-                float jy_can = swapped ? -c.jy : c.jy;
-                float jz_can = swapped ? -c.jz : c.jz;
-
-                // Contact type from canonical Jacobian axis AND sign
-                // 0=Turtle, 1=+X, 2=-X, 3=+Y, 4=-Y, 5=+Z, 6=-Z
-                if (std::abs(jz_can) > 0.5f) {
-                    key.contact_type = (jz_can > 0) ? 5 : 6;
-                } else if (std::abs(jx_can) > 0.5f) {
-                    key.contact_type = (jx_can > 0) ? 1 : 2;
-                } else {
-                    key.contact_type = (jy_can > 0) ? 3 : 4;
-                }
+                const bool swapped = c.body_a > c.body_b;
+                const float jx_can = swapped ? -c.jx : c.jx;
+                const float jy_can = swapped ? -c.jy : c.jy;
+                const float jz_can = swapped ? -c.jz : c.jz;
+                int type;
+                if (std::abs(jz_can) > 0.5f)      type = (jz_can > 0) ? 5 : 6;
+                else if (std::abs(jx_can) > 0.5f) type = (jx_can > 0) ? 1 : 2;
+                else                              type = (jy_can > 0) ? 3 : 4;
+                key_groups[{std::min(c.body_a, c.body_b),
+                            std::max(c.body_a, c.body_b), type}].push_back(ci);
             }
-
-            // Check if we already applied this key (avoid double-apply for mirror constraints)
-            size_t key_hash = PhysicsV4::ContactKeyHash{}(key);
-
-            if (dedup_dbg && applied_keys.count(key_hash) > 0) {
-                const auto& prev = applied_key_of[key_hash];
-                const bool same = prev.particle_a == key.particle_a &&
-                                  prev.particle_b == key.particle_b &&
-                                  prev.contact_type == key.contact_type;
-                if (same) dup_true++; else dup_false++;
-            }
-            if (applied_keys.count(key_hash) > 0) {
-                // CANARY_DEBUG: Log skipped due to duplicate key
-                if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
-                    std::cout << "[CANARY F" << phys_frame << " SKIP_DUP] P" << c.body_a << "<->P" << c.body_b
-                              << " key=(" << key.particle_a << "," << key.particle_b << "," << key.contact_type << ")"
-                              << " hash=" << key_hash << std::endl;
-                }
+        }
+        for (const auto& kv : key_groups) {
+            ContactKey key;
+            key.particle_a = std::get<0>(kv.first);
+            key.particle_b = std::get<1>(kv.first);
+            key.contact_type = std::get<2>(kv.first);
+            const bool turtle_group = (key.contact_type == 0 &&
+                                       key.particle_a == key.particle_b);
+            auto it = cached_impulses_.find(key);
+            if (it == cached_impulses_.end()) {
+                warm_misses++;
+                if (turtle_group) turtle_misses++;
                 continue;
             }
-            applied_keys.insert(key_hash);
-            if (dedup_dbg) applied_key_of[key_hash] = key;
-
-            // Look up cached impulse
-            auto it = cached_impulses_.find(key);
-            if (it != cached_impulses_.end()) {
-                warm_hits++;
-                if (c.is_turtle_contact) turtle_hits++;
-                float cached = it->second.first;  // (impulse, last_frame) pair
-                total_cached_applied += std::abs(cached);
-
-                // V4.3 CORRECT: Apply cached impulse to velocity (with capping)
-                //
-                // This changes v_rel so solver sees the constraint nearly satisfied.
-                // Cap to prevent over-correction when particle is moving fast.
-                //
-                // Example (particle at rest):
-                //   vz = -0.163 (from gravity)
-                //   cached = 7.35 N·s (equilibrium)
-                //   Apply 7.35 → vz becomes ~0
-                //   Solver sees v_rel ≈ 0, applies tiny delta
-                //   Store: 7.35 + tiny ≈ 7.35 (stable)
-
+            warm_hits++;
+            if (turtle_group) turtle_hits++;
+            const float cached = it->second.first;
+            total_cached_applied += std::abs(cached);
+            float share_sum = 0.0f;
+            for (size_t ci : kv.second) share_sum += constraints[ci].eff_mass_share;
+            if (!(share_sum > 0.0f)) share_sum = (float)kv.second.size();
+            for (size_t ci : kv.second) {
+                Constraint& c = constraints[ci];
+                const float w = cached * (c.eff_mass_share / share_sum);
                 Particle& pa = particles[c.body_a];
-                float inv_ma = inv_mass_momentum(pa);
-                float mass_a = pa.GetMass();
-
-                // Compute relative velocity along Jacobian
-                float rel_vel = pa.vx * c.jx + pa.vy * c.jy + pa.vz * c.jz;
-                if (!c.is_turtle_contact) {
-                    Particle& pb = particles[c.body_b];
-                    rel_vel -= (pb.vx * c.jx + pb.vy * c.jy + pb.vz * c.jz);
-                }
-
-                // NO CAPPING - apply full cached impulse
-                // Multiple contacts balance each other:
-                //   Turtle pushes UP (supports total weight above)
-                //   Box pushes DOWN (transfers weight from particle above)
-                // These are meant to cancel. Capping prevents that!
-                float warm_impulse = cached;
-
-                // Apply warm impulse to velocity
-                pa.vx += c.jx * warm_impulse * inv_ma;
-                pa.vy += c.jy * warm_impulse * inv_ma;
-                pa.vz += c.jz * warm_impulse * inv_ma;
-
-                if (!c.is_turtle_contact) {
-                    Particle& pb = particles[c.body_b];
-                    float inv_mb = inv_mass_momentum(pb);
-                    pb.vx -= c.jx * warm_impulse * inv_mb;
-                    pb.vy -= c.jy * warm_impulse * inv_mb;
-                    pb.vz -= c.jz * warm_impulse * inv_mb;
-                    // BOOK WHAT THIS SPENDS. The warm start is momentum
-                    // like any other; it just arrives before the
-                    // iterations. Measured before this line existed: a
-                    // KINEMATIC target refused 1357.8 kg*m/s and the
-                    // ledger held 33.6 of it — 2.5% — because the warm
-                    // apply lived outside the booking loop.
-                    if (inv_mb == 0.0f && warm_impulse != 0.0f) {
-                        record_refused_impulse(c.body_b,
-                                               -c.jx * warm_impulse,
-                                               -c.jy * warm_impulse,
-                                               -c.jz * warm_impulse);
+                const float inv_ma = inv_mass_momentum(pa);
+                pa.vx += c.jx * w * inv_ma;
+                pa.vy += c.jy * w * inv_ma;
+                pa.vz += c.jz * w * inv_ma;
+                if (c.apply_anchor_torque &&
+                    pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                    inv_ma > 0.0f) {
+                    const float I = pa.GetMomentOfInertia();
+                    if (I > 0.0f) {
+                        const float fx = c.jx * w, fy = c.jy * w, fz = c.jz * w;
+                        const float inv = 1.0f / I;
+                        pa.omega_x += (c.anchor_ray * fz - c.anchor_raz * fy) * inv;
+                        pa.omega_y += (c.anchor_raz * fx - c.anchor_rax * fz) * inv;
+                        pa.omega_z += (c.anchor_rax * fy - c.anchor_ray * fx) * inv;
                     }
                 }
-                if (!c.is_turtle_contact && inv_ma == 0.0f &&
-                    warm_impulse != 0.0f) {
+                if (!c.is_turtle_contact) {
+                    Particle& pb = particles[c.body_b];
+                    const float inv_mb = inv_mass_momentum(pb);
+                    pb.vx -= c.jx * w * inv_mb;
+                    pb.vy -= c.jy * w * inv_mb;
+                    pb.vz -= c.jz * w * inv_mb;
+                    if (c.apply_anchor_torque &&
+                        pb.solver_mode == ParticleSolverMode::DYNAMIC &&
+                        inv_mb > 0.0f) {
+                        const float I = pb.GetMomentOfInertia();
+                        if (I > 0.0f) {
+                            const float fx = c.jx * w, fy = c.jy * w, fz = c.jz * w;
+                            const float inv = 1.0f / I;
+                            pb.omega_x -= (c.anchor_rby * fz - c.anchor_rbz * fy) * inv;
+                            pb.omega_y -= (c.anchor_rbz * fx - c.anchor_rbx * fz) * inv;
+                            pb.omega_z -= (c.anchor_rbx * fy - c.anchor_rby * fx) * inv;
+                        }
+                    }
+                    // BOOK WHAT THIS SPENDS (unchanged law): the warm
+                    // start is momentum like any other.
+                    if (inv_mb == 0.0f && w != 0.0f) {
+                        record_refused_impulse(c.body_b,
+                                               -c.jx * w, -c.jy * w, -c.jz * w);
+                    }
+                }
+                if (!c.is_turtle_contact && inv_ma == 0.0f && w != 0.0f) {
                     record_refused_impulse(c.body_a,
-                                           c.jx * warm_impulse,
-                                           c.jy * warm_impulse,
-                                           c.jz * warm_impulse);
+                                           c.jx * w, c.jy * w, c.jz * w);
                 }
-
-                // CANARY_DEBUG: Log warm start impulse applied to canary
-                if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
-                    float dvz_a = c.jz * warm_impulse * inv_ma;
-                    float dvz_b = c.is_turtle_contact ? 0.0f : (-c.jz * warm_impulse * inv_mass_momentum(particles[c.body_b]));
-                    std::cout << "[CANARY F" << phys_frame << " WARM] P" << c.body_a << "<->P" << c.body_b
-                              << " impulse=" << warm_impulse
-                              << " j=(" << c.jx << "," << c.jy << "," << c.jz << ")"
-                              << " dvz_a=" << dvz_a << " dvz_b=" << dvz_b
+                if (canary_active && ((int)c.body_a == canary_pid ||
+                                      (int)c.body_b == canary_pid)) {
+                    std::cout << "[CANARY F" << phys_frame << " WARM] P"
+                              << c.body_a << "<->P" << c.body_b
+                              << " share_impulse=" << w
+                              << " of=" << cached
                               << " vz_after=" << particles[canary_pid].vz
-                              << (c.is_turtle_contact ? " TURTLE" : " BOX") << std::endl;
+                              << (c.is_turtle_contact ? " TURTLE" : " BOX")
+                              << std::endl;
                 }
-
-                // Track for cache storage later
-                warm_started_impulses[ci] = warm_impulse;
-
-                // Set accumulated_impulse so friction sees the normal force
-                c.accumulated_impulse = warm_impulse;
-            } else {
-                warm_misses++;
-                if (c.is_turtle_contact) turtle_misses++;
-
-                // CANARY_DEBUG: Log cache miss for canary particle
-                if (canary_active && ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
-                    std::cout << "[CANARY F" << phys_frame << " MISS] P" << c.body_a << "<->P" << c.body_b
-                              << " key=(" << key.particle_a << "," << key.particle_b << "," << key.contact_type << ")"
-                              << " j=(" << c.jx << "," << c.jy << "," << c.jz << ")"
-                              << (c.is_turtle_contact ? " TURTLE" : " BOX") << std::endl;
-                }
+                warm_started_impulses[ci] = w;
+                c.accumulated_impulse = w;
             }
         }
     }
@@ -3443,6 +3403,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             if (c.is_turtle_contact) {
                 // Turtle is stationary - compare particle velocity to zero
                 v_rel = c.jx * pa.vx + c.jy * pa.vy + c.jz * pa.vz;
+                // Anchor rows measure velocity AT THE ANCHOR here too
+                // (G-43). This term lived only in the box-box branch, so
+                // turtle rows were blind to rotation: after warm start
+                // zeroed the linear approach they read v_rel ~ 0 forever,
+                // fired nothing, and could neither pump a topple nor
+                // brace against one. Support without rotation measurement
+                // made the corner stand eternal on the turtle (R8) while
+                // the identical pose fell through box-box rows (R7).
+                // Gate mirrors the apply site (G-39: contacts gate on
+                // solver_mode == DYNAMIC alone). A row that APPLIES torque
+                // it never MEASURES over-corrects — measure and apply must
+                // share one predicate.
+                if (c.apply_anchor_torque &&
+                    pa.solver_mode == ParticleSolverMode::DYNAMIC) {
+                    v_rel += c.jx * (pa.omega_y * c.anchor_raz - pa.omega_z * c.anchor_ray)
+                           + c.jy * (pa.omega_z * c.anchor_rax - pa.omega_x * c.anchor_raz)
+                           + c.jz * (pa.omega_x * c.anchor_ray - pa.omega_y * c.anchor_rax);
+                }
             } else {
                 // Normal particle-particle: relative velocity
                 v_rel = c.jx * (pa.vx - pb.vx)
@@ -3453,12 +3431,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // spins the anchor ever faster — the 15 m fling of rung 3's
                 // first torque attempt.
                 if (c.apply_anchor_torque) {
-                    if (pa.is_quat_driven && pa.owner == ParticleOwner::PHYSICS) {
+                    // Measure-gate == apply-gate (G-39): contact rows on
+                    // solver_mode == DYNAMIC; non-contact anchor rows keep
+                    // the quat-driven predicate. is_quat_driven belongs to
+                    // humanoid/animation bodies — gating a plain DYNAMIC
+                    // cube's contact on it left every ordinary body's
+                    // rotation unmeasured while torque was still applied.
+                    const bool a_meas = c.is_contact
+                        ? (pa.solver_mode == ParticleSolverMode::DYNAMIC)
+                        : (pa.is_quat_driven &&
+                           pa.owner == ParticleOwner::PHYSICS);
+                    const bool b_meas = c.is_contact
+                        ? (pb.solver_mode == ParticleSolverMode::DYNAMIC)
+                        : (pb.is_quat_driven &&
+                           pb.owner == ParticleOwner::PHYSICS);
+                    if (a_meas) {
                         v_rel += c.jx * (pa.omega_y * c.anchor_raz - pa.omega_z * c.anchor_ray)
                                + c.jy * (pa.omega_z * c.anchor_rax - pa.omega_x * c.anchor_raz)
                                + c.jz * (pa.omega_x * c.anchor_ray - pa.omega_y * c.anchor_rax);
                     }
-                    if (pb.is_quat_driven && pb.owner == ParticleOwner::PHYSICS) {
+                    if (b_meas) {
                         v_rel -= c.jx * (pb.omega_y * c.anchor_rbz - pb.omega_z * c.anchor_rby)
                                + c.jy * (pb.omega_z * c.anchor_rbx - pb.omega_x * c.anchor_rbz)
                                + c.jz * (pb.omega_x * c.anchor_rby - pb.omega_y * c.anchor_rbx);
@@ -4205,55 +4197,34 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // Store accumulated impulses so next frame starts at equilibrium.
     // Also cleanup stale entries (contacts that no longer exist).
     // ========================================================================
-    std::unordered_set<size_t> stored_keys;  // Avoid storing same key twice (second overwrites with 0)
-
     if (ENABLE_WARM_STARTING) {
+        // Store side of the group warm start: the cache holds the
+        // GROUP TOTAL per key (it always claimed to; the old loop
+        // stored only the first row's value, undercounting every
+        // multi-point contact). Per row the equilibrium-freeze rule is
+        // kept: a warm-started row contributes its warm share, not the
+        // share plus solver delta (V4.6: corrections repair residuals,
+        // they are not equilibrium).
+        std::map<std::tuple<size_t, size_t, int>, float> key_totals;
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
             const Constraint& c = constraints[ci];
-
-            // Only cache CONTACTS - gluons don't need caching (they're persistent)
             if (c.is_angular) continue;
-            if (!c.is_contact && !c.is_turtle_contact) continue;  // Skip gluons
-
-            // Build normalized ContactKey (MUST match warm start apply exactly)
-            ContactKey key;
+            if (!c.is_contact && !c.is_turtle_contact) continue;
+            std::tuple<size_t, size_t, int> kt;
             if (c.is_turtle_contact) {
-                key.particle_a = c.body_a;
-                key.particle_b = c.body_a;  // Turtle contact uses same ID for both
-                key.contact_type = 0;
+                kt = {c.body_a, c.body_a, 0};
             } else {
-                // Normalize: smaller ID first, canonicalize Jacobian sign
-                bool swapped = c.body_a > c.body_b;
-                key.particle_a = std::min(c.body_a, c.body_b);
-                key.particle_b = std::max(c.body_a, c.body_b);
-
-                // Canonical Jacobian (flip if swapped)
-                float jx_can = swapped ? -c.jx : c.jx;
-                float jy_can = swapped ? -c.jy : c.jy;
-                float jz_can = swapped ? -c.jz : c.jz;
-
-                // Contact type from canonical Jacobian axis AND sign
-                // 0=Turtle, 1=+X, 2=-X, 3=+Y, 4=-Y, 5=+Z, 6=-Z
-                if (std::abs(jz_can) > 0.5f) {
-                    key.contact_type = (jz_can > 0) ? 5 : 6;
-                } else if (std::abs(jx_can) > 0.5f) {
-                    key.contact_type = (jx_can > 0) ? 1 : 2;
-                } else {
-                    key.contact_type = (jy_can > 0) ? 3 : 4;
-                }
+                const bool swapped = c.body_a > c.body_b;
+                const float jx_can = swapped ? -c.jx : c.jx;
+                const float jy_can = swapped ? -c.jy : c.jy;
+                const float jz_can = swapped ? -c.jz : c.jz;
+                int type;
+                if (std::abs(jz_can) > 0.5f)      type = (jz_can > 0) ? 5 : 6;
+                else if (std::abs(jx_can) > 0.5f) type = (jx_can > 0) ? 1 : 2;
+                else                              type = (jy_can > 0) ? 3 : 4;
+                kt = {std::min(c.body_a, c.body_b),
+                      std::max(c.body_a, c.body_b), type};
             }
-
-            // Skip if we already stored this key (avoid second constraint overwriting with 0)
-            size_t key_hash = PhysicsV4::ContactKeyHash{}(key);
-            if (stored_keys.count(key_hash) > 0) continue;
-            stored_keys.insert(key_hash);
-
-            // SPLIT IMPULSE (V4.4): With split impulse, accumulated_impulse is already
-            // pure velocity impulse (no bias component). No need to subtract.
-            // Without split impulse: subtract bias to avoid caching position correction.
-            // NOTE: Only turtle contacts use split impulse - box contacts still have bias
-            // Split impulse is now universal, so accumulated_impulse holds pure
-            // velocity impulse for every row and there is no bias to subtract.
             float velocity_impulse;
             if (ENABLE_SPLIT_IMPULSE) {
                 velocity_impulse = c.accumulated_impulse;
@@ -4262,25 +4233,17 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 velocity_impulse = c.accumulated_impulse - bias_impulse;
                 if (velocity_impulse < 0) velocity_impulse = 0;
             }
-
-            // V4.6 FIX: Don't accumulate solver corrections into cache
-            // The warm_part IS the equilibrium impulse. Solver corrections fix
-            // small residuals each frame but shouldn't accumulate in cache.
-            // See: Feynman analysis of +0.02 m/s drift in Frame 3
-            float total_impulse;
-            float warm_part = 0.0f;
             auto it = warm_started_impulses.find(ci);
-            if (it != warm_started_impulses.end()) {
-                warm_part = it->second;
-                // Keep equilibrium value, don't add solver delta
-                total_impulse = warm_part;
-            } else {
-                // First frame or cache miss - use solver's value
-                total_impulse = velocity_impulse;
-            }
-
-            cached_impulses_[key] = {total_impulse, static_cast<int>(warm_debug_frame)};
-
+            key_totals[kt] += (it != warm_started_impulses.end())
+                                  ? it->second : velocity_impulse;
+        }
+        for (const auto& kv : key_totals) {
+            ContactKey key;
+            key.particle_a = std::get<0>(kv.first);
+            key.particle_b = std::get<1>(kv.first);
+            key.contact_type = std::get<2>(kv.first);
+            cached_impulses_[key] = {kv.second,
+                                     static_cast<int>(warm_debug_frame)};
         }
 
         // Aged cleanup - only delete entries unused for 60 frames (1 second)
@@ -5182,6 +5145,32 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
 
         float vel_sq = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
 
+        // G-44: QUIETNESS IS ONE CURRENCY AND IT MUST NOT BE GROWING.
+        // (1) A slow-COM fast-spin body is not quiet: price the angular
+        //     half as extremity speed, omega times the body's half-
+        //     extent, in the same m/s the threshold already speaks.
+        //     (First appearance of the disease: sleeping spinners kept
+        //     their spin. Second: R7's corner stand LOST its budding
+        //     topple, confiscated at exactly REST_FRAMES_REQUIRED.)
+        // (2) A body whose quietness GROWS is not settling, it is an
+        //     instability passing through low speed on its way up (an
+        //     inverted pendulum's launch). The counter accumulates only
+        //     while quietness does not grow beyond jitter tolerance.
+        //     No gravity term, no world-up: zero-g safe.
+        const float r_ext_sq = (p.shape == ParticleShape::BOX)
+            ? 0.25f * (p.width * p.width + p.height * p.height +
+                       p.thickness * p.thickness)
+            : 0.25f * p.size * p.size;
+        const float omega_sq = p.omega_x * p.omega_x +
+                               p.omega_y * p.omega_y +
+                               p.omega_z * p.omega_z;
+        const float q_sq = vel_sq + omega_sq * r_ext_sq;
+        const float prev_q_sq = p.rest_quiet_sq;
+        p.rest_quiet_sq = q_sq;
+        const bool quiet_growing =
+            q_sq > prev_q_sq * (REST_GROWTH_TOLERANCE * REST_GROWTH_TOLERANCE)
+                 + REST_GROWTH_FLOOR * REST_GROWTH_FLOOR;
+
         // THE SLEEP LAW: a body may rest only while its constraint set is
         // satisfied. Low speed with screaming constraints is a body mid-
         // correction, not a body in equilibrium (the lying blade's
@@ -5194,8 +5183,12 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
             p.frames_at_rest = 0;
             p.is_at_rest = false;
             p.low_velocity_frames = 0;
-        } else if (vel_sq < REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
-            // Velocity below rest threshold - accumulate rest frames
+        } else if (q_sq < REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
+            // Quietness below rest threshold AND not growing (G-44) -
+            // accumulate rest frames; growth resets the count.
+            if (quiet_growing) {
+                p.frames_at_rest = 0;
+            } else
             if (p.frames_at_rest < 255) p.frames_at_rest++;
             if (p.frames_at_rest >= REST_FRAMES_REQUIRED) {
                 p.is_at_rest = true;
@@ -5209,7 +5202,7 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
                 p.vx = p.vy = p.vz = 0.0f;
                 p.omega_x = p.omega_y = p.omega_z = 0.0f;
             }
-        } else if (vel_sq > WAKE_VELOCITY_THRESHOLD * WAKE_VELOCITY_THRESHOLD) {
+        } else if (q_sq > WAKE_VELOCITY_THRESHOLD * WAKE_VELOCITY_THRESHOLD) {
             // Velocity above wake threshold - actually moving
             p.frames_at_rest = 0;
             p.is_at_rest = false;

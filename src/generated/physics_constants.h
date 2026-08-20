@@ -315,6 +315,23 @@ constexpr float    WAKE_VELOCITY_THRESHOLD = 0.2f;   // unit: m/s
 // Frames below the rest threshold before resting.
 constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}
 
+// G-44. Sleep may only cache a fixed point of the dynamics, and
+// observed GROWTH of the quietness speed (linear plus angular
+// extremity speed, one currency) is proof the body is not at one: an
+// inverted pendulum passes through arbitrarily low speed while
+// accelerating away, and R7's corner stand was frozen mid-topple at
+// exactly REST_FRAMES_REQUIRED by the speed-only gate. The rest
+// counter accumulates only while the per-frame quietness ratio stays
+// at or below this tolerance, which exists to forgive solver jitter,
+// not trends.
+constexpr float    REST_GROWTH_TOLERANCE = 1.01f;   // unit: 1
+
+// G-44's absolute floor on the growth test. At the bottom of the well,
+// quietness ratios between near-zero values are noise; growth smaller
+// than this speed (1 mm/s class, same scale as ZERO_VELOCITY_SQ) never
+// blocks honest sleep.
+constexpr float    REST_GROWTH_FLOOR = 0.001f;   // unit: m/s
+
 // ------ WakePropagationConstants ------------------------------------
 // INV-18's dirty-hit gates. Origin: physics_solver.h
 // (GLUON_WAKE_STRAIN) and physics_system_v4.cpp.

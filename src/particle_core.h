@@ -161,6 +161,12 @@ public:
     bool     is_at_rest = false;
     uint8_t  frames_at_rest = 0;
     uint16_t low_velocity_frames = 0;
+    // G-44: last frame's squared quietness speed (linear + angular
+    // extremity, one currency). Sleep entry requires quietness to be
+    // NON-GROWING, because growth is an instability doing its work and
+    // a cache may only cache a fixed point. Seeded huge so the first
+    // observation can never read as growth.
+    float    rest_quiet_sq = 1e9f;
 
     ParticleOwner owner = ParticleOwner::PHYSICS;
     // Physics-layer solver authority. Independent of `owner` (which is a

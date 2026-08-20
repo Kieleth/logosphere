@@ -1294,6 +1294,29 @@ classes:
         annotations:
           cpp_type: uint8_t
         description: Frames below the rest threshold before resting.
+      REST_GROWTH_TOLERANCE:
+        range: float
+        ifabsent: float(1.01)
+        unit: { ucum_code: "1" }
+        description: >-
+          G-44. Sleep may only cache a fixed point of the dynamics, and
+          observed GROWTH of the quietness speed (linear plus angular
+          extremity speed, one currency) is proof the body is not at
+          one: an inverted pendulum passes through arbitrarily low
+          speed while accelerating away, and R7's corner stand was
+          frozen mid-topple at exactly REST_FRAMES_REQUIRED by the
+          speed-only gate. The rest counter accumulates only while the
+          per-frame quietness ratio stays at or below this tolerance,
+          which exists to forgive solver jitter, not trends.
+      REST_GROWTH_FLOOR:
+        range: float
+        ifabsent: float(0.001)
+        unit: { ucum_code: m/s }
+        description: >-
+          G-44's absolute floor on the growth test. At the bottom of
+          the well, quietness ratios between near-zero values are
+          noise; growth smaller than this speed (1 mm/s class, same
+          scale as ZERO_VELOCITY_SQ) never blocks honest sleep.
 
   WakePropagationConstants:
     abstract: true

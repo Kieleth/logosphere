@@ -89,7 +89,7 @@ constexpr float CORNER_NUDGE          = 0.02f;  // rad off the diagonal
 constexpr float CORNER_TOPPLE_SPIN_MIN = 0.5f;  // rad/s: falling IS rotating
 // fallen = resting on a FACE (with slack); standing = half diagonal up
 constexpr float CORNER_FALLEN_Z_MAX   = 0.2f /*FLOOR_TOP*/ + HERO * 0.5f + 0.05f;
-constexpr int   RUNG_COUNT = 7;
+constexpr int   RUNG_COUNT = 8;
 inline const RungSpec RUNGS[RUNG_COUNT] = {
     { "R0 control: flat, no spin",      0.0f, 0.0f, 0.0f, 0.0f,  DROP },
     { "R1 tilted 20 deg, no spin",      TILT_DEG * 3.14159265f/180.f,
@@ -102,6 +102,12 @@ inline const RungSpec RUNGS[RUNG_COUNT] = {
     { "R6 THE WALKING WHEEL: hero spins Y, drives along X, twin still",
                                         0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_SHORT },
     { "R7 THE CORNER STAND: corner-down, a hair off balance, it MUST fall (G-43)",
+                                        0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
+    // R8: the SAME corner stand, on the BARE TURTLE. R7 topples through
+    // box-box manifold rows (slab); the ramp's cube parks corner-down on
+    // the turtle. One pose, two contact paths: whichever refuses to
+    // topple names the residual stabilizer (G-43 discriminator).
+    { "R8 THE CORNER STAND ON THE TURTLE: same pose, turtle rows (G-43)",
                                         0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
 };
 
@@ -205,14 +211,16 @@ struct Scene {
         } else {
             park(ps, twin, 33.0f);
         }
-        const bool corner = (rung_index == 6);
+        const bool corner = (rung_index >= 6);
+        const bool on_turtle = (rung_index == 7);   // off the 4x4 slab
         const float half = spin_case ? HERO * 0.5f : CUBE * 0.5f;
-        rest_z = FLOOR_TOP + (corner
+        rest_z = (on_turtle ? 0.0f : FLOOR_TOP) + (corner
                      ? HERO * 0.5f * 1.7320508f      // half space diagonal
                      : (spin_case ? half : rest_height(r.tilt_rad)));
         auto v = ps.lock_particles_for_write();
         Particle& p = v[actor(rung_index)];
-        p.x = 0.0f; p.y = 0.0f; p.z = rest_z + r.drop;
+        p.x = on_turtle ? 10.0f : 0.0f;   // clear of the slab's 4x4 span
+        p.y = 0.0f; p.z = rest_z + r.drop;
         p.vx = p.vy = p.vz = 0.0f;
         if (corner) {
             // Body diagonal vertical: rotate (1,1,1) onto +Z so corner

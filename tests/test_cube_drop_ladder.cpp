@@ -125,7 +125,7 @@ int main() {
                 check(scene.argus.divergence(scene.cube) < 0.01f,
                       "R1 lever: the righting is COHERENT, one orientation "
                       "through the whole tip (Argus)");
-        } else if (r == 6) {
+        } else if (r == 6 || r == 7) {
             // R7 THE CORNER STAND — G-43's instrument. Full state named:
             // z must END at a face; spin must PEAK (falling is rotating);
             // orientation stays coherent; the face-resting twin is the
@@ -135,10 +135,14 @@ int main() {
             std::printf("  [measure] R7 hero: z %.4f (standing %.4f, "
                         "fallen-face %.4f), peak spin %.4f rad/s\n",
                         scene.settled_z(ps, H), scene.rest_z,
-                        FLOOR_TOP + HERO * 0.5f, scene.argus.peak_spin(H));
+                        (r == 7 ? 0.0f : FLOOR_TOP) + HERO * 0.5f,
+                        scene.argus.peak_spin(H));
             static const bool lever7 = std::getenv("CONTACT_TORQUE") != nullptr;
+            // R8 runs on the bare turtle: fallen-face height has no slab
+            const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
+                                              : CORNER_FALLEN_Z_MAX;
             if (lever7) {
-                check(scene.settled_z(ps, H) < CORNER_FALLEN_Z_MAX,
+                check(scene.settled_z(ps, H) < fallen_max,
                       "R7 lever: the corner stand FALLS to a face (a cube "
                       "cannot balance on a corner; G-43 says ours does)");
                 check(scene.argus.peak_spin(H) > CORNER_TOPPLE_SPIN_MIN,

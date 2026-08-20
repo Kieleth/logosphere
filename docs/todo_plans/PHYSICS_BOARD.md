@@ -439,7 +439,17 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
-## Rotation item 3 RESOLVES into G-43: corner balance is an attractor
+## G-43 SOLVED (2026-08-20): three confiscations, three laws — see LEDGER
+
+Sleep's speed-only gate (G-44), rotation-blind turtle rows (measure-gate
+now equals apply-gate, G-39), and a linear-only warm start rebuilt as
+iteration zero through the full Jacobian. R7+R8 fall, ramp cube ends
+flat, lane 0.99 -> 0.138 (ratchet met; item 5's block-solve suspicion
+likely moot). Remaining: item-2 tail (rolling-vs-sliding re-clamp),
+item 4 (G-21/G-23 gimbal with measurement), item 6 (flip ruling + ice).
+Owner QA pending for the FIXED protocol.
+
+## (superseded) Rotation item 3 RESOLVES into G-43: corner balance is an attractor
 
 The 45-degree parking was never 45 degrees. The traced rest is z =
 0.346 = HALF THE SPACE DIAGONAL with a fully 3-D rotation: the cube

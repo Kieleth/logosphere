@@ -1577,3 +1577,44 @@ Also booked: INV-29's gate refused the derived /32 in the new drag law
 — correctly, against my own commit message's rhetoric. Derived
 coefficients get NAMES (ROT_DRAG_FACE_INTEGRAL, schema, with the
 integral in its description), like the 12s before it.
+
+## 2026-08-20 — G-43 THE CORNER ATTRACTOR: solved at three laws (owner ruling A)
+
+Owner ruled A: diagnose the toppling channel before items 4-6. The corner
+attractor was three stacked confiscations, each fixed at its own law, no
+scene tuning, no special cases:
+
+1. **G-44, the sleep law's missing half.** Rest entry priced linear speed
+   only, then zeroed omega. A corner topple starts as near-pure rotation
+   (extremity 0.026 m/s < 0.1 threshold, exponential lambda ~3.4/s), so
+   the 10-frame window froze every budding topple. Law: quietness is ONE
+   currency (v^2 + omega^2 r_ext^2) and must be NON-GROWING
+   (REST_GROWTH_TOLERANCE, REST_GROWTH_FLOOR, both in schema). A cache
+   may only cache a fixed point.
+2. **Turtle rows were rotation-blind.** The omega-cross-r anchor term
+   lived only in the box-box branch of v_rel, and its gate
+   (is_quat_driven) contradicted the apply gate (DYNAMIC, G-39) so plain
+   bodies' rotation was invisible to every contact row. Measure-gate now
+   equals apply-gate, both branches.
+3. **Warm start was a second solver with different physics.** Cached
+   support applied LINEAR-ONLY to the first row of each key (hash dedup
+   dropped the rest): support without lever arms is support without
+   torque, and the turtle key hits every substep. Rebuilt as iteration
+   zero through the FULL Jacobian, distributed across the key's rows by
+   eff_mass_share; the store sums the group (the old loop stored only the
+   first row, undercounting every multi-point contact). The documented
+   hash-collision dedup defect retired with the hash dedup itself.
+
+Measured: R7 falls at 3.19 rad/s onto the slab; R8 falls at 3.35 onto
+the turtle (z 0.3997 vs face 0.4000); the ramp cube ends FLAT on the
+turtle (z 0.20, clean quarter-turn), lane walk 0.9902 -> 0.1382 m,
+INSIDE the 0.30 ratchet: the torque-free warm channel was also the lane
+driver, so rotation item 5's block-solve suspicion is likely moot.
+Lever ladder R0-R8 fully green. Harness 27/27. Honest new default red:
+R2 settled-spin passed via sleep confiscation; it now names the absent
+default torque law alongside R1's pair.
+
+Remaining on the rotation list: rolling-vs-sliding travel contract
+re-clamp (item 2 tail), G-21/G-23 gimbal ruling with measurement (item
+4), CONTACT_TORQUE flip ruling + ice (item 6). FIXED protocol: Argus
+asserts clamped; owner interactive QA pending.
