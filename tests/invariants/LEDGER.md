@@ -1551,3 +1551,29 @@ materials (ice, rock, ...) later, for fun. The ramp gains: a plate
 BODY instead of the turtle as a next case, an ice body, and the
 materials play — folded into D9's matrix as its first concrete
 instances.
+
+## 2026-08-20 — The sweep gated four-day-old binaries, and caught itself
+
+Process finding, severity high, recorded before anything else moves:
+`scripts/physics_sweep.py` runs `build-release/`, which was last built
+2026-08-16. Every sweep verdict reported since — the gates over the
+quat-truth flip, the four contact-torque slices, and D7's law — ran
+STALE binaries against current audits. Those "new-red 0" verdicts were
+vacuous for engine behaviour changes; they gated only test-file and
+audit edits.
+
+How it surfaced is the design working: D7 flipped
+test_angular_dissipation's audit to expect=pass, the stale release
+binary still ran the old red, and the contradiction raised a MOLE
+within one sweep. An audited baseline plus a live verdict cannot both
+be stale and quiet for long.
+
+Consequences: build-release is being rebuilt now and the TRUE sweep
+over this week's engine changes runs after it; the sweep script should
+refuse to run when the build tree is older than HEAD (boarded); and the
+earlier gate claims stand corrected in place rather than erased.
+
+Also booked: INV-29's gate refused the derived /32 in the new drag law
+— correctly, against my own commit message's rhetoric. Derived
+coefficients get NAMES (ROT_DRAG_FACE_INTEGRAL, schema, with the
+integral in its description), like the 12s before it.

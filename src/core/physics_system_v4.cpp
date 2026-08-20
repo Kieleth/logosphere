@@ -5395,7 +5395,7 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
                 const float I = p.GetMomentOfInertia();
                 if (I > 0.0f) {
                     const float Lx = p.width, Ly = p.height, Lz = p.thickness;
-                    const float k  = RHO_AIR * DRAG_CD / 32.0f;
+                    const float k  = RHO_AIR * DRAG_CD / ROT_DRAG_FACE_INTEGRAL;
                     const float cx = k * Lx * (Ly*Ly*Ly*Ly + Lz*Lz*Lz*Lz);
                     const float cy = k * Ly * (Lx*Lx*Lx*Lx + Lz*Lz*Lz*Lz);
                     const float cz = k * Lz * (Lx*Lx*Lx*Lx + Ly*Ly*Ly*Ly);

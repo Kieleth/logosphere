@@ -182,6 +182,14 @@ constexpr float    BOX_ROTATION_EPS = 1e-4f;   // unit: rad
 // admits ~3 mrad and under as unrotated.
 constexpr float    QUAT_UNROTATED_EPS = 1e-6f;   // unit: 1
 
+// The definite integral of |y|^3 across a face span, twice (2 *
+// (L/2)^4 / 4 = L^4/32), that appears in the derived rotational drag
+// law tau = -(rho * Cd * L_i * (L_j^4 + L_k^4) / THIS) * w|w| (G-42).
+// Derived like the 12 in a box inertia, named because INV-29's gate is
+// right that derived inputs get names too — its own gate refused the
+// bare literal.
+constexpr float    ROT_DRAG_FACE_INTEGRAL = 32.0f;   // unit: 1
+
 // Corners of a rotated box within this height of its lowest corner
 // form the turtle CONTACT PATCH: one row per corner, load shared, each
 // with its own lever arm. A single support vertex was a step function

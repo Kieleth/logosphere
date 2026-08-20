@@ -1075,6 +1075,17 @@ classes:
         description: >-
           Quaternion twin: 1 - |w| threshold. 1 - |w| ~ theta^2/8, so
           1e-6 admits ~3 mrad and under as unrotated.
+      ROT_DRAG_FACE_INTEGRAL:
+        range: float
+        ifabsent: float(32.0)
+        unit: { ucum_code: "1" }
+        description: >-
+          The definite integral of |y|^3 across a face span, twice
+          (2 * (L/2)^4 / 4 = L^4/32), that appears in the derived
+          rotational drag law tau = -(rho * Cd * L_i * (L_j^4 + L_k^4)
+          / THIS) * w|w| (G-42). Derived like the 12 in a box inertia,
+          named because INV-29's gate is right that derived inputs get
+          names too — its own gate refused the bare literal.
       SUPPORT_PATCH_BAND:
         range: float
         ifabsent: float(0.005)
