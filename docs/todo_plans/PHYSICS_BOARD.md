@@ -280,7 +280,14 @@ direction-locked in physics-linux beside the drop ladder:
   WRITE-CONTRACT change first (every KINEMATIC orientation writer
   maintains BOTH ledgers at its write site, guarded by the fifteen
   locomotion tests), read-site cleanup second, field deletion last.
-  Doing it in the other order breaks humanoids visibly.**
+  Doing it in the other order breaks humanoids visibly.
+  **SLICE 1 LANDED 2026-08-19**: the humanoid frame-end sync in
+  update_post_physics (`test_humanoid_orientation_coherence`, red at
+  1.4496 rad of trapped turn, green at 0.0007). Found and fixed on the
+  way: the yaw cascade was a SILENT NO-OP headless (`if (!impl_->engine)
+  return;` with the engine used nowhere else in the function), so the
+  source-of-truth environment had never run it. Remaining: FK-clip
+  writers on jointed rigs, then the read sites, then the field.**
 
 This is the unification's red ladder. The lever lands into it.
 
