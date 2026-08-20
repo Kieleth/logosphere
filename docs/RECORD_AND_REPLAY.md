@@ -224,6 +224,62 @@ None of that needs an engine change.
 
 ---
 
+## The roads not taken
+
+A recorded run is one path. The interesting question about a path is
+what else it could have done, and a tape now carries the answer.
+
+Every ask records the keys that were legal at that moment, so each
+entry says both what the run answered and what it could equally have
+answered. That turns a pile of transcripts into a graph: two runs that
+answered identically for three terms and parted at the fourth share a
+trunk, and the second can be produced from the first rather than
+recorded separately.
+
+```
+logovger-headless --forks life.tape
+[2] took '1', could have taken '2'
+    The Diplomat will not have you this term. The book gives you two ways...
+
+logovger-headless --fork life.tape --at 2 --instead 2
+```
+
+**Why this is computable rather than a rewrite.** Everything downstream
+of a decision is derived from the answers and the seed, and the seed is
+itself an entry in the tape. A fork replays the trunk (seed included),
+answers one decision differently, and hands every question after it to
+another source: `RandomInput` to let the rules play it out, `LiveInput`
+for a model or a person, another `TapedInput` to splice two runs.
+
+Measured on one life: the trunk is a Drifter, age 22, one term, two
+skills. Forked at the draft decision alone, the same character (UPP
+`879778`, identical, because the rolls before the fork are unchanged)
+serves seven terms and musters out a Merchant at 46 with eight skills.
+
+**What a fork refuses**, because a fork onto an answer the rules never
+offered is not a counterfactual, it is a fiction:
+
+- an answer that was not among the ones that decision offered;
+- the answer the run already gave, which is not a fork;
+- an index past the end of the tape, or one that is not a decision;
+- **any fork on a tape recorded before alternatives were kept.** Those
+  tapes report that they cannot see their branches rather than that
+  they have none, and `records_alternatives()` tells the two apart.
+
+The last one is the honest half. `offered` was not written to tapes
+before 2026-08-19, so an old tape can still be replayed exactly and
+cannot be branched, and says which.
+
+**Two things a fork holds still on purpose.** The seed comes off the
+trunk even after divergence: a branch that rolled its own dice would
+differ from its trunk for two reasons at once, and a counterfactual
+changes exactly one thing. And the fork answer is validated twice, once
+against what the tape recorded and again against what the live run
+offers, so a branch cannot be taken onto an answer the current rules
+have since stopped allowing.
+
+---
+
 ## What replay can and cannot promise
 
 **Byte-exact replay holds for**: headless runs at a fixed dt, with no

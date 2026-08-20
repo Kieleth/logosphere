@@ -101,6 +101,11 @@ private:
     std::string voice_version_;
     std::string cache_dir_;
     int         timeout_ms_ = 30000;
+    // Sized at initialize() from LOGOVGER_JUDGMENT_MAX_TOKENS. Never a
+    // magic number at the call site: see the note in initialize().
+    int         reply_budget_ = 1024;
+    // How many times a malformed reply is re-asked before the run ends.
+    int         attempts_ = 3;
 };
 
 }  // namespace logovger
