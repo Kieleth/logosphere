@@ -96,10 +96,12 @@ int main() {
     l_verdict->set_position(16, base_y + 72);
 
     if (interactive)
-        std::printf("\n  ESC or the red X quits.  SPACE moves the camera in.\n"
-                    "  cycling: control -> tilted 20 deg -> spinning 3 rad/s\n\n");
+        std::printf("\n  SPACE = next case   Z = zoom in   ESC = quit\n"
+                    "  six cases: control, tilted 20deg, top 3rad/s, fast top,\n"
+                    "  wheel X (drives along Y), wheel Y (drives along X)\n\n");
 
-    bool space_was_down = false, quit = false;
+    bool space_was_down = false, z_was_down = false, quit = false;
+    bool advance_case = false;
     int frame = 0, rung = 0, rung_frame = 0;
     char buf[256];
 
@@ -108,14 +110,18 @@ int main() {
                        : (frame < total_frames)) {
         const auto t0 = std::chrono::steady_clock::now();
 
-        // Window pacing only: 2.5 s per rung (0.25 s of fall, 2.25 s of
-        // settled viewing) instead of the headless 5 s. The physics per
-        // step is the scene's and identical; only how long a human
-        // watches the settled state differs.
-        const int shown = interactive ? 150 : RUN_FRAMES;
-        if (rung_frame >= shown) {               // next rung, wrap in window mode
-            rung = (rung + 1) % 6;   // all six rungs, G-41's wheels included
-            if (!interactive && rung == 0) break;
+        // OWNER ORDER 2026-08-20: interactive cases advance on SPACE,
+        // never on a timer — the human decides when they have seen
+        // enough of a case. Headless keeps the full audited run.
+        if (!interactive && rung_frame >= RUN_FRAMES) {
+            rung = (rung + 1) % 6;
+            if (rung == 0) break;
+            scene.arm(ps, RUNGS[rung]);
+            rung_frame = 0;
+        }
+        if (advance_case) {                      // SPACE, edge-triggered
+            advance_case = false;
+            rung = (rung + 1) % 6;
             scene.arm(ps, RUNGS[rung]);
             rung_frame = 0;
         }
@@ -127,8 +133,9 @@ int main() {
             x=p.x; y=p.y; z=p.z; oy=p.omega_y; oz=p.omega_z; ry=p.rotation_y; }
         (void)x; (void)y;   // camera and lamps are fixed; the cube moves
 
-        std::snprintf(buf, sizeof(buf), "%s   (t %.2fs)", RUNGS[rung].name,
-                      rung_frame / 60.0f);
+        std::snprintf(buf, sizeof(buf),
+                      "== CASE %d of 6 ==  %s   (t %.2fs)",
+                      rung + 1, RUNGS[rung].name, rung_frame / 60.0f);
         l_rung->set_text(buf);
         std::snprintf(buf, sizeof(buf),
                       "rot_y %.3f rad   omega_y %.3f   omega_z %.3f   z %.3f",
@@ -160,12 +167,16 @@ int main() {
             if (win) {
                 if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) quit = true;
                 if (glfwWindowShouldClose(win)) quit = true;
-                const bool down = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-                if (down && !space_was_down && ppu < 195.0f) {
-                    ppu *= 1.15f; if (ppu > 195.0f) ppu = 195.0f;
+                // SPACE = next case (owner order); zoom moved to Z.
+                const bool sp = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
+                if (sp && !space_was_down) advance_case = true;
+                space_was_down = sp;
+                const bool zk = glfwGetKey(win, GLFW_KEY_Z) == GLFW_PRESS;
+                if (zk && !z_was_down && ppu < 260.0f) {
+                    ppu *= 1.15f;
                     cam.set_pixels_per_unit(ppu);
                 }
-                space_was_down = down;
+                z_was_down = zk;
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
         }
