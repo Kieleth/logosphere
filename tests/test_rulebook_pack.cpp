@@ -355,6 +355,311 @@ void test_rule_contexts_are_explicit_kg_entities() {
           "a rule fork records its source as typed KG lineage");
 }
 
+void test_source_leaf_identity_is_a_typed_schema_tuple() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("SourceRepresentationContext", "KnowledgeContext"),
+          "an exact source representation is a reusable knowledge context");
+    CHECK(reg.hasEntityType("SourceSelector") &&
+              reg.isAbstract("SourceSelector"),
+          "SourceSelector is an abstract schema concept, not a kind string");
+    CHECK(reg.isSubtypeOf("ByteRangeSelector", "SourceSelector") &&
+              reg.isSubtypeOf("TextQuoteSelector", "SourceSelector"),
+          "byte ranges and text quotes are concrete typed selectors");
+    CHECK(reg.isSubtypeOf("SourceTarget", "Addressable"),
+          "a source target has portable structured identity");
+
+    const auto* media =
+        reg.findProperty("SourceRepresentationContext", "source_media_type");
+    const auto* algorithm = reg.findProperty("SourceRepresentationContext",
+                                             "source_digest_algorithm");
+    const auto* digest =
+        reg.findProperty("SourceRepresentationContext", "source_digest");
+    const auto* length = reg.findProperty("SourceRepresentationContext",
+                                          "source_byte_length");
+    CHECK(!reg.hasProperty("SourceRepresentationContext", "source_revision") &&
+              media && media->required &&
+              media->value_kind == kg::PropertyValueKind::Enum &&
+              media->enum_type == "SourceMediaType" &&
+              algorithm && algorithm->required &&
+              algorithm->value_kind == kg::PropertyValueKind::Enum &&
+              algorithm->enum_type == "SourceDigestAlgorithm" &&
+              digest && digest->required &&
+              digest->value_kind == kg::PropertyValueKind::String &&
+              length && length->required &&
+              length->value_kind == kg::PropertyValueKind::Integer,
+          "content identity requires typed media, digest, and byte length, "
+          "but never source revision");
+
+    const auto* start =
+        reg.findProperty("ByteRangeSelector", "source_byte_start");
+    const auto* end =
+        reg.findProperty("ByteRangeSelector", "source_byte_end");
+    const auto* selector_identity =
+        reg.findProperty("SourceSelector", "identity_context");
+    CHECK(start && start->required && start->has_min &&
+              start->min_value == 0 &&
+              start->value_kind == kg::PropertyValueKind::Integer &&
+              end && end->required && end->has_min && end->min_value == 0 &&
+              end->value_kind == kg::PropertyValueKind::Integer &&
+              selector_identity && selector_identity->required &&
+              selector_identity->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              selector_identity->ref_target ==
+                  "SourceRepresentationContext",
+          "a byte selector requires non-negative inclusive-start and "
+          "exclusive-end positions in one exact representation");
+
+    const auto* target_identity =
+        reg.findProperty("SourceTarget", "identity_context");
+    const auto* representation =
+        reg.findProperty("SourceTarget", "target_representation");
+    const auto* primary =
+        reg.findProperty("SourceTarget", "target_primary_selector");
+    const auto* quote =
+        reg.findProperty("SourceTarget", "target_quote_selector");
+    CHECK(target_identity && target_identity->required &&
+              target_identity->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              target_identity->ref_target ==
+                  "SourceRepresentationContext" && representation &&
+              representation->required &&
+              representation->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              representation->ref_target == "SourceRepresentationContext" &&
+              primary && primary->required &&
+              primary->value_kind == kg::PropertyValueKind::EntityRef &&
+              primary->ref_target == "SourceSelector" &&
+              quote && !quote->required &&
+              quote->value_kind == kg::PropertyValueKind::EntityRef &&
+              quote->ref_target == "TextQuoteSelector",
+          "a target requires representation plus typed primary selector, "
+          "with an optional typed quote selector");
+}
+
+void test_complete_source_partition_is_typed_exact_cover() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("CompleteSourcePartition", "Addressable") &&
+              reg.hasFacet("CompleteSourcePartition", "source-partition") &&
+              !reg.hasFacet("CompleteSourcePartition", "seed-owned"),
+          "a complete source partition is an explicit seed-authored assertion");
+    const auto* partition_context =
+        reg.findProperty("CompleteSourcePartition", "identity_context");
+    CHECK(partition_context && partition_context->required &&
+              partition_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              partition_context->ref_target ==
+                  "SourceRepresentationContext",
+          "a complete partition names one exact source representation");
+
+    CHECK(reg.isSubtypeOf("SourceExclusion", "Addressable") &&
+              reg.hasFacet("SourceExclusion", "source-partition") &&
+              !reg.hasFacet("SourceExclusion", "seed-owned"),
+          "syntax and layout exclusions are addressable source records");
+    const auto* exclusion_context =
+        reg.findProperty("SourceExclusion", "identity_context");
+    const auto* selector =
+        reg.findProperty("SourceExclusion", "exclusion_selector");
+    const auto* kind =
+        reg.findProperty("SourceExclusion", "exclusion_kind");
+    CHECK(exclusion_context && exclusion_context->required &&
+              exclusion_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              exclusion_context->ref_target ==
+                  "SourceRepresentationContext" &&
+              selector && selector->required && selector->create_only &&
+              selector->value_kind == kg::PropertyValueKind::EntityRef &&
+              selector->ref_target == "ByteRangeSelector" && kind &&
+              kind->required && kind->create_only &&
+              kind->value_kind == kg::PropertyValueKind::Enum &&
+              kind->enum_type == "SourceExclusionKind",
+          "an exclusion uses one typed byte range and one closed reason");
+
+    const auto kinds = reg.enumTypes().find("SourceExclusionKind");
+    CHECK(kinds != reg.enumTypes().end() &&
+              kinds->second.members.count("SYNTAX") == 1 &&
+              kinds->second.members.count("LAYOUT") == 1,
+          "only syntax and layout may be excluded from source leaves");
+}
+
+void test_source_revision_provenance_is_a_separate_typed_observation() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("SourceRevisionObservation", "Addressable") &&
+              reg.hasFacet("SourceRevisionObservation", "append-only") &&
+              reg.hasFacet("SourceRevisionObservation", "seed-owned"),
+          "a representation/revision pair is separate immutable provenance");
+
+    const auto* revision =
+        reg.findProperty("SourceRevisionObservation", "source_revision");
+    const auto* representation =
+        reg.findProperty("SourceRevisionObservation", "identity_context");
+    const auto* key =
+        reg.findProperty("SourceRevisionObservation", "entity_key");
+    CHECK(revision && revision->required &&
+              revision->value_kind == kg::PropertyValueKind::String &&
+              representation && representation->required &&
+              representation->value_kind == kg::PropertyValueKind::EntityRef &&
+              representation->ref_target == "SourceRepresentationContext" &&
+              key && key->required,
+          "revision provenance names one exact typed representation and revision");
+
+    CHECK(!reg.hasRelationType("REVISION_INCLUDES_REPRESENTATION"),
+          "the rejected mutable grouped-revision relation remains deleted");
+}
+
+void test_ingestion_edition_is_a_typed_sealed_context() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("IngestionEditionContext", "KnowledgeContext"),
+          "an ingestion edition is an explicit knowledge context");
+    CHECK(reg.hasFacet("IngestionEditionContext", "sealed-origin") &&
+              reg.hasFacet("IngestionEditionContext", "seed-owned"),
+          "an ingestion edition is immutable seed-owned origin data");
+
+    const auto* layer =
+        reg.findProperty("IngestionEditionContext", "source_layer");
+    const auto* layer_context = reg.findProperty(
+        "IngestionEditionContext", "source_layer_context");
+    const auto* format = reg.findProperty(
+        "IngestionEditionContext", "source_manifest_format");
+    const auto* algorithm = reg.findProperty(
+        "IngestionEditionContext", "source_manifest_digest_algorithm");
+    const auto* digest = reg.findProperty(
+        "IngestionEditionContext", "source_manifest_digest");
+    const auto* count = reg.findProperty(
+        "IngestionEditionContext", "source_representation_count");
+    CHECK(layer && layer->required && layer_context &&
+              layer_context->required &&
+              layer_context->value_kind ==
+                  kg::PropertyValueKind::EntityRef &&
+              layer_context->ref_target == "SourceLayerContext" && format &&
+              format->required &&
+              format->value_kind == kg::PropertyValueKind::Enum &&
+              format->enum_type == "SourceManifestFormat" && algorithm &&
+              algorithm->required &&
+              algorithm->value_kind == kg::PropertyValueKind::Enum &&
+              algorithm->enum_type == "SourceDigestAlgorithm" && digest &&
+              digest->required &&
+              digest->value_kind == kg::PropertyValueKind::String && count &&
+              count->required &&
+              count->value_kind == kg::PropertyValueKind::Integer &&
+              count->has_min && count->min_value == 1,
+          "an edition requires layer plus a typed non-empty manifest digest");
+
+    CHECK(reg.hasRelationType("EDITION_INCLUDES_REPRESENTATION") &&
+              reg.isValidRelation("EDITION_INCLUDES_REPRESENTATION",
+                                  "IngestionEditionContext",
+                                  "SourceRepresentationContext"),
+          "edition membership is a typed relation to exact representations");
+}
+
+void test_ingestion_dispositions_are_append_only_typed_decisions() {
+    const auto& reg = rulebook::ontology::registry();
+
+    CHECK(reg.isSubtypeOf("SourceCoverage", "Addressable") &&
+              reg.isSubtypeOf("IngestionClaim", "Addressable"),
+          "coverage and claims are enduring addressable ledger records");
+    CHECK(reg.isSubtypeOf("CoverageDecision", "ArbiterDecision") &&
+              reg.isSubtypeOf("ClaimDecision", "ArbiterDecision"),
+          "ledger outcomes reuse the existing arbiter event");
+    CHECK(reg.hasFacet("CoverageDecision", "append-only") &&
+              reg.hasFacet("ClaimDecision", "append-only"),
+          "ledger decision events are append-only");
+
+    const auto* target =
+        reg.findProperty("SourceCoverage", "coverage_target");
+    const auto* subject =
+        reg.findProperty("ClaimDecision", "decision_subject");
+    const auto* sequence =
+        reg.findProperty("ClaimDecision", "decision_sequence");
+    CHECK(target && target->required && target->create_only &&
+              target->value_kind == kg::PropertyValueKind::EntityRef &&
+              target->ref_target == "SourceTarget" && subject &&
+              subject->required &&
+              subject->value_kind == kg::PropertyValueKind::EntityRef &&
+              subject->ref_target == "IngestionClaim" && sequence &&
+              sequence->required && sequence->has_min &&
+              sequence->min_value == 0,
+          "typed subjects and sequences make decision histories replayable");
+
+    const auto* coverage =
+        reg.findProperty("CoverageDecision", "coverage_judgement");
+    const auto* disposition =
+        reg.findProperty("ClaimDecision", "claim_disposition");
+    const auto* gap =
+        reg.findProperty("ClaimDecision", "claim_gap_kind");
+    const auto* related =
+        reg.findProperty("ClaimDecision", "related_claim");
+    CHECK(coverage && coverage->required &&
+              coverage->value_kind == kg::PropertyValueKind::Enum &&
+              coverage->enum_type == "CoverageJudgement" && disposition &&
+              disposition->required &&
+              disposition->value_kind == kg::PropertyValueKind::Enum &&
+              disposition->enum_type == "ClaimDisposition" && gap &&
+              !gap->required &&
+              gap->value_kind == kg::PropertyValueKind::Enum &&
+              gap->enum_type == "ClaimGapKind" && related &&
+              !related->required &&
+              related->value_kind == kg::PropertyValueKind::EntityRef &&
+              related->ref_target == "IngestionClaim",
+          "decision values and exceptional links are closed ontology types");
+    CHECK(reg.enumTypes().at("ClaimGapKind").members.count("SOURCE_GAP") == 1,
+          "claim gaps distinguish defects in source content from missing "
+          "ontology and rule-language capability");
+    CHECK(reg.enumTypes().at("ClaimDisposition").members.count(
+              "SUPERSEDED") == 1,
+          "an append-only decision can replace a narrower claim without "
+          "misclassifying it as a later duplicate");
+
+    CHECK(reg.hasRelationType("CLAIM_SUPPORTED_BY") &&
+              reg.isValidRelation("CLAIM_SUPPORTED_BY", "IngestionClaim",
+                                  "SourceCoverage") &&
+              reg.hasRelationType("CLAIM_MATERIALIZES") &&
+              reg.isValidRelation("CLAIM_MATERIALIZES", "IngestionClaim",
+                                  "RuleConstant") &&
+              reg.hasRelationType("CLAIM_RESOLVED_AGAINST") &&
+              reg.isValidRelation("CLAIM_RESOLVED_AGAINST",
+                                  "IngestionClaim", "RuleConstant"),
+          "claims link to evidence, materialized graph data, and prior knowledge");
+}
+
+void test_ingestion_decision_history_cannot_be_rewritten() {
+    kg::KGModule kg(rulebook::ontology::registry());
+    kg.setMode(kg::KGMode::MINIMAL);
+
+    const auto claim = kg.createEntity("IngestionClaim");
+    kg.setProperty(claim, "identity_context", std::to_string(claim));
+    kg.setProperty(claim, "entity_key", "claim:test");
+    kg.setProperty(claim, "claim_statement", "A test claim.");
+
+    const auto decision = kg.createEntity("ClaimDecision");
+    kg.setProperty(decision, "event_type", "ARBITER_DECISION");
+    kg.setProperty(decision, "decision_subject", std::to_string(claim));
+    kg.setProperty(decision, "decision_sequence", "0");
+    kg.setProperty(decision, "claim_disposition", "RAISED");
+    kg.setProperty(decision, "claim_gap_kind", "ONTOLOGY_GAP");
+    kg.setProperty(decision, "decision_question", "Can this be typed?");
+    kg.setProperty(decision, "decision_reason", "The class is absent.");
+    kg.setProperty(decision, "arbiter", "test");
+
+    const auto rewrite = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpSetProperty{{decision, ""}, "decision_reason",
+                                     "rewritten"}},
+        kg, kg.getRegistry());
+    CHECK(!rewrite.ok &&
+              rewrite.reason.find("append-only") != std::string::npos,
+          "a validated write cannot rewrite an ingestion decision");
+
+    const auto destroy = kg::validate_kg_op(
+        kg::KGOp{kg::KGOpDestroyEntity{{decision, ""}}}, kg,
+        kg.getRegistry());
+    CHECK(!destroy.ok &&
+              destroy.reason.find("append-only") != std::string::npos,
+          "a validated write cannot delete ingestion decision history");
+}
+
 void test_rule_content_has_portable_addressable_identity() {
     const auto& reg = rulebook::ontology::registry();
     CHECK(reg.hasEntityType("Addressable") && reg.isAbstract("Addressable"),
@@ -909,6 +1214,12 @@ int main() {
     test_table_results_have_one_complete_shape();
     test_task_checks_declare_the_complete_mechanic();
     test_rule_contexts_are_explicit_kg_entities();
+    test_source_leaf_identity_is_a_typed_schema_tuple();
+    test_complete_source_partition_is_typed_exact_cover();
+    test_source_revision_provenance_is_a_separate_typed_observation();
+    test_ingestion_edition_is_a_typed_sealed_context();
+    test_ingestion_dispositions_are_append_only_typed_decisions();
+    test_ingestion_decision_history_cannot_be_rewritten();
     test_rule_content_has_portable_addressable_identity();
     test_rule_origin_and_published_content_are_immutable();
     test_chapter_one_instantiates();

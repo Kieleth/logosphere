@@ -10,7 +10,8 @@ they disagree, the docs win.
   invariants. They are non-negotiable: if a fix appears to require
   breaking one, the diagnosis is wrong. Go one level deeper.
 - [CONTRIBUTING.md](CONTRIBUTING.md): repo layout, build profiles,
-  test patterns, submission process (DCO sign-off on every commit).
+  test patterns, submission process (DCO sign-off, checked on the
+  commit that lands on main).
 - [docs/GAME_LAYER.md](docs/GAME_LAYER.md): the API surface games
   consume.
 - [docs/testing_guidelines.md](docs/testing_guidelines.md): how a test
@@ -72,11 +73,14 @@ anyone's head):
   do not exist.
 - CI: the `merge-policy` job re-runs the merged-work check on every
   PR, verifies the hooks are still executable (a hook without its
-  executable bit is ignored by git in silence), and runs both
+  executable bit is ignored by git in silence), and runs all three
   self-tests: `scripts/test-merged-work-deletion.sh` proves the
-  detector fires on the accident and stays quiet on the control, and
+  detector fires on the accident and stays quiet on the control,
   `scripts/test-pre-push-hook.sh` performs real pushes to a real
-  local remote and asserts which ones are refused.
+  local remote and asserts which ones are refused, and
+  `scripts/test-signoff-on-main.sh` proves the DCO gate refuses an
+  unsigned commit as well as accepting a signed one (that gate runs
+  on main, so a pull request never exercises it directly).
 
 If a hook refuses you, it is right and you are wrong. Do not reach
 for `--no-verify`, do not edit the hook, do not delete it out of
@@ -144,8 +148,10 @@ Three profiles: `full` (macOS arm64, default), `physics` and `core`
 (any C++17 toolchain). See CONTRIBUTING.md for commands. The
 combined harness is `./build/logosphere-tests --no-head`; standalone
 tests are individual executables under `build/`. CI runs the
-headless profiles plus a DCO check on every PR, and all required
-checks must be green before merge.
+headless profiles and the merge-policy lane on every PR, and all
+required checks must be green before merge. The DCO check does not
+run on pull requests: it runs on pushes to main, over the commit the
+squash merge produces.
 
 Tests are held to [docs/testing_guidelines.md](docs/testing_guidelines.md).
 The short version, and none of it is optional:
@@ -197,8 +203,18 @@ Graph) and links what is actively being pushed on.
 
 Present-tense imperative subject with conventional prefixes
 (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `perf:`, `chore:`).
-Body explains why, not what. Every commit carries a DCO sign-off
-(`git commit -s`). Keep each PR to one logical change.
+Body explains why, not what. Commit with `git commit -s`. Keep each PR
+to one logical change.
+
+The DCO gate is on `main`, over the commit the squash merge produces,
+not over branch commits. Sign as you go anyway: GitHub builds the
+squash message from the pull request title plus your commit messages,
+so the trailer arrives by itself. The failure it catches is a squash
+message rewritten in the merge box with the trailer deleted. Branch
+commits are not checked, because a branch catching up with
+`git merge origin/main` produces a merge commit that cannot be signed
+without the force-push the policy above refuses, and no branch should
+have to choose between the two rules.
 
 ## Never revert without explicit consent
 
@@ -225,3 +241,76 @@ force-pushing.
 ## Ordo Malleus
 
 An Ordo Malleus inquisition is on file: MALLEUS_INQUISITION.md. Consult it before touching schema or KG code.
+
+## No yes-man. Being heard is mechanical, not agreeable.
+
+When the owner states a direction, do not answer "correct" and move on.
+Restate it, name what it changes in the code or the plan, and say what
+it contradicts if it contradicts something. If you do not understand
+it, **stop and say so before acting.**
+
+This rule was earned on 2026-08-15, when the owner had to repeat three
+directions that had already been acknowledged: that rule ordering must
+be semantic rather than arrival order, that effects must both apply
+when they can rather than one suppressing the other, and that the
+ontology is read at load and never per frame. Acknowledgement that
+changes no work is indistinguishable from not listening.
+
+**Captured means outside the conversation.** In this repo that is one
+of: a ruling in `tests/invariants/LEDGER.md`, an invariant in
+`INVARIANTS.jsonl`, a thought experiment in `GEDANKEN.jsonl`, a front
+on `docs/todo_plans/PHYSICS_BOARD.md`, a test under `tests/`, a line in
+a design doc, or a comment at the code site the decision governs. Until
+it is in one of those it is not captured, and "noted" is a lie. Name
+the file.
+
+**Do not report thin evidence as strong.** "All green" when the
+evidence is a single test is a yes-man answer in a lab coat. State what
+was run, what it can discriminate, and what it cannot. A neighbouring
+test that passes both before and after a change proves nothing about
+that change and must not be counted as if it did. If a change has no
+acceptance test and no thought experiment behind it, say that in the
+same breath as the result.
+
+## Process rules the owner has stated, and their sources
+
+These were given in conversation and lived nowhere until 2026-08-16.
+They are as binding as anything above.
+
+- **Always merge, never rebase.** "always merge, always, I just do not
+  understand rebase fashion, I do not care about commit story, we could
+  even squash, we need clean merges" and, months later, "never rebase!
+  just ff merge". Do not propose a rebase even when the history would
+  be tidier.
+- **No trace that this work was done with an assistant.** "GitHub PR
+  first, no trace this was done with Claude." Commits in this repo
+  carry the DCO `Signed-off-by` trailer and nothing else. No
+  co-author trailer, no generated-with footer, in commits, PR bodies
+  or issues.
+- **Writing style: no `--`, no assistant tells.** "remove --, anything
+  LLM way of writing." Applies to every artifact in the repo, not only
+  to chat.
+- **One physics engine. No scene is ever tuned.** "we should not have
+  any scene tuned with anything, we should have one, just one physics
+  engine, and any, any scene should be using that." A per-scene solver
+  value is the same defect as a magic number (INV-29), one level up.
+- **Unused code is dangerous code. Delete it.** "delete, unused code is
+  dangerous code." This is also the rule the ledger cites when a
+  mechanism is replaced: the old path goes, no fallback left running.
+- **No git submodules.** "the rest sounds good, except submodules, lets
+  avoid those."
+- **Wind, and anything like it, is modelled and never faked.** "I do
+  not want a 'trick' to affect gluons, I want to actually model wind,
+  remember we're logosphere here, we do things based on physics."
+
+## How the maintainer writes to contributors
+
+Owner corrections, verbatim, after assistant-drafted GitHub replies:
+
+- **Suggest, do not instruct.** "I do not write like this to devs, I
+  suggest, and propose and I'm usually open to push back all the time,
+  with the intention of further collaboration and engaging others to
+  discuss better suggestions than mine, also make it friendly."
+- **First person singular.** "not we, it's 'I', Luis please."
+- **Nothing personal leaks into public channels.** "keep it unpersonal
+  and for github please, we do not want personal stuff to leak."

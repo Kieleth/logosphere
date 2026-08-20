@@ -7,6 +7,32 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Changed
+- **Relations are declared one class per predicate.** `WorldRelation`
+  and `EdenRelation` are now abstract, with a concrete subclass per
+  member of their enum: each pins `relation_type` with `equals_string`
+  and declares its own `source_id` / `target_id`. `rule_language`
+  gains the same for its thirteen. Endpoint constraints moved off the
+  enums' `valid_source_types` / `valid_target_types` annotations,
+  which are deleted along with `relation_type_enum`; the enums remain
+  the vocabulary. The generator reads `Relation` subclasses.
+
+  **Impact on games.** A schema that declares its own relation enum and
+  a single open relation class will no longer generate: split it, one
+  class per predicate. The generator now says so by name. Endpoints
+  must also be `Entity` subtypes, which a mixin is not.
+
+  **What this fixes.** Every schema in the repository failed to
+  construct under malleus, so none had been judged past construction
+  and eight rites had never run against any of them. Eden's five
+  relation types reached no registry at all, because harvesting from
+  enums required an opt-in annotation Eden never set, while game code
+  wrote those edges. `LET_EXPRESSION_HAS_BINDING` declared an endpoint
+  (`LetExpression`) that is a mixin marker no instance can belong to.
+
+  The 208 previously generated `addRelationType` triples are unchanged
+  byte for byte; the only additions are Eden's five.
+
 ### Added
 - **`docs/CAPABILITIES.md`, the honest inventory.** One page for the
   question the README never answered directly: what can this engine do
@@ -40,6 +66,26 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   missing: what the bet means for someone who never uses a language
   model.
 
+- **A sanitizer lane in CI (`sanitizers-linux`).** Builds the `core`
+  profile with AddressSanitizer and UndefinedBehaviorSanitizer and runs
+  the headless suite plus twelve chargen lives under them. It exists
+  because a use-after-lifetime bug shipped and was invisible on every
+  platform CI ran: a pointer into a vector, read after the vector was
+  cleared, which libc++ and libstdc++ tolerate and MSVC does not. ASan
+  found it in one run. Advisory, not merge-blocking, so a finding is
+  loud without blocking an unrelated merge. Built with clang and libc++,
+  and both are load-bearing: measured against the two real bugs, gcc with
+  libstdc++ detects neither, clang with libstdc++ detects one, and clang
+  with libc++ detects both. Container-overflow detection comes from
+  annotations the standard library emits, so the library is half the
+  tool. `test_chargen` is excluded and the exclusion is named in the
+  workflow: it costs 565s under the sanitizers against 74s without them,
+  and the lives step walks the same code. Known finding on landing:
+  `test_mutation_playback` aborts with a
+  stack-use-after-scope in its own fixture (a `CountingPlay` destructor
+  writes to two counters declared after the registry that owns it, so
+  they die first). The test's subject is unaffected; the fixture is
+  wrong. Not fixed here.
 - **Git integration policy, mechanically enforced.** Rebasing is
   refused by a tracked `pre-rebase` hook with no override; force-pushes
   and pushes to `main` are refused by `pre-push`. A third check refuses
@@ -87,7 +133,31 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   mandatory. The profile table now sits near the top, the reflection
   work has a first-page section carrying its own status, the origin
   story moves to `docs/WHY.md`, and the standalone headless test count
-  is corrected from 46 to 66.
+  is corrected from 46 to 71.
+- **The DCO sign-off is checked on `main`, not on branch commits.** It
+  runs on the single commit a squash merge produces, over the push
+  event, and no longer walks every commit in a pull request. The old
+  gate could not coexist with the merge policy: a branch behind `main`
+  catches up with `git merge origin/main`, and that merge commit has no
+  authored content, cannot be signed at creation, and cannot be signed
+  later without the force-push the policy refuses. A branch could obey
+  one rule or the other, never both, and it cost a branch (#131,
+  reopened as #133). Contributors see no difference: GitHub builds the
+  squash message from the pull request title plus the branch commit
+  messages, so `git commit -s` carries the trailer through by itself.
+  What the gate catches is a squash message rewritten in the merge box
+  with the trailer deleted. `scripts/check-signoff.sh` is the checker,
+  `scripts/test-signoff-on-main.sh` proves it refuses as well as
+  accepts, and the `merge-policy` CI job runs that test on every PR.
+- **Contact rules now apply in order of meaning, general first.** When
+  several rules match one contact they all fire, as before. The
+  sequence is no longer whatever the internal hash map produced (which
+  was unportable and, measured, inverted: the rule authored second
+  applied first). A rule with no condition matches every contact, so it
+  applies BEFORE a rule that names one, and the narrower rule's write
+  is the one left standing. This is what makes a blanket default
+  overridable by a specific case. Rules that cannot yet be ranked by
+  meaning fall back to authoring order.
 - **`KINEMATIC` is a transient authority, not a label.** It is held
   while an external writer drives a body's position and must be
   RELEASED when that writer stops; a body left KINEMATIC can never
@@ -105,6 +175,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - Sleep now covers angular velocity: a resting body no longer spins.
 
 ### Added
+- `verify_and_load_seed_sequence`, the single ordered path for cumulative
+  seed verification and loading. `logosphere-verify` now accepts repeated
+  `--prerequisite <seed.json>` arguments, verifies every seed in order, and
+  refuses a dependent seed when its prior graph is absent.
 - `PhysicsSystem::record_refused_impulse` / `take_refused_impulse`:
   momentum a body's authority refuses is BOOKED and available to
   whoever owns that body instead of being discarded. Contacts,
@@ -132,6 +206,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   assert the windowed chain directly.
 
 ### Fixed
+- **Logovger chargen: the Draft answer was read out of a list that had
+  already been cleared.** `find_choice` returned a pointer into the
+  session's offer list, and every caller cleared that list before it
+  was done reading the answer. libc++ and libstdc++ leave a cleared
+  vector's bytes in place, so the read kept working on macOS and
+  Linux; MSVC's `std::string` destructor zeroes the small-string
+  buffer, so on Windows `"2"` read as `""`, the Draft branch was never
+  taken, and every character who submitted to the Draft quietly became
+  a Drifter. The Draft Career table was then reached by no life at all
+  and `headless-windows` failed the absorbed-table coverage gate.
+  `find_choice` now returns an owning `std::optional<Choice>`, and a
+  `static_assert` refuses a borrowing return type. Dice are not
+  involved: `DiceService` is engine-owned xorshift64* over `uint64_t`
+  and already produced identical rolls on all three platforms.
 - Build on toolchains without `<execinfo.h>` (MSVC): the
   TURTLE_TRACE caller backtrace in `particle_system.cpp` is now
   guarded by `__has_include`; the turtle violation itself still

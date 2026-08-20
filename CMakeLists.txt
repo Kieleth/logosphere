@@ -122,9 +122,13 @@ set(LOGOSPHERE_CORE_SOURCES
     src/kg/qualified_reference.cpp
     src/kg/ontology_meta_graph.cpp
     src/kg/ontology_validator.cpp
-    # Source locators: address a piece of a rulebook, resolve it back
+    # Source evidence: address exact fragments and seal corpus editions
     src/text/source_document.cpp
     src/text/source_locator.cpp
+    src/text/source_target.cpp
+    src/text/source_manifest.cpp
+    src/text/source_corpus.cpp
+    src/kg/ingestion_ledger.cpp
     # Seed files: envelope + aliased KG-ops loaded through the
     # validated write path, and the ingestion verifier (verbatim /
     # schema / value / semantic / invariants). docs/RPG_MODULE.md.
@@ -419,6 +423,10 @@ add_headless_test(test_source_locator)
 # Resolves locators against the vendored SRD in the tree.
 target_compile_definitions(test_source_locator
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_headless_test(test_source_target)
+add_headless_test(test_source_manifest)
+add_headless_test(test_source_corpus)
+add_headless_test(test_ingestion_ledger)
 add_headless_test(test_rulebook_pack)
 add_headless_test(test_rule_fork)
 # Verbatim-checks its citations against the vendored SRD in the tree.
@@ -437,16 +445,16 @@ register_headless_test(test_seed_verifier)
 target_compile_definitions(test_seed_verifier
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
-# The ingestion verifier CLI: logosphere-verify <seed.json> <source-root>.
+# The ingestion verifier CLI accepts an ordered prerequisite chain before the
+# target seed. Game seed files still verify through game-side registries.
 # Links the ENGINE registries only (core + rulebook + earth + space,
 # merged); game seed files with game types verify through game-side
 # targets calling kg::verify_seed with their own registry.
 add_executable(logosphere-verify tools/logosphere_verify.cpp)
 target_link_libraries(logosphere-verify PRIVATE logosphere_core)
 target_compile_features(logosphere-verify PRIVATE cxx_std_17)
-# The CLI under ctest, both directions: the positive fixture must
-# verify clean (exit 0), the misquote fixture must fail (exit 1,
-# expressed as WILL_FAIL).
+# The CLI under ctest: a standalone seed passes, a misquote fails, and a
+# cross-seed reference passes only when its prerequisite is supplied.
 add_test(NAME logosphere_verify_positive
     COMMAND logosphere-verify
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/rulebook_smoke.json
@@ -456,6 +464,18 @@ add_test(NAME logosphere_verify_negative
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
+add_test(NAME logosphere_verify_prerequisite
+    COMMAND logosphere-verify
+        --prerequisite
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_base.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+add_test(NAME logosphere_verify_missing_prerequisite
+    COMMAND logosphere-verify
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+set_tests_properties(logosphere_verify_missing_prerequisite
+    PROPERTIES WILL_FAIL TRUE)
 
 # Logovger with no window: a life played by an InputSource. Proves the
 # replay harness on a real game, and gives a fuzzing entry point that
@@ -537,6 +557,19 @@ target_compile_definitions(test_chargen
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_test(NAME test_chargen COMMAND test_chargen)
 
+add_executable(test_logovger_rule_seed_identity
+    examples/logovger/test_rule_seed_identity.cpp
+    examples/logovger/src/generated/cepheus_book1_skills_ontology_registry.cpp
+    examples/logovger/src/generated/cepheus_book1_character_creation_ontology_registry.cpp
+)
+target_link_libraries(test_logovger_rule_seed_identity PRIVATE logosphere_core)
+target_compile_features(test_logovger_rule_seed_identity PRIVATE cxx_std_17)
+target_include_directories(test_logovger_rule_seed_identity PRIVATE
+    examples/logovger examples/logovger/src)
+target_compile_definitions(test_logovger_rule_seed_identity
+    PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+register_headless_test(test_logovger_rule_seed_identity)
+
 # Pure arithmetic: where the panels sit. No engine, no GPU, no window.
 # It catches the failures a screenshot cannot, starting with a window
 # too wide for the display to show at all.
@@ -563,6 +596,7 @@ add_headless_test(test_interaction_ontology)
 add_headless_test(test_interaction_rule_loading)
 add_headless_test(test_contact_producer)
 add_headless_test(test_contact_bounce)
+add_headless_test(test_rule_order_determinism)  # two rules, one contact
 add_headless_test(test_goap_executors)
 add_headless_test(test_interaction_events)
 add_headless_test(test_interaction_profiles)
@@ -1270,6 +1304,20 @@ target_include_directories(test_refused_momentum_ledger PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
+
+# D7, born red: what slows a spinning body down? Today, a constant.
+# ANGULAR_DRAG is multiplied into omega four times a frame for every
+# body in every surrounding, so a cube spinning in vacuum stops in a
+# second. Measures GEDANKEN-25 and names GEDANKEN-27's blocker.
+add_executable(test_angular_dissipation tests/test_angular_dissipation.cpp)
+target_link_libraries(test_angular_dissipation PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_angular_dissipation PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_angular_dissipation PRIVATE cxx_std_17)
 
 # INV-6's first witness: the same press on three axes must resolve the
 # same, or the solver knows which way is down.

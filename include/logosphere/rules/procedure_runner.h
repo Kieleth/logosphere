@@ -87,6 +87,14 @@ public:
         const std::string& name) const;
     const ProcedurePrimitive* handler(const std::string& name) const;
 
+    // Every declared primitive, sorted. A registry that answers about
+    // one name cannot answer "what is in here", and the set of names is
+    // a design surface rather than an implementation detail: it is the
+    // vocabulary a stored procedure may point at, and each name carries
+    // the route labels that decide how a seed may leave that step. So
+    // something has to be able to read the set back and check it.
+    std::vector<std::string> declared_names() const;
+
 private:
     struct Entry {
         ProcedurePrimitiveContract contract;

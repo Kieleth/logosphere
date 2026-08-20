@@ -109,17 +109,6 @@ def _annotation_is_true(definition, name: str) -> bool:
     }
 
 
-def _annotation_csv(definition, name: str) -> set[str]:
-    annotations = getattr(definition, "annotations", None)
-    if not annotations or name not in annotations:
-        return set()
-    return {
-        value.strip()
-        for value in str(annotations[name].value).split(",")
-        if value.strip()
-    }
-
-
 def _is_mixin(sv: SchemaView, class_name: str) -> bool:
     """Check if a class is a mixin."""
     cls = sv.get_class(class_name)
@@ -199,39 +188,56 @@ def _linkml_range_to_value_kind(sv: SchemaView, range_name: str | None) -> str:
 def _get_relation_domain_range(
     sv: SchemaView,
 ) -> dict[str, tuple[set[str], set[str], object]]:
-    """Extract relation names and endpoint constraints from owned enums.
+    """Extract relation names and endpoint constraints from Relation
+    subclasses.
 
-    WorldRelationType remains the engine's default relation vocabulary.
-    Imported packs may own another enum annotated relation_type_enum: true.
-    Permissible values optionally declare comma-separated
-    valid_source_types and valid_target_types; omission means Entity.
+    The contract lives on the class, which is where malleus's
+    `bound_endpoints` rite looks and where a reader looking at one
+    relation finds its shape. A concrete subclass of Relation pins its
+    predicate with `equals_string` on relation_type, and narrows
+    source_id / target_id; an omitted endpoint means Entity, which for
+    several engine relations is the measured truth rather than neglect.
+
+    This replaced harvesting from enums annotated `relation_type_enum`,
+    where the endpoints hung off permissible values. That path is
+    deleted rather than kept as a fallback: two ways to declare one
+    fact is how the two drift apart. The enums remain as the
+    vocabulary, and are the range of each class's relation_type slot.
     """
     result = {}
-    for enum_name, enum_def in sorted(sv.all_enums().items()):
-        if enum_name != "WorldRelationType" and not _annotation_is_true(
-            enum_def, "relation_type_enum"
-        ):
+    for class_name, cls in sorted(sv.all_classes().items()):
+        if not _is_relation_subtype(sv, class_name):
             continue
-        for pv_name, permissible in (enum_def.permissible_values or {}).items():
-            sources = _annotation_csv(permissible, "valid_source_types") or {
-                "Entity"
-            }
-            targets = _annotation_csv(permissible, "valid_target_types") or {
-                "Entity"
-            }
-            unknown = (sources | targets) - set(sv.all_classes())
-            if unknown:
-                raise ValueError(
-                    f"Relation '{pv_name}' names unknown endpoint types: "
-                    + ", ".join(sorted(unknown))
-                )
-            incoming = (sources, targets, enum_def)
-            if pv_name in result and result[pv_name][:2] != incoming[:2]:
-                raise ValueError(
-                    f"Relation '{pv_name}' has conflicting endpoint "
-                    "constraints"
-                )
-            result[pv_name] = incoming
+        if getattr(cls, "abstract", False):
+            continue
+
+        usage = cls.slot_usage or {}
+        predicate = getattr(usage.get("relation_type"), "equals_string", None)
+        if not predicate:
+            raise ValueError(
+                f"Concrete relation '{class_name}' does not fix "
+                "relation_type with equals_string, so the predicate it "
+                "writes is unknowable until runtime and its endpoints "
+                "cannot be checked. Either fix the predicate or mark "
+                "the class abstract."
+            )
+
+        sources = {getattr(usage.get("source_id"), "range", None) or "Entity"}
+        targets = {getattr(usage.get("target_id"), "range", None) or "Entity"}
+
+        unknown = (sources | targets) - set(sv.all_classes())
+        if unknown:
+            raise ValueError(
+                f"Relation '{predicate}' names unknown endpoint types: "
+                + ", ".join(sorted(unknown))
+            )
+        incoming = (sources, targets, cls)
+        if predicate in result and result[predicate][:2] != incoming[:2]:
+            raise ValueError(
+                f"Relation '{predicate}' has conflicting endpoint "
+                "constraints"
+            )
+        result[predicate] = incoming
 
     return result
 
@@ -300,7 +306,12 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     # Ancestors (full inheritance chains)
     lines.append("    // Inheritance chains")
     for cn in sorted(sv.all_classes()):
-        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)):
+        # Event is a sibling root of Entity in Malleus. Omitting it here
+        # registered direct Event parents but left isSubtypeOf unable to see
+        # any Event inheritance at runtime. Every registered class family
+        # needs the same complete ancestor projection.
+        if not (_is_mixin(sv, cn) or _is_entity_subtype(sv, cn)
+                or _is_event_subtype(sv, cn)):
             continue
         ancestors = _get_ancestors(sv, cn)
         if ancestors:
@@ -386,13 +397,13 @@ def generate_registry_cpp(yaml_path: str, namespace: str, output_path: str):
     # Relation types with domain/range
     lines.append("    // Relation types")
     rel_constraints = _get_relation_domain_range(sv)
-    for rel_name, (sources, targets, relation_enum) in sorted(
+    for rel_name, (sources, targets, relation_class) in sorted(
         rel_constraints.items()
     ):
         src_set = _cpp_string_set(sources)
         tgt_set = _cpp_string_set(targets)
         emit(
-            _definition_source(relation_enum, "enum WorldRelationType"),
+            _definition_source(relation_class, f"relation '{rel_name}'"),
             f'    reg.addRelationType("{rel_name}", {src_set}, {tgt_set});',
         )
 

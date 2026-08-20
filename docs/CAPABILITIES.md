@@ -99,9 +99,9 @@ model. An undeclared write is refused, at load, with a reason.
 
 **What proves it.** The `ontology-generation` CI job regenerates every
 output from the schemas and rejects drift, so a hand-edited generated file
-fails the build. 66 standalone headless test targets cover the graph,
-capabilities, damage, events, planning, pathfinding, and game time, and run
-in the `headless-linux` job. The `core` profile is proved portable by installing the package to a
+fails the build. 71 standalone headless test targets cover the graph,
+capabilities, damage, events, planning, pathfinding, and game time, and run in
+the `headless-linux` job (97 tests in total through ctest). The `core` profile is proved portable by installing the package to a
 prefix and building an external consumer against it
 (`examples/consumer-smoke`), which is a different claim from "our own tests
 pass".
@@ -172,6 +172,14 @@ exact bytes there. `REFLECTION_PROTOCOL.md:58-62` states the contract and
 calls it the only extension point needed to absorb a scanned book. Nothing
 implements it today, and image regions are reserved in the address grammar
 and unimplemented.
+
+**Open after the 2026-08-17 provenance spike.** If a scan is the
+authoritative source, treating its OCR transcript as the L0 source loses the
+derivation path back to the pixels. `todo_plans/SOURCE_LOCATION_PROVENANCE_SPIKE.md`
+separates the pinned image target from its model-generated transcript and
+records the standards evidence. That is a research finding, not a changed
+protocol. The owner must decide the boundary before the paragraph above or
+`REFLECTION_PROTOCOL.md` changes.
 
 **Ungated, and named as such.** Two rules in the protocol have no automatic
 check: that content is copied rather than retyped (R3), and that

@@ -16,6 +16,46 @@ Measured 2026-08-14 against commit `60b6932`.
 
 ---
 
+## What this document got wrong about itself
+
+**Added 2026-08-15 14:51 UTC, after the design record was read
+properly.**
+
+This was written as discovery. It was not. Every measurement in it is
+new and stands; the DIAGNOSIS was already on file and had been for
+days, in `RPG_MODULE.md`, which this document referenced nowhere.
+
+Two things were already decided when it was written:
+
+- **2026-08-09**, the decision ladder: tier 0 engine rules, tier 1
+  prepared content, tier 2 a Haiku-class fast model, tier 3 a
+  Sonnet-class referee. The model tiering this document reasons its way
+  toward was already the owner's design.
+- **2026-08-11**, "Ingestion: who reads, who judges, who checks":
+  transcription mechanical, meaning judged, judgement audited. That
+  `INJURY_ROWS` holds a hand-written reading of the prose is a recorded
+  decision with stated reasons, not an unnoticed gap.
+
+So sections 2 and 4 read as findings and are better read as
+measurements of a known position. The numbers were worth taking. The
+surprise was not.
+
+**And the position they measured has since died.** On 2026-08-15 the
+2026-08-11 decision was partly superseded: transcription moved back to
+a model reading through a tool that returns exact bytes at an address,
+because a deterministic parser leaves 8.5% of the SRD's pipe-prefixed
+lines unaccounted for and fails by silent corruption rather than honest
+loss. The evidence for that came from section 3 below. So the review
+did its job. It just did not know it was arguing with a decision rather
+than reporting a discovery.
+
+Read it alongside `docs/REFLECTION_PROTOCOL.md`, where the layers and
+their contracts now live, and the ledger in `RPG_MODULE.md`, where a
+decision's current state is recorded. Where this document disagrees
+with either, they win and this one is stale.
+
+---
+
 ## 1. The vision, split into stages
 
 Stated so each stage can be tested separately.
@@ -353,11 +393,22 @@ because it can hold what the seeds cannot.
 
 ## 7. Open questions
 
-Not decided here.
+This review is historical. Later decisions are marked here so it does
+not keep reopening settled questions. The canonical decision record is
+`RPG_MODULE.md`; the active implementation checklist is
+`todo_plans/LOGOVGER_INGESTION_LEDGER_ROADMAP.md`.
 
-1. Does the ledger hold the whole book, including passages that will
-   never be mechanised (flavour text, examples of play), or only
-   passages with rule content?
+1. **DECIDED 2026-08-16:** the ledger holds the whole book. "No rule
+   content" is a visible judgement, never a pre-ledger filter.
+   **AMENDED 2026-08-17:** option 4 gives that judgement a mechanically
+   enumerable source-coverage row and records each distinct meaning as
+   an atomic child claim. One source unit may yield zero, one, or many
+   claims, so compound passages no longer force one misleading status.
+   **GRAIN DECIDED 2026-08-17:** coverage units are atomic source leaves:
+   headings, prose sentences, table cells, and sentences within list
+   items, with opaque leaves for unclassified source content. Paragraph,
+   row, section, and file grouping may be derived later but never replace
+   or hide the leaf record.
 2. What does an un-ingestible exception look like when the reason is
    "the ontology cannot say this yet" versus "the rule language has no
    operator for this"? J4 is the second kind and today they are the same

@@ -120,6 +120,28 @@ happening once, so treat the rule as live but unenforced and ask.
 
 ## Operating rules
 
+- **Extraction is cumulative, never parallel and blind.** A passage is
+  read against everything already ingested. "Characters receive one
+  benefit per term served" cannot be captured without already holding
+  *character*, *term served*, and *benefit*, none of which that
+  sentence defines. So: reading order is a DEPENDENCY order, not page
+  order; how much can be read at once is bounded by that order and it
+  is a correctness limit, not a throughput knob; every reader gets the
+  passage, the schema, AND the slice of graph its terms resolve into;
+  an unresolvable term is a raised finding, never a guessed meaning.
+  "No magic strings" applies to concepts too. Full statement: R11 in
+  `docs/REFLECTION_PROTOCOL.md`. This is the rule the module turns on.
+- **A term used before it is defined CREATES a provisional concept.**
+  R12, decided 2026-08-16, gate not built yet. No real book admits an
+  order where every term precedes its use, so the requirement is a
+  CLOSED QUEUE rather than a perfect order. Provisional is a distinct
+  status nothing may execute against; it names the passage that forced
+  it; every later reference reinforces it, which RANKS the queue by the
+  book's own usage; the queue closes before the world is playable.
+  Reinforcement measures importance and **never** resolution: forty
+  references do not define a term, and promoting on count rebuilds the
+  half-open gate on exactly the most load-bearing concepts in the
+  graph. Promotion needs a definition, found and judged.
 - **Structure is judged, content is copied.** A model decides which
   rows belong to which table, which cell is a footnote, where a column
   wrapped. It NEVER types the text. Bytes come from a tool that

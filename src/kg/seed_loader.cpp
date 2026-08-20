@@ -3,11 +3,16 @@
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_ops_parse.h"
 #include "logosphere/kg/kg_ops_transaction.h"
+#include "logosphere/text/source_manifest.h"
+#include "logosphere/text/source_target.h"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <charconv>
+#include <limits>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace kg {
@@ -197,6 +202,191 @@ bool seed_creates_addressable_content(const SeedEnvelope& seed,
     return false;
 }
 
+bool uses_source_representation_identity(const KGModule& kg,
+                                         const std::string& type) {
+    const auto& ontology = kg.getRegistry();
+    const PropertyDef* identity =
+        ontology.findProperty(type, "identity_context");
+    return identity != nullptr &&
+           identity->value_kind == PropertyValueKind::EntityRef &&
+           ontology.isSubtypeOf(identity->ref_target,
+                                "SourceRepresentationContext");
+}
+
+const std::string* create_property(const KGOpCreateEntity& create,
+                                   const std::string& property) {
+    for (const auto& [name, value] : create.properties)
+        if (name == property) return &value;
+    return nullptr;
+}
+
+bool create_has_nonempty_property(const KGOpCreateEntity& create,
+                                  const std::string& property) {
+    const auto* value = create_property(create, property);
+    return value != nullptr && !value->empty();
+}
+
+bool seed_requires_legacy_document_context(const SeedEnvelope& seed,
+                                           const KGModule& kg) {
+    for (const KGOp& op : seed.ops) {
+        const auto* create = std::get_if<KGOpCreateEntity>(&op);
+        if (create && kg.getRegistry().isSubtypeOf(create->type, "Cited") &&
+            create_has_nonempty_property(*create, "source_quote")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool parse_nonnegative_selector_bound(const KGOpCreateEntity& create,
+                                      const char* property,
+                                      long long& out,
+                                      std::string& error) {
+    const auto* value = create_property(create, property);
+    if (value == nullptr || value->empty() || value->front() == '-') {
+        error = "ByteRangeSelector @" + create.as + ": " + property +
+                " must be a non-negative integer";
+        return false;
+    }
+    const auto parsed = std::from_chars(
+        value->data(), value->data() + value->size(), out);
+    if (parsed.ec != std::errc{} ||
+        parsed.ptr != value->data() + value->size()) {
+        error = "ByteRangeSelector @" + create.as + ": " + property +
+                " must be a non-negative integer";
+        return false;
+    }
+    return true;
+}
+
+bool derive_selector_keys(
+    const SeedEnvelope& seed, const KGModule& kg,
+    std::unordered_map<std::string, std::string>& selector_keys,
+    int& failed_op, std::string& error) {
+    for (std::size_t index = 0; index < seed.ops.size(); ++index) {
+        const auto* create =
+            std::get_if<KGOpCreateEntity>(&seed.ops[index]);
+        if (!create || !kg.getRegistry().isSubtypeOf(
+                           create->type, "SourceSelector")) {
+            continue;
+        }
+        if (kg.getRegistry().isSubtypeOf(create->type,
+                                         "TextQuoteSelector")) {
+            continue;
+        }
+        if (!kg.getRegistry().isSubtypeOf(create->type,
+                                          "ByteRangeSelector")) {
+            failed_op = static_cast<int>(index);
+            error = "ops[" + std::to_string(index) + "]: SourceSelector '" +
+                    create->type + "' has no seed-loader identity rule";
+            return false;
+        }
+        long long start = 0;
+        long long end = 0;
+        if (!parse_nonnegative_selector_bound(
+                *create, "source_byte_start", start, error) ||
+            !parse_nonnegative_selector_bound(
+                *create, "source_byte_end", end, error)) {
+            failed_op = static_cast<int>(index);
+            error = "ops[" + std::to_string(index) + "]: " + error;
+            return false;
+        }
+        if (start > end) {
+            failed_op = static_cast<int>(index);
+            error = "ops[" + std::to_string(index) +
+                    "]: ByteRangeSelector @" + create->as +
+                    " starts after it ends";
+            return false;
+        }
+        selector_keys.emplace(
+            create->as,
+            logosphere::text::canonical_byte_range_key(start, end));
+    }
+    return true;
+}
+
+bool target_primary_key(
+    const KGOpCreateEntity& create,
+    const std::unordered_map<std::string, std::string>& selector_keys,
+    std::string& key, std::string& error) {
+    const auto* value = create_property(create, "target_primary_selector");
+    if (value == nullptr || value->size() < 2 || value->front() != '@' ||
+        (*value)[1] == '@') {
+        error = "SourceTarget @" + create.as +
+                " requires a same-seed ByteRangeSelector alias as its "
+                "target_primary_selector";
+        return false;
+    }
+    const auto found = selector_keys.find(value->substr(1));
+    if (found == selector_keys.end()) {
+        error = "SourceTarget @" + create.as +
+                " target_primary_selector does not name a same-seed "
+                "ByteRangeSelector";
+        return false;
+    }
+    key = found->second;
+    return true;
+}
+
+bool validate_ingestion_edition(const SeedEnvelope& seed,
+                                EntityID edition,
+                                const KGModule& kg,
+                                EntityID& representation,
+                                std::string& error) {
+    if (edition == INVALID_ENTITY || !kg.exists(edition) ||
+        kg.getType(edition) != "IngestionEditionContext") {
+        error = "seed identity context is not an IngestionEditionContext";
+        return false;
+    }
+    const auto resolved =
+        logosphere::text::resolve_ingestion_edition(kg, edition);
+    if (!resolved.ok) {
+        error = "seed ingestion edition is invalid: " + resolved.reason;
+        return false;
+    }
+    if (!require_context_property(kg, edition, "source_layer", seed.layer,
+                                  error)) {
+        return false;
+    }
+
+    representation = INVALID_ENTITY;
+    for (const EntityID candidate : kg.getRelated(
+             edition, "EDITION_INCLUDES_REPRESENTATION")) {
+        if (kg.getProperty(candidate, "source_file") != seed.source.file)
+            continue;
+        if (representation != INVALID_ENTITY) {
+            error = "seed ingestion edition contains duplicate source_file '" +
+                    seed.source.file + "'";
+            return false;
+        }
+        representation = candidate;
+    }
+    if (representation == INVALID_ENTITY) {
+        error = "seed ingestion edition does not include source_file '" +
+                seed.source.file + "'";
+        return false;
+    }
+
+    size_t matching_revisions = 0;
+    for (const EntityID observation :
+         kg.findByType("SourceRevisionObservation")) {
+        if (kg.getProperty(observation, "identity_context") ==
+                std::to_string(representation) &&
+            kg.getProperty(observation, "source_revision") ==
+                seed.source.commit) {
+            ++matching_revisions;
+        }
+    }
+    if (matching_revisions != 1) {
+        error = "seed ingestion edition source_file '" + seed.source.file +
+                "' requires exactly one source revision observation for '" +
+                seed.source.commit + "', found " +
+                std::to_string(matching_revisions);
+        return false;
+    }
+    return true;
+}
+
 bool seed_owns_type(const KGModule& kg, const std::string& type) {
     const auto& ontology = kg.getRegistry();
     return ontology.hasFacet(type, "seed-owned") ||
@@ -236,6 +426,14 @@ bool validate_loader_owned_ops(const SeedEnvelope& seed, const KGModule& kg,
                     failed_op = static_cast<int>(index);
                     error = "ops[" + std::to_string(index) + "]: " + name +
                             " is seed-loader-owned";
+                    return false;
+                }
+                if (kg.getRegistry().isSubtypeOf(create->type,
+                                                 "SourceTarget") &&
+                    name == "target_representation") {
+                    failed_op = static_cast<int>(index);
+                    error = "ops[" + std::to_string(index) +
+                            "]: target_representation is seed-loader-owned";
                     return false;
                 }
             }
@@ -368,9 +566,18 @@ bool refuse_names_already_loaded(const SeedEnvelope& seed, const KGModule& kg,
     return true;
 }
 
-bool load_seed(const SeedEnvelope& seed, KGModule& kg,
-               SeedLoadReport& report) {
+static bool load_seed_with_identity(const SeedEnvelope& seed,
+                                    EntityID ingestion_edition_context,
+                                    KGModule& kg,
+                                    SeedLoadReport& report) {
     report = SeedLoadReport{};
+    EntityID source_representation = INVALID_ENTITY;
+    if (ingestion_edition_context != INVALID_ENTITY &&
+        !validate_ingestion_edition(seed, ingestion_edition_context, kg,
+                                    source_representation, report.error)) {
+        report.ok = false;
+        return false;
+    }
     int invalid_op = -1;
     if (!refuse_names_already_loaded(seed, kg, invalid_op, report.error)) {
         report.ok = false;
@@ -378,6 +585,31 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
         return false;
     }
     if (!validate_loader_owned_ops(seed, kg, invalid_op, report.error)) {
+        report.ok = false;
+        report.failed_op = invalid_op;
+        return false;
+    }
+    if (source_representation == INVALID_ENTITY) {
+        for (size_t index = 0; index < seed.ops.size(); ++index) {
+            const auto* create =
+                std::get_if<KGOpCreateEntity>(&seed.ops[index]);
+            if (!create ||
+                !uses_source_representation_identity(kg, create->type)) {
+                continue;
+            }
+            report.ok = false;
+            report.failed_op = static_cast<int>(index);
+            report.error =
+                "ops[" + std::to_string(index) +
+                "]: representation-scoped Addressable type '" +
+                create->type + "' requires load_seed_in_edition with an "
+                               "exact source representation";
+            return false;
+        }
+    }
+    std::unordered_map<std::string, std::string> selector_keys;
+    if (!derive_selector_keys(seed, kg, selector_keys, invalid_op,
+                              report.error)) {
         report.ok = false;
         report.failed_op = invalid_op;
         return false;
@@ -399,10 +631,14 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
     EntityID document_id = INVALID_ENTITY;
     const std::string layer_key = layer_context_key(seed);
     const std::string document_key = document_context_key(seed);
+    const bool needs_document =
+        ingestion_edition_context == INVALID_ENTITY ||
+        seed_requires_legacy_document_context(seed, kg);
     if (!find_context(kg, layer_key, "SourceLayerContext", layer_id,
                       report.error) ||
-        !find_context(kg, document_key, "SourceDocumentContext", document_id,
-                      report.error)) {
+        (needs_document &&
+         !find_context(kg, document_key, "SourceDocumentContext", document_id,
+                       report.error))) {
         report.ok = false;
         return false;
     }
@@ -444,7 +680,7 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
     const std::string layer_ref = layer_id == INVALID_ENTITY
         ? std::string("@") + kLayerAlias
         : std::to_string(layer_id);
-    if (document_id == INVALID_ENTITY) {
+    if (needs_document && document_id == INVALID_ENTITY) {
         augmented.emplace_back(KGOpCreateEntity{
             "SourceDocumentContext",
             {{"context_key", document_key},
@@ -455,17 +691,48 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
             kDocumentAlias});
     }
     const size_t prefix_count = augmented.size();
-    const std::string document_ref = document_id == INVALID_ENTITY
-        ? std::string("@") + kDocumentAlias
-        : std::to_string(document_id);
+    const std::string document_ref = needs_document
+        ? (document_id == INVALID_ENTITY
+               ? std::string("@") + kDocumentAlias
+               : std::to_string(document_id))
+        : std::string{};
+    const std::string identity_ref =
+        ingestion_edition_context == INVALID_ENTITY
+            ? document_ref
+            : std::to_string(ingestion_edition_context);
 
     for (size_t index = 0; index < seed.ops.size(); ++index) {
         KGOp copied = seed.ops[index];
         if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
             create &&
             kg.getRegistry().isSubtypeOf(create->type, "Addressable")) {
-            create->properties.emplace_back("identity_context", document_ref);
-            create->properties.emplace_back("entity_key", create->as);
+            const bool is_representation_scoped =
+                uses_source_representation_identity(kg, create->type);
+            const bool is_target = kg.getRegistry().isSubtypeOf(
+                create->type, "SourceTarget");
+            const std::string scoped_identity = is_representation_scoped
+                ? std::to_string(source_representation)
+                : identity_ref;
+            std::string entity_key = create->as;
+            if (kg.getRegistry().isSubtypeOf(create->type,
+                                             "ByteRangeSelector")) {
+                entity_key = selector_keys.at(create->as);
+            } else if (is_target) {
+                if (!target_primary_key(*create, selector_keys, entity_key,
+                                        report.error)) {
+                    report.ok = false;
+                    report.failed_op = static_cast<int>(index);
+                    report.error = "ops[" + std::to_string(index) +
+                                   "]: " + report.error;
+                    return false;
+                }
+                create->properties.emplace_back(
+                    "target_representation",
+                    std::to_string(source_representation));
+            }
+            create->properties.emplace_back("identity_context",
+                                            scoped_identity);
+            create->properties.emplace_back("entity_key", entity_key);
         }
         if (auto* create = std::get_if<KGOpCreateEntity>(&copied);
             create && kg.getRegistry().isSubtypeOf(create->type, "Cited")) {
@@ -481,7 +748,10 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
                                "]: origin_context is seed-loader-owned";
                 return false;
             }
-            create->properties.emplace_back("origin_context", document_ref);
+            const bool legacy =
+                create_has_nonempty_property(*create, "source_quote");
+            create->properties.emplace_back(
+                "origin_context", legacy ? document_ref : identity_ref);
         }
         augmented.push_back(std::move(copied));
     }
@@ -499,16 +769,33 @@ bool load_seed(const SeedEnvelope& seed, KGModule& kg,
     if (layer_id == INVALID_ENTITY) {
         layer_id = report.bindings.at(kLayerAlias);
     }
-    if (document_id == INVALID_ENTITY) {
+    if (needs_document && document_id == INVALID_ENTITY) {
         document_id = report.bindings.at(kDocumentAlias);
     }
     report.bindings.erase(kLayerAlias);
     report.bindings.erase(kDocumentAlias);
+    report.identity_context =
+        ingestion_edition_context == INVALID_ENTITY
+            ? document_id
+            : ingestion_edition_context;
     report.source_layer_context = layer_id;
     report.source_document_context = document_id;
     report.created_ids.assign(batch.created_ids.begin() + prefix_count,
                               batch.created_ids.end());
     return true;
+}
+
+bool load_seed(const SeedEnvelope& seed, KGModule& kg,
+               SeedLoadReport& report) {
+    return load_seed_with_identity(seed, INVALID_ENTITY, kg, report);
+}
+
+bool load_seed_in_edition(const SeedEnvelope& seed,
+                          EntityID ingestion_edition_context,
+                          KGModule& kg,
+                          SeedLoadReport& report) {
+    return load_seed_with_identity(seed, ingestion_edition_context, kg,
+                                   report);
 }
 
 }  // namespace kg

@@ -361,7 +361,13 @@ size_t ParticleInteractionSystem::process_contacts(
                 ContactContext view =
                     view_from(kg, c, self, other, /*flip=*/side == 0);
 
-                for (const auto& [rid, r] : rules_) {
+                // EVERY matching rule fires. There is no election here
+                // and no suppression: two rules that both describe this
+                // contact both apply, and the ORDER is what decides the
+                // outcome of any last-write-wins effect. So walk
+                // rule_order_, not the hash map.
+                for (uint32_t rid : rule_order_) {
+                    const TransformationRule& r = rules_.at(rid);
                     if (r.trigger != Trigger::ON_CONTACT) continue;
                     if (!conditions.evaluate(r.condition, view)) continue;
                     ContactEffectContext ectx{view, *this, bus};
@@ -484,6 +490,48 @@ size_t ParticleInteractionSystem::load_rules_from_kg(const kg::KGModule& kg) {
         ++loaded;
     }
 
+    // The order rules apply in, decided ONCE here rather than left to
+    // however the hash map happens to bucket EntityIDs. Several rules can
+    // match one occurrence and all of them fire, so this sequence is the
+    // outcome for every last-write-wins effect; leaving it to the map
+    // made it depend on which rule was authored first, backwards
+    // (`tests/test_rule_order_determinism.cpp` measures it).
+    //
+    // ORDERED BY MEANING, GENERAL FIRST. A rule that states no condition
+    // describes every contact, so it is the catch-all; a rule that states
+    // one describes fewer. The general one applies FIRST and the specific
+    // one LAST, because for any last-write-wins effect the last write is
+    // the one that survives. That is what makes "default, then override"
+    // work: a blanket rule can set the ordinary outcome and a narrow rule
+    // can replace it, which is the shape the physics-default `else`
+    // branch needs.
+    //
+    // Only that one distinction is drawn here, and only because it is
+    // derivable: no condition matches a strict superset of what any
+    // condition matches. Finer ranking is NOT attempted:
+    //   - type depth (Werewolf under Shapeshifter) waits on the default
+    //     hierarchy policy, R5's residual;
+    //   - threshold tightness (impact_above:5 inside impact_above:1) is
+    //     derivable but only BETWEEN two rules using that same condition,
+    //     and a single sort key cannot express that without also ranking
+    //     unlike conditions against each other, which is a claim nobody
+    //     has made;
+    //   - with_type against with_part_type is genuinely incomparable, the
+    //     same crossing-sets shape as R5.
+    // Everything unranked falls to id, which is authoring order and is
+    // the declared tiebreak rather than an accident.
+    auto tier = [this](uint32_t id) {
+        return rules_.at(id).condition.empty() ? 0 : 1;
+    };
+    rule_order_.clear();
+    rule_order_.reserve(rules_.size());
+    for (const auto& [id, r] : rules_) rule_order_.push_back(id);
+    std::sort(rule_order_.begin(), rule_order_.end(),
+              [&](uint32_t a, uint32_t b) {
+                  const int ta = tier(a), tb = tier(b);
+                  return (ta != tb) ? (ta < tb) : (a < b);
+              });
+
     // Refresh the hot-path gate once, here, rather than scanning rules
     // every frame in process_contacts.
     has_contact_rules_ = false;
@@ -551,7 +599,11 @@ void ParticleInteractionSystem::tick_transformations(
     //    process_filtered_overlaps; render indices still valid).
     if (!rules_.empty()) {
         for (const auto& open : episode_opens_) {
-            for (const auto& [rid, r] : rules_) {
+            // Same contract, same reason to walk the ordered view: these
+            // effects (swap_profile, fade_out, delete) are last-write-wins
+            // or destructive, so the sequence is the outcome.
+            for (uint32_t rid : rule_order_) {
+                const TransformationRule& r = rules_.at(rid);
                 bool trigger_matches =
                     (r.trigger == Trigger::ON_VOLUME_ENTER && open.is_medium) ||
                     (r.trigger == Trigger::ON_CONTACT_FILTERED);
