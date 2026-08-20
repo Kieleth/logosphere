@@ -439,6 +439,25 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## F7 + F8 — PARKED by owner ruling (2026-08-20): rotation first
+
+Owner: F7 is humanoid territory ("I'd not get into humanoid now"), and
+its honest cost under the fixed-protocol decree is a full round in the
+deferred subsystem — G, Argus into a locomotion test, an API decision
+(drive damping defaulting to the derived critical 2*sqrt(k*I)?), fix,
+joint QA. Parked debt-free: audited red, mechanism named. The last
+bearer of the ANGULAR_DRAG name (the look-at controller's local 0.98,
+humanoid_locomotion.cpp:5303) dies with F7, same doctrine.
+
+F8 parked on the owner's sharper framing: test_grass_yields NEVER truly
+worked, predates Argus and the from-the-root method entirely, and was
+itself one cause of this whole physics campaign — it gets a
+full-learnings revisit as its own front, not a patch now.
+
+The refocus: rotation items 1-6 (flight window by contact event,
+re-clamp lever contracts, 45-deg parking re-measure, G-21 gimbal
+ruling, the block-solve seed, then the flip ruling and the ice drama).
+
 ## F7 + F8 — what the TRUE sweep found under D7 (2026-08-20)
 
 The first fresh-binary sweep of the week (the stale-gate finding,

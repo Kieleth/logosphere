@@ -232,10 +232,29 @@ struct Scene {
                 const float keep = std::fabs(p.omega_z) / std::fabs(prev_omega_z);
                 if (frame > 0 && keep < min_frame_keep) min_frame_keep = keep;
             }
-            if (p.z <= rest_z + 0.005f) {
-                touchdown_frame = frame;
-                if (spin0 > 0.0f)
-                    keep_at_touchdown = std::fabs(p.omega_z) / spin0;
+            // FLIGHT ENDS AT THE FIRST CONTACT EVENT, never at a height
+            // (rotation item 1, the interactions directive applied to the
+            // instrument itself). The z-threshold called frames "flight"
+            // in which speculative contact rows were already exchanging
+            // friction, so honest braking read as a flight leak and
+            // R2/R3 false-failed under the lever. The engine reports
+            // every contact; the scene asks it, not the altimeter.
+            for (const auto& ev : physics.get_collision_events()) {
+                const int a = (int)ev.particle_a, b = (int)ev.particle_b;
+                if (a == cube || b == cube || a == hero || b == hero) {
+                    const int me = (a == cube || b == cube) ? cube : hero;
+                    if (ps.lock_particles_for_read()[me].z > 0.0f) {
+                        touchdown_frame = frame;
+                        if (spin0 > 0.0f) {
+                            const Particle& q =
+                                ps.lock_particles_for_read()[me];
+                            keep_at_touchdown = std::sqrt(
+                                q.omega_x*q.omega_x + q.omega_y*q.omega_y +
+                                q.omega_z*q.omega_z) / spin0;
+                        }
+                        break;
+                    }
+                }
             }
         }
         prev_omega_z = p.omega_z;
