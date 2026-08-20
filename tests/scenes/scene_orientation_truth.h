@@ -21,6 +21,7 @@
 // =============================================================================
 #pragma once
 
+#include "core/argus.h"
 #include "core/particle_system.h"
 #include "logosphere/physics/physics_system.h"
 #include "particle.h"
@@ -66,6 +67,7 @@ inline float roundtrip_sweep() {
 }
 
 struct Scene {
+    logosphere::Argus argus;   // the witness: asserts and logs, one source
     int quat_twin = -1;    // is_quat_driven = true, owner PHYSICS
     int euler_twin = -1;   // the engine default
 
@@ -84,6 +86,8 @@ struct Scene {
         };
         quat_twin = make(-0.6f);
         euler_twin = make(+0.6f);
+        argus.watch(quat_twin, "quat_twin");
+        argus.watch(euler_twin, "euler_twin");
         auto v = ps.lock_particles_for_write();
         v[quat_twin].is_quat_driven = true;
         v[quat_twin].owner = ParticleOwner::PHYSICS;
@@ -93,17 +97,21 @@ struct Scene {
         }
     }
 
-    void step(ParticleSystem& ps, PhysicsSystem& physics) {
+    void step(ParticleSystem& ps, PhysicsSystem& physics, int frame = -1) {
         ps.update_bvh();
         physics.update(DT);
+        argus.observe(ps, frame);
     }
 
-    float divergence(ParticleSystem& ps, int id) const {
-        return divergence_rad(ps.lock_particles_for_read()[id]);
+    // Both queries now answer FROM THE WITNESS, so the assert, the log
+    // and the on-screen readout are one source (the Argus discipline).
+    float divergence(ParticleSystem&, int id) const {
+        return argus.divergence(id);
     }
     // What the renderer/narrow phase actually read: the Euler triple.
-    float visible_rot_y(ParticleSystem& ps, int id) const {
-        return ps.lock_particles_for_read()[id].rotation_y;
+    float visible_rot_y(ParticleSystem&, int id) const {
+        const logosphere::Argus::State* s = argus.latest(id);
+        return s ? s->ry : 0.0f;
     }
 };
 
