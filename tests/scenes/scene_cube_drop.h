@@ -47,6 +47,12 @@ constexpr float SETTLED_SPIN_MAX = 0.10f;  // rad/s: friction must brake it (G-3
 constexpr float FRAME_KEEP_MIN   = 0.99f;  // per flight frame (G-37)
 constexpr float TILT_DEG         = 20.0f;  // < 45: nearest face is the original bottom
 constexpr float SPIN0            = 3.0f;   // rad/s about Z
+// LEVER-MODE CONTRACT (CONTACT_TORQUE=1), per the 2026-08-20 decree:
+// the torque slices' claims are enforced here, in the mode they are
+// made for, or they are not claims. Measured values behind each bound:
+constexpr float TIP_SETTLE_MAX   = 0.05f;  // rad: R1 settles FLAT (measured 0.0001)
+constexpr float WOBBLE_MAX_LEVER = 0.05f;  // rad/s: R0's transient (measured 0.0198,
+                                           // was 0.1929 before INV-20 pricing)
 // The cube lands on a FLOOR SLAB PARTICLE, not on the bare turtle
 // (owner, 2026-08-19: "I'd prefer if it falls on another particle and
 // not some empty blank space"). This also aims the ladder at the right

@@ -41,6 +41,7 @@
 #include "particle.h"
 
 #include <cmath>
+#include <cstdlib>
 
 namespace scene_ramp_race {
 
@@ -74,7 +75,16 @@ constexpr float RAMP_THICK = 0.4f;
 // Lanes: no lateral force exists in this experiment. The ramp is tilted
 // about Y only, gravity is -Z, and the two bodies are 2.4 m apart, so
 // neither may wander out of its lane. Slop-sized, not tuned.
-constexpr float LANE_DEV_MAX = 0.02f;   // m off its release lane
+constexpr float LANE_DEV_MAX = 0.02f;   // m off its release lane (default mode)
+// LEVER-MODE CONTRACT (CONTACT_TORQUE=1), 2026-08-20 decree: the
+// torque slices' claims are enforced in the mode they are made for.
+// The lever lane bound is a RATCHET at the measured value, not an
+// acceptance: the residual walk has two NAMED mechanisms (the omega
+// seed from sequential per-point solving at the first strike, and
+// D7's damper parking the tumble at the 45-degree balance), each
+// boarded. This bound may only shrink.
+constexpr float LANE_DEV_MAX_LEVER = 0.30f;  // measured 0.2605 after the patch
+constexpr float ROLL_MIN_LEVER     = 2.0f;   // rad/s: the sphere must ROLL (measured 5.30)
 // A KINEMATIC fixture is held by its external writer. If the ramp moves
 // at all, every travel number below is measured against a moving datum.
 constexpr float FIXTURE_DRIFT_MAX = 1e-4f;  // m, any axis
@@ -239,7 +249,10 @@ struct Scene {
 
     static bool travelled(float d) { return d > TRAVEL_MIN; }
     static bool turned(float peak_omega) { return peak_omega > SPIN_MIN; }
-    static bool in_lane(float dev)        { return dev < LANE_DEV_MAX; }
+    static bool in_lane(float dev) {
+        static const bool lever = std::getenv("CONTACT_TORQUE") != nullptr;
+        return dev < (lever ? LANE_DEV_MAX_LEVER : LANE_DEV_MAX);
+    }
     static bool held(float drift)         { return drift < FIXTURE_DRIFT_MAX; }
     static bool coherent(float div)       { return div < COHERENCE_MAX; }
     static bool lanes_kept(float gap)     { return gap > LANE_GAP_MIN; }

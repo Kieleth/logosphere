@@ -1477,3 +1477,35 @@ solver_mode, the R7-dissolution work proper. What the flip does NOT
 fix, so nothing is oversold: contacts still carry no lever arm (D2)
 and ANGULAR_DRAG still eats spin (D7); the flip makes rotation VISIBLE
 wherever it exists, which is lock 3 of 3 removed.
+
+## 2026-08-20 — DECREE: "fixed" is a protocol, not a sentence
+
+Owner, after four contact-torque slices were reported with the word
+"fixed" attached to lever-mode measurements no assertion enforced:
+
+> "we do not declare anything as fixed until Argus has verified the
+> physic-semantics of the solution as clamped by assertions in the
+> tests, plus a QA by a human in interactive mode that understands the
+> changes and why."
+
+Recorded as owner decree, into the physics skill in this commit. FIXED
+now means, and only means, all three:
+
+1. **Argus-witnessed**: the claimed physics is observed by the witness,
+   not read off a print.
+2. **Assertion-clamped**: a test enforces the claimed semantics in the
+   exact mode (lever state included) the claim is made for, and its
+   audit row says so. A mechanism behind a lever needs the lever-mode
+   contract asserted, or the claim has no enforcement.
+3. **Human-QA'd, informed**: the owner watches it interactively AND has
+   been given the education to know what changed and why, before the
+   word is used.
+
+The violation that earned this: slices A-D's lever-mode claims ("the
+die falls flat", "the sphere rolls", "lane kick cut 3.4x") were
+measured by grep over test output, while the tests' assertions ran
+their DEFAULT-mode contract. True statements, unenforced — one refactor
+away from silently becoming false. The lever-mode contracts are being
+clamped now, and no interactive QA of the torque work has happened yet,
+so nothing in slices A-D is "fixed" under this decree until both halves
+close.

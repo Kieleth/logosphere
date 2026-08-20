@@ -170,8 +170,9 @@ int main() {
 
     // --- what only a per-frame witness can say ------------------------
     std::printf("\n  [argus] worst lane deviation: cube %.4f m, sphere %.4f m "
-                "(bound %.2f)\n", scene.cube_lane_dev, scene.ball_lane_dev,
-                LANE_DEV_MAX);
+                "(bound %.2f%s)\n", scene.cube_lane_dev, scene.ball_lane_dev,
+                std::getenv("CONTACT_TORQUE") ? LANE_DEV_MAX_LEVER : LANE_DEV_MAX,
+                std::getenv("CONTACT_TORQUE") ? ", lever ratchet" : "");
     std::printf("  [argus] fixture drift over the run: %.6f m (bound %.0e)\n",
                 scene.ramp_drift, (double)FIXTURE_DRIFT_MAX);
     std::printf("  [argus] closest the two racers ever came: %.3f m "
@@ -192,6 +193,17 @@ int main() {
 
     check(Scene::held(scene.ramp_drift),
           "the ramp never moved: every travel number has a fixed datum");
+    static const bool lever = std::getenv("CONTACT_TORQUE") != nullptr;
+    if (lever) {
+        // The lever-mode CONTRACT (2026-08-20 decree): the torque
+        // slices' headline claims, enforced where they are made.
+        check(scene.ball_spin_peak > ROLL_MIN_LEVER,
+              "LEVER: the sphere ROLLS (friction torque at the contact "
+              "point; measured 5.30 rad/s when this was clamped)");
+        check(ball_d > cube_d * 0.9f,
+              "LEVER: rolling is not slower than sliding by more than "
+              "10% (rolling dissipates less at the contact)");
+    }
     check(Scene::travelled(cube_d),
           "the cube slides down the slope");
     check(Scene::turned(scene.cube_spin_peak),
