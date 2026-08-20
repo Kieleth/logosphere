@@ -28,6 +28,35 @@
 //   ./build-release/logosphere-tests --test test_sleep_wake_resolver --no-head
 // =============================================================================
 
+// FULL-STATE NARRATION (assert-or-waive, owner directive 2026-08-19).
+// Two bodies per world, two worlds per rung. Observed through Argus so
+// the asserts and the printed table read one source.
+//
+//   STRIKER and TARGET
+//     vx            — ASSERTED, both bodies, in both worlds, compared
+//                     against each other (the invisibility claim) and
+//                     against the momentum book (the physical anchor).
+//                     This was the test's whole subject and it is good.
+//     x             — ASSERTED as of 2026-08-19, as GEOMETRY: the
+//                     striker must actually REACH the target. Every
+//                     rung's verdict was inferred from velocities, and
+//                     a velocity change has other possible causes on a
+//                     floor with friction. Closest approach against the
+//                     two half-extents says it plainly.
+//     y             — ASSERTED unmoved: the strike is along +X on a flat
+//                     floor and nothing acts north. A body that wandered
+//                     off the three-tile-wide floor would produce
+//                     velocity readings this test would have believed.
+//     z             — ASSERTED on the floor: both bodies ride the 0.1 m
+//                     tiles for the whole run. A body that sank into or
+//                     climbed onto a tile edge is a different experiment
+//                     from the one the rung names.
+//     omega, orient — WAIVED, watched: D2 owns contact torque and this
+//                     ladder is INV-31's, not D2's.
+//     is_at_rest    — ASSERTED (fixture validity: the target really
+//                     slept). Already present and load-bearing.
+
+#include "core/argus.h"
 #include "../src/core/engine.h"
 #include "../src/materials.h"
 #include "../src/particle.h"
@@ -63,6 +92,12 @@ struct Outcome {
     float p_before = 0.0f, p_after = 0.0f;
     float m_striker = 0.0f, m_target = 0.0f;
     bool  target_was_asleep_at_impact = false;
+    // --- what the witness added -------------------------------------
+    float min_sep = 1e9f;      // closest the two bodies ever came
+    float reach = 0.0f;        // the separation at which they touch
+    float reach_tol = 0.0f;    // one physics step of closing, plus slop
+    float lane_dev = 0.0f;     // worst |y| either body reached
+    float floor_dev = 0.0f;    // worst departure from riding the tiles
     bool  ok = false;
 };
 
@@ -146,6 +181,28 @@ Outcome run_impact(const Impact& im, bool target_sleeps) {
     }
     out.p_before = striker_mass * im.strike_speed;
 
+    // THE WITNESS. Read-only: it cannot perturb either twin, which
+    // matters here more than usual because the whole rung is a
+    // comparison between two runs.
+    logosphere::Argus argus;
+    argus.watch(striker, "striker");
+    argus.watch(target, "target");
+    // WHERE THEY TOUCH, in the quantity Argus reports. Argus separation
+    // is 3D centre-to-centre, and these two bodies ride a common floor
+    // at very different heights (a 1.2 m castle beside an 0.08 m grain),
+    // so the contact distance is NOT the half-extent sum along x. It is
+    // the hypotenuse of that sum and the constant height difference.
+    // Getting this wrong made a 0.9 m/s strike that plainly landed read
+    // as a miss by 0.23 m, which is what measuring taught here.
+    const float x_gap_at_contact = 0.5f * (im.striker_size + im.target_size);
+    const float z_gap = 0.5f * std::fabs(im.striker_size - im.target_size);
+    out.reach = std::sqrt(x_gap_at_contact * x_gap_at_contact + z_gap * z_gap);
+    // And the sampling granularity is a real bound, not slop: the engine
+    // steps physics at PHYSICS_TIMESTEP (1/30 s) while this loop samples
+    // every 1/60, so the true closest approach can be missed by up to
+    // one physics step of closing distance.
+    out.reach_tol = im.strike_speed / 30.0f + 0.01f;
+    const float TILE_TOP = 0.1f;
     const bool probe = std::getenv("SWR_PROBE") != nullptr;
     for (int f = 0; f < 90; ++f) {
         if (!target_sleeps) {
@@ -153,6 +210,23 @@ Outcome run_impact(const Impact& im, bool target_sleeps) {
             v[target].is_at_rest = false;
         }
         engine.update(1.0 / 60.0);
+        argus.observe(ps, f);
+        {
+            const float sep = argus.separation(striker, target);
+            if (sep >= 0.0f && sep < out.min_sep) out.min_sep = sep;
+            const logosphere::Argus::State* ss = argus.latest(striker);
+            const logosphere::Argus::State* ts = argus.latest(target);
+            if (ss && ts) {
+                const float ly = std::fmax(std::fabs(ss->y), std::fabs(ts->y));
+                if (ly > out.lane_dev) out.lane_dev = ly;
+                const float fs = std::fabs((ss->z - im.striker_size * 0.5f)
+                                           - TILE_TOP);
+                const float ft = std::fabs((ts->z - im.target_size * 0.5f)
+                                           - TILE_TOP);
+                const float fd = std::fmax(fs, ft);
+                if (fd > out.floor_dev) out.floor_dev = fd;
+            }
+        }
         if (f == SNAP_FRAME) {
             auto v = ps.lock_particles_for_write();
             out.striker_vx_post = v[striker].vx;
@@ -225,9 +299,29 @@ bool rung(const char* name, const Impact& im, bool expect_red_today) {
            "", awake.p_before, asleep.p_post, awake.p_post,
            friction_budget, conserves ? "CONSERVED" : "DESTROYED",
            expect_red_today && !conserves ? "  [expected red]" : "");
+    // GEOMETRY, not inference. Every rung's verdict above is read off
+    // velocities, and a velocity change on a floor with friction has
+    // more than one possible cause. The witness says whether the strike
+    // this rung names actually happened.
+    printf("  %-28s argus: closest approach asleep %.4f awake %.4f m "
+           "(faces meet at %.4f +/- %.4f sampling); lane %.2e m; "
+           "floor %.2e m\n",
+           "", asleep.min_sep, awake.min_sep, awake.reach, awake.reach_tol,
+           std::fmax(asleep.lane_dev, awake.lane_dev),
+           std::fmax(asleep.floor_dev, awake.floor_dev));
     check(conserves, "momentum conserved through the awake impact");
     check(asleep.target_was_asleep_at_impact,
           "target actually slept before impact (fixture validity)");
+    check(asleep.min_sep < awake.reach + awake.reach_tol &&
+          awake.min_sep < awake.reach + awake.reach_tol,
+          "the striker actually REACHED the target, in BOTH twins "
+          "(geometry, not a velocity reading)");
+    check(std::fmax(asleep.lane_dev, awake.lane_dev) < 0.01f,
+          "nothing wandered off the lane: the strike is along +X and "
+          "nothing acts north");
+    check(std::fmax(asleep.floor_dev, awake.floor_dev) < 0.02f,
+          "both bodies rode the floor tiles the whole way, in both "
+          "twins (a body that sank or climbed is a different experiment)");
     check(invisible, name);
     return invisible;
 }

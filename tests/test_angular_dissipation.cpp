@@ -1,5 +1,5 @@
 // =============================================================================
-// WHAT SLOWS A SPINNING BODY DOWN?
+// WHAT SLOWS A SPINNING BODY DOWN? — the headless half
 // =============================================================================
 // The engine's answer today is a constant. `ANGULAR_DRAG = 0.95` is
 // multiplied into omega_x, omega_y and omega_z once per substep, four
@@ -15,124 +15,143 @@
 // DAMPING_FACTOR has since been eradicated and has zero readers left.
 // This one is still applied.
 //
-// This test is the instrument for GEDANKEN-25 and GEDANKEN-27, and it
-// is BORN RED on purpose. It measures the disease so the campaign that
-// cures it has a before-value, per the ladder discipline: red first,
-// green after, and never weaken the assertion to make it pass.
+// BORN RED on purpose: it measures the disease so the campaign that
+// cures it has a before-value. Red first, green after, and never weaken
+// the assertion to make it pass. The claim is CONSERVATION, so a 5% loss
+// would be as wrong as 95%.
 //
-// TWO MEASUREMENTS.
+// THE SCENE LIVES IN tests/scenes/scene_spinning_cube.h AND SO DOES THE
+// STEPPING. This file holds no body, no force and no threshold, and
+// neither does its windowed twin, `test_angular_dissipation_visual.cpp`.
+// That is criterion (b) of the logosphere-tests skill and it is not
+// decoration: `PHYSICS_TIMESTEP` is 1/30 and `engine.update()`
+// accumulates, so a windowed driver stepping the engine and a headless
+// one stepping physics directly measure DIFFERENT spin-down for a
+// per-substep quantity. Both call `scene.step()` instead. Verified: both
+// report retained = 0.000005.
 //
-// 1. A body spinning in vacuum. Nothing touches it, no medium, no
-//    bonds, no contacts. Angular momentum is conserved in the absence
-//    of an external torque; that is the definition of an isolated
-//    body, not a modelling preference. Expect: it keeps spinning.
+//   ./build/test_angular_dissipation                        numbers
+//   INTERACTIVE=1 ./build/test_angular_dissipation_visual    window
 //
-// 2. The same body spinning inside a declared water medium, against a
-//    twin spinning in open air. Water is roughly 800x denser and the
-//    body presents area to the flow, so the submerged one must slow
-//    faster. Expect: they differ.
-//
-// Both are red today for the same reason, and the reason is one
-// constant standing in for two mechanisms the engine does not have:
-// a DECLARABLE ambient medium and ANGULAR coupling to one.
-//
-// CORRECTION (2026-08-16): an ambient medium DOES exist and this file
-// first said it did not. Quadratic drag against RHO_AIR = 1.225 runs on
-// every moving body every substep (physics_system_v4.cpp:4674-4683).
-// It is not declarable, so no scene can be set in vacuum, and it runs
-// ALONGSIDE the linear medium drag rather than instead of it. What is
-// genuinely absent is any ANGULAR counterpart: `apply_volume_forces`
-// writes vx/vy/vz and never touches omega, and the ambient law is
-// linear-velocity-only too. So the angular finding below stands
-// unchanged; only the story about what surrounds the body was wrong.
-// Boarded as D7.
-//
-// Run: ./build/test_angular_dissipation
+// GEDANKEN-25 is the experiment; GEDANKEN-27's half (water against air)
+// cannot be instrumented yet and this file says so rather than pretending.
 // =============================================================================
 
-#include "core/particle_system.h"
-#include "logosphere/physics/physics_system.h"
-#include "particle.h"
+// FULL-STATE NARRATION (assert-or-waive, per DOF, owner directive
+// 2026-08-19). ONE body, and "isolated" is a claim about all of its
+// state, not about omega_z alone. Read through Argus, so the asserts
+// and the log are one source.
+//
+//   x, y          — nothing pushes sideways: ASSERTED, worst deviation
+//                   from the release column over the whole run.
+//   z             — the body is in free fall, so z is not held to a
+//                   value. What IS asserted is CLEARANCE: it must stay
+//                   far above the turtle, the only thing in this world
+//                   it could meet. That turns "nothing touched it" from
+//                   a claim into a measurement. Its departure from the
+//                   analytic vacuum drop is printed (ambient air acts on
+//                   linear velocity) and WAIVED from assertion: this
+//                   experiment is the ANGULAR side, and the linear
+//                   medium is its own front.
+//   vx, vy, vz    — implied by the position asserts; peak speed printed.
+//                   WAIVED from a ceiling: the explosion detector owns
+//                   velocity ceilings engine-wide.
+//   omega_x, y    — nothing excites them: ASSERTED at zero.
+//   omega_z       — the subject. ASSERTED end-to-end (RED) and now also
+//                   PER FRAME (RED): an end-to-end number cannot tell a
+//                   constant leak from a single event, and the per-frame
+//                   figure names ANGULAR_DRAG^4 to four decimals.
+//   orientation   — rot_z follows omega_z and is not independently
+//                   claimed; printed, WAIVED. Its COHERENCE with the
+//                   quaternion IS asserted (G-23).
+//   relative      — there is no second body. Argus separation and
+//                   approach_speed are n/a by construction, which is
+//                   exactly what makes this experiment isolated.
+
+#include "scenes/scene_spinning_cube.h"
 #include "generated/physics_constants.h"
 
 #include <cmath>
 #include <cstdio>
+#include <iostream>
 #include <string>
 
-namespace {
+using namespace scene_spinning_cube;
 
+namespace {
 int failures = 0;
 void check(bool ok, const std::string& what) {
     std::printf("  %s %s\n", ok ? "[PASS]" : "[FAIL]", what.c_str());
     if (!ok) failures++;
 }
-
-constexpr float SPIN0 = 4.0f;      // rad/s, well under MAX_OMEGA
-constexpr int   FRAMES = 60;       // one second at 60 Hz
-
-// One cube, spinning, far from the turtle and from everything else.
-// Returns its angular speed about Z after `FRAMES` frames.
-float spin_alone(float& out_start) {
-    ParticleSystem ps;
-    PhysicsSystem physics;
-    if (!physics.initialize(ps)) { out_start = 0.0f; return 0.0f; }
-
-    Particle p{};
-    p.x = 0.0f; p.y = 0.0f; p.z = 40.0f;     // high above the world floor
-    p.shape = ParticleShape::BOX;
-    p.width = p.height = p.thickness = 0.4f;
-    p.size = 0.4f;
-    p.SetMaterial(Materials::Type::STONE);
-    const int id = ps.queue_particle_addition(p);
-    ps.flush_pending_particles();
-    {
-        auto v = ps.lock_particles_for_write();
-        v[id].omega_z = SPIN0;
-        v[id].is_at_rest = false;
-        // Cancel gravity's effect on the spin question by keeping the
-        // body airborne for the whole run: 40 m of fall at 9.81 m/s^2
-        // covers ~4.9 m in one second, so it never reaches the turtle.
-    }
-    out_start = SPIN0;
-
-    for (int f = 0; f < FRAMES; ++f) {
-        ps.update_bvh();
-        physics.update(1.0 / 60.0);
-    }
-    const float spin = std::fabs(ps.lock_particles_for_read()[id].omega_z);
-    physics.shutdown();
-    return spin;
-}
-
 }  // namespace
 
 int main() {
     std::printf("\n=== what slows a spinning body down? ===\n");
 
-    float start = 0.0f;
-    const float vacuum = spin_alone(start);
-    const float retained = (start > 0.0f) ? (vacuum / start) : 0.0f;
+    ParticleSystem ps;
+    PhysicsSystem physics;
+    if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
 
-    // The arithmetic the constant implies, stated so the measurement can
-    // be checked against it rather than merely reported.
+    Scene scene;
+    scene.build(ps);
+    for (int f = 0; f < RUN_FRAMES; ++f) scene.step(ps, physics, f);
+    const float retained = scene.retained(ps);
+
+    // The arithmetic the constant implies, so the measurement can be
+    // checked against it rather than merely reported.
     const float predicted = std::pow(PhysicsV4::ANGULAR_DRAG,
-                                     static_cast<float>(FRAMES * 4));
+                                     static_cast<float>(RUN_FRAMES * 4));
+    const float per_frame_predicted = std::pow(PhysicsV4::ANGULAR_DRAG, 4.0f);
 
     std::printf("\n-- GEDANKEN-25: a body spinning in vacuum --\n");
     std::printf("  [measure] omega_z %.4f -> %.6f rad/s after %d frames\n",
-                start, vacuum, FRAMES);
+                SPIN0, scene.spin_now(ps), RUN_FRAMES);
     std::printf("  [measure] retained %.6f of its spin in one second\n",
                 retained);
     std::printf("  [measure] ANGULAR_DRAG^(4 substeps x %d frames) = %.6f\n",
-                FRAMES, predicted);
+                RUN_FRAMES, predicted);
     std::printf("  [note] nothing touched this body: no contact, no bond,\n"
                 "         no medium, no torque. Only the constant.\n");
 
-    // The claim is conservation, not "less damping". An isolated body
-    // has no external torque, so 5%% is as wrong as 95%%; the tolerance
-    // is integrator noise, not an allowance for dissipation.
-    check(retained > 0.99f,
+    // --- the witness: the rest of the state, per frame ----------------
+    std::printf("\n  [argus] worst PER-FRAME retention %.4f "
+                "(ANGULAR_DRAG^4 = %.4f)\n",
+                scene.worst_frame_keep, per_frame_predicted);
+    std::printf("  [argus] worst lateral drift %.2e m, worst off-axis spin "
+                "%.2e rad/s\n", scene.max_lateral, scene.max_off_axis);
+    std::printf("  [argus] lowest z reached %.3f m (turtle at 0; clearance "
+                "bound %.0f)\n", scene.min_z, CLEARANCE_MIN);
+    std::printf("  [argus] peak spin %.4f rad/s (release %.4f), peak speed "
+                "%.3f m/s\n", scene.argus.peak_spin(scene.id), SPIN0,
+                scene.argus.peak_speed(scene.id));
+    std::printf("  [argus] worst q-vs-Euler divergence %.6f rad, visible "
+                "turn %.4f rad\n", scene.max_div, scene.visible_turn(ps));
+    std::printf("  [measure] fell %.4f m SHORT of the analytic vacuum drop "
+                "(ambient air is linear-only; not asserted here)\n",
+                -scene.fall_shortfall(RUN_FRAMES));
+    std::printf("\n  the witness's last two frames:\n");
+    scene.argus.dump(std::cout, 2);
+    std::printf("\n");
+
+    check(Scene::untouched(scene.min_z),
+          "the body really was isolated: it never came near the turtle, "
+          "the only thing in this world it could have met");
+    check(Scene::stayed_in_column(scene.max_lateral),
+          "nothing pushed it sideways (so the spin-down cannot be blamed "
+          "on a contact this test failed to notice)");
+    check(Scene::axis_pure(scene.max_off_axis),
+          "no torque appeared on an axis nothing excited");
+    check(Scene::coherent(scene.max_div),
+          "one body, one orientation, every frame (G-23)");
+    check(Scene::passes(retained),
           "vacuum: an isolated body keeps its angular momentum");
+    check(Scene::conserves_per_frame(scene.worst_frame_keep),
+          "and it keeps it EVERY FRAME, not merely on average. This is "
+          "the assert that names the culprit: the worst frame retains "
+          "exactly ANGULAR_DRAG^4, so the loss is a constant applied per "
+          "substep and not an event, an integrator artefact or a contact "
+          "(G-37's method, borrowed from the cube-drop ladder).");
 
     std::printf("\n-- GEDANKEN-27: water against air --\n");
     std::printf("  [measure] not yet instrumented: the medium path is\n"
@@ -144,6 +163,7 @@ int main() {
                 "         declarable, so it damps no spin and no scene\n"
                 "         can opt out of it. D7.\n");
 
+    physics.shutdown();
     std::printf("\n  %s (%d failures)\n",
                 failures == 0 ? "ANGULAR DISSIPATION IS PHYSICAL"
                               : "ANGULAR DISSIPATION IS A CONSTANT (expected "

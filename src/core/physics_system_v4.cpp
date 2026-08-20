@@ -254,6 +254,11 @@ PhysicsSystem::~PhysicsSystem() {
 // ============================================================================
 
 bool PhysicsSystem::initialize(ParticleSystem& particle_system, const PhysicsConfig& config) {
+    // Quaternion truth is the DEFAULT (owner ruling 2026-08-19, ledger).
+    // LOGOSPHERE_QUAT_TRUTH=0 is the kill switch for A/B and bisection;
+    // the setter exists for in-process baselines (orientation O2).
+    if (const char* qt = std::getenv("LOGOSPHERE_QUAT_TRUTH"))
+        quat_truth_ = !(qt[0] == '0' && qt[1] == '\0');
     particle_system_ = &particle_system;
     config_ = config;
 
@@ -5108,8 +5113,22 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         // on those particles is a stale by-product that the 3-axis
         // constraint build re-syncs from Euler when it needs a
         // quaternion view.
-        if (p.is_quat_driven) {
-            p.rotation_q.to_euler_zyx(p.rotation_x, p.rotation_y, p.rotation_z);
+        // Under the quat-truth lever every DYNAMIC body publishes, so a
+        // body has one orientation whichever field a consumer reads
+        // (G-23's red, the frozen twin). KINEMATIC stays with its
+        // external writer. Default OFF: bit-identical to the old gate.
+        if (p.is_quat_driven ||
+            (quat_truth_ && p.solver_mode == ParticleSolverMode::DYNAMIC)) {
+            // + 0.0f canonicalizes IEEE negative zero: to_euler_zyx of the
+            // identity emits -0.0 on Y and Z (each is a negated atan2 of
+            // zero), numerically equal to +0.0 and bitwise different. The
+            // publish must be a bitwise NO-OP for a body that never
+            // rotated, or G-19's bit-identical baseline can never hold.
+            float ex, ey, ez;
+            p.rotation_q.to_euler_zyx(ex, ey, ez);
+            p.rotation_x = ex + 0.0f;
+            p.rotation_y = ey + 0.0f;
+            p.rotation_z = ez + 0.0f;
         }
 
         static const char* st_env = std::getenv("AUTHORITY_DEBUG");

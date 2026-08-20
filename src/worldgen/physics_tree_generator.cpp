@@ -1029,6 +1029,13 @@ int PhysicsTreeGenerator::generate_root_system(
     //   - See test_physics_tree_roots.cpp Case 0 for baseline test pattern
     //
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //
+    // CANONICAL TABLE: which shapes get oriented collision treatment and
+    // which stay axis-aligned lives in ONE place,
+    // include/logosphere/physics/narrow_phase.h, pinned by
+    // tests/test_collision_bounds_rotation.cpp so it cannot rot in
+    // silence. When this history note and that table disagree, the
+    // table is the truth.
 
     int num_roots = 3 + (rng_state_ % 2);    // 3-4 roots
     float root_length = tree_height * 0.25f; // Each root = 25% of height

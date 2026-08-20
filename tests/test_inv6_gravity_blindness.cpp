@@ -31,6 +31,50 @@
 // Run: ./build/test_inv6_gravity_blindness
 // =============================================================================
 
+// FULL-STATE NARRATION (assert-or-waive, per DOF, owner directive
+// 2026-08-19). Two bodies per case, three cases. Observed through Argus,
+// so the asserts and the log read the same values.
+//
+//   WALL (KINEMATIC fixture)
+//     position xyz  — ASSERTED: must not move on any axis. Every gap and
+//                     penetration number below is measured against it,
+//                     so a wall that yielded would make all three cases
+//                     agree about nothing in particular.
+//     orientation   — nothing writes it; WAIVED, watched.
+//     velocity      — implied by the drift assert; WAIVED.
+//
+//   BODY (DYNAMIC, pressed square into the wall)
+//     along-axis position  — ASSERTED twice, and the second is new: the
+//                     SPREAD across axes (the original claim, about
+//                     bias) and now the ABSOLUTE peak penetration and
+//                     resting gap against the solver's own slop. Three
+//                     cases penetrating equally and deeply would have
+//                     passed the spread test alone.
+//     along-axis velocity  — ASSERTED: it comes to rest on every axis.
+//     tangential position  — measured and printed, WAIVED by name. This
+//                     fixture cancels gravity once per FRAME while the
+//                     engine applies it once per SUBSTEP, so the X and Y
+//                     cases carry a drift the wall's normal cannot
+//                     touch. Fixture residue, not solver bias; the same
+//                     note already governs the speed measurement below.
+//     tangential velocity  — same waiver, same reason.
+//     omega         — ASSERTED at zero on all three axes. The press is
+//                     square and centred, so no torque exists in this
+//                     experiment and zero is the RIGHT answer. That is
+//                     not a waiver of D2 (contacts carry no lever arm):
+//                     D2 shows where a lever arm should exist, and here
+//                     none does.
+//     orientation   — follows omega; ASSERTED to stay at identity, the
+//                     same claim read on the other ledger.
+//     coherence     — ASSERTED: one body, one orientation (G-23).
+//     separation    — the body-to-wall gap IS the subject and is
+//                     asserted along the press axis, which is the axis
+//                     the contact normal lives on. Argus's
+//                     centre-to-centre separation is printed for the
+//                     record; approach_speed is WAIVED because the
+//                     press-axis speed already carries that claim.
+
+#include "core/argus.h"
 #include "core/particle_system.h"
 #include "logosphere/physics/physics_system.h"
 #include "particle.h"
@@ -52,6 +96,13 @@ struct Outcome {
     float penetration = 0.0f;   // deepest overlap the solve left
     float final_gap = 0.0f;     // separation along the press axis at rest
     float speed_at_rest = 0.0f;
+    // --- what the witness added -------------------------------------
+    float wall_drift = 0.0f;    // worst movement of the KINEMATIC datum
+    float peak_spin = 0.0f;     // |omega| the body ever reached
+    float max_tilt = 0.0f;      // worst |rotation| off identity
+    float max_div = 0.0f;       // worst q-vs-Euler divergence
+    float tangential = 0.0f;    // worst drift across the press axis
+    float separation = 0.0f;    // centre to centre at the deadline
     bool  ok = false;
 };
 
@@ -99,6 +150,20 @@ Outcome press(int axis, float press_accel) {
         v[wall].is_at_rest = true;
     }
 
+    // The witness. It reads only; it cannot perturb the press.
+    logosphere::Argus argus;
+    argus.watch(body, "body");
+    argus.watch(wall, "wall");
+    float wall_x0 = 0.0f, wall_y0 = 0.0f, wall_z0 = 0.0f;
+    float body_t1_0 = 0.0f, body_t2_0 = 0.0f;
+    const int j = (axis + 1) % 3, k = (axis + 2) % 3;
+    {
+        auto v = ps.lock_particles_for_read();
+        wall_x0 = v[wall].x; wall_y0 = v[wall].y; wall_z0 = v[wall].z;
+        const float b0[3] = { v[body].x, v[body].y, v[body].z };
+        body_t1_0 = b0[j]; body_t2_0 = b0[k];
+    }
+
     float peak_pen = 0.0f;
     for (int f = 0; f < 240; ++f) {
         {   // the press: a constant acceleration toward the wall, applied
@@ -123,6 +188,29 @@ Outcome press(int axis, float press_accel) {
         }
         ps.update_bvh();
         physics.update(1.0 / 60.0);
+        argus.observe(ps, f);
+        {   // Everything the witness sees, latched per frame.
+            const logosphere::Argus::State* sb = argus.latest(body);
+            const logosphere::Argus::State* sw = argus.latest(wall);
+            if (sb && sw) {
+                const float dx = sw->x - wall_x0, dy = sw->y - wall_y0,
+                            dz = sw->z - wall_z0;
+                const float d = std::sqrt(dx*dx + dy*dy + dz*dz);
+                if (d > out.wall_drift) out.wall_drift = d;
+                const float sp = argus.spin(body);
+                if (sp > out.peak_spin) out.peak_spin = sp;
+                const float tilt = std::fmax(std::fabs(sb->rx),
+                                   std::fmax(std::fabs(sb->ry),
+                                             std::fabs(sb->rz)));
+                if (tilt > out.max_tilt) out.max_tilt = tilt;
+                const float dv = argus.divergence(body);
+                if (dv > out.max_div) out.max_div = dv;
+                const float bp[3] = { sb->x, sb->y, sb->z };
+                const float t1 = bp[j] - body_t1_0, t2 = bp[k] - body_t2_0;
+                const float tan_d = std::sqrt(t1*t1 + t2*t2);
+                if (tan_d > out.tangential) out.tangential = tan_d;
+            }
+        }
         auto v = ps.lock_particles_for_read();
         const Particle& b = v[body];
         const Particle& w = v[wall];
@@ -131,6 +219,7 @@ Outcome press(int axis, float press_accel) {
         const float gap = (bpos[axis] - BODY / 2) - (wpos[axis] + WALL_T / 2);
         if (gap < 0.0f && -gap > peak_pen) peak_pen = -gap;
     }
+    out.separation = argus.separation(body, wall);
 
     auto v = ps.lock_particles_for_read();
     const Particle& b = v[body];
@@ -188,13 +277,50 @@ int main() {
     printf("\n  [measure] penetration spread across axes: %.6f m\n", pen_spread);
     printf("  [measure] resting-gap spread across axes:  %.6f m\n", gap_spread);
 
+    // --- the witness: the state the spread numbers cannot see ---------
+    printf("\n  [argus] %-6s %10s %10s %10s %10s %10s\n", "axis",
+           "wall move", "peak spin", "max tilt", "coherence", "tangent");
+    auto row = [](const char* n, const Outcome& o) {
+        printf("  [argus] %-6s %10.6f %10.6f %10.6f %10.6f %10.6f\n",
+               n, o.wall_drift, o.peak_spin, o.max_tilt, o.max_div, o.tangential);
+    };
+    row("+X", x); row("+Y", y); row("-Z", z);
+    printf("  [argus] centre-to-centre at rest: +X %.6f  +Y %.6f  -Z %.6f\n",
+           x.separation, y.separation, z.separation);
+    printf("  [note] the tangential column is the FIXTURE's residue, not the\n"
+           "         solver's: gravity is cancelled once per frame here and\n"
+           "         applied once per substep by the engine. Waived by name\n"
+           "         in the narration, printed so it stays visible.\n\n");
+
+    check(x.wall_drift < TOL && y.wall_drift < TOL && z.wall_drift < TOL,
+          "the wall never moved: all three cases measure against a fixed "
+          "datum");
     check(pen_spread < TOL,
           "the same press penetrates the same on every axis");
     check(gap_spread < TOL,
           "the same press rests at the same distance on every axis");
+    // The spread asserts are about BIAS and say nothing about magnitude:
+    // three cases penetrating equally and deeply would pass both. These
+    // two bound the absolute answer against the solver's own slop.
+    check(x.penetration < TOL && y.penetration < TOL && z.penetration < TOL,
+          "and the press does not sink into the wall on ANY axis "
+          "(absolute, not merely equal)");
+    check(std::fabs(x.final_gap) < TOL && std::fabs(y.final_gap) < TOL &&
+          std::fabs(z.final_gap) < TOL,
+          "and it rests ON the wall face on every axis, not floating off "
+          "it (absolute, not merely equal)");
     check(x.speed_at_rest < 0.05f && y.speed_at_rest < 0.05f &&
           z.speed_at_rest < 0.05f,
           "and comes to rest on every axis (no axis keeps it alive)");
+    check(x.peak_spin < 1e-4f && y.peak_spin < 1e-4f && z.peak_spin < 1e-4f,
+          "a square centred press produces NO torque on any axis (zero is "
+          "the right answer here, unlike the ramp cases: there is no lever "
+          "arm in this geometry for D2 to lose)");
+    check(x.max_tilt < 1e-4f && y.max_tilt < 1e-4f && z.max_tilt < 1e-4f,
+          "and the body's orientation never leaves identity, on either "
+          "ledger");
+    check(x.max_div < 0.01f && y.max_div < 0.01f && z.max_div < 0.01f,
+          "one body, one orientation, every frame, on every axis (G-23)");
 
     printf("\n  %s (%d failures)\n",
            failures == 0 ? "INV-6 WITNESSED" : "INV-6 VIOLATED", failures);

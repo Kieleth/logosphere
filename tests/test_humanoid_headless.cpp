@@ -11,6 +11,44 @@
 //
 // Run: ./build/test_humanoid_headless
 
+// FULL-STATE NARRATION (assert-or-waive, owner directive 2026-08-19).
+//
+// This is a smoke test and stays one; what it may not be is a smoke test
+// whose behavioural bounds are so loose that nothing can fail them. Three
+// were, and they are tightened here against quantities the test already
+// commands or already knows.
+//
+//   HIPS
+//     y during the walk — was ASSERTED as "> 0.001 m". The walk is
+//                     COMMANDED at 1.5 m/s for 30 frames, so the distance
+//                     is 0.75 m and the assert is now against that. The
+//                     old bound passes on a hips that moved one
+//                     millimetre in half a second.
+//     x during the walk — was UNASSERTED. A due-north walk has no lateral
+//                     component; now asserted.
+//     x, y in strafe   — the X-dominance check stands; +Y is now
+//                     asserted near zero in its own right, since
+//                     "dominant" is satisfied by two large numbers.
+//     rotation_z       — ASSERTED (the facing cascade). Unchanged.
+//     z                — WAIVED, watched: the rig settles onto the
+//                     turtle over the run (measured 1.005 to 0.924 in
+//                     the neighbouring knockback control) and that
+//                     descent is the foot-plant front, not this test's.
+//
+//   THE RIG (Argus)
+//     bone lengths     — ASSERTED as of 2026-08-19. The old coherence
+//                     check was "no part further than 2.0 m from the
+//                     hips" on a rig 1.65 m tall whose worst part sits
+//                     at 0.958 m: more than double the slack it could
+//                     ever need, and blind to a torso that stretched.
+//                     Argus now measures each torso bone at rest and
+//                     after the walk. Bones do not stretch.
+//     limb geometry    — WAIVED: FK swings limbs by design, so their
+//                     distance from the hips legitimately changes. The
+//                     generous radius bound is kept for them.
+//     omega, orientation — WAIVED, watched: animation owns this rig.
+
+#include "core/argus.h"
 #include "core/particle_system.h"
 #include "core/particle_tracer.h"
 #include "logosphere/animation/humanoid_locomotion.h"
@@ -114,6 +152,24 @@ int main() {
         kg::INVALID_ENTITY);
     printf("[PASS] register_humanoid_direct\n");
 
+    // THE WITNESS. It answers the one structural question the radius
+    // bound below cannot: did any BONE change length? Torso segments are
+    // rigid by construction; FK swings limbs, so only the torso chain is
+    // held to it.
+    logosphere::Argus argus;
+    argus.watch(hips_id, "hips");
+    argus.watch(abdomen_id, "abdomen");
+    argus.watch(chest_id, "chest");
+    argus.watch(neck_id, "neck");
+    argus.watch(head_id, "head");
+    const int BONES[4][2] = { { hips_id, abdomen_id }, { abdomen_id, chest_id },
+                              { chest_id, neck_id },   { neck_id, head_id } };
+    static const char* BONE_NAMES[4] = { "hips-abdomen", "abdomen-chest",
+                                         "chest-neck", "neck-head" };
+    float bone0[4];
+    argus.observe(ps, -1);
+    for (int b = 0; b < 4; ++b) bone0[b] = argus.separation(BONES[b][0], BONES[b][1]);
+
     // 5. Drive locomotion: target +Y at 1.5 m/s, run a handful of frames,
     //    check the hips advanced. We're not running real physics here, so
     //    we don't expect end-of-walk-cycle perfection — just that the
@@ -140,11 +196,49 @@ int main() {
         end_y = view[hips_id].y;
     }
     float dy = end_y - start_y;
-    if (dy > 0.001f) {
-        printf("[PASS] hips advanced +Y by %.4fm after 30 frames\n", dy);
+    // The walk was COMMANDED at 1.5 m/s for 30 frames. The distance it
+    // should cover is that, not "more than a millimetre".
+    const float COMMANDED = 1.5f * 30.0f * (float)dt;
+    printf("[measure] hips advanced +Y by %.4f m in 30 frames "
+           "(commanded 1.5 m/s = %.4f m)\n", dy, COMMANDED);
+    if (dy > 0.8f * COMMANDED && dy < 1.2f * COMMANDED) {
+        printf("[PASS] hips advanced +Y at the speed it was told to, "
+               "%.0f%% of commanded\n", 100.0f * dy / COMMANDED);
     } else {
-        printf("[FAIL] hips did not advance: dy=%.4f (expected > 0.001)\n", dy);
+        printf("[FAIL] hips advance %.4f is not the commanded %.4f\n",
+               dy, COMMANDED);
         failures++;
+    }
+    {   // A due-north walk has no lateral component. This was unasserted.
+        auto view = ps.lock_particles_for_read();
+        const float dx_walk = std::fabs(view[hips_id].x - 0.0f);
+        if (dx_walk < 0.01f) {
+            printf("[PASS] and it walked STRAIGHT: lateral drift %.4f m\n",
+                   dx_walk);
+        } else {
+            printf("[FAIL] a due-north walk drifted %.4f m sideways\n", dx_walk);
+            failures++;
+        }
+    }
+    {   // BONES DO NOT STRETCH. The radius bound below is 2.0 m on a rig
+        // 1.65 m tall; it cannot see a torso coming apart.
+        argus.observe(ps, 30);
+        float worst_stretch = 0.0f; int worst_bone = 0;
+        for (int b = 0; b < 4; ++b) {
+            const float now = argus.separation(BONES[b][0], BONES[b][1]);
+            const float d = std::fabs(now - bone0[b]);
+            printf("[measure] bone %-14s %.4f -> %.4f m\n",
+                   BONE_NAMES[b], bone0[b], now);
+            if (d > worst_stretch) { worst_stretch = d; worst_bone = b; }
+        }
+        if (worst_stretch < 0.01f) {
+            printf("[PASS] no torso bone changed length: worst %s by "
+                   "%.4f m\n", BONE_NAMES[worst_bone], worst_stretch);
+        } else {
+            printf("[FAIL] torso bone %s changed length by %.4f m\n",
+                   BONE_NAMES[worst_bone], worst_stretch);
+            failures++;
+        }
     }
 
     // 6. Body coherence — after 30 frames of locomotion, every body
@@ -243,6 +337,28 @@ int main() {
             printf("[PASS] strafe right: dx=%+.4f dy=%+.4f (X-dominant)\n", dxs, dys);
         } else {
             printf("[FAIL] strafe didn't go X-dominant: dx=%+.4f dy=%+.4f\n", dxs, dys);
+            failures++;
+        }
+        // "Dominant" is satisfied by two large numbers. A pure right
+        // strafe has no forward component at all, and that is its own
+        // claim.
+        if (std::abs(dys) < 0.01f) {
+            printf("[PASS] and it was a PURE strafe: forward component "
+                   "%+.4f m\n", dys);
+        } else {
+            printf("[FAIL] strafe carried %+.4f m of forward motion\n", dys);
+            failures++;
+        }
+        // Same argument as the walk: it was COMMANDED at 1 m/s.
+        const float STRAFE_CMD = 1.0f * 30.0f * (float)dt;
+        printf("[measure] strafe covered %.4f m (commanded 1.0 m/s = "
+               "%.4f m)\n", dxs, STRAFE_CMD);
+        if (dxs > 0.8f * STRAFE_CMD && dxs < 1.2f * STRAFE_CMD) {
+            printf("[PASS] and it strafed at the speed it was told to, "
+                   "%.0f%% of commanded\n", 100.0f * dxs / STRAFE_CMD);
+        } else {
+            printf("[FAIL] strafe distance %.4f is not the commanded %.4f\n",
+                   dxs, STRAFE_CMD);
             failures++;
         }
     }

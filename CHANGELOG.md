@@ -8,6 +8,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **A body has one orientation.** The engine kept every body's
+  orientation twice, as an Euler triple (read by rendering and
+  collision) and a quaternion (written by spin integration), with no
+  copy between them for ordinary bodies: a spinning cube's turn landed
+  in a field nothing read, and the visible world missed rotation
+  wherever physics produced it. The quaternion is now the single truth:
+  every dynamic body's Euler triple is published from it after angular
+  integration, every frame. Bodies that never rotate are bit-for-bit
+  unaffected (proved by trajectory hash), KINEMATIC bodies still belong
+  to their external writer, and `LOGOSPHERE_QUAT_TRUTH=0` restores the
+  old split for bisection.
 - **Relations are declared one class per predicate.** `WorldRelation`
   and `EdenRelation` are now abstract, with a concrete subclass per
   member of their enum: each pins `relation_type` with `equals_string`
@@ -32,6 +43,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
   The 208 previously generated `addRelationType` triples are unchanged
   byte for byte; the only additions are Eden's five.
+
+### Fixed
+- **A sphere no longer falls through a rotated box.** The sphere-vs-box
+  narrow phase treated every box as axis-aligned, so a sphere released
+  onto a tilted ramp fell through the visible face and came to rest
+  inside the box, permanently, on an invented horizontal surface
+  (measured: 1.9 m of penetration on a 40-degree ramp). Rotated boxes
+  now go through an oriented handler: the sphere meets the real solid,
+  slides the real slope, and a sphere resting inside a box exits along
+  the box's own nearest face. Unrotated boxes keep the previous path
+  bit-identical. Affects every sphere against rotated scenery,
+  including fallen tree logs.
 
 ### Added
 - **A sanitizer lane in CI (`sanitizers-linux`).** Builds the `core`
@@ -64,6 +87,18 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   `./scripts/install-git-hooks.sh`. The rule and its reason are in
   CONTRIBUTING.md and CLAUDE.md; the `merge-policy` CI job re-checks
   it on every PR.
+- **`test_collision_bounds_rotation`, and one canonical answer to "does
+  collision apply rotation?"** The table now lives only in
+  `include/logosphere/physics/narrow_phase.h` and every line of it is an
+  asserted check in the new headless test. Rotated BOXes get oriented
+  bounds at every site and an oriented box-box narrow phase; unrotated
+  BOXes keep the raw extents bit-identical; SPHERE is rotation-invariant;
+  ELLIPSOID stays a conservative axis-aligned fallback. The test also
+  PINS a live INV-12 defect it did not fix: sphere-vs-BOX still collides
+  against the box's world-axis slab, so a sphere on a 30-degree ramp is
+  handed `(0, 0, 1)` where a box is correctly handed `(0, -0.5, 0.866)`.
+  Two worldgen comments that asserted the opposite of all this are
+  corrected; no behaviour changed.
 
 ### Removed
 - **BREAKING: `ParticleSolverMode::STATIC` is gone.** It was accepted
