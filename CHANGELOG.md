@@ -166,6 +166,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   reports and aborts everywhere.
 
 ### Changed
+- **Particle shape extents now document their actual collision semantics.**
+  `Particle::width`, `height`, and `thickness` are documented as local-axis
+  extents for boxes, including oriented-box collision under rotation; sphere
+  and ellipsoid fallback behavior are now stated explicitly under INV-12.
 - **Silent fallbacks destroyed across the physics layer** (owner
   order; blocks PR #75). Missing/unset physics data now refuses
   loudly instead of running on invented values. What changed for
