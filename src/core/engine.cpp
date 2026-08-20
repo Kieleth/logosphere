@@ -1162,11 +1162,6 @@ void Engine::update(double delta_time) {
 
     logosphere::telemetry::phase_end(logosphere::telemetry::Phase::Input);
 
-    // TEMP TIMING: Find the bottleneck
-    static int timing_frame = 0;
-    timing_frame++;
-    auto t0 = std::chrono::high_resolution_clock::now();
-
     // Update Player Controller FIRST (sets look-at target and velocity)
     // PlayerController reads input and sets targets for dynamics system
     player_controller_.update(static_cast<float>(game_delta));
@@ -1180,14 +1175,10 @@ void Engine::update(double delta_time) {
     butterfly_flight_.update(game_delta);
     logosphere::telemetry::phase_end(logosphere::telemetry::Phase::Dynamics);
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-
     // CRITICAL: Update BVH BEFORE physics runs
     // Physics needs BVH for collision detection - must always be ready
     // Dynamics system marks BVH dirty after particle movements
     particle_system_.update_bvh();
-
-    auto t2 = std::chrono::high_resolution_clock::now();
 
     // Update Physics System (gluon constraints correct animation movements)
     // Skip during loading to prevent BVH stack overflow from rapid particle addition
@@ -1285,17 +1276,6 @@ void Engine::update(double delta_time) {
     // Combat system needs this to detect punch hits at animated hand positions
     if (application_) {
         application_->update_game_post_physics(static_cast<float>(game_delta));
-    }
-
-    auto t3 = std::chrono::high_resolution_clock::now();
-
-    // TEMP: Log timing every 30 frames
-    if (timing_frame % 30 == 0) {
-        auto dyn_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        auto bvh_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
-        auto phys_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
-        std::cout << "[TIMING] Frame " << timing_frame << " | Dynamics=" << dyn_ms
-                  << "ms BVH=" << bvh_ms << "ms Physics=" << phys_ms << "ms" << std::endl;
     }
 
     // Update Camera Follow (track input target entity with deadzone)

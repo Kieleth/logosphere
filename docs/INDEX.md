@@ -4,8 +4,11 @@
 
 Read in order:
 1. **[README](../README.md)** — what Logosphere is, who it's for, how to build it.
-2. **[Getting Started](GETTING_STARTED.md)** — build your first game from empty directory to running executable.
-3. **[Game Layer](GAME_LAYER.md)** — canonical reference for the game-facing API.
+2. **[Capabilities](CAPABILITIES.md)**: what the engine can do today and how finished each part is. Every claim names the gate that proves it; everything ungated says so. Read this before deciding whether to build on it.
+3. **[Getting Started](GETTING_STARTED.md)** — build your first game from empty directory to running executable.
+4. **[Game Layer](GAME_LAYER.md)** — canonical reference for the game-facing API.
+
+Optional, whenever you want it: **[Why this exists](WHY.md)**: the bet the engine was built around, what it forced, and why none of it is a tax on people who never take the bet.
 
 ## Building a game
 
@@ -19,8 +22,11 @@ Read in order:
 - **[Knowledge Layer](KNOWLEDGE_LAYER.md)** — facets, queries, the event journal, history renderers, and the ops write-back loop: how any consumer (LLM director, AI, inspector, replay) reads meaning from the world
 - **[Ontology-native Rule Language](RULE_LANGUAGE.md)**: architecture contract for applications and games that store typed, executable rule programs in the KG
 
+- **[Two newcomers, measured](NEWCOMER_RUNS.md)**: what happened when two coding agents with no prior knowledge of the engine were each asked for a game. Both shipped, neither touched engine source, and the walls they hit are the current documentation defect list
+
 ## Engine internals
 
+- **[The Reflection Protocol](REFLECTION_PROTOCOL.md)**: the nine layers between somebody else's rulebook and a playable game, each with a contract, a conformance gate, and a stated replacement condition. Names its own ungated rules under "Known thin ice"
 - **[Engine Invariants](ENGINE_INVARIANTS.md)**: the rules that hold regardless of task, and why each one was expensive. Read before touching physics or animation
 - **[Visual Tests](VISUAL_TESTS.md)**: proving a rendering change: headless assertions plus an interactive mode, and the traps that produce confident wrong answers
 

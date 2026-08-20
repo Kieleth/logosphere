@@ -57,6 +57,38 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   including fallen tree logs.
 
 ### Added
+- **`docs/CAPABILITIES.md`, the honest inventory.** One page for the
+  question the README never answered directly: what can this engine do
+  today, and how finished is each part. Every claim names the gate that
+  proves it, and anything working but unguarded is marked ungated rather
+  than left to look the same as the rest. It links the detailed
+  documents instead of restating them, and says which one wins when they
+  disagree.
+- **`examples/minimal/`, the smallest complete game.** One file, 248
+  lines, 65 of them comments, no schema and no generated code: a window,
+  a floor, five boxes and one you drive with the arrow keys. It exists
+  because the smallest thing in the tree was a 3,180-line header, and
+  two independent newcomers each had to reassemble "how does a game
+  start" by grep. `--shot` writes a PPM so a build can prove it renders.
+  `docs/GETTING_STARTED.md` now points here.
+- **`examples/logomanpac/` and `examples/logotriste/`.** Two complete
+  games, a maze chase and a falling-blocks well, written by coding agents
+  with no prior knowledge of the engine, in 29 and 25 minutes, with zero
+  changes to engine source. Each ships the log its author kept while
+  working, left verbatim. `logomanpac --shot` and `logotriste --shot`
+  write a PPM, and `at_logomanpac` asserts on pixels.
+- **`docs/NEWCOMER_RUNS.md`.** Two coding agents, two clean clones, one
+  sentence of instruction each: a playable Pacman in 29 minutes and a
+  playable Tetris in 25, both with zero changes to engine source. The
+  record exists because the claim "put an agent on it" is easy to assert
+  and we wanted it measured. It also lists what the runs cost, which is
+  five documentation defects including a tutorial line that does not
+  compile.
+- **`docs/WHY.md`.** The origin story moves out of the README, which had
+  it as the third thing a new reader met, and gains the part it was
+  missing: what the bet means for someone who never uses a language
+  model.
+
 - **A sanitizer lane in CI (`sanitizers-linux`).** Builds the `core`
   profile with AddressSanitizer and UndefinedBehaviorSanitizer and runs
   the headless suite plus twelve chargen lives under them. It exists
@@ -108,7 +140,35 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   scenery are not immovable by declaration: they rest on the turtle
   boundary or on anchored bonds (INV-1).
 
+### Fixed
+- **The engine no longer shouts over your game.** A `// TEMP` debug print
+  at `engine.cpp:1292` wrote frame timings to stdout every 30 frames, in
+  Release, with no flag to stop it: neither `show_performance_metrics`
+  nor `show_debug_overlay` touched it. Headless runs are uncapped, so
+  "every 30 frames" meant tens of thousands of lines a second. Measured
+  on a five-second run of `examples/minimal`: **282,352 lines before,
+  82 after**, of which 282,270 were the print. Its four
+  `high_resolution_clock` timestamps went with it; the telemetry phase
+  markers beside them already do this job properly.
+- **The Getting Started tutorial no longer contains a line that does not
+  compile.** `docs/GETTING_STARTED.md` and `docs/GAME_LAYER.md` both told
+  the reader to override `display_framebuffer`, removed in Phase 6 of the
+  Renderer/Display split. Both now show the `get_window()` returning
+  nullptr that every shipping example actually writes.
+- **`scripts/generate_ontology.py` creates its output directory.**
+  `write_if_changed` wrote without a parent `mkdir`, so the documented
+  generator command failed with a bare `FileNotFoundError` for exactly
+  one case: a game that does not exist yet. Every game already in the
+  tree has `src/generated/` committed, which is why it survived.
+
 ### Changed
+- **The README leads with what you can build.** The opt-in nature of
+  every subsystem was the last of nine bullets while the LLM was the
+  second sentence, which readers correctly took to mean the model was
+  mandatory. The profile table now sits near the top, the reflection
+  work has a first-page section carrying its own status, the origin
+  story moves to `docs/WHY.md`, and the standalone headless test count
+  is corrected from 46 to 71.
 - **The DCO sign-off is checked on `main`, not on branch commits.** It
   runs on the single commit a squash merge produces, over the push
   event, and no longer walks every commit in a pull request. The old

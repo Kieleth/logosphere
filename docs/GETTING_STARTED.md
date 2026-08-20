@@ -114,9 +114,11 @@ public:
     bool initialize() override { /* window, resources */ return true; }
     void shutdown() override {}
 
-    // --- Platform (macOS in this repo) ---
-    void display_framebuffer(uint8_t* buf, int w, int h) override;
-    GLFWwindow* get_window() override { return window_; }
+    // --- Platform ---
+    // Return nullptr. The engine creates the window from EngineConfig;
+    // this hook exists for a game that brings its own.
+    GLFWwindow* get_window() override { return nullptr; }
+    const char* get_app_name() const override { return "MyGame"; }
 
     // --- Engine hook: game init ---
     void initialize_game(void* engine_ptr) override {
@@ -139,7 +141,25 @@ private:
 };
 ```
 
-See `examples/eden/src/main.cpp` for a full working implementation.
+`examples/minimal/main.cpp` is the whole of the above in 248 lines, 65 of
+them comments: a window, a floor, five boxes and one you can drive. Read
+that first. This is exactly what it draws, captured by the example
+itself with `--shot`:
+
+![The minimal example](../assets/screenshots/minimal.png)
+
+```bash
+./build/minimal/minimal                                  # windowed
+./build/minimal/minimal --shot out.ppm --exit-after 3    # prove it drew
+``` `examples/eden/src/main.cpp` is a full game and
+is 2,165 lines, which is the wrong size for a first look.
+
+Six things in `examples/minimal/main.cpp` are mandatory and none of them
+are guessable. They are numbered in a comment at the top of that file:
+the game owns `main()`, `get_window()` returns nullptr,
+`ProjectionMode::BirdsEye` puts the camera position at screen centre,
+`set_pixels_per_unit` is the zoom, `is_self_emissive` means the colour
+IS the pixel, and z is a centre whose body may not reach below zero.
 
 ## Step 4: Wire it into CMake
 

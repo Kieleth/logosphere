@@ -49,6 +49,11 @@ def write_if_changed(path: Path, content: str) -> bool:
             return False
     except OSError:
         pass
+    # A game that does not exist yet has no src/generated/ to write into,
+    # and every game already in the tree has one committed, so this line
+    # is invisible until the first time somebody adds a game. Two of them
+    # hit it on the same afternoon.
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content)
     return True
 
