@@ -1393,6 +1393,19 @@ void Engine::update(double delta_time) {
 }
 
 void Engine::render() {
+    ++renders_completed_;
+    // FRAME-CHAIN GUARD. A display exists and frames keep rendering but
+    // nothing is ever presented: the window is showing its unpainted
+    // surface (reads as solid white) while the framebuffer renders
+    // perfectly offscreen. One loud line, once — the silent version of
+    // this cost a full debugging session of "white screen" reports.
+    if (display_ && renders_completed_ == 60 && presents_completed_ == 0) {
+        fprintf(stderr,
+                "[FRAME-CHAIN GUARD] 60 frames rendered with a window and "
+                "present() never called — the window shows NOTHING. A "
+                "windowed loop must drive update() -> render() -> "
+                "present().\n");
+    }
     // From here on, the render path owns deferred-deletion flushing
     // (behind its GPU/worker completion waits) — see update()'s headless
     // flush.
@@ -1794,6 +1807,7 @@ void Engine::render_time_display() {
 
 // Present framebuffer to window (for custom loops)
 void Engine::present() {
+    ++presents_completed_;
 
     // PERFORMANCE DIAGNOSIS: Time present() call
     auto present_start = std::chrono::high_resolution_clock::now();

@@ -8,12 +8,21 @@
  "invariants": {
   "count_of_type": {
    "AttributeGroup": 3,
+   "ByteRangeSelector": 22,
+   "ClaimDecision": 12,
+   "CoverageDecision": 22,
+   "IngestionClaim": 12,
    "RollableTable": 3,
-   "TableEntry": 20
+   "RuleConstant": 1,
+   "SourceCoverage": 22,
+   "SourceTarget": 22,
+   "TableEntry": 20,
+   "TextQuoteSelector": 22
   },
   "unique_name_per_type": [
    "AttributeGroup",
-   "RollableTable"
+   "RollableTable",
+   "RuleConstant"
   ]
  },
  "ops": [
@@ -58,15 +67,1076 @@
   },
   {
    "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_heading_range",
+   "properties": {
+    "source_byte_start": 28017,
+    "source_byte_end": 28022
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_heading_quote",
+   "properties": {
+    "source_quote_exact": "Aging"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_heading_target",
+   "properties": {
+    "target_primary_selector": "@aging_heading_range",
+    "target_quote_selector": "@aging_heading_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_heading_coverage",
+   "properties": {
+    "coverage_target": "@aging_heading_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_heading_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_heading_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "NO_RULE_CONTENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The heading names the section but states no rule.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_start_range",
+   "properties": {
+    "source_byte_start": 28024,
+    "source_byte_end": 28092
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_start_quote",
+   "properties": {
+    "source_quote_exact": "The effects of aging begin when a character reaches 34 years of age."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_start_target",
+   "properties": {
+    "target_primary_selector": "@aging_start_range",
+    "target_quote_selector": "@aging_start_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_start_coverage",
+   "properties": {
+    "coverage_target": "@aging_start_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_start_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_start_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The sentence fixes the age at which aging begins.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_schedule_range",
+   "properties": {
+    "source_byte_start": 28093,
+    "source_byte_end": 28212
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_schedule_quote",
+   "properties": {
+    "source_quote_exact": "At the end of the fourth term, and at the end of every term thereafter, the character must roll 2D6 on the Aging Table."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_schedule_target",
+   "properties": {
+    "target_primary_selector": "@aging_schedule_range",
+    "target_quote_selector": "@aging_schedule_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_schedule_coverage",
+   "properties": {
+    "coverage_target": "@aging_schedule_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_schedule_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_schedule_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The sentence states the roll schedule, dice, and table.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_modifier_range",
+   "properties": {
+    "source_byte_start": 28213,
+    "source_byte_end": 28299
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_modifier_quote",
+   "properties": {
+    "source_quote_exact": "Apply the character's total number of terms as a negative Dice Modifier on this table."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_modifier_target",
+   "properties": {
+    "target_primary_selector": "@aging_modifier_range",
+    "target_quote_selector": "@aging_modifier_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_modifier_coverage",
+   "properties": {
+    "coverage_target": "@aging_modifier_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_modifier_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_modifier_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The sentence states the total-terms negative modifier.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_header_roll_range",
+   "properties": {
+    "source_byte_start": 28303,
+    "source_byte_end": 28306
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_header_roll_quote",
+   "properties": {
+    "source_quote_exact": "2D6"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_header_roll_target",
+   "properties": {
+    "target_primary_selector": "@aging_header_roll_range",
+    "target_quote_selector": "@aging_header_roll_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_header_roll_coverage",
+   "properties": {
+    "coverage_target": "@aging_header_roll_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_header_roll_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_header_roll_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The header gives the table result column meaning.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_header_effect_range",
+   "properties": {
+    "source_byte_start": 28309,
+    "source_byte_end": 28325
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_header_effect_quote",
+   "properties": {
+    "source_quote_exact": "Effects of Aging"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_header_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_header_effect_range",
+    "target_quote_selector": "@aging_header_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_header_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_header_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_header_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_header_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The header gives the aging-effect column meaning.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m6_band_range",
+   "properties": {
+    "source_byte_start": 28344,
+    "source_byte_end": 28347
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m6_band_quote",
+   "properties": {
+    "source_quote_exact": "\\-6"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m6_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_m6_band_range",
+    "target_quote_selector": "@aging_m6_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m6_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_m6_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m6_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m6_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m6_effect_range",
+   "properties": {
+    "source_byte_start": 28350,
+    "source_byte_end": 28431
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m6_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m6_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_m6_effect_range",
+    "target_quote_selector": "@aging_m6_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m6_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_m6_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m6_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m6_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m5_band_range",
+   "properties": {
+    "source_byte_start": 28436,
+    "source_byte_end": 28439
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m5_band_quote",
+   "properties": {
+    "source_quote_exact": "\\-5"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m5_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_m5_band_range",
+    "target_quote_selector": "@aging_m5_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m5_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_m5_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m5_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m5_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m5_effect_range",
+   "properties": {
+    "source_byte_start": 28442,
+    "source_byte_end": 28485
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m5_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce three physical characteristics by 2."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m5_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_m5_effect_range",
+    "target_quote_selector": "@aging_m5_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m5_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_m5_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m5_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m5_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m4_band_range",
+   "properties": {
+    "source_byte_start": 28490,
+    "source_byte_end": 28493
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m4_band_quote",
+   "properties": {
+    "source_quote_exact": "\\-4"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m4_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_m4_band_range",
+    "target_quote_selector": "@aging_m4_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m4_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_m4_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m4_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m4_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m4_effect_range",
+   "properties": {
+    "source_byte_start": 28496,
+    "source_byte_end": 28577
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m4_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m4_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_m4_effect_range",
+    "target_quote_selector": "@aging_m4_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m4_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_m4_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m4_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m4_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m3_band_range",
+   "properties": {
+    "source_byte_start": 28582,
+    "source_byte_end": 28585
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m3_band_quote",
+   "properties": {
+    "source_quote_exact": "\\-3"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m3_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_m3_band_range",
+    "target_quote_selector": "@aging_m3_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m3_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_m3_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m3_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m3_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m3_effect_range",
+   "properties": {
+    "source_byte_start": 28588,
+    "source_byte_end": 28668
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m3_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m3_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_m3_effect_range",
+    "target_quote_selector": "@aging_m3_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m3_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_m3_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m3_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m3_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m2_band_range",
+   "properties": {
+    "source_byte_start": 28673,
+    "source_byte_end": 28676
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m2_band_quote",
+   "properties": {
+    "source_quote_exact": "\\-2"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m2_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_m2_band_range",
+    "target_quote_selector": "@aging_m2_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m2_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_m2_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m2_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m2_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m2_effect_range",
+   "properties": {
+    "source_byte_start": 28679,
+    "source_byte_end": 28721
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m2_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce three physical characteristics by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m2_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_m2_effect_range",
+    "target_quote_selector": "@aging_m2_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m2_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_m2_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m2_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m2_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m1_band_range",
+   "properties": {
+    "source_byte_start": 28726,
+    "source_byte_end": 28729
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m1_band_quote",
+   "properties": {
+    "source_quote_exact": "\\-1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m1_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_m1_band_range",
+    "target_quote_selector": "@aging_m1_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m1_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_m1_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m1_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m1_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_m1_effect_range",
+   "properties": {
+    "source_byte_start": 28732,
+    "source_byte_end": 28772
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_m1_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce two physical characteristics by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_m1_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_m1_effect_range",
+    "target_quote_selector": "@aging_m1_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_m1_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_m1_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_m1_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_m1_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_0_band_range",
+   "properties": {
+    "source_byte_start": 28777,
+    "source_byte_end": 28778
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_0_band_quote",
+   "properties": {
+    "source_quote_exact": "0"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_0_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_0_band_range",
+    "target_quote_selector": "@aging_0_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_0_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_0_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_0_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_0_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_0_effect_range",
+   "properties": {
+    "source_byte_start": 28781,
+    "source_byte_end": 28820
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_0_effect_quote",
+   "properties": {
+    "source_quote_exact": "Reduce one physical characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_0_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_0_effect_range",
+    "target_quote_selector": "@aging_0_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_0_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_0_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_0_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_0_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_1p_band_range",
+   "properties": {
+    "source_byte_start": 28825,
+    "source_byte_end": 28827
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_1p_band_quote",
+   "properties": {
+    "source_quote_exact": "1+"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_1p_band_target",
+   "properties": {
+    "target_primary_selector": "@aging_1p_band_range",
+    "target_quote_selector": "@aging_1p_band_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_1p_band_coverage",
+   "properties": {
+    "coverage_target": "@aging_1p_band_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_1p_band_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_1p_band_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies one Aging Table result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ByteRangeSelector",
+   "as": "@aging_1p_effect_range",
+   "properties": {
+    "source_byte_start": 28830,
+    "source_byte_end": 28839
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "TextQuoteSelector",
+   "as": "@aging_1p_effect_quote",
+   "properties": {
+    "source_quote_exact": "No effect"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceTarget",
+   "as": "@aging_1p_effect_target",
+   "properties": {
+    "target_primary_selector": "@aging_1p_effect_range",
+    "target_quote_selector": "@aging_1p_effect_quote"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "SourceCoverage",
+   "as": "@aging_1p_effect_coverage",
+   "properties": {
+    "coverage_target": "@aging_1p_effect_target"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "CoverageDecision",
+   "as": "@aging_1p_effect_coverage_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_1p_effect_coverage",
+    "decision_sequence": 0,
+    "coverage_judgement": "CLAIMS_PRESENT",
+    "decision_question": "Does this exact source leaf state or support a rule claim?",
+    "decision_reason": "The cell supplies the effect for its result band.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "RuleConstant",
+   "as": "@aging_start_age",
+   "properties": {
+    "name": "aging_start_age",
+    "constant_value": "34"
+   }
+  },
+  {
+   "op": "create_entity",
    "type": "RollableTable",
    "as": "@aging_table",
    "properties": {
     "name": "Effects of Aging",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d2d6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "sentence",
-    "source_quote": "At the end of the fourth term, and at the end of every term thereafter, the character must roll 2D6 on the Aging Table."
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
    }
   },
   {
@@ -77,13 +1147,6 @@
     "name": "aging_m6_c0",
     "attribute_group": "@group_physical",
     "affected_count": "3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-2"
    }
   },
@@ -95,13 +1158,6 @@
     "name": "aging_m6_c1",
     "attribute_group": "@group_mental",
     "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-1"
    }
   },
@@ -110,14 +1166,7 @@
    "type": "OutcomeSequence",
    "as": "@aging_m6",
    "properties": {
-    "name": "aging_m6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging"
+    "name": "aging_m6"
    }
   },
   {
@@ -127,14 +1176,7 @@
    "properties": {
     "name": "aging_m6_s0",
     "step_index": "0",
-    "outcome": "@aging_m6_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging"
+    "outcome": "@aging_m6_c0"
    }
   },
   {
@@ -150,14 +1192,7 @@
    "properties": {
     "name": "aging_m6_s1",
     "step_index": "1",
-    "outcome": "@aging_m6_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging"
+    "outcome": "@aging_m6_c1"
    }
   },
   {
@@ -174,13 +1209,6 @@
     "name": "aging -6",
     "roll_min": "-6",
     "outcome": "@aging_m6",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-6",
-    "source_column": "Effects of Aging",
     "roll_max": "-6",
     "roll_min_unbounded": "true",
     "source_defect": "The Aging Table's bottom row is printed as a plain '-6' while its top row is printed '1+', so the table is open at one end and closed at the other. The DM is the character's total terms, and a natural 12 on Reenlistment overrides the seven-term cap, so a character can reach nine terms and roll 2D6-9 for a total of -7, which no row claims. Read as '-6 or less', which is what the open top row does at the other end.",
@@ -201,13 +1229,6 @@
     "name": "aging_m5_c0",
     "attribute_group": "@group_physical",
     "affected_count": "3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2.",
-    "source_table": "2D6",
-    "source_row": "\\-5",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-2"
    }
   },
@@ -219,13 +1240,6 @@
     "name": "aging -5",
     "roll_min": "-5",
     "outcome": "@aging_m5_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 2.",
-    "source_table": "2D6",
-    "source_row": "\\-5",
-    "source_column": "Effects of Aging",
     "roll_max": "-5"
    }
   },
@@ -243,13 +1257,6 @@
     "name": "aging_m4_c0",
     "attribute_group": "@group_physical",
     "affected_count": "2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-2"
    }
   },
@@ -261,13 +1268,6 @@
     "name": "aging_m4_c1",
     "attribute_group": "@group_physical",
     "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-1"
    }
   },
@@ -276,14 +1276,7 @@
    "type": "OutcomeSequence",
    "as": "@aging_m4",
    "properties": {
-    "name": "aging_m4",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging"
+    "name": "aging_m4"
    }
   },
   {
@@ -293,14 +1286,7 @@
    "properties": {
     "name": "aging_m4_s0",
     "step_index": "0",
-    "outcome": "@aging_m4_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging"
+    "outcome": "@aging_m4_c0"
    }
   },
   {
@@ -316,14 +1302,7 @@
    "properties": {
     "name": "aging_m4_s1",
     "step_index": "1",
-    "outcome": "@aging_m4_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging"
+    "outcome": "@aging_m4_c1"
    }
   },
   {
@@ -340,13 +1319,6 @@
     "name": "aging -4",
     "roll_min": "-4",
     "outcome": "@aging_m4",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-4",
-    "source_column": "Effects of Aging",
     "roll_max": "-4"
    }
   },
@@ -364,13 +1336,6 @@
     "name": "aging_m3_c0",
     "attribute_group": "@group_physical",
     "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-2"
    }
   },
@@ -382,13 +1347,6 @@
     "name": "aging_m3_c1",
     "attribute_group": "@group_physical",
     "affected_count": "2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-1"
    }
   },
@@ -397,14 +1355,7 @@
    "type": "OutcomeSequence",
    "as": "@aging_m3",
    "properties": {
-    "name": "aging_m3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging"
+    "name": "aging_m3"
    }
   },
   {
@@ -414,14 +1365,7 @@
    "properties": {
     "name": "aging_m3_s0",
     "step_index": "0",
-    "outcome": "@aging_m3_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging"
+    "outcome": "@aging_m3_c0"
    }
   },
   {
@@ -437,14 +1381,7 @@
    "properties": {
     "name": "aging_m3_s1",
     "step_index": "1",
-    "outcome": "@aging_m3_c1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging"
+    "outcome": "@aging_m3_c1"
    }
   },
   {
@@ -461,13 +1398,6 @@
     "name": "aging -3",
     "roll_min": "-3",
     "outcome": "@aging_m3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 2, reduce two physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "\\-3",
-    "source_column": "Effects of Aging",
     "roll_max": "-3"
    }
   },
@@ -485,13 +1415,6 @@
     "name": "aging_m2_c0",
     "attribute_group": "@group_physical",
     "affected_count": "3",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-2",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-1"
    }
   },
@@ -503,13 +1426,6 @@
     "name": "aging -2",
     "roll_min": "-2",
     "outcome": "@aging_m2_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce three physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-2",
-    "source_column": "Effects of Aging",
     "roll_max": "-2"
    }
   },
@@ -527,13 +1443,6 @@
     "name": "aging_m1_c0",
     "attribute_group": "@group_physical",
     "affected_count": "2",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-1",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-1"
    }
   },
@@ -545,13 +1454,6 @@
     "name": "aging -1",
     "roll_min": "-1",
     "outcome": "@aging_m1_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce two physical characteristics by 1",
-    "source_table": "2D6",
-    "source_row": "\\-1",
-    "source_column": "Effects of Aging",
     "roll_max": "-1"
    }
   },
@@ -569,13 +1471,6 @@
     "name": "aging_0_c0",
     "attribute_group": "@group_physical",
     "affected_count": "1",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "0",
-    "source_column": "Effects of Aging",
     "attribute_delta": "-1"
    }
   },
@@ -587,13 +1482,6 @@
     "name": "aging 0",
     "roll_min": "0",
     "outcome": "@aging_0_c0",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "Reduce one physical characteristic by 1",
-    "source_table": "2D6",
-    "source_row": "0",
-    "source_column": "Effects of Aging",
     "roll_max": "0"
    }
   },
@@ -608,14 +1496,7 @@
    "type": "NoEffect",
    "as": "@aging_1p_none",
    "properties": {
-    "name": "aging: no effect",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "No effect",
-    "source_table": "2D6",
-    "source_row": "1+",
-    "source_column": "Effects of Aging"
+    "name": "aging: no effect"
    }
   },
   {
@@ -626,13 +1507,6 @@
     "name": "aging 1+",
     "roll_min": "1",
     "outcome": "@aging_1p_none",
-    "source_file": "book1/character-creation.md",
-    "source_section": "Aging",
-    "source_kind": "cell",
-    "source_quote": "No effect",
-    "source_table": "2D6",
-    "source_row": "1+",
-    "source_column": "Effects of Aging",
     "roll_max_unbounded": "true"
    }
   },
@@ -644,11 +1518,746 @@
   },
   {
    "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_start_claim",
+   "properties": {
+    "claim_statement": "Aging begins when a character reaches age 34."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_start_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_start_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact start age is represented by a typed constant.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_start_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_start_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_start_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_start_age"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_schedule_claim",
+   "properties": {
+    "claim_statement": "A character rolls on the Aging Table after the fourth term and every later term."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_schedule_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_schedule_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The graph has no rule-language expression for this recurring schedule.",
+    "arbiter": "Codex, owner-directed migration",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_schedule_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_schedule_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_schedule_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@aging_start_age"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_schedule_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@aging_table"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_table_roll_claim",
+   "properties": {
+    "claim_statement": "The Aging Table uses 2D6."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_table_roll_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_table_roll_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The dice expression and rollable table are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_table_roll_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_schedule_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_table_roll_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_table"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_table_roll_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d2d6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_modifier_claim",
+   "properties": {
+    "claim_statement": "A character's total terms apply as a negative modifier to an Aging Table roll."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_modifier_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_modifier_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "RAISED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The graph has no rule-language expression for negating the total-term count.",
+    "arbiter": "Codex, owner-directed migration",
+    "claim_gap_kind": "RULE_LANGUAGE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_modifier_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_modifier_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_modifier_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@aging_table"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_m6_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of -6 or less has this effect: Reduce three physical characteristics by 2, reduce one mental characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_m6_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_m6_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The printed table stops at -6; the executable lower-unbounded reading is explicit but not stated by the source.",
+    "arbiter": "Codex, owner-directed migration",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m6_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m6_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m6_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m6_c1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m6"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m6_s0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m6_s1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_m6"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_mental"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m6_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_m5_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of -5 has this effect: Reduce three physical characteristics by 2."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_m5_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_m5_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m5_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m5_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m5_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_m5"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m5_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_m4_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of -4 has this effect: Reduce two physical characteristics by 2, reduce one physical characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_m4_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_m4_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m4_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m4_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m4_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m4_c1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m4"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m4_s0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m4_s1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_m4"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m4_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_m3_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of -3 has this effect: Reduce one physical characteristic by 2, reduce two physical characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_m3_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_m3_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m3_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m3_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m3_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m3_c1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m3"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m3_s0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m3_s1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_m3"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m3_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_m2_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of -2 has this effect: Reduce three physical characteristics by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_m2_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_m2_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m2_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m2_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m2_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_m2"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m2_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_m1_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of -1 has this effect: Reduce two physical characteristics by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_m1_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_m1_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m1_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_m1_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_m1_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_m1"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_m1_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_0_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of 0 has this effect: Reduce one physical characteristic by 1"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_0_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_0_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_0_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_0_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_0_c0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_0"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_0_claim",
+   "relation": "CLAIM_RESOLVED_AGAINST",
+   "to": "@group_physical"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@aging_row_1p_claim",
+   "properties": {
+    "claim_statement": "An Aging Table result of 1+ has this effect: No effect"
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@aging_row_1p_claim_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@aging_row_1p_claim",
+    "decision_sequence": 0,
+    "claim_disposition": "MATERIALIZED",
+    "decision_question": "Can this claim enter the executable graph?",
+    "decision_reason": "The exact result band and complete typed outcome are represented.",
+    "arbiter": "Codex, owner-directed migration"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_1p_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_roll_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_1p_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_header_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_1p_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_1p_band_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_1p_claim",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@aging_1p_effect_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_1p_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_1p_none"
+  },
+  {
+   "op": "set_relation",
+   "from": "@aging_row_1p_claim",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aging_row_1p"
+  },
+  {
+   "op": "create_entity",
    "type": "RollableTable",
    "as": "@injury_table",
    "properties": {
     "name": "Injury",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Injuries",
     "source_kind": "sentence",
@@ -670,7 +2279,7 @@
     "source_table": "1D6",
     "source_row": "1",
     "source_column": "Injury",
-    "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "attribute_delta_dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "attribute_delta_reduces": "true",
     "unmodelled": "The second clause, 'reduce both other physical characteristics by 2 (or one of them by 4)', depends on which characteristic the first clause reduced. An outcome cannot refer to a choice made earlier in its own sequence, so only the 1D6 reduction is expressed."
    }
@@ -714,7 +2323,7 @@
     "source_table": "1D6",
     "source_row": "2",
     "source_column": "Injury",
-    "attribute_delta_dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "attribute_delta_dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "attribute_delta_reduces": "true"
    }
   },
@@ -993,7 +2602,7 @@
    "as": "@mishap_table",
    "properties": {
     "name": "Survival Mishaps",
-    "dice": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/DiceExpression/d1d6",
+    "dice": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/DiceExpression/d1d6",
     "source_file": "book1/character-creation.md",
     "source_section": "Survival",
     "source_kind": "sentence",
@@ -1359,7 +2968,7 @@
     "source_row": "3",
     "source_column": "Mishaps",
     "amount": "-10000",
-    "currency": "@@entity/source-document%3Acepheus%3Abook1%2Fcharacter-creation.md%40efb8f9d8fa0c53119b9d18bee6f580191ddd0107/Currency/credits"
+    "currency": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/Currency/credits"
    }
   },
   {

@@ -691,10 +691,10 @@ inline bool from_string(const char* str, WorldEventType& out) {
 enum class SolverAuthority {
     /// Physics owns it. Gravity pulls it, contacts push it, impulses move it. The default, and right for anything loose, alive, or meant to be knocked about.
     DYNAMIC,
-    /// The body owns its own position. Nothing moves it - not gravity, not impact - and it still collides, so things stand and land on it. This is what terrain IS: floors, worlds, anything that must simply be there.
-    KINEMATIC,
-    /// Immovable and inert. Like KINEMATIC, but never expected to be repositioned by anyone.
-    STATIC
+    /// An external writer owns this body's position RIGHT NOW: animation, locomotion, a scripted driver. Physics will not move it while that lasts, and it still collides, so things land on it.
+    /// It is a TRANSIENT AUTHORITY, not a label. Whoever sets it owns releasing it: a body left KINEMATIC after its driver stops can never fall, tip or ragdoll again. Driving complex animation through physics is the thing this escape hatch exists to avoid - nothing else.
+    /// NOT for scenery. Terrain, floors and worlds are not immovable by declaration (INV-1: the turtle boundary is the only intrinsically immovable thing). They rest on the turtle, on anchored bonds, or on the modelled EFFECT of the mass we choose not to simulate - which is also where gravity comes from. A body that should float escapes the field; it is not nailed to the air.
+    KINEMATIC
 };
 
 /// Convert SolverAuthority to its string representation.
@@ -702,7 +702,6 @@ inline const char* to_string(SolverAuthority value) {
     switch (value) {
         case SolverAuthority::DYNAMIC: return "DYNAMIC";
         case SolverAuthority::KINEMATIC: return "KINEMATIC";
-        case SolverAuthority::STATIC: return "STATIC";
     }
     return "unknown";
 }
@@ -711,7 +710,6 @@ inline const char* to_string(SolverAuthority value) {
 inline bool from_string(const char* str, SolverAuthority& out) {
     if (std::strcmp(str, "DYNAMIC") == 0) { out = SolverAuthority::DYNAMIC; return true; }
     if (std::strcmp(str, "KINEMATIC") == 0) { out = SolverAuthority::KINEMATIC; return true; }
-    if (std::strcmp(str, "STATIC") == 0) { out = SolverAuthority::STATIC; return true; }
     return false;
 }
 
@@ -775,6 +773,90 @@ inline bool from_string(const char* str, WorldRelationType& out) {
     return false;
 }
 
+/// Closed media vocabulary implemented by source resolvers.
+enum class SourceMediaType {
+    /// UTF-8 source text addressed by byte range.
+    UTF8_TEXT
+};
+
+/// Convert SourceMediaType to its string representation.
+inline const char* to_string(SourceMediaType value) {
+    switch (value) {
+        case SourceMediaType::UTF8_TEXT: return "UTF8_TEXT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceMediaType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceMediaType& out) {
+    if (std::strcmp(str, "UTF8_TEXT") == 0) { out = SourceMediaType::UTF8_TEXT; return true; }
+    return false;
+}
+
+/// Closed reasons why exact source bytes are not semantic leaves in a complete UTF-8 partition. Unclassified content remains an opaque leaf; it is never an exclusion.
+enum class SourceExclusionKind {
+    /// Source-format delimiters with no independent content.
+    SYNTAX,
+    /// Whitespace or other source layout with no content.
+    LAYOUT
+};
+
+/// Convert SourceExclusionKind to its string representation.
+inline const char* to_string(SourceExclusionKind value) {
+    switch (value) {
+        case SourceExclusionKind::SYNTAX: return "SYNTAX";
+        case SourceExclusionKind::LAYOUT: return "LAYOUT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceExclusionKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceExclusionKind& out) {
+    if (std::strcmp(str, "SYNTAX") == 0) { out = SourceExclusionKind::SYNTAX; return true; }
+    if (std::strcmp(str, "LAYOUT") == 0) { out = SourceExclusionKind::LAYOUT; return true; }
+    return false;
+}
+
+/// Closed cryptographic digest vocabulary for source bytes.
+enum class SourceDigestAlgorithm {
+    /// SHA-256, encoded as 64 lowercase hexadecimal digits.
+    SHA256
+};
+
+/// Convert SourceDigestAlgorithm to its string representation.
+inline const char* to_string(SourceDigestAlgorithm value) {
+    switch (value) {
+        case SourceDigestAlgorithm::SHA256: return "SHA256";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceDigestAlgorithm. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceDigestAlgorithm& out) {
+    if (std::strcmp(str, "SHA256") == 0) { out = SourceDigestAlgorithm::SHA256; return true; }
+    return false;
+}
+
+/// Closed canonical encoding vocabulary for source manifests.
+enum class SourceManifestFormat {
+    /// Source representations sorted by logical source path, encoded as decimal byte-length-prefixed fields in the version-one field order.
+    LENGTH_PREFIXED_V1
+};
+
+/// Convert SourceManifestFormat to its string representation.
+inline const char* to_string(SourceManifestFormat value) {
+    switch (value) {
+        case SourceManifestFormat::LENGTH_PREFIXED_V1: return "LENGTH_PREFIXED_V1";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SourceManifestFormat. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SourceManifestFormat& out) {
+    if (std::strcmp(str, "LENGTH_PREFIXED_V1") == 0) { out = SourceManifestFormat::LENGTH_PREFIXED_V1; return true; }
+    return false;
+}
+
 /// Typed links inside the immutable ontology meta-graph.
 enum class OntologyMetaRelationType {
     ONTOLOGY_META_CONTAINS,
@@ -824,8 +906,9 @@ inline bool from_string(const char* str, OntologyMetaRelationType& out) {
     return false;
 }
 
-/// Closed ownership links inside stored rule programs.
+/// Closed typed links owned by the reusable rule-language pack.
 enum class RuleLanguageRelationType {
+    EDITION_INCLUDES_REPRESENTATION,
     FUNCTION_SIGNATURE_HAS_PARAMETER,
     LET_EXPRESSION_HAS_BINDING
 };
@@ -833,6 +916,7 @@ enum class RuleLanguageRelationType {
 /// Convert RuleLanguageRelationType to its string representation.
 inline const char* to_string(RuleLanguageRelationType value) {
     switch (value) {
+        case RuleLanguageRelationType::EDITION_INCLUDES_REPRESENTATION: return "EDITION_INCLUDES_REPRESENTATION";
         case RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER: return "FUNCTION_SIGNATURE_HAS_PARAMETER";
         case RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING: return "LET_EXPRESSION_HAS_BINDING";
     }
@@ -841,8 +925,126 @@ inline const char* to_string(RuleLanguageRelationType value) {
 
 /// Parse a string into RuleLanguageRelationType. Returns false if the string is not a valid value.
 inline bool from_string(const char* str, RuleLanguageRelationType& out) {
+    if (std::strcmp(str, "EDITION_INCLUDES_REPRESENTATION") == 0) { out = RuleLanguageRelationType::EDITION_INCLUDES_REPRESENTATION; return true; }
     if (std::strcmp(str, "FUNCTION_SIGNATURE_HAS_PARAMETER") == 0) { out = RuleLanguageRelationType::FUNCTION_SIGNATURE_HAS_PARAMETER; return true; }
     if (std::strcmp(str, "LET_EXPRESSION_HAS_BINDING") == 0) { out = RuleLanguageRelationType::LET_EXPRESSION_HAS_BINDING; return true; }
+    return false;
+}
+
+/// Latest derived judgement for one enumerated source leaf.
+enum class CoverageJudgement {
+    /// One or more semantic claims cite this coverage record.
+    CLAIMS_PRESENT,
+    /// The leaf was visited and judged to contain no rule claim.
+    NO_RULE_CONTENT
+};
+
+/// Convert CoverageJudgement to its string representation.
+inline const char* to_string(CoverageJudgement value) {
+    switch (value) {
+        case CoverageJudgement::CLAIMS_PRESENT: return "CLAIMS_PRESENT";
+        case CoverageJudgement::NO_RULE_CONTENT: return "NO_RULE_CONTENT";
+    }
+    return "unknown";
+}
+
+/// Parse a string into CoverageJudgement. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, CoverageJudgement& out) {
+    if (std::strcmp(str, "CLAIMS_PRESENT") == 0) { out = CoverageJudgement::CLAIMS_PRESENT; return true; }
+    if (std::strcmp(str, "NO_RULE_CONTENT") == 0) { out = CoverageJudgement::NO_RULE_CONTENT; return true; }
+    return false;
+}
+
+/// Outcome recorded by one append-only claim decision.
+enum class ClaimDisposition {
+    /// The complete claim is represented by typed KG content.
+    MATERIALIZED,
+    /// Typed KG content represents only part of the claim.
+    PARTIAL,
+    /// The claim is recorded but cannot yet be represented.
+    RAISED,
+    /// An earlier claim already represents the same meaning.
+    DUPLICATE,
+    /// A later, broader or corrected claim replaces this claim.
+    SUPERSEDED,
+    /// The claim conflicts with another claim and both are kept.
+    CONTRADICTORY
+};
+
+/// Convert ClaimDisposition to its string representation.
+inline const char* to_string(ClaimDisposition value) {
+    switch (value) {
+        case ClaimDisposition::MATERIALIZED: return "MATERIALIZED";
+        case ClaimDisposition::PARTIAL: return "PARTIAL";
+        case ClaimDisposition::RAISED: return "RAISED";
+        case ClaimDisposition::DUPLICATE: return "DUPLICATE";
+        case ClaimDisposition::SUPERSEDED: return "SUPERSEDED";
+        case ClaimDisposition::CONTRADICTORY: return "CONTRADICTORY";
+    }
+    return "unknown";
+}
+
+/// Parse a string into ClaimDisposition. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, ClaimDisposition& out) {
+    if (std::strcmp(str, "MATERIALIZED") == 0) { out = ClaimDisposition::MATERIALIZED; return true; }
+    if (std::strcmp(str, "PARTIAL") == 0) { out = ClaimDisposition::PARTIAL; return true; }
+    if (std::strcmp(str, "RAISED") == 0) { out = ClaimDisposition::RAISED; return true; }
+    if (std::strcmp(str, "DUPLICATE") == 0) { out = ClaimDisposition::DUPLICATE; return true; }
+    if (std::strcmp(str, "SUPERSEDED") == 0) { out = ClaimDisposition::SUPERSEDED; return true; }
+    if (std::strcmp(str, "CONTRADICTORY") == 0) { out = ClaimDisposition::CONTRADICTORY; return true; }
+    return false;
+}
+
+/// Closed reason why a claim is partial or raised.
+enum class ClaimGapKind {
+    /// The ontology cannot type a required concept or relation.
+    ONTOLOGY_GAP,
+    /// The rule language cannot express the required operation.
+    RULE_LANGUAGE_GAP,
+    /// The source is ambiguous, inconsistent, or incomplete for the required rule.
+    SOURCE_GAP
+};
+
+/// Convert ClaimGapKind to its string representation.
+inline const char* to_string(ClaimGapKind value) {
+    switch (value) {
+        case ClaimGapKind::ONTOLOGY_GAP: return "ONTOLOGY_GAP";
+        case ClaimGapKind::RULE_LANGUAGE_GAP: return "RULE_LANGUAGE_GAP";
+        case ClaimGapKind::SOURCE_GAP: return "SOURCE_GAP";
+    }
+    return "unknown";
+}
+
+/// Parse a string into ClaimGapKind. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, ClaimGapKind& out) {
+    if (std::strcmp(str, "ONTOLOGY_GAP") == 0) { out = ClaimGapKind::ONTOLOGY_GAP; return true; }
+    if (std::strcmp(str, "RULE_LANGUAGE_GAP") == 0) { out = ClaimGapKind::RULE_LANGUAGE_GAP; return true; }
+    if (std::strcmp(str, "SOURCE_GAP") == 0) { out = ClaimGapKind::SOURCE_GAP; return true; }
+    return false;
+}
+
+/// Typed links from ingestion claims to evidence and graph data.
+enum class RulebookIngestionRelationType {
+    CLAIM_SUPPORTED_BY,
+    CLAIM_MATERIALIZES,
+    CLAIM_RESOLVED_AGAINST
+};
+
+/// Convert RulebookIngestionRelationType to its string representation.
+inline const char* to_string(RulebookIngestionRelationType value) {
+    switch (value) {
+        case RulebookIngestionRelationType::CLAIM_SUPPORTED_BY: return "CLAIM_SUPPORTED_BY";
+        case RulebookIngestionRelationType::CLAIM_MATERIALIZES: return "CLAIM_MATERIALIZES";
+        case RulebookIngestionRelationType::CLAIM_RESOLVED_AGAINST: return "CLAIM_RESOLVED_AGAINST";
+    }
+    return "unknown";
+}
+
+/// Parse a string into RulebookIngestionRelationType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, RulebookIngestionRelationType& out) {
+    if (std::strcmp(str, "CLAIM_SUPPORTED_BY") == 0) { out = RulebookIngestionRelationType::CLAIM_SUPPORTED_BY; return true; }
+    if (std::strcmp(str, "CLAIM_MATERIALIZES") == 0) { out = RulebookIngestionRelationType::CLAIM_MATERIALIZES; return true; }
+    if (std::strcmp(str, "CLAIM_RESOLVED_AGAINST") == 0) { out = RulebookIngestionRelationType::CLAIM_RESOLVED_AGAINST; return true; }
     return false;
 }
 
@@ -928,10 +1130,10 @@ struct Signal : public Identifiable, public Temporal {
 struct Relation : public Identifiable, public Temporal {
     /// The type of relation (has_part, contains, depends_on, etc.). Domain projects should constrain this to an enum.
     std::string relation_type = {};
-    /// ID of the source entity.
-    std::string source_id = {};
-    /// ID of the target entity.
-    std::string target_id = {};
+    /// Reference to the source Entity.
+    Entity source_id = {};
+    /// Reference to the target Entity.
+    Entity target_id = {};
     /// Weight or confidence of the relation (0.0 to 1.0).
     std::optional<float> strength = std::nullopt;
 };
@@ -982,6 +1184,19 @@ struct EmitsLight {
     std::optional<float> emission_strength = std::nullopt;
     /// Maximum light reach distance.
     std::optional<float> emission_radius = std::nullopt;
+};
+
+
+/// The simple-entity contract read by the engine's simple_entity_activator (src/entities/simple_entity.cpp): one particle built from a uniform size plus RGB color. Runtime keys are the slot names verbatim. Known drift siblings, unification pending an owner ruling: PhysicsRock.color_r/g/b and CelestialBody.moon_r/g/b.
+struct HasSimpleAppearance {
+    /// Uniform particle size in meters (width = height = thickness for simple entities; also the rock spec's characteristic size).
+    std::optional<float> size = std::nullopt;
+    /// Red color component, 0..1.
+    std::optional<float> r = std::nullopt;
+    /// Green color component, 0..1.
+    std::optional<float> g = std::nullopt;
+    /// Blue color component, 0..1.
+    std::optional<float> b = std::nullopt;
 };
 
 
@@ -1068,6 +1283,11 @@ struct WorldEntity : public Entity, public Statusable, public Spatial, public Ha
 
 /// An entity that is alive and can take damage.
 struct LivingEntity : public WorldEntity, public HasHealth, public HasMaterial, public HasOdor {
+    std::optional<float> capability_speed_cap = std::nullopt;
+    std::optional<float> capability_locomotion = std::nullopt;
+    std::optional<float> capability_manipulation = std::nullopt;
+    std::optional<float> capability_rotation = std::nullopt;
+    std::optional<float> capability_perception = std::nullopt;
     std::optional<int32_t> cap_locomotion_expected_count = std::nullopt;
     std::optional<std::string> cap_locomotion_default_mode = std::nullopt;
     std::optional<int32_t> cap_manipulation_expected_count = std::nullopt;
@@ -1178,6 +1398,12 @@ struct Floor : public Structure {
     std::optional<int32_t> layer_index = std::nullopt;
     /// Stratum name (e.g. bedrock, subsoil), for strata layer groups.
     std::optional<std::string> layer_name = std::nullopt;
+    /// Ground red tint component, 0..1.
+    std::optional<float> ground_r = std::nullopt;
+    /// Ground green tint component, 0..1.
+    std::optional<float> ground_g = std::nullopt;
+    /// Ground blue tint component, 0..1.
+    std::optional<float> ground_b = std::nullopt;
 };
 
 
@@ -1197,7 +1423,7 @@ struct NaturalFormation : public WorldEntity, public HasMaterial, public Destruc
 
 
 /// Entity that emits light.
-struct LightSource : public WorldEntity, public EmitsLight {
+struct LightSource : public WorldEntity, public EmitsLight, public HasSimpleAppearance {
 };
 
 
@@ -1580,7 +1806,7 @@ struct TransformationEvent : public WorldEvent {
 struct DiceRollEvent : public WorldEvent {
     /// Monotonic id of the roll, unique per session, citable.
     std::optional<int32_t> roll_id = std::nullopt;
-    /// The expression rolled, canonical form ("2D6+1").
+    /// The expression rolled, canonical form ("2D6+1"). EXECUTED, and by a named thing: DiceService::parse turns this string into a DiceExpression and DiceService::roll evaluates it (include/logosphere/core/dice_service.h:56,110). Recorded here because a formula-shaped slot is the fleet's most common way of writing knowledge down and never running it, and the only defence against that is naming the executor next to the slot. If the parser ever stops being the sole reader of this string, this line is wrong and the slot has become documentation.
     std::optional<std::string> dice_expression = std::nullopt;
     /// Individual die results, comma-separated, in roll order.
     std::optional<std::string> roll_values = std::nullopt;
@@ -1593,8 +1819,64 @@ struct DiceRollEvent : public WorldEvent {
 };
 
 
-/// A typed relationship between world entities.
+/// Abstract parent of the engine's world relations. One concrete subclass per member of WorldRelationType, each pinning its own predicate and declaring its own endpoints.
+/// It is abstract because a relation class that leaves relation_type open across an enum is not one relation, it is a family. Malleus refuses that shape ("Concrete relation must fix relation_type with equals_string") and the refusal is right: an edge whose predicate is only known at write time cannot have a checkable domain and range, so endpoint validation degenerates to "does this name exist".
 struct WorldRelation : public Relation {
+};
+
+
+/// Composition: a humanoid has_part a torso. Endpoints are Entity from evidence, not neglect. 81 createRelation sites in C++ plus 1518 seed ops, spanning humanoid to torso, Procedure to ProcedureStep, RollableTable to TableEntry, LookupTable to CharacteristicModifierEntry, and OutcomeSequence to OutcomeStep. There is no narrower pair that covers them.
+struct HasPartRelation : public WorldRelation {
+};
+
+
+/// Spatial subdivision: an arm has_regional_part a forearm. No creation site in C++ or seeds as of 2026-08-16, so there is nothing to learn its endpoints from. Entity until evidenced.
+struct HasRegionalPartRelation : public WorldRelation {
+};
+
+
+/// Physics constraint link. Three creation sites, all body to constraint, but the body side spans humanoid, totem and the generic entity generator, and the constraint side has no class of its own in this schema to narrow to.
+struct HasConstraintRelation : public WorldRelation {
+};
+
+
+/// Spatial containment: a chest contains an item. Four creation sites spanning strata floor to layer, floor to tile, and torso to arm. Heterogeneous, so Entity.
+struct ContainsRelation : public WorldRelation {
+};
+
+
+/// Physical support: a floor supports an entity. One site and it is a test. No production creation site, so the shape is unevidenced.
+struct SupportsRelation : public WorldRelation {
+};
+
+
+/// A light source reaches an entity. The one relation whose endpoints are KNOWN rather than guessed: only a LightSource illuminates, which is what that class exists for, and only something in the world can be lit. Both classes are declared in this file, so the root can name them.
+struct IlluminatesRelation : public WorldRelation {
+};
+
+
+/// Fire spread between entities. No creation site anywhere in the repository, so there is nothing to learn its shape from yet.
+struct BurnsRelation : public WorldRelation {
+};
+
+
+/// An agent perceives a target entity. One site and it is a test (creature to torso). Anything can perceive anything until the perception layer says otherwise.
+struct PerceivesRelation : public WorldRelation {
+};
+
+
+/// A system entity manages another entity. Two sites, both the chunk system to a chunk's entity. Neither side has a class in this schema to narrow to.
+struct ManagesRelation : public WorldRelation {
+};
+
+
+/// Direct bond between two bodies, the engine's cement. The bond is a physical constraint at bond_strength; strong bonds make many particles behave as one rigid body, weak ones give under load. Use it to fix things in place relative to each other rather than to the world. No createRelation site: bonds are made through the gluon path, so the KG edge has no writer to learn endpoints from.
+struct BondedToRelation : public WorldRelation {
+};
+
+
+/// A narrower thing refines a broader one: Slug Rifle SPECIALIZES Gun Combat in a skill cascade. Every occurrence measured is Skill to Skill, and Skill is a rulebook-pack class, so this file cannot name it. The pack may declare its own narrowed subclass; the root keeps the generic vocabulary.
+struct SpecializesRelation : public WorldRelation {
 };
 
 
@@ -1618,7 +1900,7 @@ struct SourceDocumentContext : public KnowledgeContext {
     std::string source_layer = {};
     /// Path of the source document relative to its source root.
     std::string source_file = {};
-    /// Exact revision of the source document.
+    /// Legacy Git commit pin of a SourceDocumentContext. New source revision observations use source_revision because source systems are not required to be Git repositories.
     std::string source_commit = {};
     /// Immutable parent source layer of a document context.
     SourceLayerContext source_layer_context = {};
@@ -1638,6 +1920,115 @@ struct Addressable {
     KnowledgeContext identity_context = {};
     /// Immutable machine key within a context and concrete type.
     std::string entity_key = {};
+};
+
+
+/// Exact immutable bytes of one source representation. A new byte sequence is a new context even when it represents the same logical document or edition.
+struct SourceRepresentationContext : public KnowledgeContext {
+    /// Authored layer declared by a seed envelope.
+    std::string source_layer = {};
+    /// Path of the source document relative to its source root.
+    std::string source_file = {};
+    /// Immutable parent source layer of a document context.
+    SourceLayerContext source_layer_context = {};
+    /// Closed media kind governing valid primary selectors.
+    SourceMediaType source_media_type = {};
+    /// Cryptographic algorithm used by source_digest.
+    SourceDigestAlgorithm source_digest_algorithm = {};
+    /// Digest of the exact source representation bytes.
+    std::string source_digest = {};
+    /// Exact size of the source representation in bytes.
+    int32_t source_byte_length = {};
+};
+
+
+/// Immutable observation that one exact content-addressed representation occurred at one source-system revision. Each representation/revision pair is independent, so later observations never mutate earlier provenance.
+struct SourceRevisionObservation : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+    /// Exact source-system revision retained in a separate provenance observation. Revision does not participate in content identity; exact bytes do.
+    std::string source_revision = {};
+};
+
+
+/// Exact immutable source corpus used by one ingestion run. Its identity is the authored source layer plus the digest of its canonical manifest. Source revision observations carry provenance separately; revisions do not participate in the representation or manifest identity.
+struct IngestionEditionContext : public KnowledgeContext {
+    /// Authored layer declared by a seed envelope.
+    std::string source_layer = {};
+    /// Immutable parent source layer of a document context.
+    SourceLayerContext source_layer_context = {};
+    /// Canonical encoding used to produce the source manifest digest.
+    SourceManifestFormat source_manifest_format = {};
+    /// Cryptographic algorithm used by source_manifest_digest.
+    SourceDigestAlgorithm source_manifest_digest_algorithm = {};
+    /// Digest of the edition's canonical source manifest.
+    std::string source_manifest_digest = {};
+    /// Exact number of representations in the source manifest.
+    int32_t source_representation_count = {};
+};
+
+
+/// Typed coordinates selecting one fragment of a source representation. Selector subclasses own their coordinate grammar; no discriminator string chooses semantics at runtime.
+struct SourceSelector : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+};
+
+
+/// Half-open byte range [start, end) within one immutable source representation. Equal bounds select an empty leaf.
+struct ByteRangeSelector : public SourceSelector {
+    /// Inclusive zero-based byte position in a representation.
+    int32_t source_byte_start = {};
+    /// Exclusive zero-based byte position in a representation.
+    int32_t source_byte_end = {};
+};
+
+
+/// Supporting exact text plus optional immediate context. It aids inspection and convergence checks but never owns leaf identity.
+struct TextQuoteSelector : public SourceSelector {
+    /// Exact decoded text expected at the primary selector.
+    std::string source_quote_exact = {};
+    /// Optional text immediately before the selected text.
+    std::optional<std::string> source_quote_prefix = std::nullopt;
+    /// Optional text immediately after the selected text.
+    std::optional<std::string> source_quote_suffix = std::nullopt;
+};
+
+
+/// One source representation plus its canonical primary selector. An optional quote selector is supporting evidence and must converge on the same fragment.
+struct SourceTarget : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Exact immutable source representation being selected.
+    SourceRepresentationContext target_representation = {};
+    /// Canonical selector that owns target identity.
+    SourceSelector target_primary_selector = {};
+    /// Optional supporting quote required to match the primary.
+    std::optional<TextQuoteSelector> target_quote_selector = std::nullopt;
+};
+
+
+/// Explicit assertion that one exact UTF-8 representation is partitioned completely by its source targets and typed exclusions. Presence enables the mechanical exact-cover gate; absence makes no completeness claim.
+struct CompleteSourcePartition : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+};
+
+
+/// Exact source bytes excluded from semantic leaves for one closed reason. Exclusions remain visible partition records; they never silently discard unclassified content.
+struct SourceExclusion : public Entity, public Addressable {
+    /// Immutable context component of portable entity identity.
+    SourceRepresentationContext identity_context = {};
+    /// Immutable machine key within a context and concrete type.
+    std::string entity_key = {};
+    /// Exact byte range omitted from semantic source leaves.
+    ByteRangeSelector exclusion_selector = {};
+    /// Closed reason the selected bytes are non-content.
+    SourceExclusionKind exclusion_kind = {};
 };
 
 
@@ -1702,6 +2093,9 @@ struct OntologyEnumMemberMeta : public OntologyMetaEntity, public OntologySource
 
 
 /// Abstract root of pure rule-language value expressions.
+/// INERT. Nothing evaluates any of the classes below this one. There are no literal types and no operator types, so nothing could be built out of them yet even in principle, and there is no evaluator to run it if it were. A reader of this ontology must not conclude that the engine can compute with these.
+/// Said here rather than left to inference, because a formula written down and never executed is the fleet's most repeated mistake: malleus RECIPES.md recipe 4 counts five projects that did it before us, and this pack is the sixth. The rite that catches it inspects slot NAMES, which is why it never flagged this one: the inertia lives in class names it cannot see.
+/// What is blocked on it, concretely, so that the first operators get chosen by need rather than by taste. The Cepheus muster-out rule needs a rate over a filtered count, "one benefit per term served in which they did not lose benefits", and its extractor says exactly that in `unmodelled`. The injury table needs a clause that refers back to a choice made earlier in its own sequence, "reduce BOTH OTHER physical characteristics". Both are recorded as partial rather than pretended whole, and both are waiting on this.
 struct Expression : public Entity {
 };
 
@@ -2066,6 +2460,78 @@ struct LetFunctionExpression : public FunctionExpression, public LetExpression {
 struct LetOutcomePlanExpression : public OutcomePlanExpression, public LetExpression {
     /// Typed body evaluated after every eager local binding.
     OutcomePlanExpression let_body = {};
+};
+
+
+/// A meta context contains a meta entity.
+struct OntologyMetaContainsRelation : public Relation {
+};
+
+
+/// A class meta points at its direct parent class meta.
+struct OntologyClassDirectParentRelation : public Relation {
+};
+
+
+/// A class meta carries a facet meta.
+struct OntologyClassHasFacetRelation : public Relation {
+};
+
+
+/// A property meta points at the class that declares it.
+struct OntologyPropertyDeclaringClassRelation : public Relation {
+};
+
+
+/// A property meta points at its value kind.
+struct OntologyPropertyValueKindRelation : public Relation {
+};
+
+
+/// A reference-valued property meta names its target class.
+struct OntologyPropertyReferenceTargetRelation : public Relation {
+};
+
+
+/// An enum-valued property meta names its enum.
+struct OntologyPropertyEnumTypeRelation : public Relation {
+};
+
+
+/// A relation meta names a class valid as its source.
+struct OntologyRelationValidSourceRelation : public Relation {
+};
+
+
+/// A relation meta names a class valid as its target.
+struct OntologyRelationValidTargetRelation : public Relation {
+};
+
+
+/// An enum meta carries a member meta.
+struct OntologyEnumHasMemberRelation : public Relation {
+};
+
+
+/// A member meta points back at the enum that owns it.
+struct OntologyEnumMemberOwnerRelation : public Relation {
+};
+
+
+/// A function signature owns a typed parameter spec.
+struct FunctionSignatureHasParameterRelation : public Relation {
+};
+
+
+/// An ingestion edition contains one exact source representation.
+struct EditionIncludesRepresentationRelation : public Relation {
+};
+
+
+/// A let expression owns a local binding.
+/// The source is Expression rather than LetExpression, and the difference is forced. LetExpression is a MIXIN marker, not an Entity subtype, so it cannot be an endpoint: an endpoint names a class instances can belong to. The thirteen classes that carry the marker (LetBooleanExpression through LetOutcomePlanExpression, one per result family) all descend from Expression, which is the narrowest Entity subtype that covers them. This is wider than the truth by exactly the non-let expressions, and it is as narrow as the type system permits.
+/// This endpoint read LetExpression until 2026-08-16 and was always wrong; the old enum-annotation path only checked that the name was a class, and a mixin is a class.
+struct LetExpressionHasBindingRelation : public Relation {
 };
 
 
@@ -2441,6 +2907,86 @@ struct PossessionHolding : public Entity {
 struct JudgmentPoint : public Entity, public Cited {
     /// What the referee is asked to judge, in the book's own words.
     std::optional<std::string> prompt_text = std::nullopt;
+};
+
+
+/// A question a rule left open, and the answer an arbiter gave it.
+/// JudgmentPoint is the QUESTION and comes from the book. This is the ANSWER and comes from play, so it carries no citation, for the same reason SkillRating does not: the rule is the book's, what happened is not.
+/// It exists because an arbiter's decision was the one input to a character with no provenance at all. Every other value on a sheet traces to a rule and a roll, and DiceRoll.rule links a throw to the rule entity that produced it. This traced to a line of console output that scrolled away, a hole in the replay claim exactly where a model acted, which is the worst place for one.
+/// ARBITER, not judge, and the word is load-bearing. There is exactly ONE arbiter per decision. Two would mean two authorities over the same record with no way to say which of them wrote it, and the whole point is that a decision traces to who made it. Readers may be many and may disagree; the arbiter resolves them.
+/// `arbiter` is readable text and deliberately never a hash. Who decided lived only inside a one-way cache key, so the graph could not answer "which model chose this" even in principle. An identity you cannot read back is a checksum, not provenance.
+/// Generic on purpose. An arbiter choosing which characteristic ages and an arbiter choosing between two readings of a sentence during ingestion are the same shape: a question, the options, the one taken, who took it, and why. The ingestion arbiter reuses this rather than growing a parallel record.
+struct ArbiterDecision : public Event {
+    /// What the arbiter was actually asked, as it was put to them. Recorded rather than reconstructed: the question is assembled at the moment of asking from the rule and the character's state, and re-deriving it later would give a different sentence.
+    std::optional<std::string> decision_question = std::nullopt;
+    /// Everything the rule allowed, comma-separated, in the order offered. Kept because a choice means nothing without the field it was chosen from: "Dexterity" is a different decision when the alternatives were Strength and Endurance than when it was the only option left.
+    std::optional<std::string> decision_options = std::nullopt;
+    /// What was chosen, comma-separated when a rule asks for more than one. Spelled exactly as decision_options spells it, so the two can be compared without guessing.
+    std::optional<std::string> decision_taken = std::nullopt;
+    /// Why, in the arbiter's own words. May be empty: the rule needs the choice and not the argument, so a missing reason is not a failure. An empty one is still worth storing as empty rather than omitting the record.
+    std::optional<std::string> decision_reason = std::nullopt;
+    /// Who decided, readable. Backend and model for an LLM arbiter, so a life generated last month can say which model shaped it. One per decision, never a set: two authorities over one record leaves no way to say which wrote it. Never a hash, because an identity you cannot read back is a checksum and not provenance.
+    std::optional<std::string> arbiter = std::nullopt;
+};
+
+
+/// Enduring ledger record for one mechanically enumerated source target. Its current judgement is derived from its ordered CoverageDecision history rather than stored as mutable state.
+struct SourceCoverage : public Entity, public Addressable {
+    /// Exact source leaf this coverage record judges.
+    SourceTarget coverage_target = {};
+};
+
+
+/// One atomic semantic claim read from one or more source coverage records. The claim persists while append-only ClaimDecision events record how successive readings disposed it.
+struct IngestionClaim : public Entity, public Addressable {
+    /// Auditable statement of one atomic meaning read from the cited leaves. Executable meaning lives in the typed entities linked by CLAIM_MATERIALIZES, never in this text.
+    std::string claim_statement = {};
+};
+
+
+/// One append-only judgement about whether an enumerated source leaf produced semantic claims. Later decisions supersede earlier ones by sequence without rewriting history.
+struct CoverageDecision : public ArbiterDecision {
+    /// Enduring ledger record judged by this append-only decision.
+    SourceCoverage decision_subject = {};
+    /// Contiguous zero-based order within one decision subject.
+    int32_t decision_sequence = {};
+    /// Typed coverage outcome chosen by this decision.
+    CoverageJudgement coverage_judgement = {};
+};
+
+
+/// One append-only disposition of an atomic claim. The latest sequence is current; previous decisions remain queryable. Reconciliation enforces which optional fields and graph links each disposition requires.
+struct ClaimDecision : public ArbiterDecision {
+    /// Enduring ledger record judged by this append-only decision.
+    IngestionClaim decision_subject = {};
+    /// Contiguous zero-based order within one decision subject.
+    int32_t decision_sequence = {};
+    /// Typed claim outcome chosen by this decision.
+    ClaimDisposition claim_disposition = {};
+    /// Required by reconciliation for PARTIAL and RAISED claims.
+    std::optional<ClaimGapKind> claim_gap_kind = std::nullopt;
+    /// Required by reconciliation for DUPLICATE and CONTRADICTORY decisions.
+    std::optional<IngestionClaim> related_claim = std::nullopt;
+};
+
+
+/// Abstract parent for typed ingestion-ledger links.
+struct RulebookIngestionRelation : public Relation {
+};
+
+
+/// An atomic claim cites one enumerated coverage record.
+struct ClaimSupportedByRelation : public RulebookIngestionRelation {
+};
+
+
+/// A claim is represented by one typed KG entity.
+struct ClaimMaterializesRelation : public RulebookIngestionRelation {
+};
+
+
+/// A claim was read against one previously known KG entity.
+struct ClaimResolvedAgainstRelation : public RulebookIngestionRelation {
 };
 
 

@@ -107,7 +107,7 @@ bool test_particle_quat_euler_sync() {
         printf("  A: is_quat_driven=%s solver_mode=%s at_rest=%s\n",
                pa.is_quat_driven ? "true" : "false",
                pa.solver_mode == ParticleSolverMode::DYNAMIC ? "DYNAMIC" :
-               (pa.solver_mode == ParticleSolverMode::KINEMATIC ? "KINEMATIC" : "STATIC"),
+               (pa.solver_mode == ParticleSolverMode::KINEMATIC ? "KINEMATIC" : "DYNAMIC"),
                pa.is_at_rest ? "true" : "false");
         printf("  A (is_quat_driven): rot_q=(%+.3f,%+.3f,%+.3f,%+.3f) euler=(%+.4f,%+.4f,%+.4f)\n",
                pa.rotation_q.w, pa.rotation_q.x, pa.rotation_q.y, pa.rotation_q.z,

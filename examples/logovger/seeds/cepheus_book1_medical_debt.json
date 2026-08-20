@@ -1,0 +1,245 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "ByteRangeSelector": 2,
+      "ClaimDecision": 3,
+      "CoverageDecision": 2,
+      "IngestionClaim": 3,
+      "SourceCoverage": 2,
+      "SourceTarget": 2,
+      "TextQuoteSelector": 2
+    }
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_debt_heading_range",
+      "properties": {
+        "source_byte_start": 27858,
+        "source_byte_end": 27870
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_debt_heading_quote",
+      "properties": {
+        "source_quote_exact": "Medical Debt"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_debt_heading_target",
+      "properties": {
+        "target_primary_selector": "@medical_debt_heading_range",
+        "target_quote_selector": "@medical_debt_heading_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_debt_heading_coverage",
+      "properties": {
+        "coverage_target": "@medical_debt_heading_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_debt_heading_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_debt_heading_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "NO_RULE_CONTENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The heading names the section but states no rule.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ByteRangeSelector",
+      "as": "@medical_debt_sentence_range",
+      "properties": {
+        "source_byte_start": 27872,
+        "source_byte_end": 28012
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TextQuoteSelector",
+      "as": "@medical_debt_sentence_quote",
+      "properties": {
+        "source_quote_exact": "During finishing touches, you must pay any outstanding costs from medical care or anagathic drugs out of your Benefits before anything else."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceTarget",
+      "as": "@medical_debt_sentence_target",
+      "properties": {
+        "target_primary_selector": "@medical_debt_sentence_range",
+        "target_quote_selector": "@medical_debt_sentence_quote"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SourceCoverage",
+      "as": "@medical_debt_sentence_coverage",
+      "properties": {
+        "coverage_target": "@medical_debt_sentence_target"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CoverageDecision",
+      "as": "@medical_debt_sentence_coverage_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_debt_sentence_coverage",
+        "decision_sequence": 0,
+        "coverage_judgement": "CLAIMS_PRESENT",
+        "decision_question": "Does this exact source leaf state or support a rule claim?",
+        "decision_reason": "The compound sentence states two debt-payment obligations and their precedence during finishing touches.",
+        "arbiter": "Codex, owner-directed migration"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_debt_medical_claim",
+      "properties": {
+        "claim_statement": "During finishing touches, outstanding medical-care costs must be paid out of Benefits."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_debt_medical_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_debt_medical_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The graph identifies finishing, Benefits, and the medical-care cost, but cannot debit outstanding costs from awarded Benefits.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_debt_anagathic_claim",
+      "properties": {
+        "claim_statement": "During finishing touches, outstanding anagathic-drug costs must be paid out of Benefits."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_debt_anagathic_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_debt_anagathic_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The graph has no anagathic-drug or corresponding outstanding-cost concept to compose into the rule.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "ONTOLOGY_GAP"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "IngestionClaim",
+      "as": "@medical_debt_priority_claim",
+      "properties": {
+        "claim_statement": "Outstanding medical-care and anagathic-drug costs must be paid before every other finishing-touch action."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ClaimDecision",
+      "as": "@medical_debt_priority_claim_decision",
+      "properties": {
+        "event_type": "ARBITER_DECISION",
+        "decision_subject": "@medical_debt_priority_claim",
+        "decision_sequence": 0,
+        "claim_disposition": "RAISED",
+        "decision_question": "Can this claim enter the executable graph?",
+        "decision_reason": "The procedure graph has no precedence primitive for debt payment before every other finishing-touch action.",
+        "arbiter": "Codex, owner-directed migration",
+        "claim_gap_kind": "RULE_LANGUAGE_GAP"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_medical_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_debt_sentence_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_anagathic_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_debt_sentence_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_priority_claim",
+      "relation": "CLAIM_SUPPORTED_BY",
+      "to": "@medical_debt_sentence_coverage"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_medical_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/RuleConstant/medical_care_restoration_cost_per_point"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_medical_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/benefit_tables"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_medical_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/ProcedureStep/finish_character"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_anagathic_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/benefit_tables"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_anagathic_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/ProcedureStep/finish_character"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_priority_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/SubjectLookupTable/benefit_tables"
+    },
+    {
+      "op": "set_relation",
+      "from": "@medical_debt_priority_claim",
+      "relation": "CLAIM_RESOLVED_AGAINST",
+      "to": "@@entity/ingestion-edition%3Av1%3A7%3Acepheus%3Asha256%3A76ecc50c30ab15fccef9e21ff22db79883d916dffe4006ee7c6c1bd51946dd85/ProcedureStep/finish_character"
+    }
+  ]
+}

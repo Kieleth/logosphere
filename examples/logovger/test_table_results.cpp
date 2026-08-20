@@ -7,7 +7,7 @@
 
 #undef NDEBUG
 
-#include "chargen/rule_seeds.h"
+#include "chargen/rule_seed_loader.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
 #include "logosphere/kg/seed_loader.h"
@@ -58,6 +58,31 @@ std::string slurp(const std::string& path) {
 std::string game_path(const std::string& relative) {
     return std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/" +
            relative;
+}
+
+kg::SeedVerifyReport verify_production_seed(
+    const kg::SeedEnvelope& seed,
+    const std::string& source_root,
+    const kg::OntologyRegistry& registry,
+    const logosphere::rules::ProcedurePrimitiveRegistry*
+        procedure_primitives = nullptr,
+    const std::vector<const kg::SeedEnvelope*>& prerequisites = {}) {
+    std::vector<kg::SeedEnvelope> production_seeds;
+    std::string error;
+    logosphere::text::SourceCorpusDeclaration corpus;
+    if (!logovger::parse_rule_seeds(game_path(""), production_seeds, error) ||
+        !logovger::declare_rule_source_corpus(
+            production_seeds, corpus, error)) {
+        kg::SeedVerifyReport report;
+        report.violations.push_back(
+            {"schema", -1, "", "production corpus declaration failed: " +
+                                    error});
+        return report;
+    }
+    logovger::RuleSourceAccess source_access(source_root);
+    return kg::verify_seed_in_edition(
+        seed, source_root, corpus, source_access, registry,
+        procedure_primitives, prerequisites);
 }
 
 kg::SeedEnvelope parse_table_seed() {
@@ -309,7 +334,7 @@ void test_cited_tables_load_with_typed_results() {
     if (!parsed.ok()) return;
 
     const auto reg = game_registry();
-    const auto verified = kg::verify_seed(
+    const auto verified = verify_production_seed(
         parsed.seed, game_path("srd/cepheus"), reg);
     if (!verified.ok()) {
         for (const auto& violation : verified.violations)
@@ -322,8 +347,26 @@ void test_cited_tables_load_with_typed_results() {
 
     kg::KGModule world(reg);
     world.setMode(kg::KGMode::MINIMAL);
+    std::vector<kg::SeedEnvelope> production_seeds;
+    std::string corpus_error;
+    logosphere::text::SourceCorpusDeclaration corpus;
+    CHECK(logovger::parse_rule_seeds(
+              game_path(""), production_seeds, corpus_error) &&
+              logovger::declare_rule_source_corpus(
+                  production_seeds, corpus, corpus_error),
+          "the production source corpus is declared: " + corpus_error);
+    logovger::RuleSourceAccess source_access(game_path("srd/cepheus"));
+    const auto materialized =
+        logosphere::text::materialize_source_corpus_into_kg(
+            corpus, source_access, world);
+    CHECK(materialized.ok,
+          "the production source corpus materializes: " +
+              materialized.reason);
+    if (!materialized.ok) return;
     kg::SeedLoadReport loaded;
-    CHECK(kg::load_seed(parsed.seed, world, loaded),
+    CHECK(kg::load_seed_in_edition(
+              parsed.seed, materialized.ingestion_edition_context,
+              world, loaded),
           "the verified table seed loads: " + loaded.error);
     if (!loaded.error.empty()) return;
 
@@ -332,7 +375,7 @@ void test_cited_tables_load_with_typed_results() {
     CHECK(careers.ok(), "the careers seed containing the modifier table "
                         "parses: " + careers.error);
     if (!careers.ok()) return;
-    const auto careers_verified = kg::verify_seed(
+    const auto careers_verified = verify_production_seed(
         careers.seed, game_path("srd/cepheus"), reg, nullptr,
         prerequisites_before("cepheus_careers.json"));
     if (!careers_verified.ok()) {
@@ -353,10 +396,14 @@ void test_cited_tables_load_with_typed_results() {
     // so a refusal here is expected rather than a failure.
     for (const auto* prerequisite : prerequisites_before("cepheus_careers.json")) {
         kg::SeedLoadReport before;
-        kg::load_seed(*prerequisite, world, before);
+        kg::load_seed_in_edition(
+            *prerequisite, materialized.ingestion_edition_context,
+            world, before);
     }
     kg::SeedLoadReport careers_loaded;
-    CHECK(kg::load_seed(careers.seed, world, careers_loaded),
+    CHECK(kg::load_seed_in_edition(
+              careers.seed, materialized.ingestion_edition_context,
+              world, careers_loaded),
           "the verified careers seed loads: " + careers_loaded.error);
     if (!careers_loaded.error.empty()) return;
 
@@ -456,7 +503,7 @@ void test_lookup_table_rejects_an_unknown_entry_type() {
     auto seed = parse_career_seed();
     CHECK(set_property(seed, "dm_table", "entry_type", "MissingEntry"),
           "the lookup type mutation was applied");
-    const auto report = kg::verify_seed(
+    const auto report = verify_production_seed(
         seed, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(!report.ok(), "an unknown lookup entry type fails verification");
@@ -468,7 +515,7 @@ void test_lookup_table_rejects_rows_of_another_declared_shape() {
     auto seed = parse_career_seed();
     CHECK(set_property(seed, "dm_table", "entry_type", "DifficultyEntry"),
           "the incompatible lookup type mutation was applied");
-    const auto report = kg::verify_seed(
+    const auto report = verify_production_seed(
         seed, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(!report.ok(), "rows that contradict their table type fail");
@@ -482,7 +529,7 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     auto abstract = parse_career_seed();
     CHECK(set_property(abstract, "dm_table", "entry_type", "LookupEntry"),
           "the abstract lookup type mutation was applied");
-    const auto abstract_report = kg::verify_seed(
+    const auto abstract_report = verify_production_seed(
         abstract, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(semantic_reason_contains(abstract_report, "is abstract"),
@@ -491,7 +538,7 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     auto unrelated = parse_career_seed();
     CHECK(set_property(unrelated, "dm_table", "entry_type", "EndCareer"),
           "the unrelated lookup type mutation was applied");
-    const auto unrelated_report = kg::verify_seed(
+    const auto unrelated_report = verify_production_seed(
         unrelated, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(semantic_reason_contains(unrelated_report,
@@ -501,7 +548,7 @@ void test_lookup_table_requires_a_concrete_entry_subtype_and_rows() {
     auto empty = parse_career_seed();
     CHECK(remove_relations_from(empty, "dm_table"),
           "both characteristic row relations were removed");
-    const auto empty_report = kg::verify_seed(
+    const auto empty_report = verify_production_seed(
         empty, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(semantic_reason_contains(empty_report, "has no HAS_PART rows"),
@@ -512,7 +559,7 @@ void test_lookup_rows_require_one_explicit_bound_mode_per_side() {
     auto missing = parse_career_seed();
     CHECK(remove_property(missing, "dm_row_0_2", "key_max"),
           "the finite upper lookup bound was removed");
-    const auto missing_report = kg::verify_seed(
+    const auto missing_report = verify_production_seed(
         missing, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(semantic_reason_contains(missing_report, "key_max"),
@@ -522,7 +569,7 @@ void test_lookup_rows_require_one_explicit_bound_mode_per_side() {
     CHECK(add_property(ambiguous, "dm_row_0_2", "key_max_unbounded",
                        "true"),
           "the contradictory upper-unbounded flag was added");
-    const auto ambiguous_report = kg::verify_seed(
+    const auto ambiguous_report = verify_production_seed(
         ambiguous, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(semantic_reason_contains(ambiguous_report, "both key_max"),
@@ -534,7 +581,7 @@ void test_task_check_requires_an_integer_modifier_result() {
     CHECK(set_property(wrong_type, "aerospace_defense_qual",
                        "modifier_property", "pseudohex_min"),
           "the non-integer TaskCheck modifier column mutation was applied");
-    const auto wrong_type_report = kg::verify_seed(
+    const auto wrong_type_report = verify_production_seed(
         wrong_type, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(!wrong_type_report.ok(),
@@ -548,7 +595,7 @@ void test_task_check_requires_an_integer_modifier_result() {
     CHECK(set_property(missing, "aerospace_defense_qual",
                        "modifier_property", "missing_modifier"),
           "the missing TaskCheck modifier column mutation was applied");
-    const auto missing_report = kg::verify_seed(
+    const auto missing_report = verify_production_seed(
         missing, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before("cepheus_careers.json"));
     CHECK(!missing_report.ok(),
@@ -563,7 +610,7 @@ void test_outcome_sequence_rejects_duplicate_order() {
     auto seed = parse_shared_seed();
     CHECK(set_property(seed, "mishap_3_s1", "step_index", "0"),
           "the duplicate step mutation was applied");
-    const auto report = kg::verify_seed(
+    const auto report = verify_production_seed(
         seed, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -576,7 +623,7 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
     auto empty = parse_shared_seed();
     CHECK(remove_relations_from(empty, "mishap_3"),
           "both sequence-step relations were removed");
-    const auto empty_report = kg::verify_seed(
+    const auto empty_report = verify_production_seed(
         empty, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -588,7 +635,7 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
     CHECK(retarget_relation(wrong_part, "mishap_3",
                             "mishap_3_s1", "mishap_3_c0"),
           "a sequence relation was retargeted to a non-step outcome");
-    const auto wrong_part_report = kg::verify_seed(
+    const auto wrong_part_report = verify_production_seed(
         wrong_part, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -599,7 +646,7 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
     auto gap = parse_shared_seed();
     CHECK(set_property(gap, "mishap_3_s1", "step_index", "2"),
           "the sequence gap mutation was applied");
-    const auto gap_report = kg::verify_seed(
+    const auto gap_report = verify_production_seed(
         gap, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -609,7 +656,7 @@ void test_outcome_sequence_requires_steps_and_contiguous_order() {
 
 void test_outcome_choice_requires_authority_options_and_order() {
     auto complete = seed_with_complete_choice();
-    const auto complete_report = kg::verify_seed(
+    const auto complete_report = verify_production_seed(
         complete, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -626,7 +673,7 @@ void test_outcome_choice_requires_authority_options_and_order() {
     CHECK(set_property(authority, "injury_choice", "choice_authority",
                        "nobody"),
           "the invalid choice authority mutation was applied");
-    const auto authority_report = kg::verify_seed(
+    const auto authority_report = verify_production_seed(
         authority, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -637,7 +684,7 @@ void test_outcome_choice_requires_authority_options_and_order() {
     auto empty = seed_with_complete_choice();
     CHECK(remove_relations_from(empty, "injury_choice"),
           "both choice-option relations were removed");
-    const auto empty_report = kg::verify_seed(
+    const auto empty_report = verify_production_seed(
         empty, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -649,7 +696,7 @@ void test_outcome_choice_requires_authority_options_and_order() {
     CHECK(retarget_relation(wrong_part, "injury_choice",
                             "injury_choice_strength", "mishap_3_c0"),
           "a choice relation was retargeted to a non-option outcome");
-    const auto wrong_part_report = kg::verify_seed(
+    const auto wrong_part_report = verify_production_seed(
         wrong_part, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -662,7 +709,7 @@ void test_outcome_choice_requires_authority_options_and_order() {
     CHECK(set_property(duplicate, "injury_choice_dexterity",
                        "option_index", "0"),
           "the duplicate option index mutation was applied");
-    const auto duplicate_report = kg::verify_seed(
+    const auto duplicate_report = verify_production_seed(
         duplicate, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -673,7 +720,7 @@ void test_outcome_choice_requires_authority_options_and_order() {
     auto gap = seed_with_complete_choice();
     CHECK(set_property(gap, "injury_choice_dexterity", "option_index", "2"),
           "the option gap mutation was applied");
-    const auto gap_report = kg::verify_seed(
+    const auto gap_report = verify_production_seed(
         gap, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -684,7 +731,7 @@ void test_outcome_choice_requires_authority_options_and_order() {
     CHECK(set_property(empty_label, "injury_choice_dexterity",
                        "option_label", ""),
           "the empty option label mutation was applied");
-    const auto empty_label_report = kg::verify_seed(
+    const auto empty_label_report = verify_production_seed(
         empty_label, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));
@@ -698,7 +745,7 @@ void test_rollable_table_rejects_non_rows() {
     CHECK(retarget_relation(seed, "mishap_table", "mishap_row_2",
                             "mishap_2_c0"),
           "a rollable-table relation was retargeted to an Outcome");
-    const auto report = kg::verify_seed(
+    const auto report = verify_production_seed(
         seed, game_path("srd/cepheus"), game_registry(), nullptr,
         prerequisites_before(
             "cepheus_book1_shared_tables.json"));

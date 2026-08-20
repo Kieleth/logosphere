@@ -12,8 +12,10 @@
 #include <charconv>
 #include <limits>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace logovger {
@@ -400,17 +402,40 @@ std::string lowercase(std::string value) {
     return value;
 }
 
-const Choice* find_choice(const std::vector<Choice>& choices,
-                          const std::string& answer) {
+// Returns a COPY, and that is the whole point. It used to return a
+// pointer into `choices_`, and every caller then cleared `choices_`
+// before it was done reading: the answer outlived the list it came
+// from. libc++ and libstdc++ leave a cleared vector's bytes where they
+// were, so the read kept working and the bug was invisible for as long
+// as nobody built with anything else. MSVC's std::string destructor
+// zeroes the small-string buffer, so on Windows `picked->key` read ""
+// after the clear, "2" never matched, and every character who submitted
+// to the Draft silently became a Drifter instead. Copying is a few
+// bytes on a path that has just asked a human a question, and it makes
+// the whole class of error unrepresentable.
+std::optional<Choice> find_choice(const std::vector<Choice>& choices,
+                                  const std::string& answer) {
     const std::string normalized = lowercase(answer);
     for (const auto& choice : choices) {
         if (normalized == lowercase(choice.key) ||
             normalized == lowercase(choice.label)) {
-            return &choice;
+            return choice;
         }
     }
-    return nullptr;
+    return std::nullopt;
 }
+
+// The guard, not a comment asking the next person to be careful. Every
+// caller clears `choices_` while still holding the answer, so a
+// borrowing return type is a dangling read waiting to happen, and the
+// build should say so rather than one platform's allocator saying so a
+// month later in CI.
+static_assert(
+    !std::is_pointer_v<decltype(find_choice(
+        std::declval<const std::vector<Choice>&>(),
+        std::declval<const std::string&>()))>,
+    "find_choice must return an owning copy: its callers clear choices_ "
+    "before they are done reading the answer");
 
 }  // namespace
 
@@ -437,6 +462,49 @@ ChargenSession::ChargenSession(kg::KGModule& kg,
 // the whole row and discards the money and the injury after it. Every
 // mishap row but one carries one of these, which is why the mishap
 // table could not run at all before now.
+// The one place an arbiter's decision becomes a fact in the graph.
+//
+// It sits in the session and not in the drivers because a decision is
+// a decision whoever made it. Written per driver, it was written twice
+// and would have been forgotten by the third, which is exactly how the
+// headless driver came to leave a rule's fork unanswered and end one
+// life in ten. One writer cannot be forgotten.
+//
+// Only the entries this call added are recorded. One rule can strike
+// twice ("reduce two physical characteristics by 2, reduce one by 1"),
+// and the second call receives the first call's picks already in
+// `chosen`; recording all of them would credit this decision with
+// choices it did not make.
+void ChargenSession::record_decision(
+    const logosphere::rules::AttributeSelectionRequest& ask,
+    const std::vector<std::string>& chosen, size_t first_new) {
+    const auto join = [](const std::vector<std::string>& parts,
+                         size_t from) {
+        std::string out;
+        for (size_t i = from; i < parts.size(); ++i) {
+            if (!out.empty()) out += ", ";
+            out += parts[i];
+        }
+        return out;
+    };
+    const auto record = kg_.createEntity("ArbiterDecision");
+    kg_.setProperty(record, "decision_question",
+                    "which " + std::to_string(ask.count) +
+                        " of the eligible characteristics give way");
+    kg_.setProperty(record, "decision_options", join(ask.eligible, 0));
+    kg_.setProperty(record, "decision_taken", join(chosen, first_new));
+    // Empty until a driver names itself, and empty is the honest
+    // answer then: an unnamed arbiter is better recorded as unnamed
+    // than guessed at.
+    kg_.setProperty(record, "arbiter", arbiter_);
+    last_decision_ = record;
+}
+
+void ChargenSession::attach_decision_reason(const std::string& reason) {
+    if (last_decision_ == kg::INVALID_ENTITY) return;
+    kg_.setProperty(last_decision_, "decision_reason", reason);
+}
+
 void ChargenSession::register_outcome_handlers() {
     std::string error;
     const auto report = [&](const char* type) {
@@ -459,6 +527,13 @@ void ChargenSession::register_outcome_handlers() {
     };
     report("EndCareer");
     report("ForfeitBenefits");
+    // The Draft's six services. Registered late: the draft primitive
+    // reached into the outcome entity for its drafted_career slot and
+    // never applied it, so the one absorbed rule that changes which
+    // career you are in was the one rule the executor never ran. It
+    // worked, and it was invisible to everything that watches what the
+    // rules do. The coverage sweep is what found it.
+    report("EnterCareer");
 }
 
 void ChargenSession::bind_primitives() {
@@ -743,7 +818,8 @@ ChargenSession::PrimitiveResult ChargenSession::choose_career(
         }
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -836,7 +912,8 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
                   "ways to spend it.";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -860,6 +937,17 @@ ChargenSession::PrimitiveResult ChargenSession::draft_or_drifter(
         if (!drafted.ok()) {
             return PrimitiveResult::failed("the Draft failed: " +
                                            drafted.error);
+        }
+        // Applied, not merely read. The career still comes off the
+        // outcome's own slot below, but the rule now runs like every
+        // other rule in the book, which is what makes it visible to
+        // anything asking which rules a life received.
+        const auto applied = executor_.apply(
+            drafted.selection->outcome(),
+            {sheet_.id, "chargen", "the Draft"});
+        if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+            return PrimitiveResult::failed("the Draft: " +
+                                           outcome_failure(applied));
         }
         std::string error;
         if (!entity_reference(kg_, drafted.selection->outcome(),
@@ -1055,7 +1143,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_training(
                   "what it can give you)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
@@ -1238,7 +1327,8 @@ ChargenSession::PrimitiveResult ChargenSession::basic_training(
                   "level 0)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the skills");
@@ -1424,7 +1514,8 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
                   "read what is on it)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the tables");
@@ -1560,7 +1651,8 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
                   what + "? (click it to read the throw)";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -2173,7 +2265,8 @@ ChargenSession::PrimitiveResult ChargenSession::choose_term_end(
                   " is over. What now?";
         return PrimitiveResult::pending(prompt_, choices_);
     }
-    const Choice* picked = find_choice(choices_, *context.input);
+    const std::optional<Choice> picked =
+        find_choice(choices_, *context.input);
     if (!picked) {
         return PrimitiveResult::failed("'" + *context.input +
                                        "' is not one of the options");
@@ -2249,8 +2342,22 @@ bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
                  logosphere::dice::DiceService& dice,
                  CharacterSheet& out,
-                 std::string& error) {
+                 std::string& error,
+                 std::set<kg::EntityID>* rules_reached) {
     ChargenSession session(kg, dice);
+    // Reported from every exit this function has, the failures
+    // included: a life that stopped early still received whatever it
+    // received, and a coverage sweep that only counted the tidy
+    // lives would understate what the rules do.
+    struct Reach {
+        const ChargenSession& session;
+        std::set<kg::EntityID>* out;
+        ~Reach() {
+            if (!out) return;
+            const auto& reached = session.rules_reached();
+            out->insert(reached.begin(), reached.end());
+        }
+    } reach{session, rules_reached};
     if (request.attribute_selector) {
         session.set_attribute_selector(request.attribute_selector);
     }
@@ -2295,6 +2402,14 @@ bool run_chargen(const ChargenRequest& request,
     int guard = 0;
     while (!session.finished()) {
         const auto& choices = session.choices();
+        // Consulted only where the book leaves the answer open. An
+        // absent hook, or one that declines, gets the standing answer.
+        const auto tasted = [&](const std::string& standing) {
+            if (!request.taste) return standing;
+            const std::string picked = request.taste(session.prompt(),
+                                                     choices);
+            return picked.empty() ? standing : picked;
+        };
         const bool career_offered = std::any_of(
             choices.begin(), choices.end(), [&](const Choice& choice) {
                 return choice.label == request.career_name;
@@ -2332,8 +2447,9 @@ bool run_chargen(const ChargenRequest& request,
             // - the three-cash-roll cap, and the crisis pay path that
             // needs money in hand.
             const std::string cash = choice_with_role(kg, choices, "cash");
-            if (!session.choose(cash.empty() ? choices.front().key : cash,
-                                error)) {
+            if (!session.choose(
+                    tasted(cash.empty() ? choices.front().key : cash),
+                    error)) {
                 return false;
             }
             continue;
@@ -2384,7 +2500,7 @@ bool run_chargen(const ChargenRequest& request,
                 error = "no Service Skills table offered for this career";
                 return false;
             }
-            if (!session.choose(service, error)) return false;
+            if (!session.choose(tasted(service), error)) return false;
             continue;
         }
         // "You must either submit to the Draft or take the Drifter
@@ -2411,7 +2527,9 @@ bool run_chargen(const ChargenRequest& request,
                 error = "no service skill offered on joining";
                 return false;
             }
-            if (!session.choose(choices.front().key, error)) return false;
+            if (!session.choose(tasted(choices.front().key), error)) {
+                return false;
+            }
             continue;
         }
         const auto drafted = std::find_if(

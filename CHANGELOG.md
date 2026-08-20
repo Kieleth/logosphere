@@ -8,6 +8,164 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Changed
+- **Relations are declared one class per predicate.** `WorldRelation`
+  and `EdenRelation` are now abstract, with a concrete subclass per
+  member of their enum: each pins `relation_type` with `equals_string`
+  and declares its own `source_id` / `target_id`. `rule_language`
+  gains the same for its thirteen. Endpoint constraints moved off the
+  enums' `valid_source_types` / `valid_target_types` annotations,
+  which are deleted along with `relation_type_enum`; the enums remain
+  the vocabulary. The generator reads `Relation` subclasses.
+
+  **Impact on games.** A schema that declares its own relation enum and
+  a single open relation class will no longer generate: split it, one
+  class per predicate. The generator now says so by name. Endpoints
+  must also be `Entity` subtypes, which a mixin is not.
+
+  **What this fixes.** Every schema in the repository failed to
+  construct under malleus, so none had been judged past construction
+  and eight rites had never run against any of them. Eden's five
+  relation types reached no registry at all, because harvesting from
+  enums required an opt-in annotation Eden never set, while game code
+  wrote those edges. `LET_EXPRESSION_HAS_BINDING` declared an endpoint
+  (`LetExpression`) that is a mixin marker no instance can belong to.
+
+  The 208 previously generated `addRelationType` triples are unchanged
+  byte for byte; the only additions are Eden's five.
+
+### Added
+- **A sanitizer lane in CI (`sanitizers-linux`).** Builds the `core`
+  profile with AddressSanitizer and UndefinedBehaviorSanitizer and runs
+  the headless suite plus twelve chargen lives under them. It exists
+  because a use-after-lifetime bug shipped and was invisible on every
+  platform CI ran: a pointer into a vector, read after the vector was
+  cleared, which libc++ and libstdc++ tolerate and MSVC does not. ASan
+  found it in one run. Advisory, not merge-blocking, so a finding is
+  loud without blocking an unrelated merge. Built with clang and libc++,
+  and both are load-bearing: measured against the two real bugs, gcc with
+  libstdc++ detects neither, clang with libstdc++ detects one, and clang
+  with libc++ detects both. Container-overflow detection comes from
+  annotations the standard library emits, so the library is half the
+  tool. `test_chargen` is excluded and the exclusion is named in the
+  workflow: it costs 565s under the sanitizers against 74s without them,
+  and the lives step walks the same code. Known finding on landing:
+  `test_mutation_playback` aborts with a
+  stack-use-after-scope in its own fixture (a `CountingPlay` destructor
+  writes to two counters declared after the registry that owns it, so
+  they die first). The test's subject is unaffected; the fixture is
+  wrong. Not fixed here.
+- **Git integration policy, mechanically enforced.** Rebasing is
+  refused by a tracked `pre-rebase` hook with no override; force-pushes
+  and pushes to `main` are refused by `pre-push`. A third check refuses
+  a branch that deletes lines which landed on `main` after the branch
+  started, which is how three merged pull requests were reverted with
+  CI green throughout. `cmake -S . -B build` installs the hooks and
+  sets `pull.rebase=false` / `pull.ff=only`, or run
+  `./scripts/install-git-hooks.sh`. The rule and its reason are in
+  CONTRIBUTING.md and CLAUDE.md; the `merge-policy` CI job re-checks
+  it on every PR.
+
+### Removed
+- **BREAKING: `ParticleSolverMode::STATIC` is gone.** It was accepted
+  from the KG (`solver_authority: STATIC`) and handled by nothing in
+  the solver, so a body declared STATIC fell silently. Use `KINEMATIC`
+  for a body whose position an external writer owns. Terrain and
+  scenery are not immovable by declaration: they rest on the turtle
+  boundary or on anchored bonds (INV-1).
+
+### Changed
+- **The DCO sign-off is checked on `main`, not on branch commits.** It
+  runs on the single commit a squash merge produces, over the push
+  event, and no longer walks every commit in a pull request. The old
+  gate could not coexist with the merge policy: a branch behind `main`
+  catches up with `git merge origin/main`, and that merge commit has no
+  authored content, cannot be signed at creation, and cannot be signed
+  later without the force-push the policy refuses. A branch could obey
+  one rule or the other, never both, and it cost a branch (#131,
+  reopened as #133). Contributors see no difference: GitHub builds the
+  squash message from the pull request title plus the branch commit
+  messages, so `git commit -s` carries the trailer through by itself.
+  What the gate catches is a squash message rewritten in the merge box
+  with the trailer deleted. `scripts/check-signoff.sh` is the checker,
+  `scripts/test-signoff-on-main.sh` proves it refuses as well as
+  accepts, and the `merge-policy` CI job runs that test on every PR.
+- **Contact rules now apply in order of meaning, general first.** When
+  several rules match one contact they all fire, as before. The
+  sequence is no longer whatever the internal hash map produced (which
+  was unportable and, measured, inverted: the rule authored second
+  applied first). A rule with no condition matches every contact, so it
+  applies BEFORE a rule that names one, and the narrower rule's write
+  is the one left standing. This is what makes a blanket default
+  overridable by a specific case. Rules that cannot yet be ranked by
+  meaning fall back to authoring order.
+- **`KINEMATIC` is a transient authority, not a label.** It is held
+  while an external writer drives a body's position and must be
+  RELEASED when that writer stops; a body left KINEMATIC can never
+  fall, tip or ragdoll again. The schema text that told readers to
+  "set KINEMATIC to make something genuinely immovable" is corrected.
+- **Unregistering a humanoid releases it to physics.**
+  `HumanoidLocomotion::unregister_humanoid` now hands every particle
+  back (DYNAMIC, gravity-eligible), so a released body falls. It
+  previously tore down the plant anchors and released nothing, which
+  is why a humanoid could not ragdoll at all.
+- The frame-gated rest damper is removed: it taxed any body 10% of its
+  velocity per tick below 0.4 m/s, forbidding slow coasting outright.
+  Rest belongs to the sleep law; dissipation belongs to modelled
+  processes (INV-19).
+- Sleep now covers angular velocity: a resting body no longer spins.
+
+### Added
+- `verify_and_load_seed_sequence`, the single ordered path for cumulative
+  seed verification and loading. `logosphere-verify` now accepts repeated
+  `--prerequisite <seed.json>` arguments, verifies every seed in order, and
+  refuses a dependent seed when its prior graph is absent.
+- `PhysicsSystem::record_refused_impulse` / `take_refused_impulse`:
+  momentum a body's authority refuses is BOOKED and available to
+  whoever owns that body instead of being discarded. Contacts,
+  friction and warm starts all book it (measured 99.9% of the momentum
+  refused); turtle rows are excluded, since a boundary's support is
+  not a shove.
+- `HasSimpleAppearance` mixin declaring the simple-entity contract
+  the engine's `simple_entity_activator` reads (`size`, `r`, `g`,
+  `b`), attached to `LightSource`, `Cube`, `CelestialBody`, and
+  `Rock`; the earth pack's duplicate `size` slot is removed in its
+  favor. Found by interactive QA: Eden aborted at startup on the
+  gate because its light writes were never declared.
+- `capability.*` writes are now declared in the ontology:
+  `LivingEntity` carries the five aggregated profile keys
+  (`capability.speed_cap/locomotion/manipulation/rotation/perception`)
+  as typed Float slots plus an open `capability.` namespace for
+  game-registered capabilities, so `CapabilityStore::write_back`
+  passes the setProperty gate.
+
+### Added (engine instrumentation)
+- Frame-chain guard: `Engine::render()` warns loudly when a display
+  exists, 60 frames have rendered, and `present()` was never called
+  (the window silently shows an unpainted white surface otherwise);
+  `renders_completed()` / `presents_completed()` counters let tests
+  assert the windowed chain directly.
+
+### Fixed
+- **Logovger chargen: the Draft answer was read out of a list that had
+  already been cleared.** `find_choice` returned a pointer into the
+  session's offer list, and every caller cleared that list before it
+  was done reading the answer. libc++ and libstdc++ leave a cleared
+  vector's bytes in place, so the read kept working on macOS and
+  Linux; MSVC's `std::string` destructor zeroes the small-string
+  buffer, so on Windows `"2"` read as `""`, the Draft branch was never
+  taken, and every character who submitted to the Draft quietly became
+  a Drifter. The Draft Career table was then reached by no life at all
+  and `headless-windows` failed the absorbed-table coverage gate.
+  `find_choice` now returns an owning `std::optional<Choice>`, and a
+  `static_assert` refuses a borrowing return type. Dice are not
+  involved: `DiceService` is engine-owned xorshift64* over `uint64_t`
+  and already produced identical rolls on all three platforms.
+- Build on toolchains without `<execinfo.h>` (MSVC): the
+  TURTLE_TRACE caller backtrace in `particle_system.cpp` is now
+  guarded by `__has_include`; the turtle violation itself still
+  reports and aborts everywhere.
+
+### Changed
 - **Particle shape extents now document their actual collision semantics.**
   `Particle::width`, `height`, and `thickness` are documented as local-axis
   extents for boxes, including oriented-box collision under rotation; sphere
@@ -339,6 +497,74 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ---
 
+## [0.4.5] - 2026-08-15
+
+### Fixed
+
+- `logovger-headless` finishes lives that reach a rule's printed fork.
+  Injury 3 offers Strength or Dexterity, mishap 1 offers "the same as a
+  result of 2" or "roll twice and take the lower", and the executor
+  refuses to guess between them by design. The headless driver wired
+  its attribute-selection seam to the answer source and never wired the
+  choice seam, so those lives ended at the fork: 19 seeds in 200, about
+  one life in ten. The choice now goes to the same source as every
+  other answer, so `--record` tapes which branch was taken and
+  `--replay` reproduces it.
+
+### Added
+
+- CI plays 200 lives end to end on the headless lane. The test suite
+  proves the rules behave; it cannot prove the binary that plays them
+  can finish. That gap is how a one-in-ten abort stayed green.
+
+### Note for anyone holding a tape
+
+A tape recorded before this release has no answers at the new
+`referee.choice` site. Replaying it through a life that reaches a fork
+is refused rather than guessed, which is the tape contract working.
+Re-record those lives.
+
+## [0.4.4] - 2026-08-14
+
+A rule can now be asked whether the game ever ran it. Absorbing a
+rulebook already proved two things: that the data matches the book, and
+that the graph hangs together. Neither says anything about whether the
+engine acts on it, and that gap had been hiding real defects.
+
+### Added
+
+- `OutcomeExecutor::rules_reached()`: every outcome entity the executor
+  has applied. Only applied plans count, so a rule that planned to act
+  and stopped on a pending choice is not in it. `OutcomePlan` carries
+  the same list per apply, in visit order, excluding branches not taken.
+- `ChargenRequest::taste`: an optional hook for the choices the book
+  leaves open, defaulted so every existing caller behaves exactly as
+  before. Fixed taste is invisible in a green suite, and this is how a
+  sweep asks for something other than the auto-player's habits.
+- A coverage gate: play lives across every career, ask the executor
+  which absorbed rules were applied, and fail if any table in the graph
+  was reached by nothing. One row is enough to prove a table is wired,
+  so the gate survives sampling while still catching a table that is
+  wired to nothing.
+
+### Fixed
+
+- The Draft applies its outcome instead of reading a slot off it. The
+  Draft table's six services are `EnterCareer` outcomes, and the
+  primitive reached into the entity for its `drafted_career` property
+  and never ran the rule. It worked, and it meant the one absorbed rule
+  that changes which career you are in was the only rule the executor
+  never executed, invisible to anything watching what the rules do.
+
+### Note on what this found
+
+With the auto-player's standing taste, 84 of 171 tables in the graph
+had never been reached by any test in any release: every Personal
+Development table, every Specialist table and every Advanced Education
+table, for all 24 careers. Three of the four training tables the book
+gives, 432 cited and verified outcomes, never once applied to a
+character. Varying the sweep's choices took that to zero and raised
+outcome coverage from 459 to 922 of 1173.
 ## [0.4.2] - 2026-08-14
 
 ### Fixed

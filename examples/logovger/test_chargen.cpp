@@ -22,12 +22,11 @@
 #undef NDEBUG
 
 #include "chargen/chargen.h"
-#include "chargen/rule_seeds.h"
+#include "chargen/rule_seed_loader.h"
 #include "chargen/procedure_catalog.h"
 
-#include "logosphere/kg/seed_loader.h"
-#include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/lookup_table_selector.h"
+#include "logosphere/text/source_target.h"
 #include "generated/logosphere_ontology_registry.h"
 #include "generated/rulebook_ontology_registry.h"
 #include "generated/cepheus_book1_skills_ontology_registry.h"
@@ -82,42 +81,46 @@ kg::OntologyRegistry game_registry() {
 bool build_world(kg::KGModule& kg, std::string& why) {
     kg.setMode(kg::KGMode::MINIMAL);
     const auto procedures = logovger::make_chargen_procedure_registry();
-    // The same list the game loads. See chargen/rule_seeds.h.
-    const auto& seeds = logovger::kRuleSeeds;
-    // A seed may reference what an earlier one owns, so verification
-    // sees the same growing world the game does.
-    std::vector<kg::SeedEnvelope> kept;
-    kept.reserve(logovger::kRuleSeedCount);
-    std::vector<const kg::SeedEnvelope*> loaded_before;
-    for (const char* seed : seeds) {
-        const std::string json = slurp(game_path(seed));
-        if (json.empty()) { why = std::string(seed) + " unreadable"; return false; }
+    return logovger::load_rule_seeds(
+        kg, std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger",
+        procedures, why);
+}
 
-        auto parsed = kg::parse_seed_envelope(json);
-        if (!parsed.ok()) { why = "envelope: " + parsed.error; return false; }
+void test_rule_seed_manifest_rejects_wrong_order() {
+    std::vector<kg::SeedEnvelope> seeds;
+    std::string error;
+    CHECK(logovger::parse_rule_seeds(
+              std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger",
+              seeds, error),
+          "the production rule-seed manifest parses: " + error);
+    if (seeds.size() != logovger::kRuleSeedCount || seeds.empty()) return;
 
-        const auto v = kg::verify_seed(parsed.seed,
-                                       game_path("srd/cepheus"),
-                                       game_registry(), &procedures,
-                                       loaded_before);
-        if (!v.ok()) {
-            std::ostringstream o;
-            for (const auto& viol : v.violations)
-                o << "[" << viol.check << "] " << viol.alias << ": "
-                  << viol.reason << "; ";
-            why = "verify: " + o.str();
-            return false;
-        }
+    kg::SeedEnvelope dependent = std::move(seeds.back());
+    seeds.pop_back();
+    seeds.insert(seeds.begin(), std::move(dependent));
 
-        kg::SeedLoadReport report;
-        if (!kg::load_seed(parsed.seed, kg, report)) {
-            why = "load: " + report.error;
-            return false;
-        }
-        kept.push_back(std::move(parsed.seed));
-        loaded_before.push_back(&kept.back());
-    }
-    return true;
+    kg::KGModule world(game_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    const auto procedures = logovger::make_chargen_procedure_registry();
+    logosphere::text::SourceCorpusDeclaration corpus;
+    CHECK(logovger::declare_rule_source_corpus(seeds, corpus, error),
+          "the production corpus is declared before order verification: " +
+              error);
+    logovger::RuleSourceAccess source_access(game_path("srd/cepheus"));
+    kg::SeedSequenceLoadReport report;
+    CHECK(!kg::verify_and_load_seed_sequence_in_edition(
+              seeds, game_path("srd/cepheus"), corpus, source_access,
+              world, report, &procedures),
+          "the procedure seed is refused before the rules it references");
+    std::cout << "  [measure] production wrong-order refusal: "
+              << report.error << std::endl;
+    CHECK(report.failed_seed == 0 && report.seeds_loaded == 0,
+          "wrong order fails at the first seed before loading anything");
+    CHECK(report.error.find("no matching Addressable entity is loaded") !=
+              std::string::npos,
+          "the production refusal names its missing prerequisite entity");
+    CHECK(world.findByType("Procedure").empty(),
+          "the refused procedure leaves no partial procedure in the world");
 }
 
 kg::EntityID agent_training_table(kg::KGModule& world) {
@@ -1078,6 +1081,57 @@ void test_extra_benefits_by_rank_are_a_table() {
           "and no number word to prove it");
 }
 
+// An arbiter's decision leaves a record, and the record says who
+// decided in words you can read.
+//
+// This was the one input to a character with no provenance at all.
+// Every other value traces to a rule and a roll; a decision traced to
+// a line of console output that scrolled away, and the arbiter's
+// identity existed only inside a one-way cache-key hash, so the graph
+// could not answer "which model chose this" even in principle.
+//
+// The test writes the record the way the session writes it, which also
+// proves the schema wiring: the KG property gate aborts on an
+// undeclared property, so a wrong slot name would kill this process
+// rather than quietly store nothing.
+void test_a_judgment_says_who_decided_and_why() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the judgment world: " + why);
+    if (!why.empty()) return;
+
+    const auto record = world.createEntity("ArbiterDecision");
+    world.setProperty(record, "decision_question",
+                      "The years take their due. Which 2 give way, and why?");
+    world.setProperty(record, "decision_options",
+                      "Strength, Dexterity, Endurance");
+    world.setProperty(record, "decision_taken", "Strength, Endurance");
+    world.setProperty(record, "decision_reason",
+                      "a life spent hauling cargo wears the back first");
+    world.setProperty(record, "arbiter", "anthropic/claude-haiku-4-5");
+
+    CHECK(world.getProperty(record, "decision_taken") == "Strength, Endurance",
+          "the choice round-trips");
+    CHECK(world.getProperty(record, "decision_options").find("Dexterity") !=
+              std::string::npos,
+          "the options it was chosen FROM are kept, not just the answer");
+    CHECK(!world.getProperty(record, "decision_reason").empty(),
+          "the reason survives instead of scrolling past");
+
+    // The point of the whole record. A hash would satisfy "a value is
+    // stored" and fail the thing this exists for.
+    const std::string arbiter = world.getProperty(record, "arbiter");
+    CHECK(arbiter.find("claude") != std::string::npos,
+          "the arbiter is readable, not a digest: " + arbiter);
+    CHECK(arbiter.find_first_of(" /") != std::string::npos,
+          "the arbiter names a backend and a model: " + arbiter);
+
+    // And it is findable without knowing its id, which is what makes
+    // it queryable provenance rather than a note.
+    CHECK(world.findByType("ArbiterDecision").size() == 1,
+          "the decision is queryable by type");
+}
+
 // Every roll a rule made says WHICH rule made it, and that rule is in
 // the graph. This is the link an oracle derived from the KG needs:
 // with it, the journal plus the graph is enough to re-derive what a
@@ -1221,6 +1275,300 @@ void test_joining_a_career_grants_its_rank_zero_skill() {
     CHECK(missing.empty(),
           "joining a career grants the skill its rank 0 row prints: " +
               missing);
+}
+
+// The rank 0 grants were faithful, sound, counted, and reached by
+// nothing. No gate here could see that: the citation check proves the
+// data matches the book, the well-formedness checks prove the graph
+// hangs together, and a reader census at the level of TYPES was clean
+// because the type had readers, just not those instances.
+//
+// This is the only check that answers "does the game act on it". It
+// plays lives and asks the executor which absorbed rules it actually
+// applied, then names the ones no life ever received.
+void test_every_absorbed_rule_reaches_a_character() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the coverage world: " + why);
+    if (!why.empty()) return;
+
+    // The population is the executed vocabulary, taken from the
+    // ontology rather than a list kept by hand: every concrete type the
+    // executor can apply. A hand-kept list would go stale the first
+    // time a new outcome type is absorbed, which is exactly the class
+    // of silence this test exists to break.
+    // The world's own registry, not a fresh game_registry(): that one
+    // returns BY VALUE, so ranging over a temporary's entityTypes()
+    // reads a destroyed map. It segfaulted exactly that way once.
+    const auto& registry = world.getRegistry();
+    std::map<kg::EntityID, std::string> absorbed;
+    for (const auto& entry : registry.entityTypes()) {
+        if (!registry.isSubtypeOf(entry.first, "Outcome")) continue;
+        for (const auto id : world.findByType(entry.first)) {
+            absorbed[id] = entry.first + " " +
+                           world.getProperty(id, "name");
+        }
+    }
+    CHECK(absorbed.size() > 500,
+          "the graph holds the book's outcomes: " +
+              std::to_string(absorbed.size()));
+
+    std::vector<std::string> careers;
+    for (const auto id : world.findByType("Career")) {
+        careers.push_back(world.getProperty(id, "name"));
+    }
+    std::sort(careers.begin(), careers.end());
+
+    // Every career, several seeds each, so a rule only one profession
+    // can reach still gets its chance. And where the book leaves the
+    // choice open, the sweep rotates through the options instead of
+    // always taking the same one: with fixed taste the number measures
+    // the auto-player's habits, not the book.
+    std::set<kg::EntityID> reached;
+    int lives = 0;
+    for (const auto& career : careers) {
+        for (uint64_t seed = 1; seed <= 12; ++seed) {
+            logosphere::dice::DiceService dice;
+            logovger::ChargenRequest request;
+            request.career_name = career;
+            request.seed = seed;
+            request.max_terms = 7;
+            // Rotating, not random: a given seed always plays the same
+            // life, so a finding here replays exactly. Every key comes
+            // from the offered set, so nothing invalid is ever chosen.
+            size_t turn = seed;
+            request.taste = [&turn](const std::string&,
+                                    const std::vector<logovger::Choice>& cs) {
+                if (cs.empty()) return std::string();
+                return cs[turn++ % cs.size()].key;
+            };
+            // Somebody has to answer the aging table, and without a
+            // selector the engine refuses and the life ends there. The
+            // sweep had been walking into that every time a character
+            // reached the fourth term, which is why aging outcomes sat
+            // at 1 of 14 reached: not because the rules were unwired,
+            // but because no life got past the question.
+            request.attribute_selector =
+                [&turn](const logosphere::rules::AttributeSelectionRequest&
+                            ask,
+                        std::vector<std::string>& chosen,
+                        std::string& error) {
+                    for (int i = 0; i < ask.count; ++i) {
+                        std::string pick;
+                        for (size_t n = 0; n < ask.eligible.size(); ++n) {
+                            const auto& name =
+                                ask.eligible[(turn + n) % ask.eligible.size()];
+                            if (std::find(ask.already_taken.begin(),
+                                          ask.already_taken.end(), name) !=
+                                ask.already_taken.end()) continue;
+                            if (std::find(chosen.begin(), chosen.end(),
+                                          name) != chosen.end()) continue;
+                            pick = name;
+                            break;
+                        }
+                        if (pick.empty()) {
+                            error = "nothing left to take";
+                            return false;
+                        }
+                        ++turn;
+                        chosen.push_back(pick);
+                    }
+                    return true;
+                };
+            logovger::CharacterSheet sheet;
+            std::string error;
+            logovger::run_chargen(request, world, dice, sheet, error,
+                                  &reached);
+            ++lives;
+        }
+    }
+
+    std::vector<std::string> never;
+    std::map<std::string, std::pair<int, int>> by_type;  // reached, total
+    for (const auto& rule : absorbed) {
+        const std::string type = world.getType(rule.first);
+        ++by_type[type].second;
+        if (reached.count(rule.first)) {
+            ++by_type[type].first;
+            continue;
+        }
+        never.push_back(rule.second);
+    }
+    std::cout << "  [measure] " << lives << " lives over " << careers.size()
+              << " careers reached " << reached.size() << " of "
+              << absorbed.size() << " absorbed outcomes, "
+              << never.size() << " never\n";
+    for (const auto& row : by_type) {
+        std::cout << "  [measure]   " << row.first << ": "
+                  << row.second.first << "/" << row.second.second << "\n";
+    }
+
+    // An outcome nobody rolled this run is sampling noise. A whole
+    // TABLE with not one row reached is the rank 0 shape: absorbed,
+    // sound, and wired to nothing.
+    int dead_tables = 0, tables = 0;
+    std::string dead;
+    for (const auto& entry : registry.entityTypes()) {
+        const bool container =
+            registry.isSubtypeOf(entry.first, "RollableTable") ||
+            registry.isSubtypeOf(entry.first, "ProgressionTrack");
+        if (!container) continue;
+        for (const auto table : world.findByType(entry.first)) {
+            int rows = 0, hit = 0;
+            for (const auto row : world.getRelated(table, "HAS_PART")) {
+                const std::string outcome =
+                    world.getProperty(row, "outcome").empty()
+                        ? world.getProperty(row, "grants")
+                        : world.getProperty(row, "outcome");
+                if (outcome.empty()) continue;
+                ++rows;
+                if (reached.count(
+                        static_cast<kg::EntityID>(std::stoul(outcome)))) {
+                    ++hit;
+                }
+            }
+            if (rows == 0) continue;
+            ++tables;
+            if (hit == 0) {
+                ++dead_tables;
+                dead += (dead.empty() ? "" : "; ") +
+                        world.getProperty(table, "name") + " (" +
+                        std::to_string(rows) + " rows)";
+            }
+        }
+    }
+    std::cout << "  [measure] " << dead_tables << " of " << tables
+              << " tables reached nothing at all\n";
+
+    // The gate. One row reached is enough to prove a table is wired,
+    // so this survives sampling: which row the dice pick varies, that
+    // ANY row can be picked does not. A table at zero is either
+    // unreachable or unchosen, and both are worth a build failure.
+    CHECK(dead_tables == 0,
+          "every absorbed table is reached by some life: " + dead);
+    // And the sweep must keep doing real work. Without this, narrowing
+    // it to one career would turn the gate above green.
+    CHECK(reached.size() * 2 > absorbed.size(),
+          "the sweep exercises most of the book: " +
+              std::to_string(reached.size()) + " of " +
+              std::to_string(absorbed.size()));
+}
+
+// The gate above asks whether a rule was EXECUTED. This one asks the
+// easier question it does not cover: was the type ever INSTANTIATED at
+// all. Eleven types were declared in the rulebook pack and no seed
+// ever created one, JudgmentPoint.prompt_text among them, which is
+// documented as the brief handed to the referee and is read by nothing
+// while the adjudicator builds its prompt from a hardcoded string.
+//
+// Same shape as the rank 0 grants: declared, sound, cited, reached by
+// nothing. A reader census at the level of types does not catch it,
+// because a census is satisfied by one reader touching one instance.
+// This catches the strictly easier case of no instances at all, and it
+// reads the vocabulary from the registry so a type added tomorrow is
+// covered without anyone maintaining a list.
+void test_every_declared_rule_type_has_an_instance() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the instantiation world: " + why);
+    if (!why.empty()) return;
+
+    // Scoped to the vocabulary the BOOK and its packs declare. The
+    // engine's own types (Humanoid, Wall, LightSource) have no business
+    // existing in a chargen world and their absence proves nothing.
+    const std::set<std::string> book_sources = {
+        "https://logosphere.dev/packs/rulebook",
+        "https://logosphere.dev/logovger/cepheus/book1-character-creation",
+        "https://logosphere.dev/logovger/cepheus/book1-skills",
+    };
+
+    // Lives are played FIRST, because the population splits in two and
+    // a seed world alone confuses them. Book content (Career,
+    // TableEntry, AdvanceSkill) is created by seeds and is present at
+    // load. State (SkillRating, ProgressionStanding, CurrencyBalance)
+    // exists only once a character has lived, and reporting those as
+    // never-instantiated would be measuring an empty room and calling
+    // it a finding.
+    for (const std::string& career : {std::string("Navy"),
+                                      std::string("Scout"),
+                                      std::string("Noble")}) {
+        for (uint64_t seed = 1; seed <= 4; ++seed) {
+            logosphere::dice::DiceService dice;
+            logovger::ChargenRequest request;
+            request.career_name = career;
+            request.seed = seed;
+            request.max_terms = 7;
+            // Somebody has to answer the aging table. Without a
+            // selector the engine refuses, the life ends at the fourth
+            // term, and every type that only exists once a decision is
+            // made stays absent for a reason that has nothing to do
+            // with the wiring this test checks.
+            request.attribute_selector =
+                [](const logosphere::rules::AttributeSelectionRequest& ask,
+                   std::vector<std::string>& chosen, std::string& error) {
+                    for (int i = 0; i < ask.count; ++i) {
+                        std::string pick;
+                        for (const auto& name : ask.eligible) {
+                            if (std::find(ask.already_taken.begin(),
+                                          ask.already_taken.end(), name) !=
+                                ask.already_taken.end()) continue;
+                            if (std::find(chosen.begin(), chosen.end(),
+                                          name) != chosen.end()) continue;
+                            pick = name;
+                            break;
+                        }
+                        if (pick.empty()) {
+                            error = "nothing left to take";
+                            return false;
+                        }
+                        chosen.push_back(pick);
+                    }
+                    return true;
+                };
+            logovger::CharacterSheet sheet;
+            std::string error;
+            logovger::run_chargen(request, world, dice, sheet, error);
+        }
+    }
+
+    const auto& registry = world.getRegistry();
+    std::vector<std::string> empty;
+    int checked = 0, declared = 0;
+    for (const auto& entry : registry.entityTypes()) {
+        const auto& def = entry.second;
+        if (def.is_abstract) continue;
+        if (!book_sources.count(def.source)) continue;
+        ++checked;
+        if (!world.findByType(entry.first).empty()) continue;
+        // A type may declare that it has no instance yet, in the
+        // schema, with the reason written beside it. Declared absence
+        // is a countable backlog; undeclared absence is the silence
+        // this test exists to break.
+        if (def.facets.count("no-instance-declared")) {
+            ++declared;
+            continue;
+        }
+        empty.push_back(entry.first);
+    }
+    std::sort(empty.begin(), empty.end());
+
+    std::string undeclared;
+    for (const auto& name : empty) {
+        undeclared += (undeclared.empty() ? "" : ", ") + name;
+    }
+    std::cout << "  [measure] " << checked
+              << " concrete types declared by the book and its packs, "
+              << declared << " declared to have no instance yet, "
+              << empty.size() << " silently empty\n";
+
+    CHECK(checked > 20,
+          "the scope actually found the book's vocabulary: " +
+              std::to_string(checked) + " types");
+    // The gate. A type with no instance is allowed, and saying so in
+    // the schema is the price. Silence is not.
+    CHECK(empty.empty(),
+          "every declared type is instantiated or says why not: " +
+              undeclared);
 }
 
 void test_missing_rule_constant_never_falls_back() {
@@ -1400,14 +1748,38 @@ void test_the_rules_are_data() {
         if (kg.getProperty(id, "name") == "Agent") career = id;
     CHECK(career != kg::INVALID_ENTITY, "the career is in the graph");
 
-    // A career's instances are the book's, so a career must be able to
-    // prove its numbers: the table row it was read from, verbatim in
-    // the chapter. This is what the Cited mixin buys.
-    const auto quote = kg.getProperty(career, "source_quote");
+    // A career's instances are the book's, so a career must prove the exact
+    // table title, column, row key, and value cells that identify it. Loose
+    // locator fields are gone after the Career Tables evidence migration.
     const auto chapter = slurp(game_path("srd/cepheus/book1/"
                                          "character-creation.md"));
-    CHECK(!quote.empty() && chapter.find(quote) != std::string::npos,
-          "the career cites the career-table row it came from");
+    const auto claims = kg.getRelatedReverse(career, "CLAIM_MATERIALIZES");
+    std::set<std::string> selected;
+    bool exact_evidence = claims.size() == 1;
+    if (exact_evidence) {
+        const auto supports = kg.getRelated(claims.front(),
+                                            "CLAIM_SUPPORTED_BY");
+        exact_evidence = supports.size() == 4;
+        for (const auto coverage : supports) {
+            const auto target_text = kg.getProperty(coverage,
+                                                    "coverage_target");
+            if (target_text.empty()) {
+                exact_evidence = false;
+                continue;
+            }
+            const auto target = static_cast<kg::EntityID>(
+                std::stoull(target_text));
+            const auto result = logosphere::text::resolve_text_target(
+                kg, target, chapter);
+            exact_evidence = exact_evidence && result.ok;
+            if (result.ok) selected.insert(result.text);
+        }
+    }
+    const std::set<std::string> expected{
+        "Career", "Agent", "Qualifications", "Soc 6+"};
+    CHECK(exact_evidence && selected == expected,
+          "the career's exact claim retains its table, column, row, and "
+          "qualification value");
 
     // The target lives on the career's qualification TaskCheck now, so
     // this reaches through the reference the seed built.
@@ -1696,6 +2068,102 @@ void test_every_skill_table_row_is_validated_before_selection() {
               !training_roll && ratings == 0,
           "a malformed unselected row blocks the table before a selection "
           "roll or outcome mutation: " + error);
+}
+
+// The procedure's vocabulary cannot grow quietly.
+//
+// A primitive is the C++ behind one step; the registry declares its
+// name and the exit labels a seed may route on. Name plus exits is the
+// route contract, and it is what keeps the procedure data rather than
+// code, which makes the set of names a design surface rather than an
+// implementation detail. RPG_MODULE.md OPEN item 1 says new ones
+// surface for the owner's approval.
+//
+// Measured on 2026-08-15: the set grew from 8 to 17 and not one of the
+// nine additions was ever surfaced, #59 adding five in a single PR.
+// Nothing was harmed and nothing noticed, which is the same shape as
+// the rank 0 grants and the endpoints that validated nothing. A rule
+// with no gate is an intention.
+//
+// This does not prevent an addition and does not pretend to. It makes
+// one impossible to add QUIETLY: the author must edit
+// APPROVED_PRIMITIVES in the same commit, and that diff says in one
+// line that the procedure's vocabulary changed. A review trigger, not
+// a permission system.
+void test_no_primitive_enters_the_procedure_unapproved() {
+    const std::string text =
+        slurp(game_path("chargen/APPROVED_PRIMITIVES"));
+    CHECK(!text.empty(), "the approved-primitive list is readable");
+    if (text.empty()) return;
+
+    std::map<std::string, std::string> approved;
+    std::istringstream lines(text);
+    std::string line;
+    while (std::getline(lines, line)) {
+        const auto hash = line.find('#');
+        if (hash != std::string::npos) line = line.substr(0, hash);
+        const auto colon = line.find(':');
+        if (colon == std::string::npos) continue;
+        std::string name = line.substr(0, colon);
+        std::string labels = line.substr(colon + 1);
+        const auto trim = [](std::string& s) {
+            while (!s.empty() && std::isspace(static_cast<unsigned char>(
+                                     s.front()))) s.erase(s.begin());
+            while (!s.empty() && std::isspace(static_cast<unsigned char>(
+                                     s.back()))) s.pop_back();
+        };
+        trim(name);
+        trim(labels);
+        if (name.empty()) continue;
+        approved[name] = labels;
+    }
+
+    const auto registry = logovger::make_chargen_procedure_registry();
+    std::map<std::string, std::string> live;
+    for (const auto& name : registry.declared_names()) {
+        const auto* contract = registry.contract(name);
+        std::vector<std::string> labels(contract->route_labels.begin(),
+                                        contract->route_labels.end());
+        std::sort(labels.begin(), labels.end());
+        std::string joined;
+        for (const auto& label : labels) {
+            joined += (joined.empty() ? "" : ",") + label;
+        }
+        live[name] = joined;
+    }
+
+    std::string unapproved, missing, drifted;
+    for (const auto& entry : live) {
+        const auto found = approved.find(entry.first);
+        if (found == approved.end()) {
+            unapproved += (unapproved.empty() ? "" : ", ") + entry.first;
+        } else if (found->second != entry.second) {
+            drifted += (drifted.empty() ? "" : "; ") + entry.first +
+                       " declares [" + entry.second + "], approved as [" +
+                       found->second + "]";
+        }
+    }
+    for (const auto& entry : approved) {
+        if (!live.count(entry.first)) {
+            missing += (missing.empty() ? "" : ", ") + entry.first;
+        }
+    }
+
+    std::cout << "  [measure] " << live.size()
+              << " primitives declared, " << approved.size()
+              << " approved\n";
+    CHECK(unapproved.empty(),
+          "no primitive enters the procedure without approval. Bring it to "
+          "the owner, then add it to chargen/APPROVED_PRIMITIVES in the "
+          "same commit. Unapproved: " + unapproved);
+    // Both directions. A route contract that loosens silently changes
+    // what every seed may do, and a primitive removed from the registry
+    // while the list still promises it is equally a lie.
+    CHECK(drifted.empty(), "route contracts match what was approved: " +
+                               drifted);
+    CHECK(missing.empty(),
+          "the approved list does not promise primitives the registry no "
+          "longer declares: " + missing);
 }
 
 void test_procedure_data_drives_chargen_control_flow() {
@@ -1993,6 +2461,105 @@ void test_a_training_answer_names_a_table_not_a_position() {
     CHECK(reached > 0 && shifted > 0,
           "some life reaches a training choice; none did, so this proves "
           "nothing");
+}
+
+// "You must either submit to the Draft or take the Drifter career for
+// this term." Two answers, two different lives, and the game has to act
+// on the one it was handed.
+//
+// On Windows it did not. The answer was a POINTER into the offer list,
+// the list was cleared before the answer was finished with, and the
+// read that decided Draft-versus-Drifter happened after the Choice it
+// pointed at had been destroyed. libc++ and libstdc++ leave a cleared
+// vector's bytes alone, so on macOS and Linux "2" was still "2" and
+// nothing looked wrong for as long as those were the only compilers.
+// MSVC's std::string destructor zeroes the small-string buffer, so "2"
+// read as "" there: every character who submitted to the Draft became a
+// Drifter instead, the six EnterCareer outcomes behind the Draft table
+// were reached by nobody, and headless-windows failed on the one gate
+// that asks whether an absorbed table is ever reached.
+//
+// This test asserts the claim that broke: the answer decides. It is
+// checked BOTH ways, because "always Drifter" is exactly what the bug
+// produced and a one-sided check would have passed through it.
+void test_the_draft_answer_decides_which_career_takes_you() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the draft-answer world loads: " + why);
+    if (!why.empty()) return;
+
+    // Play the first seed that is turned away by its career, twice,
+    // answering the same question each way. The seed is not hardcoded:
+    // whether a life fails qualification is a throw, so the sweep finds
+    // one and asserts against THAT life.
+    const std::string kTurnedAway = "will not have you this term";
+    const auto play = [&](uint64_t seed, const std::string& answer,
+                          logovger::CharacterSheet& out,
+                          std::string& error) -> bool {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_attribute_selector(weakest_first_referee());
+        if (!session.begin(seed, error)) return false;
+        LongLife player(session);
+        if (!player.run_until(kTurnedAway, error)) return false;
+        if (!session.choose(answer, error)) return false;
+        out = session.sheet();
+        return true;
+    };
+
+    uint64_t turned_away_seed = 0;
+    logovger::CharacterSheet drafted, drifted;
+    std::string error;
+    for (uint64_t seed = 1; seed <= 400 && turned_away_seed == 0; ++seed) {
+        logovger::CharacterSheet sheet;
+        if (!play(seed, "2", sheet, error)) continue;
+        turned_away_seed = seed;
+        drafted = sheet;
+    }
+    CHECK(turned_away_seed != 0,
+          "some life is turned away and asked Draft-or-Drifter; none was, "
+          "so this proves nothing: " + error);
+    if (turned_away_seed == 0) return;
+    CHECK(play(turned_away_seed, "1", drifted, error),
+          "the same life replays and takes the Drifter answer: " + error);
+
+    const auto life_says = [](const logovger::CharacterSheet& sheet,
+                              const std::string& prefix) {
+        for (const auto& event : sheet.life) {
+            if (event.what.rfind(prefix, 0) == 0) return event.what;
+        }
+        return std::string();
+    };
+    const std::string drafted_into = life_says(drafted, "drafted into the ");
+    const std::string became = life_says(drifted, "became a Drifter");
+
+    std::cout << "  [measure] seed " << turned_away_seed
+              << " turned away; answering the Draft gives '"
+              << drafted.career << "', answering Drifter gives '"
+              << drifted.career << "'\n";
+
+    // Submitting to the Draft rolls the book's 1D6 table and the row
+    // names the service that takes you. Any of the six is right; being
+    // a Drifter is not, because that is the OTHER answer.
+    CHECK(!drafted_into.empty(),
+          "submitting to the Draft is recorded as a draft: the timeline "
+          "says nothing about being drafted");
+    CHECK(drafted.career != "Drifter" && !drafted.career.empty(),
+          "submitting to the Draft puts the character in a service, not "
+          "the Drifter career: got '" + drafted.career + "'");
+    CHECK(became == "became a Drifter",
+          "and taking the Drifter answer is recorded as taking it: '" +
+              became + "'");
+    CHECK(drifted.career == "Drifter",
+          "which puts the character in the Drifter career: got '" +
+              drifted.career + "'");
+    // The point of the pair: one question, two answers, two outcomes.
+    // If the answer were being dropped, both runs would land in the
+    // same place and every check above except this one could still
+    // pass.
+    CHECK(drafted.career != drifted.career,
+          "the two answers produce two different careers; both gave '" +
+              drafted.career + "', so the answer was not read");
 }
 
 // A mishap can ruin a characteristic, and the crisis it raises
@@ -2469,10 +3036,12 @@ void test_the_aging_crisis_is_paid_for_or_kills() {
 int main() {
     std::cout << "Logovger chargen (a life, from the book, in the graph)"
               << std::endl;
+    test_rule_seed_manifest_rejects_wrong_order();
     test_a_life_is_generated();
     test_a_mishap_is_taken_instead_of_dying();
     test_aging_takes_what_the_referee_says_it_takes();
     test_a_training_answer_names_a_table_not_a_position();
+    test_the_draft_answer_decides_which_career_takes_you();
     test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();
@@ -2481,7 +3050,10 @@ int main() {
     test_leaving_a_career_offers_another_one();
     test_basic_training_grants_what_the_book_promises();
     test_a_roll_names_the_rule_that_made_it();
+    test_a_judgment_says_who_decided_and_why();
     test_joining_a_career_grants_its_rank_zero_skill();
+    test_every_absorbed_rule_reaches_a_character();
+    test_every_declared_rule_type_has_an_instance();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
     test_the_books_numbers_are_all_data();
@@ -2495,6 +3067,7 @@ int main() {
     test_skill_outcome_parameters_drive_the_executor();
     test_skill_table_dice_data_drives_selection();
     test_every_skill_table_row_is_validated_before_selection();
+    test_no_primitive_enters_the_procedure_unapproved();
     test_procedure_data_drives_chargen_control_flow();
     test_unknown_runtime_primitive_fails_before_character_state();
 

@@ -140,14 +140,93 @@ public:
     size_t consumed() const { return at_; }
     size_t size() const { return entries_.size(); }
 
+    // ---- the untaken branches -------------------------------------
+    //
+    // A recorded run is one path, and the interesting question about a
+    // path is what else it could have done. Every ask records the keys
+    // that were legal at that moment, so a tape carries its own forks:
+    // at entry i the run answered X and could equally have answered
+    // any other member of `offered`.
+    //
+    // This is what makes a set of tapes a graph rather than a pile of
+    // transcripts. Two runs that answered identically for three terms
+    // and parted at the fourth share a trunk; the fork below produces
+    // the second branch from the first without replaying a thing by
+    // hand.
+    //
+    // `offered` was NOT recorded before 2026-08-19, so a tape written
+    // by an older build reports no alternatives rather than lying
+    // about having none. `records_alternatives()` tells the two apart.
+    struct Fork {
+        size_t index = 0;                    // which entry
+        std::string site;
+        std::string prompt;
+        std::string taken;                   // what the run answered
+        std::vector<std::string> untaken;    // what it could have
+    };
+
+    // Every decision that had at least one other legal answer.
+    std::vector<Fork> forks() const;
+
+    // False for a tape from a build that did not record `offered`, so
+    // "no forks" cannot be confused with "we cannot see the forks".
+    bool records_alternatives() const { return records_offered_; }
+
 private:
+    friend class ForkedInput;
     struct Entry {
         std::string kind;     // "ask" or "seed"
         std::string site;     // or stream name
         std::string answer;   // or the seed as text
+        std::string prompt;
+        std::vector<std::string> offered;    // empty = free-form or old tape
     };
     std::vector<Entry> entries_;
     size_t at_ = 0;
+    bool records_offered_ = false;
+};
+
+// The counterfactual. Replays a tape up to `at`, answers that one
+// decision differently, and hands every question after it to another
+// source.
+//
+// Everything downstream of a decision is DERIVED from the answers and
+// the seed, and the seed is itself entry 0 of the tape, so a fork
+// inherits it by replaying the prefix. That is what makes "what if she
+// had taken the commission" a computable question rather than a
+// rewrite: the trunk is not re-decided, it is re-run.
+//
+// `then` answers everything past the fork. Pass a RandomInput to let
+// the rules play it out, a LiveInput to let a model or a person take
+// it from there, or another TapedInput to splice two runs.
+class ForkedInput : public InputSource {
+public:
+    // Fails when `at` is not an ask, or when `instead` was not one of
+    // the answers that decision offered. A fork onto an answer the
+    // rules never allowed is not a counterfactual, it is a fiction.
+    static std::unique_ptr<ForkedInput> create(
+        std::unique_ptr<TapedInput> trunk, size_t at,
+        const std::string& instead, InputSource& then, std::string& error);
+
+    bool answer(const Ask& ask, std::string& out, std::string& error) override;
+    uint64_t seed(const std::string& stream, uint64_t fallback) override;
+
+    // Where the branch left the trunk, and whether it has yet.
+    size_t fork_at() const { return at_; }
+    bool diverged() const { return past_; }
+
+private:
+    ForkedInput(std::unique_ptr<TapedInput> trunk, size_t at,
+                std::string instead, InputSource& then)
+        : trunk_(std::move(trunk)), at_(at), instead_(std::move(instead)),
+          then_(then) {}
+
+    std::unique_ptr<TapedInput> trunk_;
+    size_t at_ = 0;
+    std::string instead_;
+    InputSource& then_;
+    size_t seen_ = 0;      // asks answered so far
+    bool past_ = false;    // taken the fork yet
 };
 
 // Wraps a source and writes down every answer it gave, so any run can

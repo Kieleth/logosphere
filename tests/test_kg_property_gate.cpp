@@ -45,6 +45,20 @@
 #include <functional>
 #include <iostream>
 #include <string>
+
+#ifdef _WIN32
+// The header above is explicit: the red paths NEED fork/waitpid to
+// observe abort() from outside the dying process. On MSVC the file
+// compiles to a loud SKIP; the gate's abort contract stays proven by
+// the POSIX lanes (Linux CI + macOS).
+int main() {
+    std::cout << "SKIP test_kg_property_gate: death tests are "
+                 "fork()-based (see file header); the gate's abort "
+                 "contract is proven on the POSIX lanes." << std::endl;
+    return 0;
+}
+#else  // POSIX: fork/waitpid available
+
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -261,3 +275,5 @@ int main() {
               << "  Failed: " << tests_failed << std::endl;
     return tests_failed == 0 ? 0 : 1;
 }
+
+#endif  // POSIX: fork/waitpid available

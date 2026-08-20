@@ -19,7 +19,7 @@
 #include "ui/ui_system.h"
 
 #include "chargen/chargen.h"
-#include "chargen/rule_seeds.h"
+#include "chargen/rule_seed_loader.h"
 #include "adjudicator.h"
 #include "narrator.h"
 #include "sheet_screen.h"
@@ -28,8 +28,6 @@
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/voyager_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
-#include "logosphere/kg/seed_loader.h"
-#include "logosphere/kg/seed_verifier.h"
 
 #include <fstream>
 #include <cstring>
@@ -46,6 +44,18 @@ namespace logovger {
 #ifndef LOGOVGER_GAME_DIR
 #define LOGOVGER_GAME_DIR "."
 #endif
+
+// One string from many, for the judgment record. The options and the
+// choice are stored the way they were offered, so the two can be read
+// back against each other without guessing at a delimiter.
+inline std::string join_with(const std::vector<std::string>& parts) {
+    std::string out;
+    for (const auto& part : parts) {
+        if (!out.empty()) out += ", ";
+        out += part;
+    }
+    return out;
+}
 
 class LogovgerApplication : public Logosphere::IApplication {
 public:
@@ -329,39 +339,8 @@ private:
     // cannot prove its citations never reaches the table.
     bool load_rules(kg::KGModule& kg, std::string& why) {
         const auto procedures = make_chargen_procedure_registry();
-        // A seed may reference what an earlier one owns, so
-        // verification sees the same growing world the game does.
-        std::vector<kg::SeedEnvelope> kept;
-        kept.reserve(kRuleSeedCount);
-        std::vector<const kg::SeedEnvelope*> loaded_before;
-        for (const char* seed : kRuleSeeds) {
-            const std::string json = slurp(game_path(seed));
-            if (json.empty()) {
-                why = std::string(seed) + " is unreadable";
-                return false;
-            }
-
-            auto parsed = kg::parse_seed_envelope(json);
-            if (!parsed.ok()) { why = parsed.error; return false; }
-
-            const auto v = kg::verify_seed(
-                parsed.seed, game_path("srd/cepheus"), kg.getRegistry(),
-                &procedures, loaded_before);
-            if (!v.ok()) {
-                std::ostringstream o;
-                for (const auto& viol : v.violations)
-                    o << "[" << viol.check << "] " << viol.reason << " ";
-                why = o.str();
-                return false;
-            }
-            kg::SeedLoadReport report;
-            if (!kg::load_seed(parsed.seed, kg, report)) {
-                why = report.error;
-                return false;
-            }
-            kept.push_back(std::move(parsed.seed));
-            loaded_before.push_back(&kept.back());
-        }
+        if (!logovger::load_rule_seeds(
+                kg, LOGOVGER_GAME_DIR, procedures, why)) return false;
         chapter_ = logosphere::text::SourceDocument::parse_markdown(
             slurp(game_path("srd/cepheus/book1/character-creation.md")));
         skills_doc_ = logosphere::text::SourceDocument::parse_markdown(
@@ -429,6 +408,12 @@ private:
                                          error)) {
                     return false;
                 }
+                // The session records the decision; this only adds the
+                // reason, which is the one part the session cannot
+                // know because it comes back from the model with the
+                // answer. Written per driver, the record was written
+                // twice and would have been forgotten by the third.
+                session_->attach_decision_reason(reason);
                 if (!reason.empty()) {
                     screen_.say("  the referee: " + reason,
                                 SheetScreen::Tone::Roll);

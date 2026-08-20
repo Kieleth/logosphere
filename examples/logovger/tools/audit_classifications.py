@@ -108,30 +108,62 @@ def classify(values, key):
     return json.loads(text)
 
 
+def seed_classifications(seed):
+    """Read shipped classifications through the exact-evidence graph."""
+    entities = {
+        op["as"]: op for op in seed["ops"]
+        if op.get("op") == "create_entity"
+    }
+    support_by_claim = {}
+    materializations = []
+    for op in seed["ops"]:
+        if op.get("op") != "set_relation":
+            continue
+        if op.get("relation") == "CLAIM_SUPPORTED_BY":
+            support_by_claim.setdefault(op["from"], []).append(op["to"])
+        elif op.get("relation") == "CLAIM_MATERIALIZES":
+            materializations.append((op["from"], op["to"]))
+
+    ours = {}
+    for claim_alias, outcome_alias in materializations:
+        outcome = entities.get(outcome_alias)
+        claim = entities.get(claim_alias)
+        if not outcome or not claim:
+            continue
+        kind = BY_OUTCOME.get(outcome["type"])
+        if not kind:
+            continue
+        statement = claim["properties"].get("claim_statement", "")
+        if not any(statement.startswith(table + " row ")
+                   for table in AUDITED_TABLES):
+            continue
+        supports = support_by_claim.get(claim_alias, ())
+        if not supports:
+            raise ValueError(f"audited claim {claim_alias} has no support")
+        coverage = entities[supports[-1]]
+        target = entities[coverage["properties"]["coverage_target"]]
+        quote_selector = entities[
+            target["properties"]["target_quote_selector"]]
+        value = quote_selector["properties"]["source_quote_exact"]
+        if value in ours and ours[value] != kind:
+            raise ValueError(
+                f"the extractor classified {value!r} as both "
+                f"{ours[value]} and {kind}")
+        ours[value] = kind
+    return ours
+
+
 def main():
     seed_path, audit_path = sys.argv[1], sys.argv[2]
     seed = json.load(open(seed_path, encoding="utf-8"))
 
-    # What the extractor decided, read back out of the seed itself
-    # rather than from the extractor, so the audit checks what SHIPPED.
-    ours = {}
-    for op in seed["ops"]:
-        if op.get("op") != "create_entity":
-            continue
-        kind = BY_OUTCOME.get(op["type"])
-        if not kind:
-            continue
-        properties = op["properties"]
-        quote = properties.get("source_quote", "")
-        if not quote or properties.get("source_kind") != "cell":
-            continue
-        if properties.get("source_table") not in AUDITED_TABLES:
-            continue
-        if quote in ours and ours[quote] != kind:
-            print(f"REFUSED: the extractor classified {quote!r} as both "
-                  f"{ours[quote]} and {kind}")
-            return 1
-        ours[quote] = kind
+    # What the extractor decided, read back through exact claim support
+    # rather than private generator state, so the audit checks what shipped.
+    try:
+        ours = seed_classifications(seed)
+    except (KeyError, ValueError) as error:
+        print(f"REFUSED: {error}")
+        return 1
 
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:

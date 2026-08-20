@@ -31,6 +31,8 @@
 #include "logosphere/rules/outcome_executor.h"
 #include "logosphere/rules/procedure_runner.h"
 
+#include <functional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -104,6 +106,11 @@ public:
     bool choose(const std::string& answer, std::string& error);
 
     const CharacterSheet& sheet() const { return sheet_; }
+    // Which absorbed rules this life actually reached. A sweep unions
+    // these to find rules the book prints that no life ever receives.
+    const std::set<kg::EntityID>& rules_reached() const {
+        return executor_.rules_reached();
+    }
     // Events since the last drain, for incremental display.
     std::vector<LifeEvent> drain();
 
@@ -122,11 +129,43 @@ public:
     // than picking quietly. The app installs an adjudicator-backed
     // selector; a test installs its own stub. There is deliberately no
     // default.
+    // Wrapped, so the session records the decision no matter which
+    // driver supplied the selector. The record used to be written by
+    // each driver, which meant a new driver produced decision-free
+    // lives and nothing said so. That is the same shape as the
+    // headless driver never wiring the choice resolver, which killed
+    // one life in ten until it was found. One writer, here.
     void set_attribute_selector(
         logosphere::rules::AttributeSelector selector) {
-        attribute_selector_ = std::move(selector);
+        attribute_selector_ =
+            [this, selector](
+                const logosphere::rules::AttributeSelectionRequest& ask,
+                std::vector<std::string>& chosen, std::string& error) {
+                if (!selector) {
+                    error = "no attribute selector installed";
+                    return false;
+                }
+                const size_t before = chosen.size();
+                if (!selector(ask, chosen, error)) return false;
+                record_decision(ask, chosen, before);
+                return true;
+            };
         executor_.set_attribute_selector(attribute_selector_);
     }
+
+    // Who answers, in words, for the record every decision leaves.
+    // There is exactly ONE arbiter: two authorities over the same
+    // record leaves no way to say which of them wrote it.
+    void set_arbiter(std::string arbiter) {
+        arbiter_ = std::move(arbiter);
+    }
+
+    // The reason, which arrives with the answer and so cannot be known
+    // by the session at the moment it writes the record. A driver that
+    // gets one attaches it to the decision just written. Calling this
+    // with no decision on record is a no-op rather than an error: a
+    // reason without a decision is nothing to attach.
+    void attach_decision_reason(const std::string& reason);
 
     // The other referee question: which of the branches a rule prints.
     // Cepheus chapter 1 has two - mishap 1 offers "as a result of 2 on
@@ -206,7 +245,14 @@ private:
     PrimitiveResult choose_term_end(const PrimitiveContext& context);
     PrimitiveResult finish_character(const PrimitiveContext& context);
 
+    // The one place an arbiter's decision becomes a fact in the graph.
+    void record_decision(
+        const logosphere::rules::AttributeSelectionRequest& ask,
+        const std::vector<std::string>& chosen, size_t first_new);
+
     kg::KGModule&                    kg_;
+    std::string                      arbiter_;
+    kg::EntityID                     last_decision_ = kg::INVALID_ENTITY;
     logosphere::dice::DiceService&   dice_;
     logosphere::rules::AttributeSelector attribute_selector_;
     logosphere::rules::ChoiceResolver choice_resolver_;
@@ -268,12 +314,30 @@ struct ChargenRequest {
     // says so in the timeline so a reader can see a choice was made
     // and by whom. A caller that wants taste supplies its own.
     logosphere::rules::ChoiceResolver choice_resolver;
+    // Where the BOOK leaves a choice open and the auto-player has no
+    // taste. Returning a key takes that option; returning empty keeps
+    // the standing answer, which is what every existing caller gets,
+    // so an empty hook changes no measurement anywhere.
+    //
+    // It exists because fixed taste is invisible in a green suite. The
+    // auto-player always trained on Service Skills and always took
+    // cash, so Personal Development, Specialist and Advanced Education
+    // - three of the four tables the book gives every career, 72
+    // tables, 432 absorbed outcomes - were never executed by any test
+    // in any release. A sweep measuring coverage supplies a hook that
+    // varies, and only then does the number mean anything.
+    std::function<std::string(const std::string& prompt,
+                              const std::vector<Choice>& choices)> taste;
 };
 bool run_chargen(const ChargenRequest& request,
                  kg::KGModule& kg,
                  logosphere::dice::DiceService& dice,
                  CharacterSheet& out,
-                 std::string& error);
+                 std::string& error,
+                 // Optional: the absorbed rules this life reached,
+                 // merged into whatever is already there so a sweep can
+                 // accumulate across lives.
+                 std::set<kg::EntityID>* rules_reached = nullptr);
 
 // The life as a timeline, one line per event, with roll citations.
 std::string format_life(const CharacterSheet& sheet);

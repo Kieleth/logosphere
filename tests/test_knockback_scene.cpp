@@ -172,7 +172,7 @@ struct Scene {
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;
                 p.r = t; p.g = t + 0.04f; p.b = t - 0.04f; p.a = 1.0f;
                 p.SetMaterial(Materials::Type::DIRT);
-                p.solver_mode = ParticleSolverMode::STATIC;
+                p.solver_mode = ParticleSolverMode::KINEMATIC;
                 p.is_at_rest = true;
                 engine.add_particle(p);
             }

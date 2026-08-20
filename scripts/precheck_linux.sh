@@ -51,10 +51,28 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq && apt-get install -y -qq cmake g++ ninja-build >/dev/null
 cp -r /src /work/repo && cd /work/repo && rm -rf build build-release build-consumer _install
 
+
+# --- build, and SAY WHY when it fails ----------------------------------------
+# Sending build output to /dev/null makes a failure unactionable: on
+# 2026-08-15 a GNU-ld error printed "PRECHECK FAIL (exit 1)" and nothing
+# else, and had to be reproduced by hand in docker to be read at all.
+# Quiet on success, loud with the real compiler output on failure.
+build_or_explain() {
+  local what="$1"; shift
+  if ! "$@" > /tmp/precheck_build.log 2>&1; then
+    echo "PRECHECK FAIL: $what"
+    echo "--- last 40 lines of the build log ---"
+    tail -40 /tmp/precheck_build.log
+    exit 1
+  fi
+}
+
 # --- job: physics-linux ------------------------------------------------------
 echo "=== profile: physics ==="
-cmake -S . -B build -G Ninja -DLOGOSPHERE_PROFILE=physics -DCMAKE_BUILD_TYPE=Release >/dev/null
-cmake --build build -j "$(nproc)" >/dev/null
+build_or_explain "configure (physics profile)" \
+  cmake -S . -B build -G Ninja -DLOGOSPHERE_PROFILE=physics -DCMAKE_BUILD_TYPE=Release
+build_or_explain "build (physics profile)" \
+  cmake --build build -j "$(nproc)"
 echo "BUILD_OK physics"
 for t in test_humanoid_headless test_pin_gluon_lifecycle; do
   if ./build/$t >/dev/null; then echo "PASS $t"; else echo "FAIL $t"; PHYS_FAILED=1; fi
@@ -68,8 +86,10 @@ if ./build/logosphere-physics-guards >/dev/null; then echo "GUARDS_OK"; else ech
 # --- job: headless-linux -----------------------------------------------------
 echo "=== profile: headless-only ==="
 rm -rf build
-cmake -S . -B build -G Ninja -DLOGOSPHERE_HEADLESS_ONLY=ON -DCMAKE_BUILD_TYPE=Release >/dev/null
-cmake --build build -j "$(nproc)" >/dev/null
+build_or_explain "configure (headless-only profile)" \
+  cmake -S . -B build -G Ninja -DLOGOSPHERE_HEADLESS_ONLY=ON -DCMAKE_BUILD_TYPE=Release
+build_or_explain "build (headless-only profile)" \
+  cmake --build build -j "$(nproc)"
 echo "BUILD_OK headless"
 
 # KEEP IN SYNC with the headless-linux job test list.
@@ -90,10 +110,13 @@ done
 
 # The install + external-consumer half of the same job. A change can pass every
 # test and still break the exported CMake package for anyone consuming it.
-cmake --install build --prefix "$PWD/_install" >/dev/null
-cmake -S examples/consumer-smoke -B build-consumer -G Ninja \
-      -DCMAKE_PREFIX_PATH="$PWD/_install" -DCMAKE_BUILD_TYPE=Release >/dev/null
-cmake --build build-consumer >/dev/null
+build_or_explain "install (exported package)" \
+  cmake --install build --prefix "$PWD/_install"
+build_or_explain "configure (consumer smoke)" \
+  cmake -S examples/consumer-smoke -B build-consumer -G Ninja \
+        -DCMAKE_PREFIX_PATH="$PWD/_install" -DCMAKE_BUILD_TYPE=Release
+build_or_explain "build (consumer smoke)" \
+  cmake --build build-consumer
 ./build-consumer/consumer-smoke >/dev/null && echo "CONSUMER_OK"
 '
 status=$?

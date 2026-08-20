@@ -17,71 +17,79 @@ prefixes:
 imports:
   - linkml:types
   - logosphere
+  # Float64 for the property bounds below. See packs/math.yaml for why
+  # a named type rather than LinkML's `double` built-in.
+  - math
+
+types:
+  source_digest:
+    typeof: string
+    description: Lowercase hexadecimal bytes of a typed content digest.
+    pattern: ^[0-9a-f]+$
 
 enums:
+  SourceMediaType:
+    description: Closed media vocabulary implemented by source resolvers.
+    permissible_values:
+      UTF8_TEXT:
+        description: UTF-8 source text addressed by byte range.
+
+  SourceExclusionKind:
+    description: >-
+      Closed reasons why exact source bytes are not semantic leaves in a
+      complete UTF-8 partition. Unclassified content remains an opaque leaf;
+      it is never an exclusion.
+    permissible_values:
+      SYNTAX:
+        description: Source-format delimiters with no independent content.
+      LAYOUT:
+        description: Whitespace or other source layout with no content.
+
+  SourceDigestAlgorithm:
+    description: Closed cryptographic digest vocabulary for source bytes.
+    permissible_values:
+      SHA256:
+        description: SHA-256, encoded as 64 lowercase hexadecimal digits.
+
+  SourceManifestFormat:
+    description: Closed canonical encoding vocabulary for source manifests.
+    permissible_values:
+      LENGTH_PREFIXED_V1:
+        description: >-
+          Source representations sorted by logical source path, encoded as
+          decimal byte-length-prefixed fields in the version-one field order.
+
+  # Both enums below are the VOCABULARY only: the set of legal
+  # predicates, and the range of each relation class's relation_type
+  # slot. They carried valid_source_types / valid_target_types
+  # annotations until 2026-08-16, and carried `relation_type_enum:
+  # true` to tell the generator to harvest them. Endpoints now live on
+  # the Relation subclasses at the bottom of this file, which is where
+  # malleus asks for them and where a reader looking at a relation
+  # finds them. The generator reads the classes; nothing reads these
+  # annotations, so they are gone rather than left to rot.
+
   OntologyMetaRelationType:
     description: Typed links inside the immutable ontology meta-graph.
-    annotations:
-      relation_type_enum: true
     permissible_values:
       ONTOLOGY_META_CONTAINS:
-        annotations:
-          valid_source_types: OntologyMetaContext
-          valid_target_types: OntologyMetaEntity
       ONTOLOGY_CLASS_DIRECT_PARENT:
-        annotations:
-          valid_source_types: OntologyClassMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_CLASS_HAS_FACET:
-        annotations:
-          valid_source_types: OntologyClassMeta
-          valid_target_types: OntologyFacetMeta
       ONTOLOGY_PROPERTY_DECLARING_CLASS:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_PROPERTY_VALUE_KIND:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyValueKindMeta
       ONTOLOGY_PROPERTY_REFERENCE_TARGET:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_PROPERTY_ENUM_TYPE:
-        annotations:
-          valid_source_types: OntologyPropertyMeta
-          valid_target_types: OntologyEnumMeta
       ONTOLOGY_RELATION_VALID_SOURCE:
-        annotations:
-          valid_source_types: OntologyRelationMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_RELATION_VALID_TARGET:
-        annotations:
-          valid_source_types: OntologyRelationMeta
-          valid_target_types: OntologyClassMeta
       ONTOLOGY_ENUM_HAS_MEMBER:
-        annotations:
-          valid_source_types: OntologyEnumMeta
-          valid_target_types: OntologyEnumMemberMeta
       ONTOLOGY_ENUM_MEMBER_OWNER:
-        annotations:
-          valid_source_types: OntologyEnumMemberMeta
-          valid_target_types: OntologyEnumMeta
 
   RuleLanguageRelationType:
-    description: Closed ownership links inside stored rule programs.
-    annotations:
-      relation_type_enum: true
+    description: Closed typed links owned by the reusable rule-language pack.
     permissible_values:
+      EDITION_INCLUDES_REPRESENTATION:
       FUNCTION_SIGNATURE_HAS_PARAMETER:
-        annotations:
-          valid_source_types: FunctionSignature
-          valid_target_types: FunctionParameterSpec
       LET_EXPRESSION_HAS_BINDING:
-        annotations:
-          valid_source_types: LetExpression
-          valid_target_types: LocalBinding
 
 classes:
   KnowledgeContext:
@@ -149,6 +157,208 @@ classes:
     slots:
       - identity_context
       - entity_key
+
+  SourceRepresentationContext:
+    is_a: KnowledgeContext
+    description: >-
+      Exact immutable bytes of one source representation. A new byte
+      sequence is a new context even when it represents the same logical
+      document or edition.
+    annotations:
+      facets: sealed-origin, seed-owned
+    slot_usage:
+      source_layer:
+        required: true
+      source_file:
+        required: true
+      source_layer_context:
+        required: true
+      source_media_type:
+        required: true
+      source_digest_algorithm:
+        required: true
+      source_digest:
+        required: true
+      source_byte_length:
+        required: true
+    slots:
+      - source_layer
+      - source_file
+      - source_layer_context
+      - source_media_type
+      - source_digest_algorithm
+      - source_digest
+      - source_byte_length
+
+  SourceRevisionObservation:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Immutable observation that one exact content-addressed representation
+      occurred at one source-system revision. Each representation/revision pair
+      is independent, so later observations never mutate earlier provenance.
+    annotations:
+      facets: append-only, seed-owned, no-instance-declared
+      no_instance_reason: >-
+        The engine source-corpus materializer owns runtime instances; schemas
+        do not declare revision observations.
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      entity_key:
+        required: true
+      source_revision:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+      - source_revision
+
+  IngestionEditionContext:
+    is_a: KnowledgeContext
+    description: >-
+      Exact immutable source corpus used by one ingestion run. Its identity is
+      the authored source layer plus the digest of its canonical manifest.
+      Source revision observations carry provenance separately; revisions do not
+      participate in the representation or manifest identity.
+    annotations:
+      facets: sealed-origin, seed-owned, no-instance-declared
+      no_instance_reason: >-
+        The engine source-corpus materializer owns runtime instances; schemas
+        do not declare ingestion editions.
+    slot_usage:
+      source_layer:
+        required: true
+      source_layer_context:
+        required: true
+      source_manifest_format:
+        required: true
+      source_manifest_digest_algorithm:
+        required: true
+      source_manifest_digest:
+        required: true
+      source_representation_count:
+        required: true
+    slots:
+      - source_layer
+      - source_layer_context
+      - source_manifest_format
+      - source_manifest_digest_algorithm
+      - source_manifest_digest
+      - source_representation_count
+
+  SourceSelector:
+    is_a: Entity
+    abstract: true
+    mixins:
+      - Addressable
+    description: >-
+      Typed coordinates selecting one fragment of a source
+      representation. Selector subclasses own their coordinate grammar;
+      no discriminator string chooses semantics at runtime.
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+    slots:
+      - identity_context
+
+  ByteRangeSelector:
+    is_a: SourceSelector
+    description: >-
+      Half-open byte range [start, end) within one immutable source
+      representation. Equal bounds select an empty leaf.
+    slot_usage:
+      source_byte_start:
+        required: true
+      source_byte_end:
+        required: true
+    slots:
+      - source_byte_start
+      - source_byte_end
+
+  TextQuoteSelector:
+    is_a: SourceSelector
+    description: >-
+      Supporting exact text plus optional immediate context. It aids
+      inspection and convergence checks but never owns leaf identity.
+    slot_usage:
+      source_quote_exact:
+        required: true
+    slots:
+      - source_quote_exact
+      - source_quote_prefix
+      - source_quote_suffix
+
+  SourceTarget:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      One source representation plus its canonical primary selector.
+      An optional quote selector is supporting evidence and must converge
+      on the same fragment.
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      target_representation:
+        required: true
+      target_primary_selector:
+        required: true
+    slots:
+      - identity_context
+      - target_representation
+      - target_primary_selector
+      - target_quote_selector
+
+  CompleteSourcePartition:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Explicit assertion that one exact UTF-8 representation is partitioned
+      completely by its source targets and typed exclusions. Presence enables
+      the mechanical exact-cover gate; absence makes no completeness claim.
+    annotations:
+      facets: source-partition
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      entity_key:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+
+  SourceExclusion:
+    is_a: Entity
+    mixins:
+      - Addressable
+    description: >-
+      Exact source bytes excluded from semantic leaves for one closed reason.
+      Exclusions remain visible partition records; they never silently discard
+      unclassified content.
+    annotations:
+      facets: source-partition
+    slot_usage:
+      identity_context:
+        range: SourceRepresentationContext
+        required: true
+      entity_key:
+        required: true
+      exclusion_selector:
+        required: true
+      exclusion_kind:
+        required: true
+    slots:
+      - identity_context
+      - entity_key
+      - exclusion_selector
+      - exclusion_kind
 
   OntologyMetaContext:
     is_a: KnowledgeContext
@@ -248,7 +458,31 @@ classes:
   Expression:
     is_a: Entity
     abstract: true
-    description: Abstract root of pure rule-language value expressions.
+    description: >-
+      Abstract root of pure rule-language value expressions.
+
+      INERT. Nothing evaluates any of the classes below this one. There
+      are no literal types and no operator types, so nothing could be
+      built out of them yet even in principle, and there is no
+      evaluator to run it if it were. A reader of this ontology must
+      not conclude that the engine can compute with these.
+
+      Said here rather than left to inference, because a formula
+      written down and never executed is the fleet's most repeated
+      mistake: malleus RECIPES.md recipe 4 counts five projects that
+      did it before us, and this pack is the sixth. The rite that
+      catches it inspects slot NAMES, which is why it never flagged
+      this one: the inertia lives in class names it cannot see.
+
+      What is blocked on it, concretely, so that the first operators
+      get chosen by need rather than by taste. The Cepheus muster-out
+      rule needs a rate over a filtered count, "one benefit per term
+      served in which they did not lose benefits", and its extractor
+      says exactly that in `unmodelled`. The injury table needs a
+      clause that refers back to a choice made earlier in its own
+      sequence, "reduce BOTH OTHER physical characteristics". Both are
+      recorded as partial rather than pretended whole, and both are
+      waiting on this.
 
   ScalarExpression:
     is_a: Expression
@@ -723,6 +957,219 @@ classes:
     slots:
       - let_body
 
+# -------------------------------------------------------------------
+# Relations
+#
+# One concrete class per member of the two relation enums above, each
+# pinning its predicate with equals_string and declaring both
+# endpoints. The endpoints were annotations on the enum members until
+# 2026-08-16; they moved here because malleus asks for the contract on
+# the Relation subclass, and because two declarations of one fact is
+# one too many. The generator reads these.
+#
+# Unlike the engine root's relations, every one of these is narrow on
+# both sides. These links are closed ownership edges inside the meta
+# graph and inside stored rule programs, so the endpoint pair is known
+# exactly rather than inferred from call sites.
+# -------------------------------------------------------------------
+
+  OntologyMetaContainsRelation:
+    is_a: Relation
+    description: A meta context contains a meta entity.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_META_CONTAINS
+      source_id:
+        range: OntologyMetaContext
+      target_id:
+        range: OntologyMetaEntity
+
+  OntologyClassDirectParentRelation:
+    is_a: Relation
+    description: A class meta points at its direct parent class meta.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_CLASS_DIRECT_PARENT
+      source_id:
+        range: OntologyClassMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyClassHasFacetRelation:
+    is_a: Relation
+    description: A class meta carries a facet meta.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_CLASS_HAS_FACET
+      source_id:
+        range: OntologyClassMeta
+      target_id:
+        range: OntologyFacetMeta
+
+  OntologyPropertyDeclaringClassRelation:
+    is_a: Relation
+    description: A property meta points at the class that declares it.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_DECLARING_CLASS
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyPropertyValueKindRelation:
+    is_a: Relation
+    description: A property meta points at its value kind.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_VALUE_KIND
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyValueKindMeta
+
+  OntologyPropertyReferenceTargetRelation:
+    is_a: Relation
+    description: A reference-valued property meta names its target class.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_REFERENCE_TARGET
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyPropertyEnumTypeRelation:
+    is_a: Relation
+    description: An enum-valued property meta names its enum.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_PROPERTY_ENUM_TYPE
+      source_id:
+        range: OntologyPropertyMeta
+      target_id:
+        range: OntologyEnumMeta
+
+  OntologyRelationValidSourceRelation:
+    is_a: Relation
+    description: A relation meta names a class valid as its source.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_RELATION_VALID_SOURCE
+      source_id:
+        range: OntologyRelationMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyRelationValidTargetRelation:
+    is_a: Relation
+    description: A relation meta names a class valid as its target.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_RELATION_VALID_TARGET
+      source_id:
+        range: OntologyRelationMeta
+      target_id:
+        range: OntologyClassMeta
+
+  OntologyEnumHasMemberRelation:
+    is_a: Relation
+    description: An enum meta carries a member meta.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_ENUM_HAS_MEMBER
+      source_id:
+        range: OntologyEnumMeta
+      target_id:
+        range: OntologyEnumMemberMeta
+
+  OntologyEnumMemberOwnerRelation:
+    is_a: Relation
+    description: A member meta points back at the enum that owns it.
+    slot_usage:
+      relation_type:
+        range: OntologyMetaRelationType
+        required: true
+        equals_string: ONTOLOGY_ENUM_MEMBER_OWNER
+      source_id:
+        range: OntologyEnumMemberMeta
+      target_id:
+        range: OntologyEnumMeta
+
+  FunctionSignatureHasParameterRelation:
+    is_a: Relation
+    description: A function signature owns a typed parameter spec.
+    slot_usage:
+      relation_type:
+        range: RuleLanguageRelationType
+        required: true
+        equals_string: FUNCTION_SIGNATURE_HAS_PARAMETER
+      source_id:
+        range: FunctionSignature
+      target_id:
+        range: FunctionParameterSpec
+
+  EditionIncludesRepresentationRelation:
+    is_a: Relation
+    description: An ingestion edition contains one exact source representation.
+    slot_usage:
+      relation_type:
+        range: RuleLanguageRelationType
+        required: true
+        equals_string: EDITION_INCLUDES_REPRESENTATION
+      source_id:
+        range: IngestionEditionContext
+      target_id:
+        range: SourceRepresentationContext
+
+  LetExpressionHasBindingRelation:
+    is_a: Relation
+    description: >-
+      A let expression owns a local binding.
+
+      The source is Expression rather than LetExpression, and the
+      difference is forced. LetExpression is a MIXIN marker, not an
+      Entity subtype, so it cannot be an endpoint: an endpoint names a
+      class instances can belong to. The thirteen classes that carry
+      the marker (LetBooleanExpression through LetOutcomePlanExpression,
+      one per result family) all descend from Expression, which is the
+      narrowest Entity subtype that covers them. This is wider than the
+      truth by exactly the non-let expressions, and it is as narrow as
+      the type system permits.
+
+      This endpoint read LetExpression until 2026-08-16 and was always
+      wrong; the old enum-annotation path only checked that the name
+      was a class, and a mixin is a class.
+    slot_usage:
+      relation_type:
+        range: RuleLanguageRelationType
+        required: true
+        equals_string: LET_EXPRESSION_HAS_BINDING
+      source_id:
+        range: Expression
+      target_id:
+        range: LocalBinding
+
 slots:
   context_key:
     range: string
@@ -744,7 +1191,110 @@ slots:
 
   source_commit:
     range: string
-    description: Exact revision of the source document.
+    description: >-
+      Legacy Git commit pin of a SourceDocumentContext. New source revision
+      observations use source_revision because source systems are not required
+      to be Git repositories.
+
+  source_revision:
+    range: string
+    description: >-
+      Exact source-system revision retained in a separate provenance observation.
+      Revision does not participate in content identity; exact bytes do.
+
+  source_media_type:
+    range: SourceMediaType
+    description: Closed media kind governing valid primary selectors.
+
+  source_digest_algorithm:
+    range: SourceDigestAlgorithm
+    description: Cryptographic algorithm used by source_digest.
+
+  source_digest:
+    range: source_digest
+    description: Digest of the exact source representation bytes.
+
+  source_manifest_format:
+    range: SourceManifestFormat
+    annotations:
+      create_only: true
+    description: Canonical encoding used to produce the source manifest digest.
+
+  source_manifest_digest_algorithm:
+    range: SourceDigestAlgorithm
+    annotations:
+      create_only: true
+    description: Cryptographic algorithm used by source_manifest_digest.
+
+  source_manifest_digest:
+    range: source_digest
+    annotations:
+      create_only: true
+    description: Digest of the edition's canonical source manifest.
+
+  source_representation_count:
+    range: integer
+    minimum_value: 1
+    annotations:
+      create_only: true
+    description: Exact number of representations in the source manifest.
+
+  source_byte_length:
+    range: integer
+    minimum_value: 0
+    description: Exact size of the source representation in bytes.
+
+  source_byte_start:
+    range: integer
+    minimum_value: 0
+    description: Inclusive zero-based byte position in a representation.
+
+  source_byte_end:
+    range: integer
+    minimum_value: 0
+    description: Exclusive zero-based byte position in a representation.
+
+  source_quote_exact:
+    range: string
+    description: Exact decoded text expected at the primary selector.
+
+  source_quote_prefix:
+    range: string
+    description: Optional text immediately before the selected text.
+
+  source_quote_suffix:
+    range: string
+    description: Optional text immediately after the selected text.
+
+  target_representation:
+    range: SourceRepresentationContext
+    annotations:
+      create_only: true
+    description: Exact immutable source representation being selected.
+
+  target_primary_selector:
+    range: SourceSelector
+    annotations:
+      create_only: true
+    description: Canonical selector that owns target identity.
+
+  target_quote_selector:
+    range: TextQuoteSelector
+    annotations:
+      create_only: true
+    description: Optional supporting quote required to match the primary.
+
+  exclusion_selector:
+    range: ByteRangeSelector
+    annotations:
+      create_only: true
+    description: Exact byte range omitted from semantic source leaves.
+
+  exclusion_kind:
+    range: SourceExclusionKind
+    annotations:
+      create_only: true
+    description: Closed reason the selected bytes are non-content.
 
   source_layer_context:
     range: SourceLayerContext
@@ -813,7 +1363,7 @@ slots:
       create_only: true
 
   minimum_value:
-    range: double
+    range: Float64
     annotations:
       create_only: true
 
@@ -823,7 +1373,7 @@ slots:
       create_only: true
 
   maximum_value:
-    range: double
+    range: Float64
     annotations:
       create_only: true
 

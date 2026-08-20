@@ -1,0 +1,69 @@
+# The chargen primitives the owner has approved, and their route
+# contracts.
+#
+# WHAT THIS IS FOR. A primitive is the C++ behind one step of the
+# character-generation procedure. The procedure itself is data: a step
+# in a seed names a primitive_ref, and the registry maps that name to a
+# function. The registry also declares that step's legal exit labels,
+# and a seed may route on those and no others.
+#
+# Name plus exits is the ROUTE CONTRACT, and it is what keeps the
+# procedure data rather than code: a seed can rewire the flow, but only
+# through doors the primitive opened. So the set of primitive names is
+# a design surface. docs/RPG_MODULE.md OPEN item 1 says new ones
+# surface for the owner's approval rather than appearing as
+# speculative engine vocabulary.
+#
+# WHY IT IS A FILE AND NOT A SENTENCE. The rule was written on
+# 2026-08-09, when eight primitives existed. Seventeen exist now.
+# Measured: not one of the nine additions was ever put in front of the
+# owner. #59 added five in a single pull request. Nothing was harmed,
+# and nothing noticed either, which is the same shape as every other
+# finding this month: rank 0 grants cited and executed by nothing,
+# relation endpoints validating nothing, a coverage sweep that never
+# reached the aging table. A rule with no gate is an intention.
+#
+# HOW THE GATE WORKS. test_chargen compares this file against the live
+# registry and fails when they differ, in either direction. It cannot
+# stop a primitive being added; it makes the addition IMPOSSIBLE TO ADD
+# QUIETLY, because the author must edit this file in the same commit
+# and the diff says, in one line, that the procedure's vocabulary grew.
+# That is a review trigger, not a permission system, and the difference
+# is worth being honest about.
+#
+# FORMAT. One primitive per line: the name, a colon, then its route
+# labels comma-separated and sorted. No labels means the step has no
+# declared exits and always advances. Blank lines and # comments are
+# ignored.
+#
+# TO ADD ONE: bring it to the owner first, with what the book's
+# checklist step is and why an existing primitive will not carry it.
+# Then add the line here in the same commit as the registry entry.
+
+advance_term:
+basic_training:
+choose_career: finish
+choose_term_end: continue,muster_out
+draft_or_drifter: took_it
+finish_character:
+generate_characteristics:
+
+# Approved 2026-08-15, retroactively, with the rest of this file.
+# "You begin as a Rank 0 character." Twenty-three of the twenty-four
+# careers print a grant in that row and nothing read it, so every
+# generated character finished a skill level short of the book. The
+# grant has to reach all 24 careers and only the rank-track table
+# covers them, so it cannot ride the promotion step, which sees the 17
+# careers with a commission or advancement row. Hence a step of its
+# own. Shipped in 0.4.2 before this file existed.
+grant_rank_zero:
+
+muster_out: continue
+roll_advancement:
+roll_aging: died
+roll_commission:
+roll_qualification: failed,passed
+roll_reenlistment: forced,may_choose,must_leave
+roll_survival: failed,passed
+roll_training:
+survival_mishap: died

@@ -77,8 +77,15 @@ enum class ParticleOwner : uint8_t {
 // =============================================================================
 enum class ParticleSolverMode : uint8_t {
     DYNAMIC = 0,  // Default: physics integrates this particle
-    KINEMATIC,    // Position written externally; physics absorbs impulses
-    STATIC,       // Reserved for turtle boundary
+    KINEMATIC,    // An external writer OWNS this body's position RIGHT NOW
+                  // (animation, locomotion, a driver). It is a transient
+                  // authority, not a label: whoever sets it must release it
+                  // when they stop driving, or the body can never fall,
+                  // tip or ragdoll again. NOT a way to make scenery
+                  // immovable — see INV-1 and the substrate direction.
+    // STATIC was here until 2026-08-14. It was accepted from the KG
+    // (entity_physical_state.cpp) and handled by NOTHING in the solver:
+    // a body set STATIC fell silently. Owner order: eradicate, legacy.
 };
 
 #endif  // PARTICLE_TYPES_H

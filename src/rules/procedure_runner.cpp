@@ -282,6 +282,14 @@ const ProcedurePrimitiveContract* ProcedurePrimitiveRegistry::contract(
     return found == entries_.end() ? nullptr : &found->second.contract;
 }
 
+std::vector<std::string> ProcedurePrimitiveRegistry::declared_names() const {
+    std::vector<std::string> names;
+    names.reserve(entries_.size());
+    for (const auto& entry : entries_) names.push_back(entry.first);
+    std::sort(names.begin(), names.end());
+    return names;
+}
+
 const ProcedurePrimitive* ProcedurePrimitiveRegistry::handler(
     const std::string& name) const {
     const auto found = entries_.find(name);
