@@ -71,7 +71,7 @@ int main() {
     cfg.create_display = interactive;
     cfg.window_width = 1100;
     cfg.window_height = 720;
-    cfg.window_title = "one body, one orientation: same spin, one turns";
+    cfg.window_title = "one body, one orientation (quat truth is the default)";
     cfg.enable_chat_window = false;
     cfg.show_debug_overlay = interactive;
     if (engine.initialize(cfg) != 0) { std::printf("  ERROR: init\n"); return 1; }
@@ -93,8 +93,8 @@ int main() {
     auto* l_q    = add_line(engine, 1, base_y, 140, 255, 170);
     auto* l_e    = add_line(engine, 2, base_y, 255, 150, 150);
     auto* l_verd = add_line(engine, 3, base_y, 190, 220, 255);
-    l_head->set_text("twin cubes, DRIVEN spin about Y (free spin dies in "
-                     "0.25 s: ladder R2). LEFT quat-truth, RIGHT Euler-truth");
+    l_head->set_text("twin cubes, DRIVEN spin (free spin dies in 0.25 s: R2). "
+                     "QUAT TRUTH IS DEFAULT: both MUST turn identically");
 
     if (interactive)
         std::printf("\n  ESC or the red X quits.  SPACE moves the camera in.\n\n");
