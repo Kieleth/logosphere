@@ -168,8 +168,7 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
         float seg_x = world_x + dir_x * spec.length * (t - 0.5f); // Center at world position
         float seg_y = world_y + dir_y * spec.length * (t - 0.5f);
         // SIT ON THE GROUND MEANS SIT ON THE Z EXTENT. The log is laid
-        // horizontal by rotation_y, but collision bounds use `thickness` as the
-        // world-Z extent without applying rotation, and create_log_segment sets
+        // horizontal by rotation_y, and create_log_segment sets
         // thickness = length. Offsetting by half the DIAMETER therefore buried
         // every preset: fallen_trunk -0.26, fallen_branch -0.2875, twig -0.24.
         // The half-extent is half the segment length, plus the 1.1 overlap the

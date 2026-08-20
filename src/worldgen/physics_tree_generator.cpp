@@ -985,16 +985,28 @@ int PhysicsTreeGenerator::generate_root_system(
     // ========================================================================
     //
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // !!  CRITICAL WARNING: PHYSICS COLLISION IS AXIS-ALIGNED ONLY        !!
+    // !!  HISTORICAL WARNING, AND IT IS NO LONGER TRUE                    !!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //
-    // The physics system (physics_system_v4.cpp) computes particle collision
-    // bounds using width/height/thickness as WORLD-AXIS-ALIGNED extents:
+    // WHAT THIS SAID, AND WHY IT WAS RIGHT IN 2024: physics computed
+    // collision bounds from width/height/thickness as WORLD-AXIS-ALIGNED
+    // extents and ignored rotation entirely, so a rotated body collided
+    // as though it were not rotated.
     //
-    //     particle_bottom = p.z - (p.thickness * 0.5f)   // LINE ~414, ~2094
+    // WHAT IS TRUE NOW: a rotated BOX collides as an ORIENTED box.
+    // physics_system_v4.cpp:1025 takes the oriented bounds for any BOX
+    // where box_particle_is_rotated() holds, and its own comment gives
+    // the reason: "a ROTATED box's raw extents under-cover its world
+    // span (a tilted blade's length leaves Z and enters Y), so its
+    // bounds come from the oriented box instead - exact for a box,
+    // never loose." Unrotated boxes keep the raw arithmetic to the bit.
+    // ELLIPSOID is the remaining approximation, colliding as its
+    // enclosing AABB; that one is tracked as invariant debt against
+    // INV-12 rather than as a rule.
     //
-    // COLLISION BOUNDS ARE AXIS-ALIGNED: rotation_x, rotation_y, rotation_z
-    // ARE NOT APPLIED WHEN COMPUTING PARTICLE COLLISION EXTENTS.
+    // The segments below ARE rotated boxes, so they get oriented
+    // bounds. The sizing convention here is kept anyway: it is correct
+    // regardless, and it is what the 2024 session paid for.
     //
     // WHAT WENT WRONG (2024-12 debugging session, hours wasted):
     //   - We set root.thickness = root_length (1.25m, the root's LENGTH)
