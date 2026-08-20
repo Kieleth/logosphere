@@ -114,7 +114,7 @@ int main() {
         // watches the settled state differs.
         const int shown = interactive ? 150 : RUN_FRAMES;
         if (rung_frame >= shown) {               // next rung, wrap in window mode
-            rung = (rung + 1) % 3;
+            rung = (rung + 1) % 6;   // all six rungs, G-41's wheels included
             if (!interactive && rung == 0) break;
             scene.arm(ps, RUNGS[rung]);
             rung_frame = 0;
