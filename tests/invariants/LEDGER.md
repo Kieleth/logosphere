@@ -1405,3 +1405,44 @@ not express at all.
 **Still red, and a different front.** The cube slides 6.356 m and never
 turns: peak |omega| exactly 0.0000 over 240 frames including leaving the
 ramp edge and landing. That is D2 1.2, contacts carry no lever arm.
+
+## 2026-08-19 — Argus, and the assert-or-waive discipline
+
+Owner, diagnosing the week's loose assertions and prescribing the cure:
+
+> "what can we adjust in the physics skill that prevents these loose
+> assertions... and then there's a physics-aware in the logs that tracks
+> from high level, particle position, distance to other particles, xyz
+> and relative to others, so you 'see' each particle and gets logged,
+> when doing these experiments or engine needs it."
+
+And on scope: **"pure engine module to use not only in physics, we
+might have to use it for others too, like combat etc."** Named by the
+owner: **ARGUS**, the many-eyed watchman.
+
+**The disease, named precisely**: assertions were sampled from a
+partial expectation instead of derived from a complete narration. The
+ramp test asserted travel and never rotation; the drop test could not
+say WHERE the sphere rested. The owner's eye kept doing the job of an
+observer that should have existed in code.
+
+**The two-part cure, both landed:**
+
+1. **Discipline (both skills)**: before the asserts, the full-state
+   narration — every DOF of every tracked body, per phase — then every
+   narrated DOF is asserted or waived by name. An unasserted DOF is a
+   visible decision.
+2. **Instrument (`src/core/argus.h`)**: declarative watch-list,
+   per-frame state records, relative queries (separation, approach
+   speed, spin, peaks, q-vs-Euler divergence), narration dump.
+   Read-only over particles by construction, zero cost unwatched, core
+   profile, engine accessor beside the ParticleTracer. The Tracer
+   answers "who wrote this" (causal); Argus answers "what is the state
+   and geometry, continuously" (observational).
+
+**Proving ground**: the cube-drop ladder observes through Argus. Every
+audited number unchanged (the witness does not perturb), and the new
+eyes immediately earned their keep: separation 0.3002 against the
+derived 0.3000 resting contact, and peak spin 2.4435 = 3.0 x 0.8145,
+one frame of ANGULAR_DRAG, the disease fingerprinted by the witness on
+its first frame of duty.

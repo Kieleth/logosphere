@@ -19,6 +19,23 @@
 //   INTERACTIVE=1 ./build/test_cube_drop_ladder_visual      window
 // =============================================================================
 
+// FULL-STATE NARRATION (the assert-or-waive discipline, owner-approved
+// 2026-08-19; every narrated degree of freedom is asserted below or
+// waived here, by name):
+//   position xyz — x,y must not move (no lateral force exists): WAIVED
+//     from assertion, watched by Argus, a drift would show in the dump.
+//     z: asserted per rung (settle height).
+//   velocity — implied by settle (z asserted at rest after 5 s); spikes
+//     guarded by Argus peak_speed, printed. WAIVED from hard assert:
+//     the explosion detector owns velocity ceilings engine-wide.
+//   orientation — rot_y asserted per rung (the ladder's subject).
+//     rot_x, rot_z: nothing in any rung excites them; WAIVED, watched.
+//   angular velocity — asserted per rung (peak and settle).
+//   q-vs-Euler coherence — asserted here via Argus divergence: the
+//     ladder must not silently manufacture a two-truths body (G-23).
+//   relative geometry — cube-to-slab separation is what "settled ON the
+//     slab" means; asserted via Argus for R0.
+
 #include "scenes/scene_cube_drop.h"
 
 #include <cstdio>
@@ -62,6 +79,16 @@ int main() {
             check(scene.settled_rot_y(ps) < CONTROL_ROT_MAX &&
                   scene.peak_omega_y < CONTROL_ROT_MAX,
                   "R0 control: a flat drop invents no rotation");
+            // Argus answers the relative question directly: settled ON
+            // the slab means centre-to-centre = slab half + cube half.
+            const float sep = scene.argus.separation(scene.cube, scene.slab);
+            std::printf("  [measure] argus: cube-slab separation %.4f "
+                        "(resting contact = %.4f)\n", sep,
+                        FLOOR_TOP * 0.5f + CUBE * 0.5f);
+            check(std::fabs(sep - (FLOOR_TOP * 0.5f + CUBE * 0.5f)) < 0.01f,
+                  "R0 control: it rests ON the slab (Argus separation)");
+            check(scene.argus.divergence(scene.cube) < 0.01f,
+                  "R0 control: one body, one orientation throughout");
         } else if (r == 1) {
             check(scene.settled_rot_y(ps) < FLAT_ROT_MAX,
                   "R1: the tilted cube settles FLAT (G-35: a cube cannot "
@@ -69,6 +96,9 @@ int main() {
             check(scene.peak_omega_y > TIP_OMEGA_MIN,
                   "R1: and it ROTATED to get there (contact torque exists)");
         } else {
+            std::printf("  [measure] argus: peak spin %.4f, peak speed %.4f\n",
+                        scene.argus.peak_spin(scene.cube),
+                        scene.argus.peak_speed(scene.cube));
             std::printf("  [measure] spin at touchdown / release: %.4f "
                         "(G-36 predicts today ~0.046 = 0.95^60)\n",
                         scene.keep_at_touchdown);

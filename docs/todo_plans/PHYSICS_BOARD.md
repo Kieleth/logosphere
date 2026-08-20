@@ -272,6 +272,16 @@ direction-locked in physics-linux beside the drop ladder:
 
 This is the unification's red ladder. The lever lands into it.
 
+## ARGUS (landed 2026-08-19) + the assert-or-waive discipline
+
+`src/core/argus.h`, pure engine module (owner: "not only in physics...
+combat etc."), engine accessor beside the ParticleTracer. Declarative
+watch-list; per-frame state; relative queries (separation, approach,
+spin, peaks, divergence); narration dump; read-only by construction;
+zero cost unwatched. Both skills now carry the full-state-narration /
+assert-or-waive directive, with the cube-drop ladder as the pattern.
+The witness does not perturb: every audited ladder number unchanged.
+
 ## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
 
 The owner, watching the ramp: *"sphere and cube arrive at the same time,

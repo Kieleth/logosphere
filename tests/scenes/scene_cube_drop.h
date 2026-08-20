@@ -24,6 +24,7 @@
 // =============================================================================
 #pragma once
 
+#include "core/argus.h"
 #include "core/particle_system.h"
 #include "logosphere/physics/physics_system.h"
 #include "particle.h"
@@ -70,6 +71,7 @@ inline float rest_height(float t) {
 }
 
 struct Scene {
+    logosphere::Argus argus;   // the witness: same values asserted and logged
     int cube = -1;
     // latched by step():
     float peak_omega_y = 0.0f;        // did it rotate while settling?
@@ -106,6 +108,8 @@ struct Scene {
         p.z = 5.0f;   // parked; arm() places it
         cube = ps.queue_particle_addition(p);
         ps.flush_pending_particles();
+        argus.watch(cube, "cube");
+        argus.watch(slab, "slab");
     }
 
     void arm(ParticleSystem& ps, const RungSpec& r) {
@@ -132,6 +136,7 @@ struct Scene {
     void step(ParticleSystem& ps, PhysicsSystem& physics, int frame, float spin0) {
         ps.update_bvh();
         physics.update(DT);
+        argus.observe(ps, frame);
         auto v = ps.lock_particles_for_read();
         const Particle& p = v[cube];
         const float oy = std::fabs(p.omega_y);

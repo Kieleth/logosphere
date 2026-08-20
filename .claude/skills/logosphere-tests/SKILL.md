@@ -114,7 +114,14 @@ while (engine.should_continue()) {
 }
 ```
 
-## (g) ASSERT IN BOTH MODES
+## (g) ASSERT IN BOTH MODES — and assert-or-waive every DOF
+
+Full-state narration first (physics skill, 2026-08-19 directive): name
+what every degree of freedom of every tracked body should do, then
+assert each or waive it by name. Observe through **Argus**
+(`src/core/argus.h`): the asserts and the on-screen log read the same
+queries, so they cannot drift apart. `tests/test_cube_drop_ladder.cpp`
+is the pattern.
 
 The windowed run reaches the same verdict and prints it **on screen**,
 not only to stdout. A viewer that shows values without saying what pass
@@ -129,6 +136,8 @@ first attempt asserted nothing in the window at all.
 - [ ] `should_continue()`, never `is_running()`
 - [ ] SPACE moves the camera in
 - [ ] `show_debug_overlay = interactive`
+- [ ] Full-state narration written; every DOF asserted or waived by name
+- [ ] Observed through Argus; asserts read the same queries the log prints
 - [ ] Readout through registered widgets, carrying the verdict
 - [ ] Launched for the owner, teed to /tmp, never killed, never piped through head/tail/grep
 

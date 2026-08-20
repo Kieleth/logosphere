@@ -53,7 +53,8 @@ typedef struct GLFWwindow GLFWwindow;
 #include "logosphere/core/ground_locator.h"  // KG-declared contact policy
 #include "humanoid_integrity_monitor.h"  // Opt-in dismemberment/collapse monitor
 #include "deep_probe.h"                  // Custom live-state probes (watchpoints)
-#include "particle_tracer.h"             // Correlation-ID write tracing for particles
+#include "particle_tracer.h"
+#include "argus.h"             // Correlation-ID write tracing for particles
 #include "logosphere/rendering/i_renderer.h"  // IRenderer interface (Phase 4)
 #include "logosphere/display/i_display.h"     // IDisplay interface (Phase 4)
 #include "logosphere/rendering/draw_surface.h"  // Engine-owned IDrawSurface
@@ -286,6 +287,10 @@ public:
         return deep_probe_manager_;
     }
     ParticleTracer& get_particle_tracer() { return particle_tracer_; }
+    // Argus, the many-eyed witness: declarative per-frame state and
+    // relative-geometry observation for ANY system (physics tests,
+    // combat, AI). Read-only over particles; zero cost unwatched.
+    logosphere::Argus& get_argus() { return argus_; }
 
     // Application access (for systems that need to call application handlers)
     Logosphere::IApplication* getApplication() { return application_; }
@@ -614,6 +619,7 @@ private:
     // that builds two engines in one process hit this.
     uint64_t                            update_count_ = 0;
     ParticleTracer                      particle_tracer_;
+    logosphere::Argus                   argus_;
 
     // Timing
     using Clock = std::chrono::high_resolution_clock;
