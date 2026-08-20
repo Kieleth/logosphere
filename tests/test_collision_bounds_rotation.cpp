@@ -25,6 +25,35 @@
 // part 5 now pins the correct answer, including the deep case.
 // ============================================================================
 
+// FULL-STATE NARRATION (assert-or-waive, owner directive 2026-08-19).
+//
+// ARGUS IS N/A HERE, and deliberately. Argus watches particles inside a
+// ParticleSystem across frames; this file has neither. It builds bare
+// Particle structs, calls the narrow phase once, and reads the answer.
+// There is no time, no solver and no evolving state to observe, which is
+// the whole point of a bounds-level falsifier. Forcing a witness in
+// would mean building the simulation this test exists to do without.
+//
+// The discipline still binds, applied to the object this file actually
+// produces: a CONTACT. A contact has three degrees of freedom and the
+// file asserted one.
+//
+//   normal        — ASSERTED throughout. The original subject.
+//   penetration   — ASSERTED as of 2026-08-19. It was computed on every
+//                   call and read on none. A contact reporting the right
+//                   normal at the wrong depth pushes the wrong distance,
+//                   and nothing here could have told.
+//   contact point — WAIVED, by name and with a reason: the point is
+//                   computed, carried into the solver and used only to
+//                   fill a CollisionEvent (board front D2 1.2). Pinning
+//                   its value here would pin the geometry of a quantity
+//                   the solver does not yet consume; it belongs with the
+//                   rotation campaign that makes it load-bearing.
+//   contact EXISTS — ASSERTED for the deep case as of 2026-08-19. It
+//                   sat inside a bare `if`, so a deep sphere reporting
+//                   no contact at all would have skipped its assertions
+//                   in silence and passed.
+
 #include "particle.h"
 #include "logosphere/physics/narrow_phase.h"
 #include "generated/physics_constants.h"
@@ -208,6 +237,20 @@ int main() {
                   "normal z-component is cos(30), not 1");
             check(std::fabs(std::fabs(m.normal_y) - std::sin(tilt)) < 0.02f,
                   "normal has the sin(30) lateral component (not axis-locked)");
+            // DEPTH, not just direction. The cube was placed 5 mm inside
+            // the face on purpose; a manifold that agrees about the
+            // normal and disagrees about how far in pushes the wrong
+            // distance, and nothing here read it before.
+            float deepest = 0.0f;
+            for (int i = 0; i < m.num_points; ++i)
+                if (m.points[i].penetration > deepest)
+                    deepest = m.points[i].penetration;
+            printf("        deepest penetration %.4f m (placed 0.0050 in)\n",
+                   deepest);
+            check(m.num_points > 0, "the manifold carries contact points");
+            check(std::fabs(deepest - 0.005f) < 0.002f,
+                  "and it reports the 5 mm it was actually given, not just "
+                  "the right direction");
         }
     }
 
@@ -266,6 +309,25 @@ int main() {
             check(std::fabs(std::fabs(m.normal_y) - std::sin(tilt)) < 1e-3f,
                   "normal carries the sin(30) lateral component, so gravity "
                   "has something to drive the sphere downhill with");
+            // DERIVED from the geometry, not read off the run. The box's
+            // own +Z is (0, -sin t, cos t), so the ball's centre stands
+            // ball.z*cos(t) out along that axis; the face is at half the
+            // thickness; the overlap is the radius less the gap between
+            // them. (Placement is described against the UNROTATED slab
+            // top, which is why this is not simply the 0.01 m offset.)
+            const float along_face_normal = ball.z * std::cos(tilt);
+            const float expect_pen = ball.size * 0.5f
+                                   - (along_face_normal - ramp.thickness * 0.5f);
+            float deepest = 0.0f;
+            for (int i = 0; i < m.num_points; ++i)
+                if (m.points[i].penetration > deepest)
+                    deepest = m.points[i].penetration;
+            printf("        deepest penetration %.4f m (placed %.4f in)\n",
+                   deepest, expect_pen);   // derived above, not measured
+            check(m.num_points > 0, "the sphere manifold carries a point");
+            check(std::fabs(deepest - expect_pen) < 2e-3f,
+                  "and reports the depth it was given, not just the "
+                  "direction");
         }
 
         // And the deep case, which the axis-aligned path could not express:
@@ -274,12 +336,32 @@ int main() {
         Particle deep = ball;
         deep.z = ramp.z;                     // dead centre, fully inside
         ContactManifold dm;
-        if (narrow_phase_particle_pair(deep, ramp, 0, 1, 0.0f, dm)) {
+        // ASSERTED, not assumed. This used to be a bare `if`: a deep
+        // sphere that reported NO contact would have skipped every
+        // assertion below it and the file would still have printed PASS.
+        const bool deep_hit =
+            narrow_phase_particle_pair(deep, ramp, 0, 1, 0.0f, dm);
+        check(deep_hit,
+              "a sphere at the ramp's dead centre reports a contact at all "
+              "(this was a bare if: no contact meant no assertions, silently)");
+        if (deep_hit) {
             printf("        deep normal: (%.4f, %.4f, %.4f)\n",
                    dm.normal_x, dm.normal_y, dm.normal_z);
             check(std::fabs(std::fabs(dm.normal_z) - std::cos(tilt)) < 1e-3f,
                   "a sphere inside the box exits along the box's own axis, "
                   "not along world Z");
+            // Dead centre on the box's own Z axis: the way out is half the
+            // thickness plus the sphere's radius.
+            const float deep_expect = ramp.thickness * 0.5f + deep.size * 0.5f;
+            float deepest = 0.0f;
+            for (int i = 0; i < dm.num_points; ++i)
+                if (dm.points[i].penetration > deepest)
+                    deepest = dm.points[i].penetration;
+            printf("        deep penetration %.4f m (half-thickness + radius "
+                   "= %.4f)\n", deepest, deep_expect);
+            check(std::fabs(deepest - deep_expect) < 2e-3f,
+                  "and it must be pushed the WHOLE way out: half the "
+                  "thickness plus its radius, not a token nudge");
         }
     }
 
