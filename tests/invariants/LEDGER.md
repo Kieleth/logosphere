@@ -1692,3 +1692,13 @@ still unruled). Rotation item 4 closed.
    themselves." Panel and headless assert texts now carry their
    registry IDs (INV-x / G-x); a claim with no registry entry gets one
    BEFORE its assert lands. Skill updated in the same commit.
+
+## 2026-08-21 — Owner ratifies the migration's three proposals ("add these for sure")
+
+INV-33 finite-state (NaN disables three laws silently), INV-34
+rest-is-reached (an untouched scene settles and stays settled; the
+tree oscillation and test_physics_minimal's accepted wiggle are the
+first known violations), INV-35 one-position-writer (the 2x
+displacement RCA). All three aspirational with mechanisms owed, listed
+in each record. The eight to-investigate tests go to a dedicated
+review agent whose dispositions come back to the owner in chat.
