@@ -212,7 +212,19 @@ int main() {
               "point; measured 5.30 rad/s when this was clamped)");
         check(ball_d > cube_d * 0.9f,
               "LEVER: rolling is not slower than sliding by more than "
-              "10% (rolling dissipates less at the contact)");
+              "10% (G-46 weak form: rolling dissipates less at the "
+              "contact)");
+        // G-46, BORN RED (owner order 2026-08-21, derivation in the
+        // registry): sliding cube a = g(sin th - mu cos th) = 2.55
+        // m/s^2; rolling sphere a = (5/7) g sin th = 4.50 (mu 0.5 >
+        // 0.24 needed for pure roll), and on the flat the cube brakes
+        // at mu g while the roller is nearly unbraked. The sphere must
+        // end WELL beyond the cube. It ends behind. Stays red until
+        // the dissipation is found; never weakened.
+        check(ball_d > cube_d,
+              "G-46 BORN RED: the sphere OUT-ROLLS the cube (rolling "
+              "5/7 g sin th beats sliding g(sin th - mu cos th), and "
+              "nothing brakes a roller on the flat)");
     }
     check(Scene::travelled(cube_d),
           "the cube slides down the slope");

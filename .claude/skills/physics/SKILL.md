@@ -216,6 +216,18 @@ Read-only over particles by construction: the witness cannot perturb
 the experiment. Zero cost unwatched. Engine-wide by owner ruling —
 combat and AI observe through the same eyes.
 
+## EVERY ASSERT NAMES ITS LAW (owner order, 2026-08-21)
+
+"Any physics requirement/law should be registered and maintained, and
+thus, it should be registered and present and explicit in the tests
+themselves." Every assert — headless text and panel line — carries the
+registry ID of the law it enforces (INV-x from INVARIANTS.jsonl, G-x
+from GEDANKEN.jsonl). A claim with no registry entry gets one BEFORE
+its assert lands (the derivation goes in the record, the assert cites
+it). Test-hygiene asserts that guard the measurement rather than a law
+are tagged "hygiene". The QA reads WHAT is being checked against WHICH
+law without leaving the window.
+
 ## THE LIVE ASSERT PANEL (owner order, 2026-08-21)
 
 Every windowed physics test carries, on screen for the whole run: a

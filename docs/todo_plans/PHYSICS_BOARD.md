@@ -439,6 +439,17 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## G-46 — the sphere must out-roll the cube (ENHANCEMENT, born red)
+
+Owner order with the math done first (registry has the derivation):
+rolling 4.50 m/s^2 vs sliding 2.55 on the 40-degree ramp, roller
+unbraked on the flat, so the sphere must end well beyond the cube.
+Measured: it ends behind (4.21 vs 4.81 m). Suspects for the excess
+rolling dissipation: per-substep friction at the rolling contact
+point, the capture cushion at the ramp-to-flat seam, sphere-box
+manifold at the transition. Born-red lever assert holds the claim;
+not the current focus by owner's word.
+
 ## Skill audit 2026-08-21 (owner: "read skill, what are we missing?")
 
 Checklist steps skipped and repaired the same day: sweep for the G-21

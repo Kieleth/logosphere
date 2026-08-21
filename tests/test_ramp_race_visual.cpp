@@ -129,35 +129,38 @@ int main() {
         panel.push_back({l, text, std::move(eval)});
         ++prow;
     };
-    add_assert("the ramp never moved (fixed datum)",
+    add_assert("INV-1: the ramp never moved (fixed datum)",
         [&]{ return Scene::held(scene.ramp_drift); });
     if (lever_ui) {
-        add_assert("LEVER: the sphere ROLLS (spin > 2.0 rad/s)",
+        add_assert("G-36/INV-20: the sphere ROLLS (spin > 2.0 rad/s)",
             [&]{ return scene.ball_spin_peak > ROLL_MIN_LEVER; });
-        add_assert("LEVER: rolling within 10% of sliding (travel)",
+        add_assert("G-46 weak: rolling within 10% of sliding travel",
             [&]{ return scene.ball_travel(ps) >
                         scene.cube_travel(ps) * 0.9f; });
+        add_assert("G-46 BORN RED: the sphere OUT-ROLLS the cube",
+            [&]{ return scene.ball_travel(ps) >
+                        scene.cube_travel(ps); });
     }
-    add_assert("the cube slides down the slope (> 0.30 m)",
+    add_assert("D2 1.2: the cube slides down the slope (> 0.30 m)",
         [&]{ return Scene::travelled(scene.cube_travel(ps)); });
-    add_assert("the cube TURNS as it goes",
+    add_assert("D2 1.2/G-35: the cube TURNS as it goes",
         [&]{ return Scene::turned(scene.cube_spin_peak); });
-    add_assert("the sphere ALSO moves (real oriented contact, INV-12)",
+    add_assert("INV-12: the sphere moves (real oriented contact)",
         [&]{ return Scene::travelled(scene.ball_travel(ps)); });
-    add_assert("the sphere TURNS TOO (friction acts a radius out)",
+    add_assert("D2 1.2: the sphere TURNS (friction a radius out)",
         [&]{ return Scene::turned(scene.ball_spin_peak); });
-    add_assert("neither leaves its lane",
+    add_assert("G-40/G-45: neither leaves its lane",
         [&]{ return Scene::in_lane(scene.cube_lane_dev) &&
                     Scene::in_lane(scene.ball_lane_dev); });
-    add_assert("the racers never touch",
+    add_assert("hygiene: the racers never touch",
         [&]{ return Scene::lanes_kept(scene.lane_gap_min); });
-    add_assert("the cube ends AT REST ON THE TURTLE",
+    add_assert("INV-1/G-43: the cube ends AT REST ON THE TURTLE",
         [&]{ return Scene::landed_and_stopped(scene.bottom(scene.cube),
                                               scene.speed(scene.cube)); });
-    add_assert("the sphere ends AT REST ON THE TURTLE",
+    add_assert("INV-1/INV-12: the sphere ends AT REST ON THE TURTLE",
         [&]{ return Scene::landed_and_stopped(scene.bottom(scene.ball),
                                               scene.speed(scene.ball)); });
-    add_assert("one body one orientation (two-band coherence, G-23)",
+    add_assert("G-21/G-23: one orientation (two-band coherence)",
         [&]{ return Scene::coherent(
                         scene.argus.peak_divergence(scene.cube, false),
                         scene.argus.peak_divergence(scene.cube, true)) &&
