@@ -1320,6 +1320,20 @@ target_include_directories(test_square_strike PRIVATE
 )
 target_compile_features(test_square_strike PRIVATE cxx_std_17)
 
+# G-48, born red: a touching column and a statically-stable zigzag pile
+# must STAND under default torque; the sequentially-seeded wobble pumps
+# through stacked contacts instead of decaying (column bottom sinks
+# 9.5 cm, pile collapses). Step-1 instrument of the 1-2-3 plan.
+add_executable(test_stack_stands tests/test_stack_stands.cpp)
+target_link_libraries(test_stack_stands PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_stack_stands PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_stack_stands PRIVATE cxx_std_17)
+
 # D7, born red: what slows a spinning body down? Today, a constant.
 # ANGULAR_DRAG is multiplied into omega four times a frame for every
 # body in every surrounding, so a cube spinning in vacuum stops in a
