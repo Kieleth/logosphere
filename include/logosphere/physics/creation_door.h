@@ -96,6 +96,13 @@ struct CreationVerdict {
     std::size_t bodies_audited = 0;
     std::size_t candidates = 0;
     std::size_t pairs_tested = 0;
+    // How many bonds existed when the verdict was taken. Reported because the
+    // one way this door lies is by judging a structure before its gluons are
+    // registered: particles are created first, constraints second, and a
+    // half-declared body looks like loose parts inside each other. A refusal
+    // arriving with 0 bonds on a scene that should have hundreds is an
+    // ordering bug in the caller, not a placement bug.
+    std::size_t bonds_at_verdict = 0;
     double      micros = 0.0;
     std::vector<CreationOverlap> violations;
     std::vector<CreationOverlap> structural;

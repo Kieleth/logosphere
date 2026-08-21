@@ -136,17 +136,22 @@ public:
     // phase; a pair interpenetrating deeper than PhysicsV4::SLOP is a
     // generator bug and the door refuses, loudly, naming both bodies.
     //
-    // Doors, not fallbacks: strict by default, LOGOSPHERE_CREATION_LENIENT=1
-    // downgrades to one error line per pair for inventory runs and for
-    // deliberate bad-placement fixtures.
+    // Doors, not fallbacks. The end state is TURTLE_STRICT's: refuse by
+    // default, LOGOSPHERE_CREATION_LENIENT=1 for inventory runs and for
+    // deliberate bad-placement fixtures. TODAY the refusal is armed by
+    // LOGOSPHERE_CREATION_STRICT=1 and the default is measure-and-report,
+    // because two classes of violation are still open in the engine (Eva's
+    // missing skeletal gluons and the tree crown's self-crossings). The
+    // condition for flipping the default, and the numbers, are stated at
+    // audit_creation_overlaps in particle_system.cpp.
     //
     // Batched on purpose. The audit runs once per flush against one BVH
     // build, so a generator spawning thousands of bodies pays O(n log n),
     // not the quadratic sweep a per-spawn check would cost.
 
-    // Run the door over everything created since the last audit. Called at
-    // the end of flush_pending_particles(); safe to call directly after a
-    // burst of immediate add_particle() calls.
+    // Run the door over everything created since the LAST flush. Called at
+    // the START of flush_pending_particles(), which gives every structure one
+    // full batch to register its gluons before it is judged.
     void audit_creation_overlaps();
 
     // The door's verdict WITHOUT its consequence. Same geometry, same

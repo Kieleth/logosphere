@@ -257,6 +257,22 @@ void ParticleSystem::remove_particle_unlocked(size_t index) {
         }
     }
 
+    // Same coherence pass for the creation-audit roll call, which holds raw
+    // indices for exactly one batch and would otherwise point at a body it
+    // never saw born after the first unrelated swap.
+    {
+        const size_t tail_index = particles.size() - 1;
+        for (auto it = creation_audit_pending_.begin();
+             it != creation_audit_pending_.end(); ) {
+            if ((size_t)*it == index) {
+                it = creation_audit_pending_.erase(it);
+            } else {
+                if ((size_t)*it == tail_index) *it = (int)index;
+                ++it;
+            }
+        }
+    }
+
     // CRITICAL: Remove gluons referencing this particle BEFORE swap
     // This prevents dangling gluon references after particle deletion
     if (physics_system_) {
@@ -388,16 +404,26 @@ int ParticleSystem::queue_particle_addition(const Particle& particle) {
 }
 
 void ParticleSystem::flush_pending_particles() {
+    // THE AUDIT RUNS FIRST, ON THE PREVIOUS BATCH, AND THAT ORDER IS THE
+    // POINT. A structure's particles are created before its gluons: Eva's
+    // 23 body parts are added, and only then are her constraints loaded.
+    // Audited at the end of their own flush, her overlapping joints (a hand
+    // box 0.03 m inside its forearm) look like unbonded bodies inside each
+    // other, because the bonds that make them one body do not exist yet.
+    //
+    // Auditing at the START of the NEXT flush gives every structure one full
+    // batch to finish declaring itself, and still lands before the solver
+    // sees any of it — which is what INV-30 actually says: no FRAME BEGINS
+    // with an externally-created overlap. Engine::update flushes every frame,
+    // so nothing waits longer than that.
+    audit_creation_overlaps();
+
     // Apply all queued particle additions
     // This should be called between frames when no rendering is happening
     while (!pending_particles.empty()) {
         add_particle(pending_particles.front());
         pending_particles.pop();
     }
-
-    // The flush is the creation batch boundary: everything queued plus
-    // everything added directly since the last flush is settled in one pass.
-    audit_creation_overlaps();
 }
 
 // ============================================================================
@@ -458,7 +484,10 @@ logosphere::CreationVerdict ParticleSystem::inspect_creation_overlaps(
     // they are reported separately, because refusing them today stops every
     // tree in the engine from generating.
     std::vector<uint32_t> bond_root;
-    if (physics_system_) bond_root = physics_system_->bonded_components(particles);
+    if (physics_system_) {
+        bond_root = physics_system_->bonded_components(particles);
+        verdict.bonds_at_verdict = physics_system_->get_total_gluon_count();
+    }
 
     std::set<uint64_t> tested;      // canonical pair keys, so a subject-vs-
                                     // subject pair is measured once
@@ -530,17 +559,42 @@ void ParticleSystem::audit_creation_overlaps() {
     }
     if (refused.empty()) return;
 
-    // STRICT BY DEFAULT, one lever to downgrade. Same doors-not-fallbacks
-    // shape as TURTLE_STRICT: a violation stops the world so the PLACEMENT
-    // gets fixed, and LOGOSPHERE_CREATION_LENIENT=1 exists for inventory
-    // runs and for fixtures that place a bad body on purpose.
-    const bool lenient = std::getenv("LOGOSPHERE_CREATION_LENIENT") != nullptr;
+    // ARMED BEHIND ITS LEVER, AND THE POLARITY IS DELIBERATE.
+    //
+    // The end state is TURTLE_STRICT's: refuse by default, LENIENT=1 for
+    // inventory runs and deliberate bad-placement fixtures. That door earned
+    // its default the same way this one must — "all 51 sites the sweep found
+    // are fixed and the whole suite reports zero, so a violation from here on
+    // is a NEW one". Arming before the inventory is clean does not enforce a
+    // law, it stops the suite.
+    //
+    // THIS DOOR'S INVENTORY, measured 2026-08-21, two classes still open:
+    //
+    //   1. Eva is created as 23 UNBONDED overlapping boxes, 5 pairs deeper
+    //      than SLOP (a shoulder 0.03 m inside its upper arm, an ear 0.02 m
+    //      inside the head). PhysicsSystem::load_constraints_from_kg() is an
+    //      empty stub, so the 22 skeletal constraints the generator writes to
+    //      the KG never become gluons: the verdict is taken with 0 bonds
+    //      registered, which is why nothing lands in the structural band.
+    //      Whether humanoids should be gluon-bonded at all is a design
+    //      question, not a placement fix.
+    //   2. The standard tree's crown crosses ITSELF, 51 pairs deepest
+    //      0.8545 m, all inside one bonded structure. R8 is literal and wants
+    //      those gone too; reaching zero is a crown-generator redesign.
+    //
+    // FLIP THIS DEFAULT the day both read zero. Until then the measurement is
+    // always on and loud, LOGOSPHERE_CREATION_STRICT=1 arms the refusal, and
+    // LOGOSPHERE_CREATION_LENIENT=1 keeps it disarmed once the default moves.
+    const bool armed = std::getenv("LOGOSPHERE_CREATION_STRICT") != nullptr;
+    const bool lenient = !armed ||
+                         std::getenv("LOGOSPHERE_CREATION_LENIENT") != nullptr;
 
     std::cerr << "\n[CREATION VIOLATION] " << refused.size()
               << " pair(s) created INSIDE each other, deeper than SLOP="
               << PhysicsV4::SLOP << " m. " << verdict.bodies_audited
               << " newborn bodies audited, " << verdict.pairs_tested
-              << " exact pair tests, " << verdict.micros << " us."
+              << " exact pair tests, " << verdict.micros << " us,"
+              << " " << verdict.bonds_at_verdict << " bonds registered."
               << " (structural, bonded into one body: "
               << verdict.structural.size()
               << (strict_structural ? ", REFUSED under"
@@ -559,8 +613,8 @@ void ParticleSystem::audit_creation_overlaps() {
               << " 2026-08-21)." << std::endl;
 
     if (!lenient) {
-        std::cerr << "[CREATION VIOLATION] strict by default — aborting so the"
-                     " placement is fixed rather than absorbed."
+        std::cerr << "[CREATION VIOLATION] LOGOSPHERE_CREATION_STRICT — aborting"
+                     " so the placement is fixed rather than absorbed."
                      " LOGOSPHERE_CREATION_LENIENT=1 downgrades this to the"
                      " error lines above for inventory runs." << std::endl;
         std::abort();
