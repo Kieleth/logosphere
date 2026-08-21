@@ -64,6 +64,7 @@ int main() {
         scene.build(ps);
         scene.arm(ps, physics, spec, r);
         scene.argus.reset_milestones(scene.actor(r));
+        scene.argus.reset_milestones(scene.twin);
         const int A = scene.actor(r);
         static const bool fresh_trace = std::getenv("ARGUS_TRACE") != nullptr;
         for (int f = 0; f < RUN_FRAMES; ++f) {
@@ -77,9 +78,15 @@ int main() {
             if (r >= 3) {
                 // The experiment NARRATES itself (owner order): the story
                 // in the log, milestones the frame they happen, so dead
-                // air is visible as dead air.
+                // air is visible as dead air. The TWIN narrates too
+                // (owner, 2026-08-20: "the blue, what is it
+                // testing/doing? Argus it"): the control's stillness is
+                // evidence only if it is WITNESSED.
                 if (f % 10 == 0) scene.argus.narrate(std::cout, A);
+                if (f % 30 == 0) scene.argus.narrate(std::cout, scene.twin);
                 scene.argus.milestones(std::cout, A, scene.rest_z);
+                scene.argus.milestones(std::cout, scene.twin,
+                                       FLOOR_TOP + HERO * 0.5f);
             }
         }
 
