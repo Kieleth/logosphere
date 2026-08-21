@@ -1794,3 +1794,35 @@ TURTLE_STRICT earned its default only after its own sweep read zero;
 this door flips the day both classes above read zero. INV-30's mechanism
 field wants the door named in it — not edited here, for the main session
 to fold in.
+
+## 2026-08-21 — R8 addendum: the door was moving the world, and the turtle ratchet
+
+Two corrections found by running the door against the whole suite, both
+worth keeping in the record because neither would have been caught by an
+assert on positions.
+
+**The door perturbed the experiment.** `inspect_creation_overlaps` drove
+the engine's `shadow_bvh_` through `update_bvh()`, which cleared
+`bvh_dirty_` and ticked `bvh_frame` at a point in the frame where
+nothing had asked for it. `test_grass_yields` went from 80 % speed
+retention and 0.594 m of blade bend to 61 % and 0.003 m, with no physics
+change of any kind; disabling the audit restored the numbers exactly.
+The door now builds its own BVH over the same particles and discards it,
+which is Argus's rule one layer down: read-only over particles by
+construction, so the witness cannot disturb what it witnesses. Cost
+unchanged, 20.4 ms for Eden's 12440 bodies. `test_grass_yields` is the
+most BVH-timing-sensitive scene in the suite and is now recorded as the
+tripwire for this class.
+
+**The turtle doors get a migration ratchet.** Reading the oriented
+extent fixed the error in one direction and exposed it in the other. A
+tilted 1 mm grass blade sitting 0.08 m up reaches 0.0316 m BELOW the
+floor; the axis-aligned reading called it clear, and the turtle has been
+lifting it for free every substep, which is exactly the energy leak
+these doors exist to stop. Real, and never swept: arming on it aborted
+`test_grass_holds_together`, which passes at the branch point. So
+`turtle_verdict` reports whether the OLD reading would have caught the
+body. Violations the old reading already caught keep aborting; the newly
+visible class reports as `[oriented-only]` with both numbers, and
+`TURTLE_ORIENTED_STRICT=1` promotes it once its sweep reads zero. Same
+way TURTLE_STRICT earned its own default.
