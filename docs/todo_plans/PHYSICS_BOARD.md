@@ -439,7 +439,16 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
-## Item 6 IN TDD — INV-32 registered, flip built, ONE blocker: G-47
+## G-47 tail: the TUMBLE MIRROR LEAK (small open front)
+
+Single strikes hold the y-mirror EXACTLY in every pose (aligned and
+pitched, 1-9 m/s: test_square_strike, all green). The 40-frame chaotic
+tumble in the refused-momentum ledger leaks roll 0.3353 rad/s — no
+minimal repro yet. Ledger holds a labeled ratchet (<0.40). Also: argus
+peak spin 7.28 observed mid-tumble vs MAX_OMEGA 6.28 — the cap is
+enforced somewhere the peak sampler beats. Both worth one focused hunt.
+
+## Item 6 UNBLOCKED — G-47 refined; was: ONE blocker
 
 INV-32 (contacts exert torque by default; CONTACT_TORQUE=0 becomes the
 kill switch) registered aspirational; all 11 gate sites flipped on

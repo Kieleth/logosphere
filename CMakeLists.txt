@@ -1306,6 +1306,20 @@ target_include_directories(test_refused_momentum_ledger PRIVATE
 )
 target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
 
+# G-47, born red: a mirror-symmetric strike owes exactly zero spin at
+# any speed; sequential per-point manifold solving seeds spin that a
+# violent strike carries away (2.99 rad/s at 9 m/s). Green requires
+# the manifold block solve. TDD instrument for INV-32's default flip.
+add_executable(test_square_strike tests/test_square_strike.cpp)
+target_link_libraries(test_square_strike PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_square_strike PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_square_strike PRIVATE cxx_std_17)
+
 # D7, born red: what slows a spinning body down? Today, a constant.
 # ANGULAR_DRAG is multiplied into omega four times a frame for every
 # body in every surrounding, so a cube spinning in vacuum stops in a
