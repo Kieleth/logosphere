@@ -24,7 +24,7 @@ whose sentence does not state it fails the build.
 
 Usage:
     python3 examples/logovger/tools/extract_careers.py \\
-        examples/logovger/srd/cepheus \\
+        corpora/cepheus-srd \\
         examples/logovger/seeds/cepheus_book1_skill_vocabulary.json \\
         examples/logovger/seeds/cepheus_careers.json
 

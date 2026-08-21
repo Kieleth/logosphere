@@ -1,17 +1,21 @@
+# A corpus belongs to no game, and neither does the check that its bytes
+# survive a checkout. This lived in examples/logovger/tools/ while the
+# Cepheus SRD lived inside that game; the two moved out together, and a
+# second game reading the same corpus inherits this check instead of
+# copying it. It now covers EVERY corpus, not one game's copy of one.
 import subprocess
 import unittest
 from pathlib import Path
 
 
-TOOLS = Path(__file__).resolve().parent
-ROOT = TOOLS.parents[2]
-SOURCE_ROOT = ROOT / "examples" / "logovger" / "srd" / "cepheus"
+ROOT = Path(__file__).resolve().parents[1]
+CORPORA_ROOT = ROOT / "corpora"
 FIXTURE_ROOT = ROOT / "tests" / "fixtures" / "source_partition"
 
 
 class SourceCheckoutContractTests(unittest.TestCase):
     def test_byte_addressed_markdown_keeps_git_object_line_endings(self):
-        sources = sorted(SOURCE_ROOT.rglob("*.md")) + sorted(
+        sources = sorted(CORPORA_ROOT.rglob("*.md")) + sorted(
             FIXTURE_ROOT.rglob("*.md")
         )
         relative = [path.relative_to(ROOT).as_posix() for path in sources]

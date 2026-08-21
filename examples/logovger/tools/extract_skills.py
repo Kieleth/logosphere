@@ -12,7 +12,7 @@ edition, Skill type and seed alias instead of creating another vocabulary.
 
 Usage:
     python3 examples/logovger/tools/extract_skills.py \
-        examples/logovger/srd/cepheus examples/logovger/seeds/....json
+        corpora/cepheus-srd examples/logovger/seeds/....json
 """
 from collections import Counter, defaultdict
 import hashlib

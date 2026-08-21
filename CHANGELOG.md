@@ -7,6 +7,43 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- **Corpora: vendored source text lives outside every game, and a game
+  declares which one it reads.** The Cepheus SRD moved from
+  `examples/logovger/srd/cepheus` to `corpora/cepheus-srd`. A game no
+  longer derives the corpus path from its own directory; it names the
+  corpus and the build hands it the root:
+
+      logosphere_game_corpus(<target> cepheus-srd <PREFIX>)
+
+  which defines `<PREFIX>_CORPUS_DIR` beside the `<PREFIX>_GAME_DIR` a
+  game already gets for its own data. `logovger::load_rule_seeds` now
+  takes the corpus root as its own argument instead of appending
+  `/srd/cepheus` to the game root. A second game reading the same book
+  calls the same function with the same name: no new mechanism, no path
+  to copy, no directory to duplicate. An undeclared corpus is a
+  configure-time error, and game code compiled without the define fails
+  to build rather than silently reading nothing.
+
+  Citations are unaffected. Seeds address files *inside* a corpus
+  (`book1/skills.md` plus a byte range), so moving the root changes no
+  seed, no quote and no ingestion-edition identity.
+- **A mechanical gate that games do not read each other**
+  (`scripts/check_game_isolation.py`). It re-runs every translation unit
+  under `examples/` through the preprocessor's dependency mode and
+  refuses a header closure containing another game's file, an `-I` or
+  `-isystem` directory inside another game even when nothing has reached
+  through it, and, for declared pairs, another game's path or name in
+  any text. `corpora/` is the only shared path, and only through
+  `logosphere_game_corpus()`. The compiler pass is repo-wide and needs
+  no registration, so a game added later is covered the moment it has a
+  translation unit; a declared pair may name a directory that does not
+  exist yet, which is how the rule stands before there is anything to
+  break it. `scripts/test_check_game_isolation.py` breaks each rule in a
+  scratch repository and requires the refusal, including the case where
+  the checker sees no translation unit at all and would otherwise pass
+  for the wrong reason.
+
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never

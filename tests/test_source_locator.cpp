@@ -42,7 +42,7 @@ const char* kChapter = "book1/character-creation.md";
 
 std::string slurp(const std::string& rel) {
     const std::string path = std::string(LOGOSPHERE_SOURCE_DIR) +
-                             "/examples/logovger/srd/cepheus/" + rel;
+                             "/corpora/cepheus-srd/" + rel;
     std::ifstream f(path, std::ios::binary);
     std::ostringstream ss;
     ss << f.rdbuf();

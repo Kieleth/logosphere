@@ -39,6 +39,12 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_info.cmake)
 # documented "run this once" step does not survive an agent session.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/git_hooks.cmake)
 
+# Vendored source corpora, and the function a game calls to DECLARE the
+# one it reads. Included this early because targets defined below and
+# targets defined in examples/*/CMakeLists.txt both need it.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/corpora.cmake)
+logosphere_corpus_path(LOGOSPHERE_CEPHEUS_SRD cepheus-srd)
+
 # ----------------------------------------------------------------------
 # Build profiles
 # ----------------------------------------------------------------------
@@ -459,22 +465,22 @@ target_compile_features(logosphere-verify PRIVATE cxx_std_17)
 add_test(NAME logosphere_verify_positive
     COMMAND logosphere-verify
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/rulebook_smoke.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+        ${LOGOSPHERE_CEPHEUS_SRD})
 add_test(NAME logosphere_verify_negative
     COMMAND logosphere-verify
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/negative_misquote.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+        ${LOGOSPHERE_CEPHEUS_SRD})
 set_tests_properties(logosphere_verify_negative PROPERTIES WILL_FAIL TRUE)
 add_test(NAME logosphere_verify_prerequisite
     COMMAND logosphere-verify
         --prerequisite
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_base.json
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+        ${LOGOSPHERE_CEPHEUS_SRD})
 add_test(NAME logosphere_verify_missing_prerequisite
     COMMAND logosphere-verify
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/seed/prerequisite_dependent.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger/srd/cepheus)
+        ${LOGOSPHERE_CEPHEUS_SRD})
 set_tests_properties(logosphere_verify_missing_prerequisite
     PROPERTIES WILL_FAIL TRUE)
 
@@ -493,6 +499,9 @@ target_include_directories(logovger-headless PRIVATE
     examples/logovger examples/logovger/src)
 target_compile_definitions(logovger-headless PRIVATE
     LOGOVGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/logovger")
+# Declared, not derived: the book it cites is vendored once, outside
+# every game, and read by name.
+logosphere_game_corpus(logovger-headless cepheus-srd LOGOVGER)
 
 # Logovger: the referee's answer, held to the rule that asked for it.
 # Deliberately free of any LLM dependency (logosphere_llm is defined
@@ -528,6 +537,7 @@ target_include_directories(test_skills_pack PRIVATE examples/logovger
     examples/logovger/src)
 target_compile_definitions(test_skills_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+logosphere_game_corpus(test_skills_pack cepheus-srd LOGOVGER)
 add_test(NAME test_skills_pack COMMAND test_skills_pack)
 # Typed lookup rows and rollable outcomes: game-declared result columns,
 # verified through the same merged registry Logovger loads.
@@ -542,6 +552,7 @@ target_include_directories(test_logovger_table_results PRIVATE
     examples/logovger examples/logovger/src)
 target_compile_definitions(test_logovger_table_results
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+logosphere_game_corpus(test_logovger_table_results cepheus-srd LOGOVGER)
 add_test(NAME test_logovger_table_results COMMAND test_logovger_table_results)
 # The first playable slice: a life generated from seeded rules.
 add_executable(test_chargen
@@ -556,6 +567,7 @@ target_include_directories(test_chargen PRIVATE examples/logovger
     examples/logovger/src)
 target_compile_definitions(test_chargen
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+logosphere_game_corpus(test_chargen cepheus-srd LOGOVGER)
 add_test(NAME test_chargen COMMAND test_chargen)
 
 add_executable(test_logovger_rule_seed_identity
@@ -569,6 +581,7 @@ target_include_directories(test_logovger_rule_seed_identity PRIVATE
     examples/logovger examples/logovger/src)
 target_compile_definitions(test_logovger_rule_seed_identity
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+logosphere_game_corpus(test_logovger_rule_seed_identity cepheus-srd LOGOVGER)
 register_headless_test(test_logovger_rule_seed_identity)
 
 # Pure arithmetic: where the panels sit. No engine, no GPU, no window.

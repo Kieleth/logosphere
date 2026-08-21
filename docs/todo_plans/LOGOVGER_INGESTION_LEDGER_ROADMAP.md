@@ -614,7 +614,7 @@ verification rejected the exact targets. The later table, character creation,
 and rule-identity failures were cascades from that refusal.
 
 The fix does not normalize source content in the engine. It declares
-`text eol=lf` for `examples/logovger/srd/cepheus/**/*.md`, preserving the Git
+`text eol=lf` for `corpora/**/*.md`, preserving the Git
 object bytes on every checkout. A new source-checkout contract enumerates all
 32 vendored Markdown files and verifies both Git's effective `eol` attribute
 and the raw absence of CRLF bytes.

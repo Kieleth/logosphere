@@ -9,7 +9,7 @@ import unittest
 
 TOOLS = os.path.dirname(__file__)
 REPO = os.path.abspath(os.path.join(TOOLS, "..", "..", ".."))
-SRD = os.path.join(REPO, "examples", "logovger", "srd", "cepheus")
+SRD = os.path.join(REPO, "corpora", "cepheus-srd")
 SOURCE = os.path.join(SRD, "book1", "skills.md")
 SEED = os.path.join(
     REPO, "examples", "logovger", "seeds",
