@@ -89,27 +89,34 @@ int main() {
     cam.set_pixels_per_unit(ppu);
     make_lamps(ps, cx, cy, cz);
 
-    // Live readout at the BOTTOM (the debug overlay owns the top left).
+    // The debug overlay owns the ENTIRE left column (x=10, full
+    // height: resolution block, controls, spawn, debug help). The
+    // panel and readout live in the RIGHT half; nothing of ours draws
+    // left of PANEL_X (owner QA 2026-08-21: the two interleaved).
+    const int PANEL_X = 620;
     const int base_y = cfg.window_height - 96;
     auto* l_cube = add_line(engine, 0, 255, 190, 110);
     auto* l_ball = add_line(engine, 1, 140, 210, 255);
     auto* l_spin  = add_line(engine, 2, 220, 220, 220);
-    l_cube->set_position(16, base_y);
-    l_ball->set_position(16, base_y + 22);
-    l_spin->set_position(16, base_y + 44);
+    l_cube->set_position(PANEL_X, base_y);
+    l_ball->set_position(PANEL_X, base_y + 22);
+    l_spin->set_position(PANEL_X, base_y + 44);
 
     // THE LIVE ASSERT PANEL (owner order 2026-08-21): what this test
     // demonstrates, and EVERY assert as its own [V]/[X] line, evaluated
     // each frame from the SAME scene helpers the headless asserts read.
     static const bool lever_ui = std::getenv("CONTACT_TORQUE") != nullptr;
     auto* l_demo = add_line(engine, 3, 190, 220, 255);
-    l_demo->set_position(16, 118);
-    l_demo->set_text(lever_ui
-        ? "DEMONSTRATING: contact torque (CONTACT_TORQUE=1). A cube and a "
-          "sphere race the same 40 deg ramp: both must move, both must "
-          "TURN, the sphere must ROLL, and every run stays in its lane."
-        : "DEMONSTRATING: the default no-torque world. Both bodies slide; "
-          "the TURN asserts are born red until the torque law is default.");
+    l_demo->set_position(PANEL_X, 40);
+    auto* l_demo2 = add_line(engine, 5, 190, 220, 255);
+    l_demo2->set_position(PANEL_X, 62);
+    if (lever_ui) {
+        l_demo->set_text("DEMONSTRATING: contact torque (lever ON).");
+        l_demo2->set_text("Both racers move and TURN; the sphere ROLLS.");
+    } else {
+        l_demo->set_text("DEMONSTRATING: the default no-torque world.");
+        l_demo2->set_text("Bodies slide; TURN asserts born red by design.");
+    }
     struct LiveAssert { ui::Label* label; std::string text;
                         std::function<bool()> eval; };
     std::vector<LiveAssert> panel;
@@ -117,7 +124,7 @@ int main() {
     auto add_assert = [&](const std::string& text,
                           std::function<bool()> eval) {
         auto* l = new ui::Label("", "assert" + std::to_string(prow));
-        l->set_position(16, 148 + prow * 22);
+        l->set_position(PANEL_X, 96 + prow * 22);
         engine.get_ui_system()->add_widget(l);
         panel.push_back({l, text, std::move(eval)});
         ++prow;
@@ -158,7 +165,7 @@ int main() {
                         scene.argus.peak_divergence(scene.ball, false),
                         scene.argus.peak_divergence(scene.ball, true)); });
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
-    l_verdict->set_position(16, 148 + prow * 22 + 8);
+    l_verdict->set_position(PANEL_X, 96 + prow * 22 + 10);
 
     std::printf("\n=== a cube and a sphere on the same %.0f degree ramp (%s) ===\n",
                 SLOPE_DEG, interactive ? "WINDOW" : "headless");
@@ -179,17 +186,17 @@ int main() {
         const float cd = scene.cube_travel(ps);
         const float bd = scene.ball_travel(ps);
         std::snprintf(buf, sizeof(buf),
-                      "CUBE   travelled %.3f m   (OBB path: meets the tilted face)",
-                      cd);
+                      "CUBE   travelled %.3f m   spin peak %.2f", cd,
+                      scene.cube_spin_peak);
         l_cube->set_text(buf);
         std::snprintf(buf, sizeof(buf),
-                      "SPHERE travelled %.3f m   (sphere-vs-AABB: meets an "
-                      "upright slab, normal (0,0,1))", bd);
+                      "SPHERE travelled %.3f m   spin peak %.2f", bd,
+                      scene.ball_spin_peak);
         l_ball->set_text(buf);
         std::snprintf(buf, sizeof(buf),
-                      "peak |omega|  cube %.4f   sphere %.4f rad/s   "
-                      "(D2 1.2: contact rows carry no lever arm)",
-                      scene.cube_spin_peak, scene.ball_spin_peak);
+                      "lane dev  cube %.3f  sphere %.3f   gap %.2f m",
+                      scene.cube_lane_dev, scene.ball_lane_dev,
+                      scene.lane_gap_min > 1e8f ? 0.0f : scene.lane_gap_min);
         l_spin->set_text(buf);
         // The panel: every assert, live, [V]/[X], same helpers as headless.
         int passing = 0;
@@ -201,8 +208,8 @@ int main() {
             else    a.label->set_color(255, 120, 120);
         }
         std::snprintf(buf, sizeof(buf),
-                      "ASSERTS %d/%zu passing (live; end-state lines settle "
-                      "as the run settles)", passing, panel.size());
+                      "ASSERTS %d/%zu passing (end-state lines settle late)",
+                      passing, panel.size());
         l_verdict->set_text(buf);
         l_verdict->set_color(passing == (int)panel.size() ? 120 : 255,
                              passing == (int)panel.size() ? 230 : 120,
