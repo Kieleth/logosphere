@@ -66,7 +66,10 @@ public:
 
 private:
     // Create a single segment particle in KG storage
-    kg::KGParticleID create_segment(float x, float y, float z,
+    // ground_z is the SURFACE the segment rests on, not its centre: the
+    // centre is derived from the body's own oriented Z extent once its
+    // rotation is set (a log laid flat spans its DIAMETER in world Z).
+    kg::KGParticleID create_segment(float x, float y, float ground_z,
                                     float length, float diameter,
                                     float rotation_h, float rotation_v,
                                     float r, float g, float b,

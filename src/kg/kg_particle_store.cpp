@@ -17,6 +17,7 @@
 // Headless builds that never touch particle storage pay no allocation.
 
 #include "logosphere/physics/physics_solver.h"
+#include "logosphere/physics/creation_door.h"   // oriented_bottom_offset
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
@@ -56,7 +57,13 @@ struct KGParticleDataStore {
 // activator happened to load the chunk.
 static void kg_assert_above_turtle(const Particle& p) {
     if (p.GetMass() == 0.0f) return;
-    const float bottom = p.z - p.thickness * 0.5f;
+    // THE ORIENTED BOTTOM, same as the ParticleSystem door and the solver's
+    // own turtle pass. z - thickness/2 describes a solid a rotated body does
+    // not have: a log laid flat carries its LENGTH on the thickness axis and
+    // its DIAMETER in world Z. This door aborting on correctly-placed logs is
+    // what pushed the fallen-tree generator into lifting every preset
+    // 0.21-0.29 m off the ground (C10). Ask the geometry.
+    const float bottom = p.z - logosphere::oriented_bottom_offset(p);
     if (bottom >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP) return;
     static std::set<std::string> reported;
     char key[128];

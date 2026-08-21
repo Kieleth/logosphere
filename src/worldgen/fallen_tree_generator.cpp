@@ -1,6 +1,7 @@
 #include "logosphere/worldgen/fallen_tree_generator.h"
 #include "core/engine.h"
 #include "core/particle_system.h"
+#include "logosphere/physics/creation_door.h"
 #include <cmath>
 #include <iostream>
 #include <algorithm>
@@ -167,15 +168,6 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
         // Position along the log
         float seg_x = world_x + dir_x * spec.length * (t - 0.5f); // Center at world position
         float seg_y = world_y + dir_y * spec.length * (t - 0.5f);
-        // SIT ON THE GROUND MEANS SIT ON THE Z EXTENT. The log is laid
-        // horizontal by rotation_y, and create_log_segment sets
-        // thickness = length. Offsetting by half the DIAMETER therefore buried
-        // every preset: fallen_trunk -0.26, fallen_branch -0.2875, twig -0.24.
-        // The half-extent is half the segment length, plus the 1.1 overlap the
-        // caller applies.
-        const float seg_len_z = (spec.length / std::max(1, spec.num_segments)) * 1.1f;
-        float seg_z = world_z + seg_len_z * 0.5f; // Sit on ground
-
         // Vary diameter slightly along length (taper at ends)
         float taper = 1.0f - 0.15f * std::abs(t - 0.5f) * 2.0f; // Slight taper at ends
         float seg_diameter = spec.diameter * taper;
@@ -188,9 +180,19 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
         g = std::max(0.0f, std::min(1.0f, g));
         b = std::max(0.0f, std::min(1.0f, b));
 
+        // SIT ON THE GROUND MEANS SIT ON THE ORIENTED Z EXTENT, and
+        // create_segment computes that from the body it just built rather
+        // than from an assumption about which axis carries which dimension.
+        //
+        // SEGMENTS ABUT, THEY DO NOT OVERLAP. They used to be built 1.1x
+        // their spacing "for seamless appearance", which is 10% of a segment
+        // of deliberate interpenetration — 0.12 m on the trunk preset. Owner
+        // ruling R8: nothing created may coexist with anything else, and a
+        // rendering seam is not a reason to put two solids in one place.
+        // Exact abutment measures zero penetration and is legal (INV-30).
         kg::KGParticleID particle = create_segment(
-            seg_x, seg_y, seg_z,
-            segment_length * 1.1f, // Slight overlap for seamless appearance
+            seg_x, seg_y, world_z,
+            segment_length,
             seg_diameter,
             spec.rotation_angle,
             0.0f, // Horizontal (lying on ground)
@@ -219,7 +221,7 @@ kg::EntityID FallenTreeGenerator::generate_fallen_tree(float world_x, float worl
     return entity;
 }
 
-kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
+kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float ground_z,
                                                      float length, float diameter,
                                                      float rotation_h, float rotation_v,
                                                      float r, float g, float b,
@@ -228,7 +230,7 @@ kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
     Particle p;
     p.x = x;
     p.y = y;
-    p.z = z;
+    p.z = ground_z;   // provisional; the oriented bottom decides it below
     p.vx = 0.0f;
     p.vy = 0.0f;
     p.vz = 0.0f;
@@ -258,6 +260,16 @@ kg::KGParticleID FallenTreeGenerator::create_segment(float x, float y, float z,
     p.rotation_x = 0.0f;
     p.rotation_y = M_PI / 2.0f; // Tilt 90° so thickness is horizontal (pointing East)
     p.rotation_z = rad_h;       // Rotate to point in desired direction
+
+    // REST ON THE GROUND, MEASURED FROM THE BODY'S OWN GEOMETRY.
+    // Now that the orientation is set, ask how far this box reaches below its
+    // centre in world Z and put the centre exactly that far up. For a log laid
+    // flat that is half its DIAMETER, not half its length — the confusion that
+    // hovered all four presets by 0.21 to 0.29 m, and the reason the turtle
+    // door (which read a rotation-blind z - thickness/2) fired on the correct
+    // placement and got "fixed" the wrong way round. No axis assumption
+    // survives here: change the rotation and the arithmetic follows.
+    p.z = ground_z + logosphere::oriented_bottom_offset(p);
 
     p.reflectivity = 0.25f;
     p.pattern_id = 1; // PATTERN_WOOD
