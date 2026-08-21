@@ -12,11 +12,11 @@
    "CareerTableEntry": 144,
    "CareerThrowEntry": 58,
    "CareerTrackEntry": 24,
-   "ClaimDecision": 953,
+   "ClaimDecision": 970,
    "CoverageDecision": 1286,
    "GainFixedMoney": 168,
    "GainPossession": 115,
-   "IngestionClaim": 953,
+   "IngestionClaim": 970,
    "ModifyAttribute": 138,
    "NoEffect": 7,
    "Possession": 8,
@@ -146420,6 +146420,907 @@
    "from": "@career_table_claim_b39055_e39066_prospecting_undefined_skill_duplicate",
    "relation": "CLAIM_SUPPORTED_BY",
    "to": "@career_table_b39055_e39066_coverage"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b36532_e36545_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Aerospace Defense ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b36532_e36545_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b36532_e36545_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36532_e36545_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b35914_e35930_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36532_e36545_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b35943_e35952_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36532_e36545_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b36522_e36523_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36532_e36545_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b36532_e36545_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36532_e36545_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@aerospace_defense_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b36548_e36556_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Agent ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b36548_e36556_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b36548_e36556_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36548_e36556_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b35914_e35930_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36548_e36556_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b35955_e35960_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36548_e36556_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b36522_e36523_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36548_e36556_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b36548_e36556_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36548_e36556_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@agent_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b36571_e36579_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Bureaucrat ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b36571_e36579_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b36571_e36579_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36571_e36579_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b35914_e35930_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36571_e36579_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b35984_e35994_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36571_e36579_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b36522_e36523_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36571_e36579_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b36571_e36579_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b36571_e36579_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@bureaucrat_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b40775_e40783_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Colonist ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b40775_e40783_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b40775_e40783_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40775_e40783_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40183_e40199_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40775_e40783_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40202_e40210_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40775_e40783_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40771_e40772_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40775_e40783_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40775_e40783_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40775_e40783_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@colonist_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b40786_e40796_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Diplomat ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b40786_e40796_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b40786_e40796_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40786_e40796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40183_e40199_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40786_e40796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40213_e40221_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40786_e40796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40771_e40772_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40786_e40796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40786_e40796_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40786_e40796_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@diplomat_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b40817_e40826_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Marine ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b40817_e40826_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b40817_e40826_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40817_e40826_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40183_e40199_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40817_e40826_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40257_e40263_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40817_e40826_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40771_e40772_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40817_e40826_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b40817_e40826_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b40817_e40826_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@marine_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b45218_e45225_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Maritime Defense ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b45218_e45225_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b45218_e45225_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45218_e45225_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44476_e44492_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45218_e45225_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44495_e44511_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45218_e45225_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45214_e45215_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45218_e45225_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45218_e45225_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45218_e45225_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@maritime_defense_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b45228_e45237_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Mercenary ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b45228_e45237_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b45228_e45237_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45228_e45237_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44476_e44492_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45228_e45237_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44514_e44523_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45228_e45237_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45214_e45215_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45228_e45237_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45228_e45237_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45228_e45237_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@mercenary_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b45240_e45247_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Merchant ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b45240_e45247_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b45240_e45247_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45240_e45247_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44476_e44492_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45240_e45247_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44526_e44534_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45240_e45247_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45214_e45215_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45240_e45247_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45240_e45247_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45240_e45247_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@merchant_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b45250_e45259_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Navy ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b45250_e45259_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b45250_e45259_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45250_e45259_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44476_e44492_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45250_e45259_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44537_e44541_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45250_e45259_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45214_e45215_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45250_e45259_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45250_e45259_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45250_e45259_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@navy_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b45262_e45270_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Noble ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b45262_e45270_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b45262_e45270_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45262_e45270_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44476_e44492_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45262_e45270_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44544_e44549_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45262_e45270_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45214_e45215_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45262_e45270_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45262_e45270_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45262_e45270_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@noble_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b45273_e45288_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Physician ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b45273_e45288_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b45273_e45288_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45273_e45288_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44476_e44492_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45273_e45288_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b44552_e44561_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45273_e45288_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45214_e45215_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45273_e45288_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b45273_e45288_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b45273_e45288_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@physician_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b49780_e49789_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Pirate ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b49780_e49789_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b49780_e49789_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49780_e49789_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49060_e49076_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49780_e49789_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49079_e49085_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49780_e49789_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49776_e49777_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49780_e49789_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49780_e49789_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49780_e49789_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@pirate_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b49792_e49796_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Rogue ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b49792_e49796_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b49792_e49796_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49792_e49796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49060_e49076_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49792_e49796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49088_e49093_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49792_e49796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49776_e49777_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49792_e49796_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49792_e49796_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49792_e49796_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@rogue_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b49799_e49822_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Scientist ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b49799_e49822_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b49799_e49822_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49799_e49822_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49060_e49076_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49799_e49822_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49096_e49105_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49799_e49822_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49776_e49777_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49799_e49822_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49799_e49822_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49799_e49822_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@scientist_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b49831_e49838_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Surface Defense ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b49831_e49838_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b49831_e49838_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49831_e49838_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49060_e49076_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49831_e49838_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49116_e49131_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49831_e49838_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49776_e49777_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49831_e49838_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49831_e49838_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49831_e49838_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@surface_defense_ranks_s6"
+  },
+  {
+   "op": "create_entity",
+   "type": "IngestionClaim",
+   "as": "@career_table_claim_b49841_e49858_rank_ladder_top",
+   "properties": {
+    "claim_statement": "The Technician ranks table ends at rank 6, and the source does not state what an Advancement check does for a character already standing there."
+   }
+  },
+  {
+   "op": "create_entity",
+   "type": "ClaimDecision",
+   "as": "@career_table_claim_b49841_e49858_rank_ladder_top_decision",
+   "properties": {
+    "event_type": "ARBITER_DECISION",
+    "decision_subject": "@career_table_claim_b49841_e49858_rank_ladder_top",
+    "decision_sequence": 0,
+    "claim_disposition": "PARTIAL",
+    "decision_question": "Can this table claim enter the typed graph?",
+    "decision_reason": "The printed ladder ends at rung 6; the executable reading that advancement stops there is explicit but not stated by the source. Not ratified by the owner.",
+    "arbiter": "Claude, rank-ceiling fix",
+    "claim_gap_kind": "SOURCE_GAP"
+   }
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49841_e49858_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49060_e49076_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49841_e49858_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49134_e49144_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49841_e49858_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49776_e49777_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49841_e49858_rank_ladder_top",
+   "relation": "CLAIM_SUPPORTED_BY",
+   "to": "@career_table_b49841_e49858_coverage"
+  },
+  {
+   "op": "set_relation",
+   "from": "@career_table_claim_b49841_e49858_rank_ladder_top",
+   "relation": "CLAIM_MATERIALIZES",
+   "to": "@technician_ranks_s6"
   }
  ]
 }

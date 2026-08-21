@@ -1394,9 +1394,17 @@ ChargenSession::PrimitiveResult ChargenSession::grant_rank_zero(
     for (const auto rung : kg_.getRelated(track, "HAS_PART")) {
         if (kg_.getProperty(rung, "step_index") != "0") continue;
         // The title is the career's word for a new recruit, and the
-        // book prints one for most of them but not all.
+        // book prints one for most of them but not all. Written
+        // whether the rung has one or not: the title on the sheet is
+        // the title of the rung the character stands on, and an
+        // untitled rung means an untitled character. Six rank 0 rows
+        // in this very book have no title. This particular write
+        // cannot be observed today, because enter_career() clears the
+        // title immediately before the step runs, but the guarded
+        // shape is the one that let a promotion keep the previous
+        // rank's title.
         const std::string title = kg_.getProperty(rung, "step_title");
-        if (!title.empty()) sheet_.rank_title = title;
+        sheet_.rank_title = title;
         const std::string grant = kg_.getProperty(rung, "grants");
         if (grant.empty()) break;
         const auto applied = executor_.apply(
@@ -1584,6 +1592,42 @@ ChargenSession::PrimitiveResult ChargenSession::muster_out(
     return PrimitiveResult::advance("continue");
 }
 
+// The rung a character standing on `standing` climbs to next, read
+// off the ladder rather than worked out. INVALID_ENTITY with no error
+// means there is no rung above that one, which is what "the top of the
+// ladder" is.
+//
+// There is deliberately no arithmetic here. Rank was an int on the C++
+// sheet and advancing was rank + 1, and arithmetic cannot fail: a
+// Brigadier who threw well became a rank 7 that no rung in the graph
+// describes, and everything downstream that asks the ladder about rank
+// 7 - the title, the rank benefit, the extra benefit rolls at muster
+// out - quietly found nothing. Asking the graph where the ladder goes
+// next makes that state unrepresentable rather than guarded against.
+bool ChargenSession::next_rung(kg::EntityID track, int standing,
+                               kg::EntityID& rung, int& index,
+                               std::string& error) const {
+    rung = kg::INVALID_ENTITY;
+    index = 0;
+    for (const auto candidate : kg_.getRelated(track, "HAS_PART")) {
+        const std::string at = kg_.getProperty(candidate, "step_index");
+        int position = 0;
+        const auto parsed = std::from_chars(
+            at.data(), at.data() + at.size(), position);
+        if (at.empty() || parsed.ec != std::errc{} ||
+            parsed.ptr != at.data() + at.size()) {
+            error = "a rung of '" + kg_.getProperty(track, "name") +
+                    "' has step_index '" + at + "', which is not a position";
+            return false;
+        }
+        if (position <= standing) continue;
+        if (rung != kg::INVALID_ENTITY && position >= index) continue;
+        rung = candidate;
+        index = position;
+    }
+    return true;
+}
+
 // Step 6. Commission takes a Rank 0 character into the officer ranks;
 // Advancement moves a Rank 1 or higher character up one. Both are
 // optional and both are once per term, and a career that offers
@@ -1611,6 +1655,31 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
     const bool eligible = commission ? sheet_.rank == 0 : sheet_.rank >= 1;
     if (!eligible) return PrimitiveResult::advance();
 
+    // Where this career's ladder goes from where the character stands.
+    // Read once, before anything is offered, because the same rung
+    // names the prize, the new rank, the new title and the skill it
+    // grants: two lookups is how the title and the rank came apart.
+    const auto track = subject_row(kg_, context.step, career_, "track",
+                                   error);
+    if (track == kg::INVALID_ENTITY) {
+        return PrimitiveResult::failed(std::string(what) + ": " + error);
+    }
+    kg::EntityID rung = kg::INVALID_ENTITY;
+    int next_rank = 0;
+    if (!next_rung(track, sheet_.rank, rung, next_rank, error)) {
+        return PrimitiveResult::failed(std::string(what) + ": " + error);
+    }
+    // The top of the ladder. Cepheus prints a rung for every rank a
+    // career has and says only "you may improve your rank by one"; it
+    // never says what that means for whoever is standing on the last
+    // one. The reading taken here, recorded as a PARTIAL / SOURCE_GAP
+    // claim in the careers seed rather than decided in this file: the
+    // check is not offered, because there is no rank to improve to.
+    // Nothing is rolled, nothing is printed, and the rank the
+    // character holds - with the benefit rolls the book pays it - is
+    // the one they keep.
+    if (rung == kg::INVALID_ENTITY) return PrimitiveResult::advance();
+
     if (!context.input) {
         // Say what is being risked and what is being reached for. A
         // player asked to gamble should be told the odds, the prize
@@ -1619,25 +1688,11 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
         const std::string throw_text =
             kg_.getProperty(check, "attribute_ref") + " " +
             kg_.getProperty(check, "target_number") + "+";
-        const int next_rank = commission ? 1 : sheet_.rank + 1;
         std::string prize = "rank " + std::to_string(next_rank);
-        std::string rung_error;
-        const auto track = subject_row(kg_, context.step, career_, "track",
-                                       rung_error);
-        if (track != kg::INVALID_ENTITY) {
-            for (auto rung : kg_.getRelated(track, "HAS_PART")) {
-                if (kg_.getProperty(rung, "step_index") !=
-                    std::to_string(next_rank)) {
-                    continue;
-                }
-                const std::string title =
-                    kg_.getProperty(rung, "step_title");
-                if (!title.empty()) prize = title;
-                if (!kg_.getProperty(rung, "grants").empty()) {
-                    prize += " and its skill";
-                }
-                break;
-            }
+        const std::string title = kg_.getProperty(rung, "step_title");
+        if (!title.empty()) prize = title;
+        if (!kg_.getProperty(rung, "grants").empty()) {
+            prize += " and its skill";
         }
         choices_ = {{"1", std::string("Try for ") + what,
                      "throw " + throw_text + " -> " + prize +
@@ -1677,32 +1732,21 @@ ChargenSession::PrimitiveResult ChargenSession::roll_promotion(
     }
 
     read_characteristics(kg_, sheet_);
-    sheet_.rank = commission ? 1 : sheet_.rank + 1;
+    // The rung's own position, not rank + 1, and the rung's own title,
+    // set whether it has one or not: a rung the book leaves untitled
+    // used to leave the previous rank's title on the sheet.
+    sheet_.rank = next_rank;
+    sheet_.rank_title = kg_.getProperty(rung, "step_title");
     // "You also get any benefits listed for your new rank", and an
     // extra roll on any Skills and Training table.
     ++training_rolls_owed_;
-    std::string rank_error;
-    const auto track = subject_row(kg_, context.step, career_, "track",
-                                   rank_error);
-    if (track != kg::INVALID_ENTITY) {
-        for (auto rung : kg_.getRelated(track, "HAS_PART")) {
-            if (kg_.getProperty(rung, "step_index") !=
-                std::to_string(sheet_.rank)) {
-                continue;
-            }
-            sheet_.rank_title = kg_.getProperty(rung, "step_title");
-            const std::string grant = kg_.getProperty(rung, "grants");
-            if (grant.empty()) break;
-            auto& executor = executor_;
-            const auto applied = executor.apply(
-                static_cast<kg::EntityID>(std::stoul(grant)),
-                {sheet_.id, "chargen", "rank benefit"});
-            if (applied.status !=
-                logosphere::rules::OutcomeStatus::APPLIED) {
-                return PrimitiveResult::failed("rank benefit: " +
-                                               applied.error);
-            }
-            break;
+    const std::string grant = kg_.getProperty(rung, "grants");
+    if (!grant.empty()) {
+        const auto applied = executor_.apply(
+            static_cast<kg::EntityID>(std::stoul(grant)),
+            {sheet_.id, "chargen", "rank benefit"});
+        if (applied.status != logosphere::rules::OutcomeStatus::APPLIED) {
+            return PrimitiveResult::failed("rank benefit: " + applied.error);
         }
     }
     sheet_.life.push_back(

@@ -1023,6 +1023,34 @@ inline bool from_string(const char* str, ClaimGapKind& out) {
     return false;
 }
 
+/// Closed set of parts a table can play where several are offered together and a rule treats them differently. Closed, and deliberately: this was an open string, and an open string means a seed writing "Cash" where the rule asks for "cash" validates, loads, matches nothing, and silently uncaps the three-cash-roll limit the role exists to enforce. The tokens are lower case because that is what the seeds say, and the membership check is case SENSITIVE for the same reason - folding case here would accept the very typo the enum is for.
+enum class TableRole {
+    /// Money paid on leaving a career, which rules may cap.
+    CASH,
+    /// Goods, passages and shares, which those caps do not touch.
+    MATERIAL,
+    /// The table a career trains its own people on, which a rule may grant wholesale on a first enlistment.
+    SERVICE
+};
+
+/// Convert TableRole to its string representation.
+inline const char* to_string(TableRole value) {
+    switch (value) {
+        case TableRole::CASH: return "cash";
+        case TableRole::MATERIAL: return "material";
+        case TableRole::SERVICE: return "service";
+    }
+    return "unknown";
+}
+
+/// Parse a string into TableRole. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, TableRole& out) {
+    if (std::strcmp(str, "cash") == 0) { out = TableRole::CASH; return true; }
+    if (std::strcmp(str, "material") == 0) { out = TableRole::MATERIAL; return true; }
+    if (std::strcmp(str, "service") == 0) { out = TableRole::SERVICE; return true; }
+    return false;
+}
+
 /// Typed links from ingestion claims to evidence and graph data.
 enum class RulebookIngestionRelationType {
     CLAIM_SUPPORTED_BY,
@@ -3077,8 +3105,8 @@ struct CareerThrowEntry : public SubjectLookupEntry {
 struct CareerTableEntry : public SubjectLookupEntry {
     /// The table this row supplies for its career [book1/character-creation.md "Career Tables"].
     RollableTable rollable_table = {};
-    /// What part this table plays where several are offered together, when a rule treats them differently. Cepheus caps CASH benefit rolls at three and lets the others run; it grants every SERVICE skill at level 0 on a first career. Both are rules about a table's role, and both were written as C++ matching the table's printed name - "Cash Benefits" by substring, "Service Skills" by a fourteen-character suffix compare - so renaming a table in the seed broke the rule silently and a translated book could not work at all. The values are the game's; the engine only ever compares what the row says against what a step asked for.
-    std::optional<std::string> table_role = std::nullopt;
+    /// What part this table plays where several are offered together, when a rule treats them differently. Cepheus caps CASH benefit rolls at three and lets the others run; it grants every SERVICE skill at level 0 on a first career. Both are rules about a table's role, and both were written as C++ matching the table's printed name - "Cash Benefits" by substring, "Service Skills" by a fourteen-character suffix compare - so renaming a table in the seed broke the rule silently and a translated book could not work at all. The engine still only compares what the row says against what a step asked for; the difference is that the set of things a row may say is now closed, so the comparison cannot quietly miss on a token nobody declared.
+    std::optional<TableRole> table_role = std::nullopt;
 };
 
 

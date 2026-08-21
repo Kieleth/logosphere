@@ -47,6 +47,11 @@ REVIEWED_SOURCE_SHA256 = (
     "aec772042129694210d60204031829618a8c71f863d3b381ce8689be60bd14c7"
 )
 ARBITER = "Codex, Career Tables migration"
+# A reading is not a transcription, and the migration that transcribed
+# these cells did not choose it. This names the agent that did, in the
+# work where it did, and claims nothing further: the owner has not
+# ratified it, and the decision_reason says so in words.
+LADDER_TOP_ARBITER = "Claude, rank-ceiling fix"
 LEGACY_SOURCE_FIELDS = {
     "source_file", "source_section", "source_kind", "source_table",
     "source_row", "source_column", "source_quote",
@@ -474,7 +479,7 @@ class CareerTableLedger:
 
     def append_claim(self, ops, locator, statement, disposition,
                      materializes=(), suffix="", gap_kind=None,
-                     related_claim=None):
+                     related_claim=None, reason=None, arbiter=None):
         evidence = self.evidence_for(locator)
         supports = [self.coverage_for(ops, span) for span in evidence]
         claim = self.claim_alias(evidence, suffix)
@@ -487,11 +492,14 @@ class CareerTableLedger:
             "decision_sequence": 0,
             "claim_disposition": disposition,
             "decision_question": "Can this table claim enter the typed graph?",
-            "decision_reason": (
+            "decision_reason": reason or (
                 "The reviewed cell is represented by the listed typed "
                 "entities." if disposition == "MATERIALIZED" else
                 "The decision records the source defect without guessing."),
-            "arbiter": ARBITER,
+            # Whoever actually decided. The default is the migration
+            # that transcribed the cell; a reading someone had to CHOOSE
+            # is not that migration's to sign.
+            "arbiter": arbiter or ARBITER,
         }
         if gap_kind:
             decision["claim_gap_kind"] = gap_kind
@@ -559,6 +567,12 @@ class Builder:
         self.unresolved = []
         self.possessions = {}
         self.pending_rows = []
+        # The last rung of every ladder a character can actually climb,
+        # as (career, rung index, step alias, cell locator). Where a
+        # printed ladder ENDS is a fact about the source; what happens
+        # to whoever is standing there is not stated, and the reading
+        # taken has to be recorded against the cell that proves it.
+        self.ladder_tops = []
 
     def add(self, type_name, alias, props):
         self.ops.append({"op": "create_entity", "type": type_name,
@@ -789,6 +803,7 @@ def main():
                     name=f"{canonical[career]} ranks",
                     source_file=CHAPTER, source_section=section,
                     source_kind="sentence", source_quote=quote))
+                rungs = []
                 for row in table["rows"]:
                     key, value = row[0], row[index + 1]
                     if value in (EM_DASH, "-", ""):
@@ -829,6 +844,18 @@ def main():
                                         "from": f"@{tag}",
                                         "relation": "HAS_PART",
                                         "to": f"@{tag}_s{key}"})
+                    rungs.append((int(key), f"@{tag}_s{key}",
+                                  (title, key, career, value)))
+                # A ladder with one rung is not a ladder anyone climbs.
+                # Six careers print a rank 0 row and nothing above it,
+                # and Drifter prints no rank column at all; the book
+                # says of all seven that they have no commission or
+                # advancement check, so what happens to them is stated
+                # and there is no gap to record. The other seventeen end
+                # somewhere the book does not follow anyone past.
+                if len(rungs) > 1:
+                    builder.ladder_tops.append(
+                        (canonical[career], *max(rungs)))
                 # The promotion rules need to find a career's ladder,
                 # and a career cannot be written to, so the mapping is
                 # owned by the rule like every other one here.
@@ -1001,6 +1028,37 @@ def main():
         related_claim=qualified_ref(
             context_key, "IngestionClaim",
             prior_prospecting.removeprefix("@")))
+
+    # The top of every ladder a character can climb. The book prints
+    # the rungs and says "you may improve your rank by one"; it never
+    # says what that means for whoever is already on the last one. The
+    # executable answer - the check is not offered, because there is no
+    # rank to improve to - is a reading, so it is recorded here as a
+    # decision against the cell that proves where the ladder stops,
+    # rather than living only in the C++ that acts on it.
+    #
+    # It materializes the rung it is about, which is the half of the
+    # claim the graph DOES express: the ladder stops here. A PARTIAL
+    # claim that materializes nothing does not reconcile, and rightly -
+    # partial means part of it is represented, so the part has to be
+    # named. The rung therefore carries two claims: the transcription
+    # that put the cell in the graph, and this reading of what the
+    # source stops short of saying.
+    for career, top_index, top_alias, top_locator in sorted(
+            builder.ladder_tops):
+        ledger.append_claim(
+            builder.ops, top_locator,
+            f"The {career} ranks table ends at rank {top_index}, and the "
+            f"source does not state what an Advancement check does for a "
+            f"character already standing there.",
+            "PARTIAL", materializes=(top_alias,),
+            suffix="_rank_ladder_top", gap_kind="SOURCE_GAP",
+            reason=(
+                f"The printed ladder ends at rung {top_index}; the "
+                "executable reading that advancement stops there is "
+                "explicit but not stated by the source. Not ratified by "
+                "the owner."),
+            arbiter=LADDER_TOP_ARBITER)
 
     seed = {
         "source": {"file": CHAPTER, "commit": commit},

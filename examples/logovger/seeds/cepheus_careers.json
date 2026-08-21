@@ -11956,7 +11956,8 @@
     "source_file": "book1/character-creation.md",
     "source_section": "Qualifying and the Draft",
     "source_kind": "sentence",
-    "source_quote": "You suffer a DM\u20132 to qualification rolls for each previous career you have entered."
+    "source_quote": "You suffer a DM\u20132 to qualification rolls for each previous career you have entered.",
+    "unmodelled": "The modifier is typed and nothing applies it. A qualification throw is modified only by what its own TaskCheck declares, and the rule language cannot state a modifier that comes from the character's history rather than from the throw. Applying it needs a mechanism that does not exist yet; inventing one here would be a rule this book did not print."
    }
   },
   {

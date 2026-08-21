@@ -27,7 +27,13 @@ LEGACY_LOCATORS = {
     "source_row", "source_column", "source_quote",
 }
 CLAIM_PREFIX = "@career_table_claim_"
-MIGRATED_MATERIALIZATIONS = 1695
+# Every CLAIM_MATERIALIZES a Career Tables claim owns, split by what
+# kind of claim it is. 1695 -> 1712: seventeen careers print a rank
+# ladder a character can climb, and each top rung now also carries the
+# reading that the source does not say what advancement does there.
+MIGRATED_MATERIALIZATIONS = 1712
+CELL_TRANSCRIPTIONS = 1693
+RECORDED_READINGS = 19
 NAMELESS_LEDGER_TYPES = {
     "ByteRangeSelector", "TextQuoteSelector", "SourceTarget",
     "SourceCoverage", "CoverageDecision", "IngestionClaim",
@@ -179,7 +185,8 @@ class CareerReferenceTests(unittest.TestCase):
             for relation in relations(seed, "CLAIM_MATERIALIZES"):
                 if not relation["from"].startswith(CLAIM_PREFIX):
                     continue
-                migrated.append((path, relation))
+                decision = entities[relation["from"] + "_decision"]
+                migrated.append((path, relation, decision["properties"]))
                 target = entities[relation["to"]]
                 self.assertTrue(
                     LEGACY_LOCATORS.isdisjoint(target["properties"]),
@@ -190,11 +197,53 @@ class CareerReferenceTests(unittest.TestCase):
             len(migrated), MIGRATED_MATERIALIZATIONS,
             "the migration must retain every previously cited materialization",
         )
+
+        # Two kinds of claim materialize a Career Tables entity, and they
+        # are not interchangeable.
+        #
+        # A TRANSCRIPTION says a cell is in the graph, and there is
+        # exactly one per entity: two would mean the migration owned the
+        # same cell twice, which is the corruption this check was written
+        # to catch.
+        #
+        # A READING says what the source stops short of, over evidence
+        # already transcribed - the undefined Prospecting and Perception
+        # skills, and the seventeen rank ladders whose last rung the book
+        # never follows anyone past. It is PARTIAL by definition (part of
+        # it IS in the graph, and the ledger refuses a PARTIAL claim that
+        # materializes nothing), so it shares a target with the
+        # transcription of that target. That is the only permitted
+        # sharing, and the check below is that it stays the only one.
+        transcriptions = [
+            (path, relation["to"]) for path, relation, decision in migrated
+            if decision["claim_disposition"] == "MATERIALIZED"
+        ]
+        readings = [
+            (path, relation["to"], decision)
+            for path, relation, decision in migrated
+            if decision["claim_disposition"] != "MATERIALIZED"
+        ]
         self.assertEqual(
-            len({(path, relation["to"]) for path, relation in migrated}),
-            MIGRATED_MATERIALIZATIONS,
-            "each migrated entity must have one Career Tables claim owner",
+            len(transcriptions), CELL_TRANSCRIPTIONS,
+            "every transcribed Career Tables cell keeps its claim",
         )
+        self.assertEqual(
+            len(set(transcriptions)), CELL_TRANSCRIPTIONS,
+            "each migrated entity has exactly one transcription claim owner",
+        )
+        self.assertEqual(
+            len(readings), RECORDED_READINGS,
+            "the readings recorded over Career Tables evidence are these",
+        )
+        for path, target, decision in readings:
+            self.assertEqual(
+                decision["claim_disposition"], "PARTIAL",
+                f"{path}: {target} shares a target on a non-PARTIAL claim",
+            )
+            self.assertIn(
+                "claim_gap_kind", decision,
+                f"{path}: {target}'s reading names no kind of gap",
+            )
 
     def test_career_table_claims_have_converging_exact_support(self):
         with open(SOURCE, "rb") as source:

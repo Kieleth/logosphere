@@ -802,13 +802,34 @@ struct OutcomeExecutor::Planner {
 OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
                                  logosphere::dice::DiceService& dice)
     : kg_(kg), dice_(dice) {
-    std::string error;
-    register_handler(
+    // Registering a built-in handler can fail, and for one real
+    // reason: the KG was constructed with a registry that does not
+    // carry the rulebook ontology pack, so the Outcome type the
+    // handler is for does not exist. These nine calls used to return
+    // bool into a std::string that nothing ever read - the one place
+    // in this engine that chose not to fail closed. The cost is not
+    // hypothetical: an executor short one handler reports "no handler
+    // for outcome type X" at apply() time, in the middle of a life and
+    // a long way from the registry that caused it, and an executor
+    // short all nine applies nothing at all while looking built.
+    // Construction is where the registry is wrong, so construction is
+    // where it says so.
+    const auto must_register = [this](const char* type,
+                                      OutcomeHandler handler) {
+        std::string error;
+        if (register_handler(type, std::move(handler), error)) return;
+        throw std::invalid_argument(
+            std::string("OutcomeExecutor cannot register its built-in "
+                        "handler for '") + type + "': " + error +
+            ". The knowledge graph's registry must carry the rulebook "
+            "ontology pack.");
+    };
+    must_register(
         "NoEffect",
         [](const OutcomeHandlerContext&, OutcomePlan&, std::string&) {
             return true;
-        }, error);
-    register_handler(
+        });
+    must_register(
         "ModifyAttribute",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
@@ -853,45 +874,45 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
             plan.ops.emplace_back(kg::KGOpSetProperty{
                 target, property, std::to_string(next)});
             return true;
-        }, error);
-    register_handler(
+        });
+    must_register(
         "ModifyAttributesInGroup",
         [this](const OutcomeHandlerContext& context, OutcomePlan& plan,
                std::string& error) {
             return plan_attributes_in_group(
                 context, plan, attribute_selector_, error);
-        }, error);
-    register_handler(
+        });
+    must_register(
         "EnsureSkillLevel",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
             return plan_skill(context, plan, true, error);
-        }, error);
-    register_handler(
+        });
+    must_register(
         "AdvanceSkill",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
             return plan_skill(context, plan, false, error);
-        }, error);
-    register_handler(
+        });
+    must_register(
         "GainFixedMoney",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
             return plan_money(context, plan, false, error);
-        }, error);
-    register_handler(
+        });
+    must_register(
         "GainRolledMoney",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
             return plan_money(context, plan, true, error);
-        }, error);
-    register_handler(
+        });
+    must_register(
         "GainPossession",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
             return plan_possession(context, plan, error);
-        }, error);
-    register_handler(
+        });
+    must_register(
         "GrantTableRoll",
         [](const OutcomeHandlerContext& context, OutcomePlan& plan,
            std::string& error) {
@@ -943,7 +964,7 @@ OutcomeExecutor::OutcomeExecutor(kg::KGModule& kg,
             plan.table_roll_requests.push_back(
                 {table, static_cast<int>(count), selection});
             return true;
-        }, error);
+        });
 }
 
 bool OutcomeExecutor::register_handler(const std::string& concrete_type,

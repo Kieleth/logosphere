@@ -24,6 +24,7 @@
 #include "chargen/chargen.h"
 #include "chargen/rule_seed_loader.h"
 #include "chargen/procedure_catalog.h"
+#include "rulebook_summary.h"
 
 #include "logosphere/rules/lookup_table_selector.h"
 #include "logosphere/text/source_target.h"
@@ -32,7 +33,9 @@
 #include "generated/cepheus_book1_skills_ontology_registry.h"
 #include "generated/cepheus_book1_character_creation_ontology_registry.h"
 
+#include <cctype>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -862,6 +865,202 @@ void test_the_books_numbers_are_all_data() {
     }
 }
 
+// Every .cpp and .h the game actually ships, as one string. The
+// generated registries are left out on purpose: they name every
+// property and every type in the ontology, so a constant's name
+// turning up in one of them would prove nothing at all. Tests are left
+// out for the same reason - a constant discussed in a test comment is
+// still a constant nothing reads, which is exactly how the one below
+// hid.
+std::string shipping_game_sources() {
+    namespace fs = std::filesystem;
+    std::string all;
+    for (const char* corner : {"chargen", "src"}) {
+        const fs::path root = game_path(corner);
+        if (!fs::is_directory(root)) continue;
+        for (const auto& entry : fs::recursive_directory_iterator(root)) {
+            if (!entry.is_regular_file()) continue;
+            // generic_string(), because Windows spells the separator
+            // the other way and this exclusion would silently stop
+            // excluding.
+            if (entry.path().generic_string().find("/generated/") !=
+                std::string::npos) {
+                continue;
+            }
+            const std::string extension = entry.path().extension().string();
+            if (extension != ".cpp" && extension != ".h") continue;
+            all += slurp(entry.path().string());
+            all.push_back('\n');
+        }
+    }
+    return all;
+}
+
+// Where each RuleConstant in a world stands: read by a rule, declared
+// unread in the graph, or neither.
+struct ConstantCensus {
+    std::vector<std::string> read_by_a_rule;
+    std::vector<std::string> declared_unmodelled;
+    std::vector<std::string> declared_by_the_ledger;
+    std::vector<std::string> unaccounted_for;
+};
+
+ConstantCensus census_of(const kg::KGModule& world,
+                         const std::string& sources) {
+    ConstantCensus census;
+    for (const auto id : world.findByType("RuleConstant")) {
+        const std::string name = world.getProperty(id, "name");
+        // A READER, not a mention. ChargenSession::constant() is the
+        // only door a RuleConstant is read through, so the call is what
+        // counts and the bare token does not.
+        if (sources.find("constant(\"" + name + "\"") != std::string::npos) {
+            census.read_by_a_rule.push_back(name);
+            continue;
+        }
+        if (!world.getProperty(id, "unmodelled").empty()) {
+            census.declared_unmodelled.push_back(name);
+            continue;
+        }
+        // The ledger's own way of saying the same thing, for a
+        // constant whose gap is already owned by a claim: a decision
+        // that admits only part of the claim, naming the kind of gap.
+        bool in_the_ledger = false;
+        for (const auto claim :
+             world.getRelatedReverse(id, "CLAIM_MATERIALIZES")) {
+            for (const auto decision :
+                 world.findByProperty("decision_subject",
+                                      std::to_string(claim))) {
+                const std::string disposition =
+                    world.getProperty(decision, "claim_disposition");
+                if (disposition != "PARTIAL" && disposition != "RAISED") {
+                    continue;
+                }
+                if (world.getProperty(decision, "claim_gap_kind").empty()) {
+                    continue;
+                }
+                in_the_ledger = true;
+            }
+        }
+        if (in_the_ledger) {
+            census.declared_by_the_ledger.push_back(name);
+            continue;
+        }
+        census.unaccounted_for.push_back(name);
+    }
+    return census;
+}
+
+std::string listed(const std::vector<std::string>& names) {
+    std::string out;
+    for (const auto& name : names) {
+        out += (out.empty() ? "" : ", ") + name;
+    }
+    return out.empty() ? "(none)" : out;
+}
+
+// THE CLASS, not the instance: a seeded number either has a reader or
+// the graph says it has none.
+//
+// prior_career_dm sat in the careers seed cited, typed, valued at -2,
+// and read by nothing at all. So did the medical care cost. The test
+// that should have caught them, above, perturbs three constants named
+// in an array typed by hand - and an array typed by hand is exactly
+// the shape that lets the other five rot, which is what happened. This
+// one takes its list from the graph, so a constant seeded tomorrow is
+// covered the moment it loads, by nobody remembering anything.
+//
+// A constant passes on one of exactly two grounds:
+//
+//   1. A rule reads it. ChargenSession::constant() is the only door a
+//      RuleConstant is read through, so "reads" means the name appears
+//      inside a constant("...") call in shipping game code. A comment
+//      does not count. A test does not count.
+//
+//   2. The graph says it is not executed - either an `unmodelled` line
+//      on the constant itself ("the part of this rule the graph does
+//      not yet express, in plain words"), or a ClaimDecision that
+//      admits only part of the claim and names the kind of gap. Two
+//      shapes because two owners: a constant whose gap is already
+//      recorded in the ingestion ledger must not have a second copy of
+//      that record written onto itself.
+//
+// What this does NOT do, deliberately: apply prior_career_dm. There is
+// no mechanism to hand a situational modifier to a throw, building one
+// is a design decision, and a gate exists to make an absence visible,
+// not to fill it.
+void test_a_seeded_constant_has_a_reader_or_says_it_has_none() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the constant-census world: " + why);
+    if (!why.empty()) return;
+
+    const std::string sources = shipping_game_sources();
+    CHECK(sources.find("ChargenSession::constant(") != std::string::npos,
+          "the shipping game sources were found and read (" +
+              std::to_string(sources.size()) + " bytes)");
+
+    const auto census = census_of(world, sources);
+    std::cout << "  [measure] " << world.findByType("RuleConstant").size()
+              << " seeded constants: read by a rule -> "
+              << listed(census.read_by_a_rule) << "\n";
+    std::cout << "  [measure]   declared unmodelled -> "
+              << listed(census.declared_unmodelled)
+              << "; recorded as a partial claim -> "
+              << listed(census.declared_by_the_ledger) << "\n";
+
+    CHECK(census.unaccounted_for.empty(),
+          "these numbers are in the graph, cited, and neither read by a "
+          "rule nor recorded as unread: " + listed(census.unaccounted_for));
+
+    // ---- the gate is not vacuous, proved in both directions --------
+
+    // It can see a reader. Without this, a gate that never finds one
+    // would pass every constant through ground 2 and say nothing.
+    CHECK(!census.read_by_a_rule.empty(),
+          "the census recognises at least one constant a rule reads");
+    CHECK(!census.declared_unmodelled.empty() ||
+              !census.declared_by_the_ledger.empty(),
+          "and at least one the graph declares unread; with none of "
+          "either this is measuring nothing");
+
+    // It fails on a number nothing reads and nothing declares.
+    const auto planted = world.createEntity("RuleConstant");
+    world.setProperty(planted, "name", "a_number_no_rule_reads");
+    world.setProperty(planted, "constant_value", "7");
+    const auto with_a_stranger = census_of(world, sources);
+    CHECK(with_a_stranger.unaccounted_for.size() == 1 &&
+              with_a_stranger.unaccounted_for.front() ==
+                  "a_number_no_rule_reads",
+          "a constant nothing reads and nothing declares is caught: " +
+              listed(with_a_stranger.unaccounted_for));
+
+    // A mention is not a reader. "ChargenSession" appears hundreds of
+    // times in the sources this scan just read, and never once inside a
+    // constant("...") call.
+    world.setProperty(planted, "name", "ChargenSession");
+    const auto mentioned = census_of(world, sources);
+    CHECK(sources.find("ChargenSession") != std::string::npos,
+          "the control token really is all over the shipping sources");
+    CHECK(std::find(mentioned.unaccounted_for.begin(),
+                    mentioned.unaccounted_for.end(),
+                    "ChargenSession") != mentioned.unaccounted_for.end(),
+          "a name the sources merely mention does not count as a reader");
+
+    // And it clears once the graph says what the number does not do.
+    world.setProperty(planted, "name", "a_number_no_rule_reads");
+    world.setProperty(planted, "unmodelled",
+                      "Nothing applies it, and this line is why.");
+    const auto declared = census_of(world, sources);
+    CHECK(declared.unaccounted_for.empty(),
+          "and the same constant passes once the graph carries the "
+          "reason: " + listed(declared.unaccounted_for));
+    CHECK(std::find(declared.declared_unmodelled.begin(),
+                    declared.declared_unmodelled.end(),
+                    "a_number_no_rule_reads") !=
+              declared.declared_unmodelled.end(),
+          "on that ground and not by accident");
+}
+
 // "Increase your age by 4 years" is the whole of what its checklist
 // step does, so the STEP declares it and the executor applies it. It
 // used to be age_years += 4 inside the primitive, where no reader of
@@ -1079,6 +1278,66 @@ void test_extra_benefits_by_rank_are_a_table() {
     CHECK(implied,
           "the O4 row says which words state its count, having no digit "
           "and no number word to prove it");
+}
+
+// The first line the player reads counts the graph it is describing.
+//
+// It used to be a sentence with three numbers typed into it: "24
+// careers, 48 throws, 150 rollable-table rows, all cited." One of the
+// three was right. The seeds hold 106 TaskChecks and 938 TableEntry
+// rows across 148 RollableTables, and they got there by growing, which
+// is not something a string literal in a header can notice. Editing
+// the numbers to today's values would have restarted the same clock,
+// so the count moved to where it is printed.
+void test_the_opening_line_counts_the_graph_it_describes() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the opening-line world: " + why);
+    if (!why.empty()) return;
+
+    const std::string said = logovger::rulebook_summary(world);
+    std::cout << "  [measure] " << said << "\n";
+
+    const struct { const char* type; const char* words; } counted[] = {
+        {"Career", " careers"},
+        {"TaskCheck", " throws"},
+        {"TableEntry", " rollable-table rows"},
+        {"RollableTable", " tables"},
+    };
+    for (const auto& part : counted) {
+        const std::string number =
+            std::to_string(world.findByType(part.type).size());
+        CHECK(said.find(number + part.words) != std::string::npos,
+              std::string("the line states the graph's own count of ") +
+                  part.type + ", which is " + number + ": " + said);
+    }
+
+    // Counted rather than written: one more career in the graph is one
+    // more career in the line.
+    world.createEntity("Career");
+    const std::string again = logovger::rulebook_summary(world);
+    CHECK(again != said,
+          "the line follows the graph rather than restating a literal: '" +
+              again + "'");
+
+    // And it is the line the app prints. This half is a source check
+    // because the app header pulls in a window; without it the numbers
+    // could go back into the banner and every assertion above would
+    // still pass, which is exactly how they got there.
+    const std::string app = slurp(game_path("src/logovger_app.h"));
+    CHECK(!app.empty(), "the app source is readable");
+    CHECK(app.find("rulebook_summary(kg)") != std::string::npos,
+          "the app's opening line is the counted one");
+    size_t typed = 0;
+    for (size_t at = app.find(" careers"); at != std::string::npos;
+         at = app.find(" careers", at + 1)) {
+        if (at > 0 && std::isdigit(static_cast<unsigned char>(app[at - 1]))) {
+            ++typed;
+        }
+    }
+    CHECK(typed == 0,
+          "no count of careers is typed into the app: found " +
+              std::to_string(typed));
 }
 
 // An arbiter's decision leaves a record, and the record says who
@@ -3031,6 +3290,252 @@ void test_the_aging_crisis_is_paid_for_or_kills() {
     }
 }
 
+// The highest rung a track holds, and what the book calls whoever
+// stands on it. Read from the graph, because the ladder is data: a
+// career whose book prints four rungs must top out at four.
+int top_rung_of(const kg::KGModule& world, const std::string& track,
+                std::string& title) {
+    int top = -1;
+    for (const auto id : world.findByType("ProgressionTrack")) {
+        if (world.getProperty(id, "name") != track) continue;
+        for (const auto rung : world.getRelated(id, "HAS_PART")) {
+            const std::string at = world.getProperty(rung, "step_index");
+            if (at.empty()) continue;
+            const int index = std::stoi(at);
+            if (index <= top) continue;
+            top = index;
+            title = world.getProperty(rung, "step_title");
+        }
+    }
+    return top;
+}
+
+// What one life did with a ladder.
+struct Climb {
+    int         highest_rank = 0;
+    int         final_rank = 0;
+    int         terms_in_career = 0;
+    int         benefit_rolls = -1;   // what the first benefit question said
+    int         asked_again_at_the_top = 0;
+    std::string rank_title;
+    // True from the moment the character stands on the last printed
+    // rung, whatever happens afterwards. Chosen over "finished there"
+    // because a promotion off the end of the ladder is exactly the
+    // thing under test, and a life that took one would not qualify.
+    bool        ever_at_the_top = false;
+};
+
+// One life, one career, reaching for rank every time it is offered and
+// serving until the book stops it. Every answer here answers a
+// question the book asks; none of them decides a rule.
+bool climb_a_ladder(kg::KGModule& world, uint64_t seed,
+                    const std::string& career, int top_rung, Climb& out,
+                    std::string& error) {
+    logosphere::dice::DiceService dice;
+    logovger::ChargenSession session(world, dice);
+    session.set_attribute_selector(weakest_first_referee());
+    session.set_choice_resolver(
+        [](const logosphere::rules::PendingChoice& ask, int& option,
+           std::string& why) {
+            if (ask.options.empty()) { why = "a choice with no options"; return false; }
+            option = 0;
+            return true;
+        });
+    if (!session.begin(seed, error)) return false;
+    bool offered = false;
+    for (const auto& choice : session.choices()) {
+        if (choice.label == career) offered = true;
+    }
+    if (!offered) { error = "no career named '" + career + "'"; return false; }
+    if (!session.choose(career, error)) return false;
+
+    for (int answered = 0; answered < 500 && !session.finished(); ++answered) {
+        const auto& choices = session.choices();
+        if (choices.empty()) break;
+        const std::string prompt = session.prompt();
+        const auto& sheet = session.sheet();
+        if (sheet.rank > out.highest_rank) out.highest_rank = sheet.rank;
+        if (sheet.rank >= top_rung) out.ever_at_the_top = true;
+
+        std::string answer = choices.front().key;
+        if (prompt.find("try for advancement") != std::string::npos) {
+            if (sheet.rank >= top_rung) ++out.asked_again_at_the_top;
+            answer = "1";
+        } else if (prompt.find("try for commission") != std::string::npos) {
+            answer = "1";
+        } else if (prompt.find(" is over. What now?") != std::string::npos) {
+            answer = "1";              // serve on, to climb further
+        } else if (prompt.find("Another career, or finish?") !=
+                   std::string::npos) {
+            answer = "finish";         // one ladder, not two
+        } else if (prompt.find("benefit roll(s) left") != std::string::npos) {
+            // The first of these states the whole entitlement, before
+            // any of it is spent. It is the number the player is shown.
+            if (out.benefit_rolls < 0) {
+                out.benefit_rolls = std::stoi(prompt);
+                out.terms_in_career = sheet.terms_in_career;
+                out.final_rank = sheet.rank;
+                out.rank_title = sheet.rank_title;
+            }
+        }
+        if (!session.choose(answer, error)) return false;
+    }
+    const auto& sheet = session.sheet();
+    if (sheet.rank > out.highest_rank) out.highest_rank = sheet.rank;
+    if (sheet.rank >= top_rung) out.ever_at_the_top = true;
+    return true;
+}
+
+// The top of a ladder is the top.
+//
+// Cepheus prints seven rungs for every career that has them and says
+// only "you may improve your rank by one". It never says what happens
+// to whoever is standing on the last rung. Rank was an int on the C++
+// sheet, so advancing was rank + 1, and arithmetic cannot fail: a
+// Brigadier who threw well became a rank 7 that no rung in the graph
+// describes. Nothing said so. The promotion line reprinted the title
+// the character already held, and the money went quietly: the
+// extra_benefits_by_rank table has rows for 4, 5 and 6 and declares a
+// miss as nothing, so rank 7 collected the Brigadier's three extra
+// benefit rolls as zero.
+//
+// The reading implemented, recorded in the careers seed as a
+// PARTIAL / SOURCE_GAP claim rather than smuggled in here: at the top
+// of the ladder the advancement check is not offered at all, because
+// "improve your rank by one" cannot be satisfied. Rank stays on the
+// top rung and the benefit rolls stay with it.
+void test_a_rank_ladder_has_a_top() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the rank-ceiling world: " + why);
+    if (!why.empty()) return;
+
+    std::string top_title;
+    const int top = top_rung_of(world, "Mercenary ranks", top_title);
+    CHECK(top >= 0 && !top_title.empty(),
+          "the Mercenary ladder is in the graph with a title on its top "
+          "rung");
+    if (top < 0) return;
+
+    // What the book pays a character standing on that rung, read from
+    // the same table muster_out reads.
+    kg::EntityID bonus_table = kg::INVALID_ENTITY;
+    for (const auto id : world.findByType("LookupTable")) {
+        if (world.getProperty(id, "name") == "extra_benefits_by_rank") {
+            bonus_table = id;
+        }
+    }
+    CHECK(bonus_table != kg::INVALID_ENTITY,
+          "the extra-benefits ladder is a table in the graph");
+    if (bonus_table == kg::INVALID_ENTITY) return;
+    logosphere::rules::LookupTableSelector ranks(world);
+    const auto top_row = ranks.select(bonus_table, top);
+    CHECK(top_row.ok(),
+          "the book pays the top rung something: " + top_row.error);
+    if (!top_row.ok()) return;
+    const int top_extra =
+        std::stoi(world.getProperty(top_row.selection->row(),
+                                    "extra_benefit_rolls"));
+
+    // What the ladder calls a character standing on each of its rungs.
+    // A rank with no rung here is a rank the book does not describe,
+    // which is the whole of the defect.
+    std::map<int, std::string> titles;
+    for (const auto id : world.findByType("ProgressionTrack")) {
+        if (world.getProperty(id, "name") != "Mercenary ranks") continue;
+        for (const auto rung : world.getRelated(id, "HAS_PART")) {
+            const std::string at = world.getProperty(rung, "step_index");
+            if (at.empty()) continue;
+            titles[std::stoi(at)] = world.getProperty(rung, "step_title");
+        }
+    }
+
+    int swept = 0, reached_the_top = 0, paid = 0, offers_at_the_top = 0;
+    int highest = 0, shortchanged = 0, wrong_rank = 0, mistitled = 0;
+    uint64_t past_the_top_at = 0, first_shortchanged = 0;
+    Climb worst;
+    for (uint64_t seed = 1; seed <= 400; ++seed) {
+        ++swept;
+        Climb one;
+        std::string error;
+        if (!climb_a_ladder(world, seed, "Mercenary", top, one, error)) {
+            continue;
+        }
+        if (one.highest_rank > highest) highest = one.highest_rank;
+        if (one.highest_rank > top && past_the_top_at == 0) {
+            past_the_top_at = seed;
+        }
+        offers_at_the_top += one.asked_again_at_the_top;
+        if (!one.ever_at_the_top) continue;
+        ++reached_the_top;
+        // A life that died or forfeited never saw the question, so it
+        // says nothing about what the question pays.
+        if (one.benefit_rolls < 0) continue;
+        ++paid;
+        if (one.final_rank != top) ++wrong_rank;
+        const auto rung = titles.find(one.final_rank);
+        if (rung == titles.end() || rung->second != one.rank_title) {
+            ++mistitled;
+        }
+        if (one.benefit_rolls != one.terms_in_career + top_extra) {
+            ++shortchanged;
+            if (first_shortchanged == 0) {
+                first_shortchanged = seed;
+                worst = one;
+            }
+        }
+    }
+    std::cout << "  [measure] " << swept << " Mercenary lives that reach for "
+              << "rank every term: highest rank " << highest << " against a "
+              << "ladder that tops at " << top << " (" << top_title << "), "
+              << reached_the_top << " stood on the last rung, " << paid
+              << " of those lived to be paid, " << offers_at_the_top
+              << " advancement question(s) asked at the top\n";
+
+    // Non-vacuity, stated as a measurement rather than assumed: a
+    // sweep where nobody reaches the last rung proves nothing about
+    // what happens there.
+    CHECK(reached_the_top > 0 && paid > 0,
+          "some life in " + std::to_string(swept) +
+              " reaches the top of the Mercenary ladder and lives to muster "
+              "out; none did, so this test asserts nothing");
+    if (paid == 0) return;
+
+    CHECK(highest <= top,
+          "no life climbs past the last rung the book prints: highest rank "
+          "reached was " + std::to_string(highest) + " against a top rung of " +
+              std::to_string(top) + " (first at seed " +
+              std::to_string(past_the_top_at) + ")");
+    CHECK(offers_at_the_top == 0,
+          "a character on the top rung is not asked to improve their rank by "
+          "one, because there is no rung to improve to: asked " +
+              std::to_string(offers_at_the_top) + " time(s)");
+    CHECK(wrong_rank == 0,
+          std::to_string(wrong_rank) + " of " + std::to_string(paid) +
+              " lives that reached the top rung mustered out somewhere else");
+    if (shortchanged != 0) {
+        std::cout << "  [measure] seed " << first_shortchanged
+                  << " reached the top rung and mustered out as "
+                  << (worst.rank_title.empty() ? "(no title)"
+                                               : worst.rank_title)
+                  << " at rank " << worst.final_rank << " after "
+                  << worst.terms_in_career << " term(s), with "
+                  << worst.benefit_rolls << " benefit roll(s) where the book "
+                  << "owes " << worst.terms_in_career << " + " << top_extra
+                  << " = " << (worst.terms_in_career + top_extra) << "\n";
+    }
+    CHECK(shortchanged == 0,
+          "every life that stands on the top rung is paid what the book pays "
+          "that rung: " + std::to_string(shortchanged) + " of " +
+              std::to_string(paid) + " were not");
+
+    CHECK(mistitled == 0,
+          "the title on the sheet is the title of the rung the character "
+          "stands on, not the last one that had a title: " +
+              std::to_string(mistitled) + " of " + std::to_string(paid) +
+              " disagreed with the ladder");
+}
+
 }  // namespace
 
 int main() {
@@ -3056,7 +3561,10 @@ int main() {
     test_every_declared_rule_type_has_an_instance();
     test_missing_rule_constant_never_falls_back();
     test_extra_benefits_by_rank_are_a_table();
+    test_the_opening_line_counts_the_graph_it_describes();
+    test_a_rank_ladder_has_a_top();
     test_the_books_numbers_are_all_data();
+    test_a_seeded_constant_has_a_reader_or_says_it_has_none();
     test_a_step_can_declare_what_it_does();
     test_a_mishap_costs_the_years_its_row_states();
     test_renaming_every_table_changes_nothing();

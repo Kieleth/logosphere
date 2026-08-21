@@ -152,20 +152,34 @@ DM_COLUMN = "Characteristic Modifier"
 # quote, so a wrong number or a wrong sentence fails the build rather
 # than shipping. implied_by is for a count the text states without
 # writing; none of these need it yet.
+#
+# Fields: name, value, section, the sentence that proves it, and what
+# the graph does NOT do with it. That fifth field is the `unmodelled`
+# slot, and it is None for every constant a rule actually reads. It is
+# not a comment: a number the book prints that nothing applies looks
+# exactly like a number something applies, and the difference has to be
+# in the graph or it is nowhere at all. prior_career_dm sat here cited,
+# typed, and unread, and no check could see the difference.
 RULE_CONSTANTS = [
     ("prior_career_dm", "-2", "Qualifying and the Draft",
      "You suffer a DM–2 to qualification rolls for each previous "
-     "career you have entered."),
+     "career you have entered.",
+     "The modifier is typed and nothing applies it. A qualification "
+     "throw is modified only by what its own TaskCheck declares, and "
+     "the rule language cannot state a modifier that comes from the "
+     "character's history rather than from the throw. Applying it "
+     "needs a mechanism that does not exist yet; inventing one here "
+     "would be a rule this book did not print."),
     ("max_terms", "7", "Reenlistment and Retirement",
      "The Referee may want to change the maximum number of terms spent "
-     "in character creation from 7 to something else."),
+     "in character creation from 7 to something else.", None),
     ("reenlistment_forced_natural", "12", "Reenlistment and Retirement",
      "If the character rolls a natural 12, they cannot leave their "
-     "current career and must continue for another term."),
+     "current career and must continue for another term.", None),
     ("cash_benefit_roll_max", "3", "Cash Benefits",
-     "Up to 3 benefit rolls can be taken on the Cash table."),
+     "Up to 3 benefit rolls can be taken on the Cash table.", None),
     ("survival_natural_failure", "2", "Survival",
-     "A natural 2 is always a failure."),
+     "A natural 2 is always a failure.", None),
 ]
 
 PROSPECTING_LOCATOR = (
@@ -498,11 +512,14 @@ def main():
         b.relate("@rank_benefits", alias)
 
     # ---- the eight numbers a human read out of the prose ------------
-    for name, value, section, quote in RULE_CONSTANTS:
-        b.add("RuleConstant", "@" + name, dict(
+    for name, value, section, quote, unmodelled in RULE_CONSTANTS:
+        properties = dict(
             name=name, constant_value=value, source_file=CHAPTER,
             source_section=section, source_kind="sentence",
-            source_quote=quote))
+            source_quote=quote)
+        if unmodelled:
+            properties["unmodelled"] = unmodelled
+        b.add("RuleConstant", "@" + name, properties)
 
     ledger = CareerTableLedger(source_bytes, tables)
     migrated = ledger.migrate(b.ops)
