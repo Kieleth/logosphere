@@ -1,18 +1,28 @@
-// TO-INVESTIGATE (test-protocol migration, 2026-08-21): part [1c],
-// "fallen-log placement offset, per preset", asserts that EVERY fallen-log
-// preset's oriented bottom sits strictly ABOVE the ground it targets, and
-// calls that the passing case. A log placed on the ground and floating above
-// it is not a correct placement under any reading of the physics — INV-4 says
-// a generated structure is born at rest with no overlap beyond slop, and
-// hovering is the other side of the same coin, a body whose support is not
-// where the generator thinks it is. The check is honest about being a
-// measured consequence rather than a law (the block's own comment says
-// "Reported, not fixed"), but as written the test goes RED the day
-// FallenTreeGenerator's offset is migrated to oriented bounds, which means a
-// correct fix looks like a regression. Needs an owner ruling on whether the
-// ratchet should invert (assert the bottom lands ON the ground) at the same
-// time the generator is corrected. Do not weaken it in the meantime: the
-// number it pins is the size of the debt.
+// ADJUDICATED 2026-08-21 (test-adjudication pass): REPAIRED, and part [1c] is
+// now BORN RED by design.
+//
+// The finding it was booked for was a GENERATOR OFFSET, not a test error, and
+// the evidence is in the generator's own comment. `FallenTreeGenerator`
+// (src/worldgen/fallen_tree_generator.cpp:170-177) places each segment centre
+// at `world_z + seg_len_z * 0.5f` and says why: "The half-extent is half the
+// segment length, plus the 1.1 overlap the caller applies." That sentence was
+// true only while bounds were rotation-blind. `create_segment` lays the log
+// down with `rotation_y = pi/2` and writes the LENGTH into `thickness`
+// (:242-259), so under oriented bounds the world-Z half-extent is half the
+// DIAMETER, and the same offset now lifts every preset clear of the ground by
+// (seg_len_z - diameter) / 2. This test reconstructs that arithmetic line for
+// line and reproduces the lift exactly: +0.2600, +0.2083, +0.2875, +0.2400 m.
+//
+// The old check asserted the lift and called it the PASS. It now asserts what
+// INV-4 requires — the oriented bottom lands ON the ground the generator
+// targeted, within SLOP — and reports the residual lift per preset. It is red
+// today, in the honest direction: the number it prints is the size of the
+// generator's debt, and the day the offset is migrated to oriented bounds it
+// goes green without anyone touching this file.
+//
+// CI NOTE: this file is `add_headless_test`, so it is a ctest in the
+// headless-only profile and runs in the PR-gating headless-linux lane.
+// TEST_AUDIT carries `expect: fail`; no CI edit was made.
 //
 // ============================================================================
 // COLLISION BOUNDS vs ROTATION: the table that keeps the comments honest
@@ -154,10 +164,13 @@ int main() {
     // It places a segment centre at world_z + seg_len_z/2, an offset derived
     // when bounds were rotation-blind and the segment's world-Z half-extent
     // really was half its length. Oriented bounds make the half-extent half
-    // the DIAMETER, so the same offset now lifts every preset off the ground
-    // by exactly the amount the old comment records as its burial depth,
-    // sign flipped. Reported, not fixed: correcting the offset is a
-    // behaviour change and belongs to whoever owns that generator.
+    // the DIAMETER, so the same offset now lifts every preset off the ground.
+    //
+    // BORN RED. The claim is INV-4's, not the generator's: a structure is born
+    // at rest, which means its bottom is ON the ground it was placed on, not
+    // hovering above it and not buried in it. The tolerance is SLOP, the same
+    // 1 mm the solver ignores, because that is the width of "touching" in this
+    // engine. It goes green when the offset uses the oriented half-extent.
     printf("    [1c] fallen-log placement offset, per preset\n");
     {
         struct Preset { const char* name; float length; int segs; float diameter; };
@@ -167,19 +180,26 @@ int main() {
             {"fallen_branch", 1.5f, 2, 0.25f},
             {"twig",          0.6f, 1, 0.18f},
         };
-        bool all_float = true;
+        const float kGroundZ = 0.0f;   // the world_z every preset is placed at
+        bool all_rest_on_ground = true;
+        float worst_lift = 0.0f;
         for (const Preset& ps : presets) {
             const float seg_len_z = (ps.length / ps.segs) * 1.1f;
             const float seg_z     = seg_len_z * 0.5f;      // world_z = 0
             Particle seg = box(0, 0, seg_z, ps.diameter, ps.diameter, seg_len_z,
                                0.0f, (float)M_PI / 2.0f, 0.0f);
             const AABB6 w = aabb_of_obb(obb_of_box_particle(seg, seg.z));
-            printf("        %-14s oriented bottom %+.4f m (blind bottom %+.4f m)\n",
-                   ps.name, w.min_z, seg_z - seg_len_z * 0.5f);
-            if (w.min_z <= 1e-4f) all_float = false;
+            const float lift = w.min_z - kGroundZ;
+            printf("        %-14s oriented bottom %+.4f m   lift %+.4f m"
+                   "   (bottom the un-migrated offset assumes %+.4f m)\n",
+                   ps.name, w.min_z, lift, seg_z - seg_len_z * 0.5f);
+            if (std::fabs(lift) > PhysicsV4::SLOP) all_rest_on_ground = false;
+            if (std::fabs(lift) > std::fabs(worst_lift)) worst_lift = lift;
         }
-        check(all_float,
-              "TO-INVESTIGATE ratchet, NOT a law: every preset's oriented bottom sits ABOVE the ground it targets. INV-4 says a structure is born at rest; a log floating above the ground it was placed on is not. This pins the measured consequence of an un-migrated generator offset");
+        printf("        worst lift %+.4f m against a SLOP of %.4f m\n",
+               worst_lift, (double)PhysicsV4::SLOP);
+        check(all_rest_on_ground,
+              "INV-4: every fallen-log preset is born AT REST — its oriented bottom lands ON the target ground within SLOP, neither hovering nor buried");
     }
 
     // ------------------------------------------------------------------

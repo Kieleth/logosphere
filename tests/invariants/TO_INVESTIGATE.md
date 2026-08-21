@@ -17,23 +17,43 @@ a time; the exit-code behaviour of every one of them is unchanged.
 
 ## test_collision_bounds_rotation — part [1c], fallen-log placement offset
 
-**What it asserts.** That every fallen-log preset's oriented bottom sits
+**ADJUDICATED 2026-08-21: REPAIRED, born red. The defect is in the generator.**
+
+**What it asserted.** That every fallen-log preset's oriented bottom sits
 strictly ABOVE the ground it targets (`all_float`), and that this is the
 passing case.
 
-**Why that is wrong.** A log placed on the ground and floating above it is not
-a correct placement. INV-4 requires a generated structure to be born at rest
-with no overlap beyond slop; a hovering body is the same defect with the sign
-flipped — its support is not where the generator thinks it is. The block is
-honest that it is recording a measured consequence rather than a law ("Reported,
-not fixed"), but as written the test goes RED the day FallenTreeGenerator's
-offset is migrated to oriented bounds. A correct fix would look like a
-regression.
+**Diagnosis: generator offset, not test error.** `FallenTreeGenerator`
+(`src/worldgen/fallen_tree_generator.cpp:170-177`) places each segment centre
+at `world_z + seg_len_z * 0.5f` and states the assumption in its own comment:
+"The half-extent is half the segment length, plus the 1.1 overlap the caller
+applies." That was true only while bounds were rotation-blind. `create_segment`
+(`:242-259`) lays the log down with `rotation_y = pi/2` and writes the LENGTH
+into the `thickness` field, so under oriented bounds the world-Z half-extent is
+half the DIAMETER. The same offset therefore lifts every preset clear of the
+ground by `(seg_len_z - diameter) / 2`. The test reconstructs that arithmetic
+line for line and reproduces the lift exactly.
 
-**What is owed.** An owner ruling on whether the ratchet inverts — assert the
-bottom lands ON the ground — in the same change that corrects the generator
-offset. Until then the number it pins is the size of the debt and must not be
-loosened.
+**Measured lift, against a SLOP of 0.0010 m.**
+
+| preset | oriented bottom | lift |
+|---|---|---|
+| fallen_trunk | +0.2600 m | +0.2600 m |
+| fallen_log | +0.2083 m | +0.2083 m |
+| fallen_branch | +0.2875 m | +0.2875 m |
+| twig | +0.2400 m | +0.2400 m |
+
+**What changed.** The check now asserts INV-4 — the oriented bottom lands ON
+the target ground within SLOP, neither hovering nor buried — and prints the
+residual lift per preset plus the worst case. Before: 27 checks, 0 failed
+(PASS). After: 27 checks, 1 failed (FAIL). No engine code was touched: the
+test is now red in the honest direction, and goes green the day the generator
+offset uses the oriented half-extent.
+
+**CI.** This file is registered with `add_headless_test`, which makes it a
+ctest in the headless-only profile. It runs in the **PR-gating headless-linux
+lane** and in headless-windows. `TEST_AUDIT` now carries `expect: fail`. No CI
+file was edited; the gate will go red until the generator is corrected.
 
 ---
 
