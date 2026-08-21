@@ -216,12 +216,29 @@ An owner ruling between two options, both real:
 
 ---
 
-## test_physics_minimal — "low oscillation, damping working" is counted as a pass
+## test_physics_minimal — REPAIRED 2026-08-21, still green
 
-**What it asserts.** Three-branch verdict on the maximum final velocity of a
-stack of tiles that nothing is touching: under 0.01 m/s passes as "at rest";
-between 0.01 and 0.1 m/s ALSO passes, printed as "Low oscillation — damping
-working"; above 0.1 m/s fails.
+**ADJUDICATED: the middle branch is deleted and the band is the sibling's.
+INV-34 (rest-is-reached), ratified 2026-08-21, is exactly this law and its own
+mechanism field names this test as its second known violation. The pass now
+requires BOTH `not_at_rest == 0` — `test_physics_minimal_v2`'s own predicate,
+which is the engine's quietness verdict — and a maximum final speed under
+0.01 m/s. The 0.01-0.1 m/s range FAILS.**
+
+**It did not go red, and that is a measurement, not luck.** PHASE 1: max final
+speed 0.0000 m/s, 1/1 at rest. PHASE 8: 0.0000 m/s, 16/16 at rest. PHASE 9:
+same verdict. The tile scene settles honestly today, so the middle branch was
+dead code protecting a defect the G-44 sleep work had already removed from it.
+Tightening it cost no verdict anywhere it was run. `expect` stays `pass`.
+
+The identical branch in `test_oscillation_diagnostic` did NOT survive the same
+tightening: 0.0817 m/s on a gluoned scene, now red. Same defect, two scenes,
+one of them already fixed.
+
+**What it asserted before.** Three-branch verdict on the maximum final velocity
+of a stack of tiles that nothing is touching: under 0.01 m/s passes as "at
+rest"; between 0.01 and 0.1 m/s ALSO passes, printed as "Low oscillation —
+damping working"; above 0.1 m/s fails.
 
 **Why the middle branch is wrong.** INV-24: at steady state a scene performs
 ZERO corrective work, and a correction that fires forever on the same body is a
@@ -236,9 +253,13 @@ and the audited green was not a green. Its own sibling `test_physics_minimal_v2`
 demands zero on the same scene shape, so the two files disagree about the same
 law.
 
-**What is owed.** A ruling on whether the middle branch fails, and at which
-bound — most likely G-44's quietness bound in extremity speed rather than a
-COM-speed band. Not weakened here; exit code unchanged.
+**What was owed, and what was done.** A ruling on whether the middle branch
+fails, and at which bound. Answered from the registry rather than by taste:
+INV-34 is the law, the sibling already spelled the band, and the two files
+agreeing is the point. Still open for the owner: whether the bound should
+eventually be G-44's extremity speed `sqrt(v^2 + (omega*r)^2)` rather than a
+COM-speed band. `is_at_rest` already prices it that way internally, which is
+why both halves are asserted.
 
 ---
 
@@ -303,12 +324,36 @@ expect-pass. Nothing changed; exit code unchanged.
 
 ---
 
-## test_oscillation_diagnostic — the same "damping working" pass as test_physics_minimal
+## test_oscillation_diagnostic — REPAIRED 2026-08-21 as a regression test, BORN RED
 
-**What it asserts.** Identical three-branch verdict: under 0.01 m/s is "at
-rest"; 0.01 to 0.1 m/s ALSO passes, printed as "Low oscillation — damping
-working"; above 0.1 m/s fails. The subject is a gluoned 2x2 tile on the turtle
-that nothing is touching.
+**ADJUDICATED. The question was diagnostic or regression test, and it was
+decided mechanically, not by taste.** A diagnostic reports and never claims, so
+it would carry no PASS band at all. But this file already carried a band that
+CAN return false — above 0.1 m/s it fails — and demoting it to a pure reporter
+would take a test that can go red and make it unable to. That is a weakening,
+and weakening is the move this whole pass exists to undo. Its structure says
+the same thing: a deterministic scene, a measured final velocity, and a verdict
+on that measurement is regression structure whatever the filename says. So the
+band stays and becomes the law's.
+
+**The band is now `not_at_rest == 0` AND max final speed under 0.01 m/s**, the
+same as its sibling `test_physics_minimal`. Laws named in the asserts: INV-34
+(rest-is-reached, ratified 2026-08-21), INV-24 (zero corrective work at steady
+state), INV-22 (the file's own hypothesis — a gluon row and a turtle contact
+governing one pair — stated as the law it always was), with G-44 behind
+`is_at_rest`'s currency.
+
+**Measured, default phase 11 (64x64 floor, 16 trees, 32 rocks, 8 fallen trees),
+5 s.** Before: max final speed 0.0816663 m/s, verdict PASS via the middle
+branch. After: same 0.0816663 m/s plus **173 of 5553 bodies never at rest**,
+verdict FAIL. Booked `expect: fail`, known_open, same front as the G-44
+gluon-tree oscillation RCA already on the board. It is in no CI lane: the
+standalone harness tests are reached only by an explicit `--test <name>`.
+
+**What it asserted before.** Identical three-branch verdict: under 0.01 m/s is
+"at rest"; 0.01 to 0.1 m/s ALSO passes, printed as "Low oscillation — damping
+working"; above 0.1 m/s fails. The subject is a gluoned tile scene on the
+turtle that nothing is touching.
 
 **Why the middle branch is wrong.** Same two laws as `test_physics_minimal`:
 INV-24 (zero corrective work at steady state; the firings that earned it were
@@ -319,7 +364,10 @@ hypothesis — gluon constraints fighting turtle contacts — is INV-22 (exactly
 one mechanism governs a pair), so the thing it exists to find is a law
 violation it is configured to pass.
 
-**What is owed.** Ruled together with `test_physics_minimal`: does the middle
-branch fail, and at which bound. Not weakened; exit code unchanged.
+**What is still owed.** Not the band — that is settled and enforced. The RCA:
+what sustains 0.0817 m/s and keeps 173 bodies awake on a scene nobody is
+touching. The file's own hypothesis (gluon constraints fighting turtle
+contacts, INV-22) is the first thing to falsify, and it now has a red test to
+falsify it against.
 
 ---

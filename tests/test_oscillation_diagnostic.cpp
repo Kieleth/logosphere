@@ -11,6 +11,47 @@
 // pass band absorbs a tenth of it. Not weakened here, exit code unchanged;
 // ruled together with test_physics_minimal.
 //
+// ADJUDICATED 2026-08-21 (test-adjudication pass): REPAIRED as a REGRESSION
+// TEST, and BORN RED at the default phase.
+//
+// THE QUESTION PUT TO IT WAS: diagnostic or regression test? A diagnostic
+// should have no PASS band at all — it reports and never claims. This file
+// reads as an instrument (its name, its "Goal: Reproduce the 0.5-1 m/s
+// oscillation", its sixteen phases sweeping an ablation matrix up to 65536
+// tiles), so the diagnostic reading is the tempting one.
+//
+// IT IS THE WRONG ONE, and the reason is mechanical rather than aesthetic.
+// The file already carries a band that CAN return false: above 0.1 m/s it
+// fails. Demoting it to a pure reporter would take a test that can go red and
+// make it unable to, which is a weakening, and weakening is the thing this
+// pass exists to undo. Structure decides it too: a deterministic scene, a
+// measured final velocity, and a verdict on that measurement is regression
+// structure whatever the filename says. So the band stays, and becomes the
+// law's.
+//
+// THE LAW. INV-34 (rest-is-reached, ratified 2026-08-21): a scene with no
+// external input settles in bounded time and stays settled, and "sustained
+// oscillation of an untouched body is an energy source wearing a steady
+// state's clothes, however small its amplitude". INV-24: a settled scene
+// performs zero corrective work, its record earned on firings of 290 nm each,
+// five orders of magnitude under the band that used to pass here. INV-19:
+// damping exists only where a real dissipation process is modelled, so
+// "damping working" was naming a numerical convenience as physics. And the
+// file's own hypothesis, "gluon constraints fighting turtle contacts", is
+// INV-22 stated as a suspicion: exactly one mechanism governs a pair. The
+// thing it exists to find was a law violation it was configured to pass.
+//
+// MEASURED. Default phase (11: 64x64 floor, 16 trees, 32 rocks, 8 fallen
+// trees), 5 s: max final speed 0.0817 m/s, inside the old middle branch and
+// therefore a green before this change. It is now FAIL, which is the honest
+// state. Its sibling defect in test_physics_minimal went the other way: that
+// scene settles to exactly 0.0000 m/s today, so the same tightening cost it
+// no verdict.
+//
+// Booked known_open in TEST_AUDIT against INV-34/INV-24/INV-22 and G-44.
+// INV-33/34/35 were ratified 2026-08-21 and their records land with the
+// physics-TDD item-6 branch; see tests/invariants/INV_PROPOSALS.md.
+//
 // ============================================================================
 // OSCILLATION DIAGNOSTIC: Gluoned floor tile on Turtle
 // ============================================================================
@@ -22,7 +63,8 @@
 // Hypothesis: Oscillation comes from gluon constraints fighting Turtle contacts,
 // not from single particle-Turtle interaction.
 //
-// LAWS: INV-24 (zero corrective work at steady state), INV-22 (exactly one
+// LAWS: INV-34 (rest-is-reached: an untouched scene settles and stays
+// settled), INV-24 (zero corrective work at steady state), INV-22 (exactly one
 // mechanism governs a pair — a gluon and a turtle contact fighting over the
 // same violation is the hypothesis stated as a law), INV-1, INV-3.
 // ============================================================================
@@ -1192,28 +1234,46 @@ bool test_oscillation_diagnostic() {
                   << (p.is_at_rest ? "[AT REST]" : "[ACTIVE]") << "\n";
     }
 
-    // Check if oscillating (velocity > 0.1 m/s after 5 seconds)
+    // THE BAND IS THE LAW'S, not a tenth of the phenomenon this file exists to
+    // reproduce. Same shape as its sibling test_physics_minimal, and for the
+    // same reason: INV-34 (an untouched scene settles and stays settled),
+    // INV-24 (zero corrective work at steady state), with INV-22 as the
+    // suspected mechanism (a gluon row and a turtle contact governing one
+    // pair). is_at_rest is the engine's own quietness verdict, priced in
+    // extremity speed and gated on non-growth per G-44; the speed bound is the
+    // residual a reader can check without trusting that predicate.
     float final_max_vel = 0.0f;
+    int not_at_rest = 0;
     for (int pid : pids) {
         const Particle& p = particles[pid];
         float vel = std::sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
         final_max_vel = std::max(final_max_vel, vel);
+        if (!p.is_at_rest) ++not_at_rest;
     }
 
+    const bool all_at_rest = (not_at_rest == 0);
+    const bool speed_ok    = (final_max_vel < 0.01f);
+
     std::cout << "\n";
-    if (final_max_vel < 0.01f) {
-        std::cout << "RESULT: INV-24 / PROPOSED REST-IS-REACHED: tile at rest "
-                     "(good - no oscillation)\n";
+    std::cout << "  [measure] max final speed " << final_max_vel << " m/s"
+              << "   at rest " << (pids.size() - (size_t)not_at_rest) << "/"
+              << pids.size() << "\n";
+
+    if (all_at_rest && speed_ok) {
+        std::cout << "RESULT: PASS INV-24/INV-34: the tile reached rest and "
+                     "stayed there (max " << final_max_vel << " m/s)\n";
         return true;
-    } else if (final_max_vel < 0.1f) {
-        std::cout << "RESULT: TO-INVESTIGATE, counted as a pass today: low "
-                     "oscillation (" << final_max_vel << " m/s) on a tile nobody "
-                     "is touching. INV-24 says a settled scene performs zero "
-                     "corrective work and INV-19 forbids crediting damping for "
-                     "it. See the block at the top of this file.\n";
-        return true;
-    } else {
-        std::cout << "RESULT: INV-24/INV-22 VIOLATED: oscillating at " << final_max_vel << " m/s (BAD - not settling)\n";
-        return false;
     }
+    if (!all_at_rest) {
+        std::cout << "RESULT: FAIL INV-34: " << not_at_rest << " of " << pids.size()
+                  << " bodies never reached rest on a scene nobody is touching\n";
+    }
+    if (!speed_ok) {
+        std::cout << "RESULT: FAIL INV-34/INV-24/INV-22: sustained " << final_max_vel
+                  << " m/s on a scene nobody is touching. This is the "
+                     "oscillation the file was written to reproduce, at a tenth "
+                     "of the amplitude it went looking for, and the old middle "
+                     "branch passed it as 'damping working'.\n";
+    }
+    return false;
 }

@@ -12,6 +12,29 @@ into `INVARIANTS.jsonl` or `GEDANKEN.jsonl`.
 ratification. An assert citing a PROPOSED name is citing a queue entry, and
 says so in its own text (`PROPOSED <NAME>: ...`).
 
+---
+
+## STATUS, 2026-08-21: all three below are RATIFIED
+
+The owner ratified all three of these on 2026-08-21 ("add these for sure").
+They are now **INV-33 finite-state**, **INV-34 rest-is-reached** and
+**INV-35 one-position-writer**, all `status: aspirational`, all with
+`mechanism: OWED`.
+
+**They are not in this branch's `INVARIANTS.jsonl` yet.** The ratified records
+live on `feat/physics-tdd-item6` and arrive here when that branch merges. Two
+consequences, and both are deliberate:
+
+- Asserts landed by the adjudication pass of 2026-08-21 cite **INV-34** by its
+  ratified ID, not by its proposal name, because the law exists. The citation
+  resolves against the registry the moment item-6 merges.
+- The proposal text below is left standing. It carries the derivation that the
+  ratified records compress into one sentence each, and INV-34's own mechanism
+  field points at the two violations this pass acted on: "the gluon-tree
+  oscillation RCA (G-44 unmasked 0.0294 m/s sustained in depth-3/4 oaks) is the
+  first known violation; test_physics_minimal's accepted 0.01-0.1 m/s tile
+  oscillation is the second."
+
 **Format.** One section per proposal:
 - **Name** — the slug an eventual INV/G would carry.
 - **Claim** — one sentence, the law itself.
