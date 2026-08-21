@@ -159,7 +159,7 @@ public:
     // and the enforcement can never drift apart. Empty `subjects` audits
     // every body in the world against every other.
     logosphere::CreationVerdict inspect_creation_overlaps(
-        const std::vector<int>& subjects);
+        const std::vector<int>& subjects) const;
 
     // How many bodies are waiting on the next audit.
     size_t pending_creation_audit_count() const { return creation_audit_pending_.size(); }

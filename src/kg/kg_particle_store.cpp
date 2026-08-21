@@ -58,29 +58,34 @@ struct KGParticleDataStore {
 static void kg_assert_above_turtle(const Particle& p) {
     if (p.GetMass() == 0.0f) return;
     // THE ORIENTED BOTTOM, same as the ParticleSystem door and the solver's
-    // own turtle pass. z - thickness/2 describes a solid a rotated body does
-    // not have: a log laid flat carries its LENGTH on the thickness axis and
-    // its DIAMETER in world Z. This door aborting on correctly-placed logs is
-    // what pushed the fallen-tree generator into lifting every preset
-    // 0.21-0.29 m off the ground (C10). Ask the geometry.
-    // Cost guard first (see the ParticleSystem door): the half diagonal
-    // bounds the reach in every pose, so a body with that much clearance
-    // never needs its exact extent built.
-    if (p.z - logosphere::max_bottom_reach(p) >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP)
-        return;
-    const float bottom = p.z - logosphere::oriented_bottom_offset(p);
-    if (bottom >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP) return;
+    // own turtle pass, with the same migration ratchet. See turtle_verdict in
+    // creation_door.h: z - thickness/2 is the wrong solid for a rotated body
+    // in BOTH directions, and this door aborting on correctly-placed logs is
+    // what pushed the fallen-tree generator into hovering every preset
+    // 0.21-0.29 m off the ground (C10).
+    const logosphere::TurtleVerdict v =
+        logosphere::turtle_verdict(p, PhysicsV4::TURTLE_Z, PhysicsV4::SLOP);
+    if (!v.below) return;
+    const float bottom = v.oriented_bottom;
     static std::set<std::string> reported;
     char key[128];
     std::snprintf(key, sizeof(key), "%.5f|%.5f", p.z, p.thickness);
     if (!reported.insert(key).second) return;
-    std::cerr << "[TURTLE VIOLATION] setKGParticleData: body STORED below the"
+    std::cerr << "[TURTLE VIOLATION]"
+              << (v.newly_visible ? " [oriented-only] " : " ")
+              << "setKGParticleData: body STORED below the"
               << " world floor. z=" << p.z << " thickness=" << p.thickness
-              << " => bottom=" << bottom << " < " << PhysicsV4::TURTLE_Z
+              << " => oriented bottom=" << bottom
+              << " (axis-aligned reading said " << v.naive_bottom << ")"
+              << " < " << PhysicsV4::TURTLE_Z
               << " (by " << (PhysicsV4::TURTLE_Z - bottom) << " m)."
               << " It will surface at chunk activation, not here." << std::endl;
-    // Strict by default, same as the other two doors. TURTLE_LENIENT=1 to warn.
-    if (!std::getenv("TURTLE_LENIENT")) std::abort();
+    // Strict by default, same as the other two doors. TURTLE_LENIENT=1 to
+    // warn; the class the oriented reading newly exposed reports but does not
+    // abort until TURTLE_ORIENTED_STRICT=1, because it has never been swept.
+    const bool oriented_armed = std::getenv("TURTLE_ORIENTED_STRICT") != nullptr;
+    if (!std::getenv("TURTLE_LENIENT") && (!v.newly_visible || oriented_armed))
+        std::abort();
 }
 
 void KGCore::setKGParticleData(KGParticleID kg_id, const Particle& particle_data) {

@@ -141,6 +141,36 @@ float oriented_bottom_offset(const Particle& p);
 // pass uses, stated once instead of twice.
 float max_bottom_reach(const Particle& p);
 
+// THE TURTLE VERDICT, and the migration ratchet that comes with it.
+//
+// The spawn-side turtle doors used to read a body's lowest point as
+// z - thickness/2. That is the wrong solid for anything rotated, in BOTH
+// directions, and both errors are real and measured:
+//
+//   too LOW  — a log laid flat carries its length on the thickness axis, so
+//              a log resting correctly on the floor looked buried by half its
+//              length. The door aborted, and the fallen-tree generator was
+//              bent to satisfy it: every preset hovered 0.21-0.29 m (C10).
+//   too HIGH — a tilted 1 mm grass blade 0.08 m up reaches 0.03 m BELOW the
+//              floor, and the blind reading called it clear. The turtle lifts
+//              that body every substep for free, which is the exact energy
+//              leak these doors exist to stop.
+//
+// Reading the oriented extent fixes both. It also makes the door see a class
+// it has never enforced, and a door cannot start aborting on an unswept class
+// without stopping every world that contains one. So the verdict reports
+// whether the OLD reading would have caught this body: violations the old
+// reading already caught keep aborting, the newly visible ones report loudly
+// and are counted, and TURTLE_ORIENTED_STRICT=1 promotes them the day their
+// sweep reads zero. Same shape TURTLE_STRICT itself used to earn its default.
+struct TurtleVerdict {
+    bool  below = false;           // oriented bottom is under the plane
+    bool  newly_visible = false;   // the axis-aligned reading called it clear
+    float oriented_bottom = 0;
+    float naive_bottom = 0;
+};
+TurtleVerdict turtle_verdict(const Particle& p, float plane_z, float slop);
+
 // Exact penetration depth between two bodies through the engine's own narrow
 // phase. Returns 0.0 when they are separated or merely touching. Rotated
 // boxes go through the oriented path on both sides; everything else uses the

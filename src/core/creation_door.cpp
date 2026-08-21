@@ -90,6 +90,25 @@ float max_bottom_reach(const Particle& p) {
     }
 }
 
+TurtleVerdict turtle_verdict(const Particle& p, float plane_z, float slop) {
+    TurtleVerdict v;
+    v.naive_bottom = p.z - p.thickness * 0.5f;
+
+    // Cost guard: no orientation reaches past the half diagonal, so a body
+    // with that much clearance is above the plane in every pose and its exact
+    // extent (quat + matrix) never needs building. This runs on every body of
+    // every world at spawn. Same guard the solver's turtle pass uses.
+    if (p.z - max_bottom_reach(p) >= plane_z - slop) {
+        v.oriented_bottom = p.z - max_bottom_reach(p);
+        return v;                              // below = false
+    }
+
+    v.oriented_bottom = p.z - oriented_bottom_offset(p);
+    v.below = v.oriented_bottom < plane_z - slop;
+    v.newly_visible = v.below && (v.naive_bottom >= plane_z - slop);
+    return v;
+}
+
 float creation_penetration(const Particle& a, const Particle& b,
                            float& out_nx, float& out_ny, float& out_nz) {
     out_nx = out_ny = out_nz = 0.0f;

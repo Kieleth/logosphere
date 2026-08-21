@@ -82,26 +82,23 @@ static void assert_above_turtle(const Particle& p, const char* where) {
     // oriented bounds"); this door now asks the same question of the same
     // geometry. The turtle plane's normal is +Z by definition — plane
     // geometry, not a gravity assumption.
-    // Cost guard first: no orientation reaches past the half diagonal, so a
-    // body with that much clearance is above the plane in every pose and its
-    // exact extent (quat + matrix) never needs building. Same guard the
-    // solver's turtle pass uses, for the same reason — this runs on every
-    // body of every world at spawn.
-    if (p.z - logosphere::max_bottom_reach(p) >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP)
-        return;
-    const float bottom = p.z - logosphere::oriented_bottom_offset(p);
     // Same tolerance the boundary itself uses. Below SLOP this is float
     // residue on a body trying to sit exactly on the floor, not a placement
     // decision, and reporting it as one buries the real violations in noise.
-    if (bottom >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP) return;
+    const logosphere::TurtleVerdict v =
+        logosphere::turtle_verdict(p, PhysicsV4::TURTLE_Z, PhysicsV4::SLOP);
+    if (!v.below) return;
+    const float bottom = v.oriented_bottom;
     static std::set<std::string> reported;
     char key[256];
     std::snprintf(key, sizeof(key), "%s|%.4f", where, bottom);
     if (!reported.insert(key).second) return;
-    std::cerr << "[TURTLE VIOLATION] " << where
+    std::cerr << "[TURTLE VIOLATION]"
+              << (v.newly_visible ? " [oriented-only] " : " ") << where
               << ": body placed BELOW the world floor. z=" << p.z
               << " thickness=" << p.thickness
-              << " => bottom=" << bottom
+              << " => oriented bottom=" << bottom
+              << " (axis-aligned reading said " << v.naive_bottom << ")"
               << " < TURTLE_Z=" << PhysicsV4::TURTLE_Z
               << " (by " << (PhysicsV4::TURTLE_Z - bottom) << " m)."
               << " The turtle will lift this body every substep forever and"
@@ -128,7 +125,16 @@ static void assert_above_turtle(const Particle& p, const char* where) {
     // suite reports zero, so a violation from here on is a NEW one and should
     // stop the world rather than scroll past. TURTLE_LENIENT=1 downgrades it
     // to a warning for anyone mid-migration.
-    if (!std::getenv("TURTLE_LENIENT")) {
+    //
+    // EXCEPT the class the oriented reading just made visible, which has never
+    // been swept. It is real — a tilted 1 mm grass blade reaches 0.0316 m
+    // under the floor in test_grass_holds_together, and the turtle has been
+    // lifting it for free every substep — but a door cannot start aborting on
+    // an unswept class without stopping every world that contains one. It
+    // reports as [oriented-only] and TURTLE_ORIENTED_STRICT=1 promotes it,
+    // which is how TURTLE_STRICT earned its own default.
+    const bool oriented_armed = std::getenv("TURTLE_ORIENTED_STRICT") != nullptr;
+    if (!std::getenv("TURTLE_LENIENT") && (!v.newly_visible || oriented_armed)) {
         std::cerr << "[TURTLE VIOLATION] TURTLE_STRICT set — aborting so the "
                      "placement is fixed rather than absorbed." << std::endl;
         std::abort();
@@ -460,19 +466,29 @@ void ParticleSystem::flush_pending_particles() {
 // generator spawning n bodies pays O(n log n) once, not the O(n^2) a
 // per-spawn sweep would cost.
 logosphere::CreationVerdict ParticleSystem::inspect_creation_overlaps(
-        const std::vector<int>& subjects) {
+        const std::vector<int>& subjects) const {
     using namespace logosphere;
     const auto t0 = std::chrono::high_resolution_clock::now();
 
     CreationVerdict verdict;
 
-    // The audit reads the BVH, so it must reflect every body just added.
-    // bvh_dirty_ is already set by add_particle, and this build is the one
-    // Engine::update would do a moment later, not an extra one.
-    update_bvh();
-
     std::shared_lock<std::shared_mutex> lock(particles_mutex_);
-    if (particles.size() < 2 || !shadow_bvh_.is_ready()) return verdict;
+    if (particles.size() < 2) return verdict;
+
+    // THE WITNESS OWNS ITS INSTRUMENT. This used to drive the engine's
+    // shadow_bvh_ through update_bvh(), and that PERTURBED THE WORLD: the
+    // refit cleared bvh_dirty_ and ticked bvh_frame at a point in the frame
+    // where nothing had asked for it, and the simulation moved. Measured on
+    // test_grass_yields, which walks a human through a grass patch: speed
+    // retention 80% -> 61% and worst blade bend 0.594 m -> 0.003 m, purely
+    // from the audit running. A check that changes the answer is not a check.
+    //
+    // So the door builds its own tree over the same particles and throws it
+    // away. Argus's rule, one layer down: read-only over particles by
+    // construction, so the witness cannot disturb what it witnesses.
+    BVH audit_bvh;
+    audit_bvh.build(particles);
+    if (!audit_bvh.is_ready()) return verdict;
 
     // Empty subject list = audit the whole world against itself.
     std::vector<int> all;
@@ -507,8 +523,8 @@ logosphere::CreationVerdict ParticleSystem::inspect_creation_overlaps(
         verdict.bodies_audited++;
 
         candidates.clear();
-        shadow_bvh_.query_aabb(shadow_bvh_.particle_to_aabb(a),
-                               particles, candidates);
+        audit_bvh.query_aabb(audit_bvh.particle_to_aabb(a),
+                             particles, candidates);
         verdict.candidates += candidates.size();
 
         for (int ci : candidates) {
