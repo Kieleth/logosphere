@@ -216,6 +216,16 @@ Read-only over particles by construction: the witness cannot perturb
 the experiment. Zero cost unwatched. Engine-wide by owner ruling —
 combat and AI observe through the same eyes.
 
+## THE LIVE ASSERT PANEL (owner order, 2026-08-21)
+
+Every windowed physics test carries, on screen for the whole run: a
+one-line DEMONSTRATING statement (mode-aware), the live Argus readout,
+and EVERY assert as its own [V]/[X] line evaluated per frame from the
+same scene helpers the headless asserts read, plus an n/m count.
+Born-red asserts appear as honest [X]. Full spec and the reference
+pattern live in the logosphere-tests skill;
+`tests/test_ramp_race_visual.cpp` is the exemplar.
+
 ## "FIXED" IS A PROTOCOL, NOT A SENTENCE (owner decree, 2026-08-20)
 
 Nothing is declared fixed until ALL THREE hold:
@@ -260,4 +270,5 @@ CLAIM'S MODE (lever state included), both modes audited → headless suite green
 docker precheck
 (`scripts/precheck_linux.sh`, read the markers) → CHANGELOG entry for
 anything user-facing → DCO sign-off on every commit (`git commit -s`)
-→ interactive QA launched for the owner → owner says merge.
+→ interactive QA launched for the owner, with the LIVE ASSERT PANEL
+on screen → owner says merge.

@@ -24,6 +24,8 @@
 #include <GLFW/glfw3.h>
 
 #include <chrono>
+#include <functional>
+#include <vector>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -87,13 +89,76 @@ int main() {
     cam.set_pixels_per_unit(ppu);
     make_lamps(ps, cx, cy, cz);
 
+    // Live readout at the BOTTOM (the debug overlay owns the top left).
+    const int base_y = cfg.window_height - 96;
     auto* l_cube = add_line(engine, 0, 255, 190, 110);
     auto* l_ball = add_line(engine, 1, 140, 210, 255);
     auto* l_spin  = add_line(engine, 2, 220, 220, 220);
-    auto* l_claim = add_line(engine, 3, 190, 220, 255);
+    l_cube->set_position(16, base_y);
+    l_ball->set_position(16, base_y + 22);
+    l_spin->set_position(16, base_y + 44);
+
+    // THE LIVE ASSERT PANEL (owner order 2026-08-21): what this test
+    // demonstrates, and EVERY assert as its own [V]/[X] line, evaluated
+    // each frame from the SAME scene helpers the headless asserts read.
+    static const bool lever_ui = std::getenv("CONTACT_TORQUE") != nullptr;
+    auto* l_demo = add_line(engine, 3, 190, 220, 255);
+    l_demo->set_position(16, 118);
+    l_demo->set_text(lever_ui
+        ? "DEMONSTRATING: contact torque (CONTACT_TORQUE=1). A cube and a "
+          "sphere race the same 40 deg ramp: both must move, both must "
+          "TURN, the sphere must ROLL, and every run stays in its lane."
+        : "DEMONSTRATING: the default no-torque world. Both bodies slide; "
+          "the TURN asserts are born red until the torque law is default.");
+    struct LiveAssert { ui::Label* label; std::string text;
+                        std::function<bool()> eval; };
+    std::vector<LiveAssert> panel;
+    int prow = 0;
+    auto add_assert = [&](const std::string& text,
+                          std::function<bool()> eval) {
+        auto* l = new ui::Label("", "assert" + std::to_string(prow));
+        l->set_position(16, 148 + prow * 22);
+        engine.get_ui_system()->add_widget(l);
+        panel.push_back({l, text, std::move(eval)});
+        ++prow;
+    };
+    add_assert("the ramp never moved (fixed datum)",
+        [&]{ return Scene::held(scene.ramp_drift); });
+    if (lever_ui) {
+        add_assert("LEVER: the sphere ROLLS (spin > 2.0 rad/s)",
+            [&]{ return scene.ball_spin_peak > ROLL_MIN_LEVER; });
+        add_assert("LEVER: rolling within 10% of sliding (travel)",
+            [&]{ return scene.ball_travel(ps) >
+                        scene.cube_travel(ps) * 0.9f; });
+    }
+    add_assert("the cube slides down the slope (> 0.30 m)",
+        [&]{ return Scene::travelled(scene.cube_travel(ps)); });
+    add_assert("the cube TURNS as it goes",
+        [&]{ return Scene::turned(scene.cube_spin_peak); });
+    add_assert("the sphere ALSO moves (real oriented contact, INV-12)",
+        [&]{ return Scene::travelled(scene.ball_travel(ps)); });
+    add_assert("the sphere TURNS TOO (friction acts a radius out)",
+        [&]{ return Scene::turned(scene.ball_spin_peak); });
+    add_assert("neither leaves its lane",
+        [&]{ return Scene::in_lane(scene.cube_lane_dev) &&
+                    Scene::in_lane(scene.ball_lane_dev); });
+    add_assert("the racers never touch",
+        [&]{ return Scene::lanes_kept(scene.lane_gap_min); });
+    add_assert("the cube ends AT REST ON THE TURTLE",
+        [&]{ return Scene::landed_and_stopped(scene.bottom(scene.cube),
+                                              scene.speed(scene.cube)); });
+    add_assert("the sphere ends AT REST ON THE TURTLE",
+        [&]{ return Scene::landed_and_stopped(scene.bottom(scene.ball),
+                                              scene.speed(scene.ball)); });
+    add_assert("one body one orientation (two-band coherence, G-23)",
+        [&]{ return Scene::coherent(
+                        scene.argus.peak_divergence(scene.cube, false),
+                        scene.argus.peak_divergence(scene.cube, true)) &&
+                    Scene::coherent(
+                        scene.argus.peak_divergence(scene.ball, false),
+                        scene.argus.peak_divergence(scene.ball, true)); });
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
-    l_claim->set_text("ASSERTS: gravity moves BOTH (> 0.30 m) and BOTH turn "
-                      "(peak |omega| > 0.05 rad/s)");
+    l_verdict->set_position(16, 148 + prow * 22 + 8);
 
     std::printf("\n=== a cube and a sphere on the same %.0f degree ramp (%s) ===\n",
                 SLOPE_DEG, interactive ? "WINDOW" : "headless");
@@ -126,16 +191,22 @@ int main() {
                       "(D2 1.2: contact rows carry no lever arm)",
                       scene.cube_spin_peak, scene.ball_spin_peak);
         l_spin->set_text(buf);
-        const bool moved = Scene::travelled(cd) && Scene::travelled(bd);
-        const bool spun  = Scene::turned(scene.cube_spin_peak)
-                        && Scene::turned(scene.ball_spin_peak);
-        l_verdict->set_text(
-            (moved && spun) ? "PASS: both feel the slope and both turn"
-            : !moved && !spun ? "FAIL x2 - F2: the sphere stands on an invented "
-                                "normal.  D2 1.2: nothing turns, contacts have "
-                                "no torque."
-            : !spun ? "FAIL - D2 1.2: it slides without ever turning"
-                    : "FAIL - F2: the sphere is standing on an invented normal");
+        // The panel: every assert, live, [V]/[X], same helpers as headless.
+        int passing = 0;
+        for (auto& a : panel) {
+            const bool ok = a.eval();
+            if (ok) ++passing;
+            a.label->set_text((ok ? "[V] " : "[X] ") + a.text);
+            if (ok) a.label->set_color(120, 230, 140);
+            else    a.label->set_color(255, 120, 120);
+        }
+        std::snprintf(buf, sizeof(buf),
+                      "ASSERTS %d/%zu passing (live; end-state lines settle "
+                      "as the run settles)", passing, panel.size());
+        l_verdict->set_text(buf);
+        l_verdict->set_color(passing == (int)panel.size() ? 120 : 255,
+                             passing == (int)panel.size() ? 230 : 120,
+                             120);
 
         engine.render();
         if (interactive) {

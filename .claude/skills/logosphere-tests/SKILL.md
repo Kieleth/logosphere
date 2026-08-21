@@ -154,6 +154,30 @@ The failure that earned this: the G-41 wheel cases dropped a 0.4 m cube
 five centimetres and bought five centimetres of travel — an experiment
 smaller than its own subject, jerky and over before the eye arrived.
 
+## THE LIVE ASSERT PANEL (owner order, 2026-08-21)
+
+Owner, watching the ramp: "I'm missing the context of the test... and
+the asserts 'live'... all of the asserts should be here, and [X] or [V]
+as we pass them for me to understand visually."
+
+Every windowed test shows, on screen, for the whole run:
+
+1. **A DEMONSTRATING line**: one sentence naming what this test
+   demonstrates and checks, mode-aware (the lever world and the default
+   world demonstrate different things and must say so).
+2. **Live Argus readout**: the same quantities the asserts read.
+3. **EVERY assert as its own line**, prefixed [V] when currently
+   passing and [X] when not, green/red, evaluated EVERY FRAME from the
+   SAME scene helpers and Argus queries the headless asserts use (one
+   source, criterion b — a panel that re-implements a predicate is a
+   reflection break waiting to drift). End-state asserts show their
+   live truth and settle as the run settles. Born-red asserts appear
+   as honest [X]: the panel makes the red visible, never hides it.
+4. **A count line**: "ASSERTS n/m passing".
+
+`tests/test_ramp_race_visual.cpp` is the pattern (LiveAssert +
+add_assert lambda list).
+
 ## SHIP CHECKLIST FOR A TEST
 
 - [ ] Scene in `tests/scenes/`; drivers contain no bodies and no thresholds
@@ -169,6 +193,8 @@ smaller than its own subject, jerky and over before the eye arrived.
 - [ ] Full-state narration written; every DOF asserted or waived by name
 - [ ] Observed through Argus; asserts read the same queries the log prints
 - [ ] Readout through registered widgets, carrying the verdict
+- [ ] LIVE ASSERT PANEL: DEMONSTRATING line + every assert [V]/[X]
+      per frame from the shared helpers + n/m count (see its section)
 - [ ] Launched for the owner, teed to /tmp, never killed, never piped through head/tail/grep
 
 ## THE BACKLOG THIS SKILL EXISTS TO CLEAR
