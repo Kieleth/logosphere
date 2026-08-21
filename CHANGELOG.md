@@ -8,6 +8,38 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Fixed
+- **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
+  per career and says only "you may improve your rank by one"; it never
+  says what that means for a character standing on the last one. Rank
+  was an `int` on the C++ sheet and advancing was `rank + 1`, which
+  cannot fail, so a rank 6 Brigadier who threw well became a rank 7 that
+  no rung in the graph describes. The cost was money:
+  `extra_benefits_by_rank` has rows for ranks 4, 5 and 6 and declares a
+  miss as nothing, so a seven-term rank 7 character collected 7 benefit
+  rolls where a rank 6 one collects 10. Measured over 400 Mercenary
+  lives that reach for rank every term, 6 of the 13 that reached the
+  last rung climbed past it. Promotion now resolves the next rung as an
+  entity on the career's `ProgressionTrack` and takes the new rank, its
+  title and its skill grant from that rung; at the top of a ladder there
+  is no next rung, so the advancement check is not offered at all. The
+  reading is recorded in the careers seed as a `PARTIAL` / `SOURCE_GAP`
+  claim against each ladder's last printed rung, arbitered by the agent
+  that chose it and explicitly not ratified by the owner.
+- **Logovger: a rank title is the rung's, not the last rung that had
+  one.** The title survived a promotion the graph could not describe, so
+  a rank 7 character was still printed as a Brigadier.
+- **Logovger: the opening line counts the rulebook it describes.** It
+  said "24 careers, 48 throws, 150 rollable-table rows"; the seeds hold
+  24 careers, 106 throws and 938 rows across 148 tables. The numbers are
+  now counted from the graph at the moment they are printed.
+- **`OutcomeExecutor` construction fails closed.** Its nine built-in
+  `register_handler` calls dropped their `bool` into one `std::string`
+  nobody read, so an executor built over a knowledge graph whose
+  registry lacks the rulebook ontology pack registered no handlers at
+  all: it looked built, applied nothing, and said so only when an
+  outcome finally arrived. It now throws `std::invalid_argument` naming
+  the handler that could not register and the pack that would have let
+  it.
 - Sleep entry now prices angular motion in the same currency as linear
   (extremity speed) and refuses to sleep a body whose motion is growing;
   bodies beginning a topple are no longer frozen mid-fall
@@ -28,7 +60,33 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - Physics decision tracer env switches (`LOGOSPHERE_PHYS_TRACE*`) now
   work in headless standalone tests, not only under the full engine.
 
+### Added
+- **A gate on the class, not the instance: every seeded `RuleConstant`
+  must have a reader or say in the graph that it has none.**
+  `prior_career_dm` (`-2`) and the 5,000-credit medical care cost sat in
+  the seeds cited, typed and read by nothing at all. The nearest
+  existing check perturbed three of the eight constants named in a
+  hand-written array, which is the shape that let the other five rot.
+  The new one takes its list from the graph, so a constant seeded
+  tomorrow is covered the moment it loads: it passes only if a rule
+  reads it through `ChargenSession::constant()`, or the graph records
+  that it is not executed, either by an `unmodelled` line on the
+  constant or by a `PARTIAL` / `RAISED` claim decision naming a gap kind.
+  `prior_career_dm` now carries that line. Nothing applies it, because a
+  situational modifier cannot reach a throw and inventing that mechanism
+  is a separate decision.
+
 ### Changed
+- **`table_role` is a closed enum (`TableRole`: `cash`, `material`,
+  `service`) rather than an open string.** The slot exists because two
+  rules used to match a table's printed name, so renaming a table in a
+  seed broke them silently; declaring the replacement `range: string`
+  left the same hole one step further in, because a seed writing
+  `"Cash"` where every rule asks for `"cash"` validated, loaded, matched
+  nothing, and took the three-cash-roll cap off without a word. The
+  membership check is case sensitive, deliberately: folding case would
+  accept the exact typo the enum exists to catch. A seed carrying any
+  other token is now refused at load.
 - **The three advisory CI lanes come off pull requests.** A pull
   request ran seven jobs and two of them gated the merge, so the
   required gate finished in 26.5 minutes while contributors waited on
