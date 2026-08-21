@@ -96,6 +96,27 @@ for playing one.
 5. **Runtime rule creation.** The proposal becomes a rule in the graph,
    under a KnowledgeContext, usable thereafter.
 
+## Design lives in the GDD
+
+Mechanics, pillars and intent are in
+`examples/logovger/docs/GAME_DESIGN.md`, which is the one place design
+lives. Two things from it bear directly on this plan:
+
+**Equal opportunity, tilted luck.** The belter is not luckier than the
+Marquis. What differs is the KIND of opportunity, not the amount, and
+luck must be worked for. An option that arrives free is charity, and
+charity is boring.
+
+**Hidden probabilities and Foresight.** Phase one states the odds
+explicitly, because a designer cannot tune what they cannot see. Phase
+two puts them under the narrative, and a **Foresight** skill uncovers
+them. That turns a UI decision into a game mechanic, which is where it
+belongs: reading the odds becomes something a character can be good at,
+a build choice, and something that can be lost.
+
+Which means V3 below is not "print the numbers forever". It is the
+explicit phase, and the GDD owns when it ends.
+
 ## Sequence, by dependency
 
 No estimates. Each stage is usable on its own and each depends only on
@@ -132,27 +153,108 @@ The same path, with the model as the proposer rather than the player.
 Everything above must hold first, because this is the one that can run
 away.
 
+## Rulings, 2026-08-21
+
+The five open questions were put to the owner and four came back. They
+are recorded here and the plan below is amended to match.
+
+**1. Free lunch.** Start with the throw-and-cost constraint and iterate
+through play: *"my guess is that we'll be playing and iterating on these
+as we play and engage."* So V1 ships the constraint and the playing is
+the tuning loop, not a separate phase.
+
+**2. The building blocks are NOT a fixed list.** *"Should be open. The
+LLM should have the tools to query ontology and KG to learn what is
+relevant and the building blocks available, pertaining to a situation,
+event or decision."*
+
+This inverts what I proposed. Instead of a declared allow-list, the
+model gets **query tools over the ontology and the graph** and discovers
+what is composable for the situation in front of it. The constraint
+stops being a list to maintain and becomes a property of what the graph
+actually holds.
+
+It carries a requirement with it: *"those LLM interactions are elevated
+in category and we need to track them fully, again in a graph way, so
+this needs the design first."* A model querying the ontology to decide
+what it may compose is not a side effect, it is part of the reasoning
+that produced a rule, and it has to be recorded as such. **This is
+called v0 and the design comes before the code.**
+
+**3. Ratification is malleus-based, through an internal referee.** *"For
+the moment we can have an internal LLM that has a shelob-malleus-gameX
+skill that understands when there is a request, how to change the
+internal routings and state of the engine to learn it, keeping the
+game-user facing isolated from the internals and in-game mood."*
+
+Two models, two jobs. The **player-facing** one stays in character and
+never touches the engine's internals. An **internal** one holds the
+malleus discipline, receives the request, and performs the change. The
+player never sees the machinery, and the machinery never has to write
+prose.
+
+**4. Default scope of a created rule: UNANSWERED.** Session, campaign or
+global. The machinery supports all three. Still blocks V5.
+
+**5. A rule created in play must be serialisable, must have the same
+shape as any other seed, and must be identifiable and versionable.**
+Which makes it a seed like any other, and connects this directly to the
+seed-evolution work in the game design document.
+
+## v0, which now comes first
+
+Before V1. Design only, no code:
+
+- how a model queries the ontology and the graph to learn what is
+  composable here;
+- what those queries and their answers look like **recorded in the
+  graph**, since they are part of the reasoning that produced a rule;
+- how the player-facing model and the internal malleus-holding model
+  divide the work and stay isolated from each other.
+
+The owner's words: *"this needs the design first."*
+
+## Four mechanisms the successor must have
+
+From the leak audit of 2026-08-21. Each is stated as mechanism rather
+than intention, because the audit's sharpest finding was that **this
+project has already fixed this exact class of defect four times, moving
+one instance each time and never gating the class.**
+
+1. **A position on a ladder is an edge to a rung, never an index.** The
+   rank bug exists because rank is an `int`, advancing is `+1`, and
+   arithmetic cannot fail. As an edge, "no next rung" is a refusal the
+   types produce. `SkillRating` and `CurrencyBalance` are edges and
+   neither has ever produced a bug of this shape.
+2. **Every number the book fixes is a `RuleConstant` read at the point
+   of use, or the build fails.** Two seeded constants are currently read
+   by nothing. The gate is not a test naming three constants; it is a
+   check that every seeded constant has a reader and that no
+   rule-shaped literal survives in a primitive.
+3. **A controlled vocabulary is an enum in the schema or it does not
+   exist.** `table_role: range: string` is a half-open gate: the values
+   are the game's, the constraint is nobody's.
+4. **The character sheet is a view, not a store.** Every mirrored field
+   is a drift site, and this module has already paid for three.
+
 ## OPEN decisions, which block the stages that need them
 
-1. **Who ratifies a new rule, and when?** Immediate on proposal, staged
-   for the owner's assent, or automatic under a stated condition? Malleus
-   has an assent protocol binding a content hash to an actor and a role.
-   *Blocks V5.*
+1. ~~Who ratifies a new rule?~~ **ANSWERED**: an internal
+   malleus-holding referee, isolated from the player-facing model.
 2. **What scope does a created rule get by default?** Session, campaign
    or global. The machinery supports all; the default is policy.
    *Blocks V5.*
-3. **What is the declared set of building blocks a proposal may
-   compose from?** The boundary decision says "content the engine
-   already understands", which is a principle rather than a list. A list
-   is checkable; a principle is not. *Blocks V4.*
-4. **What stops an authored option from being free lunch?** A model can
-   propose "you succeed automatically". Candidate answer: every option
-   must carry a throw and a cost, and the option-authoring step is
-   itself validated against a rule the engine owns. *Blocks V1.*
-5. **Does a provisional rule created in a session survive a replay of
-   that session?** It was created by a model, so it is not derivable; it
-   must be taped like an answer, and then a replay recreates it. Needs
-   confirming rather than assuming. *Blocks V5.*
+3. ~~The declared set of building blocks.~~ **ANSWERED, and
+   inverted**: not a list. The model queries the ontology and graph to
+   discover what is composable. Requires v0 first.
+4. ~~Free lunch.~~ **ANSWERED**: every option carries a throw and a
+   cost, and the tuning happens through play.
+5. ~~Does a created rule survive replay?~~ **ANSWERED**: it is
+   serialisable, has the same shape as any other seed, and is
+   identifiable and versionable.
+
+6. **STILL OPEN: the default scope of a rule created in play.** Session,
+   campaign or global. *Blocks V5.*
 
 ## What this is not
 
