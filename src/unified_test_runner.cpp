@@ -131,7 +131,7 @@ extern bool test_stiffness_stability();  // XPBD stability investigation - incre
 // STANDALONE EXPERIMENT TESTS (create own Engine, run via --test <name> only):
 extern bool test_physics_experiment_01();  // PHYSICS v2: Newtonian gravity basics (STANDALONE)
 extern bool test_turtle_single_particle();  // TURTLE EXPERIMENT: Single particle on Turtle (STANDALONE)
-extern bool test_oscillation_diagnostic();  // OSCILLATION DIAGNOSTIC: Gluoned tile on Turtle (STANDALONE)
+extern bool test_oscillation_regression();  // OSCILLATION REGRESSION: gluoned tile on the turtle must reach rest, INV-34 (STANDALONE)
 extern bool test_physics_minimal();  // MINIMAL PHYSICS: Simplest tile-on-turtle cases (STANDALONE)
 extern bool test_physics_minimal_v2();  // MINIMAL PHYSICS V2: Progressive complexity (STANDALONE)
 extern bool test_physics_tree_roots();  // PHYSICS: Tree with roots on turtle (STANDALONE)
@@ -142,8 +142,6 @@ extern bool test_gluon_tree_v34();  // PHYSICS v3.4: Load propagation through co
 extern bool test_physics_tree();  // PHYSICS: PhysicsTreeGenerator test (STANDALONE)
 extern bool test_physics_tree_drift();  // PHYSICS: 10-second tree drift test (STANDALONE)
 extern bool test_ancient_oak();  // PHYSICS: Ancient Oak tree test (STANDALONE)
-extern bool test_sleep_diagnostics();  // PHYSICS: Sleep diagnostics test (STANDALONE)
-extern bool test_tree_wiggly();  // PHYSICS: Tree wiggly test - same oak as logomancers (STANDALONE)
 extern bool test_tree_shadow_wiggly();  // PHYSICS: Tree shadow stability test (STANDALONE)
 extern bool test_falling_cube();  // PHYSICS: Falling cube collision test (STANDALONE)
 extern bool test_physics_rock();  // PHYSICS: PhysicsRockGenerator test (STANDALONE)
@@ -340,7 +338,7 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     // STANDALONE EXPERIMENT TESTS (create own Engine - registered but don't use test harness Engine):
     registry["test_physics_experiment_01"] = [](TestContext&) { return test_physics_experiment_01(); };  // PHYSICS v2: Newtonian gravity basics (STANDALONE)
     registry["test_turtle_single_particle"] = [](TestContext&) { return test_turtle_single_particle(); };  // TURTLE EXPERIMENT: Single particle on Turtle (STANDALONE)
-    registry["test_oscillation_diagnostic"] = [](TestContext&) { return test_oscillation_diagnostic(); };  // OSCILLATION DIAGNOSTIC: Gluoned tile on Turtle (STANDALONE)
+    registry["test_oscillation_regression"] = [](TestContext&) { return test_oscillation_regression(); };  // OSCILLATION REGRESSION: gluoned tile on the turtle must reach rest, INV-34 (STANDALONE)
     registry["test_physics_minimal"] = [](TestContext&) { return test_physics_minimal(); };  // MINIMAL PHYSICS: Simplest tile-on-turtle cases (STANDALONE)
     registry["test_physics_minimal_v2"] = [](TestContext&) { return test_physics_minimal_v2(); };  // MINIMAL PHYSICS V2: Progressive complexity (STANDALONE)
     registry["test_physics_tree_roots"] = [](TestContext&) { return test_physics_tree_roots(); };  // PHYSICS: Tree with roots on turtle (STANDALONE)
@@ -351,8 +349,6 @@ static std::unordered_map<std::string, std::function<bool(TestContext&)>> create
     registry["test_physics_tree"] = [](TestContext&) { return test_physics_tree(); };  // PHYSICS: PhysicsTreeGenerator test (STANDALONE)
     registry["test_physics_tree_drift"] = [](TestContext&) { return test_physics_tree_drift(); };  // PHYSICS: 10-second tree drift test (STANDALONE)
     registry["test_ancient_oak"] = [](TestContext&) { return test_ancient_oak(); };  // PHYSICS: Ancient Oak tree test (STANDALONE)
-    registry["test_sleep_diagnostics"] = [](TestContext&) { return test_sleep_diagnostics(); };  // PHYSICS: Sleep diagnostics test (STANDALONE)
-    registry["test_tree_wiggly"] = [](TestContext&) { return test_tree_wiggly(); };  // PHYSICS: Tree wiggly test - same oak as logomancers (STANDALONE)
     registry["test_tree_shadow_wiggly"] = [](TestContext&) { return test_tree_shadow_wiggly(); };  // PHYSICS: Tree shadow stability test (STANDALONE)
     registry["test_falling_cube"] = [](TestContext&) { return test_falling_cube(); };  // PHYSICS: Falling cube collision test (STANDALONE)
     registry["test_physics_rock"] = [](TestContext&) { return test_physics_rock(); };  // PHYSICS: PhysicsRockGenerator test (STANDALONE)
@@ -663,7 +659,7 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
     static const std::unordered_set<std::string> names = {
         "test_physics_experiment_01",
         "test_turtle_single_particle",
-        "test_oscillation_diagnostic",
+        "test_oscillation_regression",
         "test_physics_minimal",
         "test_physics_minimal_v2",
         "test_physics_tree_roots",
@@ -674,8 +670,6 @@ static const std::unordered_set<std::string>& get_standalone_test_names() {
         "test_physics_tree",
         "test_physics_tree_drift",
         "test_ancient_oak",
-        "test_sleep_diagnostics",
-        "test_tree_wiggly",
         "test_tree_shadow_wiggly",
         "test_falling_cube",
         "test_physics_rock",
@@ -783,7 +777,7 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
     static const std::unordered_map<std::string, std::function<bool()>> reg = {
         {"test_physics_experiment_01", test_physics_experiment_01},
         {"test_turtle_single_particle", test_turtle_single_particle},
-        {"test_oscillation_diagnostic", test_oscillation_diagnostic},
+        {"test_oscillation_regression", test_oscillation_regression},
         {"test_physics_minimal", test_physics_minimal},
         {"test_physics_minimal_v2", test_physics_minimal_v2},
         {"test_physics_tree_roots", test_physics_tree_roots},
@@ -794,8 +788,6 @@ static const std::unordered_map<std::string, std::function<bool()>>& get_standal
         {"test_physics_tree", test_physics_tree},
         {"test_physics_tree_drift", test_physics_tree_drift},
         {"test_ancient_oak", test_ancient_oak},
-        {"test_sleep_diagnostics", test_sleep_diagnostics},
-        {"test_tree_wiggly", test_tree_wiggly},
         {"test_tree_shadow_wiggly", test_tree_shadow_wiggly},
         {"test_falling_cube", test_falling_cube},
         {"test_physics_rock", test_physics_rock},
@@ -932,7 +924,6 @@ bool UnifiedTestRunner::run_physics_tests(Engine& engine) {
 
     // Tree physics tests (STANDALONE - create own engine)
     std::cout << "\n--- Tree Physics ---" << std::endl;
-    total++; if (test_tree_wiggly()) { passed++; std::cout << "  [PASS] test_tree_wiggly" << std::endl; } else { std::cout << "  [FAIL] test_tree_wiggly" << std::endl; }
     total++; if (test_tree_shadow_wiggly()) { passed++; std::cout << "  [PASS] test_tree_shadow_wiggly" << std::endl; } else { std::cout << "  [FAIL] test_tree_shadow_wiggly" << std::endl; }
     total++; if (test_physics_tree()) { passed++; std::cout << "  [PASS] test_physics_tree" << std::endl; } else { std::cout << "  [FAIL] test_physics_tree" << std::endl; }
     total++; if (test_physics_tree_drift()) { passed++; std::cout << "  [PASS] test_physics_tree_drift" << std::endl; } else { std::cout << "  [FAIL] test_physics_tree_drift" << std::endl; }

@@ -2367,7 +2367,7 @@ set(TEST_SOURCES
     # REMOVED: test_eva_floor_interaction.cpp - old test, Eva floor interaction now covered by test_physics_experiment_01 Case 5
     tests/test_physics_experiment_01.cpp       # PHYSICS v2: Newtonian gravity basics (visual)
     tests/test_turtle_single_particle.cpp      # TURTLE EXPERIMENT: Single particle on Turtle
-    tests/test_oscillation_diagnostic.cpp     # OSCILLATION DIAGNOSTIC: Gluoned tile on Turtle
+    tests/test_oscillation_regression.cpp     # OSCILLATION REGRESSION: gluoned tile on the turtle must reach rest (INV-34)
     tests/test_physics_minimal.cpp             # MINIMAL PHYSICS: Simplest tile-on-turtle cases
     tests/test_physics_minimal_v2.cpp          # MINIMAL PHYSICS V2: Progressive complexity
     tests/test_physics_tree_roots.cpp          # PHYSICS: Tree with roots on turtle (no floor tiles)
@@ -2377,8 +2377,6 @@ set(TEST_SOURCES
     tests/test_gluon_tree_v34.cpp              # PHYSICS v3.4: Load propagation through contacts
     tests/test_physics_tree.cpp                 # PHYSICS: PhysicsTreeGenerator test
     tests/test_ancient_oak.cpp                  # PHYSICS: Ancient Oak tree test
-    tests/test_sleep_diagnostics.cpp            # PHYSICS: Sleep diagnostics test
-    tests/test_tree_wiggly.cpp                  # PHYSICS: Tree wiggly test - same oak as logomancers
     tests/test_tree_shadow_wiggly.cpp           # PHYSICS: Tree shadow stability test - sunset light
     tests/test_falling_cube.cpp                 # PHYSICS: Falling cube collision test
     tests/test_physics_rock.cpp                  # PHYSICS: PhysicsRockGenerator test

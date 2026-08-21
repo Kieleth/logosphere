@@ -1,3 +1,10 @@
+// RENAMED 2026-08-21 by owner ruling on case 5: test_oscillation_diagnostic
+// -> test_oscillation_regression. The name was the last thing still calling it
+// a diagnostic after the adjudication ruled it a regression test. Owner's
+// word: "if we need to rename, do it." Nothing else changed with the rename:
+// the scene, the phases, the band and the born-red verdict are exactly as the
+// adjudication left them.
+//
 // TO-INVESTIGATE (test-protocol migration, 2026-08-21): same defect as
 // test_physics_minimal, in the same three-branch shape. The middle branch
 // accepts a sustained 0.01-0.1 m/s oscillation on a gluoned tile that nothing
@@ -48,17 +55,18 @@
 // scene settles to exactly 0.0000 m/s today, so the same tightening cost it
 // no verdict.
 //
-// Booked known_open in TEST_AUDIT against INV-34/INV-24/INV-22 and G-44.
+// Booked known_open in TEST_AUDIT under the renamed key, with the old name
+// and the row's history kept in the row.
 // INV-33/34/35 were ratified 2026-08-21 and their records land with the
 // physics-TDD item-6 branch; see tests/invariants/INV_PROPOSALS.md.
 //
 // ============================================================================
-// OSCILLATION DIAGNOSTIC: Gluoned floor tile on Turtle
+// OSCILLATION REGRESSION: gluoned floor tile on the turtle
 // ============================================================================
 // Test: A 2x2 grid of particles gluoned together (like floor tile), resting on Turtle
 // Goal: Reproduce the 0.5-1 m/s oscillation seen in 86k particle world
 //
-// Run: INTERACTIVE=1 ./logosphere-tests --test test_oscillation_diagnostic
+// Run: INTERACTIVE=1 ./logosphere-tests --test test_oscillation_regression
 //
 // Hypothesis: Oscillation comes from gluon constraints fighting Turtle contacts,
 // not from single particle-Turtle interaction.
@@ -86,10 +94,10 @@
 
 using PhysicsV4::TURTLE_Z;
 
-bool test_oscillation_diagnostic() {
+bool test_oscillation_regression() {
     std::cout << "\n";
     std::cout << "╔══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  OSCILLATION DIAGNOSTIC: Gluoned Tile on Turtle              ║\n";
+    std::cout << "║  OSCILLATION REGRESSION: Gluoned Tile on Turtle              ║\n";
     std::cout << "╚══════════════════════════════════════════════════════════════╝\n\n";
 
     const char* interactive_env = std::getenv("INTERACTIVE");

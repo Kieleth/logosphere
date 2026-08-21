@@ -25,7 +25,7 @@
 // 0.0000 m/s, so tightening cost no verdict anywhere it was run. The middle
 // branch was dead code protecting a defect that the G-44 sleep work had
 // already removed from this scene. It is not dead for the gluoned tile:
-// test_oscillation_diagnostic, which carried the identical three-branch
+// test_oscillation_regression, which carried the identical three-branch
 // verdict, measures 0.0817 m/s and is red as of the same pass.
 //
 // INV-33/34/35 were ratified 2026-08-21 and their records land with the

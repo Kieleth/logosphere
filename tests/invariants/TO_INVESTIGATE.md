@@ -24,11 +24,11 @@ from red to green.
 |---|---|---|---|
 | `test_collision_bounds_rotation` [1c] | REPAIRED, born red | 27 checks 0 failed | 27 checks 1 failed |
 | `test_no_overlap_at_creation` | CONTRADICTION PRESENTED, no code change | exit 0 | exit 0 |
-| `test_sleep_diagnostics` | RETIREMENT PROPOSED, output marked | exit 0 | exit 0 |
+| `test_sleep_diagnostics` | **DELETED** by owner ruling R9 | exit 0 | file gone, audit row kept |
 | `test_physics_minimal` | REPAIRED | PASS via the middle branch | PASS on the law |
-| `test_oscillation_diagnostic` | REPAIRED as a regression test, born red | PASS via the middle branch | FAIL |
+| `test_oscillation_regression` (was `_diagnostic`) | REPAIRED as a regression test, born red, then **RENAMED** by owner ruling | PASS via the middle branch | FAIL |
 | `test_ancient_oak` | REPAIRED | PASS with `wiggle_ok` dropped | PASS with it wired in |
-| `test_tree_wiggly` | REPAIRED, bands restored | 1/3, exit 1 | 1/3, exit 1 |
+| `test_tree_wiggly` | bands restored, then **DELETED** by owner ruling R10 | 1/3, exit 1 | file gone, audit row kept |
 | `test_knockback_scene` | REPAIRED | 16 passed 0 failed | 16 passed 0 failed |
 
 **Two tests are red where they were green**, both booked `expect: fail`:
@@ -37,13 +37,34 @@ from red to green.
   **This one is in the PR-gating CI lane** (`add_headless_test` makes it a
   ctest in the headless-only profile, which `headless-linux` runs in full). No
   CI file was edited. The gate stays red until the generator is corrected.
-- `test_oscillation_diagnostic`, against the G-44 gluon-tree oscillation RCA
+- `test_oscillation_regression`, against the G-44 gluon-tree oscillation RCA
   already on the board. In no CI lane.
 
 **One law arrived mid-pass.** INV-33 finite-state, INV-34 rest-is-reached and
 INV-35 one-position-writer were ratified 2026-08-21. Their records live on
 `feat/physics-tdd-item6` and arrive here when that merges; asserts landed by
 this pass cite INV-34 by its ratified ID. See `INV_PROPOSALS.md`.
+
+---
+
+## THE OWNER RULED, 2026-08-21
+
+| # | Question | Ruling | Done |
+|---|---|---|---|
+| R8 | May a generator hand the solver an overlap? | **The creation door is built. Generator overlap is a bug, not a policy.** The 2026-08-02 acceptance does not survive INV-30; a separate agent owns building the no-overlap door. | Not this branch. `test_no_overlap_at_creation` is untouched and still reports; it gates when the door lands. |
+| R9 | Retire `test_sleep_diagnostics` or rewrite its bands? | **"delete"** | File deleted, registrations removed from `CMakeLists.txt` and `src/unified_test_runner.cpp`. Audit row KEPT and rewritten as the retirement record. |
+| R10 | Do the tree rest bounds become G-44 extremity speed? | **"delete... and create a new battery of tests whenever we start to work on controlled movement, like wind."** | `test_tree_wiggly` deleted, registrations removed. Audit row KEPT as the retirement record, carrying the last measured numbers so the replacement battery has a baseline. |
+| case 5 | Is the name still lying? | **"if we need to rename, do it."** | `test_oscillation_diagnostic` -> `test_oscillation_regression`: file, CMake entry, runner registry key, audit row key. Born-red verdict unchanged. |
+
+**What the deletions do NOT close.** R10 removes an instrument, not a front.
+The G-44 oak oscillation stays boarded: a sustained 0.0294 m/s limit cycle in
+depth-3/4 oaks that the speed-only sleep entry had been masking, depth-5
+sleeping honestly. The owner's hypothesis for it, recorded in the ledger on
+`feat/physics-tdd-item6`, is that the wiggle may be **birth energy from
+creation-time overlaps** rather than a solver limit cycle — which makes R8's
+creation door the experiment that settles it, and the replacement battery the
+thing that measures it under controlled movement.
+
 
 ---
 
@@ -91,10 +112,12 @@ file was edited; the gate will go red until the generator is corrected.
 
 ## test_no_overlap_at_creation — CONTRADICTS-A-RULING
 
-**ADJUDICATED 2026-08-21: no side taken, and none may be taken here. Two owner
-decisions eleven days apart give opposite answers to the same question. This is
-the write-up; the ruling is the owner's. No code change was made — the file
-already says, in its own verdict line, that it enforces nothing.**
+**RULED 2026-08-21 (R8): INV-30 governs. A generator handing the solver an
+overlap is a BUG, not a policy, and the creation no-overlap door is being built
+by a separate agent.** The 2026-08-02 acceptance does not survive INV-30's
+later ruling. Nothing in this file changed on this branch: it still reports and
+still exits 0, and it gates when the door lands — that belongs with the door,
+not with this pass. The write-up below is what the ruling was made against.
 
 **The question in one sentence.** May a GENERATOR hand the solver a world in
 which two bodies already interpenetrate?
@@ -170,11 +193,13 @@ One sentence from the owner picking A or B, and then one edit:
 
 ---
 
-## test_sleep_diagnostics — RETIREMENT PROPOSED
+## test_sleep_diagnostics — DELETED 2026-08-21 (owner ruling R9)
 
-**ADJUDICATED 2026-08-21: the mechanism this file diagnoses no longer exists.
-Verified in the tree, not assumed. Nothing was deleted; the output is now
-marked. The owner rules on retirement.**
+**RULED AND EXECUTED. Owner: "delete".** `tests/test_sleep_diagnostics.cpp`
+is gone, its registrations are removed from `CMakeLists.txt` and
+`src/unified_test_runner.cpp`, and its `TEST_AUDIT.jsonl` row is kept as the
+retirement record. The section below is the reasoning that earned the ruling,
+left standing because a deleted file's argument is the only thing left of it.
 
 **What it asserts.** Nothing; it returns `true` unconditionally and is honest
 about being a diagnostic.
@@ -237,14 +262,13 @@ constant and the three rulings; the historical advice is preserved verbatim
 underneath. The Band 2 summary line no longer prints as a failure. The file
 still runs, still asserts nothing, still exits 0.
 
-### What is owed
+### What was owed, and how it was answered
 
-An owner ruling between two options, both real:
-
-- **Retire it.** Its subject is gone and its counter exists only to feed it.
-- **Rewrite the bands to extremity speed** `sqrt(v^2 + (omega*r)^2)`, which is
-  the only version that would say anything about sleep under G-44. The velocity
-  distribution and sleep fractions are worth having; the currency is wrong.
+The choice was retire it or rewrite its bands to extremity speed
+`sqrt(v^2 + (omega*r)^2)`. The owner chose retire. Nothing is owed. If sleep
+ever needs an instrument again, it gets written against extremity speed from
+the start, not COM speed — that is the one thing worth carrying forward, and
+G-44 already holds it.
 
 ---
 
@@ -324,9 +348,27 @@ mask".
 
 ---
 
-## test_tree_wiggly — REPAIRED 2026-08-21: the original bands are restored
+## test_tree_wiggly — DELETED 2026-08-21 (owner ruling R10)
 
-**ADJUDICATED: `max_velocity < 0.01f` and `wiggly_frames < 10` are back.**
+**RULED AND EXECUTED. Owner: "delete... and create a new battery of tests
+whenever we start to work on controlled movement, like wind."**
+`tests/test_tree_wiggly.cpp` is gone, its registrations are removed from
+`CMakeLists.txt` and `src/unified_test_runner.cpp` (including the
+`run_physics_tests` aggregate call), and its `TEST_AUDIT.jsonl` row is kept as
+the retirement record carrying the last measured numbers.
+
+**The front stays open.** Deleting the test removes an instrument, not the
+defect. The G-44 oak oscillation is still boarded, and the owner's hypothesis
+for it — recorded in the ledger on `feat/physics-tdd-item6` — is that the
+wiggle may be **birth energy from creation-time overlaps** rather than a solver
+limit cycle. That makes R8's creation no-overlap door the experiment that
+settles it: re-test when the door lands.
+
+The reasoning below is what the file was measuring when it was deleted, and
+the numbers are the baseline the replacement battery inherits.
+
+**The bands it died with:** `max_velocity < 0.01f` and `wiggly_frames < 10`,
+the originals, restored earlier in this same pass.
 
 **What it asserted.** `max_velocity < 0.025f` (comment: "Relaxed from 0.01") and
 `wiggly_frames < 15` (comment: "Relaxed from 10").
@@ -349,9 +391,11 @@ verdict lines printing their bounds. Depth 5 reads 0.0000 m/s, 0 wiggly frames.
 `expect: fail`, known_open, same front as the G-44 gluon-tree oscillation RCA
 already on the board. Not a constant to tune.
 
-**What is still owed.** Not the bands. The RCA of the depth-3/4 limit cycle,
-and the owner's call on whether the bound becomes extremity speed per G-44:
-this one is still COM speed.
+**What is still owed.** Not the bands and not this file. The RCA of the
+depth-3/4 limit cycle, and the replacement battery when controlled movement
+(wind) is worked. Whichever instrument replaces this one should price quietness
+in extremity speed per G-44 rather than COM speed, which is the flaw this one
+carried to the end.
 
 ---
 
@@ -413,7 +457,14 @@ front.
 
 ---
 
-## test_oscillation_diagnostic — REPAIRED 2026-08-21 as a regression test, BORN RED
+## test_oscillation_regression — REPAIRED 2026-08-21 as a regression test, BORN RED, then RENAMED
+
+**RENAMED by owner ruling: `test_oscillation_diagnostic` ->
+`test_oscillation_regression`.** Owner: "if we need to rename, do it." The name
+was the last thing still calling it a diagnostic. File, CMake entry, runner
+registry key and audit row key all moved together; the scene, the phases, the
+band and the born-red verdict are untouched — re-run after the rename: max
+final speed 0.0816663 m/s, 173 of 5553 bodies never at rest, exit 1.
 
 **ADJUDICATED. The question was diagnostic or regression test, and it was
 decided mechanically, not by taste.** A diagnostic reports and never claims, so
@@ -443,6 +494,9 @@ standalone harness tests are reached only by an explicit `--test <name>`.
 "at rest"; 0.01 to 0.1 m/s ALSO passes, printed as "Low oscillation — damping
 working"; above 0.1 m/s fails. The subject is a gluoned tile scene on the
 turtle that nothing is touching.
+
+**Where it lives now.** `tests/test_oscillation_regression.cpp`, harness key
+`test_oscillation_regression`.
 
 **Why the middle branch is wrong.** Same two laws as `test_physics_minimal`:
 INV-24 (zero corrective work at steady state; the firings that earned it were
