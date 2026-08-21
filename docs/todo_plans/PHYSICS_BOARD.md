@@ -448,7 +448,21 @@ minimal repro yet. Ledger holds a labeled ratchet (<0.40). Also: argus
 peak spin 7.28 observed mid-tumble vs MAX_OMEGA 6.28 — the cap is
 enforced somewhere the peak sampler beats. Both worth one focused hunt.
 
-## Item 6 UNBLOCKED — G-47 refined; was: ONE blocker
+## G-48 — stacks under torque: the flip's real blocker (NEEDS DESIGN)
+
+The three flip moles are ONE front. Kill-switch world holds a 4-column
+and a 5-zigzag-pile to 0.0007 peak pen; default torque sinks the
+column's bottom box 9.5 cm and collapses the statically-stable pile
+(G-48, registered with the measurements). Same family: the 26 mm sunk
+near-vertical plate and the per-axis press asymmetries. Statics owes
+both structures stability; the solver's sustained stacked-contact loop
+pumps the G-47 wobble seed instead of settling it. Evidence order:
+measure where the pump lives (Argus per-box omega, phystrace one
+interface), then manifold persistence vs the per-substep rebuild, then
+the contact block solve (prior art feat/joint-block-solver). INV-32's
+flip holds until the column stands.
+
+## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 
 INV-32 (contacts exert torque by default; CONTACT_TORQUE=0 becomes the
 kill switch) registered aspirational; all 11 gate sites flipped on
