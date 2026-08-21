@@ -5,21 +5,47 @@
 #include <iomanip>
 #include <map>
 
-// TO-INVESTIGATE (test-protocol migration, 2026-08-21): this file asserts
-// nothing (it returns true unconditionally, by design, and says so), but the
-// DIAGNOSIS it prints recommends a course of action that two later rulings
-// forbid. It reads a speed-only sleep band and, when most bodies sit above it,
-// tells the reader to raise LOW_VEL_THRESHOLD from 0.5 to 1.0 m/s and to
-// consider the "damping rate (0.98)" too weak. INV-19 says damping exists only
-// where a real dissipation process is being modelled and that damping added
-// for numerical convenience or stabilisation is forbidden; INV-29 says a
-// constant like that is an engine INPUT in schema/physics.yaml, never a number
-// tuned at the call site; and G-44 (closed) rules that low speed is not a
-// fixed point at all, that quietness must price BOTH channels in one currency
-// (extremity speed sqrt(v^2 + (omega*r)^2)), so a body slow at the COM and
-// fast in spin is not quiet. Following this file's advice would tune the exact
-// mechanism G-44 replaced. The measurements it prints are still useful; the
-// recommendation needs rewriting to the ruled world, which is an owner call.
+// RETIREMENT PROPOSED (adjudicated 2026-08-21). This file diagnoses a
+// mechanism that no longer exists, and the mechanism's absence was verified in
+// the tree, not assumed:
+//
+//   - THE DAMPER IT IS ABOUT IS GONE. src/core/physics_system_v4.cpp:5048-5067
+//     carries its obituary: "FRAME-GATED DAMPING: ERADICATED (2026-08-14,
+//     owner decree). A speed-gated *0.90/tick velocity tax lived here from
+//     2025-12-11 ... Rest belongs to the sleep law (INV-18/24); dissipation
+//     belongs to modeled processes (INV-19). Nothing else may touch velocity."
+//   - THE COUNTER IT READS SURVIVES ONLY FOR THIS FILE. Same block:
+//     "The low_velocity_frames counter still ticks (wake sites reset it); its
+//     only remaining reader is diagnostics." Grep agrees — every other
+//     reference in src/ is a reset at a wake site.
+//   - THE NUMBERS IN ITS ADVICE DO NOT EXIST. There is no LOW_VEL_THRESHOLD
+//     and no 0.5 m/s: the surviving constant is DAMPING_VELOCITY_THRESHOLD =
+//     0.4 m/s, declared in schema/physics.yaml per INV-29. There is no 0.98
+//     damping rate in the physics engine at all; the two 0.98 literals in the
+//     tree are IMPULSE_MEMORY_DECAY and an animation ANGULAR_DRAG, neither of
+//     which this file measures.
+//
+// So the DIAGNOSIS block below recommends tuning a dead knob by a dead rate,
+// and the recommendation is also forbidden three ways over: INV-19 (damping
+// only where a real dissipation process is modelled), INV-29 (a constant like
+// that is a declared engine input, never a number tuned at its call site) and
+// G-44, closed, which ruled that low speed is not a fixed point at all and
+// that quietness must price BOTH channels in one currency, extremity speed
+// sqrt(v^2 + (omega*r)^2). Following this file's advice would tune the exact
+// mechanism G-44 replaced.
+//
+// The verdict text is now marked accordingly so a reader cannot act on it by
+// mistake. NOTHING WAS DELETED: the file still runs, still asserts nothing,
+// still exits 0, and its measurements (velocity bands, sleep fractions) remain
+// readable. Retirement — or a rewrite of the bands to extremity speed, which
+// is the only version that would say anything about sleep under G-44 — is the
+// owner's call. Booked in tests/invariants/TO_INVESTIGATE.md.
+//
+// What the measurements say TODAY, which is the argument for retiring it:
+// 393 of 393 bodies asleep at every checkpoint, the "damping range" band
+// empty from first sample to last, and the summary printing "Band 2 (damping
+// range): 0 -> 0 (NOT reduced - damping not helping!)" about a world that is
+// entirely at rest.
 //
 // ============================================================================
 // SLEEP DIAGNOSTICS TEST
@@ -206,7 +232,13 @@ bool test_sleep_diagnostics() {
         if (last.band_counts[2] < first.band_counts[2]) {
             std::cout << " ✓ (reduced)" << std::endl;
         } else {
-            std::cout << " ✗ (NOT reduced - damping not helping!)" << std::endl;
+            // DEAD MECHANISM. "damping not helping" is not a finding: the
+            // frame-gated damper was ERADICATED 2026-08-14 (owner decree,
+            // physics_system_v4.cpp:5048). An empty band that stays empty in a
+            // world that is entirely at rest is the correct outcome, not a
+            // failure. Kept, marked, and not acted on.
+            std::cout << " (unchanged — reads as a failure only under the"
+                         " frame-gated damper, ERADICATED 2026-08-14)" << std::endl;
         }
 
         std::cout << "    Sleeping: " << first.sleeping_count << " → " << last.sleeping_count;
@@ -228,7 +260,24 @@ bool test_sleep_diagnostics() {
     }
 
     // Diagnosis
-    std::cout << "\n  DIAGNOSIS:" << std::endl;
+    //
+    // RETIREMENT PROPOSED. Every branch below reasons about the frame-gated
+    // adaptive damper, which no longer exists, and two of them recommend
+    // tuning constants that no longer exist either. The text is preserved
+    // rather than rewritten (a rewrite would be inventing a diagnosis for a
+    // mechanism nobody has studied under G-44) and is fenced so a reader
+    // cannot act on it by mistake.
+    std::cout << "\n  DIAGNOSIS — READS A DEAD MECHANISM, DO NOT ACT ON IT:" << std::endl;
+    std::cout << "    The frame-gated adaptive damper this section is about was\n"
+                 "    ERADICATED 2026-08-14 by owner decree (physics_system_v4.cpp:5048).\n"
+                 "    There is no LOW_VEL_THRESHOLD and no 0.5 m/s gate: the surviving\n"
+                 "    constant is DAMPING_VELOCITY_THRESHOLD = 0.4 m/s, declared in\n"
+                 "    schema/physics.yaml (INV-29). There is no 0.98 damping rate in the\n"
+                 "    physics engine. Acting on the advice below would also break INV-19\n"
+                 "    (damping only where a real dissipation process is modelled) and\n"
+                 "    would tune the exact mechanism G-44 replaced: low speed is not a\n"
+                 "    fixed point, and quietness is extremity speed sqrt(v^2+(omega*r)^2).\n"
+                 "    Preserved verbatim below as the historical text it is." << std::endl;
     if (metrics_history.size() >= 2) {
         const auto& last = metrics_history.back();
 
@@ -252,5 +301,10 @@ bool test_sleep_diagnostics() {
     std::cout << "\n  [TEST COMPLETE — diagnostic: INV-18/INV-7/G-44 are "
                  "measured here, none is enforced; this returns true "
                  "unconditionally]" << std::endl;
+    std::cout << "  [RETIREMENT PROPOSED 2026-08-21: the mechanism this file "
+                 "diagnoses was eradicated 2026-08-14. Booked in "
+                 "tests/invariants/TO_INVESTIGATE.md; the owner rules on "
+                 "retiring it or rewriting its bands to extremity speed.]"
+              << std::endl;
     return true;  // Diagnostic test always passes
 }
