@@ -13,6 +13,31 @@
 // against the solver's real gravity (get_solver_gravity), not the
 // vestigial force registry.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   v1 DRAG      G-2 (sphere-into-mud) and INV-19. G-2 is the exact
+//                experiment: what is an interaction when the other party is
+//                not a surface, there is no contact point and no normal, only
+//                a volume the body is inside. Its answer is the closed form
+//                this contract measures — relax toward the medium's velocity
+//                with time constant m/c — and INV-19 requires that the energy
+//                removed be real dissipation booked to a bucket, acting on
+//                RELATIVE motion only.
+//   v2 BUOYANCY  G-2's second half: settle where drag balances gravity net of
+//                buoyancy. INV-3: the lift is a transformation, not creation.
+//   v3 FIELD     INV-7, the momentum door: a declared force reaches the body
+//                through the same predicate as any other momentum, and the
+//                no-field control is what makes the claim non-vacuous.
+//   v4 EVENTS    hygiene (the interaction seam's bookkeeping, not a physics
+//                law): one enter and one exit per episode.
+//
+//   INV-6's zero-g clause CANNOT BE EXERCISED HERE, and the header above
+//   already says why: the solver applies a hardcoded -Z gravity to every awake
+//   DYNAMIC particle, so no scene in this engine can turn it off. G-26 names
+//   the same gap for the ambient medium ("air is NOT DECLARABLE: a scene
+//   cannot turn it off, cannot change it"). Measuring buoyancy against
+//   get_solver_gravity rather than assuming 9.81 is the honest workaround, not
+//   a fix.
+//
 // Contracts:
 //   v1  DRAG: a ball moving horizontally inside a water column
 //       (drag_coefficient c, collides_with = 0 so default particles

@@ -1,6 +1,13 @@
 // =============================================================================
 // TURTLE GROUND SUPPORT — the world floor is ground even with no floor tiles
 // =============================================================================
+// THE LAW: INV-1, the turtle boundary is the only intrinsically immovable
+// thing and NOTHING is ever placed or ends below the turtle plane beyond SLOP.
+// INV-30 is the second half of this file: the walker is owner=DYNAMICS and
+// solver KINEMATIC, so its position comes from an EXTERNAL WRITER, and the
+// doors into the solver must refuse an illegal placement rather than trusting
+// the physics inside it. INV-2 covers t2, the hips not sinking into the floor.
+//
 // Task #42 regression (CLASS-1 foot-sink). The entity ground-support path
 // (apply_entity_gravity + maintain_entity_shape) accepted only BVH
 // particles as support. The turtle plane at z = TURTLE_Z — the one surface
@@ -156,15 +163,16 @@ bool test_turtle_ground_support() {
     // pre-fix abort was exactly an anchor queued at z=-0.9055.
     bool t3 = (!saw_anchor || min_anchor_z >= 0.0f);
 
-    printf("  %s: t1 feet never below the turtle plane\n", t1 ? "PASS" : "FAIL");
-    printf("  %s: t2 hips never sink toward the floor\n",  t2 ? "PASS" : "FAIL");
-    printf("  %s: t3 plant anchors at or above TURTLE_Z\n", t3 ? "PASS" : "FAIL");
+    printf("  %s: t1 INV-1: feet never below the turtle plane\n", t1 ? "PASS" : "FAIL");
+    printf("  %s: t2 INV-2: hips never sink toward the floor\n",  t2 ? "PASS" : "FAIL");
+    printf("  %s: t3 INV-1/INV-30: plant anchors at or above TURTLE_Z — an external writer places nothing illegal\n", t3 ? "PASS" : "FAIL");
 
     humanoid.shutdown();
     dyn.shutdown();
     physics.shutdown();
 
     bool ok = t1 && t2 && t3;
-    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL — walker sank through the world floor]");
+    printf("\n  %s\n", ok ? "[PASS]"
+        : "[FAIL INV-1 — walker sank through the world floor]");
     return ok;
 }

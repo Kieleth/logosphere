@@ -9,6 +9,16 @@
 // ============================================================================
 // PHYSICS EXPERIMENT 02 - Eden Totem Stacking (EXACT REPLICA)
 // ============================================================================
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-2  no interpenetration beyond SLOP in steady state. Every
+//          "penetrated floor" and every "sank Nmm into" check below is INV-2
+//          measured on one interface of the stack.
+//   INV-1  the turtle is the only immovable thing; a piece that goes through
+//          the floor has passed the boundary that is not supposed to be
+//          passable, and "landed ON the floor" is the same claim positively.
+//   PROPOSED REST-IS-REACHED (tests/invariants/INV_PROPOSALS.md) — each piece
+//          is measured after it has come to rest on the one below.
+//
 // Purpose: Test collision-based stacking using EXACT Eden totem structure
 // Strategy: Build Eden's 8-trunk totem incrementally with 2mm gaps (like totem_generator.cpp)
 //
@@ -217,9 +227,9 @@ bool run_case_1_lower_trunk(Engine& engine, bool is_interactive, TotemState& tot
     bool pass = !penetration_detected && (min_z_observed - lower.thickness/2.0f) >= 0.05f;
 
     if (penetration_detected) {
-        std::cout << "  ❌ FAIL: Lower trunk penetrated floor" << std::endl;
+        std::cout << "  ❌ FAIL INV-1/INV-2: Lower trunk penetrated floor" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Lower trunk landed on floor without penetration" << std::endl;
+        std::cout << "  ✅ PASS INV-1/INV-2: Lower trunk landed on floor without penetration" << std::endl;
     }
 
     if (is_interactive) {
@@ -372,11 +382,11 @@ bool run_case_2_middle_trunk(Engine& engine, bool is_interactive, TotemState& to
     bool pass = !penetration_detected && !compression_detected;
 
     if (penetration_detected) {
-        std::cout << "  ❌ FAIL: Piece 2 penetrated floor" << std::endl;
+        std::cout << "  ❌ FAIL INV-1/INV-2: Piece 2 penetrated floor" << std::endl;
     } else if (compression_detected) {
-        std::cout << "  ❌ FAIL: Piece 2 sank " << (compression * 1000.0f) << "mm into lower trunk (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
+        std::cout << "  ❌ FAIL INV-2: Piece 2 sank " << (compression * 1000.0f) << "mm into lower trunk (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Piece 2 stacked on base without penetration or compression" << std::endl;
+        std::cout << "  ✅ PASS INV-2: Piece 2 stacked on base without penetration or compression" << std::endl;
     }
 
     if (is_interactive) {
@@ -527,11 +537,11 @@ bool run_case_3_top_trunk(Engine& engine, bool is_interactive, TotemState& totem
     bool pass = !penetration_detected && !compression_detected;
 
     if (penetration_detected) {
-        std::cout << "  ❌ FAIL: Top trunk penetrated floor" << std::endl;
+        std::cout << "  ❌ FAIL INV-1/INV-2: Top trunk penetrated floor" << std::endl;
     } else if (compression_detected) {
-        std::cout << "  ❌ FAIL: Top trunk sank " << (compression * 1000.0f) << "mm into middle trunk (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
+        std::cout << "  ❌ FAIL INV-2: Top trunk sank " << (compression * 1000.0f) << "mm into middle trunk (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Top trunk stacked without penetration or compression" << std::endl;
+        std::cout << "  ✅ PASS INV-2: Top trunk stacked without penetration or compression" << std::endl;
     }
 
     if (is_interactive) {
@@ -683,11 +693,11 @@ bool run_case_4_trunk4(Engine& engine, bool is_interactive, TotemState& totem) {
     bool pass = !penetration_detected && !compression_detected;
 
     if (penetration_detected) {
-        std::cout << "  ❌ FAIL: Trunk4 penetrated floor" << std::endl;
+        std::cout << "  ❌ FAIL INV-1/INV-2: Trunk4 penetrated floor" << std::endl;
     } else if (compression_detected) {
-        std::cout << "  ❌ FAIL: Trunk4 sank " << (compression * 1000.0f) << "mm into top trunk (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
+        std::cout << "  ❌ FAIL INV-2: Trunk4 sank " << (compression * 1000.0f) << "mm into top trunk (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Trunk4 stacked without penetration or compression" << std::endl;
+        std::cout << "  ✅ PASS INV-2: Trunk4 stacked without penetration or compression" << std::endl;
     }
 
     if (is_interactive) {
@@ -836,11 +846,11 @@ bool run_case_5_trunk5(Engine& engine, bool is_interactive, TotemState& totem) {
     bool pass = collision_occurred && !compression_detected;
 
     if (!collision_occurred) {
-        std::cout << "  ❌ FAIL: No collision detected" << std::endl;
+        std::cout << "  ❌ FAIL INV-2/hygiene: No collision detected" << std::endl;
     } else if (compression_detected) {
-        std::cout << "  ❌ FAIL: Trunk5 sank " << (compression * 1000.0f) << "mm into trunk4 (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
+        std::cout << "  ❌ FAIL INV-2: Trunk5 sank " << (compression * 1000.0f) << "mm into trunk4 (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Trunk5 landed correctly (compression: " << (compression * 1000.0f) << "mm)" << std::endl;
+        std::cout << "  ✅ PASS INV-2: Trunk5 landed correctly (compression: " << (compression * 1000.0f) << "mm)" << std::endl;
     }
 
     if (is_interactive) {
@@ -992,11 +1002,11 @@ bool run_case_6_horizontal_beam(Engine& engine, bool is_interactive, TotemState&
     bool pass = !penetration_detected && !compression_detected;
 
     if (penetration_detected) {
-        std::cout << "  ❌ FAIL: Beam penetrated floor" << std::endl;
+        std::cout << "  ❌ FAIL INV-1/INV-2: Beam penetrated floor" << std::endl;
     } else if (compression_detected) {
-        std::cout << "  ❌ FAIL: Beam sank " << (compression * 1000.0f) << "mm into trunk5 (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
+        std::cout << "  ❌ FAIL INV-2: Beam sank " << (compression * 1000.0f) << "mm into trunk5 (expected <" << (COMPRESSION_TOLERANCE * 1000.0f) << "mm)" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Horizontal beam placed on totem without penetration or compression" << std::endl;
+        std::cout << "  ✅ PASS INV-2: Horizontal beam placed on totem without penetration or compression" << std::endl;
     }
 
     if (is_interactive) {

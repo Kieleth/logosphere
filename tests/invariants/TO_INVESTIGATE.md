@@ -89,3 +89,29 @@ extremity speed rather than COM speed if it is to say anything about sleep
 under G-44. Nothing was changed here.
 
 ---
+
+## test_physics_minimal — "low oscillation, damping working" is counted as a pass
+
+**What it asserts.** Three-branch verdict on the maximum final velocity of a
+stack of tiles that nothing is touching: under 0.01 m/s passes as "at rest";
+between 0.01 and 0.1 m/s ALSO passes, printed as "Low oscillation — damping
+working"; above 0.1 m/s fails.
+
+**Why the middle branch is wrong.** INV-24: at steady state a scene performs
+ZERO corrective work, and a correction that fires forever on the same body is a
+perpetual-motion machine pumping energy uphill in nanometre installments. The
+firings that earned INV-24 its record were 290 nm each; 0.1 m/s is five orders
+of magnitude above that. INV-19: damping exists only where a real dissipation
+process is being modelled, so crediting "damping working" for a residual
+velocity names a numerical convenience as a physical process. This is the same
+mask G-44 found under `test_tree_wiggly`, where a sustained 0.0294 m/s
+oscillation in depth-3/4 oaks was being absorbed by the speed-only sleep entry
+and the audited green was not a green. Its own sibling `test_physics_minimal_v2`
+demands zero on the same scene shape, so the two files disagree about the same
+law.
+
+**What is owed.** A ruling on whether the middle branch fails, and at which
+bound — most likely G-44's quietness bound in extremity speed rather than a
+COM-speed band. Not weakened here; exit code unchanged.
+
+---

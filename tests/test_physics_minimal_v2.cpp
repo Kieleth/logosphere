@@ -3,6 +3,13 @@
 // ============================================================================
 // Purpose: Test physics settling from baseline (tiles only) to complex (+ objects)
 //
+// LAWS (assert-protocol migration, 2026-08-21): the single STRICT verdict —
+// every particle at rest after 5 s — is INV-24 (a settled scene performs zero
+// corrective work) plus PROPOSED REST-IS-REACHED
+// (tests/invariants/INV_PROPOSALS.md, that it settles at all). Unlike
+// test_physics_minimal this file has no "low oscillation is fine" branch: it
+// demands zero, which is the correct reading of INV-24.
+//
 // Run:
 //   PHASE=1 ./logosphere-tests --test test_physics_minimal_v2  # 16x16x16 tiles (baseline)
 //   PHASE=2 ./logosphere-tests --test test_physics_minimal_v2  # + boulder
@@ -416,10 +423,10 @@ bool test_physics_minimal_v2() {
 
     // STRICT: ALL particles must be at rest after 5 seconds
     if (not_at_rest == 0) {
-        std::cout << "RESULT: PASS - All " << total_particles << " particles at rest\n";
+        std::cout << "RESULT: PASS INV-24 / PROPOSED REST-IS-REACHED - All " << total_particles << " particles at rest\n";
         return true;
     } else {
-        std::cout << "RESULT: FAIL - " << not_at_rest << " particles still moving\n";
+        std::cout << "RESULT: FAIL INV-24 / PROPOSED REST-IS-REACHED - " << not_at_rest << " particles still moving\n";
         return false;
     }
 }

@@ -1,8 +1,29 @@
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): the middle PASS
+// branch of the verdict below accepts a sustained oscillation of up to
+// 0.1 m/s on a stack of tiles that nothing is touching, prints "damping
+// working", and returns true. Two rulings say that is not a pass. INV-24: at
+// steady state a scene performs ZERO corrective work, and a correction that
+// fires forever on the same body is a perpetual-motion machine pumping energy
+// uphill in nanometre installments — 0.1 m/s is five orders of magnitude
+// above the 290 nm firings that earned INV-24 its record. INV-19: damping
+// exists only where a real dissipation process is being modelled, so
+// crediting "damping working" for a residual velocity is naming a numerical
+// convenience as a physical process. This is the same mask G-44 found under
+// test_tree_wiggly, where a sustained 0.0294 m/s oscillation in depth-3/4 oaks
+// was being absorbed by the speed-only sleep entry and the audited green was
+// not a green. The band is not weakened here and the exit code is unchanged:
+// an owner ruling is owed on whether this branch should fail, and at which
+// bound.
+//
 // ============================================================================
 // MINIMAL PHYSICS TEST: Understanding the fundamentals
 // ============================================================================
 // Purpose: Observe physics behavior with the simplest possible scenarios.
 // No trees, no rocks, no gluons - just tiles on Turtle.
+//
+// LAWS: INV-1 (the turtle holds), INV-2 (tiles do not sink into each other),
+// INV-24 (the stack reaches a fixed point and performs no further corrective
+// work) and PROPOSED REST-IS-REACHED (tests/invariants/INV_PROPOSALS.md).
 //
 // Run:
 //   PHASE=1 ./logosphere-tests --test test_physics_minimal  # 1 tile
@@ -439,13 +460,18 @@ bool test_physics_minimal() {
 
     std::cout << "\n";
     if (max_final_vel < 0.01f) {
-        std::cout << "RESULT: Tiles at rest (good - no oscillation)\n";
+        std::cout << "RESULT: INV-24 / PROPOSED REST-IS-REACHED: tiles at rest "
+                     "(good - no oscillation)\n";
         return true;
     } else if (max_final_vel < 0.1f) {
-        std::cout << "RESULT: Low oscillation (" << max_final_vel << " m/s) - damping working\n";
+        std::cout << "RESULT: TO-INVESTIGATE, counted as a pass today: low "
+                     "oscillation (" << max_final_vel << " m/s) on a scene nobody "
+                     "is touching. INV-24 says a settled scene performs zero "
+                     "corrective work and INV-19 forbids crediting damping for "
+                     "it. See the block at the top of this file.\n";
         return true;
     } else {
-        std::cout << "RESULT: OSCILLATING at " << max_final_vel << " m/s (BAD - not settling)\n";
+        std::cout << "RESULT: INV-24 VIOLATED: oscillating at " << max_final_vel << " m/s (BAD - not settling)\n";
         return false;
     }
 }
