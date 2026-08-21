@@ -95,6 +95,18 @@ public:
             if (sp > e.peak_spin) e.peak_spin = sp;
             const float speed = std::sqrt(s.vx*s.vx + s.vy*s.vy + s.vz*s.vz);
             if (speed > e.peak_speed) e.peak_speed = speed;
+            {   // two-band coherence accumulation (G-21, see FOLD_BAND)
+                Quat qe = Quat::from_euler(s.rx, s.ry, s.rz);
+                Quat r = s.q * qe.conjugate();
+                float w = std::fabs(r.w); if (w > 1.0f) w = 1.0f;
+                const float d = 2.0f * std::acos(w);
+                const float fd = std::fabs(std::fabs(s.ry) - 1.57079633f);
+                if (fd < FOLD_BAND) {
+                    if (d > e.peak_div_fold) e.peak_div_fold = d;
+                } else {
+                    if (d > e.peak_div_sharp) e.peak_div_sharp = d;
+                }
+            }
         }
     }
 
@@ -143,6 +155,31 @@ public:
     // One body, one orientation: the angle between what the two ledgers
     // claim. Nonzero means a consumer-visible orientation exists that
     // the physics one disagrees with (G-23).
+    // THE FOLD BAND (G-21, measured 2026-08-21). float32 Euler
+    // extraction cannot encode orientations within ~0.04 rad of the
+    // gimbal fold (|pitch| = pi/2) to better than 0.014 rad: a
+    // 2M-sample round-trip sweep of from_euler(to_euler_zyx(q)) shows
+    // mean error 0.0002 rad away from the fold and worst 0.014 AT it,
+    // exactly where every live tumble spike landed (0.0110-0.0137).
+    // Coherence contracts are therefore TWO-BAND (owner ruling:
+    // adaptive thresholds): sharp where the representation can speak,
+    // the representational ceiling where it cannot. peak_divergence()
+    // accumulates the two bands separately at observe() time.
+    static constexpr float FOLD_BAND = 0.05f;   // rad from |pitch|=pi/2
+    float fold_distance(int id) const {
+        const State* s = latest(id);
+        if (!s) return 3.14159265f;
+        return std::fabs(std::fabs(s->ry) - 1.57079633f);
+    }
+    // fold_band=false: worst divergence observed AWAY from the fold.
+    // fold_band=true: worst divergence observed INSIDE the band.
+    float peak_divergence(int id, bool fold_band) const {
+        auto it = eyes_.find(id);
+        if (it == eyes_.end()) return 0.0f;
+        return fold_band ? it->second.peak_div_fold
+                         : it->second.peak_div_sharp;
+    }
+
     float divergence(int id) const {
         const State* s = latest(id);
         if (!s) return 0.0f;
@@ -244,6 +281,7 @@ private:
         float peak_spin = 0.0f;
         float peak_speed = 0.0f;
         bool ms_touch = false, ms_spin_dead = false, ms_stopped = false;
+        float peak_div_sharp = 0.0f, peak_div_fold = 0.0f;
     };
     static float div_of(const State& s) {
         Quat qe = Quat::from_euler(s.rx, s.ry, s.rz);

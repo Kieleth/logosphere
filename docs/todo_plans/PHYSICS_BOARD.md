@@ -439,6 +439,18 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Rotation item 4 CLOSED 2026-08-21 — G-21 measured and ruled
+
+The fold spikes are a float32 representational ceiling (0.014 rad worst
+within 0.04 rad of |pitch|=pi/2; 2M-sample round-trip sweep), not a
+physics bug: away from the fold the tumbling racers are coherent to
+under a millirad and the vertical-spin control measures exactly zero.
+Owner ruled adaptive thresholds; two-band contract in Argus
+(peak_divergence sharp/fold). LEVER RAMP FULLY GREEN, first time.
+Remaining rotation queue: R5/R6 tall-fall walk re-clamp (unruled),
+item 6 (CONTACT_TORQUE default-flip ruling + ice), QA-ordered trio
+(spin-lift, rate sweep, spheres).
+
 ## Owner QA PASSED 2026-08-20 — G-43 + G-45 arcs CLOSED (FIXED protocol complete)
 
 Owner watched the corrected ladder: "total success and is 99% according

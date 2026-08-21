@@ -1660,3 +1660,18 @@ almost magic." Argus-clamped asserts (clause 1) + certified sweep
 (new-red 0) + owner interactive QA (clause 3): both arcs FIXED. Owner
 orders added to the board: spin-lift on impact, rotation-rate sweep for
 falling cubes, spinning spheres vs floor. Merge of the branch ordered.
+
+## 2026-08-21 — G-21 ruled and closed: two-band coherence (adaptive thresholds)
+
+Measurement first: a 2M-sample round-trip sweep of
+from_euler(to_euler_zyx(q)) gives mean error 0.0002 rad away from the
+gimbal fold and worst 0.014 rad inside +-0.04 rad of |pitch| = pi/2 — a
+float32 representational ceiling, not a physics or branch bug. Every
+live spike sat inside it (ramp 0.0137/0.0130, ladder R6 0.0110) and the
+vertical-spin control measured exactly zero. Owner ruling: "adaptive
+thresholds are good, i.e. I do not care about 1 cm/h on a 200 km/h
+movible." Contract: divergence < 0.01 away from the fold, < 0.015
+inside Argus::FOLD_BAND (0.05 rad), accumulated per band by Argus at
+observe time. Result: the lever ramp race is FULLY GREEN for the first
+time; ladder lever reds down to the R5/R6 tall-fall walk pair (re-clamp
+still unruled). Rotation item 4 closed.

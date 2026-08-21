@@ -96,6 +96,13 @@ constexpr float REST_SPEED_MAX  = 0.05f;   // m/s at the deadline
 // One body, one orientation (G-23). Quaternion truth is the default
 // since 2026-08-19; a body whose two ledgers disagree is a defect.
 constexpr float COHERENCE_MAX = 0.01f;     // rad
+// Two-band coherence (G-21 ruling, 2026-08-21): float32 Euler
+// extraction has a measured worst error of 0.014 rad inside
+// Argus::FOLD_BAND of the gimbal fold and 0.0002 outside it, so the
+// contract is sharp away from the fold and the representational
+// ceiling plus margin inside it (adaptive thresholds, owner ruling).
+constexpr float DIV_MAX_SHARP = 0.01f;
+constexpr float DIV_MAX_FOLD  = 0.015f;
 // The lanes exist so the two experiments cannot contaminate each other.
 // Centre-to-centre must never fall to where their shapes could meet.
 constexpr float LANE_GAP_MIN = 2.0f * BODY;   // m, centre to centre
@@ -254,7 +261,9 @@ struct Scene {
         return dev < (lever ? LANE_DEV_MAX_LEVER : LANE_DEV_MAX);
     }
     static bool held(float drift)         { return drift < FIXTURE_DRIFT_MAX; }
-    static bool coherent(float div)       { return div < COHERENCE_MAX; }
+    static bool coherent(float sharp, float fold) {
+        return sharp < DIV_MAX_SHARP && fold < DIV_MAX_FOLD;
+    }
     static bool lanes_kept(float gap)     { return gap > LANE_GAP_MIN; }
     static bool landed_and_stopped(float bottom_z, float spd) {
         return std::fabs(bottom_z) < REST_BOTTOM_MAX && spd < REST_SPEED_MAX;

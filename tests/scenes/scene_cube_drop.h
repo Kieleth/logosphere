@@ -57,6 +57,11 @@ constexpr float SPIN0            = 3.0f;   // rad/s about Z
 constexpr float TIP_SETTLE_MAX   = 0.05f;  // rad: R1 settles FLAT (measured 0.0001)
 constexpr float WOBBLE_MAX_LEVER = 0.05f;  // rad/s: R0's transient (measured 0.0198,
                                            // was 0.1929 before INV-20 pricing)
+// Two-band coherence contract (G-21 ruling, 2026-08-21): sharp where
+// Euler can speak, the measured representational ceiling (0.014 worst)
+// plus margin inside Argus::FOLD_BAND of the gimbal fold.
+constexpr float DIV_MAX_SHARP    = 0.01f;
+constexpr float DIV_MAX_FOLD     = 0.015f;
 // The cube lands on a FLOOR SLAB PARTICLE, not on the bare turtle
 // (owner, 2026-08-19: "I'd prefer if it falls on another particle and
 // not some empty blank space"). This also aims the ladder at the right

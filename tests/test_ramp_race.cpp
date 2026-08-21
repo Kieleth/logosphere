@@ -183,8 +183,13 @@ int main() {
     std::printf("  [argus] closest the two racers ever came: %.3f m "
                 "(their shapes meet below %.2f)\n",
                 scene.lane_gap_min, LANE_GAP_MIN);
-    std::printf("  [argus] worst q-vs-Euler divergence: cube %.6f rad, "
-                "sphere %.6f rad\n", scene.cube_div_max, scene.ball_div_max);
+    std::printf("  [argus] worst q-vs-Euler divergence: cube %.6f sharp / "
+                "%.6f fold, sphere %.6f / %.6f (bands: %.3f / %.3f)\n",
+                scene.argus.peak_divergence(scene.cube, false),
+                scene.argus.peak_divergence(scene.cube, true),
+                scene.argus.peak_divergence(scene.ball, false),
+                scene.argus.peak_divergence(scene.ball, true),
+                DIV_MAX_SHARP, DIV_MAX_FOLD);
     std::printf("  [argus] peak speed: cube %.3f m/s, sphere %.3f m/s\n",
                 scene.argus.peak_speed(scene.cube),
                 scene.argus.peak_speed(scene.ball));
@@ -237,8 +242,13 @@ int main() {
     check(Scene::landed_and_stopped(scene.bottom(scene.ball), scene.speed(scene.ball)),
           "the sphere ends AT REST ON THE TURTLE (the assert that would "
           "have caught it resting 2.7 m up inside the ramp)");
-    check(Scene::coherent(scene.cube_div_max) && Scene::coherent(scene.ball_div_max),
-          "one body, one orientation, every frame for both racers (G-23)");
+    check(Scene::coherent(scene.argus.peak_divergence(scene.cube, false),
+                          scene.argus.peak_divergence(scene.cube, true)) &&
+          Scene::coherent(scene.argus.peak_divergence(scene.ball, false),
+                          scene.argus.peak_divergence(scene.ball, true)),
+          "one body, one orientation, every frame for both racers (G-23, "
+          "two-band: sharp away from the gimbal fold, the measured "
+          "representational ceiling inside it)");
 
     // Name only the fronts ACTUALLY failing. A verdict that lists a front
     // already fixed is the same class of lie as a comment that outlived
