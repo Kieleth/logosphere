@@ -1702,3 +1702,39 @@ first known violations), INV-35 one-position-writer (the 2x
 displacement RCA). All three aspirational with mechanisms owed, listed
 in each record. The eight to-investigate tests go to a dedicated
 review agent whose dispositions come back to the owner in chat.
+
+## 2026-08-21 — Owner rules R8/R9/R10 and case 5
+
+**R8 (overlap at birth)**: a generator that overlaps bodies is a BUG,
+full stop. Owner: "the generator should NOT put things overlapping...
+I'd not fix for penetration, I'd just avoid it fully... the only
+penetration I'd allow is in the physics delta in extreme cases where
+things are super fast and the tic does not allow to capture it...
+enforce nothing that is created, ever, can coexist — particles are
+always, 100% guaranteed not to overlap in 3d, ever. Solve that, and do
+not care about that in our physics engine, reducing complexity, and
+just simply refuse to run — raise exception... or even just raise and
+exit(1) catastrophically with full detail." INV-30 stands strengthened:
+the mechanism is a CREATION DOOR (doors-not-fallbacks), refusing loudly
+at spawn; the physics engine carries no creation-overlap tolerance.
+Subagent dispatched: the door, the fallen-tree generator fix (C10), the
+two overlapping foliage placements, and test_no_overlap_at_creation
+made real. The 2026-08-02 "minimal overlap accepted" position is hereby
+recorded as SUPERSEDED (its only prior carrier was a test comment).
+
+**R9**: test_sleep_diagnostics — owner: "delete". Retired fully: it
+asserted nothing and prescribed a mechanism eradicated 2026-08-14. Its
+story stays in the audit row and G-44.
+
+**R10**: test_tree_wiggly — owner: "delete... and create a new battery
+of tests whenever we start to work on controlled movement, like wind."
+Owner hypothesis, recorded: the tree wiggle is RELATED TO R8 — bodies
+born overlapping are compressed springs, and the G-44 unmasked
+oscillation may be birth energy. To test the day the creation door
+lands. The G-44 oak-oscillation RCA front stays on the board; its
+tripwire moves from the deleted test to the board entry until the wind
+battery exists.
+
+**Case 5**: regression adjudication stands; owner: "if we need to
+rename, do it" — renamed so the file's name stops calling itself a
+diagnostic while carrying a verdict.
