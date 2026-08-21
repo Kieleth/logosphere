@@ -71,8 +71,7 @@ struct RungSpec {
     const char* name;
     float tilt_rad;
     float spin_x, spin_y, spin_z;
-    float drop;          // per-rung: spin rungs use a SHORT flight so the
-                         // spin survives ANGULAR_DRAG to touchdown (G-41)
+    float drop;
 };
 constexpr float SPIN_FAST  = 6.0f;    // rad/s, just under MAX_OMEGA 6.28
 // DROP_SHORT was 0.05 m: an ANGULAR_DRAG-era workaround ("drag steals
@@ -90,7 +89,12 @@ constexpr float DROP_SHORT = 0.6f;
 // itself is a beautiful future case; THIS case's claim is that spin
 // buys translation on the right axis, so it starts where rolling
 // starts. R4's vertical spin sweeps no band and falls from DROP.
-constexpr float DROP_WHEEL = 0.05f;
+// The spin cases fall from the same height as everything else (owner
+// order). A cube spinning about a horizontal axis strikes the floor
+// with its sweeping corners on the way down, and each real knock costs
+// spin: the walk after a tall fall is smaller than after a low release
+// (measured 0.081 m from 0.05 m vs 0.016 m from 0.6 m). That is the
+// physics of dropping a spinning die, kept honest here.
 // THE LECTURE STANDARD (skill, 2026-08-20): the spin cases run on a
 // HERO cube, 0.8 m — twice the extent, double the contact radius, so
 // the same honest physics buys visibly more travel (omega x r budget
@@ -116,10 +120,10 @@ inline const RungSpec RUNGS[RUNG_COUNT] = {
     { "R2/R3 flat, spinning 3 rad/s",   0.0f, 0.0f, 0.0f, SPIN0, DROP },
     { "R4 THE BIG TOP: hero spins Z at 6, twin still (G-41)",
                                         0.0f, 0.0f, 0.0f, SPIN_FAST, DROP_SHORT },
-    { "R5 THE WALKING WHEEL: hero spins X, drives along Y, twin still",
-                                        0.0f, SPIN_FAST, 0.0f, 0.0f, DROP_WHEEL },
-    { "R6 THE WALKING WHEEL: hero spins Y, drives along X, twin still",
-                                        0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_WHEEL },
+    { "R5 THE WALKING WHEEL: hero spins X, falls, drives along Y",
+                                        0.0f, SPIN_FAST, 0.0f, 0.0f, DROP },
+    { "R6 THE WALKING WHEEL: hero spins Y, falls, drives along X",
+                                        0.0f, 0.0f, SPIN_FAST, 0.0f, DROP },
     { "R7 THE CORNER STAND: corner-down, a hair off balance, it MUST fall (G-43)",
                                         0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
     // R8: the SAME corner stand, on the BARE TURTLE. R7 topples through
