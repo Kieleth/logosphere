@@ -19,7 +19,7 @@ I = per velocity iteration (≤32 per substep). Live: yes unless noted.
 | 1 | `prune_invalid_gluons` | F | removes stale-index gluons before anything reads them |
 | 2 | `save_pre_constraint_omega` | F | fills `pre_constraint_omega_z_` — **DEAD CARRIER**: its only documented consumer is behind `ENABLE_GLUON_POSITION_PROJECTION = false`; O(n) paid every frame |
 | 3 | substep loop ×4 | F | nodes 4-20 below |
-| 21 | `update_rest_state` (sleep law) | F | consumes `constraint_dissatisfied_` — **STALENESS WINDOW**: that carrier is rewritten every substep by node 10, so the sleep law sees only the LAST substep's dissatisfaction; nothing documents this |
+| 21 | `update_rest_state` (sleep law) | F | consumes `constraint_dissatisfied_` — **STALENESS WINDOW**: that carrier is rewritten every substep by node 10, so the sleep law sees only the LAST substep's dissatisfaction; nothing documents this. **G-44 (2026-08-20)**: quietness is one currency (v^2 + omega^2 * r_ext^2) and entry requires it NON-GROWING (REST_GROWTH_RUN consecutive growing frames block sleep; alternating jitter sleeps). Entry zeroes BOTH velocity halves. A cache may only cache a fixed point |
 | 22 | `remove_marked_gluons` | F | wake-on-break lives here (a sleeping segment whose bond tore must fall) |
 | 23 | explosion detector sample+judge | F | one pass over final velocities; runs AFTER rest-update zeroes sleeping velocities — an `invalidates` edge worth capturing |
 
@@ -36,8 +36,8 @@ I = per velocity iteration (≤32 per substep). Live: yes unless noted.
 | 10 | gluon row build | S | in ONE loop per bond: attachment points (rotated), **wake-on-strain fires here**, `constraint_dissatisfied_` written here, material damping as reduced-mass impulse, 3 axis rows + budgets, quat-drive angular rows, immovable-pair build skip (after wake), warm impulse-memory apply |
 | 11 | constraint shuffle (lever) | S | `LOGOSPHERE_PHYS_SHUFFLE` — measurement lever, off by default |
 | 12 | row mass refresh (shrink-only) | S | contact AND gluon rows shrink to the live predicate — the compensator for the build-before-wake edges (`repaired_by`, INV-8) |
-| 13 | warm start apply (contacts) | S | keyed dedup; gluons excluded by design |
-| 14 | velocity iterations | I | per row: angular rows, linear impulse via the door, friction (2 tangents); exits: converged (impulse threshold — known INV-10 debt), plateau (rate), exhausted |
+| 13 | warm start apply (contacts) | S | **rebuilt 2026-08-20 (G-43/G-45)**: contact rows GROUP by full ContactKey (hash dedup retired with its documented collision defect); cached impulse distributes across the group by eff_mass_share and applies through the FULL Jacobian (linear + angular, same gates as the iterations — warm start is iteration zero, not a second solver). Speculative rows (bias < 0) receive nothing; turtle rows with no penetration receive nothing. Store side sums the group. Gluons excluded by design |
+| 14 | velocity iterations | I | per row: angular rows, linear impulse via the door, friction (2 tangents); exits: converged (impulse threshold — known INV-10 debt), plateau (rate), exhausted. **G-45 (2026-08-20)**: friction acts only through a TOUCHING contact — rows with bias < 0 (gap open, the row's own classification) have friction_limit forced to 0; their normal half keeps its approach-limiting job. **G-43**: contact v_rel measures omega-cross-r at the anchor in BOTH branches (turtle included), measure-gate == apply-gate (solver_mode DYNAMIC for contacts) |
 | 15 | position pass (split impulse) | S | own predicate (`inv_mass_positional`: sleep IS movable), SLOP tolerance, pseudo-impulse discarded (INV-21); turtle rows excluded (boundary owns them — INV-22) |
 | 16 | warm cache write-back + impulse memory store (organic) | S | momentum-unit caps (INV-10) |
 | 17 | tear / breaking check | S | force AND strain laws; TEAR_DEBUG frame-stamped |
