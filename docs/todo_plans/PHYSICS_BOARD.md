@@ -439,6 +439,20 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Skill audit 2026-08-21 (owner: "read skill, what are we missing?")
+
+Checklist steps skipped and repaired the same day: sweep for the G-21
+change (run: new-red 0), Linux precheck (had NEVER run this session;
+first run OOM-killed cc1plus on logovger's generated ontology at the
+colima VM's 2 GiB — real CI physics-linux green, VM resized to 8 GiB
+and precheck re-run), PHYSICS_PIPELINE_SEQUENCE nodes 13/14/21 updated
+for G-43/44/45 (went stale through merged PR #152), owner interactive
+QA of the green lever ramp (launched at last). Language debt: item 4
+was called "closed" before QA clause 3 — the decree stands, "measured
+and ruled" until the owner watches. STILL OWED from the stale-sweep
+finding: sweep must refuse a build tree older than HEAD (mechanical
+check, unbuilt).
+
 ## Rotation item 4 CLOSED 2026-08-21 — G-21 measured and ruled
 
 The fold spikes are a float32 representational ceiling (0.014 rad worst
