@@ -1,7 +1,27 @@
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): this file's stated
+// POLICY and an ACTIVE INVARIANT disagree, and the invariant is the later
+// ruling. The policy block at the bottom records an owner decision of
+// 2026-08-02 that "MINIMAL OVERLAP IS ACCEPTED" and turns this file into a
+// reporter: it returns true unconditionally, so a generator that creates
+// bodies inside each other cannot make it red. INV-30
+// (external-writers-place-nothing-illegal) was ruled on 2026-08-13, eleven
+// days later, and says the opposite in the same words this file's title uses:
+// a generator "may not hand the solver a state it would never have produced:
+// no frame begins with an overlap beyond SLOP", enforcement "STRICT-FIRST by
+// owner ruling, lenient mode only as the inventory lever". Either INV-30's
+// strict-first enforcement covers generators and this file should gate under
+// the lever, or the 2026-08-02 acceptance still stands and INV-30 needs the
+// carve-out written into it. Nothing here was changed: the numbers this file
+// reports are the size of the debt either way, and the exit code is
+// unchanged.
+//
 // =============================================================================
 // NOTHING MAY BE CREATED INSIDE SOMETHING ELSE (issue #38)
 // =============================================================================
-// THE RULE THIS TEST DEFENDS.
+// THE RULE THIS TEST DEFENDS: INV-4 (born-at-rest: no overlap beyond slop at
+// frame zero, before a single solver iteration) and INV-30
+// (external-writers-place-nothing-illegal: the doors INTO the solver are
+// closed, not just the physics inside it).
 //
 // In this engine a particle is a body. It has mass, it takes up room, it
 // collides. There is no such thing as a decorative particle that occupies no
@@ -202,7 +222,7 @@ bool test_no_overlap_at_creation() {
 
     printf("\n");
     if (coincident > 0) {
-        printf("  %d pairs of bodies were created AT THE SAME POINT. That is not a tight\n"
+        printf("  INV-4/INV-30: %d pairs of bodies were created AT THE SAME POINT. That is not a tight\n"
                "  placement, it is no placement: something is assigning positions without\n"
                "  regard to what is already there. Bodies affected: ", coincident);
         for (size_t k = 0; k < coincident_ids.size() && k < 12; ++k)
@@ -213,11 +233,11 @@ bool test_no_overlap_at_creation() {
 
     const bool clean = (overlapping == 0);
     if (clean) {
-        printf("  CLEAN. Every body of the generated tree is clear of every other by at\n"
+        printf("  INV-4/INV-30 CLEAN. Every body of the generated tree is clear of every other by at\n"
                "  least the 1 mm slop, so the solver is handed a legal world and has\n"
                "  nothing to repair on frame one.\n");
     } else {
-        printf("  RESIDUAL OVERLAP AT CREATION (accepted, see policy below).\n"
+        printf("  INV-4/INV-30 RESIDUAL OVERLAP AT CREATION (accepted, see policy below).\n"
                "  %d of %zu body pairs are already interpenetrating before physics has run\n"
                "  a single frame, the worst by %.4f m. The solver will do the only correct\n"
                "  thing and eject them, which is measured elsewhere at over 3 m/s, and the\n"
@@ -233,7 +253,9 @@ bool test_no_overlap_at_creation() {
            "  whether bodies get LAUNCHED. That gate is test_foliage_stays_attached:\n"
            "  peak speed under 2 m/s, mean canopy drift under 0.5 m.\n"
            "  This file REPORTS the overlap that remains, so it cannot creep unnoticed.\n");
-    printf("\n  %s\n", "PASS (diagnostic)");
+    printf("\n  %s\n", "PASS (diagnostic: INV-4 and INV-30 are REPORTED here, "
+           "not enforced — this function returns true unconditionally. See the "
+           "TO-INVESTIGATE block at the top of this file)");
     engine.shutdown();
     return true;
 }

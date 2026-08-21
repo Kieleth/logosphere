@@ -5,6 +5,15 @@
 // through bonds, to something immobile. A blade may bend, lean, tear and fall.
 // It may not be born already free of the earth.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-1  the turtle is the only intrinsically immovable thing, and
+//          immobility exists ONLY through the turtle, a gluon anchor, or
+//          KINEMATIC mode. "Connected to something immobile" is that sentence
+//          read backwards: a rootless plant has no path to any of the three.
+//   INV-4  born at rest: a structure whose root was never created is not a
+//          structure that arrived intact, it is one that arrived incomplete.
+//   hygiene the "nothing materialised" branch guards the measurement.
+//
 // WHY THIS TEST EXISTS. 07ea3c3 bonded organic entities and rooted them:
 //
 //     if (!trunk_particles.empty()) {
@@ -212,7 +221,7 @@ bool test_plants_are_rooted() {
 
     printf("\n");
     if (tall.bodies == 0 || shrt.bodies == 0) {
-        printf("  *** NOTHING MATERIALISED. ***\n"
+        printf("  *** hygiene: NOTHING MATERIALISED. ***\n"
                "  A species produced zero bodies, so this test cannot say anything about\n"
                "  rooting. The activation path is broken or has moved.\n\n  FAIL\n");
         engine.shutdown();
@@ -235,7 +244,7 @@ bool test_plants_are_rooted() {
         printf("  ROOTED. Every body in every plant reaches something immobile through\n"
                "  its bonds. A blade can bend and tear; it cannot be born adrift.\n");
     } else {
-        printf("  *** %zu PLANTS ARE NOT ATTACHED TO ANYTHING. ***\n"
+        printf("  *** INV-1/INV-4: %zu PLANTS ARE NOT ATTACHED TO ANYTHING. ***\n"
                "  %zu bodies float in %zu components that contain no KINEMATIC particle,\n"
                "  %zu of them single bodies bonded to nothing at all. generate_trunk()\n"
                "  returns empty below 0.05 m of trunk, grass_blade() asks for\n"
@@ -245,7 +254,9 @@ bool test_plants_are_rooted() {
                unrooted, adrift, unrooted, singles);
     }
 
-    printf("\n  %s\n", pass ? "PASS" : "FAIL");
+    printf("\n  %s\n", pass ? "PASS"
+        : "FAIL INV-1 (a body reaches nothing immobile: not the turtle, not an "
+          "anchor, not a KINEMATIC neighbour)");
     engine.shutdown();
     return pass;
 }

@@ -1,7 +1,8 @@
 // ============================================================================
 // A TREE IS BORN AT REST (issue #38)
 // ============================================================================
-// THE LAW. A bond's rest geometry is where the generator PUT the two bodies.
+// THE LAW. INV-4, born-at-rest, stated for bonds: a bond's rest geometry is
+// where the generator PUT the two bodies.
 // At frame zero, before gravity, before a single solver iteration, every bond
 // must read a strain of 1.0. A structure born strained is a structure that
 // tears itself apart, and no solver fix can save it.
@@ -23,6 +24,17 @@
 // It reports the distribution rather than one number, because "how many bonds
 // are born wrong and by how much" is what decides whether this is a stray edge
 // case or the whole structure.
+//
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-4  every bond at strain 1.0 at frame zero, measured
+//          attachment-to-attachment, before a single solver iteration.
+//   INV-14 tears need strain: the 51 bonds that tore with BOTH BODIES
+//          STATIONARY are INV-14's failure, and this file is the test that
+//          located its cause upstream in the placement rather than the tear.
+//   INV-28 one attachment-point definition: the "mixed-frame branch offsets,
+//          local vs world" bug in the history above is INV-28 verbatim, four
+//          hand-copies of one piece of math and one of them disagreeing.
+//   hygiene the "generator produced no bonds" branch guards the measurement.
 //
 //   ./build-release/logosphere-tests --test test_tree_bonds_born_at_rest --no-head
 // ============================================================================
@@ -106,7 +118,7 @@ bool test_tree_bonds_born_at_rest() {
 
     const size_t n_gluons = physics.get_total_gluon_count();
     if (n_gluons == 0) {
-        printf("  INCONCLUSIVE: the generator produced no bonds.\n  FAIL\n");
+        printf("  hygiene INCONCLUSIVE: the generator produced no bonds.\n  FAIL\n");
         engine.shutdown();
         return false;
     }
@@ -196,7 +208,7 @@ bool test_tree_bonds_born_at_rest() {
     const bool pass = (born_torn == 0 && ratio_max <= 1.10f);
     printf("\n");
     if (!pass) {
-        printf("  *** THE TREE IS BORN STRAINED. ***\n"
+        printf("  *** INV-4: THE TREE IS BORN STRAINED. ***\n"
                "  %zu bonds are already at or past their tear ratio before a single\n"
                "  solver iteration has run, and %zu are taut. The generator places two\n"
                "  bodies at one separation and gives their bond a different one. No\n"
@@ -204,9 +216,11 @@ bool test_tree_bonds_born_at_rest() {
                "  is why three separate real fixes to the tear path moved nothing.\n",
                born_torn, born_taut);
     } else {
-        printf("  BORN AT REST. Every bond agrees with where its bodies were placed.\n");
+        printf("  INV-4 BORN AT REST. Every bond agrees with where its bodies were placed.\n");
     }
-    printf("\n  %s\n", pass ? "PASS" : "FAIL (a structure must be born at rest)");
+    printf("\n  %s\n", pass ? "PASS"
+        : "FAIL INV-4 (a structure must be born at rest; no solver change can "
+          "hold one that arrives already broken)");
     engine.shutdown();
     return pass;
 }

@@ -12,6 +12,16 @@
 // Purpose: Test gluon support for horizontal branches on vertical trunk
 // See: docs/PHYSICS_ITERATIVE_RESOLVER_V3.2.md (Scenario VII)
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-14 tears need strain. A horizontal branch hanging off a vertical
+//          trunk under its own weight is the standing-load case: the bond is
+//          genuinely strained and must NOT tear at it, so "branch stable,
+//          drift bounded" is INV-14 measured from the other side.
+//   INV-1  the branch reaches something immobile through its bonds; a branch
+//          that drifts away has stopped reaching it.
+//   INV-24 the loaded tree settles and then performs no further corrective
+//          work: drift is measured after settling, not during.
+//
 // Structure:
 //      [Top] 6kg
 //        |
@@ -255,9 +265,9 @@ bool run_case_1_static_branch(Engine& engine, bool is_interactive, TreeState& tr
     bool pass = drift < 0.06f;  // 60mm tolerance (visually acceptable drift)
 
     if (!pass) {
-        std::cout << "  ❌ FAIL: Branch drifted " << drift << "m" << std::endl;
+        std::cout << "  ❌ FAIL INV-14/INV-1: Branch drifted " << drift << "m" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: Branch stable (drift=" << drift << "m)" << std::endl;
+        std::cout << "  ✅ PASS INV-14/INV-1/INV-24: Branch stable under standing load (drift=" << drift << "m)" << std::endl;
     }
 
     if (is_interactive) {
@@ -474,9 +484,9 @@ bool run_case_2_branching_tree(Engine& engine, bool is_interactive, TreeState& t
     bool pass = (drift_tl < 0.06f) && (drift_tr < 0.06f);  // 60mm tolerance (visually acceptable)
 
     if (!pass) {
-        std::cout << "  ❌ FAIL: Sub-branches drifted" << std::endl;
+        std::cout << "  ❌ FAIL INV-14/INV-1: Sub-branches drifted" << std::endl;
     } else {
-        std::cout << "  ✅ PASS: All branches stable" << std::endl;
+        std::cout << "  ✅ PASS INV-14/INV-1/INV-24: All branches stable under standing load" << std::endl;
     }
 
     if (is_interactive) {
@@ -577,8 +587,8 @@ bool test_gluon_tree() {
     std::cout << "\n╔══════════════════════════════════════════════════════════════╗" << std::endl;
     std::cout <<   "║         TREE GLUON TESTING COMPLETE                          ║" << std::endl;
     std::cout <<   "╚══════════════════════════════════════════════════════════════╝" << std::endl;
-    std::cout << "\n  Case 1 (Static branch): " << (case1_pass ? "✅ PASS" : "❌ FAIL") << std::endl;
-    std::cout << "  Case 2 (Branching tree): " << (case2_pass ? "✅ PASS" : "❌ FAIL") << std::endl;
+    std::cout << "\n  Case 1 (INV-14 static branch): " << (case1_pass ? "✅ PASS" : "❌ FAIL") << std::endl;
+    std::cout << "  Case 2 (INV-14 branching tree): " << (case2_pass ? "✅ PASS" : "❌ FAIL") << std::endl;
 
     bool all_pass = case1_pass && case2_pass;
     std::cout << "\n" << (all_pass ? "✅ ALL TESTS PASSED!" : "❌ SOME TESTS FAILED") << std::endl;

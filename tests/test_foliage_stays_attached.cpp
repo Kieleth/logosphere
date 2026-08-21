@@ -22,6 +22,19 @@
 // leave: the distance to its branch tip should stay near the rest length the
 // bond was created with.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   PEAK SPEED    INV-11 (no detonation) and INV-17 (a contact may stop an
+//                 approach, never amplify one). A leaf ejected from a
+//                 structure nothing is pushing got its speed from somewhere,
+//                 and the only sources here are the repair pass and the
+//                 contact rows.
+//   MEAN DRIFT    INV-14 (a bond between two satisfied resting bodies never
+//                 tears) and INV-4 (a structure born strained tears itself
+//                 apart; this is the observable end of test_tree_bonds_born_
+//                 at_rest's frame-zero measurement).
+//   The worst-single-leaf and leaf-count lines are REPORTED, not gated, and
+//   say so; they are not asserts and carry no law.
+//
 // WHAT THIS MEASURES.
 //
 // For every leaf, the distance from its parent branch tip, at generation and
@@ -204,9 +217,9 @@ bool test_foliage_stays_attached() {
     const bool no_shooting = peak_speed <= MAX_SPEED_MS;
     const bool canopy_held = last.mean_drift <= MAX_MEAN_DRIFT;
 
-    printf("  %-34s %10.4f  limit %.2f  %s\n", "PEAK SPEED of any leaf (m/s)",
+    printf("  %-34s %10.4f  limit %.2f  %s\n", "INV-11/INV-17 PEAK SPEED (m/s)",
            peak_speed, MAX_SPEED_MS, no_shooting ? "ok" : "*** SHOOTING ***");
-    printf("  %-34s %10.4f  limit %.2f  %s\n", "MEAN canopy drift (m)",
+    printf("  %-34s %10.4f  limit %.2f  %s\n", "INV-14/INV-4 MEAN canopy drift (m)",
            last.mean_drift, MAX_MEAN_DRIFT, canopy_held ? "ok" : "*** CANOPY LEFT ***");
     printf("  %-34s %10.4f  (reported, not gated)\n", "worst single leaf drift (m)",
            last.max_drift);
@@ -215,12 +228,12 @@ bool test_foliage_stays_attached() {
     const bool pass = no_shooting && canopy_held;
     printf("\n");
     if (pass) {
-        printf("  NO SHOOTING. The tree is handed to the solver with some overlap and the\n"
+        printf("  INV-11/INV-14: NO SHOOTING. The tree is handed to the solver with some overlap and the\n"
                "  solver eases it apart instead of throwing it. Leaves settle where they\n"
                "  were drawn. Residual overlap is accepted deliberately: removing all of\n"
                "  it costs branches and leaves, and the tree's complexity is the point.\n");
     } else {
-        printf("  *** THE TREE IS BEING THROWN APART. ***\n"
+        printf("  *** INV-11/INV-14: THE TREE IS BEING THROWN APART. ***\n"
                "  Peak leaf speed %.2f m/s against a %.2f limit, mean canopy drift %.2f m\n"
                "  against %.2f. Bodies are being ejected rather than settling, which is\n"
                "  what a canopy scattered across the sky looks like from the camera.\n",
