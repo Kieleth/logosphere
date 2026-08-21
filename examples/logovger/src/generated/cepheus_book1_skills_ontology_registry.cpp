@@ -43,6 +43,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("SourceExclusionKind", {"LAYOUT", "SYNTAX"});
     reg.addEnumType("SourceManifestFormat", {"LENGTH_PREFIXED_V1"});
     reg.addEnumType("SourceMediaType", {"UTF8_TEXT"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEnumType("TableRole", {"cash", "material", "service"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});

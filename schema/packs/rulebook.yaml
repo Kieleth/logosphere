@@ -72,6 +72,27 @@ enums:
       SOURCE_GAP:
         description: The source is ambiguous, inconsistent, or incomplete for the required rule.
 
+  TableRole:
+    description: >-
+      Closed set of parts a table can play where several are offered
+      together and a rule treats them differently. Closed, and
+      deliberately: this was an open string, and an open string means a
+      seed writing "Cash" where the rule asks for "cash" validates,
+      loads, matches nothing, and silently uncaps the three-cash-roll
+      limit the role exists to enforce. The tokens are lower case
+      because that is what the seeds say, and the membership check is
+      case SENSITIVE for the same reason - folding case here would
+      accept the very typo the enum is for.
+    permissible_values:
+      cash:
+        description: Money paid on leaving a career, which rules may cap.
+      material:
+        description: Goods, passages and shares, which those caps do not touch.
+      service:
+        description: >-
+          The table a career trains its own people on, which a rule may
+          grant wholesale on a first enlistment.
+
   RulebookIngestionRelationType:
     description: Typed links from ingestion claims to evidence and graph data.
     permissible_values:
@@ -673,7 +694,14 @@ classes:
         standing, so a character's skills and money are queryable and
         their rank is not. The asymmetry is the finding: the schema
         says these three are the same shape, and only two of them
-        behave that way. Tracked in #104.
+        behave that way. Tracked in #104. Half of what this comment
+        predicted has since been paid: because rank was an int,
+        advancing was rank + 1 and could not fail, and a character on
+        the last rung of a ladder was promoted to a rank no rung
+        describes, losing the benefit rolls that rung is paid.
+        Promotion now resolves the next rung as an entity on the track
+        and takes the new rank from it, so the arithmetic is gone. The
+        standing itself is still not written, and this stays open.
     slot_usage:
       track:
         required: true
@@ -1385,7 +1413,7 @@ slots:
     description: >-
       Rolled count, when the book rolls for it: "1D6 Ship Shares".
   table_role:
-    range: string
+    range: TableRole
     description: >-
       What part this table plays where several are offered together,
       when a rule treats them differently. Cepheus caps CASH benefit
@@ -1395,8 +1423,10 @@ slots:
       printed name - "Cash Benefits" by substring, "Service Skills" by
       a fourteen-character suffix compare - so renaming a table in the
       seed broke the rule silently and a translated book could not work
-      at all. The values are the game's; the engine only ever compares
-      what the row says against what a step asked for.
+      at all. The engine still only compares what the row says against
+      what a step asked for; the difference is that the set of things a
+      row may say is now closed, so the comparison cannot quietly miss
+      on a token nobody declared.
   requires_attribute:
     range: string
     description: >-

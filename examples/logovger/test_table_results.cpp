@@ -10,6 +10,7 @@
 #include "chargen/rule_seed_loader.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/ontology_registry.h"
+#include "logosphere/kg/ontology_validator.h"
 #include "logosphere/kg/seed_loader.h"
 #include "logosphere/kg/seed_verifier.h"
 #include "logosphere/rules/lookup_table_selector.h"
@@ -754,6 +755,54 @@ void test_rollable_table_rejects_non_rows() {
           "a rollable table rejects attached entities that are not rows");
 }
 
+// A table's role is a closed set, because the rules lean on the
+// closure.
+//
+// table_role exists because two rules used to match a table's printed
+// NAME - "Cash Benefits" by substring, "Service Skills" by a
+// fourteen-character suffix compare - so renaming a table in the seed
+// broke them silently. The role fixed the matching and then declared
+// itself `range: string`, which left the same hole one step further
+// in: a seed writing "Cash" where every rule asks for "cash"
+// validates, loads, matches nothing, and takes the three-cash-roll cap
+// off without a word. An open range is not a type.
+void test_a_table_role_is_a_closed_set() {
+    const auto registry = game_registry();
+    CHECK(registry.hasEnumType("TableRole"),
+          "TableRole is a declared enum type");
+    const kg::PropertyDef* role =
+        registry.findProperty("CareerTableEntry", "table_role");
+    CHECK(role != nullptr &&
+              role->value_kind == kg::PropertyValueKind::Enum &&
+              role->enum_type == "TableRole",
+          "CareerTableEntry.table_role has that enum as its range, not an "
+          "open string");
+
+    // The three the seeds write, which the rules ask for by these
+    // exact tokens.
+    for (const char* value : {"cash", "material", "service"}) {
+        const auto written = kg::validate_property_write(
+            registry, "CareerTableEntry", "table_role", value);
+        CHECK(written.ok, std::string("a seed may write table_role '") +
+                              value + "': " + written.reason);
+    }
+
+    // The near-misses an open string admitted. Case is NOT folded: the
+    // whole point is that "Cash" is a typo and not a synonym.
+    for (const char* value : {"Cash", "CASH", "Service", "cash ",
+                              "benefits", ""}) {
+        const auto written = kg::validate_property_write(
+            registry, "CareerTableEntry", "table_role", value);
+        CHECK(!written.ok,
+              std::string("table_role '") + value +
+                  "' is refused rather than loaded and never matched");
+        if (!written.ok) {
+            std::cout << "  [measure] table_role '" << value << "' -> "
+                      << written.reason << std::endl;
+        }
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -769,6 +818,7 @@ int main() {
     test_outcome_sequence_requires_steps_and_contiguous_order();
     test_outcome_choice_requires_authority_options_and_order();
     test_rollable_table_rejects_non_rows();
+    test_a_table_role_is_a_closed_set();
     std::cout << tests_passed << " passed, " << tests_failed << " failed"
               << std::endl;
     return tests_failed == 0 ? 0 : 1;

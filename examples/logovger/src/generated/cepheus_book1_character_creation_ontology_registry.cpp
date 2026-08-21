@@ -43,6 +43,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("SourceExclusionKind", {"LAYOUT", "SYNTAX"});
     reg.addEnumType("SourceManifestFormat", {"LENGTH_PREFIXED_V1"});
     reg.addEnumType("SourceMediaType", {"UTF8_TEXT"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
+    reg.addEnumType("TableRole", {"cash", "material", "service"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
@@ -860,7 +862,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("Career", "basic_training", false, "Outcome");
     reg.addRefProperty("CareerTableEntry", "rollable_table", true, "RollableTable");
     reg.setSource("https://logosphere.dev/packs/rulebook");
-    reg.addProperty("CareerTableEntry", "table_role", kg::PropertyValueKind::String, false);
+    reg.addEnumProperty("CareerTableEntry", "table_role", "TableRole", false);
     reg.setSource("https://logosphere.dev/logovger/cepheus/book1-character-creation");
     reg.addRefProperty("CareerThrowEntry", "throw_check", true, "TaskCheck");
     reg.setSource("https://logosphere.dev/packs/rulebook");

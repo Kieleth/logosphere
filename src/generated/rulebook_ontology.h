@@ -1023,6 +1023,34 @@ inline bool from_string(const char* str, ClaimGapKind& out) {
     return false;
 }
 
+/// Closed set of parts a table can play where several are offered together and a rule treats them differently. Closed, and deliberately: this was an open string, and an open string means a seed writing "Cash" where the rule asks for "cash" validates, loads, matches nothing, and silently uncaps the three-cash-roll limit the role exists to enforce. The tokens are lower case because that is what the seeds say, and the membership check is case SENSITIVE for the same reason - folding case here would accept the very typo the enum is for.
+enum class TableRole {
+    /// Money paid on leaving a career, which rules may cap.
+    CASH,
+    /// Goods, passages and shares, which those caps do not touch.
+    MATERIAL,
+    /// The table a career trains its own people on, which a rule may grant wholesale on a first enlistment.
+    SERVICE
+};
+
+/// Convert TableRole to its string representation.
+inline const char* to_string(TableRole value) {
+    switch (value) {
+        case TableRole::CASH: return "cash";
+        case TableRole::MATERIAL: return "material";
+        case TableRole::SERVICE: return "service";
+    }
+    return "unknown";
+}
+
+/// Parse a string into TableRole. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, TableRole& out) {
+    if (std::strcmp(str, "cash") == 0) { out = TableRole::CASH; return true; }
+    if (std::strcmp(str, "material") == 0) { out = TableRole::MATERIAL; return true; }
+    if (std::strcmp(str, "service") == 0) { out = TableRole::SERVICE; return true; }
+    return false;
+}
+
 /// Typed links from ingestion claims to evidence and graph data.
 enum class RulebookIngestionRelationType {
     CLAIM_SUPPORTED_BY,
