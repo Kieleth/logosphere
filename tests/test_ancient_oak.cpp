@@ -20,7 +20,9 @@
 // half — a settled scene performs zero corrective work, so a sustained trunk
 // velocity is a correction firing forever — and INV-3 asks where the sustaining
 // energy comes from. The mask is the one G-44 found under test_tree_wiggly,
-// where "the audited green was a mask".
+// where "the audited green was a mask". That file was DELETED 2026-08-21 by
+// owner ruling R10; its numbers live on in its retired TEST_AUDIT row and in
+// G-44's notes, and its replacement belongs with the controlled-movement work.
 //
 // MEASURED, before and after: max trunk velocity 0.0000 mm/s, 0 of 30 wiggly
 // frames. `wiggle_ok` is TRUE on this oak today, so wiring it in cost no

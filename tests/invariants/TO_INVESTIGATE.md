@@ -287,7 +287,7 @@ same verdict. The tile scene settles honestly today, so the middle branch was
 dead code protecting a defect the G-44 sleep work had already removed from it.
 Tightening it cost no verdict anywhere it was run. `expect` stays `pass`.
 
-The identical branch in `test_oscillation_diagnostic` did NOT survive the same
+The identical branch in `test_oscillation_regression` did NOT survive the same
 tightening: 0.0817 m/s on a gluoned scene, now red. Same defect, two scenes,
 one of them already fixed.
 
