@@ -12,6 +12,19 @@
 // 2. Floor collision stops the cube
 // 3. Cube rests on floor, not sinking through
 //
+// LAWS THIS TEST ENFORCES (assert-protocol migration, 2026-08-21):
+//   INV-2  the cube rests on the floor, penetration inside bounds.
+//   PROPOSED REST-IS-REACHED (INV_PROPOSALS.md): it stops and stays
+//          stopped. INV-24 is the corrective half and does not cover it.
+//   INV-12 every contact normal on a single flat slab is vertical: a
+//          horizontal normal is the bounding-slab side face of a body
+//          that has no side face in play.
+//   hygiene: "contacts recorded" guards the MEASUREMENT (telemetry), not
+//          a law — TEST_AUDIT known_open "single:contact-telemetry" says
+//          the cube physically lands while the telemetry reads zero.
+//   PROPOSED (no registry home): "no NaN" — see
+//          tests/invariants/INV_PROPOSALS.md, FINITE-STATE.
+//
 // Run with: ./logosphere-tests --test test_falling_cube
 // ============================================================================
 
@@ -239,11 +252,11 @@ bool test_falling_cube() {
     bool has_contacts = total_contacts > 0;
 
     std::cout << "\n[RESULT]" << std::endl;
-    std::cout << "  " << (!nan_detected ? "PASS" : "FAIL") << ": No NaN" << std::endl;
-    std::cout << "  " << (stopped ? "PASS" : "FAIL") << ": Cube stopped (vz=" << final_vz << ")" << std::endl;
-    std::cout << "  " << (on_floor ? "PASS" : "FAIL") << ": On floor (pen=" << penetration << ")" << std::endl;
-    std::cout << "  " << (has_contacts ? "PASS" : "FAIL") << ": Contacts recorded (" << total_contacts << ")" << std::endl;
-    std::cout << "  " << (normals_correct ? "PASS" : "FAIL") << ": All normals vertical (" << horizontal_contacts << " horizontal)" << std::endl;
+    std::cout << "  " << (!nan_detected ? "PASS" : "FAIL") << ": PROPOSED FINITE-STATE: No NaN" << std::endl;
+    std::cout << "  " << (stopped ? "PASS" : "FAIL") << ": PROPOSED REST-IS-REACHED: Cube stopped and stays stopped (vz=" << final_vz << ")" << std::endl;
+    std::cout << "  " << (on_floor ? "PASS" : "FAIL") << ": INV-2: On floor, penetration inside bounds (pen=" << penetration << ")" << std::endl;
+    std::cout << "  " << (has_contacts ? "PASS" : "FAIL") << ": hygiene: Contacts recorded — the telemetry the next assert reads exists (" << total_contacts << ")" << std::endl;
+    std::cout << "  " << (normals_correct ? "PASS" : "FAIL") << ": INV-12: All normals vertical — a flat slab has no side face to shed a horizontal normal (" << horizontal_contacts << " horizontal)" << std::endl;
 
     bool pass = !nan_detected && stopped && on_floor && normals_correct && has_contacts;
     std::cout << "\n" << (pass ? "PASS" : "FAIL") << ": Falling cube (physics + telemetry)" << std::endl;

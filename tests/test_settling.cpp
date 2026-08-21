@@ -12,6 +12,17 @@
 //
 // Both share one instrument: a scan over EVERY particle that names whatever
 // is still moving. No per-test bespoke probes.
+//
+// LAWS THESE TESTS ENFORCE (assert-protocol migration, 2026-08-21):
+//   PROPOSED REST-IS-REACHED (tests/invariants/INV_PROPOSALS.md) — a scene
+//          nobody is touching goes quiet and STAYS quiet. INV-24 covers the
+//          corrective half (a repair that fires forever) and is cited where
+//          the failure mode is "settled then woke".
+//   INV-24 every corrective mechanism terminates; a body that settles and
+//          wakes again with nothing touching it is a repair pumping energy.
+//   INV-12 a body collides as its true oriented shape. SETTLING 2 is exactly
+//          the bounding-slab failure: a quarter-turned plate hovering at half
+//          its UNROTATED height because the narrow phase read no rotation.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -171,7 +182,10 @@ bool test_settling_wiggle() {
            end.moving, end.total, end.worst_speed, end.worst_omega);
 
     const bool pass = settled_at >= 0 && end.moving == 0;
-    printf("\n  %s\n", pass ? "PASS" : "FAIL (a world nobody is touching must go quiet)");
+    printf("\n  %s\n", pass ? "PASS"
+        : "FAIL PROPOSED REST-IS-REACHED / INV-24 (a world nobody is touching "
+          "must go quiet, and stay quiet: SETTLED-THEN-WOKE is INV-24, a "
+          "correction that never terminates)");
     engine.shutdown();
     return pass;
 }
@@ -232,13 +246,16 @@ bool test_settling_flat() {
 
     const bool grounded = air < 0.010f;
     const bool quiet = u.moving == 0;
-    printf("      %-44s %s\n", "rests on the ground, not on air",
+    printf("      %-44s %s\n", "INV-12: rests on the ground, not on air",
            grounded ? "ok" : "*** HOVERING ***");
-    printf("      %-44s %s\n", "and is at rest", quiet ? "ok" : "*** STILL MOVING ***");
+    printf("      %-44s %s\n", "PROPOSED REST-IS-REACHED: and is at rest",
+           quiet ? "ok" : "*** STILL MOVING ***");
 
     const bool pass = grounded && quiet;
     printf("\n  %s\n", pass ? "PASS"
-        : "FAIL (what a body LOOKS like and what it COLLIDES as must agree)");
+        : "FAIL INV-12 (what a body LOOKS like and what it COLLIDES as must "
+          "agree: contacts come from the true oriented shape, never the "
+          "bounding slab)");
     engine.shutdown();
     return pass;
 }

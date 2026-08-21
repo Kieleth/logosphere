@@ -11,6 +11,15 @@
 // Once the data points to the failing mechanism, we add physics-side
 // telemetry, then fix at the cause.
 //
+// LAWS THIS TEST ENFORCES (assert-protocol migration, 2026-08-21):
+//   INV-18 sleep hides nothing: a sleeping body's geometry and overlaps are
+//          evaluated exactly as an awake body's. The historical failure —
+//          the awake box passing THROUGH the at-rest one — is precisely a
+//          sleeping body whose geometry stopped being consulted.
+//   INV-2  no interpenetration beyond SLOP in steady state.
+//   PROPOSED REST-IS-REACHED (INV_PROPOSALS.md) — the stack settles
+//          and stays settled.
+//
 // Run: ./logosphere-tests --test test_awake_onto_at_rest
 // =============================================================================
 
@@ -148,15 +157,20 @@ bool test_awake_onto_at_rest() {
     bool ok = true;
 
     if (gap < -CONTACT_SLOP) {
-        std::cout << "FAIL: top penetrates bottom by " << -gap*1000 << "mm\n";
+        std::cout << "FAIL INV-2 (and INV-18 when it sinks clean through: the "
+                     "at-rest body's geometry stopped being consulted): top "
+                     "penetrates bottom by " << -gap*1000 << "mm\n";
         ok = false;
     }
     if (gap > 0.05f) {
-        std::cout << "FAIL: top floating " << gap*1000 << "mm above bottom (no contact)\n";
+        std::cout << "FAIL INV-18: top floating " << gap*1000 << "mm above bottom "
+                     "(no contact — a sleeping body's geometry must be evaluated "
+                     "exactly as an awake body's)\n";
         ok = false;
     }
     if (std::abs(t.vz) > 0.1f) {
-        std::cout << "FAIL: top vz=" << t.vz << " m/s, not settled\n";
+        std::cout << "FAIL PROPOSED REST-IS-REACHED: top vz=" << t.vz << " m/s, the stack never "
+                     "comes to rest\n";
         ok = false;
     }
 

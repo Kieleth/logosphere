@@ -15,6 +15,17 @@
 //   - Should reach equilibrium: vz ≈ 0, z ≈ 0.25
 //
 // Logs every frame for first 30 frames to trace physics exactly.
+//
+// LAWS THIS TEST ENFORCES (assert-protocol migration, 2026-08-21):
+//   INV-1  the turtle is the only immovable thing, and nothing ends below
+//          its plane beyond SLOP — the particle may not sink through.
+//   INV-2  no penetration beyond SLOP in steady state — the resting gap
+//          is the contact's, not an accepted overlap.
+//   INV-24 corrections reach a fixed point — an equilibrium the body
+//          oscillates through forever is a repair that never terminates.
+//   PROPOSED REST-IS-REACHED (INV_PROPOSALS.md) — that it settles at all.
+// The single verdict `at_rest` below carries all three; each branch of
+// the RESULT print names the one it would break.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -131,7 +142,7 @@ bool test_turtle_single_particle() {
             if (frame == 0) {
                 std::cout << "  <- INITIAL";
             } else if (penetration > 0.001f) {
-                std::cout << "  <- PENETRATING!";
+                std::cout << "  <- INV-2: PENETRATING BEYOND SLOP!";
             } else if (std::abs(vz_after) < 0.01f && std::abs(z_after - 0.25f) < 0.01f) {
                 std::cout << "  <- EQUILIBRIUM";
             } else if (vz_after > 0 && vz_before < 0) {
@@ -162,18 +173,22 @@ bool test_turtle_single_particle() {
     std::cout << "  vz: " << final_vz << " m/s (expected ~0)\n";
     std::cout << "  bottom_z: " << (final_z - 0.25f) << "m\n";
 
-    // Check result
+    // Check result — THE assert of this test, three laws in one predicate.
     bool at_rest = (std::abs(final_z - 0.25f) < 0.1f) && (std::abs(final_vz) < 0.5f);
 
     std::cout << "\n";
     if (at_rest) {
-        std::cout << "  RESULT: Particle resting on Turtle (good)\n";
+        std::cout << "  RESULT: INV-1/INV-2 + PROPOSED REST-IS-REACHED: particle rests "
+                     "ON the turtle, inside slop, and stays there (good)\n";
     } else if (final_z > 1.0f) {
-        std::cout << "  RESULT: Particle BOUNCING UP (bad - Baumgarte too aggressive)\n";
+        std::cout << "  RESULT: INV-21 VIOLATED: particle BOUNCING UP — position "
+                     "repair deposited into real momentum (Baumgarte too aggressive)\n";
     } else if (final_z < -0.1f) {
-        std::cout << "  RESULT: Particle fell THROUGH Turtle (bad - collision missed)\n";
+        std::cout << "  RESULT: INV-1 VIOLATED: particle fell THROUGH the turtle "
+                     "(the one immovable thing did not hold; collision missed)\n";
     } else {
-        std::cout << "  RESULT: Particle oscillating (bad - no convergence)\n";
+        std::cout << "  RESULT: INV-24 VIOLATED: particle oscillating — the "
+                     "correction never reaches its fixed point\n";
     }
 
     return at_rest;
