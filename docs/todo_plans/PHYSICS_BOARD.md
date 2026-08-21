@@ -439,6 +439,29 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Creation door DELIVERED (feat/creation-overlap-door) — merge notes
+
+The door: BVH-owned audit at flush start, O(n log n), 20.4 ms once for
+12440 Eden bodies. C10's root cause INVERTED: the fallen-tree generator
+was right and the spawn turtle doors were rotation-blind; the generator
+had been bent to satisfy the blind check. Two owner decisions surfaced:
+(a) THE STRUCTURAL BAND: the crown generator draws branches through
+siblings on purpose (51 pairs, deepest 0.85 m; Eden 2204) inside one
+bonded structure whose contact rows the solver already denies — strict
+refusal today stops every tree from being born; closing it is a crown
+redesign. (b) EVA IS 23 UNBONDED PENETRATING BOXES:
+load_constraints_from_kg() is an EMPTY STUB that prints "Loaded
+constraints" — whether humanoids get real gluon bonds is a design
+question, boarded. Abort stays behind LOGOSPHERE_CREATION_STRICT until
+both classes read zero. MERGE CHORES: the agent's registry record
+collides with GEDANKEN-48 (the stack) — renumber the agent's to G-49
+at merge (mine is cited in code and audits); fold the agent's suggested
+mechanism sentence into INV-30. CONVERGENCE, two independent hunts:
+the door's oriented turtle reading exposed tilted grass blades lifted
+FREE by the turtle every substep — the same unpriced boundary lift the
+energy ledger caught powering the stack pump. Step 3 (priced boundary)
+now has two witnesses.
+
 ## G-47 tail: the TUMBLE MIRROR LEAK (small open front)
 
 Single strikes hold the y-mirror EXACTLY in every pose (aligned and
