@@ -60,9 +60,9 @@ static int tests_failed = 0;
 
 namespace {
 
-// The vendored SRD root - the ONE place the examples path lives.
+// The vendored SRD root - the ONE place the corpus path lives.
 const char* kSourceRoot =
-    LOGOSPHERE_SOURCE_DIR "/examples/logovger/srd/cepheus";
+    LOGOSPHERE_SOURCE_DIR "/corpora/cepheus-srd";
 const char* kFixture =
     LOGOSPHERE_SOURCE_DIR "/tests/fixtures/seed/chargen_ch1.json";
 const char* kSkillsSeed =
@@ -1898,9 +1898,12 @@ void test_missing_source_commit_file_has_no_opinion() {
             "properties":{"name":"age","constant_value":18,
               "source_section":"Chapter 1: Character Creation",
               "source_quote":"All characters begin at the age of majority, typically 18."}})");
+    // corpora/ holds every vendored corpus and carries no SOURCE_COMMIT
+    // of its own; each corpus below it does. Rooting one level up is
+    // the case this test is about.
     const std::string sub_root =
-        std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/srd";
-    seed.source.file = "cepheus/book1/character-creation.md";
+        std::string(LOGOSPHERE_SOURCE_DIR) + "/corpora";
+    seed.source.file = "cepheus-srd/book1/character-creation.md";
     const auto report = kg::verify_seed(seed, sub_root, engine_registry());
     std::cout << "  [measure] warnings without a SOURCE_COMMIT file: "
               << report.warnings.size() << std::endl;

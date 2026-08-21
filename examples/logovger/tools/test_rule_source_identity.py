@@ -6,8 +6,11 @@ from rule_source_identity import ingestion_edition_context_key
 
 class RuleSourceIdentityTests(unittest.TestCase):
     def test_vendored_production_corpus_has_the_committed_edition_identity(self):
+        # The corpus is vendored outside every game, so this walks up
+        # to the repository root rather than to the game directory.
         source_root = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "..", "srd", "cepheus"))
+            os.path.dirname(__file__), "..", "..", "..",
+            "corpora", "cepheus-srd"))
         self.assertEqual(
             ingestion_edition_context_key(source_root),
             "ingestion-edition:v1:7:cepheus:sha256:"

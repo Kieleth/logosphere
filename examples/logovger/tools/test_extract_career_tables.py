@@ -14,7 +14,7 @@ from audit_classifications import seed_classifications
 
 TOOLS = os.path.dirname(__file__)
 REPO = os.path.abspath(os.path.join(TOOLS, "..", "..", ".."))
-SRD = os.path.join(REPO, "examples", "logovger", "srd", "cepheus")
+SRD = os.path.join(REPO, "corpora", "cepheus-srd")
 SOURCE = os.path.join(SRD, "book1", "character-creation.md")
 SEEDS = os.path.join(REPO, "examples", "logovger", "seeds")
 VOCABULARY = os.path.join(SEEDS, "cepheus_book1_skill_vocabulary.json")

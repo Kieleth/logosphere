@@ -117,9 +117,16 @@ inline bool declare_rule_source_corpus(
     return true;
 }
 
+// The seeds are the GAME's and the text they cite is the CORPUS's, so
+// the two roots are separate arguments. They used to be one: the corpus
+// root was `game_root + "/srd/cepheus"`, which made the vendored book a
+// member of this game's directory and a second game reading the same
+// book a change to this one's tree. A game now DECLARES its corpus
+// (cmake/corpora.cmake) and passes the root in.
 inline bool load_rule_seeds(
     kg::KGModule& world,
     const std::string& game_root,
+    const std::string& corpus_root,
     const logosphere::rules::ProcedurePrimitiveRegistry& procedures,
     std::string& why) {
     std::vector<kg::SeedEnvelope> seeds;
@@ -127,11 +134,11 @@ inline bool load_rule_seeds(
 
     logosphere::text::SourceCorpusDeclaration corpus;
     if (!declare_rule_source_corpus(seeds, corpus, why)) return false;
-    RuleSourceAccess source_access(game_root + "/srd/cepheus");
+    RuleSourceAccess source_access(corpus_root);
 
     kg::SeedSequenceLoadReport report;
     if (kg::verify_and_load_seed_sequence_in_edition(
-            seeds, game_root + "/srd/cepheus", corpus, source_access,
+            seeds, corpus_root, corpus, source_access,
             world, report, &procedures)) {
         return true;
     }

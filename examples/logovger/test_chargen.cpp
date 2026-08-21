@@ -64,6 +64,17 @@ std::string game_path(const std::string& rel) {
     return std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/" + rel;
 }
 
+// The vendored book is shared and lives outside every game, so the
+// build DECLARES its root (logosphere_game_corpus, cmake/corpora.cmake)
+// instead of the game deriving it from its own directory.
+#ifndef LOGOVGER_CORPUS_DIR
+#error "LOGOVGER_CORPUS_DIR undefined: declare the corpus this game reads"
+#endif
+std::string corpus_root() { return LOGOVGER_CORPUS_DIR; }
+std::string corpus_path(const std::string& rel) {
+    return corpus_root() + "/" + rel;
+}
+
 std::string slurp(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return "";
@@ -86,7 +97,7 @@ bool build_world(kg::KGModule& kg, std::string& why) {
     const auto procedures = logovger::make_chargen_procedure_registry();
     return logovger::load_rule_seeds(
         kg, std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger",
-        procedures, why);
+        corpus_root(), procedures, why);
 }
 
 void test_rule_seed_manifest_rejects_wrong_order() {
@@ -109,10 +120,10 @@ void test_rule_seed_manifest_rejects_wrong_order() {
     CHECK(logovger::declare_rule_source_corpus(seeds, corpus, error),
           "the production corpus is declared before order verification: " +
               error);
-    logovger::RuleSourceAccess source_access(game_path("srd/cepheus"));
+    logovger::RuleSourceAccess source_access(corpus_root());
     kg::SeedSequenceLoadReport report;
     CHECK(!kg::verify_and_load_seed_sequence_in_edition(
-              seeds, game_path("srd/cepheus"), corpus, source_access,
+              seeds, corpus_root(), corpus, source_access,
               world, report, &procedures),
           "the procedure seed is refused before the rules it references");
     std::cout << "  [measure] production wrong-order refusal: "
@@ -2010,8 +2021,7 @@ void test_the_rules_are_data() {
     // A career's instances are the book's, so a career must prove the exact
     // table title, column, row key, and value cells that identify it. Loose
     // locator fields are gone after the Career Tables evidence migration.
-    const auto chapter = slurp(game_path("srd/cepheus/book1/"
-                                         "character-creation.md"));
+    const auto chapter = slurp(corpus_path("book1/character-creation.md"));
     const auto claims = kg.getRelatedReverse(career, "CLAIM_MATERIALIZES");
     std::set<std::string> selected;
     bool exact_evidence = claims.size() == 1;
@@ -2519,7 +2529,7 @@ void test_unknown_runtime_primitive_fails_before_character_state() {
 // 1D6x10,000 Credits for medical care, which will bring any
 // characteristics back up to 1. The character automatically fails any
 // Qualification checks from now on."
-//   -- srd/cepheus/book1/character-creation.md, "Aging Crisis"
+//   -- cepheus-srd book1/character-creation.md, "Aging Crisis"
 //
 // Every clause of it is driven here: the bill is quoted before it is
 // answered and is the 1D6x10,000 the engine rolled, paying costs

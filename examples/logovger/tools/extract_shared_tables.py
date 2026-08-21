@@ -28,7 +28,7 @@ because other seeds reference them, and appends only what is missing.
 
 Usage:
     python3 examples/logovger/tools/extract_shared_tables.py \\
-        examples/logovger/srd/cepheus \\
+        corpora/cepheus-srd \\
         examples/logovger/seeds/cepheus_book1_shared_tables.json
 
 THIS SCRIPT OWNS ITS OUTPUT. Edit the script and regenerate; never

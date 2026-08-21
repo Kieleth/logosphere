@@ -56,7 +56,12 @@ const char* kSkillsFile = "book1/skills.md";
 std::string game_path(const std::string& rel) {
     return std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger/" + rel;
 }
-std::string source_root() { return game_path("srd/cepheus"); }
+// The vendored book is shared and lives outside every game; the build
+// DECLARES its root (logosphere_game_corpus, cmake/corpora.cmake).
+#ifndef LOGOVGER_CORPUS_DIR
+#error "LOGOVGER_CORPUS_DIR undefined: declare the corpus this game reads"
+#endif
+std::string source_root() { return LOGOVGER_CORPUS_DIR; }
 std::string srd_path(const std::string& rel) {
     return source_root() + "/" + rel;
 }

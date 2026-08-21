@@ -46,6 +46,15 @@ namespace logovger {
 #define LOGOVGER_GAME_DIR "."
 #endif
 
+// Where the vendored book lives. NOT under the game: a corpus is bytes
+// as published, shared by whoever cites them, and this game declares
+// which one it reads (logosphere_game_corpus, cmake/corpora.cmake).
+// No fallback on purpose: an undeclared corpus reads nothing and would
+// fail at the first citation, a long way from the cause.
+#ifndef LOGOVGER_CORPUS_DIR
+#error "LOGOVGER_CORPUS_DIR undefined: declare the corpus this game reads"
+#endif
+
 // One string from many, for the judgment record. The options and the
 // choice are stored the way they were offered, so the two can be read
 // back against each other without guessing at a delimiter.
@@ -337,17 +346,25 @@ private:
         return std::string(LOGOVGER_GAME_DIR) + "/" + rel;
     }
 
+    // The corpus is not the game's. It is vendored once, outside every
+    // game, and this one DECLARES that it reads it
+    // (logosphere_game_corpus in cmake/corpora.cmake).
+    static std::string corpus_path(const std::string& rel) {
+        return std::string(LOGOVGER_CORPUS_DIR) + "/" + rel;
+    }
+
     // Verify, then load: the same two calls a game makes at start, and
     // the same the ingestion pipeline makes offline. A seed that
     // cannot prove its citations never reaches the table.
     bool load_rules(kg::KGModule& kg, std::string& why) {
         const auto procedures = make_chargen_procedure_registry();
         if (!logovger::load_rule_seeds(
-                kg, LOGOVGER_GAME_DIR, procedures, why)) return false;
+                kg, LOGOVGER_GAME_DIR, LOGOVGER_CORPUS_DIR, procedures,
+                why)) return false;
         chapter_ = logosphere::text::SourceDocument::parse_markdown(
-            slurp(game_path("srd/cepheus/book1/character-creation.md")));
+            slurp(corpus_path("book1/character-creation.md")));
         skills_doc_ = logosphere::text::SourceDocument::parse_markdown(
-            slurp(game_path("srd/cepheus/book1/skills.md")));
+            slurp(corpus_path("book1/skills.md")));
         screen_.set_sources(&chapter_, &skills_doc_);
         rules_loaded_ = true;
         return true;

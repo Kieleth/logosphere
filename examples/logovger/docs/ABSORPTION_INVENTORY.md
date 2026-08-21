@@ -21,7 +21,7 @@ game first needs that chapter, and it is the ONLY place corrections,
 tweaks and expansions may live. The diff between layers is the design
 document of the game.
 
-Audit rule: every file under `srd/cepheus/**.md` that carries data
+Audit rule: every file under `corpora/cepheus-srd/**.md` that carries data
 model gets exactly one `schema/cepheus/*.yaml`; coverage is checked by
 listing. Procedures, tables and referee material stay slice-driven.
 
@@ -42,7 +42,7 @@ Targets: **O** = ontology (schema pack classes/enums/slots) ·
 (loaded, rollable) · **R** = referee prompt material (what the LLM is
 told, with citations it can repeat).
 
-**Corrected against the vendored text (srd/cepheus, SOURCE_COMMIT
+**Corrected against the vendored text (corpora/cepheus-srd, SOURCE_COMMIT
 pinned).** The first skeleton guessed 16 flat chapters from memory; the
 real SRD is THREE BOOKS (the 1977 shape), plus a Vehicle Design System
 and two generator tools the skeleton missed entirely. This table is now
@@ -93,7 +93,7 @@ the real map.
 
 Slice 1 is playable but the chapter is not finished. This is what the
 book has and the graph does not, counted from
-`srd/cepheus/book1/character-creation.md`, not from memory.
+`corpora/cepheus-srd/book1/character-creation.md`, not from memory.
 
 **Seeded today:** 24 Careers, 48 TaskChecks (qualification and
 survival), 24 Service Skills tables, the Draft table, 29 Skills, 144

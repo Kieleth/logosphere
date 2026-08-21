@@ -53,6 +53,14 @@ namespace replay = logosphere::replay;
 #define LOGOVGER_GAME_DIR "."
 #endif
 
+// The vendored book lives outside every game; this one DECLARES that it
+// reads it (logosphere_game_corpus, cmake/corpora.cmake). No fallback:
+// an undeclared corpus would read nothing and fail at the first
+// citation, far from the cause.
+#ifndef LOGOVGER_CORPUS_DIR
+#error "LOGOVGER_CORPUS_DIR undefined: declare the corpus this game reads"
+#endif
+
 std::string game_path(const std::string& rel) {
     return std::string(LOGOVGER_GAME_DIR) + "/" + rel;
 }
@@ -70,7 +78,7 @@ bool load_rules(kg::KGModule& world, std::string& why) {
     world.setMode(kg::KGMode::MINIMAL);
     const auto primitives = logovger::make_chargen_procedure_registry();
     return logovger::load_rule_seeds(
-        world, LOGOVGER_GAME_DIR, primitives, why);
+        world, LOGOVGER_GAME_DIR, LOGOVGER_CORPUS_DIR, primitives, why);
 }
 
 #ifdef LOGOVGER_WITH_LLM
