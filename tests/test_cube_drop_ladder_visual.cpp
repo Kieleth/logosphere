@@ -97,11 +97,14 @@ int main() {
 
     if (interactive)
         std::printf("\n  SPACE = next case   Z = zoom in   ESC = quit\n"
-                    "  six cases: control, tilted 20deg, top 3rad/s, fast top,\n"
-                    "  wheel X (drives along Y), wheel Y (drives along X)\n\n");
+                    "  eight cases: control, tilted 20deg, top 3rad/s, fast top,\n"
+                    "  wheel X (drives along Y), wheel Y (drives along X),\n"
+                    "  CORNER STAND on the slab, CORNER STAND on the turtle\n\n");
 
     bool space_was_down = false, z_was_down = false, quit = false;
     bool advance_case = false;
+    constexpr int HOLD_FRAMES = 60;   // 1 s of armed stillness per case
+    int hold_frames = interactive ? HOLD_FRAMES : 0;
     int frame = 0, rung = 0, rung_frame = 0;
     char buf[256];
 
@@ -124,8 +127,25 @@ int main() {
             rung = (rung + 1) % RUNG_COUNT;
             scene.arm(ps, RUNGS[rung], rung);
             rung_frame = 0;
+            // The stage moves with the case: R8 performs at x = 10 on
+            // the bare turtle; a fixed origin camera showed empty space
+            // and the lamps' emission radius never reached it.
+            const float stage_x = (rung == 7) ? 10.0f : 0.0f;
+            cam.set_position(stage_x, 0.0f, 0.55f);
+            move_lamps(ps, lamps, stage_x, 0.0f, 0.6f);
+            hold_frames = interactive ? HOLD_FRAMES : 0;
         }
-        scene.step(ps, physics, rung_frame, RUNGS[rung].spin_z);
+        // EVERY case opens with a held frame (interactive only): the
+        // engine's warmup outlasts a 0.25 s drop, so an un-held case is
+        // over before the first presented frame reaches the eye
+        // ("saw nothing"). The pose is armed and frozen; the countdown
+        // shows on the readout; then physics runs.
+        if (hold_frames > 0) {
+            --hold_frames;
+        } else {
+            scene.step(ps, physics, rung_frame, RUNGS[rung].spin_z);
+            ++rung_frame;
+        }
 
         const int actor = scene.actor(rung);
         float x, y, z, oy, oz, ry;
@@ -141,8 +161,12 @@ int main() {
         (void)x; (void)y;   // camera and lamps are fixed; the cube moves
 
         std::snprintf(buf, sizeof(buf),
-                      "== CASE %d of 6 ==  %s   (t %.2fs)",
-                      rung + 1, RUNGS[rung].name, rung_frame / 60.0f);
+                      hold_frames > 0
+                          ? "== CASE %d of %d ==  %s   (starts in %.1fs)"
+                          : "== CASE %d of %d ==  %s   (t %.2fs)",
+                      rung + 1, RUNG_COUNT, RUNGS[rung].name,
+                      hold_frames > 0 ? hold_frames / 60.0f
+                                      : rung_frame / 60.0f);
         l_rung->set_text(buf);
         std::snprintf(buf, sizeof(buf),
                       "rot_y %.3f rad   omega_y %.3f   omega_z %.3f   z %.3f",
@@ -154,7 +178,10 @@ int main() {
                       scene.min_frame_keep);
         l_meas->set_text(buf);
         const char* verdict =
-            rung == 0 ? "R0 control: must invent no rotation"
+            rung >= 6 ? (scene.argus.peak_spin(scene.hero) > CORNER_TOPPLE_SPIN_MIN
+                ? "R7/R8 PASS: the corner stand FELL (G-43 dead)"
+                : "R7/R8: corner-down, a hair off balance — it MUST fall")
+          : rung == 0 ? "R0 control: must invent no rotation"
           : rung == 1 ? (scene.peak_omega_y > TIP_OMEGA_MIN
                 ? "R1 PASS: it tipped" 
                 : "R1 FAIL (G-35): balanced on an edge, contact torque absent")
@@ -187,7 +214,7 @@ int main() {
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
         }
-        ++frame; ++rung_frame;
+        ++frame;
     }
 
     std::printf("  window closed after %d frames.\n", frame);
