@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstdlib>  // For std::abort()
 #include <algorithm>  // For std::find
+#include <chrono>     // Creation-door audit cost measurement
 
 // EDUCATIONAL NOTE: The Pimpl Idiom (not used here, but worth knowing)
 // In C++, we often separate the interface (.h) from implementation (.cpp)
@@ -70,7 +71,18 @@ ParticleSystem::~ParticleSystem() {
 // does it a thousand times says so once and stays readable.
 static void assert_above_turtle(const Particle& p, const char* where) {
     if (p.GetMass() == 0.0f) return;               // lights float, no body
-    const float bottom = p.z - p.thickness * 0.5f;
+    // THE ORIENTED BOTTOM. This used to read z - thickness/2, which describes
+    // a solid a rotated body does not have: a log laid flat carries its LENGTH
+    // on the thickness axis and its DIAMETER in world Z, so a log correctly
+    // resting on the floor looked buried by half its length and this door
+    // aborted. The fallen-tree generator was then "fixed" to satisfy the blind
+    // check by lifting every log 0.21-0.29 m into the air (C10). The solver's
+    // own turtle pass has always used the oriented extent
+    // (physics_system_v4.cpp, "A rotated BOX's down-reach comes from its
+    // oriented bounds"); this door now asks the same question of the same
+    // geometry. The turtle plane's normal is +Z by definition — plane
+    // geometry, not a gravity assumption.
+    const float bottom = p.z - logosphere::oriented_bottom_offset(p);
     // Same tolerance the boundary itself uses. Below SLOP this is float
     // residue on a body trying to sit exactly on the floor, not a placement
     // decision, and reporting it as one buries the real violations in noise.
@@ -169,6 +181,14 @@ int ParticleSystem::add_particle(const Particle& particle) {
 
     particles.push_back(p);
     int particle_index = particles.size() - 1;  // Index of newly added particle
+
+    // THE CREATION DOOR takes the roll call here and settles it in a batch
+    // (see audit_creation_overlaps). Checking each body against the world the
+    // instant it arrives would be correct and quadratic; a generator spawning
+    // a thousand leaves would pay a thousand BVH rebuilds.
+    if (!p.is_light_source) {
+        creation_audit_pending_.push_back(particle_index);
+    }
 
     // Maintain entity→particle index mapping
     if (p.entity_id > 0) {
@@ -373,6 +393,177 @@ void ParticleSystem::flush_pending_particles() {
     while (!pending_particles.empty()) {
         add_particle(pending_particles.front());
         pending_particles.pop();
+    }
+
+    // The flush is the creation batch boundary: everything queued plus
+    // everything added directly since the last flush is settled in one pass.
+    audit_creation_overlaps();
+}
+
+// ============================================================================
+// THE CREATION DOOR — NOTHING IS BORN INSIDE ANYTHING (INV-30, INV-4, G-48)
+// ============================================================================
+// Owner ruling R8, 2026-08-21: "enforce nothing that is created, ever, can
+// coexist — particles are always, 100% guaranteed not to overlap in 3d, ever.
+// Solve that, and do not care about that in our physics engine, reducing
+// complexity, and just simply refuse to run."
+//
+// This is the twin of assert_above_turtle above, at the same boundary and for
+// the same reason. A body placed inside another body is not a tight fit to be
+// relaxed on frame one: the solver's only correct response to two solids in
+// one place is a separating impulse, measured at over 3 m/s of ejection on
+// the tree case, and whatever the generator drew is destroyed within a few
+// frames. Refusing at creation costs a rejected placement; accepting it costs
+// the world.
+//
+// THE THRESHOLD IS PhysicsV4::SLOP, the constant the solver already uses for
+// "geometric error, not geometry". Adjacent floor tiles share a face and two
+// gluon-bonded tree segments share a joint point; both measure zero
+// penetration and are legal. TOUCHING IS NOT OVERLAPPING.
+//
+// COST. One BVH build per batch (the frame needs it anyway — the very next
+// thing Engine::update does is update_bvh for lighting and collision), then
+// one AABB query and a handful of exact narrow-phase tests per newborn. A
+// generator spawning n bodies pays O(n log n) once, not the O(n^2) a
+// per-spawn sweep would cost.
+logosphere::CreationVerdict ParticleSystem::inspect_creation_overlaps(
+        const std::vector<int>& subjects) {
+    using namespace logosphere;
+    const auto t0 = std::chrono::high_resolution_clock::now();
+
+    CreationVerdict verdict;
+
+    // The audit reads the BVH, so it must reflect every body just added.
+    // bvh_dirty_ is already set by add_particle, and this build is the one
+    // Engine::update would do a moment later, not an extra one.
+    update_bvh();
+
+    std::shared_lock<std::shared_mutex> lock(particles_mutex_);
+    if (particles.size() < 2 || !shadow_bvh_.is_ready()) return verdict;
+
+    // Empty subject list = audit the whole world against itself.
+    std::vector<int> all;
+    const std::vector<int>* subject_list = &subjects;
+    if (subjects.empty()) {
+        all.reserve(particles.size());
+        for (size_t i = 0; i < particles.size(); ++i) all.push_back((int)i);
+        subject_list = &all;
+    }
+
+    // WHICH PAIRS THE SOLVER WILL NEVER CONTACT, asked of the solver itself.
+    // Two bodies of one gluon-bonded structure get no contact row: their
+    // overlap is the structure's internal geometry and the bonds own it
+    // (PhysicsSystem::bonded_components). Those still get MEASURED — R8 is
+    // literal and the structural band is the size of the generator job — but
+    // they are reported separately, because refusing them today stops every
+    // tree in the engine from generating.
+    std::vector<uint32_t> bond_root;
+    if (physics_system_) bond_root = physics_system_->bonded_components(particles);
+
+    std::set<uint64_t> tested;      // canonical pair keys, so a subject-vs-
+                                    // subject pair is measured once
+    std::vector<int> candidates;
+
+    for (int si : *subject_list) {
+        if (si < 0 || (size_t)si >= particles.size()) continue;
+        const Particle& a = particles[si];
+        if (a.is_light_source) continue;
+        verdict.bodies_audited++;
+
+        candidates.clear();
+        shadow_bvh_.query_aabb(shadow_bvh_.particle_to_aabb(a),
+                               particles, candidates);
+        verdict.candidates += candidates.size();
+
+        for (int ci : candidates) {
+            if (ci == si) continue;
+            if (ci < 0 || (size_t)ci >= particles.size()) continue;
+            const Particle& b = particles[ci];
+            if (b.is_light_source) continue;
+
+            const uint64_t key = (si < ci)
+                ? ((uint64_t)si << 32) | (uint32_t)ci
+                : ((uint64_t)ci << 32) | (uint32_t)si;
+            if (!tested.insert(key).second) continue;
+            verdict.pairs_tested++;
+
+            float nx, ny, nz;
+            const float depth = creation_penetration(a, b, nx, ny, nz);
+            if (depth <= PhysicsV4::SLOP) continue;   // apart, or merely touching
+
+            CreationOverlap v;
+            v.a = describe_creation_body(si, a);
+            v.b = describe_creation_body(ci, b);
+            v.depth = depth;
+            v.nx = nx; v.ny = ny; v.nz = nz;
+            v.same_structure =
+                (!bond_root.empty() && bond_root[si] == bond_root[ci]) ||
+                (physics_system_ && physics_system_->get_gluon(si, ci) != nullptr);
+            if (v.same_structure) verdict.structural.push_back(v);
+            else                  verdict.violations.push_back(v);
+        }
+    }
+
+    const auto t1 = std::chrono::high_resolution_clock::now();
+    verdict.micros = std::chrono::duration<double, std::micro>(t1 - t0).count();
+    return verdict;
+}
+
+void ParticleSystem::audit_creation_overlaps() {
+    if (creation_audit_pending_.empty()) return;
+
+    std::vector<int> newborns;
+    newborns.swap(creation_audit_pending_);
+
+    const logosphere::CreationVerdict verdict = inspect_creation_overlaps(newborns);
+
+    // The structural band is promoted to refusals only under its own lever.
+    // Default-off, per the levers rule: no generator in the engine can pass
+    // it yet, and flipping it silently would stop every tree from being born.
+    const bool strict_structural =
+        std::getenv("LOGOSPHERE_CREATION_STRICT_STRUCTURAL") != nullptr;
+
+    std::vector<logosphere::CreationOverlap> refused = verdict.violations;
+    if (strict_structural) {
+        refused.insert(refused.end(),
+                       verdict.structural.begin(), verdict.structural.end());
+    }
+    if (refused.empty()) return;
+
+    // STRICT BY DEFAULT, one lever to downgrade. Same doors-not-fallbacks
+    // shape as TURTLE_STRICT: a violation stops the world so the PLACEMENT
+    // gets fixed, and LOGOSPHERE_CREATION_LENIENT=1 exists for inventory
+    // runs and for fixtures that place a bad body on purpose.
+    const bool lenient = std::getenv("LOGOSPHERE_CREATION_LENIENT") != nullptr;
+
+    std::cerr << "\n[CREATION VIOLATION] " << refused.size()
+              << " pair(s) created INSIDE each other, deeper than SLOP="
+              << PhysicsV4::SLOP << " m. " << verdict.bodies_audited
+              << " newborn bodies audited, " << verdict.pairs_tested
+              << " exact pair tests, " << verdict.micros << " us."
+              << " (structural, bonded into one body: "
+              << verdict.structural.size()
+              << (strict_structural ? ", REFUSED under"
+                                    : ", not refused; ")
+              << " LOGOSPHERE_CREATION_STRICT_STRUCTURAL)" << std::endl;
+    for (const auto& v : refused) {
+        std::cerr << "  [CREATION VIOLATION]"
+                  << (v.same_structure ? " [same bonded structure] " : " ")
+                  << logosphere::creation_violation_text(v) << std::endl;
+    }
+    std::cerr << "  A particle is a body: it occupies space and it collides."
+              << " Two bodies created in the same place is an impossible world,"
+              << " and the solver's only correct response is to throw them"
+              << " apart. Fix the PLACEMENT — the engine carries no tolerance"
+              << " for creation overlap (INV-30, INV-4, G-48; owner ruling R8"
+              << " 2026-08-21)." << std::endl;
+
+    if (!lenient) {
+        std::cerr << "[CREATION VIOLATION] strict by default — aborting so the"
+                     " placement is fixed rather than absorbed."
+                     " LOGOSPHERE_CREATION_LENIENT=1 downgrades this to the"
+                     " error lines above for inventory runs." << std::endl;
+        std::abort();
     }
 }
 

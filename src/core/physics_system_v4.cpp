@@ -860,30 +860,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // are two plants, and their blades still collide with each other.
     // Rebuilt every step from the live gluon list (~one union per gluon),
     // so torn bonds dissolve the component with no stale state.
-    std::vector<uint32_t> bond_root(count);
-    for (size_t i = 0; i < count; ++i) bond_root[i] = (uint32_t)i;
-    {
-        auto find_root = [&bond_root](uint32_t x) {
-            while (bond_root[x] != x) {
-                bond_root[x] = bond_root[bond_root[x]];   // path halving
-                x = bond_root[x];
-            }
-            return x;
-        };
-        for (const auto& gluon : gluon_constraints_v2_) {
-            const size_t a = gluon->particle_a, b = gluon->particle_b;
-            if (a >= count || b >= count) continue;
-            if (particles[a].solver_mode == ParticleSolverMode::KINEMATIC ||
-                particles[b].solver_mode == ParticleSolverMode::KINEMATIC)
-                continue;   // ground link, not structure
-            const uint32_t ra = find_root((uint32_t)a);
-            const uint32_t rb = find_root((uint32_t)b);
-            if (ra != rb) bond_root[ra] = rb;
-        }
-        // Flatten so the pair loop's comparison is one array read each.
-        for (size_t i = 0; i < count; ++i)
-            bond_root[i] = find_root((uint32_t)i);
-    }
+    //
+    // The union-find itself lives in bonded_components() so the CREATION DOOR
+    // asks this exact question with this exact answer. Which pairs the solver
+    // will never contact is a fact about the solver; a second copy of it in
+    // the spawn path would be a second answer waiting to disagree.
+    const std::vector<uint32_t> bond_root = bonded_components(particles.get_particles());
     auto t_after_gluon_hash = std::chrono::high_resolution_clock::now();
 
     // Use BVH broad-phase to reduce O(n²) to O(n log n)
@@ -5939,6 +5921,35 @@ void PhysicsSystem::unindex_gluon(GluonConstraintBase* gluon) {
 // ============================================================================
 // GLUON QUERY INTERFACE (for Animation/Dynamics FK)
 // ============================================================================
+
+std::vector<uint32_t> PhysicsSystem::bonded_components(
+        const std::vector<Particle>& particles) const {
+    const size_t count = particles.size();
+    std::vector<uint32_t> bond_root(count);
+    for (size_t i = 0; i < count; ++i) bond_root[i] = (uint32_t)i;
+
+    auto find_root = [&bond_root](uint32_t x) {
+        while (bond_root[x] != x) {
+            bond_root[x] = bond_root[bond_root[x]];   // path halving
+            x = bond_root[x];
+        }
+        return x;
+    };
+    for (const auto& gluon : gluon_constraints_v2_) {
+        const size_t a = gluon->particle_a, b = gluon->particle_b;
+        if (a >= count || b >= count) continue;
+        if (particles[a].solver_mode == ParticleSolverMode::KINEMATIC ||
+            particles[b].solver_mode == ParticleSolverMode::KINEMATIC)
+            continue;   // ground link, not structure
+        const uint32_t ra = find_root((uint32_t)a);
+        const uint32_t rb = find_root((uint32_t)b);
+        if (ra != rb) bond_root[ra] = rb;
+    }
+    // Flatten so a consumer's comparison is one array read each.
+    for (size_t i = 0; i < count; ++i)
+        bond_root[i] = find_root((uint32_t)i);
+    return bond_root;
+}
 
 const GluonConstraintBase* PhysicsSystem::get_gluon(size_t particle_a, size_t particle_b) const {
     size_t key = make_gluon_pair_key(particle_a, particle_b);

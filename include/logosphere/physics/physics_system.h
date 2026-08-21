@@ -558,6 +558,24 @@ public:
     std::vector<const GluonConstraintBase*> get_gluons_for_particle(size_t particle_id) const;
 
     // ========================================================================
+    // BONDED-STRUCTURE COMPONENTS (union-find over the gluon graph)
+    // ========================================================================
+    // Returns, per particle index, the root of the bonded structure it belongs
+    // to. Two bodies with the same root are ONE structure: the contact build
+    // refuses to generate a row between them, because their overlap is the
+    // structure's internal geometry and the bonds own it.
+    //
+    // Connectivity runs through DYNAMIC bodies only — an immovable anchor is
+    // ground, not structure, so two plants rooted to the same KINEMATIC tile
+    // stay two plants and their blades still collide.
+    //
+    // ONE SOURCE. The contact build calls this, and so does the creation door,
+    // so "which pairs will the solver never contact" is answered in exactly one
+    // place. A second copy of this union-find is a second answer waiting to
+    // disagree.
+    std::vector<uint32_t> bonded_components(const std::vector<Particle>& particles) const;
+
+    // ========================================================================
     // TARGETED GLUON CONSTRAINT (for Animation PHYSICS mode)
     // ========================================================================
     // Apply gluon distance constraint for a specific particle pair.

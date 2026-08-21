@@ -103,9 +103,6 @@ private:
     int root_node_idx;                    // Index of root node
     bool is_built;                        // Flag to check if BVH is ready
     
-    // Helper to create AABB from a particle
-    AABB particle_to_aabb(const Particle& p) const;
-    
     // Recursive builder for binary tree (returns node index)
     int build_recursive(const std::vector<Particle>& particles,
                        std::vector<int>& indices,
@@ -113,6 +110,12 @@ private:
     
 public:
     BVH() : root_node_idx(-1), is_built(false) {}
+
+    // The leaf bound of one particle: oriented for a rotated BOX, exact for
+    // every shape, padded 1%. Public because the creation door queries with
+    // the SAME bound the tree was built from — a query box computed a second
+    // way is a second geometry, and the two would eventually disagree.
+    AABB particle_to_aabb(const Particle& p) const;
 
     // Build the BVH from particles
     void build(const std::vector<Particle>& particles);

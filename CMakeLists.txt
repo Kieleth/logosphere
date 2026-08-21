@@ -175,6 +175,10 @@ set(LOGOSPHERE_CORE_SOURCES
     src/particle_shape_methods.cpp
     # Narrow-phase collision (AABB SAT + sphere-sphere + sphere-box)
     src/core/narrow_phase.cpp
+    # The creation door's geometry and refusal text (INV-30, G-48). Pure
+    # narrow-phase math over two particles; the ParticleSystem methods that
+    # drive it live in particle_system.cpp below.
+    src/core/creation_door.cpp
     # Ground locator: where a body can be, asked of the world rather
     # than assumed. No z constant lives here or anywhere downstream.
     src/core/ground_locator.cpp
