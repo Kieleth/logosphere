@@ -1630,3 +1630,24 @@ entry absorbed; RCA tasked). The 39 unaudited are the other session's
 Kamaji/rules/KG tests plus visual drivers, unchanged from the previous
 sweep. FIXED protocol clause 3 (owner interactive QA) remains open for
 the whole G-43 arc.
+
+## 2026-08-20 — G-45: friction acts only through a touching contact (owner QA find)
+
+Owner watched the window and said what the green ladder could not: "4/8
+is wrong... 7/8 is not falling." The continuous world, rebuilt headless
+with Argus per the owner's order, exposed three stacked defects: bodies
+teleported between cases kept their solver history (fixed: arm/park
+void history, PhysicsSystem::forget_body); the flight-window instrument
+accepted the wrong body's landing (fixed: actor-only); and the real
+one, G-45: speculative rows (bias < 0, gap open) were transmitting
+Coulomb friction sized by their CAPTURE impulses — 52.1 N*s of phantom
+friction killed a 3 rad/s spin in the last 3 cm of fall. Law: bias < 0
+rows transmit no friction and warm no equilibrium. Yields: wheels walk
+0.19 m (2.4x), ramp lane 0.0036 m (0.99 at arc start, three orders),
+R2 spin alive to the floor, lever ladder R0-R8 green in BOTH worlds.
+Drops raised to 0.6 m (owner order, honest post-D7); the wheels release
+at 0.05 m by DERIVATION (corner-knock band, measured non-monotonic).
+Instrument debt paid: phystrace frames tick in headless, friction and
+warm-start applies traced, per-phase omega probe. Ramp's one remaining
+lever red is G-23 (item 4). FIXED protocol: owner window QA pending on
+the corrected build.

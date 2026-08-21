@@ -34,7 +34,11 @@
 namespace scene_cube_drop {
 
 constexpr float CUBE       = 0.4f;
-constexpr float DROP       = 0.3f;    // m of free fall (~0.247 s, ~15 frames)
+constexpr float DROP       = 0.6f;    // m of free fall (~0.35 s, ~21 frames)
+                                      // (owner 2026-08-20: "fall from
+                                      // higher in general" — honest now
+                                      // that drag is the derived law and
+                                      // flight barely taxes spin)
 constexpr float DT         = 1.0f / 60.0f;
 constexpr int   RUN_FRAMES = 300;     // 5 s: land and fully settle
 
@@ -71,7 +75,22 @@ struct RungSpec {
                          // spin survives ANGULAR_DRAG to touchdown (G-41)
 };
 constexpr float SPIN_FAST  = 6.0f;    // rad/s, just under MAX_OMEGA 6.28
-constexpr float DROP_SHORT = 0.05f;   // ~4 frames: drag steals ~26%, not 95%
+// DROP_SHORT was 0.05 m: an ANGULAR_DRAG-era workaround ("drag steals
+// ~26%, not 95%"). D7's derived law killed that constraint; the spin
+// cases fall from real height like everything else (owner order).
+constexpr float DROP_SHORT = 0.6f;
+// The wheels RELEASE LOW, and the reason is measured physics, not
+// timidity: a HERO cube spinning about a horizontal axis sweeps its
+// corners half a space diagonal (0.566 m) from centre, 0.166 m BELOW
+// its own face plane, so any higher release transits a corner-strike
+// band above the slab and every real knock eats spin. Measured walks:
+// 0.05 m drop -> 0.081 (rolling contact at full spin), 0.25 -> 0.000
+// (~7 frames in the band, spin fully knocked out), 0.6 -> 0.016 (fast
+// transit, 1-2 knocks). Non-monotonic, all honest. The knocking fall
+// itself is a beautiful future case; THIS case's claim is that spin
+// buys translation on the right axis, so it starts where rolling
+// starts. R4's vertical spin sweeps no band and falls from DROP.
+constexpr float DROP_WHEEL = 0.05f;
 // THE LECTURE STANDARD (skill, 2026-08-20): the spin cases run on a
 // HERO cube, 0.8 m — twice the extent, double the contact radius, so
 // the same honest physics buys visibly more travel (omega x r budget
@@ -98,9 +117,9 @@ inline const RungSpec RUNGS[RUNG_COUNT] = {
     { "R4 THE BIG TOP: hero spins Z at 6, twin still (G-41)",
                                         0.0f, 0.0f, 0.0f, SPIN_FAST, DROP_SHORT },
     { "R5 THE WALKING WHEEL: hero spins X, drives along Y, twin still",
-                                        0.0f, SPIN_FAST, 0.0f, 0.0f, DROP_SHORT },
+                                        0.0f, SPIN_FAST, 0.0f, 0.0f, DROP_WHEEL },
     { "R6 THE WALKING WHEEL: hero spins Y, drives along X, twin still",
-                                        0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_SHORT },
+                                        0.0f, 0.0f, SPIN_FAST, 0.0f, DROP_WHEEL },
     { "R7 THE CORNER STAND: corner-down, a hair off balance, it MUST fall (G-43)",
                                         0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
     // R8: the SAME corner stand, on the BARE TURTLE. R7 topples through
@@ -126,6 +145,8 @@ struct Scene {
     float min_frame_keep = 1.0f;      // worst per-frame spin retention in flight
     float keep_at_touchdown = -1.0f;  // spin at first floor contact / SPIN0
     int   touchdown_frame = -1;
+    int   touch_actor = -1;          // the rung's performer; only ITS
+                                     // contact ends the flight window
     float prev_omega_z = 0.0f;
     float rest_z = 0.0f;              // per-rung expected contact height
 
@@ -177,7 +198,20 @@ struct Scene {
     // Which body a rung performs on.
     int actor(int r) const { return r >= 3 ? hero : cube; }
 
-    void park(ParticleSystem& ps, int id, float x) {
+    // A teleported body carries NO history (QA 2026-08-20: cases in the
+    // window's continuous world inherited the previous case's sleep
+    // counters and cached support; corner stands froze at frame 0 and
+    // spin died mid-air). Every direct reposition voids the transient
+    // solver state and the contact cache.
+    static void void_history(Particle& p, PhysicsSystem& physics, int id) {
+        p.frames_at_rest = 0;
+        p.low_velocity_frames = 0;
+        p.quiet_growth_run = 0;
+        p.rest_quiet_sq = 1e9f;
+        physics.forget_body((size_t)id);
+    }
+
+    void park(ParticleSystem& ps, PhysicsSystem& physics, int id, float x) {
         auto v = ps.lock_particles_for_write();
         Particle& p = v[id];
         const float half = p.thickness * 0.5f;
@@ -187,12 +221,14 @@ struct Scene {
         p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
         p.rotation_q = logosphere::Quat::identity();
         p.is_at_rest = true;
+        void_history(p, physics, id);
     }
 
-    void arm(ParticleSystem& ps, const RungSpec& r, int rung_index = 0) {
+    void arm(ParticleSystem& ps, PhysicsSystem& physics,
+             const RungSpec& r, int rung_index = 0) {
         const bool spin_case = rung_index >= 3;
         // Stage the non-performers out of the experiment.
-        park(ps, spin_case ? cube : hero, 30.0f);
+        park(ps, physics, spin_case ? cube : hero, 30.0f);
         if (spin_case) {
             // The still twin: same size, same floor, no spin — the
             // on-stage contrast the lecture standard demands. Placed
@@ -208,8 +244,9 @@ struct Scene {
             t.rotation_x = t.rotation_y = t.rotation_z = 0.0f;
             t.rotation_q = logosphere::Quat::identity();
             t.is_at_rest = false;
+            void_history(t, physics, twin);
         } else {
-            park(ps, twin, 33.0f);
+            park(ps, physics, twin, 33.0f);
         }
         const bool corner = (rung_index >= 6);
         const bool on_turtle = (rung_index == 7);   // off the 4x4 slab
@@ -246,6 +283,8 @@ struct Scene {
         p.omega_y = r.spin_y;
         p.omega_z = r.spin_z;
         p.is_at_rest = false;
+        void_history(p, physics, actor(rung_index));
+        touch_actor = actor(rung_index);
         peak_omega_y = 0.0f; min_frame_keep = 1.0f;
         keep_at_touchdown = -1.0f; touchdown_frame = -1;
         prev_omega_z = r.spin_z;
@@ -273,10 +312,15 @@ struct Scene {
             // friction, so honest braking read as a flight leak and
             // R2/R3 false-failed under the lever. The engine reports
             // every contact; the scene asks it, not the altimeter.
+            // Only the rung's ACTOR ends the flight window. The first
+            // version accepted any cube-or-hero event, and the parked
+            // hero's own landing latched "touchdown" frames early with
+            // the cube still spinning — a false 0.9998 keep that hid
+            // the phantom-friction kill the owner's eyes then caught.
             for (const auto& ev : physics.get_collision_events()) {
                 const int a = (int)ev.particle_a, b = (int)ev.particle_b;
-                if (a == cube || b == cube || a == hero || b == hero) {
-                    const int me = (a == cube || b == cube) ? cube : hero;
+                const int me = touch_actor;
+                if (a == me || b == me) {
                     if (ps.lock_particles_for_read()[me].z > 0.0f) {
                         touchdown_frame = frame;
                         if (spin0 > 0.0f) {

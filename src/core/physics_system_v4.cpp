@@ -305,6 +305,12 @@ void PhysicsSystem::shutdown() {
 // ============================================================================
 
 void PhysicsSystem::update(double delta_time, int input_target_id) {
+    // Headless harnesses drive physics directly; the engine's
+    // frame_begin never runs and every trace line said f0. The
+    // physics frame IS the trace frame here; engine-driven runs
+    // overwrite this with the telemetry index, same value stream.
+    { static uint64_t phys_trace_frame = 0;
+      logosphere::phystrace::frame_begin(phys_trace_frame++); }
     if (!is_initialized_) return;
 
     float dt = static_cast<float>(delta_time);
@@ -380,10 +386,22 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                       g_row_energy = RowEnergy{};
                       g_dissipation = Dissipation{}; }
 
+        auto omega_probe = [&](const char* site) {
+            if (!::logosphere::phystrace::at(::logosphere::phystrace::Solve))
+                return;
+            for (size_t qi = 0; qi < particles.size(); ++qi) {
+                if (!::logosphere::phystrace::focused((int)qi, (int)qi)) continue;
+                PHYS_TRACE_F(::logosphere::phystrace::Solve, "omega_probe",
+                             (int)qi, (int)qi, site,
+                             particles[qi].omega_x, particles[qi].omega_y,
+                             particles[qi].omega_z);
+            }
+        };
         {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsForces);
             apply_all_forces(particles, sub_dt);
         }
+        omega_probe("after_forces_and_solve");
         if (ledger) e_after_solve = measure_energy(particles, gluon_constraints_v2_);
 
         // PHASE 4.5: Integrate angular velocity → rotation
@@ -402,6 +420,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                 project_angular_limits(particles);
             }
         }
+        omega_probe("after_angular_integrate_and_limits");
 
         // PHASE 4.7: Project gluon positions (OLD METHOD - disabled by default)
         // Now uses CURRENT rotation_z (updated in 4.5) for attachment point calculation
@@ -419,6 +438,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsIntegrate);
             integrate_positions(particles, sub_dt);
         }
+        omega_probe("after_integrate_positions");
         EnergyBuckets e_after_positions;
         if (ledger) e_after_positions = measure_energy(particles, gluon_constraints_v2_);
 
@@ -427,6 +447,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
             ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsBoundary);
             enforce_turtle_boundary(particles);
         }
+        omega_probe("after_turtle_boundary");
 
         if (ledger) {
             e_after_integrate = measure_energy(particles, gluon_constraints_v2_);
@@ -2962,6 +2983,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             if (!(share_sum > 0.0f)) share_sum = (float)kv.second.size();
             for (size_t ci : kv.second) {
                 Constraint& c = constraints[ci];
+                // A SPECULATIVE row (gap still open, bias < 0 — the
+                // row's own classification; predicted-pose penetration
+                // is positive even with the gap open, so it cannot
+                // discriminate) is an approach limit, not a support: it
+                // has no equilibrium to restore and receives no warm
+                // impulse.
+                if (c.is_contact && c.bias < 0.0f) continue;
+                if (c.is_turtle_contact && !(c.penetration > 0.0f)) continue;
                 const float w = cached * (c.eff_mass_share / share_sum);
                 Particle& pa = particles[c.body_a];
                 const float inv_ma = inv_mass_momentum(pa);
@@ -3019,6 +3048,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << (c.is_turtle_contact ? " TURTLE" : " BOX")
                               << std::endl;
                 }
+                PHYS_TRACE_F(::logosphere::phystrace::Constraint,
+                             "warm_apply", (int)c.body_a, (int)c.body_b,
+                             c.is_turtle_contact ? "turtle" : "contact",
+                             w, cached, c.penetration);
                 warm_started_impulses[ci] = w;
                 c.accumulated_impulse = w;
             }
@@ -3692,6 +3725,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
             if ((c.is_contact || c.is_turtle_contact) && c.accumulated_impulse > 0.0f && combined_friction > 0.0f) {
                 float friction_limit = combined_friction * c.accumulated_impulse;
+                // FRICTION ACTS ONLY THROUGH A TOUCHING CONTACT (G-36's
+                // real mechanism, found 2026-08-20). A NEGATIVE bias is
+                // the row's own statement that the gap is still open
+                // (split-impulse law above): its normal impulse is
+                // numerical capture, not transmitted force, and mu times
+                // a capture impulse is fiction. Measured: a cube spinning
+                // 3 rad/s lost ALL of it in the last 3 cm of fall, 52.1
+                // N*s of phantom friction across four corners, three
+                // frames before the surfaces met. A real die keeps its
+                // spin until the face touches.
+                if (c.is_contact && !c.is_turtle_contact && c.bias < 0.0f)
+                    friction_limit = 0.0f;
 
                 // Determine tangent directions from normal (Jacobian)
                 // If normal is Z-axis dominant, tangents are X and Y
@@ -3844,6 +3889,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                                 + j * j * inv_sum * 0.5;
                     }
                 }
+                PHYS_TRACE_F(::logosphere::phystrace::Constraint,
+                             "friction_impulse", (int)c.body_a, (int)c.body_b,
+                             "t1", friction_impulse_1, friction_limit,
+                             v_rel_t1);
                 pa.vx += t1x * friction_impulse_1 * inv_ma;
                 pa.vy += t1y * friction_impulse_1 * inv_ma;
                 pa.vz += t1z * friction_impulse_1 * inv_ma;
@@ -3913,6 +3962,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                                 + j * j * inv_sum * 0.5;
                     }
                 }
+                PHYS_TRACE_F(::logosphere::phystrace::Constraint,
+                             "friction_impulse", (int)c.body_a, (int)c.body_b,
+                             "t2", friction_impulse_2, friction_limit,
+                             v_rel_t2);
                 pa.vx += t2x * friction_impulse_2 * inv_ma;
                 pa.vy += t2y * friction_impulse_2 * inv_ma;
                 pa.vz += t2z * friction_impulse_2 * inv_ma;

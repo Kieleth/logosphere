@@ -62,11 +62,18 @@ int main() {
         if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
         Scene scene;
         scene.build(ps);
-        scene.arm(ps, spec, r);
+        scene.arm(ps, physics, spec, r);
         scene.argus.reset_milestones(scene.actor(r));
         const int A = scene.actor(r);
+        static const bool fresh_trace = std::getenv("ARGUS_TRACE") != nullptr;
         for (int f = 0; f < RUN_FRAMES; ++f) {
             scene.step(ps, physics, f, spec.spin_z);
+            if (fresh_trace && r == 2 && f < 30) {
+                auto vv = ps.lock_particles_for_read();
+                const Particle& pc = vv[scene.cube];
+                std::printf("  [fresh r2 f%-3d] z %.3f vz %.3f omega_z %.4f\n",
+                            f, pc.z, pc.vz, pc.omega_z);
+            }
             if (r >= 3) {
                 // The experiment NARRATES itself (owner order): the story
                 // in the log, milestones the frame they happen, so dead
@@ -212,6 +219,66 @@ int main() {
             check(scene.min_frame_keep > FRAME_KEEP_MIN,
                   "R3: torque-free flight conserves angular momentum, "
                   "per frame (G-37)");
+        }
+        physics.shutdown();
+    }
+
+    // =====================================================================
+    // THE WINDOW'S WORLD (owner QA 2026-08-20: "7/8 is not falling, so in
+    // headless you should Argus see all this"). The per-rung loop above
+    // builds a FRESH world per rung; the window is ONE world where arm()
+    // teleports bodies between cases and the solver's transient state
+    // (warm-start cache keyed by particle ids, sleep counters, quietness
+    // history) survives the teleport. If a case behaves differently here
+    // than above, the reflection contract is broken and THIS pass is the
+    // instrument that shows it, Argus narrating.
+    // =====================================================================
+    std::printf("\n=== THE WINDOW'S WORLD: one continuous world, all rungs in "
+                "sequence ===\n");
+    {
+        ParticleSystem ps;
+        PhysicsSystem physics;
+        if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
+        Scene scene;
+        scene.build(ps);
+        static const bool lever_seq = std::getenv("CONTACT_TORQUE") != nullptr;
+        for (int r = 0; r < RUNG_COUNT; ++r) {
+            const RungSpec& spec = RUNGS[r];
+            scene.arm(ps, physics, spec, r);
+            const int A = scene.actor(r);
+            scene.argus.reset_milestones(A);
+            static const bool seq_trace = std::getenv("ARGUS_TRACE") != nullptr;
+            for (int f = 0; f < RUN_FRAMES; ++f) {
+                scene.step(ps, physics, f, spec.spin_z);
+                if (f % 30 == 0 || (seq_trace && f < 30))
+                    scene.argus.narrate(std::cout, A);
+                scene.argus.milestones(std::cout, A, scene.rest_z);
+            }
+            std::printf("-- seq %s --\n", spec.name);
+            float az = 0.0f, aspin = 0.0f;
+            { auto v = ps.lock_particles_for_read();
+              const Particle& pa = v[A];
+              az = pa.z;
+              aspin = std::sqrt(pa.omega_x*pa.omega_x + pa.omega_y*pa.omega_y
+                              + pa.omega_z*pa.omega_z); }
+            std::printf("  [seq measure] settled z %.4f, spin %.4f, argus peak "
+                        "spin %.4f, peak speed %.4f\n",
+                        az, aspin, scene.argus.peak_spin(A),
+                        scene.argus.peak_speed(A));
+            // The window's world must obey the SAME physics claims. Only
+            // the claims that do not depend on fresh-world spin history:
+            if (lever_seq && r == 1)
+                check(std::fabs(az - (FLOOR_TOP + CUBE * 0.5f)) < 0.02f,
+                      "seq R1: tilted cube ends FLAT in the continuous world");
+            if (lever_seq && (r == 6 || r == 7)) {
+                const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
+                                                  : CORNER_FALLEN_Z_MAX;
+                check(az < fallen_max,
+                      "seq R7/R8: the corner stand FALLS in the continuous "
+                      "world too (the window is not a different physics)");
+                check(scene.argus.peak_spin(A) > CORNER_TOPPLE_SPIN_MIN,
+                      "seq R7/R8: and it ROTATED on the way down");
+            }
         }
         physics.shutdown();
     }

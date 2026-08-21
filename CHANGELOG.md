@@ -19,6 +19,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   caused lateral drift on slopes (under `CONTACT_TORQUE`).
 - Turtle contact rows measure velocity at the contact point (including
   rotation) like every other contact row (under `CONTACT_TORQUE`).
+- Speculative contact rows (gap still open) no longer transmit friction
+  or receive warm-start impulses; friction acts only through touching
+  contacts. Fixes spin dying in the air just before landing and lateral
+  drift on slopes (under `CONTACT_TORQUE`).
+- New `PhysicsSystem::forget_body(id)`: voids a repositioned body's
+  cached contact impulses; call after teleporting a live body.
 - Physics decision tracer env switches (`LOGOSPHERE_PHYS_TRACE*`) now
   work in headless standalone tests, not only under the full engine.
 

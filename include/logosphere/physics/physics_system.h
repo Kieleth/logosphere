@@ -387,6 +387,21 @@ public:
         cached_impulses_.clear();
     }
 
+    // A body that was externally REPOSITIONED (teleported by a test
+    // harness, a spawner, a director) has no valid contact history: its
+    // cached equilibrium impulses describe a configuration that no
+    // longer exists. Callers that write x/y/z directly on a live body
+    // call this; the QA finding that earned it was a re-armed case
+    // inheriting the previous case's support through the warm cache.
+    void forget_body(size_t id) {
+        for (auto it = cached_impulses_.begin();
+             it != cached_impulses_.end(); ) {
+            if (it->first.particle_a == id || it->first.particle_b == id)
+                it = cached_impulses_.erase(it);
+            else ++it;
+        }
+    }
+
     // Total gluon count (useful for worldgen cross-checks and instrumentation)
     size_t get_total_gluon_count() const { return gluon_constraints_v2_.size(); }
 
