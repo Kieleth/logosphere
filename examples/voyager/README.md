@@ -10,14 +10,19 @@ so the next thing built on top of it does not have to unpick a C++ copy
 of the rules first.
 
 ```
-# windowed
-ANTHROPIC_API_KEY=... ./build-full/voyager/voyager
+cmake -S . -B build && cmake --build build -j
+
+# windowed (full profile only: it needs a window)
+ANTHROPIC_API_KEY=... ./build/voyager/voyager
 
 # headless: no key, reproducible, exercises the rules
 ./build/voyager-headless --random 7
 
 # headless: a model plays, every answer taped
-ANTHROPIC_API_KEY=... ./build-full/voyager-headless --record /tmp/life.tape
+#   --record needs a build with the LLM library, which the
+#   headless-only profile does not have. It says so rather than
+#   quietly playing without one.
+ANTHROPIC_API_KEY=... ./build/voyager-headless --record /tmp/life.tape
 
 # headless: the same character, exactly, offline, no model call
 ./build/voyager-headless --replay /tmp/life.tape
