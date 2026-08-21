@@ -127,12 +127,13 @@ bool test_gluon_angular_drive_converges() {
     bool hold_ok   = (max_err_hold <= HOLD_BUDGET);
 
     printf("\n  Assertions:\n");
-    printf("    %s: final rel rotation within 5%% of target\n",
+    printf("    %s INV-13: final rel rotation within 5%% of target\n",
            final_ok ? "PASS" : "FAIL");
-    printf("    %s: hold-phase max err within 10%% of target (no oscillation)\n",
+    printf("    %s INV-13: hold-phase max err within 10%% of target — the drive HOLDS its "
+           "commanded pose under load and does not oscillate\n",
            hold_ok ? "PASS" : "FAIL");
 
     bool ok = final_ok && hold_ok;
-    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL - gluon PD drive did not converge]");
+    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL INV-13 - gluon PD drive did not converge]");
     return ok;
 }

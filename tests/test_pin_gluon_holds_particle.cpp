@@ -133,7 +133,8 @@ bool test_pin_gluon_holds_particle() {
 
     const float BUDGET = 0.03f;  // 3 cm
     bool held = (max_deviation <= BUDGET);
-    printf("  %s: subject stays within %.0f cm of anchor (max dev %.4f m)\n",
+    printf("  %s INV-1: subject stays within %.0f cm of anchor — an anchor is one of the "
+           "three ways immobility exists at all (max dev %.4f m)\n",
            held ? "PASS" : "FAIL", BUDGET * 100.0f, max_deviation);
 
     // Assertion 3: teardown removes the gluon.
@@ -142,10 +143,10 @@ bool test_pin_gluon_holds_particle() {
         physics.get_gluon(static_cast<size_t>(subject_id),
                           static_cast<size_t>(anchor_id));
     bool torn_down = (pin_after == nullptr);
-    printf("  %s: remove_gluons_for_particle clears the pin\n",
+    printf("  %s hygiene (bookkeeping, not a physics law): remove_gluons_for_particle clears the pin\n",
            torn_down ? "PASS" : "FAIL");
 
     bool ok = created && held && torn_down;
-    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL — pin gluon mechanism broken]");
+    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL INV-1/INV-13 — pin gluon mechanism broken]");
     return ok;
 }

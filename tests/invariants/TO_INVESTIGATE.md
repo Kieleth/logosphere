@@ -64,3 +64,28 @@ its own record rather than living only here. Nothing was changed: the reported
 overlap numbers are the size of the debt under either ruling.
 
 ---
+
+## test_sleep_diagnostics — its printed advice contradicts INV-19, INV-29 and G-44
+
+**What it asserts.** Nothing; it returns `true` unconditionally and is honest
+about being a diagnostic.
+
+**Why it needs a rewrite.** The DIAGNOSIS block it prints tells the reader that
+"Adaptive damping threshold (0.5 m/s) is TOO LOW", to "Consider raising
+LOW_VEL_THRESHOLD to 1.0 m/s", and that the "damping rate (0.98) is too weak".
+Three later rulings say otherwise. INV-19: damping exists only where a real
+dissipation process is being modelled, and damping added for numerical
+convenience or stabilisation is forbidden. INV-29: a constant with physical
+meaning is a declared engine input in `schema/physics.yaml`, not a number tuned
+where it is consumed. G-44 (closed): low speed is not a fixed point of the
+dynamics — an inverted pendulum passes through arbitrarily low speed while
+accelerating away — and quietness must price both channels in one currency,
+extremity speed `sqrt(v^2 + (omega*r)^2)`. The advice would tune the exact
+mechanism G-44 replaced.
+
+**What is owed.** The measurements are still worth having; the recommendation
+text needs rewriting to the ruled world, and the bands it reports should be
+extremity speed rather than COM speed if it is to say anything about sleep
+under G-44. Nothing was changed here.
+
+---

@@ -1,6 +1,14 @@
 // =============================================================================
 // DRIVE GRAVITY FEED-FORWARD LADDER (task #41)
 // =============================================================================
+// THE LAW: INV-13, driven-joints-hold. A driven joint converges to its
+// commanded pose and holds it UNDER ITS OWN LOAD, without standing error
+// beyond the test budget and without oscillation, and the controller never
+// fights a second controller. The two cures kept as evidence commits are
+// INV-13's second sentence measured: the angular integral is a second
+// controller stacked on the drive, and INV-5 forbids reaching for a spring or
+// a damper when the mechanism underneath is the thing that is wrong.
+//
 // A quat-drive row is a proportional controller, so under sustained gravity
 // torque it holds a standing angle error proportional to the load: both
 // humanoid drive tests fail at exactly the loaded joint (shoulder) while
@@ -124,7 +132,7 @@ bool test_drive_gravity_ff() {
     // (0.04 m) is ~5.7 deg of standing error. The drive must do better.
     const float SAG_LIMIT = 0.04f;
     const bool r1 = std::fabs(sag1) <= SAG_LIMIT;
-    printf("  RUNG 1  pendulum COM sag %+8.4f m  (|limit| %.3f)   %s\n",
+    printf("  RUNG 1  INV-13 pendulum COM sag %+8.4f m  (|limit| %.3f)   %s\n",
            sag1, SAG_LIMIT, r1 ? "ok" : "*** RED ***");
 
     // ---- RUNG 2: two-joint chain -------------------------------------------
@@ -147,14 +155,14 @@ bool test_drive_gravity_ff() {
     // The tip segment compounds both joints' errors; give it double.
     const bool r2a = std::fabs(sag_s1) <= SAG_LIMIT;
     const bool r2b = std::fabs(sag_s2) <= 2.0f * SAG_LIMIT;
-    printf("  RUNG 2  seg1 COM sag     %+8.4f m  (|limit| %.3f)   %s\n",
+    printf("  RUNG 2  INV-13 seg1 COM sag %+8.4f m  (|limit| %.3f)   %s\n",
            sag_s1, SAG_LIMIT, r2a ? "ok" : "*** RED ***");
-    printf("  RUNG 2  seg2 COM sag     %+8.4f m  (|limit| %.3f)   %s\n",
+    printf("  RUNG 2  INV-13 seg2 COM sag %+8.4f m  (|limit| %.3f)   %s\n",
            sag_s2, 2.0f * SAG_LIMIT, r2b ? "ok" : "*** RED ***");
 
     engine.shutdown();
     const bool pass = r1 && r2a && r2b;
     printf("\n  %s\n", pass ? "PASS"
-        : "FAIL (a driven joint must hold its pose under its own load)");
+        : "FAIL INV-13 (a driven joint must hold its pose under its own load)");
     return pass;
 }

@@ -125,7 +125,7 @@ bool test_gluon_distance_holds_offset() {
         physics.get_gluon(static_cast<size_t>(subject_id),
                           static_cast<size_t>(anchor_id));
     bool created = (pin != nullptr);
-    printf("  %s: pin gluon created\n", created ? "PASS" : "FAIL");
+    printf("  %s hygiene: pin gluon created\n", created ? "PASS" : "FAIL");
 
     float initial_gap;
     {
@@ -164,10 +164,11 @@ bool test_gluon_distance_holds_offset() {
     const float BUDGET = 0.03f;  // 3 cm
     bool converged = (final_gap <= BUDGET);
     printf("\n  final gap = %.4f m (budget %.2f m)\n", final_gap, BUDGET);
-    printf("  %s: subject converges from 0.30 m start to within %.0f cm of anchor\n",
+    printf("  %s INV-26: subject converges from 0.30 m start to within %.0f cm of anchor "
+           "(one correction law: a gluon closes a position error like a contact does)\n",
            converged ? "PASS" : "FAIL", BUDGET * 100.0f);
     printf("\n  %s\n",
            (created && converged) ? "[PASS]"
-                                   : "[FAIL — gluon distance constraint not enforcing]");
+                                   : "[FAIL INV-26 — gluon distance constraint not enforcing]");
     return created && converged;
 }

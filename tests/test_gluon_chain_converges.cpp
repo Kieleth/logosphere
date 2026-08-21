@@ -174,10 +174,10 @@ bool test_gluon_chain_converges() {
     bool e1_ok = (err1_hold <= FRAC * m1);
 
     printf("\n  Assertions:\n");
-    printf("    %s: p0->p1 hold max within 5%% of target\n", e0_ok ? "PASS" : "FAIL");
-    printf("    %s: p1->p2 hold max within 5%% of target\n", e1_ok ? "PASS" : "FAIL");
+    printf("    %s INV-13: p0->p1 hold max within 5%% of target\n", e0_ok ? "PASS" : "FAIL");
+    printf("    %s INV-13: p1->p2 hold max within 5%% of target\n", e1_ok ? "PASS" : "FAIL");
 
     bool ok = e0_ok && e1_ok;
-    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL — chain drifted in isolation]");
+    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL INV-13 — chain drifted in isolation; a driven joint must hold under its own load]");
     return ok;
 }

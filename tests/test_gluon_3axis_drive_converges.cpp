@@ -139,10 +139,10 @@ bool test_gluon_3axis_drive_converges() {
     bool hold_ok  = (max_err_hold <= HOLD_BUDGET);
 
     printf("\n  Assertions:\n");
-    printf("    %s: final |q_err| within 5%% of target angle\n",  final_ok ? "PASS" : "FAIL");
-    printf("    %s: hold-phase error within 10%% of target\n",    hold_ok  ? "PASS" : "FAIL");
+    printf("    %s INV-13: final |q_err| within 5%% of target angle\n",  final_ok ? "PASS" : "FAIL");
+    printf("    %s INV-13: hold-phase error within 10%% of target (holds, no oscillation)\n",    hold_ok  ? "PASS" : "FAIL");
 
     bool ok = final_ok && hold_ok;
-    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL - 3-axis PD drive did not converge]");
+    printf("\n  %s\n", ok ? "[PASS]" : "[FAIL INV-13 - 3-axis PD drive did not converge]");
     return ok;
 }

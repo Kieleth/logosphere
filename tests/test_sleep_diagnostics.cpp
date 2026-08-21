@@ -5,10 +5,29 @@
 #include <iomanip>
 #include <map>
 
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): this file asserts
+// nothing (it returns true unconditionally, by design, and says so), but the
+// DIAGNOSIS it prints recommends a course of action that two later rulings
+// forbid. It reads a speed-only sleep band and, when most bodies sit above it,
+// tells the reader to raise LOW_VEL_THRESHOLD from 0.5 to 1.0 m/s and to
+// consider the "damping rate (0.98)" too weak. INV-19 says damping exists only
+// where a real dissipation process is being modelled and that damping added
+// for numerical convenience or stabilisation is forbidden; INV-29 says a
+// constant like that is an engine INPUT in schema/physics.yaml, never a number
+// tuned at the call site; and G-44 (closed) rules that low speed is not a
+// fixed point at all, that quietness must price BOTH channels in one currency
+// (extremity speed sqrt(v^2 + (omega*r)^2)), so a body slow at the COM and
+// fast in spin is not quiet. Following this file's advice would tune the exact
+// mechanism G-44 replaced. The measurements it prints are still useful; the
+// recommendation needs rewriting to the ruled world, which is an owner call.
+//
 // ============================================================================
 // SLEEP DIAGNOSTICS TEST
 // ============================================================================
 // Diagnostic test to understand why particles aren't sleeping.
+// LAWS it bears on (none enforced here, see the block above): INV-18
+// (sleep hides nothing), INV-7 (a sleeping body never gains velocity),
+// G-44 (sleep may only cache a fixed point).
 // Creates a deterministic scene with trees and analyzes:
 // - Velocity distribution (which band are particles in?)
 // - Adaptive damping effectiveness (is low_velocity_frames incrementing?)
@@ -230,6 +249,8 @@ bool test_sleep_diagnostics() {
         }
     }
 
-    std::cout << "\n  [TEST COMPLETE]" << std::endl;
+    std::cout << "\n  [TEST COMPLETE — diagnostic: INV-18/INV-7/G-44 are "
+                 "measured here, none is enforced; this returns true "
+                 "unconditionally]" << std::endl;
     return true;  // Diagnostic test always passes
 }
