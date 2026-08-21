@@ -16,6 +16,15 @@
 // lowest point is. The support is tall enough that the turtle plane (which
 // still reads world-Z extents) stays out of the picture; that boundary is
 // tracked separately.
+//
+// LAWS (assert-protocol migration, 2026-08-21): this file is INV-12 end to
+// end — a rotated box collides as a rotated box, rests flush on its true
+// faces, and no bound under-covers the body it stands for. Normal DIRECTION
+// checks cite INV-25 (one documented sign, A toward B). The control block
+// cites G-19: for a body that never turned, the oriented path must reproduce
+// the old answer exactly, which is the migration's own safety property. The
+// oblique-normal case cites INV-6: the normal comes from the contact geometry
+// and never from a world axis.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -62,7 +71,7 @@ bool test_rotated_box_contact() {
         Particle a = box_particle(0, 0, 0.545f, 0.4f, 0.4f, 0.9f, 0, 0, 0);
         Particle b = box_particle(0, 0, 0.05f, 1.0f, 1.0f, 0.1f, 0, 0, 0);
         check(!box_particle_is_rotated(a) && !box_particle_is_rotated(b),
-              "control boxes read as unrotated");
+              "hygiene: control boxes read as unrotated (a vacuous pass cannot hide)");
 
         ContactManifold m_obb, m_aabb;
         const bool hit_obb = narrow_phase_obb(
@@ -78,14 +87,14 @@ bool test_rotated_box_contact() {
                m_obb.num_points, hit_obb ? m_obb.points[0].penetration : -1.0f,
                m_aabb.normal_x, m_aabb.normal_y, m_aabb.normal_z,
                m_aabb.num_points, hit_aabb ? m_aabb.points[0].penetration : -1.0f);
-        check(hit_obb && hit_aabb, "both paths detect the contact");
+        check(hit_obb && hit_aabb, "hygiene: both paths detect the contact");
         check(std::fabs(m_obb.normal_x - m_aabb.normal_x) < 1e-4f &&
               std::fabs(m_obb.normal_y - m_aabb.normal_y) < 1e-4f &&
               std::fabs(m_obb.normal_z - m_aabb.normal_z) < 1e-4f,
-              "normals agree (B toward A: +Z)");
-        check(m_obb.num_points == 4, "face manifold carries 4 points");
+              "INV-25 + G-19: normals agree, B toward A (+Z). A body that never turned must behave bit-identically under the oriented path");
+        check(m_obb.num_points == 4, "INV-12: face manifold carries 4 points");
         check(std::fabs(m_obb.points[0].penetration - 0.005f) < 1e-3f,
-              "penetration ~5 mm, as constructed");
+              "INV-2: penetration ~5 mm, as constructed");
     }
 
     // ------------------------------------------------------------------
@@ -100,7 +109,7 @@ bool test_rotated_box_contact() {
         Particle a = box_particle(0, 0, 0.12f, 0.40f, 0.05f, 0.60f,
                                   (float)(M_PI / 2.0), 0, 0);
         Particle b = box_particle(0, 0, 0.05f, 1.0f, 1.0f, 0.1f, 0, 0, 0);
-        check(box_particle_is_rotated(a), "tipped plate reads as rotated");
+        check(box_particle_is_rotated(a), "hygiene: tipped plate reads as rotated");
 
         ContactManifold m;
         const bool hit = narrow_phase_obb(
@@ -109,15 +118,15 @@ bool test_rotated_box_contact() {
         printf("      [measure] n=(%.3f,%.3f,%.3f) pts=%d pen[0]=%.4f face=%d\n",
                m.normal_x, m.normal_y, m.normal_z, m.num_points,
                hit ? m.points[0].penetration : -1.0f, (int)m.is_face_contact);
-        check(hit, "contact detected");
-        check(m.normal_z > 0.99f, "normal is +Z (B toward A), from geometry");
-        check(m.is_face_contact, "face contact, not corner");
-        check(m.num_points == 4, "4 clipped points");
+        check(hit, "INV-12: contact detected");
+        check(m.normal_z > 0.99f, "INV-12/INV-25: normal is +Z (B toward A), from GEOMETRY not from a world-up vector");
+        check(m.is_face_contact, "INV-12: face contact, not corner");
+        check(m.num_points == 4, "INV-12: 4 clipped points");
         float worst_pen = -1.0f;
         for (int i = 0; i < m.num_points; ++i)
             worst_pen = std::fmax(worst_pen, m.points[i].penetration);
         check(std::fabs(worst_pen - 0.005f) < 1e-3f,
-              "deepest point ~5 mm (rotated extent, not the 0.3 m slab)");
+              "INV-12: deepest point ~5 mm — the ROTATED extent, not the 0.3 m bounding slab");
     }
 
     // ------------------------------------------------------------------
@@ -146,10 +155,10 @@ bool test_rotated_box_contact() {
         printf("      [measure] n=(%.3f,%.3f,%.3f) pts=%d face=%d\n",
                m.normal_x, m.normal_y, m.normal_z, m.num_points,
                (int)m.is_face_contact);
-        check(hit, "contact detected");
+        check(hit, "INV-12: contact detected");
         check(m.normal_z > 0.99f && std::fabs(m.normal_x) < 1e-3f &&
               std::fabs(m.normal_y) < 1e-3f,
-              "normal +Z: the slab face the plate actually rests on");
+              "INV-12/INV-25: normal +Z, the slab face the plate actually rests on");
         // rotation_x = +30 deg tips local +Z toward -Y, so the plate's LOW
         // long edge swings to +Y (corner y = H/2*cos + T/2*sin = +0.128).
         // Every point deeper than the margin band must sit on that side,
@@ -164,8 +173,8 @@ bool test_rotated_box_contact() {
                    i, m.points[i].px, m.points[i].py, m.points[i].pz,
                    m.points[i].penetration);
         }
-        check(low_edge_side, "penetrating points cluster at the low (+Y) edge");
-        check(std::fabs(deepest - 0.005f) < 2e-3f, "deepest ~5 mm as constructed");
+        check(low_edge_side, "INV-12: penetrating points cluster at the low (+Y) edge, where the tilted shape is");
+        check(std::fabs(deepest - 0.005f) < 2e-3f, "INV-2: deepest ~5 mm as constructed");
     }
 
     // ------------------------------------------------------------------
@@ -194,17 +203,17 @@ bool test_rotated_box_contact() {
         printf("      [measure] n=(%.3f,%.3f,%.3f) pts=%d face=%d\n",
                m.normal_x, m.normal_y, m.normal_z, m.num_points,
                (int)m.is_face_contact);
-        check(hit, "contact detected");
+        check(hit, "INV-12: contact detected");
         const bool oblique = std::fabs(m.normal_x) > 0.1f &&
                              std::fabs(m.normal_y) > 0.1f;
-        check(oblique, "normal has BOTH lateral components (not axis-locked)");
+        check(oblique, "INV-12/INV-6: normal has BOTH lateral components — it is not locked to a world axis");
         // The blade's face normal is +-(sin(yaw), cos(yaw), 0) with CW yaw;
         // whichever sign, |nx/ny| must equal tan(30 deg) = 0.577.
         if (std::fabs(m.normal_y) > 1e-4f) {
             const float ratio = std::fabs(m.normal_x / m.normal_y);
             printf("      [measure] |nx/ny| = %.4f (tan 30 = 0.5774)\n", ratio);
             check(std::fabs(ratio - 0.5774f) < 0.01f,
-                  "normal direction equals the blade's yaw");
+                  "INV-12: normal direction equals the blade's yaw");
         }
     }
 
@@ -227,7 +236,7 @@ bool test_rotated_box_contact() {
             0, 1, 0.08f, m);
         printf("      [measure] hit=%d (unrotated slab form WOULD overlap)\n",
                (int)hit);
-        check(!hit, "no contact where the rotated shape has 150 mm of air");
+        check(!hit, "INV-12: no phantom contact where the rotated shape has 150 mm of air (the fat-box path faked one)");
     }
 
     // ------------------------------------------------------------------
@@ -289,8 +298,8 @@ bool test_rotated_box_contact() {
         printf("      [measure] plate z %.4f  rotation_x %.1f deg  "
                "air %.0f mm  speed %.4f m/s\n",
                z, rx * 57.2958f, air * 1000.0f, speed);
-        check(std::fabs(air) < 0.010f, "rests ON the support (|air| < 10 mm)");
-        check(speed < 0.02f, "and is quiet");
+        check(std::fabs(air) < 0.010f, "INV-12: rests ON the support where its rotated shape says (|air| < 10 mm)");
+        check(speed < 0.02f, "PROPOSED REST-IS-REACHED: and is quiet");
         engine.shutdown();
     }
 

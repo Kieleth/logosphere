@@ -14,11 +14,20 @@
 // Purpose: Test that PhysicsRockGenerator creates stable rock structures
 //          that settle on ground and maintain position
 //
-// Acceptance Criteria:
-//   1. Rock settles within 2 seconds
-//   2. Rock stays stable for 8 seconds after settling
-//   3. No NaN/Inf in particle positions
-//   4. Drift < 5cm after settling
+// Acceptance Criteria, each naming its law (assert-protocol migration,
+// 2026-08-21):
+//   1. Rock settles within 2 seconds        PROPOSED REST-IS-REACHED
+//                                           (tests/invariants/INV_PROPOSALS.md)
+//   2. Rock stays stable for 8 s after      INV-24 — at steady state a scene
+//      settling                             performs zero corrective work; a
+//                                           settled rock that keeps creeping
+//                                           is a repair firing forever.
+//   3. No NaN/Inf in particle positions     PROPOSED FINITE-STATE
+//   4. Drift < 5cm after settling           INV-24, measured.
+//   5. No horizontal contact normals        INV-12 — a rock resting on a flat
+//                                           floor sheds no side-face normal;
+//                                           a horizontal one is the bounding
+//                                           slab, not the rock.
 // ============================================================================
 
 // Helper to wait for SPACE key press with visual feedback
@@ -186,7 +195,7 @@ bool test_physics_rock_boulder(Engine& engine, bool is_interactive) {
         engine.update(dt);
 
         if (check_nan(ps, boulder)) {
-            std::cout << "  ❌ FAIL: NaN detected during settling at frame " << frame << std::endl;
+            std::cout << "  ❌ FAIL PROPOSED FINITE-STATE: NaN detected during settling at frame " << frame << std::endl;
             return false;
         }
 
@@ -245,7 +254,7 @@ bool test_physics_rock_boulder(Engine& engine, bool is_interactive) {
         engine.update(dt);
 
         if (check_nan(ps, boulder)) {
-            std::cout << "  ❌ FAIL: NaN detected during drift test at frame " << frame << std::endl;
+            std::cout << "  ❌ FAIL PROPOSED FINITE-STATE: NaN detected during drift test at frame " << frame << std::endl;
             return false;
         }
 
@@ -340,8 +349,8 @@ bool test_physics_rock_boulder(Engine& engine, bool is_interactive) {
     bool pass = max_drift < 0.05f;
     bool normals_ok = horizontal_contacts == 0;
 
-    std::cout << "  " << (pass ? "PASS" : "FAIL") << ": Drift < 0.05m (" << max_drift << "m)" << std::endl;
-    std::cout << "  " << (normals_ok ? "PASS" : "FAIL") << ": No horizontal normals (" << horizontal_contacts << " found)" << std::endl;
+    std::cout << "  " << (pass ? "PASS" : "FAIL") << ": INV-24: Drift < 0.05m after settling — a settled scene performs zero corrective work (" << max_drift << "m)" << std::endl;
+    std::cout << "  " << (normals_ok ? "PASS" : "FAIL") << ": INV-12: No horizontal normals on a flat floor (" << horizontal_contacts << " found)" << std::endl;
 
     if (is_interactive) {
         wait_for_space(engine, pass ? "PASS" : "FAIL", {"Max drift: " + std::to_string(max_drift) + "m"});

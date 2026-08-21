@@ -1,3 +1,19 @@
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): part [1c],
+// "fallen-log placement offset, per preset", asserts that EVERY fallen-log
+// preset's oriented bottom sits strictly ABOVE the ground it targets, and
+// calls that the passing case. A log placed on the ground and floating above
+// it is not a correct placement under any reading of the physics — INV-4 says
+// a generated structure is born at rest with no overlap beyond slop, and
+// hovering is the other side of the same coin, a body whose support is not
+// where the generator thinks it is. The check is honest about being a
+// measured consequence rather than a law (the block's own comment says
+// "Reported, not fixed"), but as written the test goes RED the day
+// FallenTreeGenerator's offset is migrated to oriented bounds, which means a
+// correct fix looks like a regression. Needs an owner ruling on whether the
+// ratchet should invert (assert the bottom lands ON the ground) at the same
+// time the generator is corrected. Do not weaken it in the meantime: the
+// number it pins is the size of the debt.
+//
 // ============================================================================
 // COLLISION BOUNDS vs ROTATION: the table that keeps the comments honest
 // ============================================================================
@@ -106,21 +122,21 @@ int main() {
         Particle log_seg = box(0, 0, 1.0f, diameter, diameter, length,
                                0.0f, (float)M_PI / 2.0f, 0.6f /* ~34 deg heading */);
 
-        check(box_particle_is_rotated(log_seg), "laid-flat log reads as rotated");
+        check(box_particle_is_rotated(log_seg), "hygiene: laid-flat log reads as rotated");
 
         const float ze = z_extent(log_seg);
         printf("        z extent: %.4f m   (thickness field = %.4f m)\n", ze, length);
         check(std::fabs(ze - diameter) < 1e-3f,
-              "world-Z extent is the DIAMETER, not the thickness field");
+              "INV-12: world-Z extent is the DIAMETER, not the thickness field");
         check(ze < length - 1e-3f,
-              "and it is strictly smaller than the rotation-blind answer");
+              "INV-12: and it is strictly smaller than the rotation-blind answer");
 
         // The length has to reappear on the horizontal axes: rotating a box
         // moves extent between axes, it does not delete it.
         const AABB6 w = aabb_of_obb(obb_of_box_particle(log_seg, log_seg.z));
         const float span_xy = std::max(w.max_x - w.min_x, w.max_y - w.min_y);
         check(span_xy > length * 0.5f,
-              "the length reappears horizontally (extent moved, not lost)");
+              "INV-12: the length reappears horizontally (extent moved, not lost — no bound may under-cover the body it stands for)");
     }
 
     // A quarter-turned plate: the classic. thickness 0.1, height 1.0, tipped
@@ -131,7 +147,7 @@ int main() {
                              (float)M_PI / 2.0f, 0, 0);
         const float ze = z_extent(plate);
         printf("        z extent: %.4f m   (thickness field = %.4f m)\n", ze, 0.1f);
-        check(std::fabs(ze - 1.0f) < 1e-3f, "world-Z extent is the HEIGHT (1.0 m)");
+        check(std::fabs(ze - 1.0f) < 1e-3f, "INV-12: world-Z extent is the HEIGHT (1.0 m)");
     }
 
     // The consequence for FallenTreeGenerator, measured rather than argued.
@@ -163,7 +179,7 @@ int main() {
             if (w.min_z <= 1e-4f) all_float = false;
         }
         check(all_float,
-              "every preset's oriented bottom sits ABOVE the ground it targets");
+              "TO-INVESTIGATE ratchet, NOT a law: every preset's oriented bottom sits ABOVE the ground it targets. INV-4 says a structure is born at rest; a log floating above the ground it was placed on is not. This pins the measured consequence of an un-migrated generator offset");
     }
 
     // ------------------------------------------------------------------
@@ -176,15 +192,15 @@ int main() {
     printf("    [2] unrotated box: bounds are the raw extents, bit-identical\n");
     {
         Particle p = box(1.25f, -3.5f, 0.545f, 0.4f, 0.6f, 0.9f, 0, 0, 0);
-        check(!box_particle_is_rotated(p), "reads as unrotated");
+        check(!box_particle_is_rotated(p), "hygiene: reads as unrotated");
 
         const AABB6 w = aabb_of_obb(obb_of_box_particle(p, p.z));
         check(w.min_z == p.z - p.thickness * 0.5f &&
-              w.max_z == p.z + p.thickness * 0.5f, "z bounds exactly z +/- t/2");
+              w.max_z == p.z + p.thickness * 0.5f, "G-19: z bounds exactly z +/- t/2 — a body that never turned is bit-identical under the oriented path");
         check(w.min_x == p.x - p.width * 0.5f &&
-              w.max_x == p.x + p.width * 0.5f,     "x bounds exactly x +/- w/2");
+              w.max_x == p.x + p.width * 0.5f,     "G-19: x bounds exactly x +/- w/2");
         check(w.min_y == p.y - p.height * 0.5f &&
-              w.max_y == p.y + p.height * 0.5f,    "y bounds exactly y +/- h/2");
+              w.max_y == p.y + p.height * 0.5f,    "G-19: y bounds exactly y +/- h/2");
     }
 
     // ------------------------------------------------------------------
@@ -197,8 +213,8 @@ int main() {
                              PhysicsV4::BOX_ROTATION_EPS * 0.5f);
         Particle over  = box(0, 0, 0, 1, 1, 0.2f, 0, 0,
                              PhysicsV4::BOX_ROTATION_EPS * 2.0f);
-        check(!box_particle_is_rotated(under), "half an epsilon is unrotated");
-        check(box_particle_is_rotated(over),   "two epsilons is rotated");
+        check(!box_particle_is_rotated(under), "hygiene: half an epsilon is unrotated (the dispatch line, pinned)");
+        check(box_particle_is_rotated(over),   "hygiene: two epsilons is rotated (the dispatch line, pinned)");
     }
 
     // ------------------------------------------------------------------
@@ -213,7 +229,7 @@ int main() {
     {
         const float tilt = 30.0f * (float)M_PI / 180.0f;
         Particle ramp = box(0, 0, 0, 4.0f, 4.0f, 0.4f, tilt, 0, 0);
-        check(box_particle_is_rotated(ramp), "ramp reads as rotated");
+        check(box_particle_is_rotated(ramp), "hygiene: ramp reads as rotated");
 
         // Rest a small cube on the ramp's upper face, at the ramp centre.
         // Face centre is half the ramp thickness out along the tilted +Z,
@@ -227,16 +243,16 @@ int main() {
         const bool hit = narrow_phase_obb(obb_of_box_particle(cube, cube.z),
                                           obb_of_box_particle(ramp, ramp.z),
                                           0, 1, 0.02f, m);
-        check(hit, "contact detected");
+        check(hit, "INV-12: contact detected");
         if (hit) {
             printf("        normal: (%.4f, %.4f, %.4f)\n",
                    m.normal_x, m.normal_y, m.normal_z);
             // The slope normal is 30 degrees off vertical: |nz| = cos30 = 0.866
             // and |ny| = sin30 = 0.5. A world-axis answer would be (0,0,1).
             check(std::fabs(std::fabs(m.normal_z) - std::cos(tilt)) < 0.02f,
-                  "normal z-component is cos(30), not 1");
+                  "INV-12/INV-6: normal z-component is cos(30), not 1 — the normal is the slope's, never a world axis");
             check(std::fabs(std::fabs(m.normal_y) - std::sin(tilt)) < 0.02f,
-                  "normal has the sin(30) lateral component (not axis-locked)");
+                  "INV-6: normal has the sin(30) lateral component (not axis-locked)");
             // DEPTH, not just direction. The cube was placed 5 mm inside
             // the face on purpose; a manifold that agrees about the
             // normal and disagrees about how far in pushes the wrong
@@ -247,7 +263,7 @@ int main() {
                     deepest = m.points[i].penetration;
             printf("        deepest penetration %.4f m (placed 0.0050 in)\n",
                    deepest);
-            check(m.num_points > 0, "the manifold carries contact points");
+            check(m.num_points > 0, "INV-12: the manifold carries contact points");
             check(std::fabs(deepest - 0.005f) < 0.002f,
                   "and it reports the 5 mm it was actually given, not just "
                   "the right direction");
@@ -286,7 +302,7 @@ int main() {
         printf("        oriented top %.4f   rotation-blind slab top %.4f\n",
                oriented.max_z, slab_top);
         check(oriented.max_z > slab_top + 0.1f,
-              "the oriented box reaches well past the raw slab");
+              "INV-12: the oriented box reaches well past the raw slab (an under-covering broad phase means the narrow phase is never consulted)");
 
         // A sphere resting just above the ramp's REAL face at the centre
         // column, where the face passes through the box centre.
@@ -298,17 +314,17 @@ int main() {
 
         ContactManifold m;
         const bool hit = narrow_phase_particle_pair(ball, ramp, 0, 1, 0.0f, m);
-        check(hit, "sphere contacts the ramp");
+        check(hit, "INV-12: sphere contacts the ramp");
         if (hit) {
             printf("        normal: (%.4f, %.4f, %.4f)\n",
                    m.normal_x, m.normal_y, m.normal_z);
             // The SAME normal part 4 measures for a box on the same ramp.
             // A sphere and a cube on one slope must meet one surface.
             check(std::fabs(m.normal_z - std::cos(tilt)) < 1e-3f,
-                  "normal z-component is cos(30), the slope's own");
+                  "INV-12: normal z-component is cos(30), the slope's own — a sphere and a cube on one slope meet ONE surface");
             check(std::fabs(std::fabs(m.normal_y) - std::sin(tilt)) < 1e-3f,
-                  "normal carries the sin(30) lateral component, so gravity "
-                  "has something to drive the sphere downhill with");
+                  "INV-6: normal carries the sin(30) lateral component, so "
+                  "gravity has something to drive the sphere downhill with");
             // DERIVED from the geometry, not read off the run. The box's
             // own +Z is (0, -sin t, cos t), so the ball's centre stands
             // ball.z*cos(t) out along that axis; the face is at half the
@@ -324,9 +340,9 @@ int main() {
                     deepest = m.points[i].penetration;
             printf("        deepest penetration %.4f m (placed %.4f in)\n",
                    deepest, expect_pen);   // derived above, not measured
-            check(m.num_points > 0, "the sphere manifold carries a point");
+            check(m.num_points > 0, "INV-12: the sphere manifold carries a point");
             check(std::fabs(deepest - expect_pen) < 2e-3f,
-                  "and reports the depth it was given, not just the "
+                  "INV-2: and reports the depth it was given, not just the "
                   "direction");
         }
 
@@ -342,14 +358,15 @@ int main() {
         const bool deep_hit =
             narrow_phase_particle_pair(deep, ramp, 0, 1, 0.0f, dm);
         check(deep_hit,
-              "a sphere at the ramp's dead centre reports a contact at all "
-              "(this was a bare if: no contact meant no assertions, silently)");
+              "INV-12 + hygiene: a sphere at the ramp's dead centre reports a "
+              "contact at all (this was a bare if: no contact meant no "
+              "assertions, silently)");
         if (deep_hit) {
             printf("        deep normal: (%.4f, %.4f, %.4f)\n",
                    dm.normal_x, dm.normal_y, dm.normal_z);
             check(std::fabs(std::fabs(dm.normal_z) - std::cos(tilt)) < 1e-3f,
-                  "a sphere inside the box exits along the box's own axis, "
-                  "not along world Z");
+                  "INV-12/INV-6: a sphere inside the box exits along the "
+                  "box's OWN axis, not along world Z");
             // Dead centre on the box's own Z axis: the way out is half the
             // thickness plus the sphere's radius.
             const float deep_expect = ramp.thickness * 0.5f + deep.size * 0.5f;
@@ -360,7 +377,7 @@ int main() {
             printf("        deep penetration %.4f m (half-thickness + radius "
                    "= %.4f)\n", deepest, deep_expect);
             check(std::fabs(deepest - deep_expect) < 2e-3f,
-                  "and it must be pushed the WHOLE way out: half the "
+                  "INV-2: and it must be pushed the WHOLE way out — half the "
                   "thickness plus its radius, not a token nudge");
         }
     }

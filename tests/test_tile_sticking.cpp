@@ -8,6 +8,18 @@
 //
 // TDD red: should FAIL with current physics, proving the tile sticking bug.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-12 true-geometry contacts. A seam between two coplanar flat tiles is
+//          not a wall; a horizontal normal there is the bounding slab's side
+//          face, and INV-12's own origin is this exact failure (the walk-gate
+//          snowplow). Assertion 1 is the law, stated directly.
+//   INV-25 the one-sign normal convention: what "horizontal" means here is
+//          only well defined because every handler produces the normal in one
+//          documented direction.
+//   Assertions 2 and 3 (walked > 3 m, < 30 sticking frames) are the
+//   CONSEQUENCE a walker feels, not separate laws — they are the reason
+//   INV-12 is worth enforcing, and they are tagged as such below.
+//
 // Run:
 //   ./logosphere-tests --test test_tile_sticking
 // ============================================================================
@@ -257,20 +269,20 @@ bool test_tile_sticking(TestContext& /* ctx */) {
 
     // 1. No horizontal contacts with floor tiles
     bool no_floor_horizontal = (floor_horizontal == 0);
-    printf("    %s: No horizontal floor contacts (%d found)\n",
+    printf("    %s: INV-12/INV-25: No horizontal floor contacts — a tile seam is not a wall (%d found)\n",
            no_floor_horizontal ? "PASS" : "FAIL", floor_horizontal);
 
     // 2. Eva walked at least 3m (didn't get stuck)
     bool moved = distance > 3.0f;
-    printf("    %s: Eva walked > 3m (%.1fm)\n",
+    printf("    %s: INV-12 consequence: Eva walked > 3m, so the seams did not stop her (%.1fm)\n",
            moved ? "PASS" : "FAIL", distance);
 
     // 3. Few sticking frames
     bool few_sticks = sticking_frames < 30;
-    printf("    %s: < 30 sticking frames (%d)\n",
+    printf("    %s: INV-12 consequence: < 30 sticking frames (%d)\n",
            few_sticks ? "PASS" : "FAIL", sticking_frames);
 
     bool pass = no_floor_horizontal && moved && few_sticks;
-    printf("\n%s: Tile boundary sticking\n", pass ? "PASS" : "FAIL");
+    printf("\n%s INV-12: Tile boundary sticking\n", pass ? "PASS" : "FAIL");
     return pass;
 }

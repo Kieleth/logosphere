@@ -4,6 +4,13 @@
 // Pure geometry tests for SAT + Sutherland-Hodgman face clipping.
 // No engine needed. Tests narrow_phase_aabb() directly.
 //
+// LAWS (assert-protocol migration, 2026-08-21). Almost every check here is
+// INV-12: contact normals and points come from the bodies' actual shapes, and
+// the tile-boundary case is INV-12's own origin (the walk-gate snowplow, a
+// seam between two flat tiles reported as a wall). Normal-DIRECTION checks
+// cite INV-25, the one-sign convention. The speculative case cites G-45: a
+// negative penetration is the row stating that its own gap is still open.
+//
 // Run: ./logosphere-tests --test test_contact_manifold
 // ============================================================================
 
@@ -44,7 +51,7 @@ static void test_no_contact() {
     AABB6 b = {2, 3, 0, 1, 0, 1};          // Unit cube 1m away on X
     ContactManifold m;
     bool contact = narrow_phase_aabb(a, b, 0, 1, 0.0f, m);
-    check(!contact, "Separated boxes: no contact");
+    check(!contact, "INV-12: separated boxes produce no contact");
 }
 
 // ============================================================================
@@ -56,12 +63,12 @@ static void test_speculative() {
     AABB6 b = {1.05f, 2.05f, 0, 1, 0, 1};  // 0.05m gap on X
     ContactManifold m;
     bool contact = narrow_phase_aabb(a, b, 0, 1, 0.08f, m);
-    check(contact, "Within margin: contact exists");
+    check(contact, "INV-12: within margin, a speculative contact exists");
     if (contact) {
-        check(m.num_points > 0, "Has contact points");
-        check(std::abs(m.normal_x) > 0.9f, "Normal along X");
+        check(m.num_points > 0, "INV-12: the manifold carries contact POINTS, not just a normal");
+        check(std::abs(m.normal_x) > 0.9f, "INV-25: normal along X, one documented direction");
         for (int i = 0; i < m.num_points; i++) {
-            check(m.points[i].penetration < 0, "Penetration negative (speculative)");
+            check(m.points[i].penetration < 0, "G-45: penetration negative — the row states its own gap is open, which is what makes it speculative");
         }
     }
 }
@@ -75,15 +82,15 @@ static void test_equal_cubes_x_overlap() {
     AABB6 b = {0.8f, 1.8f, 0, 1, 0, 1};  // 0.2m overlap on X
     ContactManifold m;
     bool contact = narrow_phase_aabb(a, b, 0, 1, 0.0f, m);
-    check(contact, "Overlapping cubes: contact");
+    check(contact, "INV-12: overlapping cubes produce a contact");
     if (contact) {
         print_manifold(m);
-        check(m.reference_axis == 0, "SAT picks X axis (min overlap)");
-        check(std::abs(m.normal_x) > 0.9f, "Normal along X");
-        check(m.num_points >= 1 && m.num_points <= 4, "1-4 contact points");
+        check(m.reference_axis == 0, "INV-12: SAT picks X axis (min overlap) — the normal comes from the geometry, not from a world axis");
+        check(std::abs(m.normal_x) > 0.9f, "INV-25: normal along X, one documented direction");
+        check(m.num_points >= 1 && m.num_points <= 4, "INV-12: 1-4 contact points from face clipping");
         // All points should have penetration near 0.2
         for (int i = 0; i < m.num_points; i++) {
-            check(m.points[i].penetration > 0.0f, "Positive penetration");
+            check(m.points[i].penetration > 0.0f, "INV-2: positive penetration is measured, not assumed away");
         }
     }
 }
@@ -99,13 +106,13 @@ static void test_foot_on_floor() {
     AABB6 foot = {-0.017f, 0.017f, -0.025f, 0.025f, 0.04f, 0.07f};
     ContactManifold m;
     bool contact = narrow_phase_aabb(floor_box, foot, 0, 1, 0.0f, m);
-    check(contact, "Foot on floor: contact");
+    check(contact, "INV-12: foot on floor produces a contact");
     if (contact) {
         print_manifold(m);
-        check(m.reference_axis == 2, "SAT picks Z (not X or Y)");
-        check(std::abs(m.normal_z) > 0.9f, "Normal along Z");
+        check(m.reference_axis == 2, "INV-12: SAT picks Z (not X or Y) — a flat floor sheds no side normal");
+        check(std::abs(m.normal_z) > 0.9f, "INV-25: normal along Z, one documented direction");
         // Should get 4 points (foot's bottom face clipped to floor's top)
-        check(m.num_points == 4, "4 contact points (full face overlap)");
+        check(m.num_points == 4, "INV-12: 4 contact points (full face overlap)");
     }
 }
 
@@ -133,21 +140,21 @@ static void test_tile_boundary() {
     printf("  Foot vs Tile B:\n");
     if (contact_b) print_manifold(m_b);
 
-    check(contact_a, "Foot contacts tile A");
-    check(contact_b, "Foot contacts tile B");
+    check(contact_a, "INV-12: foot contacts tile A");
+    check(contact_b, "INV-12: foot contacts tile B");
 
     if (contact_a) {
-        check(m_a.reference_axis == 2, "Tile A: SAT picks Z (not Y!)");
-        check(std::abs(m_a.normal_z) > 0.9f, "Tile A: normal is vertical");
+        check(m_a.reference_axis == 2, "INV-12: tile A: SAT picks Z (not Y!) — the seam is not a wall");
+        check(std::abs(m_a.normal_z) > 0.9f, "INV-25: tile A: normal is vertical");
         bool no_horizontal_a = std::abs(m_a.normal_x) < 0.1f && std::abs(m_a.normal_y) < 0.1f;
-        check(no_horizontal_a, "Tile A: no horizontal normal component");
+        check(no_horizontal_a, "INV-12: tile A: no horizontal normal component (the walk-gate snowplow)");
     }
 
     if (contact_b) {
-        check(m_b.reference_axis == 2, "Tile B: SAT picks Z (not Y!)");
-        check(std::abs(m_b.normal_z) > 0.9f, "Tile B: normal is vertical");
+        check(m_b.reference_axis == 2, "INV-12: tile B: SAT picks Z (not Y!) — the seam is not a wall");
+        check(std::abs(m_b.normal_z) > 0.9f, "INV-25: tile B: normal is vertical");
         bool no_horizontal_b = std::abs(m_b.normal_x) < 0.1f && std::abs(m_b.normal_y) < 0.1f;
-        check(no_horizontal_b, "Tile B: no horizontal normal component");
+        check(no_horizontal_b, "INV-12: tile B: no horizontal normal component (the walk-gate snowplow)");
     }
 }
 
@@ -162,11 +169,11 @@ static void test_partial_overlap() {
     AABB6 b = {0.5f, 1.5f, 0.5f, 1.5f, -0.1f, 0.9f};
     ContactManifold m;
     bool contact = narrow_phase_aabb(a, b, 0, 1, 0.0f, m);
-    check(contact, "Partial overlap: contact");
+    check(contact, "INV-12: partial overlap produces a contact");
     if (contact) {
         print_manifold(m);
-        check(m.reference_axis == 0, "SAT picks X (0.5m, tied with Y, X checked first)");
-        check(m.num_points >= 1, "At least 1 contact point");
+        check(m.reference_axis == 0, "INV-12 + hygiene: SAT picks X (0.5m, tied with Y, X checked first). The tie-break is a determinism convention (INV-27), not a physical claim");
+        check(m.num_points >= 1, "INV-12: at least 1 contact point");
     }
 }
 
@@ -183,11 +190,11 @@ static void test_deep_penetration() {
     AABB6 foot = {-0.017f, 0.017f, -0.025f, 0.025f, 0.01f, 0.07f};
     ContactManifold m;
     bool contact = narrow_phase_aabb(floor_box, foot, 0, 1, 0.0f, m);
-    check(contact, "Deep foot: contact");
+    check(contact, "INV-12: deep foot produces a contact");
     if (contact) {
         print_manifold(m);
-        check(m.reference_axis == 2, "SAT picks Z (not X despite foot being narrow)");
-        check(std::abs(m.normal_z) > 0.9f, "Normal along Z");
+        check(m.reference_axis == 2, "INV-12: SAT picks Z (not X despite foot being narrow) — minimum-overlap axis, not smallest-extent axis");
+        check(std::abs(m.normal_z) > 0.9f, "INV-25: normal along Z, one documented direction");
     }
 }
 
@@ -202,11 +209,11 @@ static void test_box_against_wall() {
     AABB6 box = {5.05f, 5.35f, 0, 0.5f, 0.5f, 1.0f};
     ContactManifold m;
     bool contact = narrow_phase_aabb(wall, box, 0, 1, 0.0f, m);
-    check(contact, "Box-wall: contact");
+    check(contact, "INV-12: box-wall contact");
     if (contact) {
         print_manifold(m);
-        check(m.reference_axis == 0, "SAT picks X (wall face normal)");
-        check(std::abs(m.normal_x) > 0.9f, "Normal along X");
+        check(m.reference_axis == 0, "INV-12: SAT picks X (wall face normal). INV-6: a wall is handled by the same mechanism as a floor");
+        check(std::abs(m.normal_x) > 0.9f, "INV-25: normal along X, one documented direction");
     }
 }
 
