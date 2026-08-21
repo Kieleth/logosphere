@@ -14,7 +14,7 @@
 // BOUNDING SLAB, gets a (0,0,1) normal, and stands on a flat shelf the
 // engine invented. It does not move at all.
 //
-// ESC or the red X quits. SPACE moves the camera in.
+// ESC or the red X quits. SPACE restarts the race. Z zooms.
 // =============================================================================
 
 #include "core/engine.h"
@@ -98,9 +98,10 @@ int main() {
     std::printf("\n=== a cube and a sphere on the same %.0f degree ramp (%s) ===\n",
                 SLOPE_DEG, interactive ? "WINDOW" : "headless");
     if (interactive)
-        std::printf("  ESC or the red X quits.  SPACE moves the camera in.\n\n");
+        std::printf("  ESC or the red X quits.  SPACE restarts the race.  "
+                    "Z zooms in.\n\n");
 
-    bool space_was_down = false, quit = false;
+    bool space_was_down = false, z_was_down = false, quit = false;
     int frame = 0;
     char buf[224];
 
@@ -149,13 +150,21 @@ int main() {
             if (win) {
                 if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) quit = true;
                 if (glfwWindowShouldClose(win)) quit = true;
+                // SPACE restarts the race (owner order 2026-08-21:
+                // the experiment replays on demand); zoom lives on Z.
                 const bool down = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-                if (down && !space_was_down && ppu < 195.0f) {
+                if (down && !space_was_down) {
+                    scene.rearm(ps, physics);
+                    frame = 0;
+                }
+                space_was_down = down;
+                const bool zk = glfwGetKey(win, GLFW_KEY_Z) == GLFW_PRESS;
+                if (zk && !z_was_down && ppu < 195.0f) {
                     ppu *= 1.15f;
                     if (ppu > 195.0f) ppu = 195.0f;
                     cam.set_pixels_per_unit(ppu);
                 }
-                space_was_down = down;
+                z_was_down = zk;
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
         }

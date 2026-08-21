@@ -102,8 +102,8 @@ line->set_color(255, 240, 140);
 engine.get_ui_system()->add_widget(line);
 
 // (d) LOOP: should_continue(), never is_running().
-// (e) SPACE: multi-case tests advance the case on SPACE (zoom on Z);
-//     single-scene tests dolly the camera in.
+// (e) SPACE: replays the experiment — multi-case tests advance the
+//     case, single-scene tests restart the run. Zoom always on Z.
 while (engine.should_continue()) {
     if (space_edge()) stand_off *= 0.8f;
     scene.step();                    // SHARED with the headless driver
@@ -160,10 +160,11 @@ smaller than its own subject, jerky and over before the eye arrived.
 - [ ] Both drivers step through the SAME scene function (timestep trap)
 - [ ] Headless captures a deterministic frame when it claims anything visual
 - [ ] `should_continue()`, never `is_running()`
-- [ ] SPACE: in a MULTI-CASE test it advances the case, manually, never
-      on a timer (owner order 2026-08-20: the human decides when a case
-      is seen); zoom then lives on Z. Single-scene tests keep SPACE as
-      move-toward. On-screen hint says which.
+- [ ] SPACE: replays the experiment, always (owner orders 2026-08-20 and
+      2026-08-21). Multi-case tests: SPACE advances to the next case,
+      manually, never on a timer. Single-scene tests: SPACE restarts the
+      run (re-arm through the teleport law: void history, forget_body).
+      Zoom always lives on Z. On-screen hint says which.
 - [ ] `show_debug_overlay = interactive`
 - [ ] Full-state narration written; every DOF asserted or waived by name
 - [ ] Observed through Argus; asserts read the same queries the log prints

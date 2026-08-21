@@ -189,6 +189,41 @@ struct Scene {
         argus.watch(ball, "ball");
     }
 
+    // Restart the race (owner order 2026-08-21: SPACE cycles the
+    // experiment, zoom lives on Z). Racers return to their start
+    // stations; the teleport law applies: history voided, contact
+    // caches forgotten (G-43). Latched measurements reset so each run
+    // is a fresh experiment.
+    void rearm(ParticleSystem& ps, PhysicsSystem& physics) {
+        const float sx = cube_x0;
+        const float sz = ramp_centre_z() + std::tan(SLOPE_RAD) * (-sx)
+                       + 0.2f / std::cos(SLOPE_RAD)
+                       + BODY * 0.5f + DROP;
+        auto place = [&](int id, float y) {
+            auto v = ps.lock_particles_for_write();
+            Particle& p = v[id];
+            p.x = sx; p.y = y; p.z = sz;
+            p.vx = p.vy = p.vz = 0.0f;
+            p.omega_x = p.omega_y = p.omega_z = 0.0f;
+            p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
+            p.rotation_q = logosphere::Quat::identity();
+            p.is_at_rest = false;
+            p.frames_at_rest = 0;
+            p.low_velocity_frames = 0;
+            p.quiet_growth_run = 0;
+            p.rest_quiet_sq = 1e9f;
+            physics.forget_body((size_t)id);
+        };
+        place(cube, -LANE);
+        place(ball, +LANE);
+        cube_spin_peak = ball_spin_peak = 0.0f;
+        cube_lane_dev = ball_lane_dev = 0.0f;
+        cube_div_max = ball_div_max = 0.0f;
+        lane_gap_min = 1e9f;
+        argus.reset_milestones(cube);
+        argus.reset_milestones(ball);
+    }
+
     void step(ParticleSystem& ps, PhysicsSystem& physics, int frame = -1) {
         ps.update_bvh();
         physics.update(DT);
