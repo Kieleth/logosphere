@@ -21,6 +21,7 @@ Read in order:
 
 ## Engine internals
 
+- **[Rotation and Contact Physics](ROTATION_CONTACT_PHYSICS.md)**: the 2026-08 campaign record: contact torque, the corner-stand attractor and its three laws, phantom friction, and the instruments that found them, with the numbers
 - **[Engine Invariants](ENGINE_INVARIANTS.md)**: the rules that hold regardless of task, and why each one was expensive. Read before touching physics or animation
 - **[Visual Tests](VISUAL_TESTS.md)**: proving a rendering change: headless assertions plus an interactive mode, and the traps that produce confident wrong answers
 
