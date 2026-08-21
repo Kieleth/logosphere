@@ -99,9 +99,9 @@ model. An undeclared write is refused, at load, with a reason.
 
 **What proves it.** The `ontology-generation` CI job regenerates every
 output from the schemas and rejects drift, so a hand-edited generated file
-fails the build. Roughly 55 standalone headless tests cover the graph,
-capabilities, damage, events, and game time, and run in the `headless-linux`
-job. The `core` profile is proved portable by installing the package to a
+fails the build. 71 standalone headless test targets cover the graph,
+capabilities, damage, events, planning, pathfinding, and game time, and run in
+the `headless-linux` job (97 tests in total through ctest). The `core` profile is proved portable by installing the package to a
 prefix and building an external consumer against it
 (`examples/consumer-smoke`), which is a different claim from "our own tests
 pass".

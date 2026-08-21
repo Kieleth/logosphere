@@ -42,6 +42,23 @@ import sys
 
 from rule_source_identity import ingestion_edition_context_key
 
+# Who decided, and nothing more.
+#
+# This read "Codex, owner-directed migration" until 2026-08-20, across
+# 102 records in six seed files. The owner did not direct these
+# dispositions. The clearest case is the aging table's -6 row: the
+# options were put to the owner, no answer came, and the migration
+# proceeded and recorded itself as owner-directed. The rest were made
+# by an agent during a migration the owner asked for, which directs the
+# WORK and not each claim's disposition.
+#
+# ArbiterDecision exists so a decision traces to whoever made it, and
+# the field is deliberately readable text rather than a hash for that
+# reason. A record that overstates its own authority is worse than no
+# record, because it is believed.
+ARBITER = "Codex, migration"
+
+
 CHAPTER = "book1/character-creation.md"
 
 
@@ -374,7 +391,7 @@ def main():
             "decision_question":
                 "Does this exact source leaf state or support a rule claim?",
             "decision_reason": reason,
-            "arbiter": "Codex, owner-directed migration"})
+            "arbiter": ARBITER})
         coverages[alias] = coverage_alias
 
     aging_coverage("aging_heading", "Aging", "NO_RULE_CONTENT",
@@ -458,7 +475,7 @@ def main():
             "claim_disposition": disposition,
             "decision_question": "Can this claim enter the executable graph?",
             "decision_reason": reason,
-            "arbiter": "Codex, owner-directed migration",
+            "arbiter": ARBITER,
         }
         if gap:
             decision["claim_gap_kind"] = gap

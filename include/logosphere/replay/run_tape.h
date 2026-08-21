@@ -172,6 +172,17 @@ public:
     // "no forks" cannot be confused with "we cannot see the forks".
     bool records_alternatives() const { return records_offered_; }
 
+    // The rulebook this tape was played against, empty when the tape
+    // does not say. See RunTape::set_edition for why it matters.
+    const std::string& edition() const { return edition_; }
+
+    // Refuses when the tape names a DIFFERENT edition than the one
+    // about to run it. An empty `current`, or a tape that names none,
+    // is not a mismatch: it is an unanswerable question, and it says so
+    // through `why` while returning true, because refusing every old
+    // tape would be its own kind of wrong.
+    bool fits_edition(const std::string& current, std::string& why) const;
+
 private:
     friend class ForkedInput;
     struct Entry {
@@ -184,6 +195,7 @@ private:
     std::vector<Entry> entries_;
     size_t at_ = 0;
     bool records_offered_ = false;
+    std::string edition_;
 };
 
 // The counterfactual. Replays a tape up to `at`, answers that one
@@ -237,6 +249,22 @@ public:
     RunTape(InputSource& source, std::string path);
     ~RunTape();
 
+    // What rulebook this run is played against.
+    //
+    // A tape holds the seed and the answers, and the world is derived
+    // from those THROUGH THE RULES. So a tape is a recipe, not a
+    // photograph, and it only reproduces if the rules have not moved.
+    // The offered-answers check catches a changed MENU; nothing catches
+    // changed CONSEQUENCES, where the same answers against a rewritten
+    // table replay green and produce a different life. Green and wrong
+    // is the worst result available.
+    //
+    // Recording the edition does not repair a drifted tape. It turns a
+    // silent wrong answer into a refusal, which is the same trade the
+    // offered-answers check already makes. Optional: a game with no
+    // notion of an edition passes nothing and loses only this check.
+    void set_edition(std::string edition) { edition_ = std::move(edition); }
+
     // Ask, record, return. The game calls this and nothing else.
     bool ask(const Ask& ask, std::string& answer, std::string& error);
     uint64_t seed(const std::string& stream, uint64_t fallback);
@@ -247,10 +275,35 @@ public:
     size_t entries() const { return lines_.size(); }
     const std::string& path() const { return path_; }
 
+    // The name of the decision most recently recorded.
+    //
+    //     name = sha256( parent's name + '\n' + answer )
+    //
+    // The parent's name already contains ITS parent's, so one short
+    // string carries the whole path back to the root. Three properties
+    // fall out and none of them is bookkeeping we maintain:
+    //
+    //   * two runs that answered identically from the root compute
+    //     IDENTICAL names, with no comparison pass, so a shared prefix
+    //     is shared by construction rather than by search;
+    //   * a run that returns to a state it was in before does NOT
+    //     return to a name it was at before, so history cannot form a
+    //     cycle. North then south is two names, not one;
+    //   * changing any past answer changes every name after it, so a
+    //     tape cannot be quietly edited.
+    //
+    // Deliberately NOT the resulting world. The world is expensive,
+    // arrives late, and repeats; naming by it would make a round trip
+    // indistinguishable from standing still. Naming by the path is one
+    // hash of a few bytes and needs no world at all.
+    const std::string& node() const { return node_; }
+
 private:
     InputSource& source_;
     std::string path_;
     std::vector<std::string> lines_;
+    std::string edition_;
+    std::string node_;
     bool flushed_ = false;
 };
 

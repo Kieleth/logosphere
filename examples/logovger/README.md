@@ -8,6 +8,10 @@ A Logosphere game: the classic 2D6 science-fiction RPG adapted
 faithfully from its open rule texts, merged with a psionics-forward
 frontier sensibility. No invented mechanics. The book is the spec.
 
+**To actually play it: [PLAYING.md](PLAYING.md)** — the commands, why the
+API key is not optional, three seeds worth watching, and how to fork a
+life at one decision to see what else it could have done.
+
 ## What plays today
 
 Character creation, end to end, from rules that were read out of the

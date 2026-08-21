@@ -183,8 +183,18 @@ defects and proposals belong in issues.
    signing as you go is what carries the trailer into it.
 4. **Open a pull request.** CI runs the headless-core and
    headless-physics builds and test suites on Linux, plus the
-   merge-policy lane; all are required before merge. Keep the PR to one
+   merge-policy and ontology-generation lanes. Keep the PR to one
    logical change.
+
+   The three advisory lanes — `headless-windows`, `sanitizers-linux`
+   and `full-macos` — do **not** run on your pull request. They cost 10
+   to 28 minutes each, they block no merge, and running them in front
+   of one made the gate take 26.5 minutes. They run on every push to
+   `main` instead, so a finding arrives on the squashed commit within
+   minutes, and `headless-windows` also runs nightly. The part of
+   Windows that does not need Windows (POSIX-only constructs MSVC lacks
+   — `<execinfo.h>`, `setenv`, `fork`, a literal `/tmp` path) is
+   checked statically on your pull request by `merge-policy`.
 5. **Review.** The maintainer reviews every PR (CODEOWNERS). Merges
    are squash merges; your branch is deleted automatically after.
 

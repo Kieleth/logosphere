@@ -2220,6 +2220,9 @@ add_subdirectory(examples/eden)
 add_subdirectory(examples/logotron)
 add_subdirectory(examples/logogenesis)
 add_subdirectory(examples/logovger)
+add_subdirectory(examples/minimal)
+add_subdirectory(examples/logomanpac)
+add_subdirectory(examples/logotriste)
 
 if(LOGOSPHERE_FULL)
     # at_logogenesis_creation — chat text -> LLM ops -> seeds ->

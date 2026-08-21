@@ -1,5 +1,7 @@
 #include "logosphere/replay/run_tape.h"
 
+#include "logosphere/text/source_target.h"
+
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -135,6 +137,10 @@ std::unique_ptr<TapedInput> TapedInput::open(const std::string& path,
         if (line.empty()) continue;
         Entry entry;
         entry.kind = value_of(line, "kind");
+        if (entry.kind == "rules") {
+            tape->edition_ = value_of(line, "edition");
+            continue;   // metadata, not a decision the run consumes
+        }
         entry.site = value_of(line, "site");
         entry.answer = value_of(line, "answer");
         entry.prompt = value_of(line, "prompt");
@@ -315,6 +321,12 @@ bool RunTape::ask(const Ask& ask, std::string& answer, std::string& error) {
                 "' offered";
         return false;
     }
+    // The name of this decision, before the line that records it. An
+    // empty parent is the root, so the first decision's name is the
+    // hash of "\n" + its answer, and every later name carries all of
+    // its ancestors through its parent.
+    node_ = logosphere::text::sha256_hex(node_ + "\n" + answer);
+
     std::ostringstream line;
     line << "{\"kind\":\"ask\",\"site\":" << quote(ask.site)
          << ",\"answer\":" << quote(answer)
@@ -326,7 +338,7 @@ bool RunTape::ask(const Ask& ask, std::string& answer, std::string& error) {
         if (i) line << ',';
         line << quote(ask.offered[i]);
     }
-    line << "]}";
+    line << "],\"node\":" << quote(node_) << "}";
     lines_.push_back(line.str());
     return true;
 }
@@ -343,8 +355,33 @@ uint64_t RunTape::seed(const std::string& stream, uint64_t fallback) {
 void RunTape::flush() {
     if (flushed_ || path_.empty()) return;
     std::ofstream out(path_, std::ios::trunc);
+    // The edition goes FIRST, so a reader learns which rulebook this
+    // was played against before it reads a single answer.
+    if (!edition_.empty()) {
+        out << "{\"kind\":\"rules\",\"edition\":" << quote(edition_)
+            << "}\n";
+    }
     for (const auto& line : lines_) out << line << "\n";
     flushed_ = true;
+}
+
+bool TapedInput::fits_edition(const std::string& current,
+                              std::string& why) const {
+    if (edition_.empty()) {
+        why = "this tape does not say which rulebook it was played "
+              "against, so whether it still fits cannot be judged";
+        return true;
+    }
+    if (current.empty()) {
+        why = "this run does not name its rulebook, so the tape's "
+              "edition cannot be checked against it";
+        return true;
+    }
+    if (edition_ == current) return true;
+    why = "the tape was played against " + edition_ + " and this run is " +
+          current + "; the same answers against different rules do not "
+          "make the same life";
+    return false;
 }
 
 }  // namespace logosphere::replay

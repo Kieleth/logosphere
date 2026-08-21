@@ -27,6 +27,17 @@ import shutil
 import tempfile
 import yaml
 
+# BEFORE the linkml imports, deliberately. This generator writes
+# committed source, so the one thing it must not do is run against an
+# input CI cannot resolve. Measured 2026-08-20: the declared environment
+# did not exist on the dev machine and every regeneration had been
+# running from `base` against an editable linkml reporting
+# 1.10.0.post230.dev0, which fails this repository's own >=1.11.0 pin.
+# See scripts/env_gate.py. There is no override.
+from env_gate import enforce as enforce_declared_environment
+
+enforce_declared_environment()
+
 from linkml_runtime.utils.schemaview import SchemaView
 
 from generate_registry import generate_registry_cpp, reject_imported_redefinitions
@@ -49,6 +60,11 @@ def write_if_changed(path: Path, content: str) -> bool:
             return False
     except OSError:
         pass
+    # A game that does not exist yet has no src/generated/ to write into,
+    # and every game already in the tree has one committed, so this line
+    # is invisible until the first time somebody adds a game. Two of them
+    # hit it on the same afternoon.
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content)
     return True
 

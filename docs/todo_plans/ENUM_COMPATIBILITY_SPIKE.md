@@ -17,7 +17,7 @@ C++ probe against the generated ontology headers. The audit is reproducible
 with the dependencies already pinned in `environment.yml`:
 
 ```text
-conda run -n logosphere_env python scripts/spike_enum_compatibility.py
+conda run -n logosphere python scripts/spike_enum_compatibility.py
 ```
 
 The script fails with an actionable dependency error outside the declared

@@ -29,6 +29,100 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   work in headless standalone tests, not only under the full engine.
 
 ### Changed
+- **The three advisory CI lanes come off pull requests.** A pull
+  request ran seven jobs and two of them gated the merge, so the
+  required gate finished in 26.5 minutes while contributors waited on
+  lanes that block nothing: `headless-windows` (25 to 28 minutes),
+  `sanitizers-linux` (17 to 26) and `full-macos` (10 to 13). All three
+  still run on every push to `main`, where a finding lands on the
+  commit that caused it within minutes of the squash, and
+  `headless-windows` also runs nightly. Nothing is dropped and nothing
+  is suppressed: what changed is when the three report. A pull request
+  now runs `merge-policy`, `ontology-generation`, `physics-linux` and
+  `headless-linux`.
+- **The ontology generator refuses to run outside the environment
+  `environment.yml` declares.** Measured on the dev machine
+  2026-08-20: the declared environment (`logosphere`) did not exist.
+  What existed was `logosphere_env`, which had no linkml at all. The
+  only interpreter on the machine with linkml was `base`, carrying an
+  editable install reporting `1.10.0.post230.dev0+2909900a4` — a
+  version string that fails this repository's own `linkml >=1.11.0`
+  pin. So every regeneration, including several that day, ran from
+  `base` against an unpinned checkout while CI ran against the pinned
+  file. The generator writes committed source, which makes it the one
+  place where that drift has nothing downstream to catch it.
+
+  The file itself was not wrong: `conda env create -f environment.yml`
+  resolves conda-forge's noarch linkml 1.11.1 on osx-arm64 and
+  linux-64 alike, and `python scripts/generate_ontology.py` in that
+  environment leaves zero drift. Both verified. What was wrong is that
+  nothing made you use it, and a `CAVEAT` comment in the file blessed
+  the editable install instead. That comment is deleted;
+  `scripts/env_gate.py` replaces it. It runs before
+  `generate_ontology.py` imports linkml and refuses, with the exact
+  commands to fix it, when linkml is missing, below the declared floor,
+  a development or local build (which is what an editable checkout
+  reports), or the interpreter is not the declared python. Every floor
+  is read out of `environment.yml`, so there is no second declaration
+  to drift. **There is no override.** It does not check the
+  environment's *name*, because CI legitimately materialises the same
+  file under a different one.
+
+  `scripts/test_env_gate.py` asserts 14 cases in both directions,
+  including the exact version string the drift was live on, and that
+  `generate_ontology.py` still calls the gate *before* importing
+  linkml. It runs in the `ontology-generation` lane.
+  `docs/GETTING_STARTED.md` no longer offers `pip install
+  linkml-runtime pyyaml` as an alternative: that combination cannot run
+  the generator, which needs `linkml.generators.cppgen`.
+- **Every accepted red in the sanitizer lane has an audited entry, so
+  red means new.** `sanitizers-linux` lands red on every run with nine
+  failing tests, and nine is not a number anyone reads: a tenth
+  appearing — the entire reason the lane exists — looked exactly like
+  the nine, because a red job is a red job. Each of the nine now has a
+  row in `tests/invariants/SANITIZER_AUDIT.jsonl` naming the finding,
+  the throw or the line that raises it, and whether it is a real defect
+  or an artifact of Ubuntu's non-instrumented libc++.
+  `scripts/check-sanitizer-audit.py` is the lane's verdict now and
+  fails on any difference in **either** direction: a red with no
+  audited row, and an audited row that stopped reporting. That is the
+  same direction-locking `physics-linux` applies to its born-red
+  ladders. `scripts/test-sanitizer-audit.sh` proves it on nine cases
+  and runs on every pull request, in `merge-policy`, because the lane it
+  guards does not.
+
+  The file is a sibling of `TEST_AUDIT.jsonl` rather than rows inside
+  it, and carries that file's exact nine keys plus one, `finding`.
+  `TEST_AUDIT.jsonl` is keyed on the test name with one row each and
+  its `expect` field is lane-agnostic; six of these nine already have a
+  row there saying `expect: pass`, which is true in `headless-linux`
+  and false under the sanitizers. `finding` is what separates "an
+  instrument reported this" from "a test failed", which is the
+  distinction the existing format has no way to make.
+
+  `docs/SANITIZER_LANE.md` is corrected in the same change. It said all
+  eight non-real failures print `alloc-dealloc-mismatch`; seven do, and
+  the eighth (`test_kg_property_gate`) is two ordinary assertion
+  failures whose death-test fixture is subverted by the same artifact.
+  The `test_mutation_playback` fixture bug is recorded and still **not
+  fixed and not suppressed**.
+- **A static POSIX-portability gate runs on every pull request.**
+  `headless-windows` found six root causes in ten days and four of them
+  were constructs MSVC does not ship, visible in the source with no
+  compiler involved: `<execinfo.h>`, `setenv`/`unsetenv`,
+  `<sys/wait.h>` with `fork()`, and a hardcoded `/tmp` path in a test.
+  `scripts/check-posix-portability.py` reads the translation units the
+  `core` profile configures out of `compile_commands.json`, walks every
+  in-repo header they reach (374 files today) and reports only
+  UNGUARDED uses — `__has_include` and the POSIX side of a `_WIN32`
+  conditional are the fixes, not findings. It runs in the
+  `merge-policy` job in about a second. It replaces nothing: the other
+  two root causes were real behaviour differences and no static check
+  can see those, which is why the Windows lane is kept rather than
+  dropped. `scripts/test-posix-portability.sh` proves the gate in both
+  directions on ten planted cases, four that must fire and six that
+  must stay quiet, including the four constructs as dead text inside
+  comments.
 - **A body has one orientation.** The engine kept every body's
   orientation twice, as an Euler triple (read by rendering and
   collision) and a quaternion (written by spin integration), with no
@@ -66,6 +160,23 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   byte for byte; the only additions are Eden's five.
 
 ### Fixed
+- **Seed verification hashes a source file once, not once per
+  citation.** `resolve_text_target` re-hashed the entire cited file on
+  every `SourceTarget` it resolved, to check the file still matches its
+  declared digest. Logovger's rule seeds carry 2064 targets over two
+  files, so verifying them meant 785,489 SHA-256 passes over 44.5 GB to
+  arrive at two distinct digests: 114 of `test_chargen`'s 264 seconds,
+  and a cost every consumer of the verifier paid in proportion to how
+  much evidence it absorbed. The resolver now remembers the last four
+  (bytes, digest) pairs and reuses one only when the bytes in hand are
+  byte-for-byte the remembered ones, which is a `memcmp` rather than a
+  SHA-256 pass. Nothing is taken on trust: not a pointer, not a length,
+  not a digest handed in by a caller. Measured on one machine, same
+  method both sides: `test_chargen` 262.8 s to 151.2 s with
+  byte-identical output, one `logovger-headless` life 5.33 s to 3.05 s
+  with byte-identical output. 1,487 SHA-256 passes remain where
+  785,489 were.
+
 - **A sphere no longer falls through a rotated box.** The sphere-vs-box
   narrow phase treated every box as axis-aligned, so a sphere released
   onto a tilted ramp fell through the visible face and came to rest
@@ -78,6 +189,38 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   including fallen tree logs.
 
 ### Added
+- **`docs/CAPABILITIES.md`, the honest inventory.** One page for the
+  question the README never answered directly: what can this engine do
+  today, and how finished is each part. Every claim names the gate that
+  proves it, and anything working but unguarded is marked ungated rather
+  than left to look the same as the rest. It links the detailed
+  documents instead of restating them, and says which one wins when they
+  disagree.
+- **`examples/minimal/`, the smallest complete game.** One file, 248
+  lines, 65 of them comments, no schema and no generated code: a window,
+  a floor, five boxes and one you drive with the arrow keys. It exists
+  because the smallest thing in the tree was a 3,180-line header, and
+  two independent newcomers each had to reassemble "how does a game
+  start" by grep. `--shot` writes a PPM so a build can prove it renders.
+  `docs/GETTING_STARTED.md` now points here.
+- **`examples/logomanpac/` and `examples/logotriste/`.** Two complete
+  games, a maze chase and a falling-blocks well, written by coding agents
+  with no prior knowledge of the engine, in 29 and 25 minutes, with zero
+  changes to engine source. Each ships the log its author kept while
+  working, left verbatim. `logomanpac --shot` and `logotriste --shot`
+  write a PPM, and `at_logomanpac` asserts on pixels.
+- **`docs/NEWCOMER_RUNS.md`.** Two coding agents, two clean clones, one
+  sentence of instruction each: a playable Pacman in 29 minutes and a
+  playable Tetris in 25, both with zero changes to engine source. The
+  record exists because the claim "put an agent on it" is easy to assert
+  and we wanted it measured. It also lists what the runs cost, which is
+  five documentation defects including a tutorial line that does not
+  compile.
+- **`docs/WHY.md`.** The origin story moves out of the README, which had
+  it as the third thing a new reader met, and gains the part it was
+  missing: what the bet means for someone who never uses a language
+  model.
+
 - **A sanitizer lane in CI (`sanitizers-linux`).** Builds the `core`
   profile with AddressSanitizer and UndefinedBehaviorSanitizer and runs
   the headless suite plus twelve chargen lives under them. It exists
@@ -129,7 +272,35 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   scenery are not immovable by declaration: they rest on the turtle
   boundary or on anchored bonds (INV-1).
 
+### Fixed
+- **The engine no longer shouts over your game.** A `// TEMP` debug print
+  at `engine.cpp:1292` wrote frame timings to stdout every 30 frames, in
+  Release, with no flag to stop it: neither `show_performance_metrics`
+  nor `show_debug_overlay` touched it. Headless runs are uncapped, so
+  "every 30 frames" meant tens of thousands of lines a second. Measured
+  on a five-second run of `examples/minimal`: **282,352 lines before,
+  82 after**, of which 282,270 were the print. Its four
+  `high_resolution_clock` timestamps went with it; the telemetry phase
+  markers beside them already do this job properly.
+- **The Getting Started tutorial no longer contains a line that does not
+  compile.** `docs/GETTING_STARTED.md` and `docs/GAME_LAYER.md` both told
+  the reader to override `display_framebuffer`, removed in Phase 6 of the
+  Renderer/Display split. Both now show the `get_window()` returning
+  nullptr that every shipping example actually writes.
+- **`scripts/generate_ontology.py` creates its output directory.**
+  `write_if_changed` wrote without a parent `mkdir`, so the documented
+  generator command failed with a bare `FileNotFoundError` for exactly
+  one case: a game that does not exist yet. Every game already in the
+  tree has `src/generated/` committed, which is why it survived.
+
 ### Changed
+- **The README leads with what you can build.** The opt-in nature of
+  every subsystem was the last of nine bullets while the LLM was the
+  second sentence, which readers correctly took to mean the model was
+  mandatory. The profile table now sits near the top, the reflection
+  work has a first-page section carrying its own status, the origin
+  story moves to `docs/WHY.md`, and the standalone headless test count
+  is corrected from 46 to 71.
 - **The DCO sign-off is checked on `main`, not on branch commits.** It
   runs on the single commit a squash merge produces, over the push
   event, and no longer walks every commit in a pull request. The old

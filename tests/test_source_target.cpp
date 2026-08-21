@@ -139,6 +139,42 @@ void test_changed_source_bytes_fail_digest_verification() {
           "same-length source drift fails before the selected text is used");
 }
 
+// The resolver remembers the digest of the bytes it last hashed, because a
+// verifier resolves thousands of targets against a handful of files and
+// hashing each file once per target was the bulk of the verification cost.
+// A remembered digest must be earned by the bytes in hand, never by their
+// address or their length, so this alternates two same-length sources and
+// asks for a wrong answer three times over. A memo keyed on anything weaker
+// than the content passes the first round and fails here.
+void test_a_remembered_digest_never_answers_for_other_bytes() {
+    const std::string first_bytes = "rule=5";
+    const std::string second_bytes = "rule=6";
+    Fixture first(first_bytes);
+    Fixture second(second_bytes);
+    const std::string five = "5";
+    const std::string six = "6";
+    const auto first_target = first.target(5, 6, &five);
+    const auto second_target = second.target(5, 6, &six);
+
+    for (int round = 0; round < 3; ++round) {
+        const auto a =
+            resolve_text_target(first.world, first_target, first_bytes);
+        CHECK(a.ok && a.text == "5",
+              "round " + std::to_string(round) +
+                  ": the first source resolves to its own text: " + a.reason);
+        const auto b =
+            resolve_text_target(second.world, second_target, second_bytes);
+        CHECK(b.ok && b.text == "6",
+              "round " + std::to_string(round) +
+                  ": the second source resolves to its own text: " + b.reason);
+        const auto drift =
+            resolve_text_target(first.world, first_target, second_bytes);
+        CHECK(!drift.ok && drift.reason.find("digest") != std::string::npos,
+              "round " + std::to_string(round) +
+                  ": same-length drift still fails after a remembered hit");
+    }
+}
+
 void test_quote_must_converge_with_the_primary_selector() {
     const std::string bytes = "Scout: Int 6+";
     Fixture f(bytes);
@@ -169,6 +205,7 @@ int main() {
     test_duplicate_text_has_distinct_structured_identity();
     test_empty_leaves_are_addressable();
     test_changed_source_bytes_fail_digest_verification();
+    test_a_remembered_digest_never_answers_for_other_bytes();
     test_quote_must_converge_with_the_primary_selector();
     test_invalid_range_fails_loudly();
 

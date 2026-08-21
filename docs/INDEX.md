@@ -4,8 +4,11 @@
 
 Read in order:
 1. **[README](../README.md)** — what Logosphere is, who it's for, how to build it.
-2. **[Getting Started](GETTING_STARTED.md)** — build your first game from empty directory to running executable.
-3. **[Game Layer](GAME_LAYER.md)** — canonical reference for the game-facing API.
+2. **[Capabilities](CAPABILITIES.md)**: what the engine can do today and how finished each part is. Every claim names the gate that proves it; everything ungated says so. Read this before deciding whether to build on it.
+3. **[Getting Started](GETTING_STARTED.md)** — build your first game from empty directory to running executable.
+4. **[Game Layer](GAME_LAYER.md)** — canonical reference for the game-facing API.
+
+Optional, whenever you want it: **[Why this exists](WHY.md)**: the bet the engine was built around, what it forced, and why none of it is a tax on people who never take the bet.
 
 ## Building a game
 
@@ -19,9 +22,12 @@ Read in order:
 - **[Knowledge Layer](KNOWLEDGE_LAYER.md)** — facets, queries, the event journal, history renderers, and the ops write-back loop: how any consumer (LLM director, AI, inspector, replay) reads meaning from the world
 - **[Ontology-native Rule Language](RULE_LANGUAGE.md)**: architecture contract for applications and games that store typed, executable rule programs in the KG
 
+- **[Two newcomers, measured](NEWCOMER_RUNS.md)**: what happened when two coding agents with no prior knowledge of the engine were each asked for a game. Both shipped, neither touched engine source, and the walls they hit are the current documentation defect list
+
 ## Engine internals
 
 - **[Rotation and Contact Physics](ROTATION_CONTACT_PHYSICS.md)**: the 2026-08 campaign record: contact torque, the corner-stand attractor and its three laws, phantom friction, and the instruments that found them, with the numbers
+- **[The Reflection Protocol](REFLECTION_PROTOCOL.md)**: the nine layers between somebody else's rulebook and a playable game, each with a contract, a conformance gate, and a stated replacement condition. Names its own ungated rules under "Known thin ice"
 - **[Engine Invariants](ENGINE_INVARIANTS.md)**: the rules that hold regardless of task, and why each one was expensive. Read before touching physics or animation
 - **[Visual Tests](VISUAL_TESTS.md)**: proving a rendering change: headless assertions plus an interactive mode, and the traps that produce confident wrong answers
 
@@ -48,7 +54,7 @@ For the rules on where to add new sources/tests so they work in both profiles, s
 - **[examples/logogenesis](../examples/logogenesis/README.md)** — conversational world creation: type a wish, an LLM authors validated KG operations, the engine grows the world
 - **[examples/eden](../examples/eden/EDEN.md)** — the knowledge-garden tableau exercising the KG and capability stack end to end
 - **[examples/logotron](../examples/logotron/LOGOTRON.md)** — light-cycle arena with an LLM Director that redesigns opponents between rounds
-- **[examples/logovger](../examples/logovger/README.md)** — a published RPG rulebook read into the graph until it plays: verified ingestion, rules that cite the cell they came from, engine dice, and a character generator where every value on the sheet answers where it came from. Design record in [RPG_MODULE.md](RPG_MODULE.md), addressing scheme in [SOURCE_LOCATORS.md](SOURCE_LOCATORS.md), and what we learned doing it in [RULES_AS_DATA.md](RULES_AS_DATA.md)
+- **[examples/logovger](../examples/logovger/README.md)** — a published RPG rulebook read into the graph until it plays: verified ingestion, rules that cite the cell they came from, engine dice, and a character generator where every value on the sheet answers where it came from. How to play it in [PLAYING.md](../examples/logovger/PLAYING.md), design record in [RPG_MODULE.md](RPG_MODULE.md), addressing scheme in [SOURCE_LOCATORS.md](SOURCE_LOCATORS.md), and what we learned doing it in [RULES_AS_DATA.md](RULES_AS_DATA.md)
 
 
 ## Contributing
