@@ -1,5 +1,30 @@
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): the CONTROL of the
+// first case asserts, as its passing condition, that the predator ends up
+// INSIDE the prey (`without.closest < kTouchDistance`). The reason given is
+// correct and honest — both bodies are KINEMATIC, so the solver moves neither
+// and the AI drives one straight through the other — but as an assert it pins
+// an illegal world as expected. INV-30 says a subsystem that owns a body's
+// position from outside the solver may not hand it a state it would never have
+// produced, no frame beginning with an overlap beyond SLOP, enforced
+// STRICT-FIRST; INV-2 says no two bodies interpenetrate beyond SLOP. So the
+// day a driver stops walking its body into another one, this control goes red
+// and a correct fix reads as a regression. The contrast it sets up is real and
+// the with-rule case needs a baseline, so nothing here was changed and the
+// exit code is unchanged. What is owed is a ruling on whether the control
+// should instead assert "they overlap TODAY, and here is the ticket", i.e.
+// become an explicit expect-fail rather than an expect-pass.
+//
 // Knockback against the REAL engine: a predator walks into prey, and a
 // contact rule pushes them apart.
+//
+// LAWS (assert-protocol migration, 2026-08-21): the with-rule case is INV-7
+// (momentum reaches a body through one door) and G-1, whose composition note
+// is about this exact spelling — "the current effect spelling
+// knockback:<speed> accepts an author-declared absolute magnitude, so a route
+// may write knockback:50 ... That is energy creation by authoring". The
+// normal-direction block is INV-25 and cites its own origin in its comment
+// (the avoid-obstacle push that drove the humanoid INTO the wall). The lit
+// frame, the event plumbing and the mismatched-type case are hygiene.
 //
 // WHY THIS EXISTS SEPARATELY FROM test_contact_bounce. That test feeds
 // contact PODs in by hand. Every link of the chain is checked there and
@@ -425,7 +450,7 @@ void assert_the_scene_is_lit(Scene& s) {
               << "/255, " << lit_pct << "% of pixels above black"
               << std::endl;
     CHECK(lit_pct > 20.0,
-          "the scene is actually lit (" + std::to_string(lit_pct) +
+          "hygiene: the scene is actually lit (" + std::to_string(lit_pct) +
           "% of pixels above black; a black frame reads ~0)");
 }
 
@@ -469,14 +494,14 @@ int main() {
     // test_predator_hunt measured as "ended 0.71 m" and it is not a bug
     // in physics: both bodies are KINEMATIC, so the solver moves neither.
     CHECK(without.closest < kTouchDistance,
-          "without a rule the predator ends up INSIDE the prey (closest " +
+          "TO-INVESTIGATE control, see the block at the top of this file: without a rule the predator ends up INSIDE the prey (closest " +
           std::to_string(without.closest) + " m, touch at " +
           std::to_string(kTouchDistance) + ")");
     CHECK(without.knockbacks == 0,
-          "and nothing pushes back (" + std::to_string(without.knockbacks) +
+          "control: and nothing pushes back (" + std::to_string(without.knockbacks) +
           " knockbacks)");
     CHECK(without.prey_moved < 0.01f,
-          "the prey never moves (" + std::to_string(without.prey_moved) + " m)");
+          "control: the prey never moves (" + std::to_string(without.prey_moved) + " m)");
 
     // ------------------------------------------------------------------
     // 2. THE SAME APPROACH, with the rule armed.
@@ -505,21 +530,21 @@ int main() {
     // The claim in the file name. A contact the SOLVER produced reached a
     // rule and came back as a push.
     CHECK(with.events > 0,
-          "a real solver contact reached the bus (" +
+          "hygiene: a real solver contact reached the bus (" +
           std::to_string(with.events) + " events)");
     CHECK(with.knockbacks > 0,
-          "and fired the rule (" + std::to_string(with.knockbacks) +
+          "hygiene: and fired the rule (" + std::to_string(with.knockbacks) +
           " knockbacks)");
     CHECK(with.prey_moved > 1.0f,
-          "the prey is driven clear (" + std::to_string(with.prey_moved) +
+          "INV-7/G-1: the prey is driven clear — momentum reaches the body through the one door (" + std::to_string(with.prey_moved) +
           " m, from a standing start)");
     CHECK(with.ended > without.ended,
-          "they end further apart than they did with no rule (" +
+          "INV-7: they end further apart than they did with no rule (" +
           std::to_string(with.ended) + " m vs " +
           std::to_string(without.ended) + " m)");
     // The point of the whole exercise: less time spent inside each other.
     CHECK(with.frames_overlapping < without.frames_overlapping,
-          "and spend fewer frames overlapping (" +
+          "INV-2/INV-30: and spend fewer frames overlapping (" +
           std::to_string(with.frames_overlapping) + " vs " +
           std::to_string(without.frames_overlapping) + ")");
 
@@ -541,11 +566,11 @@ int main() {
                   << std::endl;
     }
     CHECK(mismatched.events > 0,
-          "the contact is still reported, so the difference is the RULE");
+          "hygiene: the contact is still reported, so the difference is the RULE");
     CHECK(mismatched.knockbacks == 0,
-          "but a type nothing in the scene has fires nothing (" +
+          "hygiene: but a type nothing in the scene has fires nothing (" +
           std::to_string(mismatched.knockbacks) + ")");
-    CHECK(mismatched.prey_moved < 0.01f, "and the prey stays put");
+    CHECK(mismatched.prey_moved < 0.01f, "hygiene: and the prey stays put");
 
     // ------------------------------------------------------------------
     // 4. A game effect, on real contacts. The schema says the effect
@@ -569,10 +594,10 @@ int main() {
     std::cout << "  [measure] 'bleed' fired " << bleeds
               << " time(s), at contact x=" << bled_at_x << std::endl;
     CHECK(bleeds > 0,
-          "an effect the engine never heard of runs on a solver contact (" +
+          "hygiene (interaction seam, not a physics law): an effect the engine never heard of runs on a solver contact (" +
           std::to_string(bleeds) + ")");
     CHECK(std::abs(bled_at_x) > 0.01f,
-          "and is handed a real contact point, not a zero (" +
+          "INV-12: and is handed a real contact point, not a zero (" +
           std::to_string(bled_at_x) + ")");
 
     // ------------------------------------------------------------------
@@ -625,13 +650,13 @@ int main() {
         // sign bug. If this goes red, humanoids are being shoved INTO
         // obstacles again.
         CHECK(from_left > 0.0f,
-              "A left of B: the normal points +x, toward B (" +
+              "INV-25: A left of B, the normal points +x toward B (" +
               std::to_string(from_left) + ")");
         CHECK(from_right < 0.0f,
-              "A right of B: the normal points -x, toward B (" +
+              "INV-25: A right of B, the normal points -x toward B (" +
               std::to_string(from_right) + ")");
         CHECK(from_left * from_right < 0.0f,
-              "and it flips with the approach, so it is a real convention "
+              "INV-25: and it flips with the approach, so it is a real convention "
               "and not a constant that happens to pass one case");
     }
 

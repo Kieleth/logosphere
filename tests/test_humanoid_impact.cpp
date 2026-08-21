@@ -9,6 +9,23 @@
 //   Case 3: Boulder thrown at torso from West (-Y) - measure sideways knockback
 //
 // Key question: Does physics propagate impact through gluon skeleton?
+//
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-7  the momentum door. A struck body with mass and no authority holder
+//          MUST receive the strike: the predicate that answers "can this body
+//          receive momentum" has exactly one answer, and for a loose DYNAMIC
+//          body that answer is yes. The moved_under_impact gate is INV-7 read
+//          from the receiving side, and its own comment records the audit that
+//          added it (the test passed identically whether the humanoid was
+//          knocked across the floor or bolted to the world).
+//   G-1    bullet-into-wall. This is that experiment at humanoid scale, and
+//          G-1's arithmetic is what says the strike must land: momentum in
+//          equals momentum out, the impulse is the reduced mass times the
+//          approach speed, and a held body books the refused momentum instead
+//          of swallowing it.
+//   INV-11 the baseline stability case: standing alone, nothing detonates and
+//          nothing drifts.
+//   INV-14 impact propagates through the gluon skeleton without tearing it.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -165,7 +182,7 @@ bool run_case_1_baseline(Engine& engine, bool is_interactive, HumanoidState& hum
     std::cout << "  Total drift: " << total_drift << "m" << std::endl;
 
     bool pass = total_drift < 0.1f;  // 10cm tolerance
-    std::cout << (pass ? "  ✅ PASS: Humanoid stable" : "  ❌ FAIL: Humanoid drifted") << std::endl;
+    std::cout << (pass ? "  ✅ PASS INV-11: Humanoid stable" : "  ❌ FAIL INV-11: Humanoid drifted") << std::endl;
 
     if (is_interactive) {
         std::vector<std::string> results;
@@ -383,15 +400,16 @@ bool run_case_2_boulder_impact(Engine& engine, bool is_interactive, HumanoidStat
 
     std::cout << "\n[PHYSICS RESPONSE]" << std::endl;
     if (physics_responded) {
-        std::cout << "  ✅ Physics detected impact (displacement > 1mm)" << std::endl;
+        std::cout << "  ✅ INV-7/G-1: physics detected impact (displacement > 1mm)" << std::endl;
     } else {
-        std::cout << "  ⚠️  No measurable displacement - friction absorbing all momentum?" << std::endl;
+        std::cout << "  ⚠️  INV-7: no measurable displacement - friction absorbing all momentum?" << std::endl;
     }
 
     if (significant_knockback) {
-        std::cout << "  ✅ Visible knockback (> 5cm)" << std::endl;
+        std::cout << "  ✅ G-1: visible knockback (> 5cm)" << std::endl;
     } else {
-        std::cout << "  ⚠️  No visible knockback (< 5cm) - planted stance absorbs impact" << std::endl;
+        std::cout << "  ⚠️  G-1/G-5: no visible knockback (< 5cm) - planted stance absorbs impact "
+                     "(G-5: the discriminator must be the IMPARTED VELOCITY, never the raw impulse)" << std::endl;
     }
 
     // This test passes if impact was detected (collision system working)
@@ -411,14 +429,15 @@ bool run_case_2_boulder_impact(Engine& engine, bool is_interactive, HumanoidStat
     const bool moved_under_impact =
         max_hips_displacement > 0.02f || max_chest_displacement > 0.02f;
     if (!moved_under_impact) {
-        std::cout << "  [FAIL] impact delivered no displacement at all: "
+        std::cout << "  [FAIL INV-7] impact delivered no displacement at all: "
                   << "hips " << max_hips_displacement << " m, chest "
                   << max_chest_displacement << " m. A struck body with "
                   << "mass and no authority holder must move." << std::endl;
     }
     bool pass = impact_detected && moved_under_impact;
 
-    std::cout << "\n" << (pass ? "  ✅ PASS: Collision detected" : "  ❌ FAIL: No collision") << std::endl;
+    std::cout << "\n" << (pass ? "  ✅ PASS INV-7/G-1: collision detected and momentum landed"
+                                : "  ❌ FAIL INV-7/G-1: no collision, or the strike delivered nothing") << std::endl;
 
     if (is_interactive) {
         std::vector<std::string> results;
@@ -643,15 +662,16 @@ bool run_case_3_boulder_from_west(Engine& engine, bool is_interactive, HumanoidS
 
     std::cout << "\n[PHYSICS RESPONSE]" << std::endl;
     if (physics_responded) {
-        std::cout << "  ✅ Physics detected impact (displacement > 1mm)" << std::endl;
+        std::cout << "  ✅ INV-7/G-1: physics detected impact (displacement > 1mm)" << std::endl;
     } else {
-        std::cout << "  ⚠️  No measurable displacement - friction absorbing all momentum?" << std::endl;
+        std::cout << "  ⚠️  INV-7: no measurable displacement - friction absorbing all momentum?" << std::endl;
     }
 
     if (significant_knockback) {
-        std::cout << "  ✅ Visible knockback (> 5cm)" << std::endl;
+        std::cout << "  ✅ G-1: visible knockback (> 5cm)" << std::endl;
     } else {
-        std::cout << "  ⚠️  No visible knockback (< 5cm) - planted stance absorbs impact" << std::endl;
+        std::cout << "  ⚠️  G-1/G-5: no visible knockback (< 5cm) - planted stance absorbs impact "
+                     "(G-5: the discriminator must be the IMPARTED VELOCITY, never the raw impulse)" << std::endl;
     }
 
     // This test passes if impact was detected (collision system working)
@@ -670,14 +690,15 @@ bool run_case_3_boulder_from_west(Engine& engine, bool is_interactive, HumanoidS
     const bool moved_under_impact =
         max_hips_displacement > 0.02f || max_chest_displacement > 0.02f;
     if (!moved_under_impact) {
-        std::cout << "  [FAIL] impact delivered no displacement at all: "
+        std::cout << "  [FAIL INV-7] impact delivered no displacement at all: "
                   << "hips " << max_hips_displacement << " m, chest "
                   << max_chest_displacement << " m. A struck body with "
                   << "mass and no authority holder must move." << std::endl;
     }
     bool pass = impact_detected && moved_under_impact;
 
-    std::cout << "\n" << (pass ? "  ✅ PASS: Collision detected" : "  ❌ FAIL: No collision") << std::endl;
+    std::cout << "\n" << (pass ? "  ✅ PASS INV-7/G-1: collision detected and momentum landed"
+                                : "  ❌ FAIL INV-7/G-1: no collision, or the strike delivered nothing") << std::endl;
 
     if (is_interactive) {
         std::vector<std::string> results;

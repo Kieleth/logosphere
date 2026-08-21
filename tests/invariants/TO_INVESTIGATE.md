@@ -154,3 +154,25 @@ whether the two relaxations stand, and whether the band becomes extremity speed
 per G-44. Nothing tightened here; exit code unchanged.
 
 ---
+
+## test_knockback_scene — the control asserts that one body ends up inside another
+
+**What it asserts.** In the no-rule case, `without.closest < kTouchDistance` is
+a PASSING condition: the predator must end up inside the prey. The file
+explains why honestly — both bodies are KINEMATIC, the solver moves neither,
+and the AI drives one straight through the other.
+
+**Why that needs a ruling.** As an assert it pins an illegal world as expected.
+INV-30: a subsystem that owns a body's position from outside the solver may not
+hand it a state it would never have produced, no frame beginning with an
+overlap beyond SLOP, enforcement strict-first. INV-2: no two bodies
+interpenetrate beyond SLOP. The day a driver stops walking its body through
+another one, this control goes red and the correct fix reads as a regression —
+the same shape as the fallen-log ratchet above.
+
+**What is owed.** The contrast is real and the with-rule case genuinely needs a
+baseline, so the question is only how the baseline is spelled: an explicit
+expect-fail ("they overlap TODAY, here is the ticket") rather than an
+expect-pass. Nothing changed; exit code unchanged.
+
+---
