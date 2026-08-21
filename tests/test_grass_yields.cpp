@@ -8,6 +8,25 @@
 // walker's way. This file is the instrumentation for that expectation: it
 // measures, per frame, the three numbers that decide who is right and WHY.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-17 contact-never-amplifies, read at its lower bound: a contact may
+//          STOP an approach, and a blade of grass has no business stopping a
+//          70 kg walker. Retention is the observable of "did this contact do
+//          more than its own physics allows".
+//   INV-1  the diagnosis column is INV-1's other edge: immobility exists only
+//          through the turtle, an anchor or KINEMATIC mode, and rooting a
+//          blade's base as KINEMATIC makes it an immovable post rather than a
+//          plant. The engine invariant that the turtle is the ONLY
+//          intrinsically immovable thing is what says that is the wrong
+//          mechanism.
+//   INV-11 nothing detonates while she wades.
+//   INV-12 the bend measurement is only meaningful if the blades collide as
+//          the thin oriented shapes they are; the file's own diagnosis names
+//          the AABB slab colliders as a candidate.
+//   INV-14 bonds bend rather than tear (that gate lives in
+//          test_grass_bends_not_tears; this file measures the bend).
+//   hygiene the scene-did-not-build branch guards the measurement.
+//
 //   SPEED RETENTION   her actual forward speed against the commanded 1.2 m/s.
 //                     Wading through grass costs something; walking into
 //                     posts costs everything. Retention is the stuck-ness
@@ -168,7 +187,7 @@ bool test_grass_yields() {
            grass_ids.size(), grass_gluons, bonds.size(), COMMANDED);
     const bool legacy = std::getenv("GRASS_YIELDS_LEGACY") != nullptr;
     if (grass_ids.empty() || (!legacy && (grass_gluons == 0 || bonds.empty()))) {
-        printf("\n  *** SCENE DID NOT BUILD (grass %zu, gluons %zu, bonds %zu).\n\n  FAIL\n",
+        printf("\n  *** hygiene: SCENE DID NOT BUILD (grass %zu, gluons %zu, bonds %zu).\n\n  FAIL\n",
                grass_ids.size(), grass_gluons, bonds.size());
         engine.shutdown();
         return false;
@@ -298,21 +317,21 @@ bool test_grass_yields() {
     const bool no_boom = s.speed_events == 0;
     printf("\n");
     if (wades && no_boom) {
-        printf("  SHE WADES. %.0f%% of commanded speed through the patch, blades bent up\n"
+        printf("  INV-17: SHE WADES. %.0f%% of commanded speed through the patch, blades bent up\n"
                "  to %.3f m and settled to %.3f m, nothing detonated. Graceful enough.\n",
                retention * 100.0, max_bend, bend_at_exit);
     } else {
         if (!wades) {
-            printf("  *** SHE IS STUCK: %.0f%% speed retention in the patch. ***\n", retention * 100.0);
+            printf("  *** INV-17: SHE IS STUCK — %.0f%% speed retention in the patch. ***\n", retention * 100.0);
             if (kin_fraction > 0.3)
-                printf("  DIAGNOSIS COLUMN: %.0f%% of her grass contacts are against KINEMATIC\n"
+                printf("  INV-1 DIAGNOSIS COLUMN: %.0f%% of her grass contacts are against KINEMATIC\n"
                        "  bodies, the rooted blade bases. A kinematic body is an immovable post;\n"
                        "  she is not wading through grass, she is walking into fence pickets the\n"
                        "  bonding fix planted. The rooting mechanism needs to yield (dynamic base\n"
                        "  with a strong anchor gluon, or contacts that exempt walker-vs-root).\n",
                        kin_fraction * 100.0);
             else
-                printf("  DIAGNOSIS COLUMN: only %.0f%% of contacts are kinematic, so the rooted\n"
+                printf("  INV-12 DIAGNOSIS COLUMN: only %.0f%% of contacts are kinematic, so the rooted\n"
                        "  bases are ACQUITTED. The resistance is elsewhere: bond stiffness, the\n"
                        "  AABB slab colliders, or locomotion yielding to contact impulses.\n",
                        kin_fraction * 100.0);
@@ -321,12 +340,14 @@ bool test_grass_yields() {
                        "  contact stops her before the bonds feel anything.\n", max_bend);
         }
         if (!no_boom)
-            printf("  *** DETONATED while wading: %llu events, worst %.1f m/s. ***\n",
+            printf("  *** INV-11: DETONATED while wading — %llu events, worst %.1f m/s. ***\n",
                    (unsigned long long)s.speed_events, s.worst_speed);
     }
 
     const bool pass = wades && no_boom;
-    printf("\n  %s\n", pass ? "PASS" : "FAIL (this failure is the owner's observation, measured)");
+    printf("\n  %s\n", pass ? "PASS"
+        : "FAIL INV-17 (this failure is the owner's observation, measured: a "
+          "contact stopping an approach it has no mass to stop)");
     engine.shutdown();
     return pass;
 }

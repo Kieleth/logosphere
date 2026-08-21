@@ -1,6 +1,18 @@
 // ============================================================================
 // HUMANOID TUNING COVERAGE — which declared joint values actually survive?
 // ============================================================================
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-29 constants-are-inputs. The failing condition — a bond running on
+//          GluonConstraintBase's 100/10 class default — is INV-29's exact
+//          shape: a number nobody declared, doing physics. The 2000/60 pair
+//          this test measures being written over twenty annotated per-joint
+//          values is the other half of it, a literal at a use site.
+//   INV-9  derived-not-declared. INV-9 governs what must be DERIVED from
+//          material and geometry; INV-29 governs everything legitimately
+//          declared. A joint stiffness that traces to neither is outside both.
+//   The overwritten / survives / appeared counters are CHARACTERIZATION, not
+//   asserts, and the file already says so: they record what the engine does.
+//
 // WHY. humanoid_generator.cpp declares twenty per-joint angular profiles, each
 // with a comment explaining its value: neck 25 ("Loose"), knee 250 ("rigid"),
 // wrist 150, elbow 40, shoulder 50. Then humanoid_locomotion.cpp, in
@@ -179,7 +191,7 @@ bool test_humanoid_tuning_coverage() {
     printf("\n  bonds on the humanoid           %zu\n", live.size());
     printf("  generator value overwritten     %zu\n", overwritten);
     printf("  generator value survives        %zu\n", survived);
-    printf("  carrying the class default      %zu\n", class_default);
+    printf("  INV-29: carrying the class default %zu\n", class_default);
     printf("  created during registration     %zu\n", appeared);
     printf("  changed by 120 frames of sim    %zu%s\n", moved_during_sim,
            moved_during_sim == 0
@@ -193,7 +205,8 @@ bool test_humanoid_tuning_coverage() {
     const bool pass = (class_default == 0);
     printf("\n  %s\n", pass
         ? "PASS"
-        : "FAIL (a bond is running on the class default — nobody chose it)");
+        : "FAIL INV-29 (a bond is running on the class default — nobody chose it, "
+          "and a constant nobody declared is doing physics)");
 
     engine.shutdown();
     return pass;

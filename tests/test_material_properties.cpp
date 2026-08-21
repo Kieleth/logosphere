@@ -15,6 +15,20 @@
 // restate the table. It asserts what the table cannot violate and stay
 // physical.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-9  derived-not-declared. This table is the INPUT side of INV-9: axial
+//          k = A/(La/Ea + Lb/Eb), damping from the loss factor, bending
+//          K = E*I/L. A wrong digit here propagates into every derived force
+//          law in the engine, and INV-9's promise that there is never a second
+//          declaration for the derivation to disagree with is only worth
+//          having if the one declaration is physically possible.
+//   INV-29 constants-are-inputs. Every value checked here is a declared,
+//          grouped, unit-annotated engine input rather than a literal at a
+//          use site; these checks are what stops the table becoming a place
+//          to hide a tuning.
+//   The G == E/(2(1+nu)) check is the one COMPUTED property and is an
+//   identity of linear elasticity, not a convention.
+//
 // Headless-safe: materials.h is header-only constexpr with no engine
 // dependency, so this runs in the Linux CI profile too.
 //
@@ -79,25 +93,25 @@ bool test_material_properties() {
 
         // A solid has stiffness. Zero modulus with non-zero density is a body
         // that has mass but cannot carry load — there is no such thing.
-        check(E > 0.0f, "Young's modulus must be positive", r.name, E);
-        check(GetDensity(r.t) > 0.0f, "a solid has density", r.name,
+        check(E > 0.0f, "INV-9: Young's modulus must be positive", r.name, E);
+        check(GetDensity(r.t) > 0.0f, "INV-9: a solid has density", r.name,
               GetDensity(r.t));
 
         // Poisson's ratio is bounded by thermodynamic stability for an
         // isotropic solid: outside (-1, 0.5) the elastic tensor is not
         // positive-definite and the material gains energy when deformed.
-        check(nu > -1.0f && nu < 0.5f, "Poisson ratio inside (-1, 0.5)",
+        check(nu > -1.0f && nu < 0.5f, "INV-9: Poisson ratio inside (-1, 0.5), the thermodynamic bound for an isotropic solid",
               r.name, nu);
 
         // Follows from the two above, but assert it directly: a negative or
         // zero shear modulus means the material offers no resistance to
         // twisting, which nothing solid does.
-        check(G > 0.0f, "shear modulus must be positive", r.name, G);
+        check(G > 0.0f, "INV-9: shear modulus must be positive", r.name, G);
 
         // Strengths are magnitudes.
-        check(ft >= 0.0f, "tensile strength non-negative", r.name, ft);
-        check(fc >= 0.0f, "compressive strength non-negative", r.name, fc);
-        check(fs >= 0.0f, "shear strength non-negative", r.name, fs);
+        check(ft >= 0.0f, "INV-9: tensile strength non-negative", r.name, ft);
+        check(fc >= 0.0f, "INV-9: compressive strength non-negative", r.name, fc);
+        check(fs >= 0.0f, "INV-9: shear strength non-negative", r.name, fs);
 
         // Tension-vs-compression asymmetry is NOT universal, and asserting
         // that it is caught a bug in this test rather than in the table: wood
@@ -109,38 +123,38 @@ bool test_material_properties() {
 
         // Loss factor is a dissipated fraction per radian. Above 1 the
         // material would dissipate more than the strain energy it stores.
-        check(eta >= 0.0f && eta <= 1.0f, "loss factor in [0, 1]", r.name, eta);
+        check(eta >= 0.0f && eta <= 1.0f, "INV-19: loss factor in [0, 1] — damping is a material dissipating, and a loss factor outside the unit interval is not a dissipation", r.name, eta);
 
         // Consistency with the derivation identity, checked rather than
         // assumed, because GetShearModulus is the one property that is
         // computed instead of declared.
         const float expect_G = E / (2.0f * (1.0f + nu));
         check(std::fabs(G - expect_G) <= 1e-3f * expect_G,
-              "G == E / (2(1+nu))", r.name, G - expect_G);
+              "INV-9: G == E / (2(1+nu)), the identity of linear elasticity", r.name, G - expect_G);
     }
 
     // LIGHT is the deliberate exception: massless, no mechanics at all.
     printf("\n  light (massless): E %g, density %g\n",
            (double)GetYoungsModulus(Type::LIGHT), (double)GetDensity(Type::LIGHT));
     check(GetYoungsModulus(Type::LIGHT) == 0.0f,
-          "LIGHT carries no stiffness", "light", GetYoungsModulus(Type::LIGHT));
+          "INV-9: LIGHT carries no stiffness", "light", GetYoungsModulus(Type::LIGHT));
     check(GetDensity(Type::LIGHT) == 0.0f,
-          "LIGHT carries no mass", "light", GetDensity(Type::LIGHT));
+          "INV-7: LIGHT carries no mass, so the momentum door answers no for it", "light", GetDensity(Type::LIGHT));
 
     // Ordering the table must respect, independent of the exact figures: a
     // steel beam is stiffer than an aluminium one, which is stiffer than oak,
     // which is stiffer than meat. If a digit slips by a factor of a thousand
     // this is what catches it.
     check(GetYoungsModulus(Type::STEEL) > GetYoungsModulus(Type::ALUMINUM),
-          "steel stiffer than aluminium", "order", 0);
+          "INV-9: steel stiffer than aluminium", "order", 0);
     check(GetYoungsModulus(Type::ALUMINUM) > GetYoungsModulus(Type::WOOD_HARD),
-          "aluminium stiffer than oak", "order", 0);
+          "INV-9: aluminium stiffer than oak", "order", 0);
     check(GetYoungsModulus(Type::WOOD_HARD) > GetYoungsModulus(Type::WOOD_SOFT),
-          "oak stiffer than pine", "order", 0);
+          "INV-9: oak stiffer than pine", "order", 0);
     check(GetYoungsModulus(Type::WOOD_SOFT) > GetYoungsModulus(Type::FLESH),
-          "pine stiffer than flesh", "order", 0);
+          "INV-9: pine stiffer than flesh", "order", 0);
     check(GetLossFactor(Type::FLESH) > GetLossFactor(Type::STEEL),
-          "flesh damps harder than steel", "order", 0);
+          "INV-19: flesh damps harder than steel", "order", 0);
 
     // Tension-vs-compression asymmetry, stated per failure mode.
     //
@@ -149,7 +163,7 @@ bool test_material_properties() {
     // margin. This is what makes stone build arches and not beams.
     for (Type t : {Type::STONE, Type::CONCRETE, Type::BRICK, Type::IRON}) {
         check(GetCompressiveStrength(t) > GetTensileStrength(t) * 2.0f,
-              "brittle: compressive far exceeds tensile", GetName(t),
+              "INV-9: brittle, compressive far exceeds tensile (why stone builds arches, not beams)", GetName(t),
               GetCompressiveStrength(t) / GetTensileStrength(t));
     }
 
@@ -157,7 +171,7 @@ bool test_material_properties() {
     // sign of the stress, so the two are equal.
     for (Type t : {Type::STEEL, Type::ALUMINUM, Type::GOLD}) {
         check(GetCompressiveStrength(t) == GetTensileStrength(t),
-              "ductile: compressive == tensile", GetName(t),
+              "INV-9: ductile, compressive == tensile (dislocation glide does not read the sign of the stress)", GetName(t),
               GetCompressiveStrength(t) - GetTensileStrength(t));
     }
 
@@ -165,7 +179,7 @@ bool test_material_properties() {
     // means a future edit that "corrects" wood to look like stone fails loudly.
     for (Type t : {Type::WOOD_SOFT, Type::WOOD_HARD}) {
         check(GetTensileStrength(t) > GetCompressiveStrength(t),
-              "wood: tensile exceeds compressive (grain)", GetName(t),
+              "INV-9: wood, tensile exceeds compressive (grain)", GetName(t),
               GetTensileStrength(t) / GetCompressiveStrength(t));
     }
 
@@ -173,11 +187,11 @@ bool test_material_properties() {
     // dry sand carries no tension at all, which is why a sandcastle needs
     // water and a sand pile has an angle of repose.
     check(GetTensileStrength(Type::SAND) == 0.0f,
-          "sand carries no tension", "sand", GetTensileStrength(Type::SAND));
+          "INV-9: sand carries no tension (cohesionless: why a sandcastle needs water and a pile has an angle of repose)", "sand", GetTensileStrength(Type::SAND));
 
     printf("\n  %d physical-consistency violation(s)\n", failures);
     const bool pass = (failures == 0);
-    printf("\n  %s\n", pass ? "PASS" : "FAIL (the table describes an impossible solid)");
+    printf("\n  %s\n", pass ? "PASS" : "FAIL INV-9 (the table describes an impossible solid, and every derived force law is built on it)");
     return pass;
 }
 
