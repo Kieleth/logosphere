@@ -23,6 +23,18 @@
 // solver is fixed this flips to a hard gate: the printout says exactly what
 // to change.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-11 no detonation. The ceiling-event count on every rung is INV-11
+//          read through its own detector. THE GATE IS NOT ARMED: this file
+//          returns true unconditionally, so today it enforces INV-11 nowhere
+//          and only reports. The SPEC line at the bottom is the assert that
+//          is owed, written out so arming it is a one-line change.
+//   INV-10 mass-uniform limits. The terrain rung is the sharpest statement of
+//          it in the tree: a sub-gram part against a 250 kg immovable tile is
+//          the most extreme mass-ratio row the solver ever builds, and a limit
+//          that does not mean the same thing at both ends diverges exactly
+//          there.
+//
 //   ./build-release/logosphere-tests --test test_butterfly_detonation --no-head
 // =============================================================================
 
@@ -165,25 +177,26 @@ bool test_butterfly_detonation() {
 
     printf("\n");
     if (one_detonates) {
-        printf("  A SINGLE BUTTERFLY DETONATES ALONE. The divergence is internal to one\n"
+        printf("  INV-11: A SINGLE BUTTERFLY DETONATES ALONE. The divergence is internal to one\n"
                "  8-part body: its own segments' contact rows are enough. The minimal\n"
                "  repro is one butterfly on an empty turtle, no cluster required.\n");
     } else if (four_detonate) {
-        printf("  ONE IS CALM, FOUR DETONATE. Coupling between neighbouring butterflies\n"
+        printf("  INV-11: ONE IS CALM, FOUR DETONATE. Coupling between neighbouring butterflies\n"
                "  is a necessary ingredient; the divergence needs inter-body rows.\n");
     } else if (terra_detonates) {
-        printf("  CALM ALONE, CALM CLUSTERED, DETONATES ON THE FLOOR. The necessary\n"
+        printf("  INV-11/INV-10: CALM ALONE, CALM CLUSTERED, DETONATES ON THE FLOOR. The necessary\n"
                "  ingredient is contact with massive kinematic terrain: a sub-gram part\n"
                "  against a 250 kg immovable tile is the most extreme mass-ratio row the\n"
                "  solver ever builds, and that coupling is where the iteration diverges.\n");
     } else {
-        printf("  NO RUNG DETONATES. The Eden spawn-time explosion needs something even\n"
+        printf("  INV-11 holds on every rung: NO RUNG DETONATES. The Eden spawn-time explosion needs something even\n"
                "  this scene lacks (grass, trees, the chunk path, the flight system).\n"
                "  That is a finding: butterflies plus terrain are not sufficient.\n");
     }
 
-    printf("\n  SPEC (the gate once #47 is fixed): zero ceiling events on both rungs.\n"
+    printf("\n  SPEC INV-11 (the gate once #47 is fixed): zero ceiling events on both rungs.\n"
            "  Currently REPORTS ONLY, so CI stays green while the solver bug is open.\n");
-    printf("\n  PASS (diagnostic)\n");
+    printf("\n  PASS (diagnostic: INV-11 is REPORTED here, not enforced — this\n"
+           "  function returns true unconditionally)\n");
     return true;
 }

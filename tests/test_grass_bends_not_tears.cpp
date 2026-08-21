@@ -1,9 +1,16 @@
 // ============================================================================
 // GRASS BENDS, IT DOES NOT MOW (issue #47)
 // ============================================================================
-// THE LAW. Walking through grass bends it. It does not sever it. A blade may
+// THE LAW. INV-14, tears-need-strain: bonds tear only under genuine geometric
+// strain, measured attachment-point-to-attachment-point against the bond's own
+// rest. Walking through grass bends it. It does not sever it. A blade may
 // lean, may be pushed flat, may stay flat — but the pass of a leg must not
 // leave a trail of detached blades behind it.
+//
+// The second assert (no body ends in a rootless component) is INV-1: every
+// body in a plant reaches something immobile, and immobility exists only
+// through the turtle, an anchor or KINEMATIC mode. A blade that came loose
+// without a bond breaking reached nothing.
 //
 // THE DEFECT, measured on the walk gate with its drifter named:
 //   worst drifter P277: d = (0.00, -2.52, -0.50) m
@@ -219,30 +226,32 @@ bool test_grass_bends_not_tears() {
     printf("  %-46s %6zu\n", "blade bodies in the patch", grass.size());
     printf("  %-46s %6zu -> %zu\n", "bonds, before -> after the pass",
            bonds_before, bonds_after);
-    printf("  %-46s %6zu   (want 0)\n", "BONDS TORN by one pass", tore);
-    printf("  %-46s %6zu   (want %zu)\n", "bodies adrift from any root",
+    printf("  %-46s %6zu   (want 0)\n", "INV-14: BONDS TORN by one pass", tore);
+    printf("  %-46s %6zu   (want %zu)\n", "INV-1: bodies adrift from any root",
            adrift_after, adrift_before);
 
     const bool nothing_tore = (tore == 0);
     const bool still_held   = (adrift_after <= adrift_before);
     printf("\n");
     if (!nothing_tore) {
-        printf("  *** THE GRASS WAS MOWED. *** One pass of a shin severed %zu bonds.\n"
+        printf("  *** INV-14: THE GRASS WAS MOWED. *** One pass of a shin severed %zu bonds.\n"
                "  A blade can only absorb a sideways push by STRETCHING, because its\n"
                "  bond is a distance constraint and its root is pinned, so it reaches\n"
                "  the 2.0x tear ratio and snaps. OrganicSpec::gluon_quat_drive exists\n"
                "  for exactly this — 'blades hold their grown pose and bend by\n"
                "  ROTATING' — and is false on every species in the tree.\n", tore);
     } else if (!still_held) {
-        printf("  *** BLADES CAME LOOSE. *** No bond broke, but %zu bodies ended in a\n"
+        printf("  *** INV-1: BLADES CAME LOOSE. *** No bond broke, but %zu bodies ended in a\n"
                "  component with no root, so something else detached them.\n", adrift_after);
     } else {
-        printf("  IT BENT. One pass at %.1f m/s, nothing severed, every body still\n"
+        printf("  INV-14/INV-1: IT BENT. One pass at %.1f m/s, nothing severed, every body still\n"
                "  reaches the ground through its bonds.\n", SPEED);
     }
 
     const bool pass = nothing_tore && still_held;
-    printf("\n  %s\n", pass ? "PASS" : "FAIL (walking through grass is mowing it)");
+    printf("\n  %s\n", pass ? "PASS"
+        : "FAIL INV-14 (walking through grass is mowing it: bonds tore without "
+          "genuine geometric strain)");
     engine.shutdown();
     return pass;
 }

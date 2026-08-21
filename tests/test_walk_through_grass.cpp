@@ -11,17 +11,28 @@
 //   Eva walks a straight line through three patches of grass, two kinds,
 //   brushing through dozens of blades, and at the end:
 //
-//     1  SHE GOT THERE.     Hips advanced most of the path. Grass did not
-//                           stop her, launch her, or trip her into the void.
-//     2  SHE IS STILL UP.   Hips at walking height, not buried, not orbiting.
-//     3  NOTHING DETONATED. The explosion detector stayed silent. Before the
-//                           bonding fix, brushing grass was how Eden's world
-//                           blew up: unbonded blade-plates amplified any
-//                           touch (measured 1.78e12 m/s, clamped to 100).
-//     4  THE GRASS IS STILL GRASS. Blades may bend and shift when a person
-//                           pushes through them, real grass does. They may
-//                           not fly away: no blade ends up further than 2 m
-//                           from where it grew.
+//     1  SHE GOT THERE.     INV-17: a contact may stop an approach, it may
+//                           never amplify one; brushing a blade may cost a
+//                           wade, it may not act as a wall or a launcher.
+//                           Hips advanced most of the path.
+//     2  SHE IS STILL UP.   INV-1 (nothing ends below the turtle, nothing
+//                           leaves the world) and INV-2 (she is not buried in
+//                           the floor). Hips at walking height.
+//     3  NOTHING DETONATED. INV-11. The explosion detector stayed silent.
+//                           Before the bonding fix, brushing grass was how
+//                           Eden's world blew up: unbonded blade-plates
+//                           amplified any touch (measured 1.78e12 m/s,
+//                           clamped to 100) — INV-17's failure exactly.
+//     4  THE GRASS IS STILL GRASS. INV-14 (a bond tears only under genuine
+//                           strain) and INV-1 (a blade reaches something
+//                           immobile). Blades may bend and shift when a
+//                           person pushes through them, real grass does.
+//                           They may not fly away: no blade ends up further
+//                           than 2 m from where it grew.
+//
+//   The "no bonded grass on the path" guard before all four is hygiene: it
+//   guards the measurement, since a patch that materialised nothing would
+//   pass all four trivially.
 //
 // This is an INTEGRATION test by design: floor, locomotion, grass, bonds,
 // contacts, detector, all at once. The pieces have their own tests; this one
@@ -131,7 +142,7 @@ bool test_walk_through_grass() {
     printf("  grass: %zu bodies across 3 patches (2 kinds), %zu gluons\n",
            grass_ids.size(), grass_gluons);
     if (grass_ids.empty() || grass_gluons == 0) {
-        printf("\n  *** NO BONDED GRASS ON THE PATH: %zu bodies, %zu gluons. Nothing this\n"
+        printf("\n  *** hygiene: NO BONDED GRASS ON THE PATH: %zu bodies, %zu gluons. Nothing this\n"
                "  test claims can be tested. Fix the plumbing first.\n",
                grass_ids.size(), grass_gluons);
         printf("\n  FAIL\n");
@@ -271,11 +282,11 @@ bool test_walk_through_grass() {
 
     const float progressed = eva_y - eva_y0;
 
-    printf("\n  %-46s %8.2f m  (need > 6.0)\n", "1. SHE GOT THERE: hips advanced", progressed);
-    printf("  %-46s %8.2f m  (need 0.4 .. 2.0)\n", "2. SHE IS STILL UP: hips height", eva_z);
-    printf("  %-46s %8llu    (need 0; worst %.1f m/s)\n", "3. NOTHING DETONATED: detector events",
+    printf("\n  %-46s %8.2f m  (need > 6.0)\n", "1. INV-17: SHE GOT THERE, hips advanced", progressed);
+    printf("  %-46s %8.2f m  (need 0.4 .. 2.0)\n", "2. INV-1/INV-2: SHE IS STILL UP, hips height", eva_z);
+    printf("  %-46s %8llu    (need 0; worst %.1f m/s)\n", "3. INV-11: NOTHING DETONATED, detector events",
            (unsigned long long)s.speed_events, s.worst_speed);
-    printf("  %-46s %8.2f m  (need < 2.0)\n", "4. GRASS IS STILL GRASS: worst blade drift",
+    printf("  %-46s %8.2f m  (need < 2.0)\n", "4. INV-14/INV-1: GRASS IS STILL GRASS, worst blade drift",
            grass_worst_drift);
 
     const bool got_there = progressed > 6.0f;
@@ -289,11 +300,11 @@ bool test_walk_through_grass() {
                "  patches of two grass kinds, brushing through bonded blades the whole\n"
                "  way, and arrived upright with the world intact behind her.\n");
     } else {
-        if (!got_there) printf("  *** SHE DID NOT GET THERE: %.2f m. Grass stopped or deflected her.\n", progressed);
-        if (!still_up)  printf("  *** SHE IS NOT UPRIGHT: hips at %.2f m. Fallen, buried, or launched.\n", eva_z);
-        if (!no_boom)   printf("  *** SOMETHING DETONATED: %llu events, worst %.1f m/s.\n",
+        if (!got_there) printf("  *** INV-17: SHE DID NOT GET THERE: %.2f m. Grass stopped or deflected her.\n", progressed);
+        if (!still_up)  printf("  *** INV-1/INV-2: SHE IS NOT UPRIGHT: hips at %.2f m. Fallen, buried, or launched.\n", eva_z);
+        if (!no_boom)   printf("  *** INV-11: SOMETHING DETONATED: %llu events, worst %.1f m/s.\n",
                                (unsigned long long)s.speed_events, s.worst_speed);
-        if (!grass_ok)  printf("  *** GRASS FLEW: a blade ended %.2f m from home.\n", grass_worst_drift);
+        if (!grass_ok)  printf("  *** INV-14/INV-1: GRASS FLEW: a blade ended %.2f m from home.\n", grass_worst_drift);
     }
 
     const bool pass = got_there && still_up && no_boom && grass_ok;

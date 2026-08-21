@@ -20,14 +20,20 @@
 // earlier isolation attempt called a generator and asserted on an empty world;
 // this one refuses to assert anything until bodies exist.
 //
-// THREE ASSERTIONS, in dependency order:
-//   1  BODIES EXIST after activation, or everything below is vacuous.
-//   2  GLUONS EXIST after activation. This is the fix's contract, and it was
-//      ZERO before it: the KG had no gluon records to recreate.
-//   3  NO DETONATION and BOUNDED DRIFT: the explosion detector stays silent
-//      for 180 frames and no blade particle ends up further than 2 m from
-//      where activation placed it. A bonded blade may lean or settle; it may
-//      not leave.
+// THREE ASSERTIONS, in dependency order, each naming its law
+// (assert-protocol migration, 2026-08-21):
+//   1  hygiene: BODIES EXIST after activation, or everything below is
+//      vacuous. This guards the measurement, not a law.
+//   2  INV-4: GLUONS EXIST after activation. A structure is born at rest
+//      with its bonds in place; a blade materialised as free plates was
+//      never born as a structure at all, and INV-9 has nothing to derive a
+//      force law for. It was ZERO before the fix: the KG had no gluon
+//      records to recreate.
+//   3  INV-11 (no detonation) and INV-1 (nothing leaves the world / a plant
+//      reaches something immobile): the explosion detector stays silent for
+//      180 frames and no blade particle ends up further than 2 m from where
+//      activation placed it. A bonded blade may lean or settle; it may not
+//      leave.
 //
 //   ./build-release/logosphere-tests --test test_grass_holds_together --no-head
 // =============================================================================
@@ -110,7 +116,7 @@ bool test_grass_holds_together() {
 
     // ---- 1. bodies exist, or nothing below means anything ------------------
     if (new_bodies == 0) {
-        printf("\n  *** NOTHING MATERIALISED. ***\n"
+        printf("\n  *** hygiene: NOTHING MATERIALISED. ***\n"
                "  The patch was stored and activated and produced zero bodies, so this\n"
                "  test cannot say anything about bonding or detonation. The activation\n"
                "  path is broken or has moved; fix the plumbing before reading physics.\n");
@@ -122,7 +128,7 @@ bool test_grass_holds_together() {
     // ---- 2. the fix's contract: the blades are BONDED ----------------------
     const bool bonded = new_gluons > 0;
     if (!bonded) {
-        printf("\n  *** THE GRASS IS UNBONDED. ***\n"
+        printf("\n  *** INV-4: THE GRASS IS UNBONDED. ***\n"
                "  %zu bodies materialised with ZERO gluons between them. Every blade is a\n"
                "  tower of free plates held by nothing, and the solver must hold every\n"
                "  interface with contact rows alone, forever. That is the sandwich the\n"
@@ -152,25 +158,25 @@ bool test_grass_holds_together() {
         }
     }
 
-    printf("  %-44s %8llu\n", "detector ceiling events (must be 0)",
+    printf("  %-44s %8llu\n", "INV-11: ceiling events (must be 0)",
            (unsigned long long)s.speed_events);
     printf("  %-44s %8.2f\n", "worst body speed seen (m/s)", s.worst_speed);
-    printf("  %-44s %8.3f\n", "max drift from activation placement (m)", max_drift);
+    printf("  %-44s %8.3f\n", "INV-1: max drift from placement (m)", max_drift);
 
     const bool calm = s.speed_events == 0;
     const bool held = max_drift < 2.0;   // lean and settle yes, leave no
     printf("\n");
     if (calm && held) {
-        printf("  BONDED AND CALM. %zu bodies, %zu gluons, 180 frames, nothing over the\n"
+        printf("  INV-4/INV-11/INV-1: BONDED AND CALM. %zu bodies, %zu gluons, 180 frames, nothing over the\n"
                "  ceiling and nothing further than %.2f m from where it grew. A blade may\n"
                "  lean; it may not leave.\n", new_bodies, new_gluons, max_drift);
     } else if (!calm) {
-        printf("  *** STILL DETONATING. *** Bonds exist but %llu ceiling events fired\n"
+        printf("  *** INV-11: STILL DETONATING. *** Bonds exist but %llu ceiling events fired\n"
                "  (worst %.1f m/s). Bonding alone did not remove the divergence; the\n"
                "  solver half of issue #47 is doing the damage even on bonded grass.\n",
                (unsigned long long)s.speed_events, s.worst_speed);
     } else {
-        printf("  *** THE BLADES LEFT. *** No ceiling events, but a body drifted %.2f m\n"
+        printf("  *** INV-1: THE BLADES LEFT. *** No ceiling events, but a body drifted %.2f m\n"
                "  from placement. The bonds exist and are too weak, or the plant has no\n"
                "  root and toppled off the world.\n", max_drift);
     }

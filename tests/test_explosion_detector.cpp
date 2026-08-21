@@ -6,6 +6,23 @@
 // is the engine saying it ITSELF, as a rate-limited [EXPLOSION WARNING] that
 // names the offending body.
 //
+// LAWS (assert-protocol migration, 2026-08-21). INV-11 is the law and this
+// file is its MECHANISM under test: the detector is INV-11's runtime
+// verification, so what is being checked here is that the instrument works,
+// not that any particular scene is explosion-free (TEST_AUDIT says exactly
+// that in its gaps field). Per check:
+//   quiet control    hygiene — a tripwire that cries wolf gets disabled, and
+//                    a disabled tripwire is the state this file exists to end.
+//                    Nothing below it is evidence until it reads zero.
+//   detonation       INV-11: a body past the speed ceiling is a failure, and
+//                    the warning must NAME it (the S22 lesson).
+//   collective       INV-3: six bodies each under the per-body ceiling gained
+//                    megajoules in one frame. Energy created is energy
+//                    created whether or not any single body looks extreme;
+//                    that is why INV-11 carries an energy signal at all.
+//   kill switch      hygiene (engine gate contract, not a physics law): the
+//                    always-on cost argument depends on off meaning off.
+//
 // THE ORDER OF THE CHECKS IS THE POINT.
 //
 //   1  QUIET CONTROL FIRST. A resting scene runs 180 frames and the detector
@@ -88,7 +105,7 @@ bool test_explosion_detector() {
     const X::Stats quiet = X::stats();
 
     printf("  %-44s warnings: speed %llu, energy %llu, escape %llu; worst %.2f m/s\n",
-           "QUIET: box resting on a floor, 180 frames",
+           "hygiene QUIET: box resting on a floor, 180 frames",
            (unsigned long long)quiet.speed_warnings,
            (unsigned long long)quiet.energy_warnings,
            (unsigned long long)quiet.escape_warnings, quiet.worst_speed);
@@ -96,7 +113,7 @@ bool test_explosion_detector() {
     const bool quiet_ok = quiet.speed_warnings == 0 && quiet.energy_warnings == 0 &&
                           quiet.escape_warnings == 0;
     if (!quiet_ok) {
-        printf("\n  *** FALSE ALARM. ***\n"
+        printf("\n  *** hygiene: FALSE ALARM. ***\n"
                "  A box sitting still on a floor triggered the detector. A tripwire that\n"
                "  cries wolf gets disabled, and disabled is the state this exists to end.\n"
                "  Its thresholds are wrong; nothing below can be trusted until this is 0.\n");
@@ -122,7 +139,7 @@ bool test_explosion_detector() {
     const X::Stats bang = X::stats();
 
     printf("  %-44s warnings: speed %llu, energy %llu; worst %.1f m/s on particle %d\n",
-           "DETONATION: particle kicked to 100 m/s",
+           "INV-11 DETONATION: particle kicked to 100 m/s",
            (unsigned long long)bang.speed_warnings,
            (unsigned long long)bang.energy_warnings,
            bang.worst_speed, bang.worst_id);
@@ -130,7 +147,7 @@ bool test_explosion_detector() {
     const bool fired = bang.speed_warnings >= 1;
     const bool named = bang.worst_id == box;
     if (!fired || !named) {
-        printf("\n  *** THE DETECTOR IS BLIND. ***\n"
+        printf("\n  *** INV-11: THE DETECTOR IS BLIND. ***\n"
                "  A body at 100 m/s, 2.5x the ceiling, produced %llu warnings and the\n"
                "  worst body was recorded as %d when it should be %d. An explosion\n"
                "  detector that misses a 100 m/s body will miss everything, and one that\n"
@@ -189,13 +206,13 @@ bool test_explosion_detector() {
     for (int f = 0; f < 5; ++f) engine.update(1.0 / 60.0);
     const X::Stats coll = X::stats();
     printf("  %-44s warnings: speed %llu, energy %llu; worst %.1f m/s, KE %.1f kJ\n",
-           "COLLECTIVE: 6 bodies at 25 m/s (under ceiling)",
+           "INV-3 COLLECTIVE: 6 bodies at 25 m/s (under ceiling)",
            (unsigned long long)coll.speed_warnings,
            (unsigned long long)coll.energy_warnings,
            coll.worst_speed, coll.ke_total / 1000.0);
     const bool collective = coll.energy_warnings >= 1 && coll.speed_warnings == 0;
     if (!collective) {
-        printf("\n  *** THE COLLECTIVE SIGNAL FAILED. ***\n"
+        printf("\n  *** INV-3/INV-11: THE COLLECTIVE SIGNAL FAILED. ***\n"
                "  Six bodies below the ceiling gained megajoules in one frame and the\n"
                "  energy signal reported %llu warnings (speed reported %llu, must be 0).\n"
                "  This is the exact shape of the Eden explosions: many bodies, none\n"
@@ -220,7 +237,7 @@ bool test_explosion_detector() {
     const bool off_ok = off.speed_warnings == 0 && off.speed_events == 0 &&
                         off.worst_id == -1;
     printf("  %-44s warnings: %llu, events: %llu, worst id: %d\n",
-           "KILL SWITCH: same detonation, detector off",
+           "hygiene KILL SWITCH: same detonation, detector off",
            (unsigned long long)off.speed_warnings,
            (unsigned long long)off.speed_events, off.worst_id);
     X::set_enabled(true);   // leave the tripwire armed for whoever runs next
@@ -233,7 +250,7 @@ bool test_explosion_detector() {
                "  the engine reports its own explosions instead of waiting for a human\n"
                "  to notice one on a screen.\n");
     } else if (!off_ok) {
-        printf("  *** OFF DOES NOT MEAN OFF: the scan ran while disabled. The always-on\n"
+        printf("  *** hygiene: OFF DOES NOT MEAN OFF — the scan ran while disabled. The always-on\n"
                "  cost argument depends on the gate being real.\n");
     }
     printf("\n  %s\n", pass ? "PASS" : "FAIL");
