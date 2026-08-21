@@ -2741,6 +2741,103 @@ void test_a_training_answer_names_a_table_not_a_position() {
 // This test asserts the claim that broke: the answer decides. It is
 // checked BOTH ways, because "always Drifter" is exactly what the bug
 // produced and a one-sided check would have passed through it.
+// Voyager V1: the narrative may narrow the doors, and may not invent one.
+//
+// The seam exists so a model can show a character the openings that
+// suit them. The refusal exists because "author the options" is one
+// short step from "author an option with nothing behind it", and the
+// engine has to own which doors are real.
+void test_an_authored_option_set_narrows_and_cannot_invent() {
+    kg::KGModule world(game_registry());
+    std::string why;
+    CHECK(build_world(world, why), "the authored-doors world loads: " + why);
+    if (!why.empty()) return;
+
+    const auto offer = [&](logovger::ChargenSession::OptionAuthor author,
+                           std::vector<logovger::Choice>& seen,
+                           std::string& error) {
+        logosphere::dice::DiceService dice;
+        logovger::ChargenSession session(world, dice);
+        session.set_option_author(std::move(author));
+        if (!session.begin(11, error)) return false;
+        seen = session.choices();
+        return true;
+    };
+
+    // What the rules offer with no author at all, as the baseline.
+    std::vector<logovger::Choice> unauthored;
+    std::string error;
+    CHECK(offer(nullptr, unauthored, error),
+          "an unauthored session begins: " + error);
+    CHECK(unauthored.size() > 4,
+          "the rules offer more careers than a narrowing would leave (" +
+              std::to_string(unauthored.size()) + ")");
+
+    // Narrowing: keep two of them, reframed.
+    std::vector<logovger::Choice> narrowed;
+    CHECK(offer(
+              [](const std::vector<logovger::Choice>& legal,
+                 const logovger::CharacterSheet&,
+                 std::vector<logovger::Choice>& offered, std::string&) {
+                  offered.push_back(legal[0]);
+                  offered.push_back(legal[1]);
+                  offered[0].label = "a door the narrative renamed";
+                  return true;
+              },
+              narrowed, error),
+          "a narrowing author is accepted: " + error);
+    CHECK(narrowed.size() == 2, "and exactly its two doors are offered");
+    CHECK(narrowed[0].label == "a door the narrative renamed",
+          "reframing the prose is allowed, since it changes no throw");
+    CHECK(narrowed[0].key == unauthored[0].key,
+          "and the key behind it is still the rules' own");
+
+    // Inventing: a key the rules never issued.
+    std::vector<logovger::Choice> invented;
+    const bool began = offer(
+        [](const std::vector<logovger::Choice>& legal,
+           const logovger::CharacterSheet&,
+           std::vector<logovger::Choice>& offered, std::string&) {
+            offered.push_back(legal[0]);
+            offered.push_back({"999", "Interstellar Bank Robber",
+                               "qualify on nothing, survive on charm"});
+            return true;
+        },
+        invented, error);
+    CHECK(!began, "an invented option is REFUSED, not offered");
+    CHECK(error.find("the rules do not allow here") != std::string::npos,
+          "and the refusal names it: " + error);
+
+    // Offering nothing is a dead end, not a narrowing.
+    std::vector<logovger::Choice> empty;
+    const bool began_empty = offer(
+        [](const std::vector<logovger::Choice>&,
+           const logovger::CharacterSheet&,
+           std::vector<logovger::Choice>&, std::string&) { return true; },
+        empty, error);
+    CHECK(!began_empty, "an author that offers nothing is refused");
+
+    // An author that fails stops the run rather than falling back to
+    // the full menu, because a silent fallback would make a broken
+    // narrative indistinguishable from a working one.
+    std::vector<logovger::Choice> failed;
+    const bool began_failed = offer(
+        [](const std::vector<logovger::Choice>&,
+           const logovger::CharacterSheet&,
+           std::vector<logovger::Choice>&, std::string& e) {
+            e = "the model was unreachable";
+            return false;
+        },
+        failed, error);
+    CHECK(!began_failed, "an author that fails does not fall back");
+    CHECK(error.find("unreachable") != std::string::npos,
+          "and the reason survives: " + error);
+
+    std::cout << "  [measure] rules offered " << unauthored.size()
+              << " careers, a narrowing author left " << narrowed.size()
+              << ", an inventing one was refused" << std::endl;
+}
+
 void test_the_draft_answer_decides_which_career_takes_you() {
     kg::KGModule world(game_registry());
     std::string why;
@@ -3547,6 +3644,7 @@ int main() {
     test_aging_takes_what_the_referee_says_it_takes();
     test_a_training_answer_names_a_table_not_a_position();
     test_the_draft_answer_decides_which_career_takes_you();
+    test_an_authored_option_set_narrows_and_cannot_invent();
     test_paying_for_an_injury_does_not_re_roll_the_mishap();
     test_the_aging_crisis_is_paid_for_or_kills();
     test_the_same_seed_replays_the_same_life();

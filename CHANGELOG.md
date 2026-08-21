@@ -7,6 +7,23 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- **Voyager V1: the narrative authors the option set.** A new game-side
+  seam, `ChargenSession::set_option_author`, receives every option the
+  rules allow plus the life so far and returns the ones this character
+  is actually offered. It may narrow and reframe; it may not invent. An
+  option whose key the rules did not issue is refused, an empty set is
+  refused, and an author that fails stops the run rather than falling
+  back to the full menu. Unset, the rules offer what they always
+  offered, so existing lives, tapes and tests are unaffected.
+
+  Wired in `logovger-headless --record` only, so a model authoring the
+  doors is taped through `Ask.offered` and replays with no model and no
+  API key. Measured on one life: 4 of 24 careers offered to a character
+  with weak education and endurance, replayed byte-identically with 0
+  LLM calls, and forkable onto the doors it did not take.
+
+
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never

@@ -81,6 +81,67 @@ logovger::Adjudicator g_player;
 const logovger::CharacterSheet* g_life = nullptr;
 uint64_t g_seed = 0;
 
+// Voyager V1: the narrative decides which doors this character sees.
+//
+// The rules build the legal set; this narrows it. The model is given
+// every career the rules allow and the life so far, and picks the few
+// that make sense for THIS person now. It cannot add one, cannot change
+// a throw, and cannot make anything easier: chargen refuses a key the
+// rules did not produce.
+//
+// Equal opportunity, tilted luck. The point is not to be kind to a
+// character with poor characteristics; it is that a different KIND of
+// door opens for them. The hint says so, because a model told only
+// "pick some" will pick the strongest.
+constexpr int kDoorsOffered = 4;
+
+bool author_the_doors(const std::vector<logovger::Choice>& legal,
+                      const logovger::CharacterSheet& life,
+                      std::vector<logovger::Choice>& offered,
+                      std::string& error) {
+    // Fewer legal careers than doors: there is nothing to narrow, and
+    // asking a model to choose 4 of 3 is a question with no answer.
+    if (legal.size() <= static_cast<size_t>(kDoorsOffered)) {
+        offered = legal;
+        return true;
+    }
+
+    logovger::Judgment judgment;
+    judgment.rule = "Not every door is open to everyone, and the ones "
+                    "that are open are not the same doors.";
+    judgment.question = "Which of these does this person actually get a "
+                        "shot at, right now?";
+    judgment.count = kDoorsOffered;
+    judgment.hint = "opportunity is equal, luck is tilted: someone out of "
+                    "options meets stranger doors, not easier ones, and "
+                    "nobody is handed a walk in the park";
+    judgment.history = logovger::format_life(life);
+    for (const auto& choice : legal) judgment.options.push_back(choice.label);
+
+    std::vector<std::string> chosen;
+    std::string reason;
+    if (!g_player.decide(judgment, g_seed, chosen, reason, error)) return false;
+
+    // Map the names it chose back to the keys the rules issued. A name
+    // that matches nothing is dropped here rather than passed on, so
+    // chargen's refusal is the second line of defence and not the first.
+    for (const auto& name : chosen) {
+        for (const auto& choice : legal) {
+            if (choice.label != name) continue;
+            offered.push_back(choice);
+            break;
+        }
+    }
+    if (offered.empty()) {
+        error = "the narrative named no career the rules offer";
+        return false;
+    }
+    if (!reason.empty()) {
+        std::cout << "    [doors] " << reason << "\n";
+    }
+    return true;
+}
+
 bool ask_the_player(const replay::Ask& ask, std::string& out,
                     std::string& error) {
     logovger::Judgment judgment;
@@ -379,6 +440,20 @@ int main(int argc, char** argv) {
     // taking option 0, so --record tapes which branch was taken and
     // --replay reproduces it. A silently collapsed fork would look
     // identical on the sheet and be invisible in the tape.
+#ifdef LOGOVGER_WITH_LLM
+    // Only when a model is actually playing. --random and --replay get
+    // the rules' own menu, unchanged, so every existing life and tape
+    // reproduces exactly.
+    //
+    // Replay needs nothing extra: the authored set lands in choices_,
+    // reaches the tape through Ask.offered, and comes back on replay
+    // without calling a model. The doors a model opened once stay open
+    // in that life forever.
+    if (mode == "--record") {
+        session.set_option_author(author_the_doors);
+    }
+#endif
+
     session.set_choice_resolver(
         [&tape](const logosphere::rules::PendingChoice& request,
                 int& option, std::string& error) {

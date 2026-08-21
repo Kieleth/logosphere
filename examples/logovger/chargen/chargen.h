@@ -179,6 +179,33 @@ public:
         executor_.set_choice_resolver(choice_resolver_);
     }
 
+    // ---- Voyager V1: the narrative authors the option set ----------
+    //
+    // Given every option the rules allow here, plus the life so far,
+    // return the ones this character is actually offered, reframed in
+    // the language of the world. A dishonourably discharged belter is
+    // not shown the same twenty-four doors as a Marquis.
+    //
+    // NARROW AND REFRAME, NEVER INVENT. The engine builds the legal set
+    // first and owns it; an author that returns a key the rules did not
+    // offer is REFUSED, not trusted. Inventing an option needs the rule
+    // creation path and does not exist yet. This boundary is the whole
+    // reason the seam is safe: the author changes which doors are shown
+    // and what they are called, never what is behind them.
+    //
+    // The throw behind each option is untouched. The author cannot make
+    // anything easier or harder, only visible or not.
+    //
+    // Unset means the rules offer what they always offered, so every
+    // existing life, tape and test is unaffected.
+    using OptionAuthor = std::function<bool(
+        const std::vector<Choice>& legal, const CharacterSheet& life,
+        std::vector<Choice>& offered, std::string& error)>;
+
+    void set_option_author(OptionAuthor author) {
+        option_author_ = std::move(author);
+    }
+
 private:
     using PrimitiveContext = logosphere::rules::ProcedurePrimitiveContext;
     using PrimitiveResult = logosphere::rules::ProcedurePrimitiveResult;
@@ -263,6 +290,7 @@ private:
     logosphere::dice::DiceService&   dice_;
     logosphere::rules::AttributeSelector attribute_selector_;
     logosphere::rules::ChoiceResolver choice_resolver_;
+    OptionAuthor                     option_author_;
     logosphere::rules::ProcedurePrimitiveRegistry primitives_;
     logosphere::rules::ProcedureRunner runner_;
     // ONE executor per session. Handlers are registered on it, and a

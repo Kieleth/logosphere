@@ -774,6 +774,43 @@ bool ChargenSession::offer_careers(std::string& error) {
         ++n;
     }
     prompt_ = "Which career do you try for?";
+
+    // Voyager V1. The rules have said what is LEGAL; the narrative now
+    // says what is OFFERED. Everything above stays exactly as it was,
+    // because the legal set is the thing being narrowed and the engine
+    // has to own it.
+    if (option_author_) {
+        std::vector<Choice> offered;
+        std::string why;
+        if (!option_author_(choices_, sheet_, offered, why)) {
+            error = "the narrative could not offer a career: " + why;
+            return false;
+        }
+        if (offered.empty()) {
+            error = "the narrative offered no careers at all, which is "
+                    "not a narrowing, it is a dead end";
+            return false;
+        }
+        // REFUSED, not trusted. An author may only choose among the
+        // keys the rules produced. Anything else is an invented option,
+        // which needs the rule-creation path and does not exist yet, so
+        // the run stops rather than offering a door with nothing behind
+        // it. Checked here rather than in the author, because a
+        // constraint enforced by the thing it constrains is not one.
+        for (const auto& picked : offered) {
+            const bool legal =
+                std::find_if(choices_.begin(), choices_.end(),
+                             [&picked](const Choice& c) {
+                                 return c.key == picked.key;
+                             }) != choices_.end();
+            if (!legal) {
+                error = "the narrative offered '" + picked.key +
+                        "', which the rules do not allow here";
+                return false;
+            }
+        }
+        choices_ = std::move(offered);
+    }
     return true;
 }
 
