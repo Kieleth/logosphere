@@ -57,31 +57,84 @@ file was edited; the gate will go red until the generator is corrected.
 
 ---
 
-## test_no_overlap_at_creation — the policy contradicts INV-30
+## test_no_overlap_at_creation — CONTRADICTS-A-RULING
 
-**What it asserts.** Nothing. The function returns `true` unconditionally and
-prints its findings. Its own policy block records an owner decision of
-2026-08-02 that "MINIMAL OVERLAP IS ACCEPTED", because driving overlap to zero
-cost the tree (rejecting a colliding branch drops its whole subtree, 149 bodies
-became 59), and moves the gate to `test_foliage_stays_attached`.
+**ADJUDICATED 2026-08-21: no side taken, and none may be taken here. Two owner
+decisions eleven days apart give opposite answers to the same question. This is
+the write-up; the ruling is the owner's. No code change was made — the file
+already says, in its own verdict line, that it enforces nothing.**
 
-**Why that needs a ruling.** INV-30
-(`external-writers-place-nothing-illegal`) was ruled on 2026-08-13, eleven days
-after that policy, and states the opposite in the same words this file's title
-uses: a subsystem that owns a body's position from outside the solver —
-generators named explicitly — "may not hand the solver a state it would never
-have produced: no frame begins with an overlap beyond SLOP", with enforcement
-"STRICT-FIRST by owner ruling, lenient mode only as the inventory lever". INV-30
-is `status: active`. A test titled "nothing may be created inside something
-else" that cannot go red on creation inside something else is the exact shape
-of a green that means nothing.
+**The question in one sentence.** May a GENERATOR hand the solver a world in
+which two bodies already interpenetrate?
 
-**What is owed.** One of two rulings. Either INV-30's strict-first enforcement
-covers generators, and this file gates (with the tree case running under the
-inventory lever until the generator is fixed); or the 2026-08-02 acceptance
-still stands for generated foliage, and INV-30 gets that carve-out written into
-its own record rather than living only here. Nothing was changed: the reported
-overlap numbers are the size of the debt under either ruling.
+### Position A — the owner decision of 2026-08-02
+
+Verbatim, from the policy block this test prints on every run
+(`tests/test_no_overlap_at_creation.cpp:249-255`):
+
+> POLICY (owner decision, 2026-08-02): MINIMAL OVERLAP IS ACCEPTED.
+> Driving this to zero was tried and it cost the tree: rejecting a colliding
+> branch drops its whole subtree, and 149 bodies became 59. The complexity
+> IS the tree, so the gate moved to what actually shows on screen, which is
+> whether bodies get LAUNCHED. That gate is test_foliage_stays_attached:
+> peak speed under 2 m/s, mean canopy drift under 0.5 m.
+> This file REPORTS the overlap that remains, so it cannot creep unnoticed.
+
+**Provenance caveat, and it matters.** That block is the ONLY carrier of the
+decision. `LEDGER.md` has no 2026-08-02 entry, and no design doc records it.
+The wording above is a test comment written after the fact, not a quoted owner
+sentence, so this write-up cannot present it as the owner's exact words — only
+as the decision as the code recorded it.
+
+### Position B — INV-30, ruled 2026-08-13, `status: active`
+
+Verbatim from `INVARIANTS.jsonl`, INV-30 `external-writers-place-nothing-illegal`:
+
+> A subsystem that owns a body's position from outside the solver (FK
+> animation, KINEMATIC drivers, chunk streaming, generators) may not hand the
+> solver a state it would never have produced: no frame begins with an overlap
+> beyond SLOP or a below-turtle placement created by a non-solver writer. The
+> doors INTO the solver are closed, not just the physics inside it.
+
+Its mechanism field: "Enforcement STRICT-FIRST by owner ruling 2026-08-13:
+catch violators loudly and fix fast, lenient mode only as the inventory lever."
+Generators are named in the statement, explicitly, among the writers it binds.
+
+### What each would demand of this file
+
+| | Position A (2026-08-02) | Position B (INV-30, 2026-08-13) |
+|---|---|---|
+| verdict on generated overlap | accepted, reported only | illegal beyond SLOP |
+| this file's exit code | always 0 (what it does today) | red on any pair deeper than SLOP, unless run under the inventory lever |
+| where the gate lives | `test_foliage_stays_attached` (peak speed <= 2 m/s, mean canopy drift <= 0.5 m) | here, at creation, before frame one |
+| what a fix means | leave the generator alone; watch for launches | reject or re-place the colliding branch, and pay for it in canopy |
+| cost named by its own advocate | 149 bodies become 59 | a subtree lost per rejected branch, same cost, judged worth paying |
+| what INV-30 needs if A stands | — | a written carve-out inside INV-30's own record, naming generated foliage |
+
+### The size of the debt, measured today
+
+Default tree (`generate_tree_with_roots`, seed 12345, no `engine.update()`):
+
+- 11781 body pairs compared.
+- **2 pairs** overlap deeper than SLOP.
+- 0 pairs coincident (nothing is placed on top of nothing).
+- Deepest overlap **0.3426 m**, branch 43 vs leaf 40 — 342 times SLOP.
+
+Two pairs out of 11781 is what Position A means by "minimal". A third of a
+metre is what Position B means by "a state the solver would never have
+produced". Both readings are true of the same number, which is why this needs
+a ruling and not an argument.
+
+### What is owed
+
+One sentence from the owner picking A or B, and then one edit:
+
+- **If B**: this file gates, the tree case runs under the inventory lever
+  until the generator is fixed, and `TEST_AUDIT` flips to `expect: fail`.
+- **If A**: INV-30 gains the generated-foliage carve-out in its own record,
+  with the 149-to-59 cost as the reason, so the exception stops living in a
+  test comment. Either way the 2026-08-02 decision should land in `LEDGER.md`,
+  where a decision of that weight belongs.
 
 ---
 

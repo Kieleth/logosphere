@@ -1,19 +1,32 @@
-// TO-INVESTIGATE (test-protocol migration, 2026-08-21): this file's stated
-// POLICY and an ACTIVE INVARIANT disagree, and the invariant is the later
-// ruling. The policy block at the bottom records an owner decision of
-// 2026-08-02 that "MINIMAL OVERLAP IS ACCEPTED" and turns this file into a
-// reporter: it returns true unconditionally, so a generator that creates
-// bodies inside each other cannot make it red. INV-30
-// (external-writers-place-nothing-illegal) was ruled on 2026-08-13, eleven
-// days later, and says the opposite in the same words this file's title uses:
-// a generator "may not hand the solver a state it would never have produced:
-// no frame begins with an overlap beyond SLOP", enforcement "STRICT-FIRST by
-// owner ruling, lenient mode only as the inventory lever". Either INV-30's
-// strict-first enforcement covers generators and this file should gate under
-// the lever, or the 2026-08-02 acceptance still stands and INV-30 needs the
-// carve-out written into it. Nothing here was changed: the numbers this file
-// reports are the size of the debt either way, and the exit code is
-// unchanged.
+// CONTRADICTS-A-RULING (adjudicated 2026-08-21). This file's stated POLICY and
+// an ACTIVE INVARIANT give opposite answers to the same question — may a
+// GENERATOR hand the solver a world in which two bodies already interpenetrate
+// — and the adjudication pass deliberately took NO side. Both are owner
+// decisions, eleven days apart.
+//
+//   2026-08-02, the policy block at the bottom of this file: "MINIMAL OVERLAP
+//   IS ACCEPTED", because driving it to zero cost the tree (rejecting a
+//   colliding branch drops its whole subtree, 149 bodies became 59) and the
+//   gate moved to test_foliage_stays_attached. That block is the ONLY carrier
+//   of the decision: LEDGER.md has no 2026-08-02 entry.
+//
+//   2026-08-13, INV-30 (external-writers-place-nothing-illegal, status
+//   active): a subsystem that owns a body's position from outside the solver
+//   — "generators" is in the list, by name — "may not hand the solver a state
+//   it would never have produced: no frame begins with an overlap beyond
+//   SLOP", enforcement "STRICT-FIRST ... lenient mode only as the inventory
+//   lever".
+//
+// Under 2026-08-02 this file reports and always exits 0, which is what it does
+// today. Under INV-30 it gates, and the tree case runs under the inventory
+// lever until the generator is fixed. Measured today, so the ruling is made
+// against a number: 2 of 11781 pairs overlap deeper than SLOP, the deepest by
+// 0.3426 m (branch 43 vs leaf 40, 342x SLOP), 0 pairs coincident.
+//
+// The full write-up, with both positions verbatim and a table of what each
+// would demand, is in tests/invariants/TO_INVESTIGATE.md. NOTHING WAS CHANGED
+// HERE and nothing may be until the owner rules: the verdict line below
+// already says, out loud, that this file enforces neither law.
 //
 // =============================================================================
 // NOTHING MAY BE CREATED INSIDE SOMETHING ELSE (issue #38)
