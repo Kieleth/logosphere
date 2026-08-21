@@ -822,3 +822,87 @@ D6 is cheap, independent of the router's election machinery, and
 useful before Kamaji exists: the counter can be built and left running
 to gather the distribution while the rest is designed. Its vocabulary
 limit is boarded as R6.
+
+---
+
+## R8 LANDED (2026-08-21): the creation door, and the one decision it owes
+
+**Class: OWNER RULING.** The mechanism is built and green; what is left
+is a decision only the maintainer can make, and it is stated as a number.
+
+**What landed.** A creation-time overlap door at the one boundary every
+body comes through (`ParticleSystem::add_particle` roll call, audit at
+the start of the next `flush_pending_particles`). It measures every
+newborn against the world through the ENGINE'S OWN narrow phase —
+oriented for rotated box pairs, because the world-axis extents of a
+tilted branch are a different solid from the branch — and refuses at
+`PhysicsV4::SLOP`, so abutting faces are legal and penetration is not.
+No new constant. Registered as G-48 before any code, per the physics-TDD
+protocol. Cost, Eden headless 800x600 default build: the whole world is
+one batch, 12440 newborn bodies, 113424 BVH candidates, 50492 exact
+narrow-phase tests, **20.4 ms once**; frame 1 goes 259 ms → 287 ms over
+four runs each, and no later frame pays anything because nothing is
+created after the initial flush. `LOGOSPHERE_CREATION_TRACE=1` prints
+every audit, clean ones included.
+
+**Generator bugs fixed.** C10: all four fallen-tree presets hovered
+0.21-0.29 m above the ground they were drawn resting on, because segment
+centres were offset by half the segment LENGTH while a log laid flat
+spans its DIAMETER in world Z. The root cause was not the generator —
+both spawn-side turtle doors computed `z - thickness/2` with no rotation,
+so the CORRECT placement tripped them and the generator was bent to
+satisfy the blind check. Both doors now read the oriented bottom, which
+is what the solver's own turtle pass has always used. Segments also
+stopped overlapping: they were built 1.1x their spacing "for seamless
+appearance", 0.12 m of deliberate interpenetration on the trunk preset.
+Measured after: 0.0000 m off the ground, span error 0.0000 m, worst seam
+0.0004 m.
+
+**THE DECISION OWED, with its number.** R8 is literal: *"particles are
+always, 100% guaranteed not to overlap in 3d, ever."* The door splits
+what it finds into two bands, and the split is scope, not tolerance:
+
+- **Contact-bearing** — pairs the solver would build a row for. These
+  become separating impulses on frame one. The standard tree: **0**.
+- **Structural** — pairs inside ONE gluon-bonded structure. The contact
+  build refuses them a row by declared law (`bonded_components`, and its
+  RCA: when the narrow phase first SAW the crown's self-crossings it
+  ejected leaves at 6.77 m/s). No row means no impulse and no birth
+  energy. The standard tree: **51 pairs, deepest 0.8545 m** — a branch
+  0.85 m through a sibling branch, leaves through branches, a root
+  0.0030 m into its own plate. Eden: **2204**.
+
+Reaching zero on the structural band is a crown-generator redesign, not
+a threshold, and it is exactly the position the 2026-08-02 note took
+when it measured 149 bodies becoming 59. `test_no_overlap_at_creation`
+carries the count as a BORN-RED assert against G-48 so it can only
+shrink, and `LOGOSPHERE_CREATION_STRICT_STRUCTURAL=1` promotes the band
+to refusals the day a generator can pass it.
+
+**SECOND FINDING, and it is not a placement bug.** Arming the door
+against the whole suite turned up that **Eva is created as 23 UNBONDED
+overlapping boxes**, 5 pairs deeper than SLOP (a shoulder 0.03 m inside
+its upper arm, an ear 0.02 m inside the head).
+`PhysicsSystem::load_constraints_from_kg()` is an **empty stub**, so the
+22 skeletal constraints the generator writes to the KG never become
+gluons: the verdict is taken with 0 bonds registered, which is why none
+of it lands in the structural band. Whether humanoids should be
+gluon-bonded at all is a design question, so this is boarded rather than
+fixed. `create_and_activate_eva` prints "Loaded constraints for Eva
+skeletal structure" immediately after calling the stub.
+
+**Lever polarity, and why it is not the end state.** The refusal is
+armed by `LOGOSPHERE_CREATION_STRICT=1`; the default measures and
+reports loudly. TURTLE_STRICT earned its default only once its sweep
+read zero ("all 51 sites the sweep found are fixed and the whole suite
+reports zero"). This door still has the two classes above open. **Flip
+the default the day both read zero.** Until then, arming it does not
+enforce a law, it stops the suite.
+
+**R10's hypothesis is now testable.** The owner's recorded guess — that
+the oak's unmasked oscillation (G-44) is BIRTH ENERGY from bodies born
+as compressed springs — has an instrument as of today. The evidence so
+far points the other way for the tree: every overlap in it is
+structural, gets no contact row, and its gluons are born at the placed
+distance, so there is no obvious store of energy. Worth measuring
+rather than concluding.

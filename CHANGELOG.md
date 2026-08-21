@@ -7,7 +7,40 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- **The creation door: nothing is born inside anything.** Every body
+  created is now measured against the world before the solver ever sees
+  it. A pair interpenetrating deeper than the engine's geometric-error
+  tolerance is a generator bug, and the door says so with both bodies
+  named, their shapes, positions, oriented extents and the depth. The
+  check runs the engine's own narrow phase, oriented for rotated boxes,
+  so a tilted log is compared as the solid it actually is; it batches at
+  the particle flush against one BVH build, so world generation stays
+  `O(n log n)`. Measured on a 12440-body world: 50492 exact pair tests,
+  20.4 ms once, and nothing on later frames.
+  `LOGOSPHERE_CREATION_STRICT=1` turns a violation into an abort,
+  `LOGOSPHERE_CREATION_TRACE=1` prints every audit including clean ones,
+  and `ParticleSystem::inspect_creation_overlaps()` returns the same
+  verdict without the consequence, for tests and inventory tools.
+- `PhysicsSystem::bonded_components()` — per particle, the root of the
+  gluon-bonded structure it belongs to. Two bodies with the same root
+  are one body as far as contacts are concerned. Extracted from the
+  contact build so callers ask that question with the solver's answer.
+
 ### Fixed
+- **Fallen logs rest on the ground instead of hovering above it.** All
+  four fallen-tree presets floated 0.21-0.29 m: a segment's centre was
+  lifted by half its LENGTH, but a log laid flat spans its DIAMETER in
+  world Z. The placement now derives the centre from the body's own
+  oriented extent, so it stays correct for any orientation. Adjacent
+  segments also stop interpenetrating — they were built 10 % longer than
+  their spacing for a seamless look, which put two solids in one place.
+- **The turtle doors no longer reject correctly-placed rotated bodies.**
+  Both spawn-side guards computed a body's lowest point as
+  `z - thickness/2`, which is wrong for anything rotated and is what
+  pushed the fallen-tree generator into hovering its logs in the first
+  place. They now use the oriented extent, matching the solver's own
+  turtle pass.
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never
   says what that means for a character standing on the last one. Rank

@@ -1738,3 +1738,59 @@ battery exists.
 **Case 5**: regression adjudication stands; owner: "if we need to
 rename, do it" — renamed so the file's name stops calling itself a
 diagnostic while carrying a verdict.
+
+## 2026-08-21 — R8 executed: the creation door stands, and owes one ruling
+
+G-48 registered before any code, per the physics-TDD protocol. The door
+lives at the spawn boundary (`ParticleSystem::add_particle` takes the
+roll call, `flush_pending_particles` audits the previous batch), reads
+the engine's own narrow phase with rotated box pairs dispatched through
+`narrow_phase_obb`, and refuses at `PhysicsV4::SLOP` — no new constant,
+and touching stays legal. Cost, Eden headless: one batch, 12440 bodies,
+50492 exact pair tests, 20.4 ms once; frame 1 259 → 287 ms; later frames
+unchanged, because nothing is created after the initial flush.
+
+`test_no_overlap_at_creation` asserted NOTHING before today. It printed
+a diagnostic, carried the superseded 2026-08-02 policy in its own
+footer, and returned PASS while reporting 0.3426 m of interpenetration,
+measured with a private axis-aligned formula that described a tilted
+branch as a solid it does not have. It is now 27 checks through the
+door's own verdict, each naming its law, with a control proving the door
+is not blind (a body placed 0.75 m inside another is seen AND measured
+at 0.7500 m).
+
+C10 fixed, and the root cause was not the generator. All four
+fallen-tree presets hovered 0.21-0.29 m because both spawn-side turtle
+doors computed `z - thickness/2` with no rotation: the CORRECT placement
+tripped them, and the generator was bent to satisfy the blind check —
+its own comment recorded the inverted conclusion. Both doors now read
+the oriented bottom, which is what the solver's turtle pass has always
+used. The 1.1x "seamless appearance" segment overlap is gone too.
+Measured after: 0.0000 m off the ground, span 0.0000 m error, seam
+0.0004 m.
+
+**THE RULING OWED.** R8 is literal and the door splits what it finds by
+SCOPE, not tolerance. Contact-bearing overlaps — the ones that become
+impulses on frame one — read **0** on the standard tree. Structural
+overlaps, inside one gluon-bonded structure where the contact build
+refuses a row by declared law, read **51, deepest 0.8545 m** on the tree
+and **2204** in Eden: the crown crosses itself on purpose. Closing that
+is a crown-generator redesign, not a threshold, and it is the same trade
+the 2026-08-02 note lost when 149 bodies became 59. The count is a
+born-red assert against G-48 so it can only shrink, and
+`LOGOSPHERE_CREATION_STRICT_STRUCTURAL=1` promotes it to refusals the
+day a generator can pass it.
+
+**SECOND FINDING, boarded not fixed.** Arming the door against the suite
+showed Eva is created as 23 UNBONDED overlapping boxes, 5 pairs deeper
+than SLOP, because `PhysicsSystem::load_constraints_from_kg()` is an
+empty stub and her 22 KG skeletal constraints never become gluons. The
+verdict is taken with 0 bonds registered. Whether humanoids should be
+gluon-bonded is a design question, not a placement fix.
+
+Because of those two, the refusal is armed by
+`LOGOSPHERE_CREATION_STRICT=1` and the default measures and reports.
+TURTLE_STRICT earned its default only after its own sweep read zero;
+this door flips the day both classes above read zero. INV-30's mechanism
+field wants the door named in it — not edited here, for the main session
+to fold in.
