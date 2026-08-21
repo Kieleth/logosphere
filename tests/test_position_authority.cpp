@@ -14,6 +14,15 @@
 // shape pipeline) and solver-DYNAMIC bodies (legacy loop + the solver).
 // The FORGE speed cap therefore did not bind actual ground speed.
 //
+// LAWS (assert-protocol migration, 2026-08-21). The central claim of this
+// file — that exactly ONE integrator advances a given particle's position in
+// a given frame — has no registry record. It is written up as PROPOSED
+// ONE-POSITION-WRITER in tests/invariants/INV_PROPOSALS.md; a1, a2 and b's
+// velocity-field term cite it. a4 is INV-7, the momentum door, verbatim: a
+// KINEMATIC endpoint cannot receive momentum from any subsystem, gluons
+// included. a3 and a5 are engine bookkeeping rather than physics and are
+// tagged hygiene, with the reason in the line itself.
+//
 // These contracts pin the fixed world:
 //   a1  an unowned KINEMATIC, DYNAMICS-owned particle with velocity
 //       must NOT move (no authority, no motion).
@@ -93,7 +102,7 @@ bool test_position_authority() {
             moved = std::sqrt(view[id].x * view[id].x + view[id].y * view[id].y);
         }
         bool a1 = moved < 0.001f;
-        printf("  %s: a1 unowned KINEMATIC particle stays put (moved %.4f m in 1 s, vx=1)\n",
+        printf("  %s: a1 PROPOSED ONE-POSITION-WRITER: unowned KINEMATIC particle stays put (moved %.4f m in 1 s, vx=1)\n",
                a1 ? "PASS" : "FAIL", moved);
         all_ok = all_ok && a1;
     }
@@ -140,7 +149,7 @@ bool test_position_authority() {
         const float expected = 1.0f * FRAMES * dt;   // 0.667 m
         const float tol = 1.0f / 30.0f + 0.005f;     // one physics step + eps
         bool a2 = std::fabs(x_end - expected) <= tol;
-        printf("  %s: a2 solver-DYNAMIC displacement == v*t (got %.3f m, expected %.3f +/- %.3f)\n",
+        printf("  %s: a2 PROPOSED ONE-POSITION-WRITER: solver-DYNAMIC displacement == v*t, integrated once (got %.3f m, expected %.3f +/- %.3f)\n",
                a2 ? "PASS" : "FAIL", x_end, expected, tol);
         all_ok = all_ok && a2;
 
@@ -181,7 +190,7 @@ bool test_position_authority() {
                 for (int h : hits) if (h == id) found_spawn = true;
             }
             bool a3 = found_live && !found_spawn;
-            printf("  %s: a3 shadow BVH tracks solver motion (at live pos (%.2f,%.2f,%.2f): %d, at spawn x: %d)\n",
+            printf("  %s: a3 hygiene (engine bookkeeping, not a physics law): shadow BVH tracks solver motion (at live pos (%.2f,%.2f,%.2f): %d, at spawn x: %d)\n",
                    a3 ? "PASS" : "FAIL", live_x, live_y, live_z,
                    found_live ? 1 : 0, found_spawn ? 1 : 0);
             all_ok = all_ok && a3;
@@ -244,7 +253,7 @@ bool test_position_authority() {
                               view[kin].vz * view[kin].vz);
         }
         bool a4 = kin_v < 0.001f;
-        printf("  %s: a4 gluon never writes velocity into a KINEMATIC endpoint (|v|=%.4f)\n",
+        printf("  %s: a4 INV-7: gluon never writes velocity into a KINEMATIC endpoint (|v|=%.4f)\n",
                a4 ? "PASS" : "FAIL", kin_v);
         all_ok = all_ok && a4;
     }
@@ -278,7 +287,7 @@ bool test_position_authority() {
         size_t count_after = ps.count();
 
         bool a5 = (count_after == count_before - 1);
-        printf("  %s: a5 queued deletion flushes headless (count %zu -> %zu)\n",
+        printf("  %s: a5 hygiene (engine bookkeeping, not a physics law): queued deletion flushes headless (count %zu -> %zu)\n",
                a5 ? "PASS" : "FAIL", count_before, count_after);
         all_ok = all_ok && a5;
     }
@@ -361,9 +370,9 @@ bool test_position_authority() {
             bool speed_ok = std::fabs(ground_speed - expected) <= 0.10f * expected;
             bool field_ok = std::fabs(vel_field_avg - ground_speed)
                             <= 0.15f * std::max(ground_speed, 0.1f);
-            printf("  %s: %s ground speed %.3f m/s (expected %.3f +/- 10%%)\n",
+            printf("  %s: %s hygiene (game-layer speed policy, not a physics law): ground speed %.3f m/s (expected %.3f +/- 10%%)\n",
                    speed_ok ? "PASS" : "FAIL", label, ground_speed, expected);
-            printf("  %s: %s hips velocity field %.3f m/s reports ground speed %.3f (+/- 15%%)\n",
+            printf("  %s: %s PROPOSED ONE-POSITION-WRITER: hips velocity field %.3f m/s reports ground speed %.3f (+/- 15%%) — a second integrator shows up here as a 2x disagreement\n",
                    field_ok ? "PASS" : "FAIL", label, vel_field_avg, ground_speed);
             return speed_ok && field_ok;
         };
@@ -374,6 +383,7 @@ bool test_position_authority() {
         all_ok = all_ok && b1 && b2;
     }
 
-    printf("  [%s]\n", all_ok ? "PASS" : "FAIL - position authority contract violated");
+    printf("  [%s]\n", all_ok ? "PASS"
+        : "FAIL - PROPOSED ONE-POSITION-WRITER / INV-7: position authority contract violated");
     return all_ok;
 }

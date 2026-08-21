@@ -42,6 +42,24 @@
 // frame, for tiles that cannot move. And it burns 8 solver iterations doing it.
 //
 // ---------------------------------------------------------------------------
+// THE LAWS THIS ENFORCES (assert-protocol migration, 2026-08-21)
+// ---------------------------------------------------------------------------
+//
+//   INV-23  no unsolvable row blocks the world. A row no finite impulse can
+//           change (both endpoints immovable) contributes exactly zero and is
+//           excluded from every stopping test and residual maximum. Scene B
+//           IS this law: nine immovable tiles, nothing that can move, and the
+//           solver must not grind. Scene C is its consequence — no solver exit
+//           may be held hostage by a question with no answer, so inert
+//           scenery must not change how a real body is treated.
+//   INV-7   the momentum door: a zero-inverse-mass pair exchanges zero impulse.
+//   INV-8   rows are live-sized: an effective mass never exceeds what the live
+//           immovability predicate allows. The 2026-08-01 fix was exactly this
+//           guard returning 0 instead of 1 for an immovable pair.
+//   hygiene the control-converges check below guards the MEASUREMENT: a test
+//           that reads the same in both worlds is not a test.
+//
+// ---------------------------------------------------------------------------
 // THE MEASUREMENT
 // ---------------------------------------------------------------------------
 //
@@ -413,19 +431,19 @@ bool test_immovable_pair_phantom_impulse() {
     // SENSITIVITY FIRST. If the control cannot converge, nothing below is
     // evidence: a test that reads the same in both worlds is not a test.
     if (a.converged == 0) {
-        printf("\n  FAIL (BLIND): the control scene never converged either, so this test\n"
+        printf("\n  FAIL hygiene (BLIND): the control scene never converged either, so this test\n"
                "  cannot distinguish a broken solver from a broken scene. Do not read the\n"
                "  rows below as evidence of anything.\n");
         return false;
     }
-    printf("\n  control OK: a lone slab converges (%ld solves), so the test can see convergence.\n",
+    printf("\n  hygiene OK: a lone slab converges (%ld solves), so the test can see convergence.\n",
            a.converged);
 
     // THE ASSERTION. Nothing in scene B can move. Either no constraint is built
     // (correct) or the solve converges at once. Grinding to the plateau limit on
     // work that cannot matter is the bug.
     if (b.plateaued > 0) {
-        printf("\n  FAIL (REGRESSION): a 3x3 grid of KINEMATIC tiles has NO dynamic\n"
+        printf("\n  FAIL INV-23/INV-7/INV-8 (REGRESSION): a 3x3 grid of KINEMATIC tiles has NO dynamic\n"
                "        bodies. Nothing in it can move. Yet the solver plateaued %ld times\n"
                "        on %ld rows. This was fixed on 2026-08-01 by making the\n"
                "        effective-mass guard return 0 for an immovable pair instead of 1;\n"
@@ -435,19 +453,19 @@ bool test_immovable_pair_phantom_impulse() {
                b.plateaued, b.rows);
         ok = false;
     } else {
-        printf("  scene B OK: an immovable pair produces no solver work (%ld rows).\n", b.rows);
+        printf("  scene B OK INV-23: an immovable pair produces no solver work (%ld rows).\n", b.rows);
     }
 
     // And the consequence a user would actually notice: adding inert scenery
     // next to a real body destroys convergence for the real body too.
     if (c.converged == 0) {
-        printf("  FAIL: a dynamic box over a 3x3 tile floor converges %ld times against\n"
+        printf("  FAIL INV-23: a dynamic box over a 3x3 tile floor converges %ld times against\n"
                "        %ld over a single slab. Inert scenery changes how the solver treats\n"
                "        a real body, which is the consequence a user actually feels.\n",
                c.converged, a.converged);
         ok = false;
     } else {
-        printf("  scene C OK: an extra tile does not destroy convergence (%ld solves).\n", c.converged);
+        printf("  scene C OK INV-23: an extra tile does not destroy convergence (%ld solves).\n", c.converged);
     }
 
     printf("\n  %s\n", ok ? "PASS" : "FAIL");

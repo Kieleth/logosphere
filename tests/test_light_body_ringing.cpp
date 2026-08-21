@@ -1,10 +1,14 @@
 // ============================================================================
 // LIGHT BODY RINGING — a bond between unequal masses must not amplify
 // ============================================================================
-// THE LAW. Hit a bonded pair once and it rings down. A constraint may store
-// energy and return it, but it may not manufacture more than it was given. If
-// a pair is stable at equal masses and unstable at unequal ones, the mass
-// ratio is doing something the physics does not license.
+// THE LAW. INV-3 (energy is never created) read through INV-10 (any limit
+// compared across bodies is expressed in a quantity with the same physical
+// meaning at every mass). Hit a bonded pair once and it rings down. A
+// constraint may store energy and return it, but it may not manufacture more
+// than it was given. If a pair is stable at equal masses and unstable at
+// unequal ones, the mass ratio is doing something the physics does not
+// license — which is INV-10's failure mode exactly, a threshold that means a
+// shrug to one end of the bond and a shove to the other.
 //
 // WHY THIS EXISTS. TEAR_DEBUG on the walk gate, 17 tears in one pass:
 //
@@ -22,11 +26,13 @@
 // rooted chain at grass scale — rest 0.06 m, light end 0.00238 kg — swept
 // across mass ratios from 1x to 25x. One impulse in, then nobody touches it.
 //
-// TWO ASSERTIONS per ratio:
-//   1  IT RINGS DOWN. Peak speed in the second half of the run is below the
-//      peak in the first half. Energy returned, not manufactured.
-//   2  IT SURVIVES. No bond tears. A pair that shakes itself apart with
-//      nothing touching it has already failed assertion 1 catastrophically.
+// TWO ASSERTIONS per ratio (each names its law, 2026-08-21):
+//   1  INV-3/INV-10: IT RINGS DOWN. Peak speed in the second half of the run
+//      is below the peak in the first half. Energy returned, not manufactured.
+//   2  INV-14: IT SURVIVES. No bond tears. Bonds tear only under genuine
+//      geometric strain; a pair that shakes itself apart with nothing touching
+//      it tore on strain the solver invented, and has already failed
+//      assertion 1 catastrophically.
 //
 //   ./build-release/logosphere-tests --test test_light_body_ringing --no-head
 // ============================================================================
@@ -169,6 +175,8 @@ Ring run_ratio(float ratio) {
 bool test_light_body_ringing() {
     printf("\n=== LIGHT BODY RINGING: a bond must not amplify (issue #47) ===\n\n");
     printf("  grass scale: rest 0.060 m, light end 0.00238 kg, one 1.2 m/s push\n\n");
+    printf("  asserts: rings down = INV-3/INV-10 (no energy manufactured at "
+           "any mass ratio); bonds intact = INV-14 (tears need real strain)\n\n");
     printf("  %-8s %12s %12s %10s %s\n",
            "ratio", "peak early", "peak late", "bonds", "verdict");
     printf("  %s\n", "------------------------------------------------------------");
@@ -187,12 +195,15 @@ bool test_light_body_ringing() {
         if (!ok) failures++;
         printf("  %6.1fx %12.3f %12.3f %6zu->%zu  %s\n",
                ratio, r.peak_early, r.peak_late, r.bonds_before, r.bonds_after,
-               tore ? "*** TORE ***" : (rang_down ? "rings down" : "*** GROWING ***"));
+               tore ? "*** INV-14 TORE ***"
+                    : (rang_down ? "rings down"
+                                 : "*** INV-3 GROWING ***"));
     }
 
     printf("\n  %d ratio(s) failed\n", failures);
     const bool pass = (failures == 0);
     printf("\n  %s\n", pass ? "PASS"
-        : "FAIL (a bond between unequal masses is manufacturing energy)");
+        : "FAIL INV-3/INV-10 (a bond between unequal masses is manufacturing "
+          "energy)");
     return pass;
 }

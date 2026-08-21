@@ -18,6 +18,20 @@
 //
 // Test stiffness values: 50k, 100k, 150k, 200k N/m
 // Success criteria: No explosion (horizontal drift < 5m, spread increase < 1m)
+//
+// LAWS THIS TEST ENFORCES (assert-protocol migration, 2026-08-21):
+//   INV-11 no detonation. Every "FAILURE AT LEVEL n" below is a body that
+//          left the world or gained kinetic energy in a discontinuous jump.
+//          The drift/spread pair IS the escape tripwire in this file's own
+//          coordinates.
+//   INV-10 mass-uniform limits. The ladder's whole shape — the same rig at
+//          rising stiffness, the same bound applied at every level — is only
+//          meaningful because the bound is a DISTANCE, which means the same
+//          thing at every mass. A raw impulse bound would not be readable
+//          across the levels.
+//   INV-3  energy is never created: a constraint that explodes at 200k N/m
+//          and holds at 50k is manufacturing energy at the stiff end, not
+//          discovering a limit of the material.
 // ============================================================================
 
 namespace {
@@ -592,46 +606,46 @@ bool test_stiffness_stability() {
 
         // Level 0: No floor
         if (!test_level_0(stiffness)) {
-            std::cout << "\n!!! FAILURE AT LEVEL 0 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
+            std::cout << "\n!!! INV-11 (no detonation) VIOLATED — FAILURE AT LEVEL 0 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
             return false;
         }
 
         // Level 1: Add floor
         if (!test_level_1(stiffness)) {
-            std::cout << "\n!!! FAILURE AT LEVEL 1 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
+            std::cout << "\n!!! INV-11 (no detonation) VIOLATED — FAILURE AT LEVEL 1 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
             std::cout << "Floor collision interaction causes instability" << std::endl;
             return false;
         }
 
         // Level 2: Add third particle
         if (!test_level_2(stiffness)) {
-            std::cout << "\n!!! FAILURE AT LEVEL 2 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
+            std::cout << "\n!!! INV-11 (no detonation) VIOLATED — FAILURE AT LEVEL 2 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
             std::cout << "3-particle chain causes instability" << std::endl;
             return false;
         }
 
         // Level 3: Add hip
         if (!test_level_3(stiffness)) {
-            std::cout << "\n!!! FAILURE AT LEVEL 3 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
+            std::cout << "\n!!! INV-11 (no detonation) VIOLATED — FAILURE AT LEVEL 3 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
             std::cout << "4-particle chain causes instability" << std::endl;
             return false;
         }
 
         // Level 4: Both legs
         if (!test_level_4(stiffness)) {
-            std::cout << "\n!!! FAILURE AT LEVEL 4 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
+            std::cout << "\n!!! INV-11 (no detonation) VIOLATED — FAILURE AT LEVEL 4 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
             std::cout << "7-particle (both legs) causes instability" << std::endl;
             return false;
         }
 
         // Level 5: Full Eva
         if (!test_level_5(stiffness)) {
-            std::cout << "\n!!! FAILURE AT LEVEL 5 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
+            std::cout << "\n!!! INV-11 (no detonation) VIOLATED — FAILURE AT LEVEL 5 (" << (stiffness/1000.0f) << "k N/m) !!!" << std::endl;
             std::cout << "23-particle (full Eva) causes instability" << std::endl;
             return false;
         }
 
-        std::cout << "\n>>> ALL LEVELS PASSED at " << (stiffness/1000.0f) << "k N/m <<<" << std::endl;
+        std::cout << "\n>>> INV-11/INV-10/INV-3: ALL LEVELS PASSED at " << (stiffness/1000.0f) << "k N/m <<<" << std::endl;
     }
 
     std::cout << "\n========================================" << std::endl;

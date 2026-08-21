@@ -85,3 +85,42 @@ monotone energy budget that a bounded scene must exhaust.
 `verification: runtime`.
 
 ---
+
+## ONE-POSITION-WRITER
+
+**Claim.** In a given frame, exactly one mechanism advances a given particle's
+position, and that mechanism is determined by the particle's solver mode and
+owner: the solver integrates solver-DYNAMIC bodies, the dynamics system moves
+DYNAMICS-owned KINEMATIC bodies, FK writes ANIMATION-owned bodies. No particle
+is integrated twice, and a particle no mechanism owns does not move at all,
+whatever its velocity field says.
+
+**Derivation / reasoning.** Position is the time integral of velocity, and an
+integral evaluated twice over the same interval is not a physics error inside
+any one mechanism — each one is individually correct — it is a category error
+in who is allowed to speak. The observable signature is exact and unmissable
+once you look for it: displacement is 2x the velocity field over the same
+interval, so any velocity CAP applied by one writer fails to bind the ground
+speed the world actually sees. INV-30 is adjacent but different: it governs
+what STATE an external writer may hand the solver (no overlap, nothing below
+the turtle), not how many writers advance the same body. G-22 asks the same
+ownership question for ORIENTATION and answers "exactly one owner, and the
+engine should know from ONE mechanism" — this is the position half of that
+sentence, and G-22's own status (`open`, "today it knows from three, none of
+which is aware of the others") argues that the position half deserves the
+record rather than inheriting one.
+
+**Motivating assert.** `tests/test_position_authority.cpp`: a1 (an unowned
+KINEMATIC particle with vx=1 must not move), a2 (a solver-DYNAMIC particle's
+horizontal displacement is exactly v*t, integrated once), and the b cases'
+"hips velocity field reports true ground speed" term. The RCA in that file's
+header is the concrete instance: `ParticleSystem::update` Euler-integrated x/y
+for EVERY particle unconditionally, so humanoid and solver bodies both moved
+about twice their velocity field and the FORGE speed cap did not bind.
+
+**Suggested kind.** INV, `derives_from: ["INV-22"]` — one mechanism owns a
+pair generalises to one mechanism owns a body's integration.
+`verification: runtime` (a1/a2 are directly measurable) with a `static`
+companion (grep for a second integrate site).
+
+---

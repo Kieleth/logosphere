@@ -1,11 +1,22 @@
 // ============================================================================
 // THE BAUMGARTE RATCHET — position repair must not inject momentum
 // ============================================================================
-// THE LAW THIS ENCODES. A position error is geometry. Repairing it may move
-// bodies, but it must not LEAVE them moving: correction velocity is borrowed
-// for the repair and given back, never deposited into momentum. An engine that
-// deposits it has built a motor, and any constraint that cannot reach zero
-// error runs that motor forever.
+// THE LAW THIS ENCODES. INV-21, no-position-bias-in-momentum. A position
+// error is geometry. Repairing it may move bodies, but it must not LEAVE them
+// moving: correction velocity is borrowed for the repair and given back, never
+// deposited into momentum. An engine that deposits it has built a motor, and
+// any constraint that cannot reach zero error runs that motor forever — which
+// is also INV-3, energy created out of a bookkeeping mistake.
+//
+// The three scenarios split the claim (assert-protocol migration, 2026-08-21):
+//   "repair happened"        INV-26, one correction law: every position error,
+//                            whatever row type carries it, is corrected at
+//                            BETA*error/dt. INV-26's own origin is gluons
+//                            correcting 30x weaker than contacts and leaving
+//                            standing gaps, which is what this term catches.
+//   "peak real speed"        INV-21: the repair may not appear in momentum.
+//   "still moving at the end" PROPOSED REST-IS-REACHED
+//                            (tests/invariants/INV_PROPOSALS.md).
 //
 // THE DEFECT, measured with the solver's own canary in Eden (P3946, frame 1):
 //
@@ -183,10 +194,10 @@ bool test_baumgarte_ratchet() {
         // Repaired means it ends AT separation, not flung past it. The first
         // version only asked gap >= 0.295 and passed on a 0.960 m overshoot,
         // which is the defect wearing the costume of a fix.
-        judge("repair happened AND stopped there (0.295..0.350 m)",
+        judge("INV-26/INV-21: repair happened AND stopped there (0.295..0.350 m)",
               gap >= 0.295f && gap <= 0.350f, gap, 0.350f, "m ");
-        judge("peak real speed during separation", m.peak <= 1.0f, m.peak, 1.0f, "m/s");
-        judge("still moving at the end", m.final_v <= 0.30f, m.final_v, 0.30f, "m/s");
+        judge("INV-21: peak real speed during separation", m.peak <= 1.0f, m.peak, 1.0f, "m/s");
+        judge("REST-IS-REACHED (proposed): still moving at the end", m.final_v <= 0.30f, m.final_v, 0.30f, "m/s");
         engine.shutdown();
     }
 
@@ -231,11 +242,11 @@ bool test_baumgarte_ratchet() {
             printf("      anchor: z %.3f  mode %d\n",
                    v[anchor].z, (int)v[anchor].solver_mode);
         }
-        judge("repair happened: within 5%% of target",
+        judge("INV-26: repair happened: within 5%% of target",
               std::fabs(dist - 1.0f) <= 0.05f, dist, 1.05f, "m ");
-        judge("peak real speed during the 2 m repair", m.peak <= 1.0f,
+        judge("INV-21: peak real speed during the 2 m repair", m.peak <= 1.0f,
               m.peak, 1.0f, "m/s");
-        judge("still moving at the end", m.final_v <= 0.10f, m.final_v, 0.10f, "m/s");
+        judge("REST-IS-REACHED (proposed): still moving at the end", m.final_v <= 0.10f, m.final_v, 0.10f, "m/s");
         engine.shutdown();
     }
 
@@ -298,16 +309,16 @@ bool test_baumgarte_ratchet() {
         // succeeding. The first version asserted max_rise <= 0.50 and would
         // have called a correct result a failure. What matters is that the
         // repair lands on target and that it arrives without momentum.
-        judge("repair happened: bonds reach their target spacing",
+        judge("INV-26: repair happened: bonds reach their target spacing",
               worst_spacing_err <= 0.05f, worst_spacing_err, 0.05f, "m ");
-        judge("peak real speed in the column", m.peak <= 1.0f, m.peak, 1.0f, "m/s");
-        judge("still moving at the end", m.final_v <= 0.10f, m.final_v, 0.10f, "m/s");
+        judge("INV-21: peak real speed in the column", m.peak <= 1.0f, m.peak, 1.0f, "m/s");
+        judge("REST-IS-REACHED (proposed): still moving at the end", m.final_v <= 0.10f, m.final_v, 0.10f, "m/s");
         engine.shutdown();
     }
 
     const bool pass = (failures == 0);
     printf("\n  %d violation(s)\n", failures);
     printf("\n  %s\n", pass ? "PASS"
-        : "FAIL (position repair is being deposited into momentum)");
+        : "FAIL INV-21 (position repair is being deposited into momentum)");
     return pass;
 }
