@@ -98,25 +98,32 @@ int main() {
     for (int f = 0; f < RUN_FRAMES; ++f) scene.step(ps, physics, f);
     const float retained = scene.retained(ps);
 
-    // The arithmetic the constant implies, so the measurement can be
-    // checked against it rather than merely reported.
-    const float predicted = std::pow(PhysicsV4::ANGULAR_DRAG,
-                                     static_cast<float>(RUN_FRAMES * 4));
-    const float per_frame_predicted = std::pow(PhysicsV4::ANGULAR_DRAG, 4.0f);
+    // The arithmetic the DERIVED law implies (G-42): about any axis of a
+    // cube, c = RHO_AIR*DRAG_CD*L*(2 L^4)/32 and I = m L^2/6, so one
+    // second of still air retains ~ 1/(1 + (c/I) omega t). Stated so the
+    // measurement checks the LAW, as it previously checked the constant.
+    const float L = 0.4f;
+    const float m_cube = L * L * L * 2600.0f;
+    const float c_rot = PhysicsV4::RHO_AIR * PhysicsV4::DRAG_CD
+                      * L * (2.0f * L*L*L*L) / 32.0f;
+    const float I_cube = m_cube * L * L / 6.0f;
+    const float predicted = 1.0f / (1.0f + (c_rot * SPIN0 / I_cube) * 1.0f);
+    const float per_frame_predicted =
+        1.0f / (1.0f + (c_rot * SPIN0 / I_cube) * (1.0f / 60.0f));
 
     std::printf("\n-- GEDANKEN-25: a body spinning in vacuum --\n");
     std::printf("  [measure] omega_z %.4f -> %.6f rad/s after %d frames\n",
                 SPIN0, scene.spin_now(ps), RUN_FRAMES);
     std::printf("  [measure] retained %.6f of its spin in one second\n",
                 retained);
-    std::printf("  [measure] ANGULAR_DRAG^(4 substeps x %d frames) = %.6f\n",
-                RUN_FRAMES, predicted);
+    std::printf("  [measure] derived-law prediction, 1 s of still air: "
+                "%.6f retained\n", predicted);
     std::printf("  [note] nothing touched this body: no contact, no bond,\n"
                 "         no medium, no torque. Only the constant.\n");
 
     // --- the witness: the rest of the state, per frame ----------------
     std::printf("\n  [argus] worst PER-FRAME retention %.4f "
-                "(ANGULAR_DRAG^4 = %.4f)\n",
+                "(derived law per frame: %.4f)\n",
                 scene.worst_frame_keep, per_frame_predicted);
     std::printf("  [argus] worst lateral drift %.2e m, worst off-axis spin "
                 "%.2e rad/s\n", scene.max_lateral, scene.max_off_axis);
@@ -149,7 +156,7 @@ int main() {
     check(Scene::conserves_per_frame(scene.worst_frame_keep),
           "and it keeps it EVERY FRAME, not merely on average. This is "
           "the assert that names the culprit: the worst frame retains "
-          "exactly ANGULAR_DRAG^4, so the loss is a constant applied per "
+          "a constant per-substep factor, so any loss is a law, not an "
           "substep and not an event, an integrator artefact or a contact "
           "(G-37's method, borrowed from the cube-drop ladder).");
 

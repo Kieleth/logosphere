@@ -225,6 +225,89 @@ All three surfaced while defining what interaction words may MEAN
 
 ---
 
+## D2 1.2 SLICE A LANDED (2026-08-19): normal-row contact torque, levered
+
+Behind `CONTACT_TORQUE=1`, default off, default path bit-identical
+(audited ladder numbers hold exactly). The manifold point the solver
+computed and discarded is now the row's lever arm; effective mass gains
+(r x J)^2/I per INV-20; the gate is `solver_mode == DYNAMIC` alone
+(G-39: no owner read, no representation flag, KINEMATIC excluded by
+what it IS).
+
+**Measured under the lever: THE DIE FALLS FLAT.** Drop-ladder R1 green:
+the 20-degree cube spins to 5.97 rad/s, rights itself, settles at
+rot_y 0.0001 on the slab. Two honest residuals, both recorded, neither
+papered: R0's flat-drop control acquires a deterministic 0.1929 rad/s
+transient wobble (unstable equilibrium + sequential per-point solving),
+decaying to 0.0002 — the control stays strict on the default path and
+the lever's flip will need it rewritten as decay-bounded, owner ruling.
+And the ramp stays at zero spin under the lever, WHICH IS THE SLICE
+BOUNDARY BY INSTRUMENT: a sphere's normal passes through its centre
+(r x n = 0 exactly) and a face-slider's point torques cancel — rolling
+and tumbling are FRICTION torque, slice B.
+
+## D2 1.2 SLICES B+C LANDED (2026-08-19): friction torque + turtle support vertex
+
+Same `CONTACT_TORQUE` lever, default off, default path bit-identical
+(audited reds hold, harness 27/27).
+
+**B, friction torque**: friction measures the CONTACT-POINT relative
+velocity (v + omega x r, both bodies), prices each tangent with its own
+(r x t)^2/I (the normal row's K is the wrong Jacobian for a tangent),
+and twists DYNAMIC bodies. **THE SPHERE ROLLS**: peak 5.30 rad/s, and
+it now out-travels the sliding cube (6.259 vs 6.225 m), the physically
+correct ordering. The cube tumbles at 4.07 rad/s.
+
+**C, turtle support vertex**: a rotated box meets the plane at its
+lowest vertex (centre minus signed half-extent axes — plane geometry,
+INV-6-clean), priced per INV-20. Fixed: the cube that froze mid-tumble
+balanced on its edge on the turtle (rot_y 0.8345, for ever). Bonus,
+measured: proper pricing cut R0's flat-drop wobble 0.1929 -> 0.0198
+rad/s. Unrotated boxes keep the no-torque row: a flat face's point
+torques cancel by symmetry.
+
+**Residuals, all measured, none papered:**
+- **6.4 ANSWERED BY INSTRUMENT: the friction-basis fix comes WITH the
+  row work, not after.** Under the lever the tumbling cube WALKS OUT OF
+  ITS LANE (y -1.20 -> -2.05) in a scene with no lateral force: the
+  axis-aligned tangent picks (study 1.5) put t1=(1,0,0) out of the
+  ramp's face plane, and torque coupling turns that long-known wrongness
+  into visible sideways drift. Next slice: tangents from the actual
+  contact plane.
+- The tumbling cube is still settling at frame 240 on the turtle
+  (z 0.35): rocking under ANGULAR_DRAG; needs longer runs or the D7 fix.
+- Ceilings: true rolling wants omega = v/r ~ 29 rad/s; MAX_OMEGA caps
+  at 6.28 and ANGULAR_DRAG (D7) fights every spin. Both boarded already.
+
+## D2 1.2 SLICE D LANDED (2026-08-19): in-plane friction basis + turtle contact patch
+
+Same lever, default bit-identical (audited reds hold, harness 27/27).
+
+**The basis (G-40)**: tangents derive from the contact — least-aligned
+world axis, t1 = normalize(a x n), t2 = n x t1 — so on the ramp t1 is
+exactly downhill and t2 exactly lateral, where the old axis-pick put
+sin40 = 0.64 of t1 ALONG the normal, a normal impulse in disguise.
+
+**The patch**: the single turtle support vertex was a step function in
+orientation, and the lane trace convicted it precisely — y = -1.200
+EXACT for the entire 135-frame descent, then the walk begins at
+touchdown. Every corner within SUPPORT_PATCH_BAND (5 mm, schema) of the
+lowest now carries a row, load shared, priced per corner (INV-20), the
+same answer box-box gives through clipping. Lane kick cut 3.4x:
+worst deviation 0.877 -> 0.261 m.
+
+**The two mechanisms left, named by the trace, neither guessed:**
+- **Seed asymmetry**: omega_x = +-0.08 appears at the FIRST slab strike
+  (f15), before anything lateral exists — sequential per-point
+  Gauss-Seidel order inside one manifold. The charted remedy is the
+  block/manifold-simultaneous solve (`feat/joint-block-solver` prior
+  art, stalls -96%); a per-manifold two-pass symmetrisation is the
+  cheaper sibling. Needs its own slice.
+- **The 45-degree parking**: the tumbling cube ends BALANCED AT EXACTLY
+  45 deg (z = 0.346 = 0.2(cos45+sin45)), the unstable equilibrium,
+  because ANGULAR_DRAG (D7) eats the angular momentum that would carry
+  it past the balance point. The basics keep pointing at D7, again.
+
 ## D2's measurement ladder: the cube drop (2026-08-19)
 
 Owner method: divide and conquer, G's first, asserts from the G's, then
@@ -271,9 +354,23 @@ direction-locked in physics-linux beside the drop ladder:
   `LOGOSPHERE_QUAT_TRUTH=0` is the kill switch. Per-frame Argus
   testimony post-flip: every body coherent every frame, identical spins
   identically visible, trajectories and omegas exactly equal across the
-  ledger flag. **Next on this front: `is_quat_driven` dies — six
-  representation reads become unconditional, seven authority reads fold
-  into `solver_mode` (the R7-dissolution work proper).**
+  ledger flag. **Next on this front: `is_quat_driven` dies — and the 2026-08-19
+  survey on merged main found 32 reads across 6 files, not the study's
+  13 (the extra 19 live mostly in humanoid_locomotion). G-38 states the
+  hazard that orders the work: the flip's publish excludes KINEMATIC,
+  so a KINEMATIC FK bone still carries a stale quaternion and the flag
+  still selects correctly for exactly those bodies. The deletion is a
+  WRITE-CONTRACT change first (every KINEMATIC orientation writer
+  maintains BOTH ledgers at its write site, guarded by the fifteen
+  locomotion tests), read-site cleanup second, field deletion last.
+  Doing it in the other order breaks humanoids visibly.
+  **SLICE 1 LANDED 2026-08-19**: the humanoid frame-end sync in
+  update_post_physics (`test_humanoid_orientation_coherence`, red at
+  1.4496 rad of trapped turn, green at 0.0007). Found and fixed on the
+  way: the yaw cascade was a SILENT NO-OP headless (`if (!impl_->engine)
+  return;` with the engine used nowhere else in the function), so the
+  source-of-truth environment had never run it. Remaining: FK-clip
+  writers on jointed rigs, then the read sites, then the field.**
 
 This is the unification's red ladder. The lever lands into it.
 
@@ -309,6 +406,165 @@ from the rollout: no history query beyond `latest`/`previous` (every
 test latches its own minima), no min-separation or closest-approach
 query, and `dump()` prints `rotY` only, so a body spinning about Z
 narrates as motionless.
+
+## D7 EXECUTED (2026-08-20): ANGULAR_DRAG is dead, the law is derived
+
+Owner order standing since 08-16, done. The constant (and its frame-one
+theft, fingerprinted by Argus at 6.0 -> 4.887) is deleted from the
+schema; in its place, G-42's derivation: quadratic pressure drag
+integrated over the box's faces, tau = -(RHO_AIR*DRAG_CD*L_i*(L_j^4 +
+L_k^4)/32) w|w| per body axis, body-frame via the quat truth,
+unconditionally stable form, same ambient constants as the linear law
+so D8's declarable medium will feed both. Spheres take bounding extents
+as a sanctioned INV-21 over-estimate; honest sphere spin drag (skin
+friction, viscosity) boarded.
+
+**Proof through mechanism**: test_angular_dissipation GREEN, measured
+0.998541 retained vs derived 0.998941 — promoted to CI smoke. Ladder
+R2/R3 GREEN by default (flight honest). A stone flywheel barely slows
+in air, which is the physics.
+
+**Three findings the honest law surfaced, each charted:**
+1. Speculative contact rows brake spin BEFORE the z-threshold
+   "touchdown": the flight window must end at first CONTACT EVENT
+   (interactions directive), then the lever contracts re-clamp.
+2. **G-21 live**: a real tumble crosses the gimbal band every
+   revolution and the publish's fold trips the per-frame coherence
+   assert — the lossy-view hazard, now measured, needs its ruling.
+3. The lane walk grew to 0.99 m under persistent spin: the per-point
+   seed compounds longer. The block-solve's bill has come due.
+
+Also derived from the witness: a face-spinning top DIES FAST at contact
+(6.0 -> 1.65 in two frames of touch) because face friction is strong —
+G-36's own arithmetic. Real tops last by spinning on a POINT; the
+long-spin drama belongs to the ICE floor of the materials matrix.
+
+## Owner QA PASSED 2026-08-20 — G-43 + G-45 arcs CLOSED (FIXED protocol complete)
+
+Owner watched the corrected ladder: "total success and is 99% according
+with physics... excellent work, almost magic." Three TODO orders from
+the same QA, owner verbatim intent:
+
+- **Spin-lift on impact**: "some of the rotations should bring the cube
+  up a bit due to force applied" — a fast-spinning cube striking ground
+  should convert some spin to a visible hop. Measure the corner-strike
+  vertical impulse budget; decide whether the engine under-delivers it.
+- **Rotation-rate sweep for falling cubes**: more falling spinning-cube
+  cases; increase wheel-spin rates and assert that horizontal travel
+  EMERGES with rate at ground contact ("advanced simulation" — the
+  spin-to-travel conversion curve, not a single point).
+- **Spinning spheres vs floor**: spheres have no corner-knock band, so
+  spin survives any fall; test topspin/backspin landings, rolling
+  conversion, bounce-spin coupling. Natural vehicle for the walking
+  claim the cube can only rock at.
+
+Ladder lever carries 3 booked reds meanwhile: R5/R6 tall-fall walk
+bounds (clamped at the old low-release walk; re-clamp NOT ruled, kept
+red-and-booked) + R6 coherence (G-21 gimbal, rotation item 4, next).
+
+## Sweep triage post-G-43 (2026-08-20): 4 moles, all resolved or booked
+
+- test_inv29_constants_gate: my 0.25f, renamed to derived half-extents. GREEN.
+- test_refused_momentum_ledger: not a leak. The full-Jacobian warm start
+  quiets the rows so completely the striker legitimately sleeps pressed
+  flat at frame 13; sleep suspends gravity (INV-18), so the test's truth
+  now integrates over MEASURED awake frames. 107% booked, in band. GREEN.
+- test_tree_wiggly: G-44 UNMASKED a sustained 0.0294 m/s oscillation in
+  depth-3/4 oaks that speed-only sleep was absorbing. Depth-5 sleeps.
+  TASK: RCA the gluon-tree energy source (deeper-law family). Pending
+  owner ruling on the known-open classification.
+- test_physics_minimal_v2: measuring (221 s runtime; suspected settle-wait
+  on sleep timing).
+- G-44 refined: REST_GROWTH_RUN (3 consecutive growing frames) separates
+  monotone topples from alternating jitter; topples preserved.
+
+## G-43 SOLVED (2026-08-20): three confiscations, three laws — see LEDGER
+
+Sleep's speed-only gate (G-44), rotation-blind turtle rows (measure-gate
+now equals apply-gate, G-39), and a linear-only warm start rebuilt as
+iteration zero through the full Jacobian. R7+R8 fall, ramp cube ends
+flat, lane 0.99 -> 0.138 (ratchet met; item 5's block-solve suspicion
+likely moot). Remaining: item-2 tail (rolling-vs-sliding re-clamp),
+item 4 (G-21/G-23 gimbal with measurement), item 6 (flip ruling + ice).
+Owner QA pending for the FIXED protocol.
+
+## (superseded) Rotation item 3 RESOLVES into G-43: corner balance is an attractor
+
+The 45-degree parking was never 45 degrees. The traced rest is z =
+0.346 = HALF THE SPACE DIAGONAL with a fully 3-D rotation: the cube
+stands ON ONE CORNER, deterministically, across four mechanism edits
+that each left the rest byte-identical (drag law, patch, weighting,
+basis). The most unstable pose a cube has behaves as a stable
+attractor, which means the formulation is missing or mis-signing the
+toppling channel: the coupling by which the contact force acquires
+gravity's offset (the normal row's omega x r half, the Baumgarte term's
+angular blindness, or substep ordering). G-43 carries the analysis and
+the eliminations. The next instrument is the drop ladder's natural R7:
+one cube placed corner-down at a tiny tilt, expected to FALL, narrated
+by Argus. Items 1-2 are landed (lever ladder fully green, flight ends
+at first contact); item 4 (G-21 gimbal ruling) and item 5 (the seed)
+remain; item 6 waits on 3-5.
+
+## F7 + F8 — PARKED by owner ruling (2026-08-20): rotation first
+
+Owner: F7 is humanoid territory ("I'd not get into humanoid now"), and
+its honest cost under the fixed-protocol decree is a full round in the
+deferred subsystem — G, Argus into a locomotion test, an API decision
+(drive damping defaulting to the derived critical 2*sqrt(k*I)?), fix,
+joint QA. Parked debt-free: audited red, mechanism named. The last
+bearer of the ANGULAR_DRAG name (the look-at controller's local 0.98,
+humanoid_locomotion.cpp:5303) dies with F7, same doctrine.
+
+F8 parked on the owner's sharper framing: test_grass_yields NEVER truly
+worked, predates Argus and the from-the-root method entirely, and was
+itself one cause of this whole physics campaign — it gets a
+full-learnings revisit as its own front, not a patch now.
+
+The refocus: rotation items 1-6 (flight window by contact event,
+re-clamp lever contracts, 45-deg parking re-measure, G-21 gimbal
+ruling, the block-solve seed, then the flip ruling and the ice drama).
+
+## F7 + F8 — what the TRUE sweep found under D7 (2026-08-20)
+
+The first fresh-binary sweep of the week (the stale-gate finding,
+ledgered) returned new-red 4. Triage: one stale-law test asserting the
+pre-flip world (quat_euler_sync, rewrite owed), one phantom (async prep
+passes alone, fails under sweep load, the run-ALONE class), and two
+REAL:
+
+- **F7: the gluon PD drives no longer converge**
+  (`test_gluon_angular_drive_converges`: final rel rotation off >5%,
+  hold-phase oscillation >10%). The drives were leaning on
+  ANGULAR_DRAG as free world-damping; the derived law is honest and
+  tiny at bone scale, exposing an under-damped controller. The fix is
+  the controller's own damping term doing its job — same doctrine as
+  the look-at shadow: control-loop damping belongs to the control
+  loop, never to the world's air.
+- **F8: the grass trophy is red again** (`test_grass_yields`). Blade
+  dynamics shifted under the derived drag — light, large-area bodies
+  are where the new law differs most from the dead constant, in either
+  direction. RCA owed before any touch; the trophy is not re-won by
+  tuning.
+
+## D9 grows: the owner's materials orders (2026-08-20, post-QA)
+
+Ordered after QA'ing the torque slices, folded here as D9's first
+concrete instances, G-first when built:
+
+- **Drop ladder**: floor MATERIALS under the spinning rungs — ice, rock,
+  and onward ("what happens... just for fun"). G-41 already names the
+  expectation: ice barely converts spin to translation, rock converts
+  hard.
+- **Ramp**: (1) a PLATE BODY instead of the turtle as the next landing
+  case (box-box rows all the way down); (2) an ICE body on the slope;
+  (3) the materials play — which is D9's original matrix, now with its
+  first three assignments.
+
+Landed already (G-41, rungs R4-R6 of the drop ladder): per-axis spin
+touchdown. Measured under the lever: the Z-top brakes in place; the
+X-wheel drives itself +0.0525 m along Y; the Y-wheel drives itself
+-0.0526 m along X — the same magnitude on mirrored axes, one mechanism,
+no axis preferred. Default mode: nothing moves, as audited.
 
 ## D9 — THE SURFACE MATRIX: ice, stone, tarmac, sand (owner, 2026-08-19)
 
@@ -361,6 +617,19 @@ question (humanoid locomotion's heel-strike transfer), not one a wiring
 test may rule on. Needs the locomotion owner's read before any code.
 Evidence printed as `[finding]` lines in the test and recorded in its
 audit gaps.
+
+## F6 — the sanitizer lane is red ON MAIN, and it is blocking every merge (2026-08-19)
+
+Not physics, boarded because it gates all of us. The new required lane
+`sanitizers-linux` (arrived via #137) fails on main's own commits:
+`AddressSanitizer: alloc-dealloc-mismatch (operator new vs free)`
+across the KG/ontology tests (`test_kg_ops_parse`,
+`test_ontology_extension`, `test_ontology_validator`,
+`test_outcome_executor`, more). Something in KG core allocates with
+`new` and frees with `free` — a real defect the lane caught on day one.
+PR #146 merged by owner admin override with every other lane green;
+the ruling stands recorded there. **Owner: the KG/rules lane owns the
+fix, and until it lands every PR needs the same override.**
 
 ## OWNER RULING
 

@@ -1421,6 +1421,27 @@ void HumanoidLocomotion::update_post_physics(double delta_time) {
         // Handle collision events - push entire entity uniformly
         handle_collision_events(parts, particles_view);
 
+        // ================================================================
+        // THE WRITE CONTRACT (G-38): whoever writes orientation maintains
+        // BOTH ledgers. Everything above — the yaw cascade, FK, IK — wrote
+        // Euler angles on this humanoid's KINEMATIC particles; the flip's
+        // publish deliberately excludes KINEMATIC, so nothing else will
+        // reconcile the quaternion. Refresh it here, once, at the end of
+        // this humanoid's frame, from the Euler the writers just produced.
+        // Measured before this loop existed: a commanded turn wrote
+        // 1.4496 rad of yaw and the quaternion diverged by exactly that.
+        // Skip quat-driven particles: their drives write the quaternion
+        // and the solver publishes their Euler — the OTHER direction of
+        // the same contract.
+        // ================================================================
+        for (unsigned int pid : parts.all_particle_indices) {
+            if (pid >= particles_view.size()) continue;
+            Particle& p = particles_view[pid];
+            if (p.is_quat_driven) continue;
+            p.rotation_q = logosphere::Quat::from_euler(
+                p.rotation_x, p.rotation_y, p.rotation_z);
+        }
+
         // Telemetry now lives in PhysicsSystem (physics-level, all particles)
     }
     }  // close inner scope — write lock released here
@@ -3463,7 +3484,12 @@ void HumanoidLocomotion::update_yaw_cascade_state(
     double delta_time)
 {
     auto& dyn = impl_->get_dynamics_system();
-    if (!impl_->engine) return;
+    // No engine gate here, deliberately. This function reads particles and
+    // dynamics through impl_ and touches no engine facility; the old
+    // `if (!impl_->engine) return;` silently no-op'd the whole yaw cascade
+    // in headless mode, which meant the source-of-truth environment could
+    // never exercise the mechanism (found by the G-38 coherence ladder,
+    // whose control measured 0.0000 rad of yaw written during a turn).
     if (parts.fk_playing) return;  // one-shot FK clip owns joint rotations
 
     auto particles = impl_->get_particle_system().lock_particles_for_read();

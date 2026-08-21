@@ -102,7 +102,8 @@ line->set_color(255, 240, 140);
 engine.get_ui_system()->add_widget(line);
 
 // (d) LOOP: should_continue(), never is_running().
-// (e) SPACE dollies the camera in.
+// (e) SPACE: multi-case tests advance the case on SPACE (zoom on Z);
+//     single-scene tests dolly the camera in.
 while (engine.should_continue()) {
     if (space_edge()) stand_off *= 0.8f;
     scene.step();                    // SHARED with the headless driver
@@ -128,13 +129,41 @@ not only to stdout. A viewer that shows values without saying what pass
 looks like asks the owner to judge a number he has no threshold for. The
 first attempt asserted nothing in the window at all.
 
+## EXPERIMENTS ARE LECTURES (owner standard, 2026-08-20)
+
+Owner: interactive cases must be "worth of the coolest physics classes
+in history" — Lewin hanging off his own pendulum, Feynman's O-ring in
+ice water. A case that technically exercises the mechanism but shows a
+centimetre of motion for half a second is an assert with a window, not
+an experiment. The standard, mechanical:
+
+1. **A staged QUESTION with an arc**: setup, the event, the outcome —
+   and it replays on demand (SPACE), never on a timer.
+2. **CONTRAST on stage**: the twin that does not spin beside the one
+   that does; the ice lane beside the rock lane. The difference IS the
+   lesson; a lone body proves nothing to an eye.
+3. **Motion visible from the back row**: the travel spans a large part
+   of the stage, the subject fills a good part of the frame, reference
+   scenery (pillars, lanes) makes motion legible. If the honest physics
+   is small, make the BODY bigger or the runway longer — never fake the
+   physics to fake the drama.
+4. **The number on screen at the moment it matters**, from Argus, the
+   same value the assert reads.
+
+The failure that earned this: the G-41 wheel cases dropped a 0.4 m cube
+five centimetres and bought five centimetres of travel — an experiment
+smaller than its own subject, jerky and over before the eye arrived.
+
 ## SHIP CHECKLIST FOR A TEST
 
 - [ ] Scene in `tests/scenes/`; drivers contain no bodies and no thresholds
 - [ ] Both drivers step through the SAME scene function (timestep trap)
 - [ ] Headless captures a deterministic frame when it claims anything visual
 - [ ] `should_continue()`, never `is_running()`
-- [ ] SPACE moves the camera in
+- [ ] SPACE: in a MULTI-CASE test it advances the case, manually, never
+      on a timer (owner order 2026-08-20: the human decides when a case
+      is seen); zoom then lives on Z. Single-scene tests keep SPACE as
+      move-toward. On-screen hint says which.
 - [ ] `show_debug_overlay = interactive`
 - [ ] Full-state narration written; every DOF asserted or waived by name
 - [ ] Observed through Argus; asserts read the same queries the log prints

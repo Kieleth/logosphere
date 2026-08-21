@@ -216,6 +216,25 @@ Read-only over particles by construction: the witness cannot perturb
 the experiment. Zero cost unwatched. Engine-wide by owner ruling —
 combat and AI observe through the same eyes.
 
+## "FIXED" IS A PROTOCOL, NOT A SENTENCE (owner decree, 2026-08-20)
+
+Nothing is declared fixed until ALL THREE hold:
+
+1. **Argus-witnessed.** The claimed physics is observed by the witness
+   (`src/core/argus.h`), not read off a print or a grep of test output.
+2. **Assertion-clamped, in the claim's own mode.** A test enforces the
+   claimed semantics in the exact configuration the claim is made for —
+   a mechanism behind a lever needs its LEVER-MODE contract asserted
+   (both modes audited in TEST_AUDIT), or the claim has no enforcement
+   and is one refactor from silently false.
+3. **Human-QA'd, informed.** The owner watches it interactively AND has
+   the education to know what changed and why, before the word is used.
+
+Until all three: say "measured", "landed behind the lever", "green
+under the lever" — never "fixed". The decree's origin: four torque
+slices reported as fixes on lever-mode numbers that no assertion
+enforced, while the tests asserted only the default path.
+
 ## Ruling protocol
 
 0. **Gedankenexperimente first.** Before options exist, the simplest
@@ -236,7 +255,8 @@ combat and AI observe through the same eyes.
 
 Board updated (the front moved, or a new one classified) →
 Gedankenexperiment recorded for anything new in BEHAVIOUR, and its
-status honest → headless suite green → sweep ALONE, zero moles →
+status honest → claimed semantics Argus-clamped by assertions IN THE
+CLAIM'S MODE (lever state included), both modes audited → headless suite green → sweep ALONE, zero moles →
 docker precheck
 (`scripts/precheck_linux.sh`, read the markers) → CHANGELOG entry for
 anything user-facing → DCO sign-off on every commit (`git commit -s`)

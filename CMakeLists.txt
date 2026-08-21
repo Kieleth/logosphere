@@ -1352,6 +1352,16 @@ target_include_directories(test_orientation_truth PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(test_orientation_truth PRIVATE cxx_std_17)
 
+# G-38's KINEMATIC half: a walking humanoid's bones keep both ledgers.
+add_executable(test_humanoid_orientation_coherence tests/test_humanoid_orientation_coherence.cpp)
+target_link_libraries(test_humanoid_orientation_coherence PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core logosphere_dynamics)
+target_include_directories(test_humanoid_orientation_coherence PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(test_humanoid_orientation_coherence PRIVATE cxx_std_17)
+
 if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
     add_executable(test_orientation_truth_visual tests/test_orientation_truth_visual.cpp)
     target_link_libraries(test_orientation_truth_visual PRIVATE

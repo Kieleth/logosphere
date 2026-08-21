@@ -7,6 +7,27 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- Sleep entry now prices angular motion in the same currency as linear
+  (extremity speed) and refuses to sleep a body whose motion is growing;
+  bodies beginning a topple are no longer frozen mid-fall
+  (`REST_GROWTH_TOLERANCE`, `REST_GROWTH_FLOOR` in the physics schema).
+- Contact warm starting applies cached impulses through the full
+  Jacobian (linear and angular) distributed across a contact's points;
+  previously the cached support was linear-only on a single row, which
+  could hold bodies balanced on corners and edges indefinitely and
+  caused lateral drift on slopes (under `CONTACT_TORQUE`).
+- Turtle contact rows measure velocity at the contact point (including
+  rotation) like every other contact row (under `CONTACT_TORQUE`).
+- Speculative contact rows (gap still open) no longer transmit friction
+  or receive warm-start impulses; friction acts only through touching
+  contacts. Fixes spin dying in the air just before landing and lateral
+  drift on slopes (under `CONTACT_TORQUE`).
+- New `PhysicsSystem::forget_body(id)`: voids a repositioned body's
+  cached contact impulses; call after teleporting a live body.
+- Physics decision tracer env switches (`LOGOSPHERE_PHYS_TRACE*`) now
+  work in headless standalone tests, not only under the full engine.
+
 ### Changed
 - **The three advisory CI lanes come off pull requests.** A pull
   request ran seven jobs and two of them gated the merge, so the

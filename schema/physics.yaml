@@ -1075,6 +1075,32 @@ classes:
         description: >-
           Quaternion twin: 1 - |w| threshold. 1 - |w| ~ theta^2/8, so
           1e-6 admits ~3 mrad and under as unrotated.
+      ROT_DRAG_FACE_INTEGRAL:
+        range: float
+        ifabsent: float(32.0)
+        unit: { ucum_code: "1" }
+        description: >-
+          The definite integral of |y|^3 across a face span, twice
+          (2 * (L/2)^4 / 4 = L^4/32), that appears in the derived
+          rotational drag law tau = -(rho * Cd * L_i * (L_j^4 + L_k^4)
+          / THIS) * w|w| (G-42). Derived like the 12 in a box inertia,
+          named because INV-29's gate is right that derived inputs get
+          names too — its own gate refused the bare literal.
+      SUPPORT_PATCH_BAND:
+        range: float
+        ifabsent: float(0.005)
+        unit: { ucum_code: m }
+        description: >-
+          Corners of a rotated box within this height of its lowest
+          corner form the turtle CONTACT PATCH: one row per corner,
+          load shared, each with its own lever arm. A single support
+          vertex was a step function in orientation — a tumbling cube
+          landing near-flat struck one invented corner and walked out
+          of its lane (measured: y -1.20 to -2.07 with no lateral
+          force; the drift began exactly at turtle touchdown, frame
+          135-150 of the ramp race, lane perfect for the whole descent
+          before it). The patch is the same answer box-box already
+          gives through manifold clipping.
       EDGE_TOL:
         range: float
         ifabsent: float(0.001)
@@ -1261,16 +1287,6 @@ classes:
         ifabsent: float(0.2)
         unit: { ucum_code: m/s }
         description: Exit rest above this (2x hysteresis).
-      ANGULAR_DRAG:
-        range: float
-        ifabsent: float(0.95)
-        unit: { ucum_code: "1" }
-        description: >-
-          Per-frame omega_z retention (5% loss per frame), applied to
-          every spinning body as "general air resistance for rotation".
-          Same INV-19 exposure as DAMPING_FACTOR: absolute-motion
-          damping whose dissipation story is thin. Extracted as-is by
-          decree; any retuning is ledger follow-up.
       REST_FRAMES_REQUIRED:
         range: integer
         ifabsent: int(10)
@@ -1278,6 +1294,42 @@ classes:
         annotations:
           cpp_type: uint8_t
         description: Frames below the rest threshold before resting.
+      REST_GROWTH_TOLERANCE:
+        range: float
+        ifabsent: float(1.01)
+        unit: { ucum_code: "1" }
+        description: >-
+          G-44. Sleep may only cache a fixed point of the dynamics, and
+          observed GROWTH of the quietness speed (linear plus angular
+          extremity speed, one currency) is proof the body is not at
+          one: an inverted pendulum passes through arbitrarily low
+          speed while accelerating away, and R7's corner stand was
+          frozen mid-topple at exactly REST_FRAMES_REQUIRED by the
+          speed-only gate. The rest counter accumulates only while the
+          per-frame quietness ratio stays at or below this tolerance,
+          which exists to forgive solver jitter, not trends.
+      REST_GROWTH_RUN:
+        range: integer
+        ifabsent: int(3)
+        unit: { ucum_code: "{frame}" }
+        annotations:
+          cpp_type: uint8_t
+        description: >-
+          G-44 refined by test_tree_wiggly. A topple grows MONOTONICALLY
+          (exponential envelope), an oscillation alternates growth and
+          decay every few frames. Only this many CONSECUTIVE growing
+          frames mark a body as mid-instability and block sleep;
+          alternating solver jitter never sustains a run and sleeps,
+          which is the residue the sleep cache exists to absorb.
+      REST_GROWTH_FLOOR:
+        range: float
+        ifabsent: float(0.001)
+        unit: { ucum_code: m/s }
+        description: >-
+          G-44's absolute floor on the growth test. At the bottom of
+          the well, quietness ratios between near-zero values are
+          noise; growth smaller than this speed (1 mm/s class, same
+          scale as ZERO_VELOCITY_SQ) never blocks honest sleep.
 
   WakePropagationConstants:
     abstract: true

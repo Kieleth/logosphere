@@ -182,6 +182,25 @@ constexpr float    BOX_ROTATION_EPS = 1e-4f;   // unit: rad
 // admits ~3 mrad and under as unrotated.
 constexpr float    QUAT_UNROTATED_EPS = 1e-6f;   // unit: 1
 
+// The definite integral of |y|^3 across a face span, twice (2 *
+// (L/2)^4 / 4 = L^4/32), that appears in the derived rotational drag
+// law tau = -(rho * Cd * L_i * (L_j^4 + L_k^4) / THIS) * w|w| (G-42).
+// Derived like the 12 in a box inertia, named because INV-29's gate is
+// right that derived inputs get names too — its own gate refused the
+// bare literal.
+constexpr float    ROT_DRAG_FACE_INTEGRAL = 32.0f;   // unit: 1
+
+// Corners of a rotated box within this height of its lowest corner
+// form the turtle CONTACT PATCH: one row per corner, load shared, each
+// with its own lever arm. A single support vertex was a step function
+// in orientation — a tumbling cube landing near-flat struck one
+// invented corner and walked out of its lane (measured: y -1.20 to
+// -2.07 with no lateral force; the drift began exactly at turtle
+// touchdown, frame 135-150 of the ramp race, lane perfect for the
+// whole descent before it). The patch is the same answer box-box
+// already gives through manifold clipping.
+constexpr float    SUPPORT_PATCH_BAND = 0.005f;   // unit: m
+
 // Face manifolds (up to 4 points, stable frame to frame) are
 // preferred; an edge axis wins only when clearly smaller by this
 // margin (1 mm, the SLOP scale) — sign-safe, unlike a relative factor,
@@ -293,15 +312,33 @@ constexpr float    REST_VELOCITY_THRESHOLD = 0.1f;   // unit: m/s
 // Exit rest above this (2x hysteresis).
 constexpr float    WAKE_VELOCITY_THRESHOLD = 0.2f;   // unit: m/s
 
-// Per-frame omega_z retention (5% loss per frame), applied to every
-// spinning body as "general air resistance for rotation". Same INV-19
-// exposure as DAMPING_FACTOR: absolute-motion damping whose
-// dissipation story is thin. Extracted as-is by decree; any retuning
-// is ledger follow-up.
-constexpr float    ANGULAR_DRAG = 0.95f;   // unit: 1
-
 // Frames below the rest threshold before resting.
 constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}
+
+// G-44. Sleep may only cache a fixed point of the dynamics, and
+// observed GROWTH of the quietness speed (linear plus angular
+// extremity speed, one currency) is proof the body is not at one: an
+// inverted pendulum passes through arbitrarily low speed while
+// accelerating away, and R7's corner stand was frozen mid-topple at
+// exactly REST_FRAMES_REQUIRED by the speed-only gate. The rest
+// counter accumulates only while the per-frame quietness ratio stays
+// at or below this tolerance, which exists to forgive solver jitter,
+// not trends.
+constexpr float    REST_GROWTH_TOLERANCE = 1.01f;   // unit: 1
+
+// G-44 refined by test_tree_wiggly. A topple grows MONOTONICALLY
+// (exponential envelope), an oscillation alternates growth and decay
+// every few frames. Only this many CONSECUTIVE growing frames mark a
+// body as mid-instability and block sleep; alternating solver jitter
+// never sustains a run and sleeps, which is the residue the sleep
+// cache exists to absorb.
+constexpr uint8_t  REST_GROWTH_RUN = 3;   // unit: {frame}
+
+// G-44's absolute floor on the growth test. At the bottom of the well,
+// quietness ratios between near-zero values are noise; growth smaller
+// than this speed (1 mm/s class, same scale as ZERO_VELOCITY_SQ) never
+// blocks honest sleep.
+constexpr float    REST_GROWTH_FLOOR = 0.001f;   // unit: m/s
 
 // ------ WakePropagationConstants ------------------------------------
 // INV-18's dirty-hit gates. Origin: physics_solver.h

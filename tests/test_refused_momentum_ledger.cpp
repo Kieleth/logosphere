@@ -168,10 +168,14 @@ int main() {
     float max_div = 0.0f, target_off_axis_v = 0.0f, striker_lateral_v = 0.0f;
 
     float booked_x = 0.0f, booked_y = 0.0f, booked_z = 0.0f;
+    int striker_awake_frames = 0;   // sleep suspends gravity (INV-18):
+                                    // the truth integrates over AWAKE time
     for (int f = 0; f < 40; ++f) {
         ps.update_bvh();
         physics.update(1.0 / 60.0);
         argus.observe(ps, f);
+        { auto v = ps.lock_particles_for_read();
+          if (!v[striker].is_at_rest) striker_awake_frames++; }
         {
             const logosphere::Argus::State* st = argus.latest(target);
             const logosphere::Argus::State* ss = argus.latest(striker);
@@ -245,7 +249,16 @@ int main() {
     // striker's OWN delta. It rests on the braced face and slides down
     // it, so the friction the target refuses shows up as a shortfall in
     // the striker's fall. No expected value is invented here either.
-    const float t_run = 40.0f / 60.0f;
+    // Sleep is a cache over dynamics (INV-18): a sleeping body receives
+    // no gravity, so no vertical momentum exists in those frames for the
+    // face to refuse. G-44 made this reachable here: the full-Jacobian
+    // warm start satisfies the rows so completely that no live impulse
+    // resets the rest counter, and the striker legitimately sleeps
+    // pressed flat (equilibrium, quiet, non-growing) mid-window. The
+    // truth therefore integrates gravity over MEASURED awake time, not
+    // wall time. Still no invented value: awake frames are counted, and
+    // the striker's own vz supplies the residual as before.
+    const float t_run = (float)striker_awake_frames / 60.0f;
     const float vz_freefall = -PhysicsV4::GRAVITY * t_run;
     float vz_now = 0.0f;
     { auto v = ps.lock_particles_for_read(); vz_now = v[striker].vz; }
@@ -254,9 +267,11 @@ int main() {
                         ? (-booked_z / held_up) : 0.0f;
     printf("  [measure] ledger off-axis: y %.3f, z %.3f kg*m/s\n",
            booked_y, booked_z);
-    printf("  [measure] striker vz %.3f vs free fall %.3f: the braced face "
-           "held up %.1f kg*m/s (ledger z holds %.0f%% of it)\n",
-           vz_now, vz_freefall, held_up, 100.0f * z_ratio);
+    printf("  [measure] striker vz %.3f vs free fall %.3f over %d awake "
+           "frames: the braced face held up %.1f kg*m/s (ledger z holds "
+           "%.0f%% of it)\n",
+           vz_now, vz_freefall, striker_awake_frames, held_up,
+           100.0f * z_ratio);
     printf("\n  the witness's last two frames:\n");
     argus.dump(std::cout, 2);
     printf("\n");

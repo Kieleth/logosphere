@@ -1477,3 +1477,186 @@ solver_mode, the R7-dissolution work proper. What the flip does NOT
 fix, so nothing is oversold: contacts still carry no lever arm (D2)
 and ANGULAR_DRAG still eats spin (D7); the flip makes rotation VISIBLE
 wherever it exists, which is lock 3 of 3 removed.
+
+## 2026-08-20 — DECREE: "fixed" is a protocol, not a sentence
+
+Owner, after four contact-torque slices were reported with the word
+"fixed" attached to lever-mode measurements no assertion enforced:
+
+> "we do not declare anything as fixed until Argus has verified the
+> physic-semantics of the solution as clamped by assertions in the
+> tests, plus a QA by a human in interactive mode that understands the
+> changes and why."
+
+Recorded as owner decree, into the physics skill in this commit. FIXED
+now means, and only means, all three:
+
+1. **Argus-witnessed**: the claimed physics is observed by the witness,
+   not read off a print.
+2. **Assertion-clamped**: a test enforces the claimed semantics in the
+   exact mode (lever state included) the claim is made for, and its
+   audit row says so. A mechanism behind a lever needs the lever-mode
+   contract asserted, or the claim has no enforcement.
+3. **Human-QA'd, informed**: the owner watches it interactively AND has
+   been given the education to know what changed and why, before the
+   word is used.
+
+The violation that earned this: slices A-D's lever-mode claims ("the
+die falls flat", "the sphere rolls", "lane kick cut 3.4x") were
+measured by grep over test output, while the tests' assertions ran
+their DEFAULT-mode contract. True statements, unenforced — one refactor
+away from silently becoming false. The lever-mode contracts are being
+clamped now, and no interactive QA of the torque work has happened yet,
+so nothing in slices A-D is "fixed" under this decree until both halves
+close.
+
+## 2026-08-20 — Owner QA closes the decree on slices A-D: FIXED
+
+Owner, after watching the drop ladder and the ramp race under
+CONTACT_TORQUE interactively, with the education delivered first:
+"its working!!! nice!!!" — and the confirmation question that matters:
+"no hacks, no conditional trees have been used, we're solving physics,
+right?"
+
+**ACK, with the evidence enumerated rather than asserted.** What the
+four slices added is mechanics, not policy:
+
+- Torque = r x J at the REAL contact point the narrow phase computes
+  (box-box manifold points; the turtle's corner patch). No invented
+  geometry: the one invented corner that existed for a single commit
+  was measured lying (the lane walk) and replaced by the patch.
+- Pricing: every row's effective mass carries (r x J)^2/I for each body
+  its torque may spin (INV-20, measure = apply).
+- Friction measures the contact-point relative velocity (v + omega x r,
+  both bodies) and its tangents are derived IN the contact plane from
+  the normal. Rolling emerges from slip-braking; it is not scripted.
+- Gates: solver_mode == DYNAMIC, one authority question, no owner
+  reads (INV-15), no material/size/shape special cases, no per-scene
+  tuning; the two constants added (SUPPORT_PATCH_BAND, the lever-mode
+  test bounds) are declared in schema/scene with their measurements.
+
+**The honest caveats attached to the word FIXED:**
+1. `CONTACT_TORQUE` itself is a conditional — the lever discipline's
+   temporary kind, default-off, awaiting its flip ruling; at the flip it
+   is deleted, not kept.
+2. Two named numeric residuals are NOT covered by the word: the
+   per-point omega seed (block-solve territory) and the 45-degree
+   parking (D7's damper), both boarded, the lane bound ratcheted at
+   0.30 m until they fall.
+
+**New experiments ordered by the owner, G-first:** the drop ladder
+gains a fast-spinning touchdown rung and per-axis spin rungs (X, then
+Y, then Z, one at a time, observe the surface interaction); floor
+materials (ice, rock, ...) later, for fun. The ramp gains: a plate
+BODY instead of the turtle as a next case, an ice body, and the
+materials play — folded into D9's matrix as its first concrete
+instances.
+
+## 2026-08-20 — The sweep gated four-day-old binaries, and caught itself
+
+Process finding, severity high, recorded before anything else moves:
+`scripts/physics_sweep.py` runs `build-release/`, which was last built
+2026-08-16. Every sweep verdict reported since — the gates over the
+quat-truth flip, the four contact-torque slices, and D7's law — ran
+STALE binaries against current audits. Those "new-red 0" verdicts were
+vacuous for engine behaviour changes; they gated only test-file and
+audit edits.
+
+How it surfaced is the design working: D7 flipped
+test_angular_dissipation's audit to expect=pass, the stale release
+binary still ran the old red, and the contradiction raised a MOLE
+within one sweep. An audited baseline plus a live verdict cannot both
+be stale and quiet for long.
+
+Consequences: build-release is being rebuilt now and the TRUE sweep
+over this week's engine changes runs after it; the sweep script should
+refuse to run when the build tree is older than HEAD (boarded); and the
+earlier gate claims stand corrected in place rather than erased.
+
+Also booked: INV-29's gate refused the derived /32 in the new drag law
+— correctly, against my own commit message's rhetoric. Derived
+coefficients get NAMES (ROT_DRAG_FACE_INTEGRAL, schema, with the
+integral in its description), like the 12s before it.
+
+## 2026-08-20 — G-43 THE CORNER ATTRACTOR: solved at three laws (owner ruling A)
+
+Owner ruled A: diagnose the toppling channel before items 4-6. The corner
+attractor was three stacked confiscations, each fixed at its own law, no
+scene tuning, no special cases:
+
+1. **G-44, the sleep law's missing half.** Rest entry priced linear speed
+   only, then zeroed omega. A corner topple starts as near-pure rotation
+   (extremity 0.026 m/s < 0.1 threshold, exponential lambda ~3.4/s), so
+   the 10-frame window froze every budding topple. Law: quietness is ONE
+   currency (v^2 + omega^2 r_ext^2) and must be NON-GROWING
+   (REST_GROWTH_TOLERANCE, REST_GROWTH_FLOOR, both in schema). A cache
+   may only cache a fixed point.
+2. **Turtle rows were rotation-blind.** The omega-cross-r anchor term
+   lived only in the box-box branch of v_rel, and its gate
+   (is_quat_driven) contradicted the apply gate (DYNAMIC, G-39) so plain
+   bodies' rotation was invisible to every contact row. Measure-gate now
+   equals apply-gate, both branches.
+3. **Warm start was a second solver with different physics.** Cached
+   support applied LINEAR-ONLY to the first row of each key (hash dedup
+   dropped the rest): support without lever arms is support without
+   torque, and the turtle key hits every substep. Rebuilt as iteration
+   zero through the FULL Jacobian, distributed across the key's rows by
+   eff_mass_share; the store sums the group (the old loop stored only the
+   first row, undercounting every multi-point contact). The documented
+   hash-collision dedup defect retired with the hash dedup itself.
+
+Measured: R7 falls at 3.19 rad/s onto the slab; R8 falls at 3.35 onto
+the turtle (z 0.3997 vs face 0.4000); the ramp cube ends FLAT on the
+turtle (z 0.20, clean quarter-turn), lane walk 0.9902 -> 0.1382 m,
+INSIDE the 0.30 ratchet: the torque-free warm channel was also the lane
+driver, so rotation item 5's block-solve suspicion is likely moot.
+Lever ladder R0-R8 fully green. Harness 27/27. Honest new default red:
+R2 settled-spin passed via sleep confiscation; it now names the absent
+default torque law alongside R1's pair.
+
+Remaining on the rotation list: rolling-vs-sliding travel contract
+re-clamp (item 2 tail), G-21/G-23 gimbal ruling with measurement (item
+4), CONTACT_TORQUE flip ruling + ice (item 6). FIXED protocol: Argus
+asserts clamped; owner interactive QA pending.
+
+## 2026-08-20 — Certifying sweep after G-43/G-44: CLEAN
+
+SWEEP_VERDICT: new-red 0, gone-green 0. The four moles resolved: inv29
+green (0.25f renamed), refused_momentum green (truth over measured awake
+frames, 107% in band), minimal_v2 green (36.5 s, was 221.5 under the
+unrefined growth gate), tree_wiggly booked known-open pending owner
+ruling (G-44 unmasked a sustained gluon-tree oscillation the old sleep
+entry absorbed; RCA tasked). The 39 unaudited are the other session's
+Kamaji/rules/KG tests plus visual drivers, unchanged from the previous
+sweep. FIXED protocol clause 3 (owner interactive QA) remains open for
+the whole G-43 arc.
+
+## 2026-08-20 — G-45: friction acts only through a touching contact (owner QA find)
+
+Owner watched the window and said what the green ladder could not: "4/8
+is wrong... 7/8 is not falling." The continuous world, rebuilt headless
+with Argus per the owner's order, exposed three stacked defects: bodies
+teleported between cases kept their solver history (fixed: arm/park
+void history, PhysicsSystem::forget_body); the flight-window instrument
+accepted the wrong body's landing (fixed: actor-only); and the real
+one, G-45: speculative rows (bias < 0, gap open) were transmitting
+Coulomb friction sized by their CAPTURE impulses — 52.1 N*s of phantom
+friction killed a 3 rad/s spin in the last 3 cm of fall. Law: bias < 0
+rows transmit no friction and warm no equilibrium. Yields: wheels walk
+0.19 m (2.4x), ramp lane 0.0036 m (0.99 at arc start, three orders),
+R2 spin alive to the floor, lever ladder R0-R8 green in BOTH worlds.
+Drops raised to 0.6 m (owner order, honest post-D7); the wheels release
+at 0.05 m by DERIVATION (corner-knock band, measured non-monotonic).
+Instrument debt paid: phystrace frames tick in headless, friction and
+warm-start applies traced, per-phase omega probe. Ramp's one remaining
+lever red is G-23 (item 4). FIXED protocol: owner window QA pending on
+the corrected build.
+
+## 2026-08-20 — Owner QA closes G-43 + G-45 (FIXED protocol, clause 3)
+
+Owner verdict on the corrected ladder window: "total success and is 99%
+according with physics... these are totally great... excellent work,
+almost magic." Argus-clamped asserts (clause 1) + certified sweep
+(new-red 0) + owner interactive QA (clause 3): both arcs FIXED. Owner
+orders added to the board: spin-lift on impact, rotation-rate sweep for
+falling cubes, spinning spheres vs floor. Merge of the branch ordered.

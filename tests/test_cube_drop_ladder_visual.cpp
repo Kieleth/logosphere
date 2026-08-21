@@ -72,8 +72,8 @@ int main() {
 
     Scene scene;
     scene.build(ps);
-    if (interactive) scene.add_backdrop(ps);   // height ruler, never contacted
-    scene.arm(ps, RUNGS[0]);
+    scene.add_backdrop(ps);   // both modes: criterion b, same bodies
+    scene.arm(ps, physics, RUNGS[0], 0);
     // FIXED camera at the action column. The first version FOLLOWED the
     // cube, which put it dead-centre every frame: a falling body whose
     // camera falls with it does not appear to move ("I see a cube static
@@ -96,10 +96,15 @@ int main() {
     l_verdict->set_position(16, base_y + 72);
 
     if (interactive)
-        std::printf("\n  ESC or the red X quits.  SPACE moves the camera in.\n"
-                    "  cycling: control -> tilted 20 deg -> spinning 3 rad/s\n\n");
+        std::printf("\n  SPACE = next case   Z = zoom in   ESC = quit\n"
+                    "  eight cases: control, tilted 20deg, top 3rad/s, fast top,\n"
+                    "  wheel X (drives along Y), wheel Y (drives along X),\n"
+                    "  CORNER STAND on the slab, CORNER STAND on the turtle\n\n");
 
-    bool space_was_down = false, quit = false;
+    bool space_was_down = false, z_was_down = false, quit = false;
+    bool advance_case = false;
+    constexpr int HOLD_FRAMES = 60;   // 1 s of armed stillness per case
+    int hold_frames = interactive ? HOLD_FRAMES : 0;
     int frame = 0, rung = 0, rung_frame = 0;
     char buf[256];
 
@@ -108,27 +113,60 @@ int main() {
                        : (frame < total_frames)) {
         const auto t0 = std::chrono::steady_clock::now();
 
-        // Window pacing only: 2.5 s per rung (0.25 s of fall, 2.25 s of
-        // settled viewing) instead of the headless 5 s. The physics per
-        // step is the scene's and identical; only how long a human
-        // watches the settled state differs.
-        const int shown = interactive ? 150 : RUN_FRAMES;
-        if (rung_frame >= shown) {               // next rung, wrap in window mode
-            rung = (rung + 1) % 3;
-            if (!interactive && rung == 0) break;
-            scene.arm(ps, RUNGS[rung]);
+        // OWNER ORDER 2026-08-20: interactive cases advance on SPACE,
+        // never on a timer — the human decides when they have seen
+        // enough of a case. Headless keeps the full audited run.
+        if (!interactive && rung_frame >= RUN_FRAMES) {
+            rung = (rung + 1) % RUNG_COUNT;
+            if (rung == 0) break;
+            scene.arm(ps, physics, RUNGS[rung], rung);
             rung_frame = 0;
         }
-        scene.step(ps, physics, rung_frame, RUNGS[rung].spin_z);
+        if (advance_case) {                      // SPACE, edge-triggered
+            advance_case = false;
+            rung = (rung + 1) % RUNG_COUNT;
+            scene.arm(ps, physics, RUNGS[rung], rung);
+            rung_frame = 0;
+            // The stage moves with the case: R8 performs at x = 10 on
+            // the bare turtle; a fixed origin camera showed empty space
+            // and the lamps' emission radius never reached it.
+            const float stage_x = (rung == 7) ? 10.0f : 0.0f;
+            cam.set_position(stage_x, 0.0f, 0.55f);
+            move_lamps(ps, lamps, stage_x, 0.0f, 0.6f);
+            hold_frames = interactive ? HOLD_FRAMES : 0;
+        }
+        // EVERY case opens with a held frame (interactive only): the
+        // engine's warmup outlasts a 0.25 s drop, so an un-held case is
+        // over before the first presented frame reaches the eye
+        // ("saw nothing"). The pose is armed and frozen; the countdown
+        // shows on the readout; then physics runs.
+        if (hold_frames > 0) {
+            --hold_frames;
+        } else {
+            scene.step(ps, physics, rung_frame, RUNGS[rung].spin_z);
+            ++rung_frame;
+        }
 
+        const int actor = scene.actor(rung);
         float x, y, z, oy, oz, ry;
         {   auto v = ps.lock_particles_for_read();
-            const Particle& p = v[scene.cube];
+            const Particle& p = v[actor];
             x=p.x; y=p.y; z=p.z; oy=p.omega_y; oz=p.omega_z; ry=p.rotation_y; }
+        // Spin lectures: wider stage so hero AND twin are both in frame.
+        {   const float want = (rung >= 3) ? 120.0f : 160.0f;
+            if (ppu > want + 1.0f || ppu < want - 1.0f) {
+                ppu = want; cam.set_pixels_per_unit(ppu);
+            }
+        }
         (void)x; (void)y;   // camera and lamps are fixed; the cube moves
 
-        std::snprintf(buf, sizeof(buf), "%s   (t %.2fs)", RUNGS[rung].name,
-                      rung_frame / 60.0f);
+        std::snprintf(buf, sizeof(buf),
+                      hold_frames > 0
+                          ? "== CASE %d of %d ==  %s   (starts in %.1fs)"
+                          : "== CASE %d of %d ==  %s   (t %.2fs)",
+                      rung + 1, RUNG_COUNT, RUNGS[rung].name,
+                      hold_frames > 0 ? hold_frames / 60.0f
+                                      : rung_frame / 60.0f);
         l_rung->set_text(buf);
         std::snprintf(buf, sizeof(buf),
                       "rot_y %.3f rad   omega_y %.3f   omega_z %.3f   z %.3f",
@@ -140,7 +178,10 @@ int main() {
                       scene.min_frame_keep);
         l_meas->set_text(buf);
         const char* verdict =
-            rung == 0 ? "R0 control: must invent no rotation"
+            rung >= 6 ? (scene.argus.peak_spin(scene.hero) > CORNER_TOPPLE_SPIN_MIN
+                ? "R7/R8 PASS: the corner stand FELL (G-43 dead)"
+                : "R7/R8: corner-down, a hair off balance — it MUST fall")
+          : rung == 0 ? "R0 control: must invent no rotation"
           : rung == 1 ? (scene.peak_omega_y > TIP_OMEGA_MIN
                 ? "R1 PASS: it tipped" 
                 : "R1 FAIL (G-35): balanced on an edge, contact torque absent")
@@ -160,16 +201,20 @@ int main() {
             if (win) {
                 if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) quit = true;
                 if (glfwWindowShouldClose(win)) quit = true;
-                const bool down = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-                if (down && !space_was_down && ppu < 195.0f) {
-                    ppu *= 1.15f; if (ppu > 195.0f) ppu = 195.0f;
+                // SPACE = next case (owner order); zoom moved to Z.
+                const bool sp = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
+                if (sp && !space_was_down) advance_case = true;
+                space_was_down = sp;
+                const bool zk = glfwGetKey(win, GLFW_KEY_Z) == GLFW_PRESS;
+                if (zk && !z_was_down && ppu < 260.0f) {
+                    ppu *= 1.15f;
                     cam.set_pixels_per_unit(ppu);
                 }
-                space_was_down = down;
+                z_was_down = zk;
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
         }
-        ++frame; ++rung_frame;
+        ++frame;
     }
 
     std::printf("  window closed after %d frames.\n", frame);

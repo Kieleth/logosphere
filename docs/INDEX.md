@@ -26,6 +26,7 @@ Optional, whenever you want it: **[Why this exists](WHY.md)**: the bet the engin
 
 ## Engine internals
 
+- **[Rotation and Contact Physics](ROTATION_CONTACT_PHYSICS.md)**: the 2026-08 campaign record: contact torque, the corner-stand attractor and its three laws, phantom friction, and the instruments that found them, with the numbers
 - **[The Reflection Protocol](REFLECTION_PROTOCOL.md)**: the nine layers between somebody else's rulebook and a playable game, each with a contract, a conformance gate, and a stated replacement condition. Names its own ungated rules under "Known thin ice"
 - **[Engine Invariants](ENGINE_INVARIANTS.md)**: the rules that hold regardless of task, and why each one was expensive. Read before touching physics or animation
 - **[Visual Tests](VISUAL_TESTS.md)**: proving a rendering change: headless assertions plus an interactive mode, and the traps that produce confident wrong answers
