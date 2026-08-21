@@ -326,6 +326,17 @@ constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}
 // not trends.
 constexpr float    REST_GROWTH_TOLERANCE = 1.01f;   // unit: 1
 
+// G-48. The sleep law admits a body only while its constraint set is
+// satisfied, and contacts count: a touching contact row whose
+// penetration exceeds this marks both bodies dissatisfied, so sleep
+// cannot freeze a pair mid-repair (measured: stacked boxes slept 1-2
+// cm inside each other because only gluon strain ever wrote the
+// carrier). Three times SLOP: the split-impulse position pass
+// converges resting penetration to about SLOP, so this margin is
+// always reachable and honest rest is never blocked (the insomnia
+// class G-44 guarded against).
+constexpr float    SLEEP_PEN_TOLERANCE = 0.003f;   // unit: m
+
 // G-44 refined by test_tree_wiggly. A topple grows MONOTONICALLY
 // (exponential envelope), an oscillation alternates growth and decay
 // every few frames. Only this many CONSECUTIVE growing frames mark a

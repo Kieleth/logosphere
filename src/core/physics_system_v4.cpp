@@ -378,6 +378,10 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 
     for (int substep = 0; substep < N_SUBSTEPS; ++substep) {
         ::logosphere::phystrace::set_substep(substep);
+        // Fresh dissatisfaction slate BEFORE anyone marks (G-48): the
+        // contact build marks first, the gluon build marks later, the
+        // sleep gate reads the union at frame end.
+        constraint_dissatisfied_.assign(particles.size(), 0);
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
@@ -975,7 +979,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             float patch_pen[4];
             {
                 static const bool contact_torque_on2 =
-                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
+                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                 if (contact_torque_on2 &&
                     pi.solver_mode == ParticleSolverMode::DYNAMIC &&
                     pi.shape == ParticleShape::BOX &&
@@ -1120,6 +1124,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                              c.bias, c.effective_mass, c.jz);
                 constraints.push_back(c);
             }
+
+            // THE SLEEP LAW HEARS CONTACTS TOO (G-48): real penetration
+            // beyond the tolerance marks the body dissatisfied, so sleep
+            // cannot freeze it mid-repair. Speculative gaps do not mark.
+            if (penetration > SLEEP_PEN_TOLERANCE &&
+                i < constraint_dissatisfied_.size())
+                constraint_dissatisfied_[i] = 1;
 
             // Turtle contacts provide equilibrium for BFS distance calculation
             active_contacts_.push_back(std::make_pair(i, i));
@@ -1590,7 +1601,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // reading owner (INV-15), and inv_m = 0 bodies cannot
                     // spin regardless.
                     static const bool contact_torque_on =
-                        []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
+                        []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                     if (contact_torque_on) {
                         c.apply_anchor_torque = true;
                         c.anchor_rax = manifold.points[cp].px - pi.x;
@@ -1673,6 +1684,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.is_contact = true;
                     c.friction_impulse_t1 = 0.0f;
                     c.friction_impulse_t2 = 0.0f;
+
+                    // THE SLEEP LAW HEARS CONTACTS TOO (G-48): touching
+                    // rows with real penetration beyond the tolerance mark
+                    // both bodies dissatisfied; sleep cannot freeze a pair
+                    // mid-repair (stacked boxes slept 1-2 cm interlocked
+                    // because only gluon strain wrote the carrier).
+                    // Speculative rows (bias < 0, gap open) do not mark.
+                    if (c.bias >= 0.0f &&
+                        c.penetration > SLEEP_PEN_TOLERANCE) {
+                        if (c.body_a < constraint_dissatisfied_.size())
+                            constraint_dissatisfied_[c.body_a] = 1;
+                        if (c.body_b < constraint_dissatisfied_.size())
+                            constraint_dissatisfied_[c.body_b] = 1;
+                    }
 
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                                  (int)c.body_a, (int)c.body_b, "sat_manifold",
@@ -1925,7 +1950,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     std::vector<GluonConstraintIndices> gluon_constraint_indices;
     gluon_constraint_indices.reserve(gluon_constraints_v2_.size());
 
-    constraint_dissatisfied_.assign(particles.size(), 0);
+    // The dissatisfaction carrier is cleared at SUBSTEP START (before
+    // contact detection), not here: this assign used to run after the
+    // contact build and wiped the contact marks (G-48) before the sleep
+    // gate ever read them. Gluon strain marks land after contacts; both
+    // survive to update_rest_state.
+    if (constraint_dissatisfied_.size() != particles.size())
+        constraint_dissatisfied_.assign(particles.size(), 0);
     size_t gluon_slot_counter = 0;
     for (const auto& gluon : gluon_constraints_v2_) {
         const size_t this_gluon_slot = gluon_slot_counter++;
@@ -3746,7 +3777,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float t2x, t2y, t2z;  // Tangent 2
 
                 static const bool contact_torque_basis =
-                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
+                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                 if (contact_torque_basis) {
                     // THE TANGENTS LIVE IN THE CONTACT PLANE (G-40, same
                     // CONTACT_TORQUE lever). The axis-dominant picks below

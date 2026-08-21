@@ -203,7 +203,7 @@ int main() {
 
     check(Scene::held(scene.ramp_drift),
           "the ramp never moved: every travel number has a fixed datum");
-    static const bool lever = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
+    static const bool lever = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
     if (lever) {
         // The lever-mode CONTRACT (2026-08-20 decree): the torque
         // slices' headline claims, enforced where they are made.

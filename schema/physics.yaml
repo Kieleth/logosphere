@@ -1308,6 +1308,20 @@ classes:
           speed-only gate. The rest counter accumulates only while the
           per-frame quietness ratio stays at or below this tolerance,
           which exists to forgive solver jitter, not trends.
+      SLEEP_PEN_TOLERANCE:
+        range: float
+        ifabsent: float(0.003)
+        unit: { ucum_code: m }
+        description: >-
+          G-48. The sleep law admits a body only while its constraint
+          set is satisfied, and contacts count: a touching contact row
+          whose penetration exceeds this marks both bodies dissatisfied,
+          so sleep cannot freeze a pair mid-repair (measured: stacked
+          boxes slept 1-2 cm inside each other because only gluon strain
+          ever wrote the carrier). Three times SLOP: the split-impulse
+          position pass converges resting penetration to about SLOP, so
+          this margin is always reachable and honest rest is never
+          blocked (the insomnia class G-44 guarded against).
       REST_GROWTH_RUN:
         range: integer
         ifabsent: int(3)
