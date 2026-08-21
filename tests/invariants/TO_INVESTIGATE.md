@@ -8,10 +8,42 @@ without a mechanism.
 
 **The rule this file exists to honour.** None of these were deleted, weakened
 or turned off. Red is information and so is a green that is green for the
-wrong reason. Each entry is booked here, carries a `TO-INVESTIGATE` comment
-block at the top of its own file, and has the same reason in its
-`TEST_AUDIT.jsonl` row's `known_open`. They are for the owner to study one at
-a time; the exit-code behaviour of every one of them is unchanged.
+wrong reason. Each entry is booked here, carries a comment block at the top of
+its own file, and has the same reason in its `TEST_AUDIT.jsonl` row's
+`known_open`.
+
+---
+
+## ADJUDICATION PASS, 2026-08-21
+
+All eight entries were adjudicated. Strengthening only: no band was widened,
+no assert removed without a stronger one taking its place, and no test went
+from red to green.
+
+| test | disposition | before | after |
+|---|---|---|---|
+| `test_collision_bounds_rotation` [1c] | REPAIRED, born red | 27 checks 0 failed | 27 checks 1 failed |
+| `test_no_overlap_at_creation` | CONTRADICTION PRESENTED, no code change | exit 0 | exit 0 |
+| `test_sleep_diagnostics` | RETIREMENT PROPOSED, output marked | exit 0 | exit 0 |
+| `test_physics_minimal` | REPAIRED | PASS via the middle branch | PASS on the law |
+| `test_oscillation_diagnostic` | REPAIRED as a regression test, born red | PASS via the middle branch | FAIL |
+| `test_ancient_oak` | REPAIRED | PASS with `wiggle_ok` dropped | PASS with it wired in |
+| `test_tree_wiggly` | REPAIRED, bands restored | 1/3, exit 1 | 1/3, exit 1 |
+| `test_knockback_scene` | REPAIRED | 16 passed 0 failed | 16 passed 0 failed |
+
+**Two tests are red where they were green**, both booked `expect: fail`:
+
+- `test_collision_bounds_rotation`, against the FallenTreeGenerator offset.
+  **This one is in the PR-gating CI lane** (`add_headless_test` makes it a
+  ctest in the headless-only profile, which `headless-linux` runs in full). No
+  CI file was edited. The gate stays red until the generator is corrected.
+- `test_oscillation_diagnostic`, against the G-44 gluon-tree oscillation RCA
+  already on the board. In no CI lane.
+
+**One law arrived mid-pass.** INV-33 finite-state, INV-34 rest-is-reached and
+INV-35 one-position-writer were ratified 2026-08-21. Their records live on
+`feat/physics-tdd-item6` and arrive here when that merges; asserts landed by
+this pass cite INV-34 by its ratified ID. See `INV_PROPOSALS.md`.
 
 ---
 
