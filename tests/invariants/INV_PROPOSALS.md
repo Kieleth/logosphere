@@ -35,6 +35,18 @@ consequences, and both are deliberate:
   first known violation; test_physics_minimal's accepted 0.01-0.1 m/s tile
   oscillation is the second."
 
+**A repo-wide rename is owed and was NOT done here.** Roughly a dozen tests
+outside the eight adjudicated files still print `PROPOSED REST-IS-REACHED`,
+`PROPOSED FINITE-STATE` or `PROPOSED ONE-POSITION-WRITER` in their verdict
+lines (`test_settling`, `test_falling_cube`, `test_physics_rock`,
+`test_awake_onto_at_rest`, `test_baumgarte_ratchet`,
+`test_experiment_totem_builder`, `test_physics_minimal_v2`,
+`test_rotated_box_contact`, `test_position_authority`, and others). Those
+citations now point at ratified laws under proposal names. Renaming them is a
+mechanical sweep that belongs with the branch carrying the ratified records,
+not to a pass that was scoped to eight tests: doing half of it from here would
+leave the repo inconsistent in a second way.
+
 **Format.** One section per proposal:
 - **Name** — the slug an eventual INV/G would carry.
 - **Claim** — one sentence, the law itself.

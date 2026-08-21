@@ -206,7 +206,7 @@ bool test_ancient_oak() {
                   << wiggly_frames << "/30 wiggly)" << std::endl;
     } else {
         if (!stands_ok) {
-            std::cout << "  ❌ FAIL " << (nan_detected ? "PROPOSED FINITE-STATE: Collapsed (NaN)"
+            std::cout << "  ❌ FAIL " << (nan_detected ? "INV-33: Collapsed (NaN)"
                                                       : "INV-11: Too much drift") << std::endl;
         }
         if (!wiggle_ok) {
