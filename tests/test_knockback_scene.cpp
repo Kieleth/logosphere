@@ -1,18 +1,36 @@
-// TO-INVESTIGATE (test-protocol migration, 2026-08-21): the CONTROL of the
-// first case asserts, as its passing condition, that the predator ends up
-// INSIDE the prey (`without.closest < kTouchDistance`). The reason given is
-// correct and honest — both bodies are KINEMATIC, so the solver moves neither
-// and the AI drives one straight through the other — but as an assert it pins
-// an illegal world as expected. INV-30 says a subsystem that owns a body's
-// position from outside the solver may not hand it a state it would never have
-// produced, no frame beginning with an overlap beyond SLOP, enforced
-// STRICT-FIRST; INV-2 says no two bodies interpenetrate beyond SLOP. So the
-// day a driver stops walking its body into another one, this control goes red
-// and a correct fix reads as a regression. The contrast it sets up is real and
-// the with-rule case needs a baseline, so nothing here was changed and the
-// exit code is unchanged. What is owed is a ruling on whether the control
-// should instead assert "they overlap TODAY, and here is the ticket", i.e.
-// become an explicit expect-fail rather than an expect-pass.
+// ADJUDICATED 2026-08-21 (test-adjudication pass): REPAIRED, still green.
+//
+// The CONTROL of the first case asserted, as its passing condition, that the
+// predator ends up INSIDE the prey (`without.closest < kTouchDistance`). The
+// reason given was correct and honest — both bodies are KINEMATIC, so the
+// solver moves neither and the AI drives one straight through the other — but
+// as an assert it pinned a world INV-2 forbids (no interpenetration beyond
+// SLOP) and INV-30 forbids twice over (an external writer may not hand the
+// solver that state at all, enforced strict-first). The day a driver stops
+// walking its body through another one, that control goes red and the correct
+// fix reads as a regression.
+//
+// WHAT THE CONTROL ACTUALLY NEEDS is that the rule did NOTHING, and a rule's
+// doing-nothing has its own observables: the contact reached the bus, and no
+// knockback came back out. Those are now what it asserts —
+// `without.events > 0`, `without.knockbacks == 0`, `without.prey_moved <
+// 0.01`, each naming its law. Nothing about where the bodies ended up.
+//
+// `events > 0` is the STRONGER check for the job, not merely a politer one.
+// It proves the encounter reached the seam a rule fires on, which "they
+// overlapped" does not: this file's own header records creatures built with
+// engine.add_particle() that overlapped freely while the contact producer
+// skipped them entirely, so no rule could ever have reached them. Under the
+// old spelling that scene would have passed the control.
+//
+// This is also the spelling case 3 (the mismatched-type rule) has always used
+// for its control, `mismatched.events > 0` plus `knockbacks == 0` plus
+// `prey_moved < 0.01`. Case 1 now matches its own file.
+//
+// The interpenetration is not swept up. It is measured, printed as an
+// INV-2/INV-30 violation of the KINEMATIC drivers, and booked in
+// TO_INVESTIGATE.md — reported, never blessed. Measured today: closest
+// 0.0000276 m against a touch distance of 1.8 m, overlapping on 72 frames.
 //
 // Knockback against the REAL engine: a predator walks into prey, and a
 // contact rule pushes them apart.
@@ -490,18 +508,52 @@ int main() {
                   << ", knockbacks " << without.knockbacks << std::endl;
     }
 
-    // The predator walks into the prey and stays there. This is what
-    // test_predator_hunt measured as "ended 0.71 m" and it is not a bug
-    // in physics: both bodies are KINEMATIC, so the solver moves neither.
-    CHECK(without.closest < kTouchDistance,
-          "TO-INVESTIGATE control, see the block at the top of this file: without a rule the predator ends up INSIDE the prey (closest " +
-          std::to_string(without.closest) + " m, touch at " +
-          std::to_string(kTouchDistance) + ")");
+    // THE CONTROL ASSERTS ABSENCE OF EFFECT, NOT AN ILLEGAL WORLD.
+    //
+    // It used to require `without.closest < kTouchDistance` — that the
+    // predator ends up INSIDE the prey — as its passing condition. The reason
+    // given was honest (both bodies are KINEMATIC, the solver moves neither,
+    // and the AI drives one straight through the other) but the assert pinned
+    // a world INV-2 and INV-30 both forbid, so the day a driver stops walking
+    // its body through another one the control would go red and the correct
+    // fix would read as a regression.
+    //
+    // What the control actually needs is that the rule did NOTHING, and the
+    // rule's observables say that directly: the contact reached the bus, and
+    // no knockback came back out. `events > 0` is also the STRONGER check for
+    // the job. It proves the encounter really happened at the seam a rule
+    // fires on, which "they overlapped" does not: this file's own header
+    // records creatures built with engine.add_particle() that overlapped
+    // freely while the contact producer skipped them entirely, so no rule
+    // could ever have reached them. Case 3 below (the mismatched-type rule)
+    // has always spelled its control exactly this way; case 1 now matches it.
+    //
+    // The interpenetration itself is still measured and printed above. It is a
+    // finding about the KINEMATIC drivers, booked in TO_INVESTIGATE.md, not a
+    // property this file blesses.
+    CHECK(without.events > 0,
+          "hygiene: the approach really reached contact — the pair's contact reached the bus (" +
+          std::to_string(without.events) + " events), so 'nothing pushed back' is a measured absence and not a missed encounter");
     CHECK(without.knockbacks == 0,
-          "control: and nothing pushes back (" + std::to_string(without.knockbacks) +
-          " knockbacks)");
+          "INV-22: with no rule armed, no second mechanism touches the pair — nothing pushes back (" +
+          std::to_string(without.knockbacks) + " knockbacks)");
     CHECK(without.prey_moved < 0.01f,
-          "control: the prey never moves (" + std::to_string(without.prey_moved) + " m)");
+          "INV-7: and no momentum reaches the prey through the one door — it never moves (" +
+          std::to_string(without.prey_moved) + " m)");
+    // Reported, never asserted as correct: what the KINEMATIC drivers do to
+    // each other with nothing arbitrating. INV-2 forbids interpenetration
+    // beyond SLOP and INV-30 forbids an external writer handing the solver
+    // that state at all.
+    if (without.closest < kTouchDistance) {
+        std::cout << "  [INV-2/INV-30 violation, reported not blessed] the "
+                     "predator ends INSIDE the prey: closest "
+                  << without.closest << " m against a touch distance of "
+                  << kTouchDistance << " m, overlapping on "
+                  << without.frames_overlapping << " frames. Both bodies are "
+                     "KINEMATIC, so the solver moves neither and the driver "
+                     "walks one straight through the other. Booked in "
+                     "tests/invariants/TO_INVESTIGATE.md." << std::endl;
+    }
 
     // ------------------------------------------------------------------
     // 2. THE SAME APPROACH, with the rule armed.

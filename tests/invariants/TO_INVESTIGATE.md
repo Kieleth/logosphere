@@ -323,12 +323,43 @@ this one is still COM speed.
 
 ---
 
-## test_knockback_scene — the control asserts that one body ends up inside another
+## test_knockback_scene — REPAIRED 2026-08-21, still green
 
-**What it asserts.** In the no-rule case, `without.closest < kTouchDistance` is
-a PASSING condition: the predator must end up inside the prey. The file
-explains why honestly — both bodies are KINEMATIC, the solver moves neither,
-and the AI drives one straight through the other.
+**ADJUDICATED: the control asserts absence of effect, not an illegal world.
+16 checks passed, 0 failed, before and after.**
+
+**Diagnosed intent.** The control's job is to establish that with no rule armed
+the rule did NOTHING. That has its own observables, and they do not mention
+where the bodies ended up:
+
+| assert | law |
+|---|---|
+| `without.events > 0` | hygiene — the pair's contact reached the bus, so "nothing pushed back" is a measured absence and not a missed encounter |
+| `without.knockbacks == 0` | INV-22 — with no rule armed, no second mechanism touches the pair |
+| `without.prey_moved < 0.01` | INV-7 — no momentum reaches the prey through the one door |
+
+**`events > 0` is the stronger check, not merely the politer one.** It proves
+the encounter reached the seam a rule fires on, which "they overlapped" does
+not. This file's own header records the failure that distinction is made of:
+creatures built with `engine.add_particle()` are outside the KG, so the contact
+producer skipped them and no rule could ever reach them however it was written.
+Those creatures overlapped freely. Under the old spelling the control would
+have passed on that scene.
+
+It is also the spelling case 3 — the mismatched-type rule — has always used for
+its own control (`mismatched.events > 0`, `knockbacks == 0`, `prey_moved <
+0.01`). Case 1 now matches its own file.
+
+**The interpenetration is not swept up.** It is measured and printed as what it
+is, an INV-2/INV-30 violation of the KINEMATIC drivers: closest 0.0000276 m
+against a touch distance of 1.8 m, overlapping on 72 frames. Reported, never
+blessed. The finding belongs to whoever owns the drivers; nothing in this file
+now goes red when they are fixed.
+
+**What it asserted before.** In the no-rule case, `without.closest <
+kTouchDistance` was a PASSING condition: the predator had to end up inside the
+prey. The file explained why honestly — both bodies are KINEMATIC, the solver
+moves neither, and the AI drives one straight through the other.
 
 **Why that needs a ruling.** As an assert it pins an illegal world as expected.
 INV-30: a subsystem that owns a body's position from outside the solver may not
@@ -338,10 +369,15 @@ interpenetrate beyond SLOP. The day a driver stops walking its body through
 another one, this control goes red and the correct fix reads as a regression —
 the same shape as the fallen-log ratchet above.
 
-**What is owed.** The contrast is real and the with-rule case genuinely needs a
-baseline, so the question is only how the baseline is spelled: an explicit
-expect-fail ("they overlap TODAY, here is the ticket") rather than an
-expect-pass. Nothing changed; exit code unchanged.
+**What was owed, and what was done.** The question was only how the baseline is
+spelled. It is now spelled as the rule's observables, which is neither an
+expect-pass on an illegal world nor an expect-fail: the control is a true green
+about a true absence, and the illegal world is a printed finding beside it.
+
+**What is still owed, and it is not this file's.** Two KINEMATIC drivers walk
+through each other with nothing arbitrating. INV-30 is enforced strict-first
+and names KINEMATIC drivers explicitly. That is a driver front, not a test
+front.
 
 ---
 
