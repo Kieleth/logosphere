@@ -23,6 +23,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   with weak education and endurance, replayed byte-identically with 0
   LLM calls, and forkable onto the doors it did not take.
 
+  **The windowed game uses it too**, through the same author in
+  `src/door_author.h`, so a life played at the screen and a life
+  recorded headless are offered the same doors. The reasoning is shown
+  on screen rather than hidden: a player narrowed at without being told
+  is on a rail.
+
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs

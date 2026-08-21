@@ -21,6 +21,7 @@
 #include "chargen/chargen.h"
 #include "chargen/rule_seed_loader.h"
 #include "adjudicator.h"
+#include "door_author.h"
 #include "narrator.h"
 #include "rulebook_summary.h"
 #include "sheet_screen.h"
@@ -366,6 +367,32 @@ private:
         seed_ = pinned_seed_ ? *pinned_seed_ + lives_ : random_seed();
         ++lives_;
         session_ = std::make_unique<ChargenSession>(kg, dice_);
+
+        // Voyager V1: the narrative decides which doors this character
+        // sees. The rules build the legal set and still own it; the
+        // referee narrows it to the ones that make sense for THIS
+        // person, and says why in the language of the world.
+        //
+        // Same author the headless recorder uses, so a life played here
+        // and a life recorded there are offered the same doors.
+        session_->set_option_author(
+            [this](const std::vector<logovger::Choice>& legal,
+                   const logovger::CharacterSheet& life,
+                   std::vector<logovger::Choice>& offered,
+                   std::string& error) {
+                std::string said;
+                if (!logovger::author_the_doors(adjudicator_, seed_, legal,
+                                                life, offered, error,
+                                                &said)) {
+                    return false;
+                }
+                // The reasoning is shown, not hidden. A player told
+                // only "here are four careers" has been narrowed at
+                // without being told, which is the difference between
+                // a game and a rail.
+                if (!said.empty()) screen_.say(said, SheetScreen::Tone::Good);
+                return true;
+            });
         // Who decides which characteristics the years take. The engine
         // supplies the eligible set, the count and the size of the
         // change, and refuses to pick; this hands that to the referee,
