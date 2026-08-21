@@ -439,6 +439,20 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Item 6 IN TDD — INV-32 registered, flip built, ONE blocker: G-47
+
+INV-32 (contacts exert torque by default; CONTACT_TORQUE=0 becomes the
+kill switch) registered aspirational; all 11 gate sites flipped on
+feat/physics-tdd-item6. Default-world battery: ladder 2 expected reds
+(R5/R6 walk), ramp 1 (G-46), harness green, angular dissipation and
+orientation truth green. BLOCKER: the refused-momentum ledger (CI
+smoke) reds under default torque — a dead-square 9 m/s strike leaves
+with 2.99 rad/s spin (G-47: sequential per-point manifold solving
+seeds spin that a violent strike carries away before it can
+rebalance). Mechanism owed: the manifold BLOCK SOLVE (prior art
+feat/joint-block-solver, stalls -96%). The flip does not ship until
+G-47's asserts are green; this also retires item 5's residual seed.
+
 ## G-46 — the sphere must out-roll the cube (ENHANCEMENT, born red)
 
 Owner order with the math done first (registry has the derivation):

@@ -975,7 +975,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             float patch_pen[4];
             {
                 static const bool contact_torque_on2 =
-                    std::getenv("CONTACT_TORQUE") != nullptr;
+                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                 if (contact_torque_on2 &&
                     pi.solver_mode == ParticleSolverMode::DYNAMIC &&
                     pi.shape == ParticleShape::BOX &&
@@ -1590,7 +1590,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // reading owner (INV-15), and inv_m = 0 bodies cannot
                     // spin regardless.
                     static const bool contact_torque_on =
-                        std::getenv("CONTACT_TORQUE") != nullptr;
+                        []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                     if (contact_torque_on) {
                         c.apply_anchor_torque = true;
                         c.anchor_rax = manifold.points[cp].px - pi.x;
@@ -3746,7 +3746,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float t2x, t2y, t2z;  // Tangent 2
 
                 static const bool contact_torque_basis =
-                    std::getenv("CONTACT_TORQUE") != nullptr;
+                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                 if (contact_torque_basis) {
                     // THE TANGENTS LIVE IN THE CONTACT PLANE (G-40, same
                     // CONTACT_TORQUE lever). The axis-dominant picks below

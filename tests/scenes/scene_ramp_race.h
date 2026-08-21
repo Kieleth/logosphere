@@ -292,7 +292,7 @@ struct Scene {
     static bool travelled(float d) { return d > TRAVEL_MIN; }
     static bool turned(float peak_omega) { return peak_omega > SPIN_MIN; }
     static bool in_lane(float dev) {
-        static const bool lever = std::getenv("CONTACT_TORQUE") != nullptr;
+        static const bool lever = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == ' '); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
         return dev < (lever ? LANE_DEV_MAX_LEVER : LANE_DEV_MAX);
     }
     static bool held(float drift)         { return drift < FIXTURE_DRIFT_MAX; }
