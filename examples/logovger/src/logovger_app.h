@@ -22,6 +22,7 @@
 #include "chargen/rule_seed_loader.h"
 #include "adjudicator.h"
 #include "narrator.h"
+#include "rulebook_summary.h"
 #include "sheet_screen.h"
 #include "chargen/procedure_catalog.h"
 #include "generated/rulebook_ontology_registry.h"
@@ -126,8 +127,10 @@ public:
                 "fallback on purpose.");
             return;
         }
-        screen_.say("The rulebook is in the graph: 24 careers, 48 throws, "
-                    "150 rollable-table rows, all cited.");
+        // Counted from the graph that was just loaded, never typed
+        // here: the three numbers this line used to carry were two
+        // seed revisions out of date and nothing could have said so.
+        screen_.say(rulebook_summary(kg));
         screen_.say("Click any value on the sheet to see where the book "
                     "says it.");
         screen_.say("");
