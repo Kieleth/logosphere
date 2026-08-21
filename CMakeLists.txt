@@ -503,6 +503,66 @@ target_compile_definitions(logovger-headless PRIVATE
 # every game, and read by name.
 logosphere_game_corpus(logovger-headless cepheus-srd LOGOVGER)
 
+# ---------------------------------------------------------------------
+# Voyager: character creation up to the first door, and no further.
+# ---------------------------------------------------------------------
+
+# Voyager with no window. Shares every line of logic with the windowed
+# game; only the answer source differs. --random needs no key, --record
+# tapes what a model answered, --replay reproduces it offline.
+set(VOYAGER_SHARED_SOURCES
+    examples/voyager/src/session.cpp
+    examples/voyager/src/sheet.cpp
+    examples/voyager/src/generated/voyager_chargen_ontology_registry.cpp
+)
+add_executable(voyager-headless
+    examples/voyager/voyager_headless.cpp
+    ${VOYAGER_SHARED_SOURCES}
+)
+target_link_libraries(voyager-headless PRIVATE logosphere_core)
+target_compile_features(voyager-headless PRIVATE cxx_std_17)
+target_include_directories(voyager-headless PRIVATE
+    examples/voyager examples/voyager/src)
+target_compile_definitions(voyager-headless PRIVATE
+    VOYAGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/voyager")
+# Declared, not derived: the book it cites is vendored once, outside
+# every game, and read by name. A second game naming the same corpus
+# reads the same bytes and adds nothing.
+logosphere_game_corpus(voyager-headless cepheus-srd VOYAGER)
+
+# The claim this whole game is built to keep, measured rather than
+# reviewed: the screen is assembled from the characteristics the GRAPH
+# holds. It adds a seventh at run time and fails if the sheet does not
+# grow. No network, no model, no window.
+add_executable(test_characteristics_from_graph
+    examples/voyager/test_characteristics_from_graph.cpp
+    ${VOYAGER_SHARED_SOURCES}
+)
+target_link_libraries(test_characteristics_from_graph PRIVATE logosphere_core)
+target_compile_features(test_characteristics_from_graph PRIVATE cxx_std_17)
+target_include_directories(test_characteristics_from_graph PRIVATE
+    examples/voyager examples/voyager/src)
+target_compile_definitions(test_characteristics_from_graph PRIVATE
+    VOYAGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/voyager")
+logosphere_game_corpus(test_characteristics_from_graph cepheus-srd VOYAGER)
+register_headless_test(test_characteristics_from_graph)
+
+# Voyager's rules, verified on the way in and then asked the questions
+# the game asks them. Catches an extraction that has moved, a citation
+# that no longer resolves, and a constant nothing reads.
+add_executable(test_voyager_rules
+    examples/voyager/test_voyager_rules.cpp
+    ${VOYAGER_SHARED_SOURCES}
+)
+target_link_libraries(test_voyager_rules PRIVATE logosphere_core)
+target_compile_features(test_voyager_rules PRIVATE cxx_std_17)
+target_include_directories(test_voyager_rules PRIVATE
+    examples/voyager examples/voyager/src)
+target_compile_definitions(test_voyager_rules PRIVATE
+    VOYAGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/voyager")
+logosphere_game_corpus(test_voyager_rules cepheus-srd VOYAGER)
+register_headless_test(test_voyager_rules)
+
 # Logovger: the referee's answer, held to the rule that asked for it.
 # Deliberately free of any LLM dependency (logosphere_llm is defined
 # below the headless short-circuit), because this is the check that
@@ -1795,6 +1855,16 @@ target_sources(logovger-headless PRIVATE
 target_compile_definitions(logovger-headless PRIVATE LOGOVGER_WITH_LLM)
 target_link_libraries(logovger-headless PRIVATE logosphere_llm)
 
+# The headless Voyager gains its referee where the LLM library exists.
+# Without it the target still builds and --random still exercises the
+# rules with no key; --record says plainly that this build has no model
+# rather than quietly playing without one.
+target_sources(voyager-headless PRIVATE
+    examples/voyager/src/model_referee.cpp
+)
+target_compile_definitions(voyager-headless PRIVATE VOYAGER_WITH_LLM)
+target_link_libraries(voyager-headless PRIVATE logosphere_llm)
+
 if(LLAMA_INCLUDE)
     target_include_directories(logosphere_llm PUBLIC
         ${LLAMA_INCLUDE}
@@ -2233,6 +2303,7 @@ add_subdirectory(examples/eden)
 add_subdirectory(examples/logotron)
 add_subdirectory(examples/logogenesis)
 add_subdirectory(examples/logovger)
+add_subdirectory(examples/voyager)
 add_subdirectory(examples/minimal)
 add_subdirectory(examples/logomanpac)
 add_subdirectory(examples/logotriste)

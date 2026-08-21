@@ -267,3 +267,87 @@ Not the model replacing the engine. The engine still rolls every die,
 owns every outcome, and refuses anything it cannot derive. The model
 proposes and narrates. That division is the reason any of this is
 checkable.
+
+---
+
+## V1 landed, 2026-08-21
+
+`examples/voyager` exists and the inversion is real at one step. What
+follows is a record, not a plan: what was built, and the decisions
+taken inside it that the owner may want to overrule.
+
+**The status line at the top of this document is now wrong in one
+respect.** "Nothing here is built" held until today. V1 is built for
+the career step, and nothing beyond it: no terms, no survival, no
+skills, no aging, no benefits. V2 to V6 are untouched and v0 is
+untouched, so the OPEN decisions above still block exactly what they
+blocked.
+
+**What V1 proves, measured.** The model authors the option set for the
+career step and the engine refuses anything the rules did not issue.
+The set reaches the tape through `Ask.offered`, so a recorded character
+replays with zero model calls (verified: identical scores, identical
+career, identical node hash, no key in the environment) and forks at
+the door it took (verified: same scores, different career, different
+node).
+
+**Decisions taken inside it, each of which is arguable.**
+
+1. **Two referee calls, both through the tape as free-form asks.** The
+   background is model-authored and not derivable from a seed, so a
+   replay without it could not reproduce the screen. It is taped at
+   `referee.background` and the option set at `referee.careers`. The
+   alternative was regenerating the prose on replay, which would have
+   made replay call a model.
+
+2. **`--random N` supplies a synthetic answer to those free-form
+   sites, and says so in the text it returns.** It is not a fallback
+   for a failed referee: nothing on the live path reads it, and a
+   referee that fails ends the run. It is the fuzzing lane answering a
+   question the engine deliberately leaves to the game. The background
+   it returns names itself as machine-made rather than reading as
+   narration.
+
+3. **The characteristic-modifier table is absorbed, though this slice
+   rolls nothing.** The ontology refuses a throw that names a
+   characteristic without a lookup to turn a score into a modifier,
+   which is correct. It also has two real readers here: the sheet
+   states each characteristic's modifier, and the referee's brief is
+   built from score-and-modifier rather than score alone. Without that
+   the referee would be narrowing on raw numbers.
+
+4. **`determine_background` cites the checklist's "Determine
+   homeworld."** A reading, recorded in `examples/voyager/README.md`
+   under "Readings this game makes". The book has a checklist step for
+   deciding where a character comes from and this is that step; it is
+   not a transcription and it is the weakest citation in the game.
+
+5. **A seventh characteristic is one row in the graph.** The schema
+   declares `psionic_strength` because the book prints it as position 7
+   of the same profile; the extractor does not seed it because the book
+   keeps it out of character creation. `test_characteristics_from_graph`
+   adds it at run time, inside a `RuntimeContext`, and fails if the
+   sheet does not grow.
+
+**Which of the four mechanisms this closes, and which it does not.**
+
+- *A position on a ladder is an edge to a rung.* NOT EXERCISED. This
+  slice has no ladder: nothing advances, nothing is promoted, rank does
+  not exist here. The mechanism is untested by Voyager rather than
+  satisfied by it.
+- *Every number the book fixes is a `RuleConstant` with a reader.*
+  CLOSED, and gated: `test_voyager_rules` fails when a seeded constant
+  is named by no shipping source, and when a constant's value appears
+  as a word in shipping code. One constant exists today, so the gate is
+  cheap; it grows with the seed rather than with a list.
+- *A controlled vocabulary is an enum or it does not exist.* NOTHING TO
+  DO. This slice has no closed vocabulary of its own. The one it uses,
+  `table_role`, is the engine's and is already an enum. Stated so the
+  absence is a finding rather than an omission.
+- *The character sheet is a view, not a store.* CLOSED. `sheet.h` reads
+  the graph on every call and holds nothing; the session holds no
+  score, no age and no career. There is no struct to drift.
+
+**Still open, unchanged.** The default scope of a rule created in play
+(item 6 above) still blocks V5, and v0 still comes before V1's
+successor stages.
