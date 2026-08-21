@@ -194,14 +194,20 @@ void test_production_rules_use_exact_edition_identity() {
     const auto targets = world.findByType("SourceTarget");
     const auto coverages = world.findByType("SourceCoverage");
     const auto claims = world.findByType("IngestionClaim");
+    // 1554 -> 1571. Seventeen careers print a rank ladder a character
+    // can climb, and each now carries one further claim against its own
+    // top rung, recording that the source does not say what advancement
+    // does for whoever is already standing there. No new source leaves:
+    // those cells were covered already, and a second claim over an
+    // existing coverage is exactly why the two are separate things.
     CHECK(targets.size() == 2057 && coverages.size() == 2057 &&
-              claims.size() == 1554,
+              claims.size() == 1571,
           "migrated production content persists 2057 atomic source leaves "
-          "and 1554 enduring atomic claims");
+          "and 1571 enduring atomic claims");
     CHECK(world.findByType("CoverageDecision").size() == 2057 &&
-              world.findByType("ClaimDecision").size() == 1559,
+              world.findByType("ClaimDecision").size() == 1576,
           "production retains 2057 coverage decisions and complete "
-          "append-only histories for 1554 claims");
+          "append-only histories for 1571 claims");
     CHECK(!world.getRegistry().hasFacet("SourceCoverage",
                                         "no-instance-declared") &&
               !world.getRegistry().hasFacet("IngestionClaim",
@@ -647,7 +653,11 @@ void test_production_rules_use_exact_edition_identity() {
         superseded += disposition == "SUPERSEDED";
         duplicate += disposition == "DUPLICATE";
     }
-    CHECK(no_rule == 38 && claims_present == 2019 && partial == 7 &&
+    // partial 7 -> 24: the seventeen rank-ladder tops. Each is a
+    // reading the source does not state, so each is PARTIAL with a
+    // SOURCE_GAP, and none of them is signed by the migration that
+    // transcribed the cell.
+    CHECK(no_rule == 38 && claims_present == 2019 && partial == 24 &&
               raised == 253 && materialized == 1220 && superseded == 5 &&
               duplicate == 69,
           "the production ledger exposes all current coverage judgements and "

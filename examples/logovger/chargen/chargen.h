@@ -218,6 +218,13 @@ private:
     PrimitiveResult roll_reenlistment(const PrimitiveContext& context);
     PrimitiveResult roll_promotion(const PrimitiveContext& context,
                                    bool commission);
+    // The rung above the one a character stands on, read off the
+    // ladder rather than worked out from it. Sets `rung` to
+    // INVALID_ENTITY and still returns true at the top: no rung above
+    // means no rank to improve to. False only when a rung of the
+    // ladder carries no readable position.
+    bool next_rung(kg::EntityID track, int standing, kg::EntityID& rung,
+                   int& index, std::string& error) const;
     PrimitiveResult basic_training(const PrimitiveContext& context);
     // "You begin as a Rank 0 character." Most careers print a title
     // and a skill in that row, and both are the career's to give.
