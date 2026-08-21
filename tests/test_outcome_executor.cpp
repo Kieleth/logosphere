@@ -984,10 +984,55 @@ void malformed_graphs_and_selection_misuse_fail_loudly() {
             "reserved structural outcomes cannot register ignored handlers");
 }
 
+// Building an executor over a registry that cannot type its outcomes
+// is a failure at construction, not a silence until term four.
+//
+// The nine built-in register_handler calls in the constructor returned
+// bool into one std::string that nothing read. A KG built without the
+// rulebook pack therefore produced an executor carrying no handlers at
+// all: it looked built, applied nothing, and only said so when an
+// outcome finally arrived - by which time the message was about the
+// outcome and not about the registry that was wrong all along.
+void an_executor_over_a_registry_without_outcomes_refuses_to_build() {
+    // The engine's own ontology, without the rulebook pack that
+    // declares ModifyAttribute and the other eight.
+    kg::KGModule bare(logosphere::ontology::registry());
+    logosphere::dice::DiceService dice;
+    REQUIRE(!bare.getRegistry().hasEntityType("ModifyAttribute"),
+            "the bare registry is the case under test: it does not carry "
+            "the rulebook pack");
+
+    std::string complaint;
+    try {
+        rules::OutcomeExecutor refused(bare, dice);
+    } catch (const std::invalid_argument& why) {
+        complaint = why.what();
+    }
+    std::cout << "\n    [measure] "
+              << (complaint.empty() ? "(constructed silently)" : complaint)
+              << "\n  ";
+    REQUIRE(!complaint.empty(),
+            "an executor whose built-in handlers cannot register refuses "
+            "to exist");
+    REQUIRE(complaint.find("NoEffect") != std::string::npos &&
+                complaint.find("rulebook") != std::string::npos,
+            "and names the handler that could not register and the pack "
+            "that would have let it: " + complaint);
+
+    // The control: the same construction, with the pack present.
+    auto whole = logosphere::ontology::registry();
+    whole.extend(rulebook::ontology::registry());
+    kg::KGModule dressed(whole);
+    rules::OutcomeExecutor built(dressed, dice);
+    REQUIRE(built.rules_reached().empty(),
+            "and with the pack loaded the same construction succeeds");
+}
+
 }  // namespace
 
 int main() {
     std::cout << "Typed outcome executor\n";
+    TEST(an_executor_over_a_registry_without_outcomes_refuses_to_build);
     TEST(exact_type_dispatch_fails_loudly_and_rejects_duplicates);
     TEST(attribute_changes_are_validated_and_atomic);
     TEST(skill_outcomes_keep_both_rule_branches_in_data);
