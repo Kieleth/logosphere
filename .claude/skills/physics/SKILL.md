@@ -216,6 +216,28 @@ Read-only over particles by construction: the witness cannot perturb
 the experiment. Zero cost unwatched. Engine-wide by owner ruling —
 combat and AI observe through the same eyes.
 
+## EVERY ASSERT NAMES ITS LAW (owner order, 2026-08-21)
+
+"Any physics requirement/law should be registered and maintained, and
+thus, it should be registered and present and explicit in the tests
+themselves." Every assert — headless text and panel line — carries the
+registry ID of the law it enforces (INV-x from INVARIANTS.jsonl, G-x
+from GEDANKEN.jsonl). A claim with no registry entry gets one BEFORE
+its assert lands (the derivation goes in the record, the assert cites
+it). Test-hygiene asserts that guard the measurement rather than a law
+are tagged "hygiene". The QA reads WHAT is being checked against WHICH
+law without leaving the window.
+
+## THE LIVE ASSERT PANEL (owner order, 2026-08-21)
+
+Every windowed physics test carries, on screen for the whole run: a
+one-line DEMONSTRATING statement (mode-aware), the live Argus readout,
+and EVERY assert as its own [V]/[X] line evaluated per frame from the
+same scene helpers the headless asserts read, plus an n/m count.
+Born-red asserts appear as honest [X]. Full spec and the reference
+pattern live in the logosphere-tests skill;
+`tests/test_ramp_race_visual.cpp` is the exemplar.
+
 ## "FIXED" IS A PROTOCOL, NOT A SENTENCE (owner decree, 2026-08-20)
 
 Nothing is declared fixed until ALL THREE hold:
@@ -260,4 +282,5 @@ CLAIM'S MODE (lever state included), both modes audited → headless suite green
 docker precheck
 (`scripts/precheck_linux.sh`, read the markers) → CHANGELOG entry for
 anything user-facing → DCO sign-off on every commit (`git commit -s`)
-→ interactive QA launched for the owner → owner says merge.
+→ interactive QA launched for the owner, with the LIVE ASSERT PANEL
+on screen → owner says merge.

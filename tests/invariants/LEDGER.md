@@ -1660,3 +1660,35 @@ almost magic." Argus-clamped asserts (clause 1) + certified sweep
 (new-red 0) + owner interactive QA (clause 3): both arcs FIXED. Owner
 orders added to the board: spin-lift on impact, rotation-rate sweep for
 falling cubes, spinning spheres vs floor. Merge of the branch ordered.
+
+## 2026-08-21 — G-21 ruled and closed: two-band coherence (adaptive thresholds)
+
+Measurement first: a 2M-sample round-trip sweep of
+from_euler(to_euler_zyx(q)) gives mean error 0.0002 rad away from the
+gimbal fold and worst 0.014 rad inside +-0.04 rad of |pitch| = pi/2 — a
+float32 representational ceiling, not a physics or branch bug. Every
+live spike sat inside it (ramp 0.0137/0.0130, ladder R6 0.0110) and the
+vertical-spin control measured exactly zero. Owner ruling: "adaptive
+thresholds are good, i.e. I do not care about 1 cm/h on a 200 km/h
+movible." Contract: divergence < 0.01 away from the fold, < 0.015
+inside Argus::FOLD_BAND (0.05 rad), accumulated per band by Argus at
+observe time. Result: the lever ramp race is FULLY GREEN for the first
+time; ladder lever reds down to the R5/R6 tall-fall walk pair (re-clamp
+still unruled). Rotation item 4 closed.
+
+## 2026-08-21 — Two owner orders from ramp QA
+
+1. **G-46 born red, math first.** "the sphere, based on physics, ramp
+   angle, mass, friction (do the math first) should end farther than
+   the cube. and that is not happening." Derivation in the registry:
+   rolling 5/7 g sin th = 4.50 m/s^2 vs sliding 2.55, and nothing
+   brakes a roller on the flat. Assert added lever-mode, born red
+   (sphere 4.21 m vs cube 4.81). Enhancement front on the board; the
+   owner's word: "Not sure this is our focus now, but needs to be
+   enhanced."
+2. **Every assert names its registered law.** "any physics
+   requirement/law should be registered and maintained, and thus, it
+   should be registered and present and explicit in the tests
+   themselves." Panel and headless assert texts now carry their
+   registry IDs (INV-x / G-x); a claim with no registry entry gets one
+   BEFORE its assert lands. Skill updated in the same commit.

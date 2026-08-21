@@ -439,6 +439,43 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## G-46 — the sphere must out-roll the cube (ENHANCEMENT, born red)
+
+Owner order with the math done first (registry has the derivation):
+rolling 4.50 m/s^2 vs sliding 2.55 on the 40-degree ramp, roller
+unbraked on the flat, so the sphere must end well beyond the cube.
+Measured: it ends behind (4.21 vs 4.81 m). Suspects for the excess
+rolling dissipation: per-substep friction at the rolling contact
+point, the capture cushion at the ramp-to-flat seam, sphere-box
+manifold at the transition. Born-red lever assert holds the claim;
+not the current focus by owner's word.
+
+## Skill audit 2026-08-21 (owner: "read skill, what are we missing?")
+
+Checklist steps skipped and repaired the same day: sweep for the G-21
+change (run: new-red 0), Linux precheck (had NEVER run this session;
+first run OOM-killed cc1plus on logovger's generated ontology at the
+colima VM's 2 GiB — real CI physics-linux green, VM resized to 8 GiB
+and precheck re-run), PHYSICS_PIPELINE_SEQUENCE nodes 13/14/21 updated
+for G-43/44/45 (went stale through merged PR #152), owner interactive
+QA of the green lever ramp (launched at last). Language debt: item 4
+was called "closed" before QA clause 3 — the decree stands, "measured
+and ruled" until the owner watches. STILL OWED from the stale-sweep
+finding: sweep must refuse a build tree older than HEAD (mechanical
+check, unbuilt).
+
+## Rotation item 4 CLOSED 2026-08-21 — G-21 measured and ruled
+
+The fold spikes are a float32 representational ceiling (0.014 rad worst
+within 0.04 rad of |pitch|=pi/2; 2M-sample round-trip sweep), not a
+physics bug: away from the fold the tumbling racers are coherent to
+under a millirad and the vertical-spin control measures exactly zero.
+Owner ruled adaptive thresholds; two-band contract in Argus
+(peak_divergence sharp/fold). LEVER RAMP FULLY GREEN, first time.
+Remaining rotation queue: R5/R6 tall-fall walk re-clamp (unruled),
+item 6 (CONTACT_TORQUE default-flip ruling + ice), QA-ordered trio
+(spin-lift, rate sweep, spheres).
+
 ## Owner QA PASSED 2026-08-20 — G-43 + G-45 arcs CLOSED (FIXED protocol complete)
 
 Owner watched the corrected ladder: "total success and is 99% according

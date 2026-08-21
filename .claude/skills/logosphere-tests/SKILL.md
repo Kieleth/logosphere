@@ -102,8 +102,8 @@ line->set_color(255, 240, 140);
 engine.get_ui_system()->add_widget(line);
 
 // (d) LOOP: should_continue(), never is_running().
-// (e) SPACE: multi-case tests advance the case on SPACE (zoom on Z);
-//     single-scene tests dolly the camera in.
+// (e) SPACE: replays the experiment — multi-case tests advance the
+//     case, single-scene tests restart the run. Zoom always on Z.
 while (engine.should_continue()) {
     if (space_edge()) stand_off *= 0.8f;
     scene.step();                    // SHARED with the headless driver
@@ -154,20 +154,47 @@ The failure that earned this: the G-41 wheel cases dropped a 0.4 m cube
 five centimetres and bought five centimetres of travel — an experiment
 smaller than its own subject, jerky and over before the eye arrived.
 
+## THE LIVE ASSERT PANEL (owner order, 2026-08-21)
+
+Owner, watching the ramp: "I'm missing the context of the test... and
+the asserts 'live'... all of the asserts should be here, and [X] or [V]
+as we pass them for me to understand visually."
+
+Every windowed test shows, on screen, for the whole run:
+
+1. **A DEMONSTRATING line**: one sentence naming what this test
+   demonstrates and checks, mode-aware (the lever world and the default
+   world demonstrate different things and must say so).
+2. **Live Argus readout**: the same quantities the asserts read.
+3. **EVERY assert as its own line**, prefixed [V] when currently
+   passing and [X] when not, green/red, evaluated EVERY FRAME from the
+   SAME scene helpers and Argus queries the headless asserts use (one
+   source, criterion b — a panel that re-implements a predicate is a
+   reflection break waiting to drift). End-state asserts show their
+   live truth and settle as the run settles. Born-red asserts appear
+   as honest [X]: the panel makes the red visible, never hides it.
+4. **A count line**: "ASSERTS n/m passing".
+
+`tests/test_ramp_race_visual.cpp` is the pattern (LiveAssert +
+add_assert lambda list).
+
 ## SHIP CHECKLIST FOR A TEST
 
 - [ ] Scene in `tests/scenes/`; drivers contain no bodies and no thresholds
 - [ ] Both drivers step through the SAME scene function (timestep trap)
 - [ ] Headless captures a deterministic frame when it claims anything visual
 - [ ] `should_continue()`, never `is_running()`
-- [ ] SPACE: in a MULTI-CASE test it advances the case, manually, never
-      on a timer (owner order 2026-08-20: the human decides when a case
-      is seen); zoom then lives on Z. Single-scene tests keep SPACE as
-      move-toward. On-screen hint says which.
+- [ ] SPACE: replays the experiment, always (owner orders 2026-08-20 and
+      2026-08-21). Multi-case tests: SPACE advances to the next case,
+      manually, never on a timer. Single-scene tests: SPACE restarts the
+      run (re-arm through the teleport law: void history, forget_body).
+      Zoom always lives on Z. On-screen hint says which.
 - [ ] `show_debug_overlay = interactive`
 - [ ] Full-state narration written; every DOF asserted or waived by name
 - [ ] Observed through Argus; asserts read the same queries the log prints
 - [ ] Readout through registered widgets, carrying the verdict
+- [ ] LIVE ASSERT PANEL: DEMONSTRATING line + every assert [V]/[X]
+      per frame from the shared helpers + n/m count (see its section)
 - [ ] Launched for the owner, teed to /tmp, never killed, never piped through head/tail/grep
 
 ## THE BACKLOG THIS SKILL EXISTS TO CLEAR

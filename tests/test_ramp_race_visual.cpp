@@ -14,7 +14,7 @@
 // BOUNDING SLAB, gets a (0,0,1) normal, and stands on a flat shelf the
 // engine invented. It does not move at all.
 //
-// ESC or the red X quits. SPACE moves the camera in.
+// ESC or the red X quits. SPACE restarts the race. Z zooms.
 // =============================================================================
 
 #include "core/engine.h"
@@ -24,6 +24,8 @@
 #include <GLFW/glfw3.h>
 
 #include <chrono>
+#include <functional>
+#include <vector>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -87,20 +89,94 @@ int main() {
     cam.set_pixels_per_unit(ppu);
     make_lamps(ps, cx, cy, cz);
 
+    // The debug overlay owns the ENTIRE left column (x=10, full
+    // height: resolution block, controls, spawn, debug help). The
+    // panel and readout live in the RIGHT half; nothing of ours draws
+    // left of PANEL_X (owner QA 2026-08-21: the two interleaved).
+    const int PANEL_X = 620;
+    const int base_y = cfg.window_height - 96;
     auto* l_cube = add_line(engine, 0, 255, 190, 110);
     auto* l_ball = add_line(engine, 1, 140, 210, 255);
     auto* l_spin  = add_line(engine, 2, 220, 220, 220);
-    auto* l_claim = add_line(engine, 3, 190, 220, 255);
+    l_cube->set_position(PANEL_X, base_y);
+    l_ball->set_position(PANEL_X, base_y + 22);
+    l_spin->set_position(PANEL_X, base_y + 44);
+
+    // THE LIVE ASSERT PANEL (owner order 2026-08-21): what this test
+    // demonstrates, and EVERY assert as its own [V]/[X] line, evaluated
+    // each frame from the SAME scene helpers the headless asserts read.
+    static const bool lever_ui = std::getenv("CONTACT_TORQUE") != nullptr;
+    auto* l_demo = add_line(engine, 3, 190, 220, 255);
+    l_demo->set_position(PANEL_X, 40);
+    auto* l_demo2 = add_line(engine, 5, 190, 220, 255);
+    l_demo2->set_position(PANEL_X, 62);
+    if (lever_ui) {
+        l_demo->set_text("DEMONSTRATING: contact torque (lever ON).");
+        l_demo2->set_text("Both racers move and TURN; the sphere ROLLS.");
+    } else {
+        l_demo->set_text("DEMONSTRATING: the default no-torque world.");
+        l_demo2->set_text("Bodies slide; TURN asserts born red by design.");
+    }
+    struct LiveAssert { ui::Label* label; std::string text;
+                        std::function<bool()> eval; };
+    std::vector<LiveAssert> panel;
+    int prow = 0;
+    auto add_assert = [&](const std::string& text,
+                          std::function<bool()> eval) {
+        auto* l = new ui::Label("", "assert" + std::to_string(prow));
+        l->set_position(PANEL_X, 96 + prow * 22);
+        engine.get_ui_system()->add_widget(l);
+        panel.push_back({l, text, std::move(eval)});
+        ++prow;
+    };
+    add_assert("INV-1: the ramp never moved (fixed datum)",
+        [&]{ return Scene::held(scene.ramp_drift); });
+    if (lever_ui) {
+        add_assert("G-36/INV-20: the sphere ROLLS (spin > 2.0 rad/s)",
+            [&]{ return scene.ball_spin_peak > ROLL_MIN_LEVER; });
+        add_assert("G-46 weak: rolling within 10% of sliding travel",
+            [&]{ return scene.ball_travel(ps) >
+                        scene.cube_travel(ps) * 0.9f; });
+        add_assert("G-46 BORN RED: the sphere OUT-ROLLS the cube",
+            [&]{ return scene.ball_travel(ps) >
+                        scene.cube_travel(ps); });
+    }
+    add_assert("D2 1.2: the cube slides down the slope (> 0.30 m)",
+        [&]{ return Scene::travelled(scene.cube_travel(ps)); });
+    add_assert("D2 1.2/G-35: the cube TURNS as it goes",
+        [&]{ return Scene::turned(scene.cube_spin_peak); });
+    add_assert("INV-12: the sphere moves (real oriented contact)",
+        [&]{ return Scene::travelled(scene.ball_travel(ps)); });
+    add_assert("D2 1.2: the sphere TURNS (friction a radius out)",
+        [&]{ return Scene::turned(scene.ball_spin_peak); });
+    add_assert("G-40/G-45: neither leaves its lane",
+        [&]{ return Scene::in_lane(scene.cube_lane_dev) &&
+                    Scene::in_lane(scene.ball_lane_dev); });
+    add_assert("hygiene: the racers never touch",
+        [&]{ return Scene::lanes_kept(scene.lane_gap_min); });
+    add_assert("INV-1/G-43: the cube ends AT REST ON THE TURTLE",
+        [&]{ return Scene::landed_and_stopped(scene.bottom(scene.cube),
+                                              scene.speed(scene.cube)); });
+    add_assert("INV-1/INV-12: the sphere ends AT REST ON THE TURTLE",
+        [&]{ return Scene::landed_and_stopped(scene.bottom(scene.ball),
+                                              scene.speed(scene.ball)); });
+    add_assert("G-21/G-23: one orientation (two-band coherence)",
+        [&]{ return Scene::coherent(
+                        scene.argus.peak_divergence(scene.cube, false),
+                        scene.argus.peak_divergence(scene.cube, true)) &&
+                    Scene::coherent(
+                        scene.argus.peak_divergence(scene.ball, false),
+                        scene.argus.peak_divergence(scene.ball, true)); });
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
-    l_claim->set_text("ASSERTS: gravity moves BOTH (> 0.30 m) and BOTH turn "
-                      "(peak |omega| > 0.05 rad/s)");
+    l_verdict->set_position(PANEL_X, 96 + prow * 22 + 10);
 
     std::printf("\n=== a cube and a sphere on the same %.0f degree ramp (%s) ===\n",
                 SLOPE_DEG, interactive ? "WINDOW" : "headless");
     if (interactive)
-        std::printf("  ESC or the red X quits.  SPACE moves the camera in.\n\n");
+        std::printf("  ESC or the red X quits.  SPACE restarts the race.  "
+                    "Z zooms in.\n\n");
 
-    bool space_was_down = false, quit = false;
+    bool space_was_down = false, z_was_down = false, quit = false;
     int frame = 0;
     char buf[224];
 
@@ -113,28 +189,34 @@ int main() {
         const float cd = scene.cube_travel(ps);
         const float bd = scene.ball_travel(ps);
         std::snprintf(buf, sizeof(buf),
-                      "CUBE   travelled %.3f m   (OBB path: meets the tilted face)",
-                      cd);
+                      "CUBE   travelled %.3f m   spin peak %.2f", cd,
+                      scene.cube_spin_peak);
         l_cube->set_text(buf);
         std::snprintf(buf, sizeof(buf),
-                      "SPHERE travelled %.3f m   (sphere-vs-AABB: meets an "
-                      "upright slab, normal (0,0,1))", bd);
+                      "SPHERE travelled %.3f m   spin peak %.2f", bd,
+                      scene.ball_spin_peak);
         l_ball->set_text(buf);
         std::snprintf(buf, sizeof(buf),
-                      "peak |omega|  cube %.4f   sphere %.4f rad/s   "
-                      "(D2 1.2: contact rows carry no lever arm)",
-                      scene.cube_spin_peak, scene.ball_spin_peak);
+                      "lane dev  cube %.3f  sphere %.3f   gap %.2f m",
+                      scene.cube_lane_dev, scene.ball_lane_dev,
+                      scene.lane_gap_min > 1e8f ? 0.0f : scene.lane_gap_min);
         l_spin->set_text(buf);
-        const bool moved = Scene::travelled(cd) && Scene::travelled(bd);
-        const bool spun  = Scene::turned(scene.cube_spin_peak)
-                        && Scene::turned(scene.ball_spin_peak);
-        l_verdict->set_text(
-            (moved && spun) ? "PASS: both feel the slope and both turn"
-            : !moved && !spun ? "FAIL x2 - F2: the sphere stands on an invented "
-                                "normal.  D2 1.2: nothing turns, contacts have "
-                                "no torque."
-            : !spun ? "FAIL - D2 1.2: it slides without ever turning"
-                    : "FAIL - F2: the sphere is standing on an invented normal");
+        // The panel: every assert, live, [V]/[X], same helpers as headless.
+        int passing = 0;
+        for (auto& a : panel) {
+            const bool ok = a.eval();
+            if (ok) ++passing;
+            a.label->set_text((ok ? "[V] " : "[X] ") + a.text);
+            if (ok) a.label->set_color(120, 230, 140);
+            else    a.label->set_color(255, 120, 120);
+        }
+        std::snprintf(buf, sizeof(buf),
+                      "ASSERTS %d/%zu passing (end-state lines settle late)",
+                      passing, panel.size());
+        l_verdict->set_text(buf);
+        l_verdict->set_color(passing == (int)panel.size() ? 120 : 255,
+                             passing == (int)panel.size() ? 230 : 120,
+                             120);
 
         engine.render();
         if (interactive) {
@@ -149,13 +231,21 @@ int main() {
             if (win) {
                 if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) quit = true;
                 if (glfwWindowShouldClose(win)) quit = true;
+                // SPACE restarts the race (owner order 2026-08-21:
+                // the experiment replays on demand); zoom lives on Z.
                 const bool down = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-                if (down && !space_was_down && ppu < 195.0f) {
+                if (down && !space_was_down) {
+                    scene.rearm(ps, physics);
+                    frame = 0;
+                }
+                space_was_down = down;
+                const bool zk = glfwGetKey(win, GLFW_KEY_Z) == GLFW_PRESS;
+                if (zk && !z_was_down && ppu < 195.0f) {
                     ppu *= 1.15f;
                     if (ppu > 195.0f) ppu = 195.0f;
                     cam.set_pixels_per_unit(ppu);
                 }
-                space_was_down = down;
+                z_was_down = zk;
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
         }

@@ -96,6 +96,13 @@ constexpr float REST_SPEED_MAX  = 0.05f;   // m/s at the deadline
 // One body, one orientation (G-23). Quaternion truth is the default
 // since 2026-08-19; a body whose two ledgers disagree is a defect.
 constexpr float COHERENCE_MAX = 0.01f;     // rad
+// Two-band coherence (G-21 ruling, 2026-08-21): float32 Euler
+// extraction has a measured worst error of 0.014 rad inside
+// Argus::FOLD_BAND of the gimbal fold and 0.0002 outside it, so the
+// contract is sharp away from the fold and the representational
+// ceiling plus margin inside it (adaptive thresholds, owner ruling).
+constexpr float DIV_MAX_SHARP = 0.01f;
+constexpr float DIV_MAX_FOLD  = 0.015f;
 // The lanes exist so the two experiments cannot contaminate each other.
 // Centre-to-centre must never fall to where their shapes could meet.
 constexpr float LANE_GAP_MIN = 2.0f * BODY;   // m, centre to centre
@@ -182,6 +189,41 @@ struct Scene {
         argus.watch(ball, "ball");
     }
 
+    // Restart the race (owner order 2026-08-21: SPACE cycles the
+    // experiment, zoom lives on Z). Racers return to their start
+    // stations; the teleport law applies: history voided, contact
+    // caches forgotten (G-43). Latched measurements reset so each run
+    // is a fresh experiment.
+    void rearm(ParticleSystem& ps, PhysicsSystem& physics) {
+        const float sx = cube_x0;
+        const float sz = ramp_centre_z() + std::tan(SLOPE_RAD) * (-sx)
+                       + 0.2f / std::cos(SLOPE_RAD)
+                       + BODY * 0.5f + DROP;
+        auto place = [&](int id, float y) {
+            auto v = ps.lock_particles_for_write();
+            Particle& p = v[id];
+            p.x = sx; p.y = y; p.z = sz;
+            p.vx = p.vy = p.vz = 0.0f;
+            p.omega_x = p.omega_y = p.omega_z = 0.0f;
+            p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
+            p.rotation_q = logosphere::Quat::identity();
+            p.is_at_rest = false;
+            p.frames_at_rest = 0;
+            p.low_velocity_frames = 0;
+            p.quiet_growth_run = 0;
+            p.rest_quiet_sq = 1e9f;
+            physics.forget_body((size_t)id);
+        };
+        place(cube, -LANE);
+        place(ball, +LANE);
+        cube_spin_peak = ball_spin_peak = 0.0f;
+        cube_lane_dev = ball_lane_dev = 0.0f;
+        cube_div_max = ball_div_max = 0.0f;
+        lane_gap_min = 1e9f;
+        argus.reset_milestones(cube);
+        argus.reset_milestones(ball);
+    }
+
     void step(ParticleSystem& ps, PhysicsSystem& physics, int frame = -1) {
         ps.update_bvh();
         physics.update(DT);
@@ -254,7 +296,9 @@ struct Scene {
         return dev < (lever ? LANE_DEV_MAX_LEVER : LANE_DEV_MAX);
     }
     static bool held(float drift)         { return drift < FIXTURE_DRIFT_MAX; }
-    static bool coherent(float div)       { return div < COHERENCE_MAX; }
+    static bool coherent(float sharp, float fold) {
+        return sharp < DIV_MAX_SHARP && fold < DIV_MAX_FOLD;
+    }
     static bool lanes_kept(float gap)     { return gap > LANE_GAP_MIN; }
     static bool landed_and_stopped(float bottom_z, float spd) {
         return std::fabs(bottom_z) < REST_BOTTOM_MAX && spd < REST_SPEED_MAX;

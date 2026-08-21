@@ -57,6 +57,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   drift on slopes (under `CONTACT_TORQUE`).
 - New `PhysicsSystem::forget_body(id)`: voids a repositioned body's
   cached contact impulses; call after teleporting a live body.
+- Argus: `peak_divergence(id, fold_band)` and `fold_distance(id)`,
+  quaternion-vs-Euler coherence accumulated in two bands around the
+  gimbal fold, where float Euler extraction has a measured 0.014 rad
+  ceiling. Coherence asserts are two-band accordingly.
 - Physics decision tracer env switches (`LOGOSPHERE_PHYS_TRACE*`) now
   work in headless standalone tests, not only under the full engine.
 

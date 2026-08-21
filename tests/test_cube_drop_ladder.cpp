@@ -192,8 +192,11 @@ int main() {
                         scene.argus.peak_spin(H),
                         scene.argus.peak_speed(H),
                         scene.argus.divergence(H));
-            check(scene.argus.divergence(H) < 0.01f,
-                  "G-41: one body, one orientation through the whole event");
+            check(scene.argus.peak_divergence(H, false) < DIV_MAX_SHARP &&
+                  scene.argus.peak_divergence(H, true)  < DIV_MAX_FOLD,
+                  "G-41: one body, one orientation through the whole event "
+                  "(two-band: sharp away from the gimbal fold, the "
+                  "representational ceiling inside it)");
             check(scene.argus.peak_speed(H) < 10.0f,
                   "G-41: no energy invented: speeds stay bounded (INV-3)");
             check(std::fabs(twin_dx) < 0.02f && std::fabs(twin_dy) < 0.02f,
