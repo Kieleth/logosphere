@@ -24,6 +24,23 @@
 // along a chain, and you have narrowed a bug to one mechanism without touching
 // a debugger.
 //
+// LAWS PER SCENARIO (assert-protocol migration, 2026-08-21). The CHECK column
+// is the law; the PEAK PEN column is INV-2 reported for every row, gated
+// nowhere, and the header below says so.
+//   1 free fall       G-1's identity case: with no contact in play, physics
+//                     alone must produce 0.5*g*t^2 and nothing else.
+//   2 single impact   INV-2 (the contact stops it inside bounds); INV-17 is
+//                     the law it would break loudest, since a strike that
+//                     leaves faster than it arrived is amplification.
+//   3 resting contact INV-24: a settled body performs no further corrective
+//                     work, so drift from its rest height is zero.
+//   4 stack           INV-2 along a chain.
+//   5 leaning pile    INV-2 with coupled contacts.
+//   6 projectile      INV-17 and INV-7: momentum arrives from outside through
+//                     one door and may stop an approach, never amplify one.
+//   7 sphere on plane INV-12: curved geometry rests where its true shape says.
+//   8 gluon nails     INV-14: a bond under standing load does not tear.
+//
 // WHAT IT MEASURES, AND WHY NOT THE OBVIOUS THING.
 //
 // Not "did the solver converge". That counter answers whether the iteration
@@ -186,7 +203,7 @@ Outcome s1_free_fall() {
     s.run(FRAMES, o);
     const double t = FRAMES / 60.0;
     const double fell = z0 - s.read(id).z;
-    check(o, "drop after 1s (m)", fell, 0.5 * 9.81 * t * t, 0.6);
+    check(o, "G-1: drop after 1s (m)", fell, 0.5 * 9.81 * t * t, 0.6);
     return o;
 }
 
@@ -200,7 +217,7 @@ Outcome s2_single_impact() {
     const int id = s.add_box(0, 0, 3.0f);       // ~2.4 m above the floor top
     s.flush();
     s.run(180, o);
-    check(o, "rest height (m)", s.read(id).z, 0.6, 0.02);
+    check(o, "INV-2: rest height (m)", s.read(id).z, 0.6, 0.02);
     return o;
 }
 
@@ -214,7 +231,7 @@ Outcome s3_resting() {
     const int id = s.add_box(0, 0, 0.6f);
     s.flush();
     s.run(180, o);
-    check(o, "drift from 0.600 (m)", std::fabs(s.read(id).z - 0.6), 0.0, 0.005);
+    check(o, "INV-24: drift from 0.600 (m)", std::fabs(s.read(id).z - 0.6), 0.0, 0.005);
     return o;
 }
 
@@ -230,7 +247,7 @@ Outcome s4_stack() {
     for (int i = 0; i < 4; ++i) ids.push_back(s.add_box(0, 0, 0.6f + i * 1.0f));
     s.flush();
     s.run(180, o);
-    check(o, "bottom box z (m)", s.read(ids[0]).z, 0.6, 0.01);
+    check(o, "INV-2: bottom box z (m)", s.read(ids[0]).z, 0.6, 0.01);
     return o;
 }
 
@@ -248,7 +265,7 @@ Outcome s5_leaning() {
                                 0.6f + i * 1.0f));
     s.flush();
     s.run(240, o);
-    check(o, "top box still up (m)", s.read(ids[4]).z, 4.6, 0.6);
+    check(o, "INV-2: top box still up (m)", s.read(ids[4]).z, 4.6, 0.6);
     return o;
 }
 
@@ -282,7 +299,7 @@ Outcome s7_sphere() {
     const int id = s.add_sphere(0, 0, 2.0f, 1.0f);
     s.flush();
     s.run(240, o);
-    check(o, "rest height (m)", s.read(id).z, 0.6, 0.05);
+    check(o, "INV-12: sphere rest height (m)", s.read(id).z, 0.6, 0.05);
     return o;
 }
 
@@ -316,7 +333,7 @@ Outcome s8_gluon() {
     const float x0 = s.read(hangs).x, z0 = s.read(hangs).z;
     s.run(180, o);
     const float dx = s.read(hangs).x - x0, dz = s.read(hangs).z - z0;
-    check(o, "bonded box drift (m)", std::sqrt(dx * dx + dz * dz), 0.0, 0.10);
+    check(o, "INV-14: bonded box drift (m)", std::sqrt(dx * dx + dz * dz), 0.0, 0.10);
     return o;
 }
 
@@ -329,7 +346,9 @@ bool test_physics_battery() {
     printf("the solver left behind, in metres. Bodies may not be inside each other,\n");
     printf("so any value above the 1 mm slop band is error you could in principle\n");
     printf("see. It is reported for every scenario; the CHECK column is each\n");
-    printf("scenario's own physical test, true independently of any solver.\n\n");
+    printf("scenario's own physical test, true independently of any solver.\n");
+    printf("Each CHECK carries the law it enforces; PEAK PEN is INV-2 reported\n");
+    printf("for every row and gated on none of them.\n\n");
 
     std::vector<Outcome> all;
     all.push_back(s1_free_fall());

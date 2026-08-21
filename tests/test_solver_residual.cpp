@@ -1,6 +1,14 @@
 // =============================================================================
 // SOLVER RESIDUAL: is the answer good, or did the loop just stop?
 // =============================================================================
+// LAWS (assert-protocol migration, 2026-08-21). The two GATED asserts here are
+// both hygiene, deliberately: this file's product is an INSTRUMENT, and what
+// it gates is that the instrument works (it responds to a 0.4 m overlap) and
+// that its cost is off by default. The STUDY it prints, the one that has no
+// gate, is INV-2's own question — whether "converged" means the same thing at
+// the bottom of a stack as at the top, when a stack of 8 settles 1.3 mm lower
+// than a stack of 1. The UNSOLVABLE column is INV-23 counted.
+// =============================================================================
 // IF YOU HAVE NEVER TOUCHED THIS ENGINE, START HERE.
 //
 // The physics solver's job is to stop bodies from passing through each other.
@@ -217,7 +225,7 @@ bool test_solver_residual() {
                              && violating.peak_pen > clean.peak_pen * 10.0;
     printf("\n");
     if (!sees_violation) {
-        printf("  *** THE INSTRUMENT IS BLIND. ***\n"
+        printf("  *** hygiene: THE INSTRUMENT IS BLIND. ***\n"
                "  Two boxes spawned 40%% inside each other, an overlap of 0.4 m, and the\n"
                "  worst overlap seen at any point was %.6f m. A settled single box saw\n"
                "  %.6f m. If the first\n"
@@ -227,7 +235,7 @@ bool test_solver_residual() {
         printf("\n  FAIL\n");
         return false;
     }
-    printf("  Instrument responds: %.5f m of overlap detected against %.5f m settled.\n"
+    printf("  hygiene: instrument responds: %.5f m of overlap detected against %.5f m settled.\n"
            "  Note max vel is %.5f on that same violating scene: the velocity residual\n"
            "  is blind to it by construction, exactly as described above.\n\n",
            violating.peak_pen, clean.peak_pen, violating.res.max_violation);
@@ -251,7 +259,7 @@ bool test_solver_residual() {
     }
 
     printf("\n");
-    printf("  UNSOLVBLE counts contacts between two bodies that both refuse to move.\n"
+    printf("  INV-23: UNSOLVBLE counts contacts between two bodies that both refuse to move.\n"
            "  No push can change anything, so the solver can never satisfy them and it\n"
            "  is not a failure that it does not. They are built and solved every substep\n"
            "  regardless, which is why they are counted here rather than ignored: a\n"
@@ -280,7 +288,7 @@ bool test_solver_residual() {
         }
     }
     const bool gate_holds = T::solve_residual().max_penetration < 0.0;
-    printf("\n  gate off, sentinel survives 10 frames of physics: %s\n",
+    printf("\n  hygiene: gate off, sentinel survives 10 frames of physics: %s\n",
            gate_holds ? "yes, the pass did not run" : "NO, it ran anyway");
 
     T::set_residual_enabled(false);

@@ -1,6 +1,16 @@
 // =============================================================================
 // SOLVER CONVERGENCE LADDER: the simplest scene in which the solver gives up
 // =============================================================================
+// LAWS (assert-protocol migration, 2026-08-21). DIAGNOSTIC, not a gate: this
+// file returns true unconditionally and says so at the bottom, so it enforces
+// nothing. What it MEASURES is INV-24 (every corrective mechanism terminates;
+// at steady state a scene performs zero corrective work — a solver that
+// plateaus forever on one resting box is that law's failure) and INV-23 (no
+// unsolvable row blocks the world; its sibling test_immovable_pair_phantom_
+// impulse gates the same reading and IS red-capable). Constraint ORDER being
+// load-bearing on the physical result is INV-27's problem, determinism, and
+// the reason the S19 optimisation programme was closed.
+//
 // S19 established that the sequential-impulse solver NEVER converges: the
 // "plateaued, more iterations won't help" exit fires on every substep of every
 // frame at 2,000 through 14,000 bodies, and the "converged" exit has never once
@@ -152,21 +162,23 @@ bool test_solver_convergence_ladder() {
     const Rung& one = results.front();
     printf("\n");
     if (one.solves == 0) {
-        printf("  INCONCLUSIVE: rung 1 recorded no solves at all. Either the bodies never\n"
+        printf("  hygiene INCONCLUSIVE: rung 1 recorded no solves at all. Either the bodies never\n"
                "  generated a contact, or the counters are not reaching this path.\n");
         return true;
     }
     if (one.converged > 0 && one.plateaued == 0) {
-        printf("  RUNG 1 CONVERGES. The plateau is therefore NOT unconditional, and the\n"
+        printf("  INV-24 RUNG 1 CONVERGES. The plateau is therefore NOT unconditional, and the\n"
                "  cliff is somewhere up this ladder. Read the table for where.\n");
     } else {
-        printf("  *** RUNG 1 PLATEAUS. ONE BOX. ONE CONTACT. AT EQUILIBRIUM. ***\n"
+        printf("  *** INV-24: RUNG 1 PLATEAUS. ONE BOX. ONE CONTACT. AT EQUILIBRIUM. ***\n"
                "  A solver that cannot converge on a single resting body is not hitting a\n"
                "  limit of sequential impulse, it has a defect: either the plateau detector\n"
                "  fires on a healthy solve, or the bias keeps injecting impulse at rest.\n"
                "  That is a BUG, and fixing it would reopen parallelism, islands and SoA,\n"
                "  all of which S19 closed on the strength of the plateau reading.\n");
     }
-    printf("\n  DIAGNOSTIC, not a gate: this reports, it does not fail.\n");
+    printf("\n  DIAGNOSTIC, not a gate: this reports INV-24 and INV-23, it does\n"
+           "  not fail. The gate on the same reading is\n"
+           "  test_immovable_pair_phantom_impulse.\n");
     return true;
 }

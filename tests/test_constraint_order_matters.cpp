@@ -9,6 +9,14 @@
 // genuinely part of the computation: run the same contacts in a different order
 // and the arithmetic differs.
 //
+// LAWS (assert-protocol migration, 2026-08-21). The one GATED assert is
+// hygiene: it proves the shuffle lever engaged, because a permutation that
+// never reached the solver would report "order does not matter" while
+// measuring nothing. The measurement itself bears on INV-27 (the same scene
+// stepped the same way produces bit-identical state — order-dependence is the
+// non-incidental version of the same question) and on INV-2, since the verdict
+// is taken on peak penetration and not on where the boxes landed.
+//
 // The question is whether it is part of the ANSWER. Those are not the same
 // thing. If the solve runs to a true solution, order affects only the path
 // taken and the last few bits of the result. If it always stops short, order
@@ -187,7 +195,7 @@ bool test_constraint_order_matters() {
     const bool lever_engaged = spread_sum > 0.0 || vs_natural > 0.0;
     printf("\n");
     if (!lever_engaged) {
-        printf("  *** THE SHUFFLE DID NOTHING. ***\n"
+        printf("  *** hygiene: THE SHUFFLE DID NOTHING. ***\n"
                "  Every seeded run matched the unshuffled run exactly, in every quantity.\n"
                "  That means the permutation never reached the solver, so this test is\n"
                "  measuring nothing and its verdict would be an artefact. Fix the lever.\n");
@@ -196,7 +204,7 @@ bool test_constraint_order_matters() {
     }
 
     if (spread_pen <= noise_pen) {
-        printf("  ORDER DOES NOT CHANGE THE ANSWER, on this scene.\n"
+        printf("  INV-27/INV-2: ORDER DOES NOT CHANGE THE ANSWER, on this scene.\n"
                "  Four different permutations of the contact list produced a peak\n"
                "  penetration spread of %.6f m, against a same-input noise floor of\n"
                "  %.6f m. The orders disagree with each other by nothing measurable.\n"
@@ -207,7 +215,7 @@ bool test_constraint_order_matters() {
                "  scene, parallelism, islands, SoA and contact sorting all reopen.\n",
                spread_pen, noise_pen, spread_sum);
     } else {
-        printf("  ORDER CHANGES THE ANSWER: permutations disagree by %.6f m against a\n"
+        printf("  INV-27/INV-2: ORDER CHANGES THE ANSWER — permutations disagree by %.6f m against a\n"
                "  %.6f m noise floor. The order the solver works in is part of the\n"
                "  result, not just the path, so parallelism, islands, SoA and sorting\n"
                "  stay closed.\n", spread_pen, noise_pen);

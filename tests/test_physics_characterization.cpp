@@ -13,6 +13,18 @@
 // the SOLVER's arithmetic on a pile of contacting bodies, which is exactly the
 // code a refactor here would disturb.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-27 deterministic-given-seeds. The A-vs-A control is INV-27 stated
+//          exactly: the same scene stepped the same number of times in the
+//          same build produces bit-identical state. INV-27's own record calls
+//          this test out by name and calls reproducibility "the instrument
+//          every other invariant is measured with".
+//   INV-14 the gluon-coverage check: the bonded chain is held at its target
+//          distance, so the pinned checksum actually covers the bond path.
+//   hygiene the pinned baseline checksum is a REFACTOR NET, not a law: it says
+//          the arithmetic did not move, and any deliberate physics change is
+//          expected to move it.
+//
 // WHAT THIS DOES. Builds a fixed many-body pile, steps it a fixed number of
 // frames, and reduces every particle's position and velocity to a checksum.
 // Refactor, re-run, compare. It is a characterization test, not a correctness
@@ -268,7 +280,7 @@ bool test_physics_characterization() {
 
     // (1) DETERMINISM FIRST. Without this a golden checksum is meaningless.
     if (a.v.size() != b.v.size()) {
-        printf("\n  FAIL: the two runs produced different particle counts (%zu vs %zu).\n"
+        printf("\n  FAIL INV-27: the two runs produced different particle counts (%zu vs %zu).\n"
                "        Physics is not reproducible, so no checksum can guard a refactor.\n",
                a.v.size() / 11, b.v.size() / 11);
         return false;
@@ -280,7 +292,7 @@ bool test_physics_characterization() {
             if (d > 0.0) ++ndiff;
             if (d > maxd) maxd = d;
         }
-        printf("\n  FAIL: PHYSICS IS NOT DETERMINISTIC. Two identical runs disagree on\n"
+        printf("\n  FAIL INV-27: PHYSICS IS NOT DETERMINISTIC. Two identical runs disagree on\n"
                "        %zu of %zu values, max delta %.9g.\n"
                "        A characterization checksum cannot guard a refactor until this is\n"
                "        understood. Likely causes: unordered iteration over a hash container,\n"
@@ -288,7 +300,7 @@ bool test_physics_characterization() {
                ndiff, a.v.size(), maxd);
         return false;
     }
-    printf("\n  determinism OK: two independent runs agree bit for bit.\n");
+    printf("\n  INV-27 determinism OK: two independent runs agree bit for bit.\n");
 
     // The gluon half of solve_contacts_v3 (lines 1062-1471, ~21% of it) only
     // executes when a gluon exists. Without this check a green checksum would
@@ -297,12 +309,12 @@ bool test_physics_characterization() {
     printf("  gluon chain gaps     %.4f to %.4f m  (bonded at 0.550)\n",
            a.chain_min_gap, a.chain_max_gap);
     if (a.chain_min_gap < 0.30f || a.chain_max_gap > 0.90f) {
-        printf("  FAIL: the bonded chain did not hold together, so the gluon\n"
+        printf("  FAIL INV-14: the bonded chain did not hold together, so the gluon\n"
                "        constraint path is NOT being exercised and every gluon-region\n"
                "        extraction would be verified by a checksum that cannot see it.\n");
         ok = false;
     } else {
-        printf("  gluon coverage OK: the chain is held at its target distance, so the\n"
+        printf("  INV-14 gluon coverage OK: the chain is held at its target distance, so the\n"
                "                     gluon constraint build is live in this net.\n");
     }
 
@@ -311,14 +323,14 @@ bool test_physics_characterization() {
     if (const char* want = std::getenv("LOGOSPHERE_PHYS_BASELINE")) {
         const uint64_t expect = std::strtoull(want, nullptr, 16);
         if (expect != a.checksum) {
-            printf("  FAIL: checksum %016llx does not match the pinned baseline %016llx.\n"
+            printf("  FAIL hygiene (refactor net, not a law): checksum %016llx does not match the pinned baseline %016llx.\n"
                    "        The refactor CHANGED WHAT PHYSICS COMPUTES. That is the thing\n"
                    "        this test exists to catch. Either it is not a pure refactor, or\n"
                    "        arithmetic got reassociated; both need a decision, not a re-pin.\n",
                    (unsigned long long)a.checksum, (unsigned long long)expect);
             ok = false;
         } else {
-            printf("  baseline OK: solver output is unchanged (%016llx).\n",
+            printf("  hygiene baseline OK: solver output is unchanged (%016llx).\n",
                    (unsigned long long)a.checksum);
         }
     } else {
