@@ -82,6 +82,13 @@ static void assert_above_turtle(const Particle& p, const char* where) {
     // oriented bounds"); this door now asks the same question of the same
     // geometry. The turtle plane's normal is +Z by definition — plane
     // geometry, not a gravity assumption.
+    // Cost guard first: no orientation reaches past the half diagonal, so a
+    // body with that much clearance is above the plane in every pose and its
+    // exact extent (quat + matrix) never needs building. Same guard the
+    // solver's turtle pass uses, for the same reason — this runs on every
+    // body of every world at spawn.
+    if (p.z - logosphere::max_bottom_reach(p) >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP)
+        return;
     const float bottom = p.z - logosphere::oriented_bottom_offset(p);
     // Same tolerance the boundary itself uses. Below SLOP this is float
     // residue on a body trying to sit exactly on the floor, not a placement
@@ -545,6 +552,18 @@ void ParticleSystem::audit_creation_overlaps() {
     newborns.swap(creation_audit_pending_);
 
     const logosphere::CreationVerdict verdict = inspect_creation_overlaps(newborns);
+
+    // LOGOSPHERE_CREATION_TRACE=1 prints every audit, clean ones included.
+    // The door's whole claim is that it is cheap; a claim about cost that
+    // can only be read when something is already wrong is not measurable.
+    if (std::getenv("LOGOSPHERE_CREATION_TRACE")) {
+        std::cerr << "[CREATION AUDIT] " << verdict.bodies_audited
+                  << " newborn, " << verdict.candidates << " candidates, "
+                  << verdict.pairs_tested << " exact, "
+                  << verdict.micros << " us, "
+                  << verdict.violations.size() << " contact-bearing, "
+                  << verdict.structural.size() << " structural" << std::endl;
+    }
 
     // The structural band is promoted to refusals only under its own lever.
     // Default-off, per the levers rule: no generator in the engine can pass

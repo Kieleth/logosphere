@@ -63,6 +63,11 @@ static void kg_assert_above_turtle(const Particle& p) {
     // its DIAMETER in world Z. This door aborting on correctly-placed logs is
     // what pushed the fallen-tree generator into lifting every preset
     // 0.21-0.29 m off the ground (C10). Ask the geometry.
+    // Cost guard first (see the ParticleSystem door): the half diagonal
+    // bounds the reach in every pose, so a body with that much clearance
+    // never needs its exact extent built.
+    if (p.z - logosphere::max_bottom_reach(p) >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP)
+        return;
     const float bottom = p.z - logosphere::oriented_bottom_offset(p);
     if (bottom >= PhysicsV4::TURTLE_Z - PhysicsV4::SLOP) return;
     static std::set<std::string> reported;

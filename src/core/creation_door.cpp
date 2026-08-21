@@ -75,6 +75,21 @@ float oriented_bottom_offset(const Particle& p) {
     return p.z - describe_creation_body(-1, p).world_min_z;
 }
 
+float max_bottom_reach(const Particle& p) {
+    switch (p.shape) {
+        case ParticleShape::SPHERE:
+            return p.size * 0.5f;                     // isotropic: exact
+        case ParticleShape::ELLIPSOID:
+        case ParticleShape::BOX:
+        default: {
+            const float hx = p.width * 0.5f;
+            const float hy = p.height * 0.5f;
+            const float hz = p.thickness * 0.5f;
+            return std::sqrt(hx * hx + hy * hy + hz * hz);
+        }
+    }
+}
+
 float creation_penetration(const Particle& a, const Particle& b,
                            float& out_nx, float& out_ny, float& out_nz) {
     out_nx = out_ny = out_nz = 0.0f;

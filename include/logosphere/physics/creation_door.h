@@ -134,6 +134,13 @@ CreationBody describe_creation_body(int index, const Particle& p);
 // presets, 0.21 to 0.29 m each). Ask the geometry instead of assuming it.
 float oriented_bottom_offset(const Particle& p);
 
+// Upper bound on that reach over ALL orientations: the half diagonal. No
+// quaternion, no matrix, three multiplies and a square root. A body with more
+// clearance than this cannot be below a plane whatever pose it is in, so the
+// exact extent need not be built — the same cost guard the solver's turtle
+// pass uses, stated once instead of twice.
+float max_bottom_reach(const Particle& p);
+
 // Exact penetration depth between two bodies through the engine's own narrow
 // phase. Returns 0.0 when they are separated or merely touching. Rotated
 // boxes go through the oriented path on both sides; everything else uses the
