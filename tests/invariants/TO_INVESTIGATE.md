@@ -263,13 +263,25 @@ why both halves are asserted.
 
 ---
 
-## test_ancient_oak — the wiggle check is computed and then dropped from the verdict
+## test_ancient_oak — REPAIRED 2026-08-21, still green
 
-**What it asserts.** `pass = !nan_detected && max_xy < 1.0 && max_z < 0.50 &&
-total_segments > 0`. `wiggle_ok` (fewer than 10 wiggly frames, max trunk
-velocity under 25 mm/s) is computed one line above and never enters `pass`. A
-tree that vibrates forever without drifting prints "WARNING: Tree stands but
-WIGGLES" and returns true.
+**ADJUDICATED: `wiggle_ok` is now a term of the verdict, naming INV-34.**
+
+**Measured before and after: max trunk velocity 0.0000 mm/s, 0 of 30 wiggly
+frames.** `wiggle_ok` is TRUE on this oak today, so wiring it in cost no
+verdict. That is the cheapest moment to close a hole, and the argument for
+doing it while it is green rather than waiting for it to be red.
+
+**Still owed, and the owner's:** whether the bound should be G-44's extremity
+speed `sqrt(v^2 + (omega*r)^2)` rather than the COM speed measured here. A
+trunk slow at its centre and turning about its base reads quiet to this check
+and is not.
+
+**What it asserted before.** `pass = !nan_detected && max_xy < 1.0 && max_z <
+0.50 && total_segments > 0`. `wiggle_ok` (fewer than 10 wiggly frames, max
+trunk velocity under 25 mm/s) was computed one line above and never entered
+`pass`. A tree that vibrated forever without drifting printed "WARNING: Tree
+stands but WIGGLES" and returned true.
 
 **Why that is wrong.** INV-24: at steady state a scene performs zero corrective
 work; a sustained trunk velocity with nothing touching the tree is a correction
@@ -278,27 +290,36 @@ the ledger does not see. It is the same mask G-44 found under
 `test_tree_wiggly`, where TEST_AUDIT records that "the audited green was a
 mask".
 
-**What is owed.** A ruling on whether `wiggle_ok` joins the verdict, and at
-which bound — G-44 argues the bound should be extremity speed, not COM speed.
-Nothing changed; exit code unchanged.
-
 ---
 
-## test_tree_wiggly — both pass bands were loosened in place
+## test_tree_wiggly — REPAIRED 2026-08-21: the original bands are restored
 
-**What it asserts.** `max_velocity < 0.025f` (comment: "Relaxed from 0.01") and
+**ADJUDICATED: `max_velocity < 0.01f` and `wiggly_frames < 10` are back.**
+
+**What it asserted.** `max_velocity < 0.025f` (comment: "Relaxed from 0.01") and
 `wiggly_frames < 15` (comment: "Relaxed from 10").
 
-**Why that is wrong.** Loosening an assertion until it passes is the move
+**Why that was wrong.** Loosening an assertion until it passes is the move
 `docs/testing_guidelines.md` forbids outright — the rule is to say which was
 wrong, the code or the expectation. The consequence is already booked in this
 test's TEST_AUDIT row: G-44 unmasked a sustained 0.0294 m/s oscillation in
 depth-3/4 oaks that the speed-only sleep entry was absorbing, which sits inside
-the relaxed band and outside the original one. INV-24 and G-44 are the laws.
+the relaxed band and outside the original one.
 
-**What is owed.** The ruling already pending on this test should also decide
-whether the two relaxations stand, and whether the band becomes extremity speed
-per G-44. Nothing tightened here; exit code unchanged.
+**And the relaxation did not even buy the green it was widened for.** Under the
+relaxed bands, depth 3 and depth 4 both read 0.0294 m/s and 30 wiggly frames,
+so both failed anyway: 0.0294 > 0.025, and 30 > 15. The file already exited 1.
+The wider band bought nothing and cost the honest number.
+
+**Before: 1 of 3 trees passing, exit 1. After: 1 of 3 trees passing, exit 1**,
+with depths 3 and 4 now failing against the bounds the law asks for and the
+verdict lines printing their bounds. Depth 5 reads 0.0000 m/s, 0 wiggly frames.
+`expect: fail`, known_open, same front as the G-44 gluon-tree oscillation RCA
+already on the board. Not a constant to tune.
+
+**What is still owed.** Not the bands. The RCA of the depth-3/4 limit cycle,
+and the owner's call on whether the bound becomes extremity speed per G-44:
+this one is still COM speed.
 
 ---
 

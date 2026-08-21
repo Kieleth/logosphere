@@ -8,27 +8,46 @@
 #include <GLFW/glfw3.h>
 #include <string>
 
-// TO-INVESTIGATE (test-protocol migration, 2026-08-21): both pass bands were
-// LOOSENED IN PLACE and the comments record it — `max_velocity < 0.025f`
-// carries "Relaxed from 0.01" and `wiggly_frames < 15` carries "Relaxed from
-// 10". Loosening an assertion until it passes is the one move the testing
-// guidelines forbid outright, and TEST_AUDIT already books the consequence:
-// G-44 unmasked a sustained 0.0294 m/s oscillation in depth-3/4 oaks that the
-// speed-only sleep entry was absorbing, and the audited green was a mask. The
-// relevant laws are INV-24 (a settled scene performs zero corrective work) and
-// G-44 (low speed is not a fixed point; quietness must be priced in extremity
-// speed sqrt(v^2 + (omega*r)^2), so a slow-COM fast-spin trunk is not quiet at
-// all). Nothing was tightened here and the exit code is unchanged: the ruling
-// already pending on this test should also decide whether the two relaxations
-// stand.
+// ADJUDICATED 2026-08-21 (test-adjudication pass): THE ORIGINAL BANDS ARE
+// RESTORED. `max_velocity < 0.01f` and `wiggly_frames < 10`.
+//
+// Both had been LOOSENED IN PLACE and the comments recorded it — "Relaxed from
+// 0.01" and "Relaxed from 10". Loosening an assertion until it passes is the
+// one move docs/testing_guidelines.md forbids outright: the rule is to say
+// which was wrong, the code or the expectation. TEST_AUDIT already books what
+// the loosening was hiding — G-44 unmasked a sustained 0.0294 m/s oscillation
+// in depth-3/4 oaks that the speed-only sleep entry had been absorbing, and
+// "the audited green was a mask" — and 0.0294 sits outside the original band
+// and inside the relaxed one.
+//
+// MEASURED, and this is the sharpest fact about the relaxation: it did not
+// even buy the green it was widened for. Under the relaxed bands, depth 3 and
+// depth 4 both read 0.0294 m/s and 30 wiggly frames, so both failed anyway
+// (0.0294 > 0.025, 30 > 15) and the file already exited 1. The wider band
+// bought nothing and cost the honest number.
+//
+// Before this change: 1 of 3 trees passing, exit 1. After: 1 of 3 trees
+// passing, exit 1, with depth 3 and 4 now failing against the bounds the law
+// actually asks for. Booked known_open against the G-44 gluon-tree oscillation
+// RCA already on the board.
+//
+// The laws: INV-34 (rest-is-reached, ratified 2026-08-21 — an untouched scene
+// settles and stays settled, and a sustained oscillation is an energy source
+// however small its amplitude), INV-24 (a settled scene performs zero
+// corrective work), INV-3 (whatever sustains it is energy the ledger does not
+// see), and G-44 (low speed is not a fixed point; quietness must be priced in
+// extremity speed sqrt(v^2 + (omega*r)^2), so a slow-COM fast-spin trunk is not
+// quiet at all — the bound here is still COM speed, which is the remaining
+// owner question).
 //
 // ============================================================================
 // TREE WIGGLY TEST - Multiple Tree Sizes
 // ============================================================================
 // Purpose: Test if physics trees reach stable rest or keep wiggling
-// LAWS: INV-24 (zero corrective work at steady state), INV-3 (nothing
+// LAWS: INV-34 (rest-is-reached: an untouched scene settles and stays
+// settled), INV-24 (zero corrective work at steady state), INV-3 (nothing
 // sustains the motion without energy arriving), G-44 (the honest quietness
-// predicate), PROPOSED REST-IS-REACHED (tests/invariants/INV_PROPOSALS.md).
+// predicate).
 // Tests multiple tree configurations: small, medium, large, extra-large
 //
 // Run: INTERACTIVE=1 ./logosphere-tests --test test_tree_wiggly
@@ -192,13 +211,27 @@ TreeTestResult test_single_tree(Engine& engine, PhysicsTreeGenerator& generator,
     std::cout << " done" << std::endl;
 
     // Results
-    bool velocity_ok = max_velocity < 0.025f;  // Relaxed from 0.01
-    bool wiggly_ok = wiggly_frames < 15;       // Relaxed from 10
+    //
+    // THE ORIGINAL BANDS, RESTORED 2026-08-21. They had been loosened in place
+    // (0.01 -> 0.025 m/s and 10 -> 15 frames) with the relaxation recorded in
+    // the comments, which is the one move docs/testing_guidelines.md forbids
+    // outright: say which was wrong, the code or the expectation, never move
+    // the line. What the loosening hid is already booked — G-44 unmasked a
+    // sustained 0.0294 m/s oscillation in depth-3/4 oaks that the speed-only
+    // sleep entry had been absorbing — and 0.0294 sits outside the original
+    // band and inside the relaxed one. The relaxed band did not even buy the
+    // green it was widened for: 0.0294 > 0.025 and 30 > 15, so both depths
+    // failed anyway. INV-34 is the law (an untouched scene settles and stays
+    // settled), INV-24 the corrective half, INV-3 the question of where the
+    // energy comes from.
+    bool velocity_ok = max_velocity < 0.01f;
+    bool wiggly_ok = wiggly_frames < 10;
     bool pass = velocity_ok && wiggly_ok;
 
-    std::cout << "  INV-24/G-44 max velocity: " << std::fixed << std::setprecision(4) << max_velocity << " m/s"
+    std::cout << "  INV-34/INV-24/G-44 max velocity: " << std::fixed << std::setprecision(4)
+              << max_velocity << " m/s  (bound 0.0100)"
               << (velocity_ok ? " OK" : " FAIL") << std::endl;
-    std::cout << "  INV-24/G-44 wiggly frames: " << wiggly_frames << "/30"
+    std::cout << "  INV-34/INV-24/G-44 wiggly frames: " << wiggly_frames << "/30  (bound 10)"
               << (wiggly_ok ? " OK" : " FAIL") << std::endl;
     std::cout << "  Result: " << (pass ? "PASS" : "FAIL") << std::endl;
 

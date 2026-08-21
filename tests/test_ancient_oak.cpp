@@ -4,20 +4,36 @@
 #include <cmath>
 #include <iomanip>
 
-// TO-INVESTIGATE (test-protocol migration, 2026-08-21): the wiggle check is
-// COMPUTED AND THEN DROPPED FROM THE VERDICT. `wiggle_ok` requires fewer than
-// 10 wiggly frames and a max trunk velocity under 25 mm/s, but `pass` is
-// `!nan_detected && max_xy < 1.0 && max_z < 0.50 && total_segments > 0` and
-// does not include it. A tree that stands still enough not to drift while
-// vibrating forever prints "WARNING: Tree stands but WIGGLES" and RETURNS
-// TRUE. Under INV-24 a settled scene performs zero corrective work, so a
-// sustained trunk velocity is a correction firing forever, and under INV-3
-// whatever sustains it is energy arriving from somewhere the ledger does not
-// see. This is the same mask G-44 found under test_tree_wiggly (a sustained
-// 0.0294 m/s oscillation in depth-3/4 oaks absorbed by the speed-only sleep
-// entry, where "the audited green was a mask"). Nothing here was changed and
-// the exit code is unchanged: an owner ruling is owed on whether wiggle_ok
-// joins the verdict, and at which bound.
+// ADJUDICATED 2026-08-21 (test-adjudication pass): REPAIRED, still green.
+//
+// `wiggle_ok` was COMPUTED AND THEN DROPPED FROM THE VERDICT. It requires
+// fewer than 10 wiggly frames and a max trunk velocity under 25 mm/s, but
+// `pass` was `!nan_detected && max_xy < 1.0 && max_z < 0.50 && total_segments
+// > 0` and did not include it, so a tree that stood still enough not to drift
+// while vibrating forever printed "WARNING: Tree stands but WIGGLES" and
+// RETURNED TRUE. It is wired in now.
+//
+// The law is INV-34 (rest-is-reached, ratified 2026-08-21): a scene with no
+// external input settles in bounded time and stays settled, and "sustained
+// oscillation of an untouched body is an energy source wearing a steady
+// state's clothes, however small its amplitude". INV-24 says the corrective
+// half — a settled scene performs zero corrective work, so a sustained trunk
+// velocity is a correction firing forever — and INV-3 asks where the sustaining
+// energy comes from. The mask is the one G-44 found under test_tree_wiggly,
+// where "the audited green was a mask".
+//
+// MEASURED, before and after: max trunk velocity 0.0000 mm/s, 0 of 30 wiggly
+// frames. `wiggle_ok` is TRUE on this oak today, so wiring it in cost no
+// verdict. That is the cheapest moment to close a hole, and the reason to do
+// it now rather than when it is red.
+//
+// Still owed, and the owner's: whether the bound should be G-44's extremity
+// speed sqrt(v^2 + (omega*r)^2) rather than the COM speed measured here. A
+// trunk slow at its centre and turning about its base reads quiet to this
+// check and is not.
+//
+// INV-33/34/35 were ratified 2026-08-21 and their records land with the
+// physics-TDD item-6 branch; see tests/invariants/INV_PROPOSALS.md.
 //
 // ============================================================================
 // THE ANCIENT OAK - A Great Old Tree
@@ -171,23 +187,36 @@ bool test_ancient_oak() {
               << wiggly_frames << "/30" << std::endl;
 
     float max_xy = std::max(max_x, max_y);
+    // INV-34: an untouched scene settles and STAYS settled. This term was
+    // computed and left out of the verdict, so a tree that vibrated forever
+    // without drifting returned true with a warning. It is in the verdict now.
     bool wiggle_ok = wiggly_frames < 10 && max_trunk_velocity < 0.025f;  // Less than 25mm/s max
-    bool pass = !nan_detected && max_xy < 1.0f && max_z < 0.50f && tree.total_segments > 0;
+    bool stands_ok = !nan_detected && max_xy < 1.0f && max_z < 0.50f && tree.total_segments > 0;
+    bool pass = stands_ok && wiggle_ok;
 
     std::cout << "\n[RESULT]" << std::endl;
     if (tree.total_segments == 0) {
         std::cout << "  ❌ FAIL hygiene: No tree created (floor tile missing?)" << std::endl;
         return false;
     }
-    if (pass && wiggle_ok) {
-        std::cout << "  ✅ PASS INV-11/INV-24: Ancient Oak stands strong and stable!" << std::endl;
-    } else if (pass && !wiggle_ok) {
-        std::cout << "  ⚠️  TO-INVESTIGATE, still counted as a pass: INV-24 says a "
-                     "settled scene performs zero corrective work. Tree stands but WIGGLES (trunk_v="
-                  << (max_trunk_velocity * 1000.0f) << "mm/s)" << std::endl;
+    if (pass) {
+        std::cout << "  ✅ PASS INV-11/INV-24/INV-34: Ancient Oak stands strong "
+                     "and reaches rest (trunk_v="
+                  << (max_trunk_velocity * 1000.0f) << "mm/s, "
+                  << wiggly_frames << "/30 wiggly)" << std::endl;
     } else {
-        std::cout << "  ❌ FAIL " << (nan_detected ? "PROPOSED FINITE-STATE: Collapsed (NaN)"
-                                                : "INV-11: Too much drift") << std::endl;
+        if (!stands_ok) {
+            std::cout << "  ❌ FAIL " << (nan_detected ? "PROPOSED FINITE-STATE: Collapsed (NaN)"
+                                                      : "INV-11: Too much drift") << std::endl;
+        }
+        if (!wiggle_ok) {
+            std::cout << "  ❌ FAIL INV-34/INV-24: the tree stands but never "
+                         "reaches rest (trunk_v=" << (max_trunk_velocity * 1000.0f)
+                      << "mm/s over a 25mm/s bound, " << wiggly_frames
+                      << "/30 wiggly frames over a bound of 10). A settled scene "
+                         "performs zero corrective work; whatever sustains this "
+                         "is energy the ledger does not see (INV-3)." << std::endl;
+        }
     }
 
     return pass;
