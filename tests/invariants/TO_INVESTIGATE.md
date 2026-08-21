@@ -115,3 +115,42 @@ bound — most likely G-44's quietness bound in extremity speed rather than a
 COM-speed band. Not weakened here; exit code unchanged.
 
 ---
+
+## test_ancient_oak — the wiggle check is computed and then dropped from the verdict
+
+**What it asserts.** `pass = !nan_detected && max_xy < 1.0 && max_z < 0.50 &&
+total_segments > 0`. `wiggle_ok` (fewer than 10 wiggly frames, max trunk
+velocity under 25 mm/s) is computed one line above and never enters `pass`. A
+tree that vibrates forever without drifting prints "WARNING: Tree stands but
+WIGGLES" and returns true.
+
+**Why that is wrong.** INV-24: at steady state a scene performs zero corrective
+work; a sustained trunk velocity with nothing touching the tree is a correction
+firing forever. INV-3: whatever sustains it is energy arriving from a source
+the ledger does not see. It is the same mask G-44 found under
+`test_tree_wiggly`, where TEST_AUDIT records that "the audited green was a
+mask".
+
+**What is owed.** A ruling on whether `wiggle_ok` joins the verdict, and at
+which bound — G-44 argues the bound should be extremity speed, not COM speed.
+Nothing changed; exit code unchanged.
+
+---
+
+## test_tree_wiggly — both pass bands were loosened in place
+
+**What it asserts.** `max_velocity < 0.025f` (comment: "Relaxed from 0.01") and
+`wiggly_frames < 15` (comment: "Relaxed from 10").
+
+**Why that is wrong.** Loosening an assertion until it passes is the move
+`docs/testing_guidelines.md` forbids outright — the rule is to say which was
+wrong, the code or the expectation. The consequence is already booked in this
+test's TEST_AUDIT row: G-44 unmasked a sustained 0.0294 m/s oscillation in
+depth-3/4 oaks that the speed-only sleep entry was absorbing, which sits inside
+the relaxed band and outside the original one. INV-24 and G-44 are the laws.
+
+**What is owed.** The ruling already pending on this test should also decide
+whether the two relaxations stand, and whether the band becomes extremity speed
+per G-44. Nothing tightened here; exit code unchanged.
+
+---

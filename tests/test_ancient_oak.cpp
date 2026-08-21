@@ -4,6 +4,21 @@
 #include <cmath>
 #include <iomanip>
 
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): the wiggle check is
+// COMPUTED AND THEN DROPPED FROM THE VERDICT. `wiggle_ok` requires fewer than
+// 10 wiggly frames and a max trunk velocity under 25 mm/s, but `pass` is
+// `!nan_detected && max_xy < 1.0 && max_z < 0.50 && total_segments > 0` and
+// does not include it. A tree that stands still enough not to drift while
+// vibrating forever prints "WARNING: Tree stands but WIGGLES" and RETURNS
+// TRUE. Under INV-24 a settled scene performs zero corrective work, so a
+// sustained trunk velocity is a correction firing forever, and under INV-3
+// whatever sustains it is energy arriving from somewhere the ledger does not
+// see. This is the same mask G-44 found under test_tree_wiggly (a sustained
+// 0.0294 m/s oscillation in depth-3/4 oaks absorbed by the speed-only sleep
+// entry, where "the audited green was a mask"). Nothing here was changed and
+// the exit code is unchanged: an owner ruling is owed on whether wiggle_ok
+// joins the verdict, and at which bound.
+//
 // ============================================================================
 // THE ANCIENT OAK - A Great Old Tree
 // ============================================================================
@@ -161,16 +176,18 @@ bool test_ancient_oak() {
 
     std::cout << "\n[RESULT]" << std::endl;
     if (tree.total_segments == 0) {
-        std::cout << "  ❌ FAIL: No tree created (floor tile missing?)" << std::endl;
+        std::cout << "  ❌ FAIL hygiene: No tree created (floor tile missing?)" << std::endl;
         return false;
     }
     if (pass && wiggle_ok) {
-        std::cout << "  ✅ PASS: Ancient Oak stands strong and stable!" << std::endl;
+        std::cout << "  ✅ PASS INV-11/INV-24: Ancient Oak stands strong and stable!" << std::endl;
     } else if (pass && !wiggle_ok) {
-        std::cout << "  ⚠️  WARNING: Tree stands but WIGGLES (trunk_v="
+        std::cout << "  ⚠️  TO-INVESTIGATE, still counted as a pass: INV-24 says a "
+                     "settled scene performs zero corrective work. Tree stands but WIGGLES (trunk_v="
                   << (max_trunk_velocity * 1000.0f) << "mm/s)" << std::endl;
     } else {
-        std::cout << "  ❌ FAIL: " << (nan_detected ? "Collapsed" : "Too much drift") << std::endl;
+        std::cout << "  ❌ FAIL " << (nan_detected ? "PROPOSED FINITE-STATE: Collapsed (NaN)"
+                                                : "INV-11: Too much drift") << std::endl;
     }
 
     return pass;

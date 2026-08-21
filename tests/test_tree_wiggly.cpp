@@ -8,10 +8,27 @@
 #include <GLFW/glfw3.h>
 #include <string>
 
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): both pass bands were
+// LOOSENED IN PLACE and the comments record it — `max_velocity < 0.025f`
+// carries "Relaxed from 0.01" and `wiggly_frames < 15` carries "Relaxed from
+// 10". Loosening an assertion until it passes is the one move the testing
+// guidelines forbid outright, and TEST_AUDIT already books the consequence:
+// G-44 unmasked a sustained 0.0294 m/s oscillation in depth-3/4 oaks that the
+// speed-only sleep entry was absorbing, and the audited green was a mask. The
+// relevant laws are INV-24 (a settled scene performs zero corrective work) and
+// G-44 (low speed is not a fixed point; quietness must be priced in extremity
+// speed sqrt(v^2 + (omega*r)^2), so a slow-COM fast-spin trunk is not quiet at
+// all). Nothing was tightened here and the exit code is unchanged: the ruling
+// already pending on this test should also decide whether the two relaxations
+// stand.
+//
 // ============================================================================
 // TREE WIGGLY TEST - Multiple Tree Sizes
 // ============================================================================
 // Purpose: Test if physics trees reach stable rest or keep wiggling
+// LAWS: INV-24 (zero corrective work at steady state), INV-3 (nothing
+// sustains the motion without energy arriving), G-44 (the honest quietness
+// predicate), PROPOSED REST-IS-REACHED (tests/invariants/INV_PROPOSALS.md).
 // Tests multiple tree configurations: small, medium, large, extra-large
 //
 // Run: INTERACTIVE=1 ./logosphere-tests --test test_tree_wiggly
@@ -179,9 +196,9 @@ TreeTestResult test_single_tree(Engine& engine, PhysicsTreeGenerator& generator,
     bool wiggly_ok = wiggly_frames < 15;       // Relaxed from 10
     bool pass = velocity_ok && wiggly_ok;
 
-    std::cout << "  Max velocity: " << std::fixed << std::setprecision(4) << max_velocity << " m/s"
+    std::cout << "  INV-24/G-44 max velocity: " << std::fixed << std::setprecision(4) << max_velocity << " m/s"
               << (velocity_ok ? " OK" : " FAIL") << std::endl;
-    std::cout << "  Wiggly frames: " << wiggly_frames << "/30"
+    std::cout << "  INV-24/G-44 wiggly frames: " << wiggly_frames << "/30"
               << (wiggly_ok ? " OK" : " FAIL") << std::endl;
     std::cout << "  Result: " << (pass ? "PASS" : "FAIL") << std::endl;
 
