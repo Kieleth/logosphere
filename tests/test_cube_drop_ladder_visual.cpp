@@ -72,7 +72,7 @@ int main() {
 
     Scene scene;
     scene.build(ps);
-    if (interactive) scene.add_backdrop(ps);   // height ruler, never contacted
+    scene.add_backdrop(ps);   // both modes: criterion b, same bodies
     scene.arm(ps, physics, RUNGS[0], 0);
     // FIXED camera at the action column. The first version FOLLOWED the
     // cube, which put it dead-centre every frame: a falling body whose

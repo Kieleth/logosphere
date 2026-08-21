@@ -215,7 +215,11 @@ struct Scene {
         auto v = ps.lock_particles_for_write();
         Particle& p = v[id];
         const float half = p.thickness * 0.5f;
-        p.x = x; p.y = 0.0f; p.z = FLOOR_TOP + half;
+        // The park station (x = 30) is OFF the 4x4 slab: parked bodies
+        // rest on the TURTLE, bottom at 0. The old slab-height z left
+        // them floating 0.2 m and falling at every case start — noise,
+        // and the collision event that once faked a touchdown.
+        p.x = x; p.y = 0.0f; p.z = half;
         p.vx = p.vy = p.vz = 0.0f;
         p.omega_x = p.omega_y = p.omega_z = 0.0f;
         p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
@@ -231,10 +235,15 @@ struct Scene {
         park(ps, physics, spin_case ? cube : hero, 30.0f);
         if (spin_case) {
             // The still twin: same size, same floor, no spin — the
-            // on-stage contrast the lecture standard demands. Placed
-            // clear of the drive axis (R5 drives Y, R6 drives X).
-            const float tx = (r.spin_x != 0.0f) ? 1.5f : 0.0f;
-            const float ty = (r.spin_x != 0.0f) ? 0.0f : 1.5f;
+            // on-stage contrast the lecture standard demands. ONE
+            // station for every case, (1.5, 0): clear of R5's Y-drive
+            // and R6's X-walk (0.19 m measured, 0.7 m margin), and
+            // clear of the backdrop pillars at y = 1.5 — the first
+            // placement put the twin dead-centre on the middle pillar,
+            // window only, which is exactly where the owner saw it
+            // land on another body (QA 2026-08-20).
+            const float tx = 1.5f;
+            const float ty = 0.0f;
             auto v2 = ps.lock_particles_for_write();
             Particle& t = v2[twin];
             t.x = tx; t.y = ty;
@@ -338,13 +347,15 @@ struct Scene {
         prev_omega_z = p.omega_z;
     }
 
-    // Reference scenery for the WINDOW only: three dark pillars behind the
-    // action (y = +1.5, the cube never leaves y = 0, so the 1.25 m gap
-    // means no contact is possible) with tops at 0.2 / 0.4 / 0.6 m — a
-    // height ruler the fall and the settle read against. The headless
-    // driver never calls this, and the tested cube's physics is
-    // untouched by construction, which is why it may live here without
-    // breaking the drivers-own-no-bodies rule.
+    // Reference scenery: three dark pillars behind the action at
+    // y = +1.5, tops at 0.2 / 0.4 / 0.6 m above the slab — a height
+    // ruler the fall and the settle read against. BOTH drivers add it
+    // (criterion b): scenery is made of PARTICLES, and a body that
+    // exists in one world and not the other is a reflection break —
+    // the twin once landed on the middle pillar in the window while
+    // headless, pillarless, swore everything was clean. All performer
+    // and twin stations are chosen clear of the pillars; if that ever
+    // rots, the asserted world now contains the pillars to catch it.
     void add_backdrop(ParticleSystem& ps) {
         const float tops[3] = { 0.2f, 0.4f, 0.6f };   // above the slab top
         for (int i = 0; i < 3; ++i) {

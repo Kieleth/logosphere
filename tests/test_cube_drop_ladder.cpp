@@ -62,6 +62,7 @@ int main() {
         if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
         Scene scene;
         scene.build(ps);
+        scene.add_backdrop(ps);   // criterion b: same bodies as the window
         scene.arm(ps, physics, spec, r);
         scene.argus.reset_milestones(scene.actor(r));
         scene.argus.reset_milestones(scene.twin);
@@ -163,8 +164,9 @@ int main() {
                       "R7 lever: and it ROTATED on the way down");
                 check(scene.argus.divergence(H) < 0.01f,
                       "R7 lever: one orientation through the fall (Argus)");
-                const float tdy = scene.displaced_y(ps, scene.twin) - 1.5f;
-                check(std::fabs(tdy) < 0.02f,
+                const float tdx = scene.displaced_x(ps, scene.twin) - 1.5f;
+                const float tdy = scene.displaced_y(ps, scene.twin);
+                check(std::fabs(tdx) < 0.02f && std::fabs(tdy) < 0.02f,
                       "R7 control: the face-resting twin stays put");
             } else {
                 std::printf("  [waive] R7 default: no contact torque law "
@@ -177,10 +179,9 @@ int main() {
             const int H = scene.hero;
             const float dx = scene.displaced_x(ps, H);
             const float dy = scene.displaced_y(ps, H);
-            const float twin_dx = scene.displaced_x(ps, scene.twin)
-                                - ((spec.spin_x != 0.0f) ? 1.5f : 0.0f);
-            const float twin_dy = scene.displaced_y(ps, scene.twin)
-                                - ((spec.spin_x != 0.0f) ? 0.0f : 1.5f);
+            // The twin's one station is (1.5, 0) — see arm().
+            const float twin_dx = scene.displaced_x(ps, scene.twin) - 1.5f;
+            const float twin_dy = scene.displaced_y(ps, scene.twin);
             std::printf("  [measure] G-41 hero: displaced (%.4f, %.4f) m, "
                         "settled spin %.4f rad/s\n",
                         dx, dy, scene.settled_spin(ps, H));
@@ -248,6 +249,7 @@ int main() {
         if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
         Scene scene;
         scene.build(ps);
+        scene.add_backdrop(ps);   // criterion b: same bodies as the window
         static const bool lever_seq = std::getenv("CONTACT_TORQUE") != nullptr;
         for (int r = 0; r < RUNG_COUNT; ++r) {
             const RungSpec& spec = RUNGS[r];
