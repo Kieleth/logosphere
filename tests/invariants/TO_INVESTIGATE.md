@@ -176,3 +176,24 @@ expect-fail ("they overlap TODAY, here is the ticket") rather than an
 expect-pass. Nothing changed; exit code unchanged.
 
 ---
+
+## test_oscillation_diagnostic — the same "damping working" pass as test_physics_minimal
+
+**What it asserts.** Identical three-branch verdict: under 0.01 m/s is "at
+rest"; 0.01 to 0.1 m/s ALSO passes, printed as "Low oscillation — damping
+working"; above 0.1 m/s fails. The subject is a gluoned 2x2 tile on the turtle
+that nothing is touching.
+
+**Why the middle branch is wrong.** Same two laws as `test_physics_minimal`:
+INV-24 (zero corrective work at steady state; the firings that earned it were
+290 nm each) and INV-19 (damping only where a real dissipation process is
+modelled). Sharper here, because the file's stated GOAL is to reproduce a
+0.5-1 m/s oscillation and its pass band absorbs a tenth of that. Its own
+hypothesis — gluon constraints fighting turtle contacts — is INV-22 (exactly
+one mechanism governs a pair), so the thing it exists to find is a law
+violation it is configured to pass.
+
+**What is owed.** Ruled together with `test_physics_minimal`: does the middle
+branch fail, and at which bound. Not weakened; exit code unchanged.
+
+---

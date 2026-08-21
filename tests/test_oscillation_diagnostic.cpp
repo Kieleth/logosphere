@@ -1,3 +1,16 @@
+// TO-INVESTIGATE (test-protocol migration, 2026-08-21): same defect as
+// test_physics_minimal, in the same three-branch shape. The middle branch
+// accepts a sustained 0.01-0.1 m/s oscillation on a gluoned tile that nothing
+// is touching, prints "damping working", and returns TRUE. INV-24: at steady
+// state a scene performs zero corrective work, and a correction firing forever
+// on the same body is a perpetual-motion machine (its origin: 1955 firings of
+// 290 nm each, five orders of magnitude below this band). INV-19: damping
+// exists only where a real dissipation process is modelled, so crediting
+// "damping" for a residual velocity names a numerical convenience as physics.
+// The file's own stated GOAL is to reproduce a 0.5-1 m/s oscillation, and its
+// pass band absorbs a tenth of it. Not weakened here, exit code unchanged;
+// ruled together with test_physics_minimal.
+//
 // ============================================================================
 // OSCILLATION DIAGNOSTIC: Gluoned floor tile on Turtle
 // ============================================================================
@@ -8,6 +21,10 @@
 //
 // Hypothesis: Oscillation comes from gluon constraints fighting Turtle contacts,
 // not from single particle-Turtle interaction.
+//
+// LAWS: INV-24 (zero corrective work at steady state), INV-22 (exactly one
+// mechanism governs a pair — a gluon and a turtle contact fighting over the
+// same violation is the hypothesis stated as a law), INV-1, INV-3.
 // ============================================================================
 
 #include "../src/core/engine.h"
@@ -1185,13 +1202,18 @@ bool test_oscillation_diagnostic() {
 
     std::cout << "\n";
     if (final_max_vel < 0.01f) {
-        std::cout << "RESULT: Tile at rest (good - no oscillation)\n";
+        std::cout << "RESULT: INV-24 / PROPOSED REST-IS-REACHED: tile at rest "
+                     "(good - no oscillation)\n";
         return true;
     } else if (final_max_vel < 0.1f) {
-        std::cout << "RESULT: Low oscillation (" << final_max_vel << " m/s) - damping working\n";
+        std::cout << "RESULT: TO-INVESTIGATE, counted as a pass today: low "
+                     "oscillation (" << final_max_vel << " m/s) on a tile nobody "
+                     "is touching. INV-24 says a settled scene performs zero "
+                     "corrective work and INV-19 forbids crediting damping for "
+                     "it. See the block at the top of this file.\n";
         return true;
     } else {
-        std::cout << "RESULT: OSCILLATING at " << final_max_vel << " m/s (BAD - not settling)\n";
+        std::cout << "RESULT: INV-24/INV-22 VIOLATED: oscillating at " << final_max_vel << " m/s (BAD - not settling)\n";
         return false;
     }
 }

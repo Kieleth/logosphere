@@ -12,6 +12,26 @@
 //      tiles near the impact are shoved, bedrock slabs hold, the boulder
 //      comes to rest above bedrock, and the turtle remains absolute.
 //
+// LAWS (assert-protocol migration, 2026-08-21):
+//   INV-1  the turtle is absolute at any energy. Three separate asserts below
+//          re-check it, which is correct: it is the one thing a 29 MJ impact
+//          must not be able to move.
+//   INV-4  born at rest: every generated layer is fully settled before the
+//          next one is placed, and nothing arrives overlapping.
+//   INV-2  the boulder never tunnels through bedrock.
+//   INV-14 bonded bedrock holds under the strike.
+//   INV-3 + INV-21  the energy block. Those two asserts are a RATCHET AGAINST
+//          AN ACTIVE LAW and the comment beside them already says so: the
+//          impact frame CREATES 1.19 MJ from position correction plus capped
+//          bias velocity across dozens of deep heavy contacts, which is INV-3
+//          violated by exactly the mechanism INV-21 forbids (repair entering
+//          real momentum). The real contract named there — dissipation-only,
+//          rises within ~1% of E_start — is INV-3 stated properly. Tracked as
+//          issue #5; the bounds pin today's scale so escalation fails loudly.
+//   INV-11 the far field staying put is the anti-swimming guard, and the
+//          regression it names (uncapped Baumgarte moving 200+ far tiles) is
+//          INV-21's failure at scene scale.
+//
 // Usage:
 //   ./build/test_strata_earth_impact
 // =============================================================================
@@ -86,22 +106,22 @@ float min_bottom_z(Engine& e, const std::vector<int>& ids) {
 void test_earth_preset_layers() {
     Harness h;
     auto specs = StrataGenerator::earth_preset();
-    AT_ASSERT_TRUE(specs.size() == 3, "earth is three layers");
+    AT_ASSERT_TRUE(specs.size() == 3, "hygiene: earth is three layers");
     AT_ASSERT_TRUE(specs[0].bond_within_layer && specs[0].bond_strength > 0,
-        "bedrock is cement-bonded (the gluon escape hatch)");
+        "INV-1: bedrock is cement-bonded (the gluon escape hatch — an anchor is one of the three ways immobility exists)");
     AT_ASSERT_TRUE(!specs[1].bond_within_layer && !specs[2].bond_within_layer,
-        "filler and organic are loose");
+        "hygiene: filler and organic are loose");
 
     StrataGenerator::ChunkBounds bounds{-8.0f, 8.0f, -8.0f, 8.0f};
     std::mt19937 rng(42);
     auto result = StrataGenerator::generate(h.engine, specs, bounds, rng);
-    AT_ASSERT_TRUE(result.layers.size() == 3, "three layers generated");
+    AT_ASSERT_TRUE(result.layers.size() == 3, "hygiene: three layers generated");
 
     // Big below, small above (the owner's "smart" sizing ruling).
     float bed_sz = avg_tile_size(h.engine, result.layers[0].particle_ids);
     float top_sz = avg_tile_size(h.engine, result.layers[2].particle_ids);
     AT_ASSERT_TRUE(bed_sz > top_sz * 1.8f,
-        "bedrock slabs dwarf topsoil tiles (bedrock avg " +
+        "INV-10: bedrock slabs dwarf topsoil tiles, so this scene spans the mass ratios a limit must mean the same thing across (bedrock avg " +
         std::to_string(bed_sz) + " m vs organic " +
         std::to_string(top_sz) + " m)");
 
@@ -109,17 +129,17 @@ void test_earth_preset_layers() {
     for (size_t i = 0; i < 3; ++i) {
         const auto& L = result.layers[i];
         AT_ASSERT_TRUE(L.at_rest_count == L.particle_ids.size(),
-            specs[i].name + " fully at rest (" +
+            specs[i].name + " INV-4: fully at rest (" +
             std::to_string(L.at_rest_count) + "/" +
             std::to_string(L.particle_ids.size()) + ")");
     }
-    AT_ASSERT_TRUE(result.layers[0].bond_count > 0, "bedrock bonds exist");
+    AT_ASSERT_TRUE(result.layers[0].bond_count > 0, "hygiene: bedrock bonds exist");
     AT_ASSERT_TRUE(result.layers[1].max_top_z > result.layers[0].max_top_z &&
                    result.layers[2].max_top_z > result.layers[1].max_top_z,
-        "layers stack upward");
+        "INV-4: layers stack upward, nothing generated inside anything");
     float lowest = min_bottom_z(h.engine, result.layers[0].particle_ids);
     AT_ASSERT_TRUE(lowest > -0.01f,
-        "nothing below the turtle (lowest bottom " +
+        "INV-1: nothing below the turtle (lowest bottom " +
         std::to_string(lowest) + ")");
 }
 
@@ -145,7 +165,7 @@ void test_incremental_api_composes() {
             ++frames;
         }
         AT_ASSERT_TRUE(rest == layer.particle_ids.size(),
-            spec.name + " settles under caller-owned frames (" +
+            spec.name + " INV-4: settles under caller-owned frames (" +
             std::to_string(rest) + "/" +
             std::to_string(layer.particle_ids.size()) + " in " +
             std::to_string(frames) + " frames)");
@@ -154,9 +174,9 @@ void test_incremental_api_composes() {
         layers.push_back(std::move(layer));
     }
     AT_ASSERT_TRUE(layers[0].bond_count > 0,
-        "incremental path bonds bedrock too");
+        "hygiene: incremental path bonds bedrock too");
     AT_ASSERT_TRUE(base_z > 0.6f && base_z < 2.5f,
-        "stacked ground lands at a sane height (top " +
+        "INV-4: stacked ground lands at a sane height (top " +
         std::to_string(base_z) + " m)");
 }
 
@@ -222,11 +242,11 @@ void test_boulder_craters_the_ground() {
         boulder_rests = view[boulder_id].is_at_rest;
     }
     AT_ASSERT_TRUE(bz - 0.8f > bedrock_top - 0.6f,
-        "the boulder never tunnels through bedrock (bottom " +
+        "INV-2: the boulder never tunnels through bedrock (bottom " +
         std::to_string(bz - 0.8f) + ", bedrock top " +
         std::to_string(bedrock_top) + ")");
     AT_ASSERT_TRUE(bz > 0.8f - 0.01f,
-        "the boulder respects the turtle (z " + std::to_string(bz) + ")");
+        "INV-1: the boulder respects the turtle (z " + std::to_string(bz) + ")");
     (void)bx;
 
     // Crater: organic tiles near the impact moved; the field's far edge
@@ -248,12 +268,12 @@ void test_boulder_craters_the_ground() {
                       << " moved=" << moved << std::endl;
     }
     AT_ASSERT_TRUE(shoved_near >= 2,
-        "the impact shoves nearby topsoil (moved tiles near center: " +
+        "INV-7: the impact shoves nearby topsoil — momentum arrives through the door and lands (moved tiles near center: " +
         std::to_string(shoved_near) + ")");
     // Debris happens (a clod can roll); SWIMMING must not — the
     // uncapped-Baumgarte regression moved 200+ far tiles.
     AT_ASSERT_TRUE(shoved_far <= 3,
-        "the far field stays put, stray debris aside (moved far "
+        "INV-21: the far field stays put, stray debris aside — the uncapped-Baumgarte regression moved 200+ far tiles (moved far "
         "tiles: " + std::to_string(shoved_far) + ")");
     float bed_max_move = 0.0f;
     for (size_t i = 0; i < bedrock_before.size(); ++i) {
@@ -264,16 +284,16 @@ void test_boulder_craters_the_ground() {
             std::sqrt(dx * dx + dy * dy + dz * dz));
     }
     AT_ASSERT_TRUE(bed_max_move < 0.15f,
-        "bonded bedrock holds (max slab displacement " +
+        "INV-14: bonded bedrock holds (max slab displacement " +
         std::to_string(bed_max_move) + " m)");
     AT_ASSERT_TRUE(boulder_rests || bz < ground_top + 1.0f,
-        "the boulder ends its journey in the ground's embrace");
+        "PROPOSED REST-IS-REACHED: the boulder ends its journey in the ground's embrace");
 
     // The turtle is absolute, always.
     float lowest = std::min(min_bottom_z(h.engine, ground.layers[0].particle_ids),
                             bz - 0.8f);
     AT_ASSERT_TRUE(lowest > -0.01f,
-        "nothing driven below the turtle by the impact (lowest " +
+        "INV-1: nothing driven below the turtle by the impact (lowest " +
         std::to_string(lowest) + ")");
 }
 
@@ -365,8 +385,8 @@ void test_large_boulder_energy_budget() {
               << " total_rise=" << total_rise
               << " final_ke=" << final_ke << std::endl;
 
-    AT_ASSERT_TRUE(impact_frame > 0, "the boulder reaches the ground");
-    AT_ASSERT_TRUE(peak_ke > 0.0, "impact injects energy into the field");
+    AT_ASSERT_TRUE(impact_frame > 0, "hygiene: the boulder reaches the ground");
+    AT_ASSERT_TRUE(peak_ke > 0.0, "hygiene: impact injects energy into the field (the measurement is live)");
     // RATCHET, not the final contract (issue #5). Measured today:
     // the impact frame creates 1.19 MJ (position correction + capped
     // bias velocity across dozens of deep heavy contacts), 1.96 MJ
@@ -378,22 +398,22 @@ void test_large_boulder_energy_budget() {
     // feed the velocity state. Until then these bounds pin the
     // current scale so escalation fails loudly.
     AT_ASSERT_TRUE(worst_rise < 1.6e6,
-        "impact-frame energy creation at the known scale (worst rise " +
+        "INV-3/INV-21 RATCHET (issue #5), not the contract: impact-frame energy creation at the known scale (worst rise " +
         std::to_string(worst_rise) + " J at f" +
         std::to_string(worst_rise_frame) +
         ", ratchet 1.6 MJ) — escalation is the explosion");
     AT_ASSERT_TRUE(total_rise < 2.6e6,
-        "cumulative solver-created energy holds the ratchet (" +
+        "INV-3/INV-21 RATCHET (issue #5): cumulative solver-created energy holds the ratchet (" +
         std::to_string(total_rise) + " J, ratchet 2.6 MJ, start " +
         std::to_string(e_start) + " J)");
     AT_ASSERT_TRUE(final_ke < peak_ke * 0.02,
-        "the field ends quiet (final ke " + std::to_string(final_ke) +
+        "PROPOSED REST-IS-REACHED: the field ends quiet (final ke " + std::to_string(final_ke) +
         " J vs peak " + std::to_string(peak_ke) + " J)");
 
     // The turtle is absolute at any energy.
     float lowest = min_bottom_z(h.engine, ground.layers[0].particle_ids);
     AT_ASSERT_TRUE(lowest > -0.01f,
-        "nothing driven below the turtle (lowest " +
+        "INV-1: nothing driven below the turtle (lowest " +
         std::to_string(lowest) + ")");
 }
 
