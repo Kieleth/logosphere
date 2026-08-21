@@ -1651,3 +1651,12 @@ Instrument debt paid: phystrace frames tick in headless, friction and
 warm-start applies traced, per-phase omega probe. Ramp's one remaining
 lever red is G-23 (item 4). FIXED protocol: owner window QA pending on
 the corrected build.
+
+## 2026-08-20 — Owner QA closes G-43 + G-45 (FIXED protocol, clause 3)
+
+Owner verdict on the corrected ladder window: "total success and is 99%
+according with physics... these are totally great... excellent work,
+almost magic." Argus-clamped asserts (clause 1) + certified sweep
+(new-red 0) + owner interactive QA (clause 3): both arcs FIXED. Owner
+orders added to the board: spin-lift on impact, rotation-rate sweep for
+falling cubes, spinning spheres vs floor. Merge of the branch ordered.

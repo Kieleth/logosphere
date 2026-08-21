@@ -439,6 +439,29 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Owner QA PASSED 2026-08-20 — G-43 + G-45 arcs CLOSED (FIXED protocol complete)
+
+Owner watched the corrected ladder: "total success and is 99% according
+with physics... excellent work, almost magic." Three TODO orders from
+the same QA, owner verbatim intent:
+
+- **Spin-lift on impact**: "some of the rotations should bring the cube
+  up a bit due to force applied" — a fast-spinning cube striking ground
+  should convert some spin to a visible hop. Measure the corner-strike
+  vertical impulse budget; decide whether the engine under-delivers it.
+- **Rotation-rate sweep for falling cubes**: more falling spinning-cube
+  cases; increase wheel-spin rates and assert that horizontal travel
+  EMERGES with rate at ground contact ("advanced simulation" — the
+  spin-to-travel conversion curve, not a single point).
+- **Spinning spheres vs floor**: spheres have no corner-knock band, so
+  spin survives any fall; test topspin/backspin landings, rolling
+  conversion, bounce-spin coupling. Natural vehicle for the walking
+  claim the cube can only rock at.
+
+Ladder lever carries 3 booked reds meanwhile: R5/R6 tall-fall walk
+bounds (clamped at the old low-release walk; re-clamp NOT ruled, kept
+red-and-booked) + R6 coherence (G-21 gimbal, rotation item 4, next).
+
 ## Sweep triage post-G-43 (2026-08-20): 4 moles, all resolved or booked
 
 - test_inv29_constants_gate: my 0.25f, renamed to derived half-extents. GREEN.
