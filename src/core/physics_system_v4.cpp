@@ -4387,9 +4387,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             return (m > 0.0f) ? (1.0f / m) : 0.0f;
         };
 
+        // THE BOUNDARY PAYS LIKE EVERYONE ELSE (G-50, lever
+        // TURTLE_PRICED=1): turtle rows join this pass instead of being
+        // repaired by the free clamp. Self-referenced body_b is the
+        // turtle: infinite positional mass, a-side apply only.
+        static const bool turtle_priced =
+            std::getenv("TURTLE_PRICED") != nullptr;
         for (int iter = 0; iter < PhysicsV4::POSITION_ITERATIONS; ++iter) {
             for (Constraint& c : constraints) {
-                if (c.is_turtle_contact) continue;
+                if (c.is_turtle_contact && !turtle_priced) continue;
                 // ---- Angular rows: repair orientation error via pseudo-omega.
                 if (c.is_angular) {
                     static const bool ang_split_off2 = std::getenv("ANGULAR_SPLIT_OFF") != nullptr;
@@ -4493,13 +4499,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (c.body_a >= count || c.body_b >= count) continue;
 
                 const float inv_ma = inv_mass_positional(particles[c.body_a]);
-                const float inv_mb = inv_mass_positional(particles[c.body_b]);
+                // Turtle rows self-reference body_b as a sentinel: the
+                // boundary has infinite positional mass, and reading b
+                // through the sentinel would cancel a's own pseudo
+                // velocity (G-50).
+                const float inv_mb = c.is_turtle_contact
+                    ? 0.0f : inv_mass_positional(particles[c.body_b]);
                 if (inv_ma == 0.0f && inv_mb == 0.0f) continue;
 
-                const float pv_rel =
-                    c.jx * (pvx[c.body_a] - pvx[c.body_b]) +
-                    c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
-                    c.jz * (pvz[c.body_a] - pvz[c.body_b]);
+                const float pv_rel = c.is_turtle_contact
+                    ? (c.jx * pvx[c.body_a] + c.jy * pvy[c.body_a] +
+                       c.jz * pvz[c.body_a])
+                    : (c.jx * (pvx[c.body_a] - pvx[c.body_b]) +
+                       c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
+                       c.jz * (pvz[c.body_a] - pvz[c.body_b]));
 
                 // THE IMPULSE MUST BE PRICED IN THE MASSES IT IS SPENT ON.
                 // c.effective_mass came from the VELOCITY mass model, where
@@ -4528,9 +4541,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pvx[c.body_a] += c.jx * imp * inv_ma;
                 pvy[c.body_a] += c.jy * imp * inv_ma;
                 pvz[c.body_a] += c.jz * imp * inv_ma;
-                pvx[c.body_b] -= c.jx * imp * inv_mb;
-                pvy[c.body_b] -= c.jy * imp * inv_mb;
-                pvz[c.body_b] -= c.jz * imp * inv_mb;
+                if (!c.is_turtle_contact) {
+                    pvx[c.body_b] -= c.jx * imp * inv_mb;
+                    pvy[c.body_b] -= c.jy * imp * inv_mb;
+                    pvz[c.body_b] -= c.jz * imp * inv_mb;
+                }
             }
         }
 
@@ -5139,6 +5154,15 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
  *   Zero velocity = immediate rest on boundary.
  */
 void PhysicsSystem::enforce_turtle_boundary(ParticleSystem::WriteView& particles) {
+    // THE BOUNDARY PAYS LIKE EVERYONE ELSE (G-50): under TURTLE_PRICED
+    // the free clamp retires — support and repair go through the rows
+    // and the split-impulse position pass, priced and booked. The
+    // energy ledger measured this clamp injecting +44 J per substep
+    // into a RESTING four-box column, the power supply of the G-48
+    // stack pump; the door work measured it lifting tilted grass
+    // blades free every substep.
+    static const bool turtle_priced = std::getenv("TURTLE_PRICED") != nullptr;
+    if (turtle_priced) return;
     const size_t count = particles.size();
 
     for (size_t i = 0; i < count; ++i) {
