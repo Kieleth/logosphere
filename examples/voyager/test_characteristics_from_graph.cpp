@@ -140,14 +140,20 @@ bool names_word(const std::string& text, const std::string& token) {
 // registries are excluded and only they: a generated registry declares
 // the ontology, which is where these names BELONG, and it is written by
 // a tool from the schema rather than by a person from memory.
-std::vector<std::filesystem::path> shipping_sources() {
+std::vector<std::filesystem::path> shipping_sources(
+    size_t& generated_skipped) {
     std::vector<std::filesystem::path> out;
     const std::filesystem::path root(VOYAGER_GAME_DIR);
     for (const auto& entry :
          std::filesystem::recursive_directory_iterator(root / "src")) {
         if (!entry.is_regular_file()) continue;
         const auto path = entry.path();
-        if (path.string().find("/generated/") != std::string::npos) continue;
+        // generic_string, not string: native separators are '\' on
+        // Windows and this match must not depend on the platform.
+        if (path.generic_string().find("/generated/") != std::string::npos) {
+            ++generated_skipped;
+            continue;
+        }
         const auto extension = path.extension().string();
         if (extension != ".cpp" && extension != ".h") continue;
         out.push_back(path);
@@ -361,9 +367,14 @@ int main() {
           << forbidden.size() << " words to look for, so this check is "
           "weaker than it reads");
 
-    const auto sources = shipping_sources();
+    size_t generated_skipped = 0;
+    const auto sources = shipping_sources(generated_skipped);
     CHECK(!sources.empty(),
           "no shipping source was scanned, so this check proved nothing");
+    CHECK(generated_skipped >= 1,
+          "the generated-file exclusion excluded nothing: either "
+          "src/generated moved or the path match broke, and a broken "
+          "match reports the schema's own generated output as leaks");
     size_t scanned = 0;
     for (const auto& path : sources) {
         const std::string text = slurp(path);
