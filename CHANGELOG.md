@@ -8,6 +8,45 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **`examples/voyager`: character creation up to the first door, with
+  nothing the book fixes written in C++.** One screen, no frames. Six
+  characteristics are rolled by the engine's dice, a referee says where
+  that person came from, the same referee narrows the twenty-four
+  careers to the few that fit them, you take one, and it stops.
+
+  What is new is not the slice, it is where the slice keeps its rules.
+  The characteristics are `Characteristic` entities in the graph
+  carrying their own order, short name and target attribute; the
+  careers and both their throws are extracted and cited cell by cell;
+  the age of majority is a `RuleConstant` read where it is used; the
+  flow is a `Procedure` of three `ProcedureStep`s naming three
+  primitives. No characteristic is named anywhere in the game's C++,
+  and `test_characteristics_from_graph` proves it two ways: it adds a
+  seventh characteristic to the graph at run time and fails if the
+  sheet does not grow, and it scans every shipping source for the words
+  the graph owns so the first check cannot pass against a hardcoded
+  list.
+
+  `voyager-headless` shares every line of logic with the window and
+  supports `--random N` (no key, reproducible), `--record FILE` (a
+  model plays, every answer taped), `--replay FILE` (the same character
+  exactly, offline, no model call), plus `--forks` and `--fork`. The
+  model-authored option set reaches the tape through `Ask.offered`, so
+  a recorded character can be branched at the door it took. The
+  background narration is model-authored and not derivable from a seed,
+  so it is taped at a free-form site rather than regenerated.
+
+  No API, no game: the referee answers two questions the rules leave
+  open, so a missing key stops the run with the reason on screen rather
+  than starting in a reduced mode. A referee that offers a career the
+  rules never issued, or offers nothing, ends the run instead of
+  falling back to the full list.
+
+  Voyager reads the shared `corpora/cepheus-srd` through
+  `logosphere_game_corpus()` and owns its own extractor, seeds and
+  schema pack. `scripts/check_game_isolation.py` already declared the
+  `logovger <-> voyager` pair; it now has both sides to check and
+  passes with nine games and 242 translation units enumerated.
 - **Corpora: vendored source text lives outside every game, and a game
   declares which one it reads.** The Cepheus SRD moved from
   `examples/logovger/srd/cepheus` to `corpora/cepheus-srd`. A game no

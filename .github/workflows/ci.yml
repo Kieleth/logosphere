@@ -234,6 +234,13 @@ jobs:
       - name: Regenerate rule seeds from the vendored SRD (logovger)
         run: ./examples/logovger/tools/regenerate_seeds.sh
 
+      # Same gate, second game. A generated seed that no lane
+      # regenerates is a generated seed nobody can tell has been hand
+      # edited, and the rule is about generated seeds rather than about
+      # the game that happened to have one first.
+      - name: Regenerate rule seeds from the vendored SRD (voyager)
+        run: ./examples/voyager/tools/regenerate_seeds.sh
+
       # `git diff` is blind to files that did not exist before it ran, so
       # a NEW schema emits new generated output and this step stays green
       # while that output sits uncommitted. Measured on a fresh pack:

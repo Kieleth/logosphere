@@ -1,0 +1,1688 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "generated_by": "examples/voyager/tools/extract_chargen.py",
+  "invariants": {
+    "count_of_type": {
+      "DiceExpression": 1,
+      "Characteristic": 6,
+      "LookupTable": 1,
+      "CharacteristicModifierEntry": 12,
+      "RuleConstant": 1,
+      "Career": 24,
+      "TaskCheck": 48
+    },
+    "unique_name_per_type": [
+      "Characteristic",
+      "Career",
+      "TaskCheck",
+      "CharacteristicModifierEntry"
+    ],
+    "band_coverage": {
+      "@characteristic_modifiers": [
+        0,
+        null
+      ]
+    }
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "DiceExpression",
+      "as": "@d2d6",
+      "properties": {
+        "name": "2D6",
+        "dice_count": "2",
+        "dice_sides": "6",
+        "source_section": "Careers",
+        "source_kind": "sentence",
+        "source_quote": "Most of these throws are characteristic throws – roll 2D6, add the DM from the listed characteristic, and try to get a total higher than the listed value."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Characteristic",
+      "as": "@char_strength",
+      "properties": {
+        "name": "Strength",
+        "attribute_ref": "strength",
+        "characteristic_abbreviation": "Str",
+        "characteristic_index": "1",
+        "characteristic_dice": "@d2d6",
+        "source_section": "The Explanation",
+        "source_kind": "list_item",
+        "source_quote": "1.  **Strength** (Str)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Characteristic",
+      "as": "@char_dexterity",
+      "properties": {
+        "name": "Dexterity",
+        "attribute_ref": "dexterity",
+        "characteristic_abbreviation": "Dex",
+        "characteristic_index": "2",
+        "characteristic_dice": "@d2d6",
+        "source_section": "The Explanation",
+        "source_kind": "list_item",
+        "source_quote": "2.  **Dexterity** (Dex)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Characteristic",
+      "as": "@char_endurance",
+      "properties": {
+        "name": "Endurance",
+        "attribute_ref": "endurance",
+        "characteristic_abbreviation": "End",
+        "characteristic_index": "3",
+        "characteristic_dice": "@d2d6",
+        "source_section": "The Explanation",
+        "source_kind": "list_item",
+        "source_quote": "3.  **Endurance** (End)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Characteristic",
+      "as": "@char_intelligence",
+      "properties": {
+        "name": "Intelligence",
+        "attribute_ref": "intelligence",
+        "characteristic_abbreviation": "Int",
+        "characteristic_index": "4",
+        "characteristic_dice": "@d2d6",
+        "source_section": "The Explanation",
+        "source_kind": "list_item",
+        "source_quote": "4.  **Intelligence** (Int)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Characteristic",
+      "as": "@char_education",
+      "properties": {
+        "name": "Education",
+        "attribute_ref": "education",
+        "characteristic_abbreviation": "Edu",
+        "characteristic_index": "5",
+        "characteristic_dice": "@d2d6",
+        "source_section": "The Explanation",
+        "source_kind": "list_item",
+        "source_quote": "5.  **Education** (Edu)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Characteristic",
+      "as": "@char_social_standing",
+      "properties": {
+        "name": "Social Standing",
+        "attribute_ref": "social_standing",
+        "characteristic_abbreviation": "Soc",
+        "characteristic_index": "6",
+        "characteristic_dice": "@d2d6",
+        "source_section": "The Explanation",
+        "source_kind": "list_item",
+        "source_quote": "6.  **Social Standing** (Soc)"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "LookupTable",
+      "as": "@characteristic_modifiers",
+      "properties": {
+        "name": "characteristic_modifiers",
+        "entry_type": "CharacteristicModifierEntry",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "table",
+        "source_table": "Score Range",
+        "source_quote": "| Score Range | PseudoHex | Characteristic Modifier |"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_0_through_2",
+      "properties": {
+        "name": "characteristic modifier, score 0 through 2",
+        "key_min": "0",
+        "characteristic_modifier": "-2",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "0 through 2",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "\\-2",
+        "key_max": "2"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_0_through_2"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_3_through_5",
+      "properties": {
+        "name": "characteristic modifier, score 3 through 5",
+        "key_min": "3",
+        "characteristic_modifier": "-1",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "3 through 5",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "\\-1",
+        "key_max": "5"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_3_through_5"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_6_through_8",
+      "properties": {
+        "name": "characteristic modifier, score 6 through 8",
+        "key_min": "6",
+        "characteristic_modifier": "+0",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "6 through 8",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+0",
+        "key_max": "8"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_6_through_8"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_9_through_11",
+      "properties": {
+        "name": "characteristic modifier, score 9 through 11",
+        "key_min": "9",
+        "characteristic_modifier": "+1",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "9 through 11",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+1",
+        "key_max": "11"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_9_through_11"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_12_through_14",
+      "properties": {
+        "name": "characteristic modifier, score 12 through 14",
+        "key_min": "12",
+        "characteristic_modifier": "+2",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "12 through 14",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+2",
+        "key_max": "14"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_12_through_14"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_15_through_17",
+      "properties": {
+        "name": "characteristic modifier, score 15 through 17",
+        "key_min": "15",
+        "characteristic_modifier": "+3",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "15 through 17",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+3",
+        "key_max": "17"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_15_through_17"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_18_through_20",
+      "properties": {
+        "name": "characteristic modifier, score 18 through 20",
+        "key_min": "18",
+        "characteristic_modifier": "+4",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "18 through 20",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+4",
+        "key_max": "20"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_18_through_20"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_21_through_23",
+      "properties": {
+        "name": "characteristic modifier, score 21 through 23",
+        "key_min": "21",
+        "characteristic_modifier": "+5",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "21 through 23",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+5",
+        "key_max": "23"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_21_through_23"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_24_through_26",
+      "properties": {
+        "name": "characteristic modifier, score 24 through 26",
+        "key_min": "24",
+        "characteristic_modifier": "+6",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "24 through 26",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+6",
+        "key_max": "26"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_24_through_26"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_27_through_29",
+      "properties": {
+        "name": "characteristic modifier, score 27 through 29",
+        "key_min": "27",
+        "characteristic_modifier": "+7",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "27 through 29",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+7",
+        "key_max": "29"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_27_through_29"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_30_through_32",
+      "properties": {
+        "name": "characteristic modifier, score 30 through 32",
+        "key_min": "30",
+        "characteristic_modifier": "+8",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "30 through 32",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+8",
+        "key_max": "32"
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_30_through_32"
+    },
+    {
+      "op": "create_entity",
+      "type": "CharacteristicModifierEntry",
+      "as": "@dm_33_or_higher",
+      "properties": {
+        "name": "characteristic modifier, score 33 or higher",
+        "key_min": "33",
+        "characteristic_modifier": "+9",
+        "source_section": "Characteristic Modifiers",
+        "source_kind": "cell",
+        "source_table": "Score Range",
+        "source_row": "33 or higher",
+        "source_column": "Characteristic Modifier",
+        "source_quote": "+9",
+        "key_max_unbounded": true
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@characteristic_modifiers",
+      "relation": "HAS_PART",
+      "to": "@dm_33_or_higher"
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@age_of_majority",
+      "properties": {
+        "name": "age_of_majority",
+        "constant_value": "18",
+        "source_section": "Chapter 1: Character Creation",
+        "source_kind": "sentence",
+        "source_quote": "All characters begin at the age of majority, typically 18."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@athlete_qualifications",
+      "properties": {
+        "name": "Athlete qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Athlete",
+        "source_quote": "End 8+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@athlete_survival",
+      "properties": {
+        "name": "Athlete survival",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Athlete",
+        "source_quote": "Dex 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_athlete",
+      "properties": {
+        "name": "Athlete",
+        "career_summary": "**Athlete:** Individual that has achieved celebrity status for their proficiency in sports and other forms of physical exercise.",
+        "qualification_check": "@athlete_qualifications",
+        "survival_check": "@athlete_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Athlete:** Individual that has achieved celebrity status for their proficiency in sports and other forms of physical exercise."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@aerospace_defense_qualifications",
+      "properties": {
+        "name": "Aerospace Defense qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Aerospace Defense",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@aerospace_defense_survival",
+      "properties": {
+        "name": "Aerospace Defense survival",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Aerospace Defense",
+        "source_quote": "Dex 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_aerospace_defense",
+      "properties": {
+        "name": "Aerospace Defense",
+        "career_summary": "**Aerospace System Defense:** Member of a planetary armed military force operating within a world's atmosphere and close orbit. Also known as the \"planetary air force\".",
+        "qualification_check": "@aerospace_defense_qualifications",
+        "survival_check": "@aerospace_defense_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Aerospace System Defense:** Member of a planetary armed military force operating within a world's atmosphere and close orbit. Also known as the \"planetary air force\".",
+        "source_aliases": "Aerospace System Defense"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@agent_qualifications",
+      "properties": {
+        "name": "Agent qualifications",
+        "attribute_ref": "social_standing",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Agent",
+        "source_quote": "Soc 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@agent_survival",
+      "properties": {
+        "name": "Agent survival",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Agent",
+        "source_quote": "Int 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_agent",
+      "properties": {
+        "name": "Agent",
+        "career_summary": "**Agent:** Individual that secretly collects and reports information on the activities, movements and plans of a political or corporate enemy or competitor. Also known as a spy or intelligence operative.",
+        "qualification_check": "@agent_qualifications",
+        "survival_check": "@agent_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Agent:** Individual that secretly collects and reports information on the activities, movements and plans of a political or corporate enemy or competitor. Also known as a spy or intelligence operative."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@barbarian_qualifications",
+      "properties": {
+        "name": "Barbarian qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Barbarian",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@barbarian_survival",
+      "properties": {
+        "name": "Barbarian survival",
+        "attribute_ref": "strength",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Barbarian",
+        "source_quote": "Str 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_barbarian",
+      "properties": {
+        "name": "Barbarian",
+        "career_summary": "**Barbarian:** Individual from a primitive world (TL4 or less) capable of surviving on their world without support from a technologically advanced civilization.",
+        "qualification_check": "@barbarian_qualifications",
+        "survival_check": "@barbarian_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Barbarian:** Individual from a primitive world (TL4 or less) capable of surviving on their world without support from a technologically advanced civilization."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@belter_qualifications",
+      "properties": {
+        "name": "Belter qualifications",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Belter",
+        "source_quote": "Int 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@belter_survival",
+      "properties": {
+        "name": "Belter survival",
+        "attribute_ref": "dexterity",
+        "target_number": "7",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Belter",
+        "source_quote": "Dex 7+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_belter",
+      "properties": {
+        "name": "Belter",
+        "career_summary": "**Belter:** Individual that explores asteroid belts in search of mineral deposits and salvageable material for profit.",
+        "qualification_check": "@belter_qualifications",
+        "survival_check": "@belter_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Belter:** Individual that explores asteroid belts in search of mineral deposits and salvageable material for profit."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@bureaucrat_qualifications",
+      "properties": {
+        "name": "Bureaucrat qualifications",
+        "attribute_ref": "social_standing",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Bureaucrat",
+        "source_quote": "Soc 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@bureaucrat_survival",
+      "properties": {
+        "name": "Bureaucrat survival",
+        "attribute_ref": "education",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Bureaucrat",
+        "source_quote": "Edu 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_bureaucrat",
+      "properties": {
+        "name": "Bureaucrat",
+        "career_summary": "**Bureaucrat:** Official in a government department, charged with following the details of administrative process.",
+        "qualification_check": "@bureaucrat_qualifications",
+        "survival_check": "@bureaucrat_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Bureaucrat:** Official in a government department, charged with following the details of administrative process."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@colonist_qualifications",
+      "properties": {
+        "name": "Colonist qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Colonist",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@colonist_survival",
+      "properties": {
+        "name": "Colonist survival",
+        "attribute_ref": "endurance",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Colonist",
+        "source_quote": "End 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_colonist",
+      "properties": {
+        "name": "Colonist",
+        "career_summary": "**Colonist:** Individual that moves to a new world or settles in a new planetary colony.",
+        "qualification_check": "@colonist_qualifications",
+        "survival_check": "@colonist_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Colonist:** Individual that moves to a new world or settles in a new planetary colony."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@diplomat_qualifications",
+      "properties": {
+        "name": "Diplomat qualifications",
+        "attribute_ref": "social_standing",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Diplomat",
+        "source_quote": "Soc 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@diplomat_survival",
+      "properties": {
+        "name": "Diplomat survival",
+        "attribute_ref": "education",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Diplomat",
+        "source_quote": "Edu 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_diplomat",
+      "properties": {
+        "name": "Diplomat",
+        "career_summary": "**Diplomat:** Individual that is appointed by a planetary or interstellar government to conduct official negotiations and maintain political, economic and social relations with another polity or polities.",
+        "qualification_check": "@diplomat_qualifications",
+        "survival_check": "@diplomat_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Diplomat:** Individual that is appointed by a planetary or interstellar government to conduct official negotiations and maintain political, economic and social relations with another polity or polities."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@drifter_qualifications",
+      "properties": {
+        "name": "Drifter qualifications",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Drifter",
+        "source_quote": "Dex 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@drifter_survival",
+      "properties": {
+        "name": "Drifter survival",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Drifter",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_drifter",
+      "properties": {
+        "name": "Drifter",
+        "career_summary": "**Drifter:** Individual that continually moves from place to place, without any fixed home or job.",
+        "qualification_check": "@drifter_qualifications",
+        "survival_check": "@drifter_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Drifter:** Individual that continually moves from place to place, without any fixed home or job."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@entertainer_qualifications",
+      "properties": {
+        "name": "Entertainer qualifications",
+        "attribute_ref": "social_standing",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Entertainer",
+        "source_quote": "Soc 8+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@entertainer_survival",
+      "properties": {
+        "name": "Entertainer survival",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Entertainer",
+        "source_quote": "Int 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_entertainer",
+      "properties": {
+        "name": "Entertainer",
+        "career_summary": "**Entertainer:** Individual that has achieved celebrity status for their proficiency in publicly entertaining others.",
+        "qualification_check": "@entertainer_qualifications",
+        "survival_check": "@entertainer_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Entertainer:** Individual that has achieved celebrity status for their proficiency in publicly entertaining others."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@hunter_qualifications",
+      "properties": {
+        "name": "Hunter qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Hunter",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@hunter_survival",
+      "properties": {
+        "name": "Hunter survival",
+        "attribute_ref": "strength",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Hunter",
+        "source_quote": "Str 8+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_hunter",
+      "properties": {
+        "name": "Hunter",
+        "career_summary": "**Hunter:** Individual that kills or traps large game, almost always large terrestrial mammals, for meat, other animal by-products (such as horn or bone), trophy or sport.",
+        "qualification_check": "@hunter_qualifications",
+        "survival_check": "@hunter_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Hunter:** Individual that kills or traps large game, almost always large terrestrial mammals, for meat, other animal by-products (such as horn or bone), trophy or sport."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@marine_qualifications",
+      "properties": {
+        "name": "Marine qualifications",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Marine",
+        "source_quote": "Int 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@marine_survival",
+      "properties": {
+        "name": "Marine survival",
+        "attribute_ref": "endurance",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Marine",
+        "source_quote": "End 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_marine",
+      "properties": {
+        "name": "Marine",
+        "career_summary": "**Marine:** Member of an interstellar armed military force trained to serve in a variety of environments, often carried on board starships as an adjunct to an interstellar navy. Also known as the \"space marines\".",
+        "qualification_check": "@marine_qualifications",
+        "survival_check": "@marine_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Marine:** Member of an interstellar armed military force trained to serve in a variety of environments, often carried on board starships as an adjunct to an interstellar navy. Also known as the \"space marines\"."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@maritime_defense_qualifications",
+      "properties": {
+        "name": "Maritime Defense qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Maritime Defense",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@maritime_defense_survival",
+      "properties": {
+        "name": "Maritime Defense survival",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Maritime Defense",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_maritime_defense",
+      "properties": {
+        "name": "Maritime Defense",
+        "career_summary": "**Maritime System Defense:** Member of a planetary armed military force operating within and on the surface of a world's oceans. Also known as the \"planetary wet navy\".",
+        "qualification_check": "@maritime_defense_qualifications",
+        "survival_check": "@maritime_defense_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Maritime System Defense:** Member of a planetary armed military force operating within and on the surface of a world's oceans. Also known as the \"planetary wet navy\".",
+        "source_aliases": "Maritime System Defense"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@mercenary_qualifications",
+      "properties": {
+        "name": "Mercenary qualifications",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Mercenary",
+        "source_quote": "Int 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@mercenary_survival",
+      "properties": {
+        "name": "Mercenary survival",
+        "attribute_ref": "endurance",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Mercenary",
+        "source_quote": "End 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_mercenary",
+      "properties": {
+        "name": "Mercenary",
+        "career_summary": "**Mercenary:** Professional soldier hired to serve in a foreign military force or perform a specific military action.",
+        "qualification_check": "@mercenary_qualifications",
+        "survival_check": "@mercenary_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Mercenary:** Professional soldier hired to serve in a foreign military force or perform a specific military action."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@merchant_qualifications",
+      "properties": {
+        "name": "Merchant qualifications",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Merchant",
+        "source_quote": "Int 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@merchant_survival",
+      "properties": {
+        "name": "Merchant survival",
+        "attribute_ref": "intelligence",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Merchant",
+        "source_quote": "Int 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_merchant",
+      "properties": {
+        "name": "Merchant",
+        "career_summary": "**Merchant:** Individual involved in wholesale interstellar trade, particularly between individual worlds or polities.",
+        "qualification_check": "@merchant_qualifications",
+        "survival_check": "@merchant_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Merchant:** Individual involved in wholesale interstellar trade, particularly between individual worlds or polities."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@navy_qualifications",
+      "properties": {
+        "name": "Navy qualifications",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Navy",
+        "source_quote": "Int 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@navy_survival",
+      "properties": {
+        "name": "Navy survival",
+        "attribute_ref": "intelligence",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Navy",
+        "source_quote": "Int 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_navy",
+      "properties": {
+        "name": "Navy",
+        "career_summary": "**Navy:** Member of an interstellar armed military force that conducts military operations in interplanetary or interstellar space. Also known as the \"space navy\".",
+        "qualification_check": "@navy_qualifications",
+        "survival_check": "@navy_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Navy:** Member of an interstellar armed military force that conducts military operations in interplanetary or interstellar space. Also known as the \"space navy\"."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@noble_qualifications",
+      "properties": {
+        "name": "Noble qualifications",
+        "attribute_ref": "social_standing",
+        "target_number": "8",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Noble",
+        "source_quote": "Soc 8+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@noble_survival",
+      "properties": {
+        "name": "Noble survival",
+        "attribute_ref": "social_standing",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Noble",
+        "source_quote": "Soc 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_noble",
+      "properties": {
+        "name": "Noble",
+        "career_summary": "**Noble:** Member of an elite upper class, having high social or political status.",
+        "qualification_check": "@noble_qualifications",
+        "survival_check": "@noble_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Noble:** Member of an elite upper class, having high social or political status."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@physician_qualifications",
+      "properties": {
+        "name": "Physician qualifications",
+        "attribute_ref": "education",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Physician",
+        "source_quote": "Edu 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@physician_survival",
+      "properties": {
+        "name": "Physician survival",
+        "attribute_ref": "intelligence",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Physician",
+        "source_quote": "Int 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_physician",
+      "properties": {
+        "name": "Physician",
+        "career_summary": "**Physician:** Individual that is skilled in the science of medicine and is trained and licensed to treat sick and injured people.",
+        "qualification_check": "@physician_qualifications",
+        "survival_check": "@physician_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Physician:** Individual that is skilled in the science of medicine and is trained and licensed to treat sick and injured people."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@pirate_qualifications",
+      "properties": {
+        "name": "Pirate qualifications",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Pirate",
+        "source_quote": "Dex 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@pirate_survival",
+      "properties": {
+        "name": "Pirate survival",
+        "attribute_ref": "dexterity",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Pirate",
+        "source_quote": "Dex 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_pirate",
+      "properties": {
+        "name": "Pirate",
+        "career_summary": "**Pirate:** Individual that attacks and steals from interplanetary and interstellar ships in space.",
+        "qualification_check": "@pirate_qualifications",
+        "survival_check": "@pirate_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Pirate:** Individual that attacks and steals from interplanetary and interstellar ships in space."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@rogue_qualifications",
+      "properties": {
+        "name": "Rogue qualifications",
+        "attribute_ref": "dexterity",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Rogue",
+        "source_quote": "Dex 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@rogue_survival",
+      "properties": {
+        "name": "Rogue survival",
+        "attribute_ref": "dexterity",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Rogue",
+        "source_quote": "Dex 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_rogue",
+      "properties": {
+        "name": "Rogue",
+        "career_summary": "**Rogue:** Individual that makes their living through illicit means.",
+        "qualification_check": "@rogue_qualifications",
+        "survival_check": "@rogue_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Rogue:** Individual that makes their living through illicit means."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scientist_qualifications",
+      "properties": {
+        "name": "Scientist qualifications",
+        "attribute_ref": "education",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Scientist",
+        "source_quote": "Edu 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scientist_survival",
+      "properties": {
+        "name": "Scientist survival",
+        "attribute_ref": "education",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Scientist",
+        "source_quote": "Edu 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_scientist",
+      "properties": {
+        "name": "Scientist",
+        "career_summary": "**Scientist:** Individual that is engaged in and has expert knowledge of a science, especially a biological or physical science.",
+        "qualification_check": "@scientist_qualifications",
+        "survival_check": "@scientist_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Scientist:** Individual that is engaged in and has expert knowledge of a science, especially a biological or physical science."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scout_qualifications",
+      "properties": {
+        "name": "Scout qualifications",
+        "attribute_ref": "intelligence",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Scout",
+        "source_quote": "Int 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@scout_survival",
+      "properties": {
+        "name": "Scout survival",
+        "attribute_ref": "endurance",
+        "target_number": "7",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Scout",
+        "source_quote": "End 7+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_scout",
+      "properties": {
+        "name": "Scout",
+        "career_summary": "**Scout:** Member of an interplanetary exploratory service, surveying unfamiliar territory in space.",
+        "qualification_check": "@scout_qualifications",
+        "survival_check": "@scout_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Scout:** Member of an interplanetary exploratory service, surveying unfamiliar territory in space."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@surface_defense_qualifications",
+      "properties": {
+        "name": "Surface Defense qualifications",
+        "attribute_ref": "endurance",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Surface Defense",
+        "source_quote": "End 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@surface_defense_survival",
+      "properties": {
+        "name": "Surface Defense survival",
+        "attribute_ref": "education",
+        "target_number": "5",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Surface Defense",
+        "source_quote": "Edu 5+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_surface_defense",
+      "properties": {
+        "name": "Surface Defense",
+        "career_summary": "**Surface System Defense:** Member of a planetary armed military force operating on the non-hydrographic surface of a world. Also known as the \"planetary army\".",
+        "qualification_check": "@surface_defense_qualifications",
+        "survival_check": "@surface_defense_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Surface System Defense:** Member of a planetary armed military force operating on the non-hydrographic surface of a world. Also known as the \"planetary army\".",
+        "source_aliases": "Surface System Defense"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@technician_qualifications",
+      "properties": {
+        "name": "Technician qualifications",
+        "attribute_ref": "education",
+        "target_number": "6",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Qualifications",
+        "source_column": "Technician",
+        "source_quote": "Edu 6+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "TaskCheck",
+      "as": "@technician_survival",
+      "properties": {
+        "name": "Technician survival",
+        "attribute_ref": "dexterity",
+        "target_number": "4",
+        "dice": "@d2d6",
+        "modifier_table": "@characteristic_modifiers",
+        "modifier_property": "characteristic_modifier",
+        "source_section": "Career Tables",
+        "source_kind": "cell",
+        "source_table": "Career",
+        "source_row": "Survival",
+        "source_column": "Technician",
+        "source_quote": "Dex 4+"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Career",
+      "as": "@career_technician",
+      "properties": {
+        "name": "Technician",
+        "career_summary": "**Technician:** Individual that is skilled in mechanical or industrial techniques or in a particular technical field.",
+        "qualification_check": "@technician_qualifications",
+        "survival_check": "@technician_survival",
+        "source_section": "Career Descriptions",
+        "source_kind": "sentence",
+        "source_quote": "**Technician:** Individual that is skilled in mechanical or industrial techniques or in a particular technical field."
+      }
+    }
+  ]
+}

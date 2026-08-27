@@ -1,0 +1,69 @@
+{
+  "source": {
+    "file": "book1/character-creation.md",
+    "commit": "efb8f9d8fa0c53119b9d18bee6f580191ddd0107"
+  },
+  "layer": "cepheus",
+  "invariants": {
+    "count_of_type": {
+      "Procedure": 1,
+      "ProcedureStep": 3
+    },
+    "unique_name_per_type": ["Procedure", "ProcedureStep"]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "Procedure",
+      "as": "@voyager_chargen",
+      "properties": {
+        "name": "voyager_chargen",
+        "source_section": "Character Creation Checklist",
+        "source_kind": "heading",
+        "source_quote": "Character Creation Checklist"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@roll_characteristics",
+      "properties": {
+        "name": "roll_characteristics",
+        "step_index": "0",
+        "primitive_ref": "roll_characteristics",
+        "source_section": "Character Creation Checklist",
+        "source_kind": "list_item",
+        "source_quote": "Roll your six characteristics using 2D6, and place them in order on your character sheet."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@determine_background",
+      "properties": {
+        "name": "determine_background",
+        "step_index": "1",
+        "primitive_ref": "narrate_background",
+        "source_section": "Character Creation Checklist",
+        "source_kind": "list_item",
+        "source_quote": "Determine homeworld."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@choose_career",
+      "properties": {
+        "name": "choose_career",
+        "step_index": "2",
+        "primitive_ref": "choose_career",
+        "source_section": "Character Creation Checklist",
+        "source_kind": "list_item",
+        "source_quote": "Choose a career. You cannot choose a career you've already left except Drifter."
+      }
+    },
+    {"op": "set_relation", "from": "@voyager_chargen", "relation": "HAS_PART", "to": "@roll_characteristics"},
+    {"op": "set_relation", "from": "@voyager_chargen", "relation": "HAS_PART", "to": "@determine_background"},
+    {"op": "set_relation", "from": "@voyager_chargen", "relation": "HAS_PART", "to": "@choose_career"}
+  ]
+}
