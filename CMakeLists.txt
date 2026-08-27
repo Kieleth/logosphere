@@ -413,6 +413,7 @@ add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
 add_headless_test(test_collision_bounds_rotation)  # which shapes get oriented bounds, and which do not
+add_headless_test(test_manifold_reduction)  # G-51: the reduced point set spans the face (born red)
 add_headless_test(test_iso_azimuth)
 add_headless_test(test_ontology_packs)
 add_headless_test(test_entity_type_strings)
@@ -1420,6 +1421,22 @@ if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_features(test_cube_drop_ladder_visual PRIVATE cxx_std_17)
+endif()
+
+if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
+    add_executable(test_stack_stands_visual tests/test_stack_stands_visual.cpp)
+    target_link_libraries(test_stack_stands_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_stack_stands_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_stack_stands_visual PRIVATE cxx_std_17)
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above

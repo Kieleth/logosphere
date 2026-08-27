@@ -471,19 +471,37 @@ minimal repro yet. Ledger holds a labeled ratchet (<0.40). Also: argus
 peak spin 7.28 observed mid-tumble vs MAX_OMEGA 6.28 — the cap is
 enforced somewhere the peak sampler beats. Both worth one focused hunt.
 
-## G-48 — stacks under torque: the flip's real blocker (NEEDS DESIGN)
+## G-48 — stacks under torque: SOLVED BEHIND LEVERS (OWNER RULING owed)
 
-The three flip moles are ONE front. Kill-switch world holds a 4-column
-and a 5-zigzag-pile to 0.0007 peak pen; default torque sinks the
-column's bottom box 9.5 cm and collapses the statically-stable pile
-(G-48, registered with the measurements). Same family: the 26 mm sunk
-near-vertical plate and the per-axis press asymmetries. Statics owes
-both structures stability; the solver's sustained stacked-contact loop
-pumps the G-47 wobble seed instead of settling it. Evidence order:
-measure where the pump lives (Argus per-box omega, phystrace one
-interface), then manifold persistence vs the per-substep rebuild, then
-the contact block solve (prior art feat/joint-block-solver). INV-32's
-flip holds until the column stands.
+**2026-08-26: the pump is found, named, and dead under levers.** The
+owner-ratified step 2 ("examine manifold persistence") decomposed the
+pump into two registered laws, each with its mechanism behind a
+default-off lever:
+
+- **G-51 `MANIFOLD_SPAN=1`** — the deepest-4 manifold reduction
+  clusters the support on the downhill edge of a micro-tilted face;
+  the warm start's constant 86.9 N*s through side-flipping centroids
+  injected 22-40 N*m*s of alternating torque per substep (witnessed at
+  substep granularity, canary). Spanning reduction (deepest + farthest
+  + max-area, constant-free). Unit instrument test_manifold_reduction:
+  born red 0.3774 m, green 0.0001 m same day.
+- **G-52 `WARM_LEARN=1`** — the warm cache's V4.6 equilibrium-freeze:
+  iterations rebuild the true 305 N*s static support every substep,
+  the store discards it and keeps the frozen first-touch 86.9. Under
+  the lever the cache converges to 0.3% of analytic and
+  **test_stack_stands is FULLY GREEN**: column and pile sub-mm of
+  static, spins 0.0000, true rest, sleep, energy ledger flat zero.
+  Refined store (subtract the approach-cancellation part) cut the
+  impact-capture contamination the freeze guarded against to +2.2%
+  cube travel on the ramp (was +5.8% raw, 0 frozen).
+
+Harness green in BOTH worlds; every instrument's fail set identical to
+default; defaults byte-identical. Remaining here: the stack visual
+twin with the live panel (QA), the flip ruling on the three levers
+(WARM_LEARN / MANIFOLD_SPAN / TURTLE_PRICED, and with them INV-32's
+default). The 26 mm plate and per-axis press asymmetries re-measure
+after the ruling. Step 3 (contact block solve) NOT needed for statics
+on this evidence.
 
 ## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 

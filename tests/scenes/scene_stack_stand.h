@@ -40,20 +40,30 @@ inline const char* CASE_NAMES[2] = { "THE COLUMN", "THE PILE" };
 struct Scene {
     logosphere::Argus argus;
     std::vector<int> boxes;
+    float x_offset = 0.0f;   // the visual places both cases in one world
+    int   which_case = 0;
 
-    int build_case(ParticleSystem& ps, int which) {
+    static float birth_x(int which, int i, float x_off) {
+        if (which == 0) return x_off;
+        return x_off + ((i % 2) ? 0.18f : -0.18f);
+    }
+    static float birth_y(int which, int i) {
+        if (which == 0) return 0.0f;
+        return (i % 3) ? 0.12f : -0.12f;
+    }
+
+    int build_case(ParticleSystem& ps, int which, float x_off = 0.0f) {
         boxes.clear();
+        x_offset = x_off;
+        which_case = which;
         const int n = which == 0 ? N_COLUMN : N_PILE;
         for (int i = 0; i < n; ++i) {
             Particle p{};
             p.shape = ParticleShape::BOX;
             p.width = p.height = p.thickness = BODY;
             p.size = BODY;
-            if (which == 0) { p.x = 0.0f; p.y = 0.0f; }
-            else {
-                p.x = (i % 2) ? 0.18f : -0.18f;
-                p.y = (i % 3) ? 0.12f : -0.12f;
-            }
+            p.x = birth_x(which, i, x_off);
+            p.y = birth_y(which, i);
             p.z = BODY * 0.5f + i * BODY;   // born touching, never overlapped
             p.r = 0.85f - 0.12f * i; p.g = 0.55f; p.b = 0.3f + 0.12f * i;
             p.a = 1.0f;
@@ -67,6 +77,30 @@ struct Scene {
             argus.watch(boxes[i], label);
         }
         return n;
+    }
+
+    // TELEPORT LAW (SPACE replays the experiment): a repositioned body
+    // voids its history — cached impulses forgotten, rest state reset,
+    // Argus milestones re-armed. Same resets as scene_ramp_race::rearm.
+    void rearm(ParticleSystem& ps, PhysicsSystem& physics) {
+        auto parts = ps.lock_particles_for_write();
+        for (size_t i = 0; i < boxes.size(); ++i) {
+            Particle& p = parts[boxes[i]];
+            p.x = birth_x(which_case, (int)i, x_offset);
+            p.y = birth_y(which_case, (int)i);
+            p.z = BODY * 0.5f + (float)i * BODY;
+            p.vx = p.vy = p.vz = 0.0f;
+            p.omega_x = p.omega_y = p.omega_z = 0.0f;
+            p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
+            p.rotation_q = logosphere::Quat::identity();
+            p.is_at_rest = false;
+            p.frames_at_rest = 0;
+            p.low_velocity_frames = 0;
+            p.quiet_growth_run = 0;
+            p.rest_quiet_sq = 1e9f;
+            physics.forget_body((size_t)boxes[i]);
+            argus.reset_milestones(boxes[i]);
+        }
     }
 
     void step(ParticleSystem& ps, PhysicsSystem& physics, int frame) {

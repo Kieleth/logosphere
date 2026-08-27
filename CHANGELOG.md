@@ -7,6 +7,20 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Added
+- **Physics: two default-off levers that make a stack of boxes stand
+  still under contact torque.** `MANIFOLD_SPAN=1` reduces a face
+  contact's manifold to a set that spans the contact polygon instead of
+  the four deepest points, so a resting interface's cached support
+  transmits no net torque (G-51). `WARM_LEARN=1` lets the contact warm
+  cache learn the true sustained support each substep instead of
+  staying frozen at its first-touch value, minus each row's transient
+  approach-cancellation so struck bodies are not shoved by yesterday's
+  capture (G-52). With `WARM_LEARN=1` a four-box column and a five-box
+  zigzag pile hold their static heights to under a millimetre, reach
+  true rest, and sleep (`test_stack_stands`); default behavior is
+  unchanged with the levers off.
+
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never

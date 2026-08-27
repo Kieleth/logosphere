@@ -1728,6 +1728,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << ") | Pj dims=(" << pj.width << "," << pj.height << "," << pj.thickness
                               << ") rot=(" << pj.rotation_x << "," << pj.rotation_y << "," << pj.rotation_z
                               << ")" << std::endl;
+                    // The point SET is the G-48/G-50 question: does the
+                    // manifold rebuilt from predicted poses keep its
+                    // anchors between substeps, or flip them?
+                    for (int cp = 0; cp < manifold.num_points; cp++)
+                        std::cout << "         pt" << cp << "=("
+                                  << manifold.points[cp].px << ","
+                                  << manifold.points[cp].py << ","
+                                  << manifold.points[cp].pz << ") pen="
+                                  << (manifold.points[cp].penetration*1000)
+                                  << "mm" << std::endl;
                 }
 
                 // Record collision event for game systems (combat, step climbing, etc.)
@@ -3075,6 +3085,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << c.body_a << "<->P" << c.body_b
                               << " share_impulse=" << w
                               << " of=" << cached
+                              << " ra=(" << c.anchor_rax << ","
+                              << c.anchor_ray << "," << c.anchor_raz << ")"
                               << " vz_after=" << particles[canary_pid].vz
                               << (c.is_turtle_contact ? " TURTLE" : " BOX")
                               << std::endl;
@@ -4318,8 +4330,50 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (velocity_impulse < 0) velocity_impulse = 0;
             }
             auto it = warm_started_impulses.find(ci);
-            key_totals[kt] += (it != warm_started_impulses.end())
-                                  ? it->second : velocity_impulse;
+            // MEASUREMENT LEVER (G-44 at the warm cache, default off):
+            // the equilibrium-freeze stores a warm-started row's own warm
+            // share back, so a cached key can never learn a new fixed
+            // point. Under a standing load the iterations rebuild the true
+            // support every substep (measured: 290 N*s found, 86.9 stored,
+            // need 306) and the freeze discards it. WARM_LEARN=1 stores
+            // the true accumulated total instead. The freeze's own reason
+            // (V4.6: bias-contaminated totals ratcheting) predates split
+            // impulse, under which the accumulated impulse is bias-free.
+            static const bool warm_learn =
+                std::getenv("WARM_LEARN") != nullptr;
+            const bool frozen = !warm_learn &&
+                                it != warm_started_impulses.end();
+            float learned = velocity_impulse;
+            if (warm_learn && c.effective_mass > 0.0f) {
+                // G-52: cache what SUSTAINS, forget what CAPTURES. The
+                // accumulated impulse holds two physically different
+                // parts: the approach cancellation (a transient that
+                // exists only while something arrives) and the sustained
+                // support (the fixed point a resting load needs every
+                // substep). Caching the capture re-applies yesterday's
+                // strike to today's moved geometry (measured: the ramp's
+                // tumbling cube gains 5.8% travel). The row's build-time
+                // approach is recoverable from its own capture bound
+                // (max_impulse = eff * (approach + cushion), every
+                // contact and turtle row site).
+                const float approach =
+                    c.max_impulse / c.effective_mass
+                    - PhysicsV4::CONTACT_CAPTURE_CUSHION;
+                if (approach > 0.0f)
+                    learned = std::max(
+                        0.0f, velocity_impulse - c.effective_mass * approach);
+            }
+            const float stored = frozen ? it->second : learned;
+            key_totals[kt] += stored;
+            if (canary_active && ((int)c.body_a == canary_pid ||
+                                  (int)c.body_b == canary_pid)) {
+                std::cout << "[CANARY F" << phys_frame << " STORE] P"
+                          << c.body_a << "<->P" << c.body_b
+                          << " accumulated=" << c.accumulated_impulse
+                          << " stored=" << stored
+                          << (frozen ? " FROZEN-AT-WARM" : " TRUE-TOTAL")
+                          << std::endl;
+            }
         }
         for (const auto& kv : key_totals) {
             ContactKey key;

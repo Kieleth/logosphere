@@ -1738,3 +1738,63 @@ battery exists.
 **Case 5**: regression adjudication stands; owner: "if we need to
 rename, do it" — renamed so the file's name stops calling itself a
 diagnostic while carrying a verdict.
+
+## 2026-08-26 — G-48 step 2 executed: the stack pump was two mechanisms, both levered
+
+The owner-ratified plan's step 2 ("examine manifold persistence") ran
+as an examination, and the examination found the pump was not the
+per-substep rebuild itself but two defects underneath it, each now a
+registered law with its code behind a default-off lever:
+
+**G-51, the support spans the face** (`MANIFOLD_SPAN=1`). Witnessed at
+substep granularity via the canary instrument extended to print
+manifold point positions and warm anchors: the deepest-4 reduction
+(narrow_phase.cpp) clusters all four points on the downhill edge of a
+micro-tilted interface (tilts ~3e-4 rad, depth spread ~0.3 mm across a
+metre of face), the warm start pushes its constant 86.9 N*s through
+centroids alternating +-0.25..0.45 m side to side on CONSECUTIVE
+substeps, injecting 22-40 N*m*s of alternating torque against a 0.15
+noise floor. Delta-omega per injection 0.070 rad/s = the measured
+wobble band. Mechanism: spanning reduction (deepest + farthest +
+max-area completion, constant-free argmax). Unit instrument
+test_manifold_reduction born red at 0.3774 m worst centroid offset,
+green at 0.0001 the same day. Default bit-identical.
+
+**G-52, the cache learns what sustains** (`WARM_LEARN=1`). The store
+side's V4.6 equilibrium-freeze writes a warm-started row's own warm
+share back, so a cached key can never learn: the canary shows the
+iterations rebuilding the true static support EVERY substep
+(accumulated ~290-305 N*s, analytic need 306.25) and the store
+discarding it, keeping the frozen first-touch 86.9 for ever. Under the
+lever the cache converges to 0.3% of analytic, the column and pile
+stand to sub-mm, spins read 0.0000, the world reaches true rest and
+SLEEPS, and the energy ledger goes flat zero. The freeze's own reason
+(bias-contaminated totals) predates split impulse, under which the
+accumulated impulse is pure. The raw learn rule's one measured cost -
+the ramp's tumbling cube caching its corner-strike captures, +5.8%
+travel - fell to +2.2% under the refined store (accumulated minus the
+approach-cancellation part, recovered from the row's own capture
+bound). Protocol honesty per the GEDANKEN-11 rule: the measurement
+lever preceded the G-52 record by hours; the record says so.
+
+**Evidence state**: test_stack_stands FULLY GREEN under WARM_LEARN in
+every lever combination (span, priced boundary, both); ladder, square
+strike, refused ledger, ramp show fail sets identical to default; the
+combined harness is green in BOTH worlds. Defaults untouched
+(stack measures byte-identical with levers off).
+
+**Owed to the owner**: QA (a windowed stack scene with the live assert
+panel, being built next) and the flip ruling for the three levers
+(WARM_LEARN / MANIFOLD_SPAN / TURTLE_PRICED) plus INV-32's default,
+which G-48 holds until the column stands in the DEFAULT world.
+
+**Sweep addendum, same day**: the sweep (run alone, fresh binaries)
+returned new-red 3: test_physics_battery, test_rotated_box_contact,
+test_inv6_gravity_blindness — exactly the three flip moles the board
+had classified as "ONE front" (G-48) when the INV-32 gates flipped,
+whose audit rows were never moved. That was a miss in the flip slice:
+the board and the registry carried the classification, the audit did
+not, so the sweep verdict could not read clean. All three rows now
+carry expect: fail with G-48-citing known_open, direction-locked on
+the flip ruling. The 41 unaudited moles are the boarded rules-lane
+debt, unchanged.
