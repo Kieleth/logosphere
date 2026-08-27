@@ -1798,3 +1798,36 @@ not, so the sweep verdict could not read clean. All three rows now
 carry expect: fail with G-48-citing known_open, direction-locked on
 the flip ruling. The 41 unaudited moles are the boarded rules-lane
 debt, unchanged.
+
+## 2026-08-26 (later) — the contrast controls: torsion and mixed masses (owner order)
+
+Owner: a case "where some of the cubes are expected to have rotation
+and check for torsion on other cubes, and another more complex one
+where cubes of different sizes/masses are combined to produce
+different torsions and effects... ok to be red if its informative."
+
+Registered G-53 (torsion walks the column) and G-54 (mixed masses,
+mixed verdicts) BEFORE the cases; the stack instrument grew to four
+cases and the window to three SPACE-advanced views, each re-armed via
+the teleport law. First measurements, WARM_LEARN world:
+
+- **G-54 fully green, and the verdicts are real**: the centred 8:1
+  pair stands, the overhung cube DEPARTS its perch and lands flat on
+  the turtle (z 0.7002, bounded at 2.6 m/s), stone-on-soft-wood stands
+  to 3 mm. No phantom support.
+- **G-53 mostly green**: the spinner brakes 3.0 -> 0.09 rad/s, L_z is
+  never created (peak exactly = initial 937.5), the turtle drains it
+  to 9.2, and torsion transmits BOTH ways with the asymmetry the
+  anchoring derivation predicts (above 0.46, below 0.073; the original
+  symmetric 0.10 threshold was an underived guess, corrected in the
+  record with the derivation - the below box sits under the full
+  column's turtle anchor).
+- **ONE new front, booked red**: the SPINNING-INTERFACE GRIND. During
+  the spin episode the box0-box1 interface loses 0.232 m of normal
+  separation and the interpenetration STANDS at run end; everything
+  above rides it down. Spinning under load destroys normal support -
+  invisible to the null case, exactly the class of finding the owner
+  ordered these controls to catch. RCA owed.
+- Default world contrast: torsion sink compounds to half a metre;
+  mixed masses amplify the frozen-cache deficit (0.41 m and 0.94 m of
+  standing crush) while the overhung cube still departs.

@@ -20,6 +20,16 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   zigzag pile hold their static heights to under a millimetre, reach
   true rest, and sleep (`test_stack_stands`); default behavior is
   unchanged with the levers off.
+- **Physics: contrast controls for the stack instrument.** Two new
+  cases keep the statics proof honest: a torsion column (a cube born
+  spinning inside the stack must brake, drag its neighbours the way
+  the anchoring arithmetic predicts, and create no angular momentum)
+  and a mixed-mass trio whose statics certifies three different
+  verdicts — stand, fall, stand — so a solver manufacturing phantom
+  support fails visibly. The windowed driver advances the three views
+  with SPACE, re-arming each through the teleport law. One finding is
+  deliberately left red and tracked: a spinning interface under load
+  grinds into its support (G-53).
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs

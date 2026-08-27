@@ -496,12 +496,33 @@ default-off lever:
   cube travel on the ramp (was +5.8% raw, 0 frozen).
 
 Harness green in BOTH worlds; every instrument's fail set identical to
-default; defaults byte-identical. Remaining here: the stack visual
-twin with the live panel (QA), the flip ruling on the three levers
-(WARM_LEARN / MANIFOLD_SPAN / TURTLE_PRICED, and with them INV-32's
-default). The 26 mm plate and per-axis press asymmetries re-measure
-after the ruling. Step 3 (contact block solve) NOT needed for statics
-on this evidence.
+default; defaults byte-identical. Remaining here: the flip ruling on
+the three levers (WARM_LEARN / MANIFOLD_SPAN / TURTLE_PRICED, and with
+them INV-32's default). The 26 mm plate and per-axis press asymmetries
+re-measure after the ruling. Step 3 (contact block solve) NOT needed
+for statics on this evidence.
+
+**CONTRAST CONTROLS LANDED 2026-08-26 (owner order, G-53/G-54).** The
+instrument grew to four cases; the window to three SPACE-advanced
+views (statics pair, torsion column, mixed masses), each re-armed via
+the teleport law, live panel per view. WARM_LEARN world: G-54 fully
+green (stand / FALL / stand — the overhung 8:1 cube departs its perch,
+no phantom support); G-53 green on braking, both-ways transmission
+(asymmetric per the anchoring derivation) and the L_z ledger (peak
+exactly = initial, drained by the turtle).
+
+## G-53 tail — THE SPINNING-INTERFACE GRIND (NEEDS RCA, booked red)
+
+The one red the controls found, and it is a real mechanism: a cube
+spinning 3 rad/s under a 73.5 kN load grinds 0.232 m INTO the box
+below during the ~1 s spin episode, and the interpenetration STANDS at
+run end (boxes above ride it down). Default world compounds it to half
+a metre. The null case could never see this — sustained spinning
+contact under load destroys normal support. Suspects, in evidence
+order: friction-row budget starving the normal rows at the shared
+iteration cap; the capture-bounded max_impulse under the rotating
+tangent set; the position pass losing against the grind re-compression.
+Instrument exists (test_stack_stands case 2, red assert booked).
 
 ## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 
