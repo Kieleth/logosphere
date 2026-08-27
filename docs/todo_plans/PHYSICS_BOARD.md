@@ -511,18 +511,41 @@ no phantom support); G-53 green on braking, both-ways transmission
 (asymmetric per the anchoring derivation) and the L_z ledger (peak
 exactly = initial, drained by the turtle).
 
+## G-53 — torsion rebuilt as a rung ladder (owner KISS ruling 2026-08-27)
+
+Owner: "simpler in a 2 cube first, asserts in place, and then three
+cubes if needed, and more single-purposed tests." Executed: the
+four-case instrument split into test_stack_stands (statics pair only),
+test_torsion_transmission (rungs R1 lone spinner / R2 free passenger /
+R3 anchored carrier, each with a one-line derivable expectation) and
+test_mixed_mass_stands (G-54's three verdicts); windowed twins with
+per-rung live panels. The disputed sub-unity transmission threshold
+DISSOLVED: R3 asserts the anchor's victory (an upper bound), never a
+floor physics does not guarantee. First measurements, red where
+informative, all booked in G-53:
+
+- **R1 perfect in both worlds** (3 -> 0.0000, L_z fully drained,
+  stands at exactly 0.5000).
+- **R2 under-transmission (red, world-independent)**: the free
+  passenger peaks 0.476-0.481 vs the lock arithmetic's 0.75; the bar
+  (0.5) stays where the derivation put it.
+- **R3 low-spin residual (red, world-independent)**: the spinner's
+  last ~0.07 rad/s never dies in 5 s where the arithmetic kills it in
+  0.2 s. Same family suspicion as the old insomnia wobble.
+
 ## G-53 tail — THE SPINNING-INTERFACE GRIND (NEEDS RCA, booked red)
 
-The one red the controls found, and it is a real mechanism: a cube
-spinning 3 rad/s under a 73.5 kN load grinds 0.232 m INTO the box
-below during the ~1 s spin episode, and the interpenetration STANDS at
-run end (boxes above ride it down). Default world compounds it to half
-a metre. The null case could never see this — sustained spinning
-contact under load destroys normal support. Suspects, in evidence
-order: friction-row budget starving the normal rows at the shared
-iteration cap; the capture-bounded max_impulse under the rotating
-tangent set; the position pass losing against the grind re-compression.
-Instrument exists (test_stack_stands case 2, red assert booked).
+A real mechanism, now PRESSURE-LOCALIZED by the rung ladder: at
+two-cube loads (24.5/49 kN interfaces) every rung's heights are green;
+at the four-cube column's 73.5 kN interface a cube spinning 3 rad/s
+grinds 0.232 m INTO the box below during the ~1 s episode and the
+interpenetration STANDS (default world compounds it to half a metre;
+measured 2026-08-26 on the retired sandwich case). The 3-cube rung is
+the bracketing experiment when this RCA runs ("three cubes if
+needed" — this is the need). Suspects, in evidence order: friction-row
+budget starving the normal rows at the shared iteration cap; the
+capture-bounded max_impulse under the rotating tangent set; the
+position pass losing against the grind re-compression.
 
 ## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 

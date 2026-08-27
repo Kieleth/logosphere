@@ -1,24 +1,24 @@
 // =============================================================================
-// THE STACK AND THE PILE — the window (G-48, G-53, G-54)
+// THE STACK AND THE PILE — the window (G-48)
 // =============================================================================
 // Same scene as test_stack_stands.cpp: tests/scenes/scene_stack_stand.h
 // owns the bodies, the layouts and the thresholds; neither driver holds
-// any of them. One world, three VIEWS, SPACE advances (owner order:
-// multi-case advances; the incoming case is re-armed through the
-// teleport law and replays from its countdown):
-//
-//   view 0  THE STATICS PAIR — the column and the pile stand (G-48)
-//   view 1  THE TORSION COLUMN — a spinner inside the column brakes
-//           and drags its neighbours; L_z only decays (G-53)
-//   view 2  MIXED MASSES — three verdicts: stand, FALL, stand (G-54)
+// any of them. The window runs BOTH structures side by side in one
+// world (continuous-world pattern): the perfect COLUMN of four on the
+// left, the zigzag PILE of five on the right. A stonemason certifies
+// both; the law (G-48, serving INV-4/INV-24/INV-3) says they STAND.
 //
 // The worlds to compare, all from this one binary:
-//   (default)      — the audited red: the frozen cache starves statics
-//   WARM_LEARN=1   — G-52: the cache learns; the statics pair stands
-//   + MANIFOLD_SPAN=1 TURTLE_PRICED=1 — composable (G-51, G-50)
+//   (default)                       — the audited red: interfaces leak,
+//                                     wobble pumps, the pile can fall
+//   WARM_LEARN=1                    — G-52: the warm cache learns the
+//                                     true support; both structures
+//                                     stand to sub-mm and SLEEP
+//   MANIFOLD_SPAN=1 TURTLE_PRICED=1 — G-51 + G-50, composable with the
+//                                     above; all-levers world is green
 //
-// ESC or the red X quits. SPACE advances the view. Z zooms.
-// "Ok to be red if its informative" — reds on the panel are findings.
+// ESC or the red X quits. SPACE replays the experiment (teleport law:
+// bodies re-armed at their birth poses, history voided). Z zooms.
 // =============================================================================
 
 #include "core/engine.h"
@@ -28,7 +28,6 @@
 #include <GLFW/glfw3.h>
 
 #include <chrono>
-#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -40,16 +39,10 @@ using namespace scene_stack_stand;
 
 namespace {
 
-constexpr float COLUMN_X  = -2.5f;
-constexpr float PILE_X    = +2.5f;
-constexpr float TORSION_X = +9.0f;
-constexpr float MIXED_X   = -11.0f;
-constexpr int   N_VIEWS   = 3;
+constexpr float COLUMN_X = -2.5f;
+constexpr float PILE_X   = +2.5f;
 constexpr int   COUNTDOWN_FRAMES = 60;   // the lecture standard: held start
 constexpr float LIGHT_D = 8.0f;
-
-const char* VIEW_NAMES[N_VIEWS] = {
-    "THE STATICS PAIR", "THE TORSION COLUMN", "MIXED MASSES" };
 
 void make_lamps(ParticleSystem& ps, float cx, float cy, float cz) {
     ps.queue_light(cx + 4.0f, cy - 6.0f, cz + 5.0f,
@@ -83,7 +76,7 @@ int main() {
     cfg.create_display = interactive;
     cfg.window_width = 1280;
     cfg.window_height = 800;
-    cfg.window_title = "G-48/53/54: stacks, torsion, mixed masses";
+    cfg.window_title = "G-48: the stack and the pile stand still";
     cfg.enable_chat_window = false;
     cfg.show_debug_overlay = interactive;
     if (engine.initialize(cfg) != 0) { std::printf("  ERROR: init\n"); return 1; }
@@ -92,56 +85,56 @@ int main() {
     auto& physics = engine.get_physics_system();
     auto& cam = engine.get_camera_system();
 
-    Scene col, pile, tors, mixed;
-    const int nc = col.build_case(ps, 0, COLUMN_X);
+    Scene column, pile;
+    const int nc = column.build_case(ps, 0, COLUMN_X);
     const int np = pile.build_case(ps, 1, PILE_X);
-    const int nt = tors.build_case(ps, 2, TORSION_X);
-    const int nm = mixed.build_case(ps, 3, MIXED_X);
 
-    make_lamps(ps, 0.0f, 0.0f, 2.5f);
-    make_lamps(ps, TORSION_X, 0.0f, 2.5f);
-    make_lamps(ps, MIXED_X, 0.0f, 2.0f);
-
+    const float cx = 0.0f, cy = 0.0f, cz = 2.5f;
+    cam.set_position(cx, cy, cz);
     float ppu = 78.0f;                       // ~10 m vertical in frame
     cam.set_pixels_per_unit(ppu);
+    make_lamps(ps, cx, cy, cz);
 
     // The debug overlay owns the ENTIRE left column; the panel and the
     // readout live in the right half (owner QA 2026-08-21).
     const int PANEL_X = 620;
 
+    // DEMONSTRATING line, mode-aware: the lever world is the physics
+    // being claimed, so the QA reads which world this window runs.
     static const bool torque_on = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
-    std::string mode = torque_on ? "torque ON" : "torque OFF(kill)";
-    if (lever_on("WARM_LEARN"))    mode += " +WARM_LEARN";
-    if (lever_on("MANIFOLD_SPAN")) mode += " +MANIFOLD_SPAN";
-    if (lever_on("TURTLE_PRICED")) mode += " +TURTLE_PRICED";
+    const bool learn  = lever_on("WARM_LEARN");
+    const bool span   = lever_on("MANIFOLD_SPAN");
+    const bool priced = lever_on("TURTLE_PRICED");
     auto* l_demo  = add_line(engine, "demo",  PANEL_X, 40, 190, 220, 255);
     auto* l_demo2 = add_line(engine, "demo2", PANEL_X, 62, 190, 220, 255);
+    {
+        std::string mode = torque_on ? "torque ON" : "torque OFF(kill)";
+        if (learn)  mode += " +WARM_LEARN";
+        if (span)   mode += " +MANIFOLD_SPAN";
+        if (priced) mode += " +TURTLE_PRICED";
+        l_demo->set_text("DEMONSTRATING: statics owes a stack (G-48). " + mode);
+        l_demo2->set_text(learn
+            ? "The cache learns the true support (G-52): both STAND."
+            : "The audited world: the frozen cache starves the stack.");
+    }
 
-    // THE LIVE ASSERT PANEL: a fixed pool of lines; each view fills it
-    // with ITS asserts, every one named for its law, evaluated per
-    // frame from the SAME scene helpers the headless asserts read.
-    struct LiveAssert { std::string text; std::function<bool()> eval; };
-    constexpr int PANEL_ROWS = 9;
-    std::vector<ui::Label*> rows;
-    for (int i = 0; i < PANEL_ROWS; ++i)
-        rows.push_back(add_line(engine, "assert" + std::to_string(i),
-                                PANEL_X, 96 + i * 22, 255, 120, 120));
-    auto* l_verdict = add_line(engine, "verdict",
-                               PANEL_X, 96 + PANEL_ROWS * 22 + 10,
-                               255, 120, 120);
-    auto* l_read1 = add_line(engine, "read1", PANEL_X,
-                             cfg.window_height - 96, 255, 190, 110);
-    auto* l_read2 = add_line(engine, "read2", PANEL_X,
-                             cfg.window_height - 74, 140, 210, 255);
-    auto* l_hold  = add_line(engine, "hold", PANEL_X,
-                             cfg.window_height - 52, 220, 220, 220);
-
+    // THE LIVE ASSERT PANEL: every assert its own [V]/[X] line, per
+    // frame, from the SAME scene helpers the headless asserts read.
+    struct LiveAssert { ui::Label* label; std::string text;
+                        std::function<bool()> eval; };
+    std::vector<LiveAssert> panel;
+    int prow = 0;
+    auto add_assert = [&](const std::string& text,
+                          std::function<bool()> eval) {
+        auto* l = add_line(engine, "assert" + std::to_string(prow),
+                           PANEL_X, 96 + prow * 22, 255, 120, 120);
+        panel.push_back({l, text, std::move(eval)});
+        ++prow;
+    };
     auto heights_hold = [&](Scene& s, int n) {
-        for (int i = 0; i < n; ++i) {
-            if (!s.expects_static(i)) continue;
+        for (int i = 0; i < n; ++i)
             if (std::fabs(s.box_z(ps, i) - s.static_z(i)) >= REST_TOL)
                 return false;
-        }
         return true;
     };
     auto spins_noise = [&](Scene& s, int n) {
@@ -154,194 +147,87 @@ int main() {
             if (s.argus.peak_speed(s.boxes[i]) >= SPEED_MAX) return false;
         return true;
     };
+    add_assert("G-48/INV-4: the COLUMN stands at its static heights",
+        [&]{ return heights_hold(column, nc); });
+    add_assert("G-48/INV-24: the COLUMN's spin settles to noise",
+        [&]{ return spins_noise(column, nc); });
+    add_assert("INV-3: the COLUMN's speeds stay bounded",
+        [&]{ return speeds_bounded(column, nc); });
+    add_assert("G-48/INV-4: the PILE stands at its static heights",
+        [&]{ return heights_hold(pile, np); });
+    add_assert("G-48/INV-24: the PILE's spin settles to noise",
+        [&]{ return spins_noise(pile, np); });
+    add_assert("INV-3: the PILE's speeds stay bounded",
+        [&]{ return speeds_bounded(pile, np); });
+    auto* l_verdict = add_line(engine, "verdict",
+                               PANEL_X, 96 + prow * 22 + 10, 255, 120, 120);
 
-    // G-53 latches (signed excursions and the L_z ledger), armed while
-    // the torsion view is active; reset on its rearm.
-    const float sgn = TORSION_OMEGA0 > 0 ? 1.0f : -1.0f;
-    std::vector<float> peak_signed_wz(nt, -1e9f);
-    float L0 = tors.total_Lz(ps);
-    float peak_absL = std::fabs(L0);
-    auto reset_torsion_latches = [&]{
-        for (auto& v : peak_signed_wz) v = -1e9f;
-        L0 = tors.total_Lz(ps);
-        peak_absL = std::fabs(L0);
-    };
+    auto* l_col  = add_line(engine, "col",  PANEL_X,
+                            cfg.window_height - 96, 255, 190, 110);
+    auto* l_pile = add_line(engine, "pile", PANEL_X,
+                            cfg.window_height - 74, 140, 210, 255);
+    auto* l_hold = add_line(engine, "hold", PANEL_X,
+                            cfg.window_height - 52, 220, 220, 220);
 
-    std::vector<LiveAssert> panel;
-    int view = 0;
-    auto load_view = [&](int v) {
-        view = v;
-        panel.clear();
-        if (v == 0) {
-            l_demo->set_text("DEMONSTRATING: statics owes a stack (G-48). "
-                             + mode);
-            l_demo2->set_text("The column and the pile: no torque exists; "
-                              "the solver must invent none.");
-            panel.push_back({"G-48/INV-4: the COLUMN stands at its static heights",
-                [&]{ return heights_hold(col, nc); }});
-            panel.push_back({"G-48/INV-24: the COLUMN's spin settles to noise",
-                [&]{ return spins_noise(col, nc); }});
-            panel.push_back({"INV-3: the COLUMN's speeds stay bounded",
-                [&]{ return speeds_bounded(col, nc); }});
-            panel.push_back({"G-48/INV-4: the PILE stands at its static heights",
-                [&]{ return heights_hold(pile, np); }});
-            panel.push_back({"G-48/INV-24: the PILE's spin settles to noise",
-                [&]{ return spins_noise(pile, np); }});
-            panel.push_back({"INV-3: the PILE's speeds stay bounded",
-                [&]{ return speeds_bounded(pile, np); }});
-            cam.set_position(0.0f, 0.0f, 2.5f);
-        } else if (v == 1) {
-            l_demo->set_text("DEMONSTRATING: torsion walks the column (G-53). "
-                             + mode);
-            l_demo2->set_text("The 2nd cube is born spinning 3 rad/s: it must "
-                              "brake AND drag its neighbours.");
-            panel.push_back({"G-53: the spinner's spin DIES under load",
-                [&]{ return tors.box_spin(ps, SPINNER_IDX) < SPIN_DEAD_MAX; }});
-            panel.push_back({"G-53: torsion TRANSMITS below, same sign",
-                [&]{ return peak_signed_wz[SPINNER_IDX - 1]
-                                >= TRANSMIT_MIN_BELOW; }});
-            panel.push_back({"G-53: torsion TRANSMITS above, same sign",
-                [&]{ return peak_signed_wz[SPINNER_IDX + 1]
-                                >= TRANSMIT_MIN_ABOVE; }});
-            panel.push_back({"G-53/INV-3: L_z is never created (peak <= L0)",
-                [&]{ return peak_absL <= std::fabs(L0) * LZ_BAND; }});
-            panel.push_back({"G-53: the turtle drains the spin (|L| falls)",
-                [&]{ return std::fabs(tors.total_Lz(ps)) < std::fabs(L0); }});
-            panel.push_back({"G-48/INV-4: the column STANDS through it",
-                [&]{ return heights_hold(tors, nt); }});
-            panel.push_back({"INV-3: speeds stay bounded",
-                [&]{ return speeds_bounded(tors, nt); }});
-            cam.set_position(TORSION_X, 0.0f, 2.5f);
-        } else {
-            l_demo->set_text("DEMONSTRATING: mixed masses, mixed verdicts "
-                             "(G-54). " + mode);
-            l_demo2->set_text("Stand, FALL, stand: the overhung cube MUST "
-                              "leave its perch; phantom support is the red.");
-            panel.push_back({"G-54/INV-4: M1 (big centred on small) STANDS",
-                [&]{ return std::fabs(mixed.box_z(ps, 0) - mixed.static_z(0))
-                                < REST_TOL &&
-                            std::fabs(mixed.box_z(ps, 1) - mixed.static_z(1))
-                                < REST_TOL; }});
-            panel.push_back({"G-54: M2's overhung big cube DEPARTS its perch",
-                [&]{ return mixed.box_z(ps, 3) < M2_DEPART_Z; }});
-            panel.push_back({"G-54/INV-4: M3 (stone on wood column) STANDS",
-                [&]{ return std::fabs(mixed.box_z(ps, 4) - mixed.static_z(4))
-                                < REST_TOL &&
-                            std::fabs(mixed.box_z(ps, 5) - mixed.static_z(5))
-                                < REST_TOL &&
-                            std::fabs(mixed.box_z(ps, 6) - mixed.static_z(6))
-                                < REST_TOL; }});
-            panel.push_back({"INV-3: speeds stay bounded (5:1 and 8:1 masses)",
-                [&]{ return speeds_bounded(mixed, nm); }});
-            cam.set_position(MIXED_X, 0.0f, 2.0f);
-        }
-    };
-    load_view(0);
-
-    std::printf("\n=== stacks, torsion, mixed masses (%s) ===\n",
-                interactive ? "WINDOW" : "headless: all views in sequence");
+    std::printf("\n=== the stack and the pile, side by side (%s) ===\n",
+                interactive ? "WINDOW" : "headless");
     if (interactive)
-        std::printf("  ESC or the red X quits.  SPACE advances the view "
-                    "(re-armed, countdown).  Z zooms.\n\n");
-
-    auto rearm_view = [&](int v) {
-        if (v == 0) { col.rearm(ps, physics); pile.rearm(ps, physics); }
-        else if (v == 1) { tors.rearm(ps, physics); reset_torsion_latches(); }
-        else { mixed.rearm(ps, physics); }
-    };
+        std::printf("  ESC or the red X quits.  SPACE replays.  Z zooms.\n\n");
 
     bool space_was_down = false, z_was_down = false, quit = false;
     int frame = -COUNTDOWN_FRAMES;           // negative = held countdown
-    int headless_views_done = 0;
-    int headless_fails = 0;
     char buf[224];
 
-    auto advance_view = [&](int next) {
-        rearm_view(next);
-        load_view(next);
-        frame = -COUNTDOWN_FRAMES;
-    };
-
     while (interactive ? (!quit && engine.should_continue())
-                       : (headless_views_done < N_VIEWS)) {
+                       : (frame < RUN_FRAMES)) {
         const auto t0 = std::chrono::steady_clock::now();
 
         if (frame >= 0 && frame < RUN_FRAMES) {
             // ONE world, ONE step: same stepping shape as the headless
-            // driver; every witness observes the same tick.
+            // driver (update_bvh + physics.update(DT)); both witnesses
+            // observe the same tick.
             ps.update_bvh();
             physics.update(DT);
-            col.argus.observe(ps, frame);
+            column.argus.observe(ps, frame);
             pile.argus.observe(ps, frame);
-            tors.argus.observe(ps, frame);
-            mixed.argus.observe(ps, frame);
-            if (view == 1) {
-                for (int i = 0; i < nt; ++i)
-                    peak_signed_wz[i] = std::fmax(peak_signed_wz[i],
-                                                  sgn * tors.box_omega_z(ps, i));
-                peak_absL = std::fmax(peak_absL,
-                                      std::fabs(tors.total_Lz(ps)));
-            }
         }
 
-        // The readout: two lines of the active view's live numbers.
-        if (view == 0) {
-            float w0 = 0.0f, w1 = 0.0f;
+        const float col_worst = [&]{
+            float w = 0.0f;
             for (int i = 0; i < nc; ++i)
-                w0 = std::fmax(w0, std::fabs(col.box_z(ps, i)
-                                             - col.static_z(i)));
+                w = std::fmax(w, std::fabs(column.box_z(ps, i)
+                                           - column.static_z(i)));
+            return w; }();
+        const float pile_worst = [&]{
+            float w = 0.0f;
             for (int i = 0; i < np; ++i)
-                w1 = std::fmax(w1, std::fabs(pile.box_z(ps, i)
-                                             - pile.static_z(i)));
-            std::snprintf(buf, sizeof(buf),
-                          "COLUMN worst height error %.4f m", w0);
-            l_read1->set_text(buf);
-            std::snprintf(buf, sizeof(buf),
-                          "PILE   worst height error %.4f m", w1);
-            l_read2->set_text(buf);
-        } else if (view == 1) {
-            std::snprintf(buf, sizeof(buf),
-                          "spinner wz %.3f   below peak %.3f  above peak %.3f",
-                          tors.box_omega_z(ps, SPINNER_IDX),
-                          peak_signed_wz[SPINNER_IDX - 1] < -1e8f
-                              ? 0.0f : peak_signed_wz[SPINNER_IDX - 1],
-                          peak_signed_wz[SPINNER_IDX + 1] < -1e8f
-                              ? 0.0f : peak_signed_wz[SPINNER_IDX + 1]);
-            l_read1->set_text(buf);
-            std::snprintf(buf, sizeof(buf),
-                          "L_z now %.1f  initial %.1f  peak %.1f",
-                          tors.total_Lz(ps), L0, peak_absL);
-            l_read2->set_text(buf);
-        } else {
-            std::snprintf(buf, sizeof(buf),
-                          "M2 big z %.3f (departs below %.2f, perch was %.2f)",
-                          mixed.box_z(ps, 3), M2_DEPART_Z,
-                          M_SMALL + M_BIG * 0.5f);
-            l_read1->set_text(buf);
-            std::snprintf(buf, sizeof(buf),
-                          "M2 small z %.3f (measured, WAIVED: marginal edge)",
-                          mixed.box_z(ps, 2));
-            l_read2->set_text(buf);
-        }
+                w = std::fmax(w, std::fabs(pile.box_z(ps, i)
+                                           - pile.static_z(i)));
+            return w; }();
+        std::snprintf(buf, sizeof(buf),
+                      "COLUMN worst height error %.4f m   top spin %.4f",
+                      col_worst, column.box_spin(ps, nc - 1));
+        l_col->set_text(buf);
+        std::snprintf(buf, sizeof(buf),
+                      "PILE   worst height error %.4f m   top spin %.4f",
+                      pile_worst, pile.box_spin(ps, np - 1));
+        l_pile->set_text(buf);
         if (frame < 0)
-            std::snprintf(buf, sizeof(buf), "%s starts in %d...",
-                          VIEW_NAMES[view], (-frame + 29) / 30);
+            std::snprintf(buf, sizeof(buf),
+                          "starts in %d...", (-frame + 29) / 30);
         else
-            std::snprintf(buf, sizeof(buf), "%s  frame %d / %d%s",
-                          VIEW_NAMES[view],
+            std::snprintf(buf, sizeof(buf), "frame %d / %d%s",
                           frame < RUN_FRAMES ? frame : RUN_FRAMES, RUN_FRAMES,
-                          frame >= RUN_FRAMES ? "  (done — SPACE advances)"
-                                              : "");
+                          frame >= RUN_FRAMES ? "  (done — SPACE replays)" : "");
         l_hold->set_text(buf);
 
         int passing = 0;
-        for (int i = 0; i < PANEL_ROWS; ++i) {
-            if (i >= (int)panel.size()) { rows[i]->set_text(""); continue; }
-            const bool ok = panel[i].eval();
+        for (auto& a : panel) {
+            const bool ok = a.eval();
             if (ok) ++passing;
-            rows[i]->set_text((ok ? "[V] " : "[X] ") + panel[i].text);
-            if (ok) rows[i]->set_color(120, 230, 140);
-            else    rows[i]->set_color(255, 120, 120);
+            a.label->set_text((ok ? "[V] " : "[X] ") + a.text);
+            if (ok) a.label->set_color(120, 230, 140);
+            else    a.label->set_color(255, 120, 120);
         }
         std::snprintf(buf, sizeof(buf),
                       "ASSERTS %d/%zu passing (settle lines go green late)",
@@ -365,8 +251,11 @@ int main() {
                 if (glfwWindowShouldClose(win)) quit = true;
                 const bool down =
                     glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-                if (down && !space_was_down)
-                    advance_view((view + 1) % N_VIEWS);
+                if (down && !space_was_down) {
+                    column.rearm(ps, physics);
+                    pile.rearm(ps, physics);
+                    frame = -COUNTDOWN_FRAMES;
+                }
                 space_was_down = down;
                 const bool zk = glfwGetKey(win, GLFW_KEY_Z) == GLFW_PRESS;
                 if (zk && !z_was_down && ppu < 195.0f) {
@@ -377,33 +266,25 @@ int main() {
                 z_was_down = zk;
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
-        } else if (frame >= RUN_FRAMES) {
-            // Headless: score this view, then advance like a SPACE press.
-            int red = 0;
-            for (auto& a : panel) if (!a.eval()) ++red;
-            std::printf("  [view %d %s] %d red of %zu\n",
-                        view, VIEW_NAMES[view], red, panel.size());
-            for (auto& a : panel)
-                std::printf("    %s %s\n", a.eval() ? "[V]" : "[X]",
-                            a.text.c_str());
-            headless_fails += red;
-            ++headless_views_done;
-            if (headless_views_done < N_VIEWS)
-                advance_view(view + 1);
-            else
-                break;
         }
         ++frame;
     }
 
+    int fails = 0;
+    for (auto& a : panel) if (!a.eval()) ++fails;
+    for (int i = 0; i < nc; ++i)
+        std::printf("  [measure] column box%d z %.4f (static %.1f) spin %.4f\n",
+                    i, column.box_z(ps, i), column.static_z(i),
+                    column.box_spin(ps, i));
+    for (int i = 0; i < np; ++i)
+        std::printf("  [measure] pile   box%d z %.4f (static %.1f) spin %.4f\n",
+                    i, pile.box_z(ps, i), pile.static_z(i),
+                    pile.box_spin(ps, i));
     std::printf("\n  %s (%d red)\n",
-                headless_fails == 0 && interactive == false
-                    ? "ALL VIEWS ANSWER THEIR LAWS"
-                    : interactive
-                        ? "window closed (verdict lives on the panel)"
-                        : "RED where informative (G-48/G-53/G-54): booked, "
-                          "not hidden",
-                headless_fails);
+                fails == 0 ? "BOTH STRUCTURES STAND"
+                           : "RED (G-48): the sustained-contact loop does "
+                             "not hold statics in this world",
+                fails);
     engine.shutdown();
-    return interactive ? 0 : (headless_fails == 0 ? 0 : 1);
+    return fails == 0 ? 0 : 1;
 }

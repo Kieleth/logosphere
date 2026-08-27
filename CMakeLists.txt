@@ -1335,6 +1335,31 @@ target_include_directories(test_stack_stands PRIVATE
 )
 target_compile_features(test_stack_stands PRIVATE cxx_std_17)
 
+# G-53's rung ladder, simplest first (owner KISS ruling 2026-08-27):
+# one spinning cube, then the free passenger (transmission guaranteed),
+# then the anchored carrier (the anchor wins). Single-purposed.
+add_executable(test_torsion_transmission tests/test_torsion_transmission.cpp)
+target_link_libraries(test_torsion_transmission PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_torsion_transmission PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_torsion_transmission PRIVATE cxx_std_17)
+
+# G-54's three verdicts: stand / FALL / stand. The overhung cube that
+# must fall catches phantom support. Single-purposed.
+add_executable(test_mixed_mass_stands tests/test_mixed_mass_stands.cpp)
+target_link_libraries(test_mixed_mass_stands PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_mixed_mass_stands PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_mixed_mass_stands PRIVATE cxx_std_17)
+
 # D7, born red: what slows a spinning body down? Today, a constant.
 # ANGULAR_DRAG is multiplied into omega four times a frame for every
 # body in every surrounding, so a cube spinning in vacuum stops in a
@@ -1421,6 +1446,22 @@ if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_features(test_cube_drop_ladder_visual PRIVATE cxx_std_17)
+endif()
+
+if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
+    add_executable(test_torsion_visual tests/test_torsion_visual.cpp)
+    target_link_libraries(test_torsion_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_torsion_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_torsion_visual PRIVATE cxx_std_17)
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above

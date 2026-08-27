@@ -1831,3 +1831,31 @@ the teleport law. First measurements, WARM_LEARN world:
 - Default world contrast: torsion sink compounds to half a metre;
   mixed masses amplify the frozen-cache deficit (0.41 m and 0.94 m of
   standing crush) while the overhung cube still departs.
+
+## 2026-08-27 — RULED: KISS. The torsion experiment rebuilds from the irreducible case
+
+Owner: "let's make all this simpler in a 2 cube first, asserts in
+place, and then three cubes if needed, and more single-purposed tests,
+instead of that complex one please, KISS."
+
+This is the Gedanken method's own rule 1 applied to me: I jumped to
+the four-cube sandwich (the interesting case) instead of the
+irreducible one. Executed as:
+
+- **test_stack_stands returns to the statics pair only** (G-48's
+  single purpose: no torque exists, none may be invented).
+- **test_torsion_transmission, new, single-purpose (G-53
+  restructured as a rung ladder)**: R1 one cube spinning on the
+  turtle (brake, no creation, stands); R2 spinner UNDER a free
+  passenger (no anchor above - being dragged is GUARANTEED,
+  assertable from below); R3 spinner ON a carrier (the turtle anchor
+  wins - the guaranteed physics is an UPPER bound on the carrier's
+  motion). The four-cube sandwich retires until a rung needs it.
+- **test_mixed_mass_stands, new, single-purpose (G-54)**: the three
+  verdicts, stand / FALL / stand.
+- **The pending threshold question DISSOLVES**: the disputed
+  "transmits below >= 0.05" assert demanded something sub-unity
+  physics never guarantees (static friction may hold the carrier at
+  exactly zero). The rung form asserts only what each configuration
+  guarantees. The 0.10-vs-0.05 split and its post-hoc derivation are
+  retired with the sandwich case; no ruling needed.
