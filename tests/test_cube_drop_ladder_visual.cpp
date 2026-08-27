@@ -17,6 +17,8 @@
 #include <GLFW/glfw3.h>
 
 #include <chrono>
+#include <functional>
+#include <vector>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -83,17 +85,110 @@ int main() {
     cam.set_pixels_per_unit(ppu);
     cam.set_position(0.0f, 0.0f, 0.55f);
 
-    // Readout at the BOTTOM: the debug overlay (FPS etc.) owns the top
-    // left, and the first version stacked the test lines on top of it.
+    // The debug overlay owns the ENTIRE left column. Everything of
+    // ours lives right of PANEL_X (protocol, 2026-08-21).
+    const int PANEL_X = 560;
     const int base_y = cfg.window_height - 118;
     auto* l_rung = add_line(engine, 0, 255, 240, 140);
     auto* l_live = add_line(engine, 1, 220, 220, 220);
     auto* l_meas = add_line(engine, 2, 140, 210, 255);
     auto* l_verdict = add_line(engine, 3, 255, 120, 120);
-    l_rung->set_position(16, base_y);
-    l_live->set_position(16, base_y + 24);
-    l_meas->set_position(16, base_y + 48);
-    l_verdict->set_position(16, base_y + 72);
+    l_rung->set_position(PANEL_X, base_y);
+    l_live->set_position(PANEL_X, base_y + 24);
+    l_meas->set_position(PANEL_X, base_y + 48);
+    l_verdict->set_position(PANEL_X, base_y + 72);
+
+    // THE LIVE ASSERT PANEL (protocol, 2026-08-21): per-rung assert
+    // set, every line [V]/[X] with its registered law, evaluated per
+    // frame from the same scene/Argus quantities headless asserts use.
+    static const bool lever_ui = std::getenv("CONTACT_TORQUE") != nullptr;
+    auto* l_demo = add_line(engine, 4, 190, 220, 255);
+    l_demo->set_position(PANEL_X, 40);
+    constexpr int MAX_ASSERTS = 6;
+    struct LiveAssert { std::string text; std::function<bool()> eval; };
+    std::vector<ui::Label*> panel_labels;
+    for (int i = 0; i < MAX_ASSERTS; ++i) {
+        auto* l = new ui::Label("", "assert" + std::to_string(i));
+        l->set_position(PANEL_X, 66 + i * 22);
+        engine.get_ui_system()->add_widget(l);
+        panel_labels.push_back(l);
+    }
+    auto* l_count = add_line(engine, 5, 220, 220, 220);
+    l_count->set_position(PANEL_X, 66 + MAX_ASSERTS * 22 + 6);
+    std::vector<LiveAssert> panel;
+    auto rebuild_panel = [&](int r) {
+        panel.clear();
+        const int A = scene.actor(r);
+        auto flat = [&]{ return scene.settled_rot_y(ps) < FLAT_ROT_MAX; };
+        auto still_twin = [&]{
+            return std::fabs(scene.displaced_x(ps, scene.twin) - 1.5f) < 0.02f &&
+                   std::fabs(scene.displaced_y(ps, scene.twin)) < 0.02f; };
+        auto coherent = [&, A]{
+            return scene.argus.peak_divergence(A, false) < DIV_MAX_SHARP &&
+                   scene.argus.peak_divergence(A, true)  < DIV_MAX_FOLD; };
+        if (r == 0) {
+            l_demo->set_text("DEMONSTRATING: a flat drop invents NO rotation.");
+            panel.push_back({"G-35: settles flat (rot_y < 0.05)", flat});
+            panel.push_back({lever_ui ? "INV-20: transient wobble bounded (< 0.05)"
+                                      : "G-35: invents no rotation (peak < 0.01)",
+                [&]{ return scene.peak_omega_y <
+                            (lever_ui ? WOBBLE_MAX_LEVER : CONTROL_ROT_MAX); }});
+            panel.push_back({"hygiene: rests ON the slab (separation)",
+                [&]{ return std::fabs(scene.argus.separation(scene.cube, scene.slab)
+                            - (FLOOR_TOP*0.5f + CUBE*0.5f)) < 0.01f; }});
+            panel.push_back({"G-21: one orientation (two-band)", coherent});
+        } else if (r == 1) {
+            l_demo->set_text("DEMONSTRATING: a 20deg tilt must TIP FLAT.");
+            panel.push_back({"G-35: settles FLAT (no edge rest)",
+                [&]{ return scene.settled_rot_y(ps) <
+                            (lever_ui ? TIP_SETTLE_MAX : FLAT_ROT_MAX); }});
+            panel.push_back({"G-35: it ROTATED to get there",
+                [&]{ return scene.peak_omega_y > TIP_OMEGA_MIN; }});
+            panel.push_back({"G-21: the righting is coherent", coherent});
+        } else if (r == 2) {
+            l_demo->set_text("DEMONSTRATING: spin survives FLIGHT, dies at floor.");
+            panel.push_back({"G-36: spin survives flight (keep > 0.90)",
+                [&]{ return scene.keep_at_touchdown < 0.0f ||
+                            scene.keep_at_touchdown > FLIGHT_KEEP_MIN; }});
+            panel.push_back({"G-36: floor friction brakes it to rest",
+                [&]{ return scene.settled_spin(ps) < SETTLED_SPIN_MAX; }});
+            panel.push_back({"G-37: per-frame retention (> 0.99)",
+                [&]{ return scene.min_frame_keep > FRAME_KEEP_MIN; }});
+        } else if (r <= 5) {
+            l_demo->set_text(r == 3
+                ? "DEMONSTRATING: the fast top brakes IN PLACE."
+                : "DEMONSTRATING: wheel spin buys travel on ONE axis.");
+            panel.push_back({"G-21/23: one orientation (two-band)", coherent});
+            panel.push_back({"INV-3: speeds bounded (< 10 m/s)",
+                [&, A]{ return scene.argus.peak_speed(A) < 10.0f; }});
+            panel.push_back({"hygiene: the still twin STAYS still", still_twin});
+            if (lever_ui && r == 3)
+                panel.push_back({"G-41: the big top brakes IN PLACE",
+                    [&]{ return std::fabs(scene.displaced_x(ps, scene.hero)) < 0.05f &&
+                                std::fabs(scene.displaced_y(ps, scene.hero)) < 0.05f &&
+                                scene.settled_spin(ps, scene.hero) < 0.1f; }});
+            if (lever_ui && r == 4)
+                panel.push_back({"G-41 BORN RED: X-spin WALKS along Y",
+                    [&]{ return std::fabs(scene.displaced_y(ps, scene.hero)) > 0.05f; }});
+            if (lever_ui && r == 5)
+                panel.push_back({"G-41 BORN RED: Y-spin WALKS along X",
+                    [&]{ return std::fabs(scene.displaced_x(ps, scene.hero)) > 0.05f; }});
+        } else {
+            l_demo->set_text(r == 6
+                ? "DEMONSTRATING: a corner stand MUST fall (slab rows)."
+                : "DEMONSTRATING: same corner stand, turtle rows.");
+            const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
+                                              : CORNER_FALLEN_Z_MAX;
+            panel.push_back({"G-43: the corner stand FALLS to a face",
+                [&, fallen_max]{ return scene.settled_z(ps, scene.hero) < fallen_max; }});
+            panel.push_back({"G-43: and it ROTATED on the way down",
+                [&]{ return scene.argus.peak_spin(scene.hero) >
+                            CORNER_TOPPLE_SPIN_MIN; }});
+            panel.push_back({"G-21: one orientation through the fall", coherent});
+            panel.push_back({"hygiene: the face-resting twin stays put", still_twin});
+        }
+    };
+    rebuild_panel(0);
 
     if (interactive)
         std::printf("\n  SPACE = next case   Z = zoom in   ESC = quit\n"
@@ -120,12 +215,14 @@ int main() {
             rung = (rung + 1) % RUNG_COUNT;
             if (rung == 0) break;
             scene.arm(ps, physics, RUNGS[rung], rung);
+            rebuild_panel(rung);
             rung_frame = 0;
         }
         if (advance_case) {                      // SPACE, edge-triggered
             advance_case = false;
             rung = (rung + 1) % RUNG_COUNT;
             scene.arm(ps, physics, RUNGS[rung], rung);
+            rebuild_panel(rung);
             rung_frame = 0;
             // The stage moves with the case: R8 performs at x = 10 on
             // the bare turtle; a fixed origin camera showed empty space
@@ -192,6 +289,28 @@ int main() {
                     : "R2/R3 FAIL (G-36/37): spin died before the floor existed"));
         l_verdict->set_text(verdict);
 
+        {   // the panel, live (protocol 2026-08-21)
+            int passing = 0;
+            for (int i = 0; i < MAX_ASSERTS; ++i) {
+                if (i < (int)panel.size()) {
+                    const bool ok = panel[i].eval();
+                    if (ok) ++passing;
+                    panel_labels[i]->set_text((ok ? "[V] " : "[X] ")
+                                              + panel[i].text);
+                    if (ok) panel_labels[i]->set_color(120, 230, 140);
+                    else    panel_labels[i]->set_color(255, 120, 120);
+                } else {
+                    panel_labels[i]->set_text("");
+                }
+            }
+            std::snprintf(buf, sizeof(buf),
+                          "ASSERTS %d/%zu passing (end-state lines settle late)",
+                          passing, panel.size());
+            l_count->set_text(buf);
+            l_count->set_color(passing == (int)panel.size() ? 120 : 255,
+                               passing == (int)panel.size() ? 230 : 120,
+                               120);
+        }
         engine.render();
         if (interactive) {
             engine.present();
