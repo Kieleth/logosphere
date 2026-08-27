@@ -67,14 +67,19 @@ std::string slurp(const std::filesystem::path& path) {
     return bytes.str();
 }
 
-std::string shipping_text() {
+std::string shipping_text(size_t& generated_skipped) {
     std::string all;
     const std::filesystem::path root(VOYAGER_GAME_DIR);
     for (const auto& entry :
          std::filesystem::recursive_directory_iterator(root / "src")) {
         if (!entry.is_regular_file()) continue;
         const auto path = entry.path();
-        if (path.string().find("/generated/") != std::string::npos) continue;
+        // generic_string, not string: native separators are '\' on
+        // Windows and this match must not depend on the platform.
+        if (path.generic_string().find("/generated/") != std::string::npos) {
+            ++generated_skipped;
+            continue;
+        }
         const auto extension = path.extension().string();
         if (extension != ".cpp" && extension != ".h") continue;
         all += slurp(path);
@@ -353,9 +358,14 @@ int main() {
     // number the book fixes is put in the graph so a primitive can read
     // it instead of spelling it; one that no primitive names is a rule
     // in the graph that changes nothing, and it reads as working.
-    const std::string code = shipping_text();
+    size_t generated_skipped = 0;
+    const std::string code = shipping_text(generated_skipped);
     CHECK(!code.empty(), "no shipping source was read, so this proved "
                          "nothing");
+    CHECK(generated_skipped >= 1,
+          "the generated-file exclusion excluded nothing: either "
+          "src/generated moved or the path match broke, and a broken "
+          "match reports the schema's own generated output as leaks");
     const auto constants = world.findByType("RuleConstant");
     CHECK(!constants.empty(), "the rules fix no constants at all");
     for (const kg::EntityID id : constants) {
