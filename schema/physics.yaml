@@ -1086,6 +1086,19 @@ classes:
           / THIS) * w|w| (G-42). Derived like the 12 in a box inertia,
           named because INV-29's gate is right that derived inputs get
           names too — its own gate refused the bare literal.
+      TWIST_RADIUS_FACTOR:
+        range: float
+        ifabsent: float(0.3826)
+        unit: { ucum_code: "1" }
+        description: >-
+          Mean distance from the centre over a uniformly pressed unit
+          square, 0.3826 (the face integral) - it sets the honest
+          torsional friction limit tau_max = mu * N * THIS * L for a
+          face contact (G-55, the grindstone law). Four corner anchors
+          at 0.707*L overbrake a spinning face by 1.85x against this
+          integral; a real stone cube spun at 3 rad/s dies in about a
+          third of a second, not fifty milliseconds. Derived like the
+          12 in a box inertia: a named number, not a tunable.
       SUPPORT_PATCH_BAND:
         range: float
         ifabsent: float(0.005)

@@ -48,6 +48,13 @@ constexpr float SPEED_MAX      = 10.0f;   // m/s (INV-3)
 constexpr float LZ_BAND        = 1.05f;   // peak |L_z| <= initial * this
 constexpr float PASSENGER_MIN  = 0.5f;    // R2: guaranteed drag, from below
 constexpr float CARRIER_MAX    = 0.3f;    // R3: the anchor wins, from above
+// G-55, the grindstone law (born red): face-integral Coulomb friction
+// brakes R1's spinner at alpha = mu*m*g*0.3826*L / I -> stop in 0.333 s
+// (true cube I) or 0.252 s (engine's legacy cylinder I). The band
+// admits either inertia model; today's ~0.05 s corner-overbraked
+// death is red, and so would be an under-braked spin past 0.6 s.
+constexpr float STOP_TIME_MIN  = 0.2f;    // s
+constexpr float STOP_TIME_MAX  = 0.6f;    // s
 inline const char* RUNG_NAMES[N_RUNGS] = {
     "R1 THE IRREDUCIBLE CASE", "R2 THE PASSENGER", "R3 THE CARRIER" };
 // Which body spins at birth, per rung (index into boxes).

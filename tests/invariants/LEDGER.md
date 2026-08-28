@@ -1859,3 +1859,37 @@ irreducible one. Executed as:
   exactly zero). The rung form asserts only what each configuration
   guarantees. The 0.10-vs-0.05 split and its post-hoc derivation are
   retired with the sandwich case; no ruling needed.
+
+## 2026-08-27 (later) — RULED: the 50 ms episode is the root; make it realistic
+
+Owner, on the R2 Argus verdict ("the whole experiment lasts 50
+milliseconds, three frames"): "correct, this is the root, change this,
+make it realistic." The braking rate is the defect: a real stone cube
+spun at 3 rad/s dies in ~0.33 s (face-integral Coulomb friction, mean
+radius 0.3826 L, alpha ~ 9 rad/s^2), the engine kills it in ~0.05 s.
+Registered as G-55 (the grindstone law) with the derivation and the
+three compounding causes measured by the RCA: corner anchors (1.85x),
+the box friction cone (up to 1.41x), per-row normal inflation under
+spin. Mechanism lands behind FRICTION_TWIST=1, default off: face
+contacts get a dedicated twist-friction row limited by mu*N*<r>, their
+tangent rows go linear-only, and the tangent pair is clamped as a
+vector (circular cone). Born-red assert: R1's stop time inside
+[0.2, 0.6] s. The engine's box I_z (legacy cylinder 0.125 m L^2 vs the
+true m L^2/6) is booked as its OWN front - correcting it moves every
+rotation number in the battery and deserves a deliberate campaign
+slice, not a rider.
+
+**G-55 landed, same day.** The grindstone law's mechanism went in
+behind FRICTION_TWIST=1: face contacts (>= 3-point patches only) get a
+twist-friction row limited by mu * N_total * <r> with N summed exactly
+over the pair's rows, their tangents go linear-only, and the tangent
+pair closes the friction cone as a vector. R1 now brakes in a
+perfectly linear Coulomb decay to a 0.217 s stop (band [0.2, 0.6]);
+BOTH of G-53's booked reds fell out of the same mechanism (passenger
+0.6666, residual dead). Two laws re-learned and guarded on the way,
+each caught by the audited battery within minutes: G-45 binds the
+twist row (no torsion across an open gap - airborne spin died until
+gated), and a face treatment needs a face patch (a sphere's one-point
+"face" lost its rolling torque until the gate demanded >= 3 points).
+Default byte-identical; harness green under the lever; one booked
+marginal in the visual's combined world (R3 tail just above noise).

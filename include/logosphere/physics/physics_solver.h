@@ -190,6 +190,19 @@ struct Constraint {
     float anchor_rax = 0.0f, anchor_ray = 0.0f, anchor_raz = 0.0f;
     float anchor_rbx = 0.0f, anchor_rby = 0.0f, anchor_rbz = 0.0f;
 
+    // FACE FRICTION (G-55, lever FRICTION_TWIST=1, default off). Rows
+    // of a FACE manifold carry linear-only tangent friction (corner
+    // anchors overbrake a spinning face 1.85x against the face
+    // integral), the tangent pair is clamped as a vector (circular
+    // cone), and ONE row per manifold — the twist carrier — solves
+    // torsional Coulomb friction about the contact normal, limited by
+    // mu * N_total * twist_r (twist_r = TWIST_RADIUS_FACTOR * patch
+    // side, the mean radius of a uniformly pressed square).
+    bool  face_friction = false;
+    bool  twist_carrier = false;
+    float twist_r = 0.0f;
+    float twist_impulse = 0.0f;
+
     float angular_axis_x = 0.0f;
     float angular_axis_y = 0.0f;
     float angular_axis_z = 0.0f;

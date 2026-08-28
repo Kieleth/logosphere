@@ -32,8 +32,12 @@ void check(bool ok, const std::string& what) {
 int main() {
     std::printf("\n=== TORSION TRANSMISSION: the rung ladder (G-53) ===\n");
     static const bool trace = std::getenv("ARGUS_TRACE") != nullptr;
+    // TORSION_RUNG=<n> runs one rung alone (RCA focus).
+    const char* only_env = std::getenv("TORSION_RUNG");
+    const int only = only_env ? std::atoi(only_env) : -1;
     char buf[176];
     for (int rung = 0; rung < N_RUNGS; ++rung) {
+        if (only >= 0 && rung != only) continue;
         ParticleSystem ps;
         PhysicsSystem physics;
         if (!physics.initialize(ps)) { std::printf("  [FAIL] init\n"); return 1; }
@@ -44,6 +48,7 @@ int main() {
         std::vector<float> peak_signed_wz(n, -1e9f);
         const float L0 = scene.total_Lz(ps);
         float peak_absL = std::fabs(L0);
+        float stop_time = -1.0f;   // first frame the spinner reads noise
 
         for (int f = 0; f < RUN_FRAMES; ++f) {
             scene.step(ps, physics, f);
@@ -51,9 +56,22 @@ int main() {
                 peak_signed_wz[i] = std::fmax(peak_signed_wz[i],
                                               sgn * scene.box_omega_z(ps, i));
             peak_absL = std::fmax(peak_absL, std::fabs(scene.total_Lz(ps)));
-            if (trace && f % 15 == 0)
+            if (stop_time < 0.0f &&
+                scene.box_spin(ps, SPINNER_OF[rung]) < SPIN_NOISE_MAX)
+                stop_time = (float)(f + 1) * DT;
+            // The whole episode lives in the first fraction of a second;
+            // a 15-frame stride misses it. Per-frame through the episode,
+            // sparse after.
+            if (trace && (f < 60 || f % 15 == 0)) {
+                std::printf("  [f%03d]", f);
                 for (int i = 0; i < n; ++i)
-                    scene.argus.narrate(std::cout, scene.boxes[i]);
+                    std::printf("  wz%d %+8.4f", i,
+                                scene.box_omega_z(ps, i));
+                std::printf("  Lz %8.2f\n", scene.total_Lz(ps));
+                if (f % 15 == 0)
+                    for (int i = 0; i < n; ++i)
+                        scene.argus.narrate(std::cout, scene.boxes[i]);
+            }
         }
 
         std::printf("\n-- %s --\n", RUNG_NAMES[rung]);
@@ -71,6 +89,14 @@ int main() {
                       "G-53: the spinner's spin DIES (final %.4f < %.2f)",
                       scene.box_spin(ps, sp), SPIN_NOISE_MAX);
         check(scene.box_spin(ps, sp) < SPIN_NOISE_MAX, buf);
+        if (rung == 0) {
+            std::snprintf(buf, sizeof(buf),
+                          "G-55: it dies at the GRINDSTONE RATE "
+                          "(stop %.3f s in [%.1f, %.1f])",
+                          stop_time, STOP_TIME_MIN, STOP_TIME_MAX);
+            check(stop_time >= STOP_TIME_MIN && stop_time <= STOP_TIME_MAX,
+                  buf);
+        }
         std::snprintf(buf, sizeof(buf),
                       "G-53/INV-3: L_z is never created "
                       "(peak %.1f <= initial %.1f x %.2f)",

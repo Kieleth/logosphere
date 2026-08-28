@@ -190,6 +190,15 @@ constexpr float    QUAT_UNROTATED_EPS = 1e-6f;   // unit: 1
 // bare literal.
 constexpr float    ROT_DRAG_FACE_INTEGRAL = 32.0f;   // unit: 1
 
+// Mean distance from the centre over a uniformly pressed unit square,
+// 0.3826 (the face integral) - it sets the honest torsional friction
+// limit tau_max = mu * N * THIS * L for a face contact (G-55, the
+// grindstone law). Four corner anchors at 0.707*L overbrake a spinning
+// face by 1.85x against this integral; a real stone cube spun at 3
+// rad/s dies in about a third of a second, not fifty milliseconds.
+// Derived like the 12 in a box inertia: a named number, not a tunable.
+constexpr float    TWIST_RADIUS_FACTOR = 0.3826f;   // unit: 1
+
 // Corners of a rotated box within this height of its lowest corner
 // form the turtle CONTACT PATCH: one row per corner, load shared, each
 // with its own lever arm. A single support vertex was a step function

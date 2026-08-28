@@ -526,12 +526,22 @@ informative, all booked in G-53:
 
 - **R1 perfect in both worlds** (3 -> 0.0000, L_z fully drained,
   stands at exactly 0.5000).
-- **R2 under-transmission (red, world-independent)**: the free
-  passenger peaks 0.476-0.481 vs the lock arithmetic's 0.75; the bar
-  (0.5) stays where the derivation put it.
-- **R3 low-spin residual (red, world-independent)**: the spinner's
-  last ~0.07 rad/s never dies in 5 s where the arithmetic kills it in
-  0.2 s. Same family suspicion as the old insomnia wobble.
+- **R2 under-transmission and R3's residual: BOTH SOLVED BY G-55**
+  (2026-08-27, lever FRICTION_TWIST=1). The owner ruled the 50 ms
+  episode the root ("make it realistic"); the grindstone law landed:
+  face contacts get a twist-friction row at the face-integral limit
+  (mu * N_total * 0.3826 L, N summed exactly over the pair's rows),
+  linear-only tangents, vector-closed friction cone. R1 stops in
+  0.217 s (band [0.2, 0.6], perfectly linear Coulomb decay); the
+  passenger reaches 0.6666 (lock arithmetic 0.75); the residual dies
+  at 0.036. Two guards re-learned from the battery: G-45 binds the
+  twist row (no torsion across an open gap), and a face treatment
+  needs >= 3 manifold points (a sphere's one-point "face" must keep
+  its rolling torque). Default byte-identical; harness green under
+  the lever. Booked marginal: the torsion visual's combined world
+  leaves R3's tail just above the 0.05 noise line. OWNER RULING now
+  owed on FOUR levers: FRICTION_TWIST joins WARM_LEARN /
+  MANIFOLD_SPAN / TURTLE_PRICED.
 
 ## G-53 tail — THE SPINNING-INTERFACE GRIND (NEEDS RCA, booked red)
 

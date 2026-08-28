@@ -30,10 +30,23 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   statics certifies three different verdicts — stand, fall, stand — so
   a solver manufacturing phantom support fails visibly. Each has a
   windowed twin with a live assert panel; SPACE advances the case.
-  Three findings are deliberately left red and tracked (G-53): the
-  solver under-transmits rotational friction against the lock
-  arithmetic, a slow residual spin never fully dies, and a spinning
-  interface under four-cube load grinds into its support.
+  One finding stays red and tracked (G-53): a spinning interface
+  under four-cube load grinds into its support.
+- **Physics: the grindstone law, behind `FRICTION_TWIST=1` (default
+  off).** A spinning face was braked by friction at its four corner
+  anchors, 1.85x harder than the true face integral, through a
+  friction cone open on the diagonal - a spun stone cube died in 50 ms
+  where physics says a third of a second. Face contacts (three or more
+  manifold points) now carry a dedicated torsional friction row
+  limited by mu times the pair's summed normal impulse times the face
+  integral's mean radius (0.3826 L, a named schema constant), their
+  tangent rows go linear-only, and the tangent pair closes the cone as
+  a vector. Measured with the lever on: a perfectly linear Coulomb
+  decay to a 0.217 s stop, torsion transmitted to a free passenger at
+  0.67 rad/s against the lock arithmetic's 0.75, and residual spins
+  that never died now dying. Speculative contacts transmit no torsion
+  (the same law as linear friction), and spheres keep their rolling
+  torque. Default behavior unchanged with the lever off.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs

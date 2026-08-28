@@ -1082,6 +1082,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     wsum += (patch_pen[q] > 0.0f) ? patch_pen[q] : 0.0f;
                 const float I = pi.GetMomentOfInertia();
                 const float m_i = pi.GetMass();
+                // G-55 (lever FRICTION_TWIST=1): a >=3-corner turtle
+                // patch is a FACE contact; its rotational braking
+                // belongs to the twist carrier (the deepest corner,
+                // whose share reconstruction of N_total is stable),
+                // its tangents go linear-only.
+                static const bool friction_twist_t =
+                    std::getenv("FRICTION_TWIST") != nullptr;
+                const bool patch_face = friction_twist_t && patch_n >= 3;
+                int q_deep = 0;
+                float patch_r2_max = 0.0f;
+                if (patch_face) {
+                    for (int q = 0; q < patch_n; ++q) {
+                        if (patch_pen[q] > patch_pen[q_deep]) q_deep = q;
+                        const float r2 = patch_r[q][0]*patch_r[q][0]
+                                       + patch_r[q][1]*patch_r[q][1];
+                        patch_r2_max = std::fmax(patch_r2_max, r2);
+                    }
+                }
                 for (int q = 0; q < patch_n; ++q) {
                     const float share = (wsum > 1e-6f)
                         ? std::max(patch_pen[q], 0.0f) / wsum
@@ -1092,6 +1110,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     ck.anchor_ray = patch_r[q][1];
                     ck.anchor_raz = patch_r[q][2];
                     ck.anchor_rbx = ck.anchor_rby = ck.anchor_rbz = 0.0f;
+                    if (patch_face) {
+                        ck.face_friction = true;
+                        if (q == q_deep) {
+                            ck.twist_carrier = true;
+                            ck.twist_r = PhysicsV4::TWIST_RADIUS_FACTOR *
+                                         std::sqrt(2.0f * patch_r2_max);
+                        }
+                    }
                     const float pen_q = patch_pen[q];
                     ck.bias = (pen_q > SLOP)
                         ? std::min(BETA * (pen_q - SLOP) / dt,
@@ -1684,6 +1710,43 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     c.is_contact = true;
                     c.friction_impulse_t1 = 0.0f;
                     c.friction_impulse_t2 = 0.0f;
+
+                    // G-55 (lever FRICTION_TWIST=1): a FACE manifold's
+                    // rotational braking belongs to a twist row with the
+                    // face-integral limit, not to corner tangents at
+                    // 0.707*L. Flags set here; the friction block reads
+                    // them. Corner/edge contacts keep corner physics.
+                    static const bool friction_twist =
+                        std::getenv("FRICTION_TWIST") != nullptr;
+                    // A face TREATMENT needs a face PATCH: >= 3 points.
+                    // A sphere's contact flags is_face_contact with one
+                    // point, and linear-only tangents there took away
+                    // the r x t torque that rolls it (measured: the
+                    // ramp sphere stopped turning).
+                    if (contact_torque_on && friction_twist &&
+                        manifold.is_face_contact &&
+                        manifold.num_points >= 3) {
+                        c.face_friction = true;
+                        if (cp == 0) {
+                            float r2_max = 0.0f;
+                            for (int q = 0; q < manifold.num_points; q++) {
+                                const float dx = manifold.points[q].px - pi.x;
+                                const float dy = manifold.points[q].py - pi.y;
+                                const float dz = manifold.points[q].pz - pi.z;
+                                const float along = dx*c.jx + dy*c.jy
+                                                  + dz*c.jz;
+                                const float r2 = dx*dx + dy*dy + dz*dz
+                                               - along*along;
+                                r2_max = std::fmax(r2_max, r2);
+                            }
+                            // patch side ~ r_max*sqrt(2) (square patch;
+                            // an over-estimate for partial overlap,
+                            // INV-21-sanctioned)
+                            c.twist_carrier = true;
+                            c.twist_r = PhysicsV4::TWIST_RADIUS_FACTOR *
+                                        std::sqrt(2.0f * r2_max);
+                        }
+                    }
 
                     // THE SLEEP LAW HEARS CONTACTS TOO (G-48): touching
                     // rows with real penetration beyond the tolerance mark
@@ -3861,6 +3924,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     TangentTorque tt{};
                     tt.eff = c.effective_mass;   // lever off: unchanged
                     if (!(c.is_contact && c.apply_anchor_torque)) return tt;
+                    // G-55: a FACE row's tangents are LINEAR-ONLY — no
+                    // omega x r in the measurement, no r x t applied.
+                    // Rotational braking belongs to the twist row with
+                    // the face-integral limit; corner tangents at
+                    // 0.707*L overbrake a spinning face 1.85x. The eff
+                    // mass is the linear one (the normal row's K
+                    // carries an angular term a linear tangent must
+                    // not inherit).
+                    if (c.face_friction) {
+                        const float k_lin = inv_ma + inv_mb;
+                        if (k_lin > 0.0f)
+                            tt.eff = (1.0f / k_lin) * c.eff_mass_share;
+                        return tt;
+                    }
                     v_rel += tx*(pa.omega_y*c.anchor_raz - pa.omega_z*c.anchor_ray)
                            + ty*(pa.omega_z*c.anchor_rax - pa.omega_x*c.anchor_raz)
                            + tz*(pa.omega_x*c.anchor_ray - pa.omega_y*c.anchor_rax);
@@ -3993,8 +4070,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 const TangentTorque tt2 = tangent_terms(t2x, t2y, t2z, v_rel_t2);
                 float friction_impulse_2 = -v_rel_t2 * tt2.eff;
                 float old_f2 = c.friction_impulse_t2;
-                c.friction_impulse_t2 = std::max(-friction_limit,
-                                        std::min(friction_limit, old_f2 + friction_impulse_2));
+                // G-55: face rows close the friction cone as a VECTOR.
+                // Two independent clamps let the tangent pair reach
+                // sqrt(2)*mu*N on the diagonal, and a spinning contact
+                // samples the diagonal continuously.
+                float limit_t2 = friction_limit;
+                if (c.face_friction) {
+                    const float f1 = c.friction_impulse_t1;
+                    const float rem2 = friction_limit * friction_limit
+                                     - f1 * f1;
+                    limit_t2 = (rem2 > 0.0f) ? std::sqrt(rem2) : 0.0f;
+                }
+                c.friction_impulse_t2 = std::max(-limit_t2,
+                                        std::min(limit_t2, old_f2 + friction_impulse_2));
                 friction_impulse_2 = c.friction_impulse_t2 - old_f2;
 
                 if (energy_ledger_on() && friction_impulse_2 != 0.0f) {
@@ -4039,6 +4127,97 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                                -t2x * friction_impulse_2,
                                                -t2y * friction_impulse_2,
                                                -t2z * friction_impulse_2);
+                    }
+                }
+
+                // ========================================================
+                // THE TWIST ROW (G-55, face contacts, FRICTION_TWIST=1).
+                // Torsional Coulomb friction about the contact normal:
+                // a spinning face brakes at mu * N_total * <r>, the face
+                // integral, not at corner radii. One carrier row per
+                // manifold. Gates per G-39: measure every body's omega,
+                // apply to DYNAMIC only (the turtle has none to measure).
+                // ========================================================
+                // G-45 binds here too: a speculative row (gap open)
+                // transmits no torsional friction either — its capture
+                // impulses are not contact forces, and a twist across
+                // an open gap killed airborne spin (ladder R2/R3, the
+                // same disease the linear gate cured).
+                if (c.twist_carrier && c.twist_r > 0.0f &&
+                    friction_limit > 0.0f &&
+                    (!c.is_turtle_contact || c.penetration > 0.0f)) {
+                    const float nx = c.jx, ny = c.jy, nz = c.jz;
+                    float w_rel = pa.omega_x*nx + pa.omega_y*ny
+                                + pa.omega_z*nz;
+                    if (!c.is_turtle_contact)
+                        w_rel -= pb.omega_x*nx + pb.omega_y*ny
+                               + pb.omega_z*nz;
+                    float invIa = 0.0f, invIb = 0.0f;
+                    if (pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                        inv_ma > 0.0f) {
+                        const float Ia = pa.GetMomentOfInertia();
+                        if (Ia > 0.0f) invIa = 1.0f / Ia;
+                    }
+                    if (!c.is_turtle_contact &&
+                        pb.solver_mode == ParticleSolverMode::DYNAMIC &&
+                        inv_mb > 0.0f) {
+                        const float Ib = pb.GetMomentOfInertia();
+                        if (Ib > 0.0f) invIb = 1.0f / Ib;
+                    }
+                    const float k_tw = invIa + invIb;
+                    if (k_tw > 0.0f) {
+                        // N_total: the manifold's whole normal impulse,
+                        // summed EXACTLY over the pair's rows, which
+                        // their builders push contiguously. A share
+                        // reconstruction from one row over-estimated
+                        // 1.6x on the pen-weighted turtle patch
+                        // (measured limits 48-59 vs the derived 31).
+                        auto same_group = [&](const Constraint& g) {
+                            return g.body_a == c.body_a &&
+                                   g.body_b == c.body_b &&
+                                   g.is_turtle_contact ==
+                                       c.is_turtle_contact &&
+                                   !g.is_angular;
+                        };
+                        float n_total = 0.0f;
+                        for (size_t gj = ci;; --gj) {
+                            if (!same_group(constraints[gj])) break;
+                            n_total += std::fmax(
+                                0.0f, constraints[gj].accumulated_impulse);
+                            if (gj == 0) break;
+                        }
+                        for (size_t gj = ci + 1;
+                             gj < constraints.size() &&
+                             same_group(constraints[gj]); ++gj)
+                            n_total += std::fmax(
+                                0.0f, constraints[gj].accumulated_impulse);
+                        const float t_limit =
+                            combined_friction * n_total * c.twist_r;
+                        float t_imp = -w_rel / k_tw;
+                        const float old_t = c.twist_impulse;
+                        c.twist_impulse = std::max(-t_limit,
+                                          std::min(t_limit, old_t + t_imp));
+                        t_imp = c.twist_impulse - old_t;
+                        if (energy_ledger_on() && t_imp != 0.0f) {
+                            const double j = t_imp;
+                            g_dissipation.friction -=
+                                j * double(w_rel)
+                                + j * j * double(k_tw) * 0.5;
+                        }
+                        PHYS_TRACE_F(::logosphere::phystrace::Constraint,
+                                     "twist_impulse",
+                                     (int)c.body_a, (int)c.body_b, "twist",
+                                     t_imp, t_limit, w_rel);
+                        if (t_imp != 0.0f) {
+                            pa.omega_x += nx * t_imp * invIa;
+                            pa.omega_y += ny * t_imp * invIa;
+                            pa.omega_z += nz * t_imp * invIa;
+                            if (!c.is_turtle_contact) {
+                                pb.omega_x -= nx * t_imp * invIb;
+                                pb.omega_y -= ny * t_imp * invIb;
+                                pb.omega_z -= nz * t_imp * invIb;
+                            }
+                        }
                     }
                 }
             }
