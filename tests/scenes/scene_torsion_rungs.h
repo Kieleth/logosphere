@@ -82,6 +82,15 @@ constexpr float STOP_TIME_MAX  = 0.6f;    // s
 inline const char* RUNG_NAMES[N_RUNGS] = {
     "R1 THE IRREDUCIBLE CASE", "R2 THE PASSENGER", "R3 THE CARRIER",
     "R4 THE BRACKET (49 kN)", "R5 THE REPRODUCTION (73.5 kN)" };
+// Birth spin per rung. R5's spinner is braked by BOTH loaded faces
+// (49 + 73.5 kN vs R1's 24.5), ~5x the grindstone torque, so at the
+// base spin it dies in 4 frames - an experiment over before the eye
+// arrives (owner, 2026-08-28: "last needs to spin just a tad more").
+// The lecture rule: make the experiment bigger, never the physics
+// softer - it is born spinning 5x faster for the same watchable
+// quarter-second episode. Every asserted law is unchanged.
+inline const float SPIN0_OF[N_RUNGS] = {
+    OMEGA0, OMEGA0, OMEGA0, OMEGA0, 5.0f * OMEGA0 };
 // Which body spins at birth, per rung (index into boxes).
 inline const int SPINNER_OF[N_RUNGS] = { 0, 0, 1, 1, 1 };
 // The witness body of the rung's transmission claim (-1 = none).
@@ -110,7 +119,7 @@ struct Scene {
             p.size = BODY;
             p.x = x_off; p.y = 0.0f;
             p.z = BODY * 0.5f + i * BODY;   // born touching, never overlapped
-            p.omega_z = (i == SPINNER_OF[which]) ? OMEGA0 : 0.0f;
+            p.omega_z = (i == SPINNER_OF[which]) ? SPIN0_OF[which] : 0.0f;
             p.r = (i == SPINNER_OF[which]) ? 0.95f : 0.55f;
             p.g = 0.6f; p.b = (i == SPINNER_OF[which]) ? 0.3f : 0.8f;
             p.a = 1.0f;
@@ -136,7 +145,7 @@ struct Scene {
             p.z = BODY * 0.5f + (float)i * BODY;
             p.vx = p.vy = p.vz = 0.0f;
             p.omega_x = p.omega_y = 0.0f;
-            p.omega_z = ((int)i == SPINNER_OF[rung]) ? OMEGA0 : 0.0f;
+            p.omega_z = ((int)i == SPINNER_OF[rung]) ? SPIN0_OF[rung] : 0.0f;
             p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
             p.rotation_q = logosphere::Quat::identity();
             p.is_at_rest = false;

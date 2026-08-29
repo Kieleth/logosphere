@@ -568,6 +568,16 @@ reds; sweep new-red 0. Consequence: FRICTION_TWIST / WARM_LEARN /
 MANIFOLD_SPAN are ONE COLUMN for the flip ruling; TURTLE_PRICED
 remains its own question.
 
+## Mode-aware panels everywhere (CLEAN NOW, small, no physics)
+
+Owner correction 2026-08-28 ("it needs to be in the test"): the
+torsion window now carries plain DEMONSTRATING + WATCH lines and the
+mode-aware WORLD line the logosphere-tests skill orders (owner QA:
+"perfect"). The other windowed twins (stack, mixed mass, ramp,
+ladder) predate the pattern and say nothing about which world is on
+stage. Sweep them to the same three lines. Pure test-UI; no physics,
+no thresholds.
+
 ## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 
 INV-32 (contacts exert torque by default; CONTACT_TORQUE=0 becomes the

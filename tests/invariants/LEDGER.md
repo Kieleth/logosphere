@@ -1940,3 +1940,17 @@ remains its own question. Audit correction booked in
 TEST_AUDIT: the twin's earlier "FRICTION_TWIST=1 fully green" row had
 measured the combo world (numbers match to four decimals);
 FRICTION_TWIST alone leaves warm-freeze residuals red.
+
+## 2026-08-28 (later) — OWNER QA: the teaching window, "perfect"
+
+Owner correction on the first G-56 window ("it needs to be in the
+test, re-read the skill"): the education lived in chat, not on the
+panel. Fixed per the logosphere-tests skill: plain DEMONSTRATING +
+WATCH lines per rung, and the mode-aware WORLD line the skill orders
+(trio = "the cure - every line must end [V] green"; default = "the
+booked reds stay [X] on purpose"), printed by both modes. Second
+correction ("last needs to spin just a tad more"): R5's spinner is
+braked ~5x harder than R1's, dying in 4 frames - born at 5x
+(15 rad/s) per the lecture rule, episode 0.15 s with the tower above
+visibly dragged; every law and every count unchanged in both worlds
+(re-measured). Owner verdict on the third window: "perfect."

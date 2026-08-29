@@ -92,15 +92,38 @@ int main() {
     const int PANEL_X = 620;
     auto* l_demo  = add_line(engine, "demo",  PANEL_X, 40, 190, 220, 255);
     auto* l_demo2 = add_line(engine, "demo2", PANEL_X, 62, 190, 220, 255);
+    // MODE-AWARE line (logosphere-tests skill, owner order 2026-08-21):
+    // the lever world and the default world demonstrate different
+    // things and the window must say which one is on stage.
+    auto* l_world = add_line(engine, "world", PANEL_X, 84, 255, 190, 110);
+    const bool lv_twist = std::getenv("FRICTION_TWIST") != nullptr;
+    const bool lv_learn = std::getenv("WARM_LEARN") != nullptr;
+    const bool lv_span  = std::getenv("MANIFOLD_SPAN") != nullptr;
+    const bool trio = lv_twist && lv_learn && lv_span;
+    std::string world_text;
+    if (trio) {
+        world_text = "WORLD: all 3 levers ON (the cure) - every line "
+                     "must end [V] green";
+        l_world->set_color(120, 230, 140);
+    } else if (!lv_twist && !lv_learn && !lv_span) {
+        world_text = "WORLD: DEFAULT (no levers) - the booked reds stay "
+                     "[X] on purpose";
+    } else {
+        world_text = std::string("WORLD: partial levers (") +
+                     (lv_twist ? " twist" : "") + (lv_learn ? " learn" : "") +
+                     (lv_span ? " span" : "") +
+                     " ) - some lines stay [X] by design";
+    }
+    l_world->set_text(world_text);
 
     struct LiveAssert { std::string text; std::function<bool()> eval; };
     constexpr int PANEL_ROWS = 8;
     std::vector<ui::Label*> rows;
     for (int i = 0; i < PANEL_ROWS; ++i)
         rows.push_back(add_line(engine, "assert" + std::to_string(i),
-                                PANEL_X, 96 + i * 22, 255, 120, 120));
+                                PANEL_X, 118 + i * 22, 255, 120, 120));
     auto* l_verdict = add_line(engine, "verdict",
-                               PANEL_X, 96 + PANEL_ROWS * 22 + 10,
+                               PANEL_X, 118 + PANEL_ROWS * 22 + 10,
                                255, 120, 120);
     auto* l_read1 = add_line(engine, "read1", PANEL_X,
                              cfg.window_height - 96, 255, 190, 110);
@@ -125,25 +148,31 @@ int main() {
         peak_absL = std::fabs(L0);
         panel.clear();
         if (r == 0) {
-            l_demo->set_text("DEMONSTRATING: the irreducible case (G-53).");
-            l_demo2->set_text("One cube born spinning 3 rad/s: turtle "
-                              "friction kills it. Nothing else.");
+            l_demo->set_text("DEMONSTRATING: one stone cube, born "
+                             "spinning like a top (G-53/G-55).");
+            l_demo2->set_text("WATCH: ground friction alone kills the "
+                              "spin in ~1/4 s; the cube never drifts.");
         } else if (r == 1) {
-            l_demo->set_text("DEMONSTRATING: the passenger (G-53).");
-            l_demo2->set_text("A FREE cube rides the spinner: nothing "
-                              "anchors it, so it MUST be dragged.");
+            l_demo->set_text("DEMONSTRATING: a FREE cube riding the "
+                             "spinner (G-53).");
+            l_demo2->set_text("WATCH: nothing holds the top cube, so it "
+                              "MUST get dragged around, then both stop.");
         } else if (r == 2) {
-            l_demo->set_text("DEMONSTRATING: the carrier (G-53).");
-            l_demo2->set_text("The spinner rides a cube the turtle holds: "
-                              "the anchor WINS, the carrier barely moves.");
+            l_demo->set_text("DEMONSTRATING: the spinner rides a cube "
+                             "the ground holds (G-53).");
+            l_demo2->set_text("WATCH: the bottom cube barely turns - "
+                              "the ground's grip must win.");
         } else if (r == 3) {
-            l_demo->set_text("DEMONSTRATING: the bracket (G-56).");
-            l_demo2->set_text("Three cubes, the middle one spins: 49 kN "
-                              "on its face. Grind here halves the bracket.");
+            l_demo->set_text("DEMONSTRATING: 3-cube tower, the MIDDLE "
+                             "cube spins (G-56).");
+            l_demo2->set_text("WATCH the heights: at this weight the "
+                              "spinner must NOT sink into the cube below.");
         } else {
-            l_demo->set_text("DEMONSTRATING: the reproduction (G-56).");
-            l_demo2->set_text("Four cubes, box1 spins: 73.5 kN, the "
-                              "interface that ground 0.232 m pre-G-55.");
+            l_demo->set_text("DEMONSTRATING: 4-cube tower, 2nd cube "
+                             "spins - the grind case (G-56).");
+            l_demo2->set_text("WATCH: this spinner used to sink INTO "
+                              "the cube below and stay. Heights are "
+                              "the verdict.");
         }
         const int sp = SPINNER_OF[r];
         panel.push_back({"G-53: the spinner's spin DIES",
@@ -181,6 +210,7 @@ int main() {
 
     std::printf("\n=== torsion, one rung at a time (%s) ===\n",
                 interactive ? "WINDOW" : "headless: rungs in sequence");
+    std::printf("  %s\n", world_text.c_str());
     if (interactive)
         std::printf("  ESC or the red X quits.  SPACE advances the rung "
                     "(re-armed, countdown).  Z zooms.\n\n");
