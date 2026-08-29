@@ -1893,3 +1893,16 @@ gated), and a face treatment needs a face patch (a sphere's one-point
 "face" lost its rolling torque until the gate demanded >= 3 points).
 Default byte-identical; harness green under the lever; one booked
 marginal in the visual's combined world (R3 tail just above noise).
+
+## 2026-08-28 — OWNER QA VERDICT: the grindstone window is GOOD
+
+Owner ran the torsion visual at 5dd8168 under FRICTION_TWIST=1
+WARM_LEARN=1, two windows (/tmp/torsion_qa2.log, /tmp/torsion_qa3.log),
+both closed with 0 red on the panel. Verdict: "is good." G-55's QA
+loop is CLOSED: R1's quarter-second Coulomb spin-down, R2's watchable
+passenger ride, R3's anchored carrier all owner-witnessed. What
+remains on this front is decisions, not evidence: the flip ruling on
+the four levers (FRICTION_TWIST / WARM_LEARN / MANIFOLD_SPAN /
+TURTLE_PRICED — the INV-32 default component stays held by G-47 per
+item 6), the grind RCA at the 73.5 kN interface (3-cube bracket), and
+the R3 combined-world marginal.

@@ -541,7 +541,9 @@ informative, all booked in G-53:
   the lever. Booked marginal: the torsion visual's combined world
   leaves R3's tail just above the 0.05 noise line. OWNER RULING now
   owed on FOUR levers: FRICTION_TWIST joins WARM_LEARN /
-  MANIFOLD_SPAN / TURTLE_PRICED.
+  MANIFOLD_SPAN / TURTLE_PRICED. **OWNER QA 2026-08-28: GOOD** (two
+  windows at 5dd8168, 0 red at close; ledger). Evidence complete;
+  the flip ruling waits only on the decision.
 
 ## G-53 tail — THE SPINNING-INTERFACE GRIND (NEEDS RCA, booked red)
 
