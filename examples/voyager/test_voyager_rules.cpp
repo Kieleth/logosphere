@@ -22,6 +22,7 @@
 #include "rule_loader.h"
 #include "session.h"
 #include "sheet.h"
+#include "test_support.h"
 
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/rules/procedure_runner.h"
@@ -59,54 +60,6 @@ kg::OntologyRegistry game_registry() {
     return registry;
 }
 
-std::string slurp(const std::filesystem::path& path) {
-    std::ifstream input(path, std::ios::binary);
-    if (!input) return {};
-    std::ostringstream bytes;
-    bytes << input.rdbuf();
-    return bytes.str();
-}
-
-std::string shipping_text(size_t& generated_skipped) {
-    std::string all;
-    const std::filesystem::path root(VOYAGER_GAME_DIR);
-    for (const auto& entry :
-         std::filesystem::recursive_directory_iterator(root / "src")) {
-        if (!entry.is_regular_file()) continue;
-        const auto path = entry.path();
-        // generic_string, not string: native separators are '\' on
-        // Windows and this match must not depend on the platform.
-        if (path.generic_string().find("/generated/") != std::string::npos) {
-            ++generated_skipped;
-            continue;
-        }
-        const auto extension = path.extension().string();
-        if (extension != ".cpp" && extension != ".h") continue;
-        all += slurp(path);
-    }
-    return all;
-}
-
-bool is_word_char(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-           (c >= '0' && c <= '9') || c == '_';
-}
-
-// Word-bounded, so "18" does not fire on "1800" and a rule's number is
-// only reported when it really is written out as that number.
-bool names_word(const std::string& text, const std::string& token) {
-    if (token.empty()) return false;
-    for (size_t at = text.find(token); at != std::string::npos;
-         at = text.find(token, at + 1)) {
-        const bool before = at > 0 && is_word_char(text[at - 1]);
-        const size_t after_at = at + token.size();
-        const bool after =
-            after_at < text.size() && is_word_char(text[after_at]);
-        if (!before && !after) return true;
-    }
-    return false;
-}
-
 bool as_int(const std::string& text, long long& out) {
     try {
         size_t end = 0;
@@ -126,6 +79,7 @@ int main() {
     const auto primitives = voyager::make_procedure_registry();
     std::string error;
     if (!voyager::load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                             VOYAGER_BOOK_CORPUS_DIR,
                              primitives, error)) {
         std::cout << "FAIL: the rules did not verify or load: " << error
                   << '\n';
@@ -359,7 +313,9 @@ int main() {
     // it instead of spelling it; one that no primitive names is a rule
     // in the graph that changes nothing, and it reads as working.
     size_t generated_skipped = 0;
-    const std::string code = shipping_text(generated_skipped);
+    const std::string code =
+        voyager_test::shipping_text(VOYAGER_GAME_DIR,
+                                    generated_skipped);
     CHECK(!code.empty(), "no shipping source was read, so this proved "
                          "nothing");
     CHECK(generated_skipped >= 1,
@@ -374,7 +330,7 @@ int main() {
         CHECK(code.find("\"" + name + "\"") != std::string::npos,
               "the rule constant '" << name << "' is seeded and no shipping "
               "source names it, so nothing reads it");
-        CHECK(!names_word(code, value),
+        CHECK(!voyager_test::names_word(code, value),
               "the value of '" << name << "' (" << value << ") appears as a "
               "literal in shipping code, which is the leak the constant "
               "exists to close");

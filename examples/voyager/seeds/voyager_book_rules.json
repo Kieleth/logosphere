@@ -1,0 +1,142 @@
+{
+  "source": {
+    "file": "01-the-shape-of-a-career.md",
+    "commit": "sha256:fec9fb44bc8229adaa6b6382fcfae197e8dc870f11fcc8b322e72d812803ae5f"
+  },
+  "layer": "voyager-book",
+  "generated_by": "examples/voyager/tools/extract_book.py",
+  "invariants": {
+    "count_of_type": {
+      "MomentKind": 5,
+      "SeasonMode": 3,
+      "UnsettledQuestion": 2
+    },
+    "unique_name_per_type": [
+      "MomentKind",
+      "SeasonMode",
+      "UnsettledQuestion"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "MomentKind",
+      "as": "@kind_violence",
+      "properties": {
+        "name": "Violence",
+        "moment_kind_key": "violence",
+        "source_section": "The kinds of moments",
+        "source_kind": "paragraph",
+        "source_quote": "**Violence.** Bodily danger, given or received. The ambush, the boarding action, the bar that goes quiet. Violence is fast, and its veterans are people who have learned how much of it is decided before it starts."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "MomentKind",
+      "as": "@kind_judgment",
+      "properties": {
+        "name": "Judgment",
+        "moment_kind_key": "judgment",
+        "source_section": "The kinds of moments",
+        "source_kind": "paragraph",
+        "source_quote": "**Judgment.** The hard call under stakes. The contract with the buried clause, the diagnosis nobody wants to be wrong about, the trap built out of reasoning. Judgment is slow until it is not, and its veterans read documents the way soldiers read streets."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "MomentKind",
+      "as": "@kind_discovery",
+      "properties": {
+        "name": "Discovery",
+        "moment_kind_key": "discovery",
+        "source_section": "The kinds of moments",
+        "source_kind": "paragraph",
+        "source_quote": "**Discovery.** The unknown, the alien, the door off the map. What answers when nobody expected an answer. Discovery favours the ones still looking, which is sometimes the well-equipped expedition and sometimes the one who is out of options and paying attention."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "MomentKind",
+      "as": "@kind_standing",
+      "properties": {
+        "name": "Standing",
+        "moment_kind_key": "standing",
+        "source_section": "The kinds of moments",
+        "source_kind": "paragraph",
+        "source_quote": "**Standing.** Other people, in numbers or with power. Loyalty and betrayal, reputation made and spent, the room turning against you. Standing is the kind of trouble that never announces itself as trouble, and its veterans hear the announcement anyway."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "MomentKind",
+      "as": "@kind_loss",
+      "properties": {
+        "name": "Loss",
+        "moment_kind_key": "loss",
+        "source_section": "The kinds of moments",
+        "source_kind": "paragraph",
+        "source_quote": "**Loss.** The kind nobody trains for on purpose. Grief, ruin, the long way down, the moment where endurance is the only door offered. Loss reveals more than any other kind, because nothing about it can be practiced."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SeasonMode",
+      "as": "@season_preparation",
+      "properties": {
+        "name": "preparation",
+        "season_mode_key": "preparation",
+        "source_section": "Seasons",
+        "source_kind": "sentence",
+        "source_quote": "A season is spent one of three ways: in preparation, deliberately building a capability; in pursuit, following an interest wherever it goes, useful or not; or in quiet, holding a life together, which is its own work."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SeasonMode",
+      "as": "@season_pursuit",
+      "properties": {
+        "name": "pursuit",
+        "season_mode_key": "pursuit",
+        "source_section": "Seasons",
+        "source_kind": "sentence",
+        "source_quote": "A season is spent one of three ways: in preparation, deliberately building a capability; in pursuit, following an interest wherever it goes, useful or not; or in quiet, holding a life together, which is its own work."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "SeasonMode",
+      "as": "@season_quiet",
+      "properties": {
+        "name": "quiet",
+        "season_mode_key": "quiet",
+        "source_section": "Seasons",
+        "source_kind": "sentence",
+        "source_quote": "A season is spent one of three ways: in preparation, deliberately building a capability; in pursuit, following an interest wherever it goes, useful or not; or in quiet, holding a life together, which is its own work."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_1",
+      "properties": {
+        "name": "unsettled 1",
+        "question_text": "- Whether one moment can carry two kinds at once, a betrayal inside a firefight, or whether the fiercest kind claims it whole.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- Whether one moment can carry two kinds at once, a betrayal inside a firefight, or whether the fiercest kind claims it whole."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_2",
+      "properties": {
+        "name": "unsettled 2",
+        "question_text": "- Whether the open door can drag a moment from one kind into another, the scientist turning a firefight into a judgment problem.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- Whether the open door can drag a moment from one kind into another, the scientist turning a firefight into a judgment problem."
+      }
+    }
+  ]
+}

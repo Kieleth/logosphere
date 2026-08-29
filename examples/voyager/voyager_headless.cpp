@@ -12,6 +12,9 @@
 //                  offline, with no model call at all.
 //   --forks FILE   what else that character could have been.
 //   --fork FILE --at N --instead KEY   take one of those roads.
+//   --book         what the graph holds of the game's own book, in
+//                  the words it cites. The endpoint the writing loop
+//                  iterates against: write, regenerate, read back.
 //
 // WHERE THE NARRATION WENT. The background is written by a model and
 // cannot be derived from a seed, so a replay that did not have it could
@@ -122,9 +125,50 @@ std::string synthetic(const replay::Ask& ask, uint64_t roll) {
     return {};
 }
 
+// ------------------------------------------------------------- book
+// The graph as the book's reader sees it. This is the endpoint the
+// writing loop iterates against: write a chapter, regenerate the
+// seeds, and read back what the world now holds, in the exact words
+// it will cite. Reads the graph and nothing else, so what it prints
+// is what the game can actually see.
+int print_book() {
+    kg::KGModule world(game_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    const auto primitives = voyager::make_procedure_registry();
+    std::string why;
+    if (!voyager::load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                             VOYAGER_BOOK_CORPUS_DIR, primitives, why)) {
+        std::cout << "the rules did not load: " << why << "\n";
+        return 1;
+    }
+    std::cout << "edition " << voyager::rules_edition(world) << "\n";
+    const auto print_typed = [&world](const char* heading,
+                                      const char* type,
+                                      const char* key_slot,
+                                      const char* text_slot) {
+        std::cout << "\n" << heading << "\n";
+        for (const kg::EntityID id : world.findByType(type)) {
+            const std::string key = world.getProperty(id, key_slot);
+            if (!key.empty()) std::cout << "  [" << key << "] ";
+            else std::cout << "  ";
+            std::cout << world.getProperty(id, text_slot) << "\n";
+        }
+    };
+    print_typed("-- the kinds a moment can be --", "MomentKind",
+                "moment_kind_key", "source_quote");
+    print_typed("-- the ways a season is spent --", "SeasonMode",
+                "season_mode_key", "name");
+    print_typed("-- what the book leaves open --", "UnsettledQuestion",
+                "", "question_text");
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--book") == 0) return print_book();
+    }
     std::string mode = "--random";
     std::string argument = "1";
     uint64_t pinned = 0;
@@ -296,6 +340,7 @@ int main(int argc, char** argv) {
     const auto primitives = voyager::make_procedure_registry();
     std::string why;
     if (!voyager::load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                             VOYAGER_BOOK_CORPUS_DIR,
                              primitives, why)) {
         std::cout << "the rules did not load: " << why << "\n";
         return 1;

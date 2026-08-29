@@ -12,6 +12,10 @@ by content hash, and a recorded life replays against the edition it
 was played under, so the book may be rewritten freely without
 breaking what was already lived.
 
-Chapters are numbered markdown files. A chapter may carry an
-"Unsettled" section naming what it deliberately leaves open; the
-ingestion machinery raises those as findings rather than guessing.
+Chapters are numbered markdown files, one line per paragraph and per
+list item, never hard-wrapped. That is the citation machinery's
+parsing unit: a quote must occur inside one parsed paragraph, and a
+wrapped bullet parses as two nodes no quote can span. A chapter may
+carry an "Unsettled" section naming what it deliberately leaves open;
+the ingestion machinery raises those as findings rather than
+guessing.

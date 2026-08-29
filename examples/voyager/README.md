@@ -26,6 +26,11 @@ ANTHROPIC_API_KEY=... ./build/voyager-headless --record /tmp/life.tape
 
 # headless: the same character, exactly, offline, no model call
 ./build/voyager-headless --replay /tmp/life.tape
+
+# what the graph holds of the game's own book, in the words it cites.
+# The writing loop's endpoint: edit a chapter under
+# corpora/voyager-book, run tools/regenerate_seeds.sh, read back.
+./build/voyager-headless --book
 ```
 
 ## No API, no game

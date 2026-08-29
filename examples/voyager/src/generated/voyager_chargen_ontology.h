@@ -1076,6 +1076,62 @@ inline bool from_string(const char* str, RulebookIngestionRelationType& out) {
     return false;
 }
 
+/// The closed set of kinds a moment can be, exactly as Chapter One of the Voyager book fixes it [01-the-shape-of-a-career.md "The kinds of moments"]. Closed on purpose: the list is the game's ethos, and an open string here would let a seed invent a sixth kind no chapter ever wrote. Lower case, case sensitive, because that is what the seeds say and folding case would accept the typo the enum exists to refuse.
+enum class MomentKindKey {
+    VIOLENCE,
+    JUDGMENT,
+    DISCOVERY,
+    STANDING,
+    LOSS
+};
+
+/// Convert MomentKindKey to its string representation.
+inline const char* to_string(MomentKindKey value) {
+    switch (value) {
+        case MomentKindKey::VIOLENCE: return "violence";
+        case MomentKindKey::JUDGMENT: return "judgment";
+        case MomentKindKey::DISCOVERY: return "discovery";
+        case MomentKindKey::STANDING: return "standing";
+        case MomentKindKey::LOSS: return "loss";
+    }
+    return "unknown";
+}
+
+/// Parse a string into MomentKindKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, MomentKindKey& out) {
+    if (std::strcmp(str, "violence") == 0) { out = MomentKindKey::VIOLENCE; return true; }
+    if (std::strcmp(str, "judgment") == 0) { out = MomentKindKey::JUDGMENT; return true; }
+    if (std::strcmp(str, "discovery") == 0) { out = MomentKindKey::DISCOVERY; return true; }
+    if (std::strcmp(str, "standing") == 0) { out = MomentKindKey::STANDING; return true; }
+    if (std::strcmp(str, "loss") == 0) { out = MomentKindKey::LOSS; return true; }
+    return false;
+}
+
+/// The three ways a season is spent [01-the-shape-of-a-career.md "Seasons"]. Closed for the same reason as MomentKindKey.
+enum class SeasonModeKey {
+    PREPARATION,
+    PURSUIT,
+    QUIET
+};
+
+/// Convert SeasonModeKey to its string representation.
+inline const char* to_string(SeasonModeKey value) {
+    switch (value) {
+        case SeasonModeKey::PREPARATION: return "preparation";
+        case SeasonModeKey::PURSUIT: return "pursuit";
+        case SeasonModeKey::QUIET: return "quiet";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SeasonModeKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SeasonModeKey& out) {
+    if (std::strcmp(str, "preparation") == 0) { out = SeasonModeKey::PREPARATION; return true; }
+    if (std::strcmp(str, "pursuit") == 0) { out = SeasonModeKey::PURSUIT; return true; }
+    if (std::strcmp(str, "quiet") == 0) { out = SeasonModeKey::QUIET; return true; }
+    return false;
+}
+
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
     std::optional<float> position_x = std::nullopt;
@@ -3089,6 +3145,27 @@ struct CharacteristicModifierEntry : public LookupEntry {
 struct Narration : public Entity {
     /// The prose, as the referee wrote it.
     std::string narration_text = {};
+};
+
+
+/// One kind of moment, as the Voyager book defines it [01-the-shape-of-a-career.md "The kinds of moments"]. The enum closes the vocabulary; this entity carries the book's own defining paragraph, cited to its bytes, because a referee will narrate kinds and must narrate from the book rather than from a model's private idea of the word.
+struct MomentKind : public Entity, public Cited {
+    /// Which kind this is. The membership check is the schema's, so a kind no chapter wrote cannot load.
+    MomentKindKey moment_kind_key = {};
+};
+
+
+/// One of the three ways a season is spent [01-the-shape-of-a-career.md "Seasons"], cited to the sentence that fixes all three.
+struct SeasonMode : public Entity, public Cited {
+    /// Which of the three ways of spending a season this is.
+    SeasonModeKey season_mode_key = {};
+};
+
+
+/// A question the book leaves open on purpose, cited to its entry under "Unsettled" [01-the-shape-of-a-career.md "Unsettled"]. Absence with an address: an undecided rule and a nonexistent rule look identical from inside a graph, so the book's own open questions load as records the machinery can count and surface, instead of as silence.
+struct UnsettledQuestion : public Entity, public Cited {
+    /// The open question, in the book's own words.
+    std::string question_text = {};
 };
 
 

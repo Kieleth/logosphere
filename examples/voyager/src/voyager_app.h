@@ -71,6 +71,7 @@ public:
 
         std::string why;
         if (!load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                        VOYAGER_BOOK_CORPUS_DIR,
                         make_procedure_registry(), why)) {
             screen_.say("The rules did not load: " + why +
                         "  Nothing can be made without them, and that is "

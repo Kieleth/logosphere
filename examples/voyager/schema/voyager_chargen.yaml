@@ -34,6 +34,32 @@ imports:
   - logosphere
   - rulebook
 
+enums:
+  MomentKindKey:
+    description: >-
+      The closed set of kinds a moment can be, exactly as Chapter One
+      of the Voyager book fixes it [01-the-shape-of-a-career.md "The
+      kinds of moments"]. Closed on purpose: the list is the game's
+      ethos, and an open string here would let a seed invent a sixth
+      kind no chapter ever wrote. Lower case, case sensitive, because
+      that is what the seeds say and folding case would accept the
+      typo the enum exists to refuse.
+    permissible_values:
+      violence:
+      judgment:
+      discovery:
+      standing:
+      loss:
+
+  SeasonModeKey:
+    description: >-
+      The three ways a season is spent [01-the-shape-of-a-career.md
+      "Seasons"]. Closed for the same reason as MomentKindKey.
+    permissible_values:
+      preparation:
+      pursuit:
+      quiet:
+
 classes:
   Character:
     is_a: LivingEntity
@@ -177,6 +203,60 @@ classes:
     slots:
       - narration_text
 
+  MomentKind:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One kind of moment, as the Voyager book defines it
+      [01-the-shape-of-a-career.md "The kinds of moments"]. The enum
+      closes the vocabulary; this entity carries the book's own
+      defining paragraph, cited to its bytes, because a referee will
+      narrate kinds and must narrate from the book rather than from a
+      model's private idea of the word.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      moment_kind_key:
+        required: true
+    slots:
+      - moment_kind_key
+
+  SeasonMode:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One of the three ways a season is spent
+      [01-the-shape-of-a-career.md "Seasons"], cited to the sentence
+      that fixes all three.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      season_mode_key:
+        required: true
+    slots:
+      - season_mode_key
+
+  UnsettledQuestion:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      A question the book leaves open on purpose, cited to its entry
+      under "Unsettled" [01-the-shape-of-a-career.md "Unsettled"].
+      Absence with an address: an undecided rule and a nonexistent
+      rule look identical from inside a graph, so the book's own open
+      questions load as records the machinery can count and surface,
+      instead of as silence.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      question_text:
+        required: true
+    slots:
+      - question_text
+
 slots:
   # The characteristic score slots. Each is cited in its description to
   # the ordered list the book prints under "The Explanation"; the
@@ -304,3 +384,14 @@ slots:
   narration_text:
     range: string
     description: The prose, as the referee wrote it.
+  moment_kind_key:
+    range: MomentKindKey
+    description: >-
+      Which kind this is. The membership check is the schema's, so a
+      kind no chapter wrote cannot load.
+  season_mode_key:
+    range: SeasonModeKey
+    description: Which of the three ways of spending a season this is.
+  question_text:
+    range: string
+    description: The open question, in the book's own words.

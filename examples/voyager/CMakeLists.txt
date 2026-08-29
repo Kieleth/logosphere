@@ -33,6 +33,7 @@ target_compile_definitions(voyager PRIVATE
 # game DECLARES the corpus it reads BY NAME rather than deriving a path
 # from its own directory.
 logosphere_game_corpus(voyager cepheus-srd VOYAGER)
+logosphere_game_corpus(voyager voyager-book VOYAGER_BOOK)
 
 target_link_libraries(voyager PRIVATE
     logosphere

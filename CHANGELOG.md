@@ -16,6 +16,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   stage deciding whether trouble arrives as pre-rolled fate or as
   doors. `examples/voyager/docs/GAME_DESIGN.md` opens as the game's
   design ledger.
+
+  And the chapter is not prose beside the game, it is IN the game,
+  through the same reflection that absorbed the published SRD: an
+  extractor (`tools/extract_book.py`) reads the chapter and seeds the
+  kinds of moments, the season modes and the book's own open
+  questions, each cited to the chapter's bytes; the kind and mode
+  vocabularies are closed schema enums; the world now carries one
+  edition per corpus and a tape pins both, so rewriting a chapter
+  changes what a recorded life is pinned to. `test_voyager_book`
+  gates the loop (uninstantiated enum values, unloaded open
+  questions, book words spelled in shipping C++, a half-pinned
+  edition all go red), CI regenerates the book seed and rejects
+  drift, and `voyager-headless --book` prints what the graph holds
+  of the book, verbatim, as the endpoint the writing loop iterates
+  against.
 - **`examples/voyager`: character creation up to the first door, with
   nothing the book fixes written in C++.** One screen, no frames. Six
   characteristics are rolled by the engine's dice, a referee says where

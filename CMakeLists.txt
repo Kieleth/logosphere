@@ -529,6 +529,7 @@ target_compile_definitions(voyager-headless PRIVATE
 # every game, and read by name. A second game naming the same corpus
 # reads the same bytes and adds nothing.
 logosphere_game_corpus(voyager-headless cepheus-srd VOYAGER)
+logosphere_game_corpus(voyager-headless voyager-book VOYAGER_BOOK)
 
 # The claim this whole game is built to keep, measured rather than
 # reviewed: the screen is assembled from the characteristics the GRAPH
@@ -545,6 +546,7 @@ target_include_directories(test_characteristics_from_graph PRIVATE
 target_compile_definitions(test_characteristics_from_graph PRIVATE
     VOYAGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/voyager")
 logosphere_game_corpus(test_characteristics_from_graph cepheus-srd VOYAGER)
+logosphere_game_corpus(test_characteristics_from_graph voyager-book VOYAGER_BOOK)
 register_headless_test(test_characteristics_from_graph)
 
 # Voyager's rules, verified on the way in and then asked the questions
@@ -561,7 +563,26 @@ target_include_directories(test_voyager_rules PRIVATE
 target_compile_definitions(test_voyager_rules PRIVATE
     VOYAGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/voyager")
 logosphere_game_corpus(test_voyager_rules cepheus-srd VOYAGER)
+logosphere_game_corpus(test_voyager_rules voyager-book VOYAGER_BOOK)
 register_headless_test(test_voyager_rules)
+
+# Voyager's own book, held to the schema and the graph: the closed
+# vocabularies instantiated from both directions, the Unsettled section
+# loaded as records, the book's words absent from shipping C++, and one
+# edition per corpus so a rewritten chapter changes what a tape pins.
+add_executable(test_voyager_book
+    examples/voyager/test_voyager_book.cpp
+    ${VOYAGER_SHARED_SOURCES}
+)
+target_link_libraries(test_voyager_book PRIVATE logosphere_core)
+target_compile_features(test_voyager_book PRIVATE cxx_std_17)
+target_include_directories(test_voyager_book PRIVATE
+    examples/voyager examples/voyager/src)
+target_compile_definitions(test_voyager_book PRIVATE
+    VOYAGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/voyager")
+logosphere_game_corpus(test_voyager_book cepheus-srd VOYAGER)
+logosphere_game_corpus(test_voyager_book voyager-book VOYAGER_BOOK)
+register_headless_test(test_voyager_book)
 
 # Logovger: the referee's answer, held to the rule that asked for it.
 # Deliberately free of any LLM dependency (logosphere_llm is defined

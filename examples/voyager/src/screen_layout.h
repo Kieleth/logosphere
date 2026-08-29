@@ -22,7 +22,7 @@ constexpr int kGlyphW = 6;
 
 // How much room the sheet gets. Wide enough for a long short-name, a
 // three-digit score and a signed modifier, and no wider: the sheet is
-// the quiet half of the screen.
+// the still half of the screen.
 constexpr int kSheetW = 260;
 
 struct Rect {
