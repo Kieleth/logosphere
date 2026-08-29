@@ -71,6 +71,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   materials never change it. The campaign's window
   (`test_limits_visual`) walks all thirteen cases with SPACE, keeping
   inactive cases frozen so each runs virgin, and mirrors the probes.
+  The exclusion law is measured directly: every case reports its
+  deepest standing pair overlap against the 1 mm steady-state bound
+  and its peak transit overlap, so a body resting inside another can
+  never pass as a height-tolerance miss. Root cause of the heavy-on-
+  light tunnelling identified and documented: each contact row's
+  impulse budget is capped by a fixed velocity cushion priced on the
+  pair, a support ceiling that does not grow with the supported
+  weight (fix pending a design ruling).
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs

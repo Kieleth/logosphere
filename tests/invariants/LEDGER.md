@@ -1970,3 +1970,36 @@ policies), G-60 the unequal footprint (patch vs face), G-61 the
 particle floor (the tower on tiles - the internal-edge wound), G-62
 the slip joint (one icy interface, per-interface independence).
 Instrument order is the owner's pick.
+
+## 2026-08-28 (later) — RULED: the compactions are DEFECTS; the INV link is law
+
+Owner, on the campaign window: "argus this, some of them are totally
+wrong, like compacting, and.. uf, make sure they are linked to INVs
+please, I feel we've lost that link." Two orders, both executed:
+
+**The link, restored.** The citation audit found real drift: the
+campaign (and the torsion instruments before it) cited INV-4 for
+"stands at static height" — INV-4 is the frame-zero bond-strain law.
+The compactions are INV-2 violations ("no two bodies interpenetrate
+beyond SLOP in steady state... never accepted as rest state").
+Rewired: stands/overlap → INV-2, settling/sleep → INV-34, L_z →
+INV-17 (contacts are passive), speeds → INV-11. INV-2 is now
+MEASURED DIRECTLY: a per-pair overlap instrument (end-state assert
+at 2x SLOP; transit peak measured and printed, its assert bar owed a
+derivation — the 96.5:1 swap ends legal after a 990 mm transit).
+The torsion/stack instruments carry the same stale tags; boarded
+with the panel sweep, not churned this round.
+
+**The Argus, delivered (G-57 record).** The compaction mechanism is
+THE SUPPORT CEILING: every contact row's budget is
+eff x (approach + CONTACT_CAPTURE_CUSHION 4.0 m/s), eff priced on
+the PAIR — the light supporter dominates. Measured on the iron
+anvil: all rows pinned at cap 95.9, ceiling ~379 N*s/substep, FLAT,
+independent of the supported weight. Hover demands: stone 102
+(green), iron 318.5 (19% margin — sinks as depth degrades the
+manifold), gold 788 (over the ceiling from birth — pass-through,
+side-slip, swap). The tile tower books to the same class. Cause-law:
+INV-10/INV-8 — a fixed velocity cushion is a momentum budget whose
+meaning changes with mass. Distinct from G-56's rocking (equal
+masses, huge pair ceiling). The fix direction — a ceiling that
+scales with the load — is the owner's ruling to make.

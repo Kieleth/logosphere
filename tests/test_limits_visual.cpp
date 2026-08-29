@@ -160,14 +160,17 @@ int main() {
                 return stop_time[body] >= lo && stop_time[body] <= hi; }});
         }
         panel.push_back({std::string(c.gid) +
-                             "/INV-24: every spin is dead at the end",
+                             "/INV-34: every spin is dead at the end",
             [&]{ for (int b = 0; b < (int)cases[ci].bodies.size(); ++b)
                      if (scenes[ci].spin(ps, b) >= SPIN_NOISE) return false;
                  return true; }});
         if (L0 != 0.0f)
             panel.push_back({std::string(c.gid) +
-                                 "/INV-3: L_z is never created",
+                                 "/INV-17: L_z never created (contacts passive)",
                 [&]{ return peak_absL <= std::fabs(L0) * LZ_BAND; }});
+        panel.push_back({std::string(c.gid) +
+                             "/INV-2: no standing interpenetration",
+            [&]{ return scenes[ci].worst_overlap(ps).pen < OVERLAP_TOL; }});
         if (!c.still.empty())
             panel.push_back({std::string(c.gid) +
                                  ": the anchored bodies are NOT dragged",
@@ -175,7 +178,7 @@ int main() {
                          if (peak_abs_wz[b] >= SPIN_NOISE) return false;
                      return true; }});
         panel.push_back({std::string(c.gid) +
-                             "/INV-4: everything stands at static height",
+                             "/INV-2: everything stands at static height",
             [&]{ const Case& cc = cases[ci];
                  for (const HeightRef& h : cc.heights)
                      if (std::fabs(scenes[ci].z(ps, h.body) - h.z_static)
@@ -190,7 +193,7 @@ int main() {
                      return d >= cc.slide_lo && d <= cc.slide_hi; }});
         if (c.must_sleep)
             panel.push_back({std::string(c.gid) +
-                                 "/INV-24: the world falls ASLEEP",
+                                 "/INV-34: the world falls ASLEEP",
                 [&]{ for (int b = 0; b < (int)cases[ci].bodies.size(); ++b)
                          if (!scenes[ci].asleep(ps, b)) return false;
                      return true; }});

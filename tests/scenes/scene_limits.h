@@ -42,9 +42,14 @@ constexpr float R1_STOP  = 0.217f;  // measured grindstone anchor (G-55, mu 0.5,
 // G-55's stop band at the anchor (mu 0.5, L 1 m). Scaled per case by
 // (MU_BASE/mu) — the grindstone law is 1/mu — and by L (alpha ~ 1/L).
 constexpr float BAND_LO = 0.2f, BAND_HI = 0.6f;
-constexpr float SPIN_NOISE = 0.05f;   // rad/s (INV-24 class)
-constexpr float SPEED_MAX  = 10.0f;   // m/s (INV-3)
-constexpr float LZ_BAND    = 1.05f;   // peak |L_z| <= initial * this
+constexpr float SPIN_NOISE = 0.05f;   // rad/s (INV-34 settling)
+constexpr float SPEED_MAX  = 10.0f;   // m/s (INV-11)
+constexpr float LZ_BAND    = 1.05f;   // peak |L_z| <= initial * this (INV-17)
+// INV-2: no two bodies interpenetrate beyond SLOP (1 mm) in steady
+// state, and penetration is never accepted as rest state. The direct
+// measurement's bar: 2x SLOP, so float dust on a legal 1 mm contact
+// cannot red the law while a 25 mm (or 1 m) compaction always does.
+constexpr float OVERLAP_TOL = 0.002f; // m
 
 struct BodySpec {
     float sx, sy, sz;        // dims (width=x, height=y, thickness=z)
@@ -57,7 +62,7 @@ struct BodySpec {
 };
 
 struct StopBand  { int body; float lo, hi; };          // spin-death window (s)
-struct HeightRef { int body; float z_static, tol; };   // INV-4 stand
+struct HeightRef { int body; float z_static, tol; };   // INV-2 stand
 struct Case {
     const char* name;                  // for the panel and the log
     const char* gid;                   // the law every assert cites
@@ -181,6 +186,32 @@ struct Scene {
             L += p.GetMomentOfInertia() * p.omega_z;
         }
         return L;
+    }
+
+    // INV-2 MEASURED DIRECTLY (owner order 2026-08-28: "argus this" -
+    // instrument the interaction, not just the outcome). Deepest
+    // pairwise overlap, axis-aligned on birth dims: exact for the
+    // unrotated stacks, and conservative under these cases' yaw spins
+    // (z extents are yaw-invariant, and the compactions are vertical).
+    struct Overlap { float pen = 0.0f; int a = -1, b = -1; };
+    Overlap worst_overlap(ParticleSystem& ps) const {
+        Overlap w;
+        auto parts = ps.lock_particles_for_read();
+        const int n = (int)ids.size();
+        for (int a = 0; a < n; ++a)
+            for (int b = a + 1; b < n; ++b) {
+                const Particle& pa = parts[ids[a]];
+                const Particle& pb = parts[ids[b]];
+                const float d[3]  = {pa.x - pb.x, pa.y - pb.y, pa.z - pb.z};
+                const float ha[3] = {specs[a].sx, specs[a].sy, specs[a].sz};
+                const float hb[3] = {specs[b].sx, specs[b].sy, specs[b].sz};
+                float pen = 1e9f;
+                for (int ax = 0; ax < 3; ++ax)
+                    pen = std::fmin(pen, (ha[ax] + hb[ax]) * 0.5f
+                                             - std::fabs(d[ax]));
+                if (pen > w.pen) { w.pen = pen; w.a = a; w.b = b; }
+            }
+        return w;
     }
 };
 
@@ -381,10 +412,17 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
     std::vector<float> stop_time(n, -1.0f);
     std::vector<float> peak_abs_wz(n, 0.0f);
     const float x0_slide = c.slide_body >= 0 ? scene.x(ps, c.slide_body) : 0.0f;
+    // INV-2's transit clause is MEASURED, not yet asserted: a peak
+    // overlap of a body diameter is pass-through even when the end
+    // state looks legal (the 96.5:1 anvil swap). The bar for a
+    // transit assert needs its own derivation; until then the number
+    // is printed and booked.
+    float peak_overlap = 0.0f;
 
     for (int f = 0; f < c.run_frames; ++f) {
         scene.step(ps, physics, f);
         peak_absL = std::fmax(peak_absL, std::fabs(scene.total_Lz(ps)));
+        peak_overlap = std::fmax(peak_overlap, scene.worst_overlap(ps).pen);
         for (int i = 0; i < n; ++i) {
             peak_abs_wz[i] = std::fmax(peak_abs_wz[i],
                                        std::fabs(scene.wz(ps, i)));
@@ -411,6 +449,9 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
     if (L0 != 0.0f)
         std::printf("  [measure] L_z initial %.1f  peak %.1f  final %.1f\n",
                     L0, peak_absL, scene.total_Lz(ps));
+    std::printf("  [measure] peak transit overlap %.1f mm (INV-2 transit "
+                "clause: measured, assert bar owed a derivation)\n",
+                peak_overlap * 1000.0f);
 
     for (const StopBand& b : c.stop_bands) {
         std::snprintf(buf, sizeof(buf),
@@ -419,7 +460,7 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
                       stop_time[b.body], b.lo, b.hi);
         check(stop_time[b.body] >= b.lo && stop_time[b.body] <= b.hi, buf);
     }
-    // Nothing may keep or invent rotation (G-48/INV-24 class), every case.
+    // Nothing may keep or invent rotation (INV-34 settling), every case.
     {
         bool all_dead = true;
         float worst = 0.0f;
@@ -429,16 +470,30 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
             worst = std::fmax(worst, s);
         }
         std::snprintf(buf, sizeof(buf),
-                      "%s/INV-24: every spin is dead at the end "
+                      "%s/INV-34: every spin is dead at the end "
                       "(worst %.4f < %.2f)", c.gid, worst, SPIN_NOISE);
         check(all_dead, buf);
     }
     if (L0 != 0.0f) {
         std::snprintf(buf, sizeof(buf),
-                      "%s/INV-3: L_z is never created (peak %.1f <= "
-                      "initial %.1f x %.2f)", c.gid, peak_absL,
-                      std::fabs(L0), LZ_BAND);
+                      "%s/INV-17: L_z is never created (peak %.1f <= "
+                      "initial %.1f x %.2f; contacts are passive)", c.gid,
+                      peak_absL, std::fabs(L0), LZ_BAND);
         check(peak_absL <= std::fabs(L0) * LZ_BAND, buf);
+    }
+    // INV-2, measured directly: penetration is never a rest state.
+    {
+        const Scene::Overlap w = scene.worst_overlap(ps);
+        if (w.a >= 0)
+            std::snprintf(buf, sizeof(buf),
+                          "%s/INV-2: no standing interpenetration "
+                          "(worst %.1f mm, %s<->%s, < %.0f mm)", c.gid,
+                          w.pen * 1000.0f, c.bodies[w.a].label,
+                          c.bodies[w.b].label, OVERLAP_TOL * 1000.0f);
+        else
+            std::snprintf(buf, sizeof(buf),
+                          "%s/INV-2: no standing interpenetration", c.gid);
+        check(w.pen < OVERLAP_TOL, buf);
     }
     for (int i : c.still) {
         std::snprintf(buf, sizeof(buf),
@@ -448,7 +503,7 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
     }
     for (const HeightRef& h : c.heights) {
         std::snprintf(buf, sizeof(buf),
-                      "%s/INV-4: %s stands at its static height "
+                      "%s/INV-2: %s stands at its static height "
                       "(%.4f vs %.2f, tol %.3f)", c.gid,
                       c.bodies[h.body].label, scene.z(ps, h.body),
                       h.z_static, h.tol);
@@ -468,7 +523,7 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
         bool all = true;
         for (int i = 0; i < n; ++i) all = all && scene.asleep(ps, i);
         std::snprintf(buf, sizeof(buf),
-                      "%s/INV-24: the world falls ASLEEP (all %d bodies "
+                      "%s/INV-34: the world falls ASLEEP (all %d bodies "
                       "at rest)", c.gid, n);
         check(all, buf);
     }
@@ -476,7 +531,7 @@ inline int run_case(ParticleSystem& ps, PhysicsSystem& physics,
         const float pk = scene.argus.peak_speed(scene.ids[i]);
         if (pk >= SPEED_MAX) {
             std::snprintf(buf, sizeof(buf),
-                          "INV-3: %s speeds stayed bounded (peak %.4f)",
+                          "INV-11: %s speeds stayed bounded (peak %.4f)",
                           c.bodies[i].label, pk);
             check(false, buf);
         }

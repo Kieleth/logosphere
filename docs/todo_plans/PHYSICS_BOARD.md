@@ -575,11 +575,21 @@ Six probes built TDD-headless the same day (shared scene + evaluator
 `tests/scenes/scene_limits.h`, six `test_limits_*` drivers, all
 probing the TRIO world, red-where-informative). The map:
 
-- **THE MASS-RATIO KNEE (G-57, the headline): between 5:1 and
-  15.6:1.** Stone-on-softwood is perfect; iron-on-softwood TUNNELS a
-  full metre through its supporter and stands inside it; at 96.5:1
-  the bodies SWAP order. G-60 confirms the same knee by size (2500 kg
-  spinner sinks 0.242 m into its 160 kg pedestal). RCA owed.
+- **THE MASS-RATIO KNEE (G-57): MECHANISM NAMED, ruling owed.**
+  Owner ruled the compactions DEFECTS ("totally wrong"); Argus
+  delivered THE SUPPORT CEILING: every row's budget is
+  eff x (approach + CONTACT_CAPTURE_CUSHION 4.0 m/s), eff priced on
+  the pair the LIGHT body dominates — a ceiling constant vs the
+  supported weight (~379 N*s/substep here). Stone demands 102
+  (green), iron 318.5 (19% margin, sinks), gold 788 (over the
+  ceiling from birth: pass-through/side-slip/swap; transit overlap
+  990-996 mm measured). G-60's sink and G-61's 25 mm are the same
+  class. Cause-law INV-10/INV-8; the violations are INV-2, now
+  measured DIRECTLY by the campaign's per-pair overlap instrument.
+  OWNER RULING owed: the fix direction (a ceiling that scales with
+  the load it carries). Open sublayer: what degrades the iron
+  manifold with depth (the 19%-margin case decelerates toward hover
+  early, then loses).
 - **Real ground reopens standing penetration (G-61)**: the spin
   tower stands 25-41 mm low on a tile raft (turtle twin: sub-mm);
   tiles themselves perfect, no lateral seam catch.
@@ -597,7 +607,7 @@ the mass-ratio knee (G-57) — it is the one a game hits on day one and
 G-60 shows it is not exotic. The interactive twin (test_limits_visual)
 carries all cases for QA.
 
-## Mode-aware panels everywhere (CLEAN NOW, small, no physics)
+## Mode-aware panels + INV citation sweep (CLEAN NOW, small, no physics)
 
 Owner correction 2026-08-28 ("it needs to be in the test"): the
 torsion window now carries plain DEMONSTRATING + WATCH lines and the
@@ -606,6 +616,13 @@ mode-aware WORLD line the logosphere-tests skill orders (owner QA:
 ladder) predate the pattern and say nothing about which world is on
 stage. Sweep them to the same three lines. Pure test-UI; no physics,
 no thresholds.
+
+SAME SWEEP, second order (owner 2026-08-28: "make sure they are
+linked to INVs... we've lost that link"): the citation audit that
+rewired the limits campaign (INV-4-as-stands is a mis-cite; the law
+is INV-2, settling is INV-34, L_z is INV-17, speeds INV-11) applies
+to the older instruments too — torsion, stack, mixed-mass still
+carry the stale tags. Mechanical retag, same visit as the panels.
 
 ## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 
