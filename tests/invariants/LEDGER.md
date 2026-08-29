@@ -2003,3 +2003,24 @@ INV-10/INV-8 — a fixed velocity cushion is a momentum budget whose
 meaning changes with mass. Distinct from G-56's rocking (equal
 masses, huge pair ceiling). The fix direction — a ceiling that
 scales with the load — is the owner's ruling to make.
+
+## 2026-08-28 (later) — RULED: demos are REAL in all senses; the rule found physics
+
+Owner, on the campaign window: "I need no turtle support for these,
+if we're doing ice, needs to be a white particle large, 'icy' so add
+this to the skill spec, demos need to be 'real' in all senses."
+Executed: ICE is a real material now (materials.h, density 917, full
+property set); every limits case stands on a 6x6x0.4 m slab BODY and
+only the slab touches the turtle; colors are material-true (ice
+white, gold gold, wood brown); the rule is in the logosphere-tests
+skill and VISUAL_TEST_PATTERNS.md.
+
+The rule was LOAD-BEARING PHYSICS: on real ground the 15.6:1 anvil
+tunnel collapses 993 -> 4.6 mm, the footprint sink 242 -> 6 mm, and
+the die's stop anomaly dissolves (0.033 s, in band - G-59's booked
+red RESOLVED, the floor was the turtle interface). Gold still crushes
+through (604-606 mm standing, supporter driven into the slab): the
+support ceiling stands as the defect, now cleanly separated from the
+turtle-stage aggravation. Open hypothesis, unverified: the trio runs
+TURTLE_PRICED off - unpriced turtle rows may BE the aggravation; one
+lever run discriminates. test_limits_size flips to expect: pass.

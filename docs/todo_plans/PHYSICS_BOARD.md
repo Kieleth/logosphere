@@ -590,6 +590,14 @@ probing the TRIO world, red-where-informative). The map:
   the load it carries). Open sublayer: what degrades the iron
   manifold with depth (the 19%-margin case decelerates toward hover
   early, then loses).
+  **REAL-GROUND REVISION (owner order, same day)**: on slab bodies
+  instead of the turtle, 15.6:1 collapses 993 -> 4.6 mm, the
+  footprint sink 242 -> 6 mm, and G-59's die anomaly DISSOLVES
+  (turtle-interface artifact; test_limits_size now expect: pass).
+  Gold still crushes through (604-606 mm) — the ceiling is the
+  remaining defect. Open, unverified: TURTLE_PRICED off in the trio
+  may BE the turtle-stage aggravation; one lever run discriminates.
+  ICE is a real material now; the real-stage rule is skill spec.
 - **Real ground reopens standing penetration (G-61)**: the spin
   tower stands 25-41 mm low on a tile raft (turtle twin: sub-mm);
   tiles themselves perfect, no lateral seam catch.

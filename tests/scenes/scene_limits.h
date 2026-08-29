@@ -105,10 +105,23 @@ struct Scene {
             p.x = x_off + b.x; p.y = b.y; p.z = b.z;
             p.omega_z = b.wz0;
             p.vx = b.vx0;
-            const bool hot = (b.wz0 != 0.0f) || (b.vx0 != 0.0f);
-            p.r = hot ? 0.95f : 0.55f;
-            p.g = 0.6f;
-            p.b = hot ? 0.3f : 0.8f;
+            // Material-true colors (owner order 2026-08-28: demos are
+            // REAL in all senses - ice looks like ice, gold like gold).
+            switch (b.mat) {
+                case Materials::Type::ICE:
+                    p.r = 0.93f; p.g = 0.96f; p.b = 1.00f; break;
+                case Materials::Type::WOOD_SOFT:
+                    p.r = 0.72f; p.g = 0.55f; p.b = 0.35f; break;
+                case Materials::Type::IRON:
+                    p.r = 0.36f; p.g = 0.37f; p.b = 0.42f; break;
+                case Materials::Type::GOLD:
+                    p.r = 0.90f; p.g = 0.75f; p.b = 0.25f; break;
+                case Materials::Type::LEAVES:
+                    p.r = 0.42f; p.g = 0.62f; p.b = 0.32f; break;
+                case Materials::Type::STONE:
+                default:
+                    p.r = 0.55f; p.g = 0.55f; p.b = 0.58f; break;
+            }
             p.a = 1.0f;
             p.SetMaterial(b.mat);
             p.friction = b.mu;            // explicit, never the default
@@ -226,46 +239,76 @@ inline BodySpec cube(float L, float x, float z, Materials::Type m, float mu,
     return BodySpec{L, L, L, x, 0.0f, z, m, mu, wz0, vx0, label};
 }
 
+// THE REAL GROUND (owner order 2026-08-28: "no turtle support for
+// these... demos need to be real in all senses"). Every case stands
+// on a large slab BODY - 6 x 6 x 0.4 m - and only the slab touches
+// the turtle. Ice is an actual white ICE sheet (materials.h, density
+// 917), not a friction number on an invisible plane. Body 0 is the
+// ground in every case below. Cross-note for the bands: a box-box
+// anchor runs ~14% slower than the turtle anchor (G-58 record); the
+// derived bands absorb it.
+constexpr float SLAB_T   = 0.4f;   // slab thickness; its top is at z 0.4
+constexpr float SLAB_TOP = SLAB_T;
+inline BodySpec slab(Materials::Type m, float mu, const char* label) {
+    return BodySpec{6.0f, 6.0f, SLAB_T, 0.0f, 0.0f, SLAB_T * 0.5f,
+                    m, mu, 0.0f, 0.0f, label};
+}
+
 // G-58 THE ICE RINK: the grindstone law is 1/mu; the band scales by
-// (MU_BASE/mu). Ice 0.05 -> stop ~2.2 s in [2.0, 6.0]; rubber 0.8 ->
-// ~0.14 s in [0.125, 0.375]. The nudged icy cube decelerates at
-// mu*g = 0.49 m/s^2: 1 m/s -> stop in ~2.0 s after ~1.02 m, then sleeps.
+// (MU_BASE/mu). On the white ice sheet (joint mu = min = 0.05) the
+// spinner turns ~2.3 s; on the rubber-gripped slab ~0.15 s. The
+// nudged glider decelerates at mu*g = 0.49 m/s^2: 1 m/s -> ~1 m,
+// then sleeps.
 inline std::vector<Case> cases_ice() {
     std::vector<Case> v;
-    v.push_back({"ICE: spinner at mu 0.05", "G-58",
-        {cube(1, 0, 0.5f, Materials::Type::STONE, 0.05f, 3.0f, "ice spinner")},
+    v.push_back({"ICE: spinner on the white sheet", "G-58",
+        {slab(Materials::Type::ICE, 0.05f, "ice sheet"),
+         cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::STONE, MU_BASE, 3.0f,
+              "spinner")},
         540,
-        {{0, BAND_LO * (MU_BASE/0.05f), BAND_HI * (MU_BASE/0.05f)}},
-        {{0, 0.5f, 0.02f}}, {}, false, -1, 0, 0,
-        "DEMONSTRATING: the same spinner on ICE (G-58).",
-        "WATCH: 10x less grip, 10x longer spin - it must turn ~2 s."});
-    v.push_back({"RUBBER: spinner at mu 0.8", "G-58",
-        {cube(1, 0, 0.5f, Materials::Type::STONE, 0.8f, 3.0f, "rubber spinner")},
+        {{1, BAND_LO * (MU_BASE/0.05f), BAND_HI * (MU_BASE/0.05f)}},
+        {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f}},
+        {0}, false, -1, 0, 0,
+        "DEMONSTRATING: a stone cube spinning on ICE (G-58).",
+        "WATCH: 10x less grip, 10x longer spin - ~2 s on the sheet."});
+    v.push_back({"RUBBER: spinner on the gripped slab", "G-58",
+        {slab(Materials::Type::STONE, 0.8f, "gripped slab"),
+         cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::STONE, 0.8f, 3.0f,
+              "spinner")},
         300,
-        {{0, BAND_LO * (MU_BASE/0.8f), BAND_HI * (MU_BASE/0.8f)}},
-        {{0, 0.5f, 0.02f}}, {}, false, -1, 0, 0,
-        "DEMONSTRATING: the same spinner on RUBBER (G-58).",
+        {{1, BAND_LO * (MU_BASE/0.8f), BAND_HI * (MU_BASE/0.8f)}},
+        {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f}},
+        {0}, false, -1, 0, 0,
+        "DEMONSTRATING: the same spinner, rubber-gripped slab (G-58).",
         "WATCH: more grip than stone - dead in a blink, no drama."});
     v.push_back({"ICE: the nudged glide", "G-58",
-        {cube(1, 0, 0.5f, Materials::Type::STONE, 0.05f, 0.0f, "glider", 1.0f)},
+        {slab(Materials::Type::ICE, 0.05f, "ice sheet"),
+         cube(1, -1.5f, SLAB_TOP + 0.5f, Materials::Type::STONE, MU_BASE,
+              0.0f, "glider", 1.0f)},
         300,
-        {}, {{0, 0.5f, 0.02f}}, {}, true, 0, 0.75f, 1.35f,
-        "DEMONSTRATING: a cube shoved 1 m/s across ICE (G-58).",
+        {}, {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f}},
+        {0}, true, 1, 0.75f, 1.35f,
+        "DEMONSTRATING: a cube shoved 1 m/s across the ICE (G-58).",
         "WATCH: it glides ~1 m, slows at mu*g, stops, and SLEEPS."});
     return v;
 }
 
-// G-57 THE ANVIL LADDER: pure density ratios at identical geometry.
-// Statics are trivial on paper at ANY ratio; the question is the
-// solver's convergence knee. No spin: no rotation may be invented.
+// G-57 THE ANVIL LADDER: pure density ratios at identical geometry,
+// on a stone slab. Statics are trivial on paper at ANY ratio; the
+// measured mechanism is THE SUPPORT CEILING (G-57 record). NOTE with
+// real ground the supporter-slab interface is ceiling-limited too.
 inline std::vector<Case> cases_anvil() {
     auto pair = [](Materials::Type top, const char* name,
                    const char* d2) {
         return Case{name, "G-57",
-            {cube(1, 0, 0.5f, Materials::Type::WOOD_SOFT, MU_BASE, 0, "supporter"),
-             cube(1, 0, 1.5f, top, MU_BASE, 0, "anvil")},
+            {slab(Materials::Type::STONE, MU_BASE, "stone slab"),
+             cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::WOOD_SOFT,
+                  MU_BASE, 0, "supporter"),
+             cube(1, 0, SLAB_TOP + 1.5f, top, MU_BASE, 0, "anvil")},
             300, {},
-            {{0, 0.5f, 0.02f}, {1, 1.5f, 0.02f}}, {}, true, -1, 0, 0,
+            {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f},
+             {2, SLAB_TOP + 1.5f, 0.02f}},
+            {}, true, -1, 0, 0,
             "DEMONSTRATING: a heavy block on a light one (G-57).", d2};
     };
     std::vector<Case> v;
@@ -279,10 +322,15 @@ inline std::vector<Case> cases_anvil() {
         "ANVIL 38.6:1 (gold on softwood)",
         "WATCH: 38x its weight - where solvers usually start lying."));
     Case extreme{"ANVIL 96.5:1 (gold on leaves)", "G-57",
-        {cube(1, 0, 0.5f, Materials::Type::LEAVES, MU_BASE, 0, "leaves"),
-         cube(1, 0, 1.5f, Materials::Type::GOLD, MU_BASE, 0, "gold anvil")},
+        {slab(Materials::Type::STONE, MU_BASE, "stone slab"),
+         cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::LEAVES, MU_BASE, 0,
+              "leaves"),
+         cube(1, 0, SLAB_TOP + 1.5f, Materials::Type::GOLD, MU_BASE, 0,
+              "gold anvil")},
         300, {},
-        {{0, 0.5f, 0.02f}, {1, 1.5f, 0.02f}}, {}, true, -1, 0, 0,
+        {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f},
+         {2, SLAB_TOP + 1.5f, 0.02f}},
+        {}, true, -1, 0, 0,
         "DEMONSTRATING: gold on a bale of leaves (G-57).",
         "WATCH: 96x its weight. Either it holds, or we found the knee."};
     v.push_back(extreme);
@@ -294,12 +342,14 @@ inline std::vector<Case> cases_anvil() {
 inline std::vector<Case> cases_size() {
     auto rung = [](float L, int frames, const char* name, const char* d2) {
         return Case{name, "G-59",
-            {cube(L, 0, L * 0.5f, Materials::Type::STONE, MU_BASE, 3.0f,
-                  "spinner")},
+            {slab(Materials::Type::STONE, MU_BASE, "stone slab"),
+             cube(L, 0, SLAB_TOP + L * 0.5f, Materials::Type::STONE,
+                  MU_BASE, 3.0f, "spinner")},
             frames,
-            {{0, BAND_LO * L, BAND_HI * L}},
-            {{0, L * 0.5f, std::fmax(0.002f, 0.02f * L)}},
-            {}, false, -1, 0, 0,
+            {{1, BAND_LO * L, BAND_HI * L}},
+            {{0, SLAB_T * 0.5f, 0.02f},
+             {1, SLAB_TOP + L * 0.5f, std::fmax(0.002f, 0.02f * L)}},
+            {0}, false, -1, 0, 0,
             "DEMONSTRATING: the same law at another size (G-59).", d2};
     };
     std::vector<Case> v;
@@ -317,51 +367,62 @@ inline std::vector<Case> cases_size() {
 inline std::vector<Case> cases_footprint() {
     std::vector<Case> v;
     // The pedestal's rotation is WAIVED, not asserted: its anchor
-    // (turtle friction, N = 26.1 kN) against the drag (top joint,
-    // N = 24.5 kN) is a 1.07 torque ratio - marginal by arithmetic,
-    // nothing like R3's 2:1, so a 160 kg pedestal under a 2500 kg
-    // grinder being wrenched around is physical. (First registration
-    // asserted "not dragged" off R3 intuition - derivation corrected
-    // 2026-08-28, measured peak |wz| 2.23 booked in the G-60 record.)
+    // (slab friction under both) against the drag (top joint) is a
+    // ~1.07 torque ratio - marginal by arithmetic, so a 160 kg
+    // pedestal under a 2500 kg grinder being wrenched around is
+    // physical. (Derivation corrected 2026-08-28; measured dragged.)
     v.push_back({"FOOTPRINT: big spinner on small base", "G-60",
-        {cube(0.4f, 0, 0.2f, Materials::Type::STONE, MU_BASE, 0, "small base"),
-         cube(1, 0, 0.9f, Materials::Type::STONE, MU_BASE, 3.0f, "big spinner")},
+        {slab(Materials::Type::STONE, MU_BASE, "stone slab"),
+         cube(0.4f, 0, SLAB_TOP + 0.2f, Materials::Type::STONE, MU_BASE, 0,
+              "small base"),
+         cube(1, 0, SLAB_TOP + 0.9f, Materials::Type::STONE, MU_BASE, 3.0f,
+              "big spinner")},
         300,
-        {{1, BAND_LO / 0.4f, BAND_HI / 0.4f}},
-        {{0, 0.2f, 0.02f}, {1, 0.9f, 0.02f}},
-        {}, false, -1, 0, 0,
+        {{2, BAND_LO / 0.4f, BAND_HI / 0.4f}},
+        {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.2f, 0.02f},
+         {2, SLAB_TOP + 0.9f, 0.02f}},
+        {0}, false, -1, 0, 0,
         "DEMONSTRATING: a big spinner on a small pedestal (G-60).",
         "WATCH: less patch, less brake - it spins 2.5x longer.",
-        "the pedestal's rotation (anchor/drag torque 1.07, marginal - "
+        "the pedestal's rotation (anchor/drag torque ~1.07, marginal - "
         "either outcome physical; measured: dragged)"});
     v.push_back({"FOOTPRINT: small spinner on big base", "G-60",
-        {cube(1, 0, 0.5f, Materials::Type::STONE, MU_BASE, 0, "big base"),
-         cube(0.4f, 0, 1.2f, Materials::Type::STONE, MU_BASE, 3.0f,
-              "small spinner")},
+        {slab(Materials::Type::STONE, MU_BASE, "stone slab"),
+         cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::STONE, MU_BASE, 0,
+              "big base"),
+         cube(0.4f, 0, SLAB_TOP + 1.2f, Materials::Type::STONE, MU_BASE,
+              3.0f, "small spinner")},
         300,
-        {{1, BAND_LO * 0.4f, BAND_HI * 0.4f}},
-        {{0, 0.5f, 0.02f}, {1, 1.2f, 0.02f}},
-        {0}, false, -1, 0, 0,
+        {{2, BAND_LO * 0.4f, BAND_HI * 0.4f}},
+        {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f},
+         {2, SLAB_TOP + 1.2f, 0.02f}},
+        {0, 1}, false, -1, 0, 0,
         "DEMONSTRATING: a small spinner on a big table (G-60).",
         "WATCH: tiny patch, tiny inertia - dead almost instantly."});
     return v;
 }
 
 // G-62 THE SLIP JOINT: the top cube carries mu 0.05, so ONLY its
-// joint is icy (combined = min). It spins ~10x longer than R1 and
-// passes ~10x less torsion down: the cubes below must not turn.
+// joint is icy (combined = min). It spins ~10x longer than the base
+// case and passes ~10x less torsion down: the column below must not
+// turn.
 inline std::vector<Case> cases_slipjoint() {
     std::vector<Case> v;
     v.push_back({"SLIP JOINT: icy top on a grippy column", "G-62",
-        {cube(1, 0, 0.5f, Materials::Type::STONE, MU_BASE, 0, "bottom"),
-         cube(1, 0, 1.5f, Materials::Type::STONE, MU_BASE, 0, "middle"),
-         cube(1, 0, 2.5f, Materials::Type::STONE, 0.05f, 3.0f, "icy spinner")},
+        {slab(Materials::Type::STONE, MU_BASE, "stone slab"),
+         cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::STONE, MU_BASE, 0,
+              "bottom"),
+         cube(1, 0, SLAB_TOP + 1.5f, Materials::Type::STONE, MU_BASE, 0,
+              "middle"),
+         cube(1, 0, SLAB_TOP + 2.5f, Materials::Type::ICE, 0.05f, 3.0f,
+              "ice spinner")},
         540,
-        {{2, BAND_LO * (MU_BASE/0.05f), BAND_HI * (MU_BASE/0.05f)}},
-        {{0, 0.5f, 0.02f}, {1, 1.5f, 0.02f}, {2, 2.5f, 0.02f}},
-        {0, 1}, false, -1, 0, 0,
-        "DEMONSTRATING: a greased bearing in a clamped stack (G-62).",
-        "WATCH: the icy top spins ~2 s; the column below never turns."});
+        {{3, BAND_LO * (MU_BASE/0.05f), BAND_HI * (MU_BASE/0.05f)}},
+        {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f},
+         {2, SLAB_TOP + 1.5f, 0.02f}, {3, SLAB_TOP + 2.5f, 0.02f}},
+        {0, 1, 2}, false, -1, 0, 0,
+        "DEMONSTRATING: an ICE block spinning on a clamped stack (G-62).",
+        "WATCH: the white block spins ~2 s; the column never turns."});
     return v;
 }
 

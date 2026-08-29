@@ -79,6 +79,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   impulse budget is capped by a fixed velocity cushion priced on the
   pair, a support ceiling that does not grow with the supported
   weight (fix pending a design ruling).
+- **Materials: ICE.** A real material (density 917 kg/m³, full
+  elastic and strength property set) joining the mineral group. The
+  limits demos now stage friction experiments on an actual white ice
+  sheet, and every demo stands on real ground bodies rather than the
+  invisible turtle plane — a change that itself moved the physics:
+  the turtle interface was aggravating the heavy-on-light failures
+  and masking the small-size behavior.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
