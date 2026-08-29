@@ -2024,3 +2024,17 @@ support ceiling stands as the defect, now cleanly separated from the
 turtle-stage aggravation. Open hypothesis, unverified: the trio runs
 TURTLE_PRICED off - unpriced turtle rows may BE the aggravation; one
 lever run discriminates. test_limits_size flips to expect: pass.
+
+## 2026-08-28 (later) — case 6 Argus'd: the eviction law
+
+Owner: "6/13 is totally wrong argus it." Delivered (G-57 record,
+canary F1150): the 38.6:1 crush is a TWO-INTERFACE CEILING CASCADE -
+both pairs wood-dominated, both ceilings ~380-490 N*s/substep vs the
+gold's 788 demand; the gold falls at ~4.3 m/s^2 net pressing the
+wood into the slab from frame 0. Terminal state: the gold rests
+directly ON THE SLAB through the wood; the wood is WEDGED between a
+394 mm violation pushing it up and a 606 mm violation pushing it
+down, treadmilling at -0.066 m/s, never asleep. The defect's law:
+the solver resolves heavy-on-light by EVICTING the light body from
+the load path. Implication for the owed fix ruling: a contact must
+always be able to carry the static load of what stands on it.
