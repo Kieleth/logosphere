@@ -8,6 +8,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **`corpora/voyager-book`: Voyager's own rulebook, chapter one.** The
+  game stops following the published book's structure (terms are out)
+  and gets a book of its own, authored in-repo and ingested through
+  the same reflection machinery. Chapter One fixes the shape of a
+  career: seasons broken by moments, five kinds of moments, typed
+  stage deciding whether trouble arrives as pre-rolled fate or as
+  doors. `examples/voyager/docs/GAME_DESIGN.md` opens as the game's
+  design ledger.
 - **`examples/voyager`: character creation up to the first door, with
   nothing the book fixes written in C++.** One screen, no frames. Six
   characteristics are rolled by the engine's dice, a referee says where
