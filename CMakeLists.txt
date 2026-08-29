@@ -1479,6 +1479,21 @@ if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_features(test_torsion_visual PRIVATE cxx_std_17)
+
+    # The limits campaign's window (G-57..62): all cases, SPACE advances.
+    add_executable(test_limits_visual tests/test_limits_visual.cpp)
+    target_link_libraries(test_limits_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_limits_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_limits_visual PRIVATE cxx_std_17)
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above

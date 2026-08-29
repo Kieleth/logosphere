@@ -132,6 +132,7 @@ struct Scene {
             p.low_velocity_frames = 0;
             p.quiet_growth_run = 0;
             p.rest_quiet_sq = 1e9f;
+            p.solver_mode = ParticleSolverMode::DYNAMIC;  // wake from statue
             physics.forget_body((size_t)ids[i]);
             argus.reset_milestones(ids[i]);
         }
@@ -141,6 +142,18 @@ struct Scene {
         ps.update_bvh();
         physics.update(DT);
         argus.observe(ps, frame);
+    }
+
+    // The window keeps INACTIVE cases as kinematic statues so no case
+    // pre-evolves before its turn (measured 2026-08-28: coexisting
+    // pre-evolution made the combined world diverge from the isolated
+    // probes - the reflection law demands virgin runs). rearm() sets
+    // DYNAMIC back on activation.
+    void set_frozen(ParticleSystem& ps, bool frozen) {
+        auto parts = ps.lock_particles_for_write();
+        for (int id : ids)
+            parts[id].solver_mode = frozen ? ParticleSolverMode::KINEMATIC
+                                           : ParticleSolverMode::DYNAMIC;
     }
 
     float z(ParticleSystem& ps, int i) const {

@@ -68,7 +68,9 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   tower on a tile raft (stands 25-41 mm low where the turtle world is
   sub-mm). Reds are booked limits, not regressions; every particle
   also now documents that friction defaults to 0.5 engine-wide and
-  materials never change it.
+  materials never change it. The campaign's window
+  (`test_limits_visual`) walks all thirteen cases with SPACE, keeping
+  inactive cases frozen so each runs virgin, and mirrors the probes.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
