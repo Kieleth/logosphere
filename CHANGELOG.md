@@ -56,6 +56,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   the column rocks forever instead of resting; with `MANIFOLD_SPAN=1`
   joined to `WARM_LEARN=1` and `FRICTION_TWIST=1` all five rungs are
   fully green and the column sleeps. Default behavior unchanged.
+- **Physics: the limits campaign — six probes that map where the
+  contact stack breaks.** `test_limits_{ice,anvil,size,footprint,
+  slipjoint,floor}` measure the lever-world's envelope with derivable
+  bands: friction dial (glide and rubber exact; a 10x friction drop
+  buys 9.1x spin time), mass ratios (the knee: above ~5:1 a heavy
+  block tunnels through a light supporter), sizes (a 10 cm die stops
+  2-3x slower than the linear law), unequal footprints (the
+  patch-radius law certified; the 15.6:1 sink reappears), one icy
+  joint in a stack (per-interface independence certified), and a
+  tower on a tile raft (stands 25-41 mm low where the turtle world is
+  sub-mm). Reds are booked limits, not regressions; every particle
+  also now documents that friction defaults to 0.5 engine-wide and
+  materials never change it.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs

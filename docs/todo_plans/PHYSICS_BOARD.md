@@ -568,20 +568,34 @@ reds; sweep new-red 0. Consequence: FRICTION_TWIST / WARM_LEARN /
 MANIFOLD_SPAN are ONE COLUMN for the flip ruling; TURTLE_PRICED
 remains its own question.
 
-## THE LIMITS CAMPAIGN — study before the flip (NEEDS DESIGN, G-57..G-62)
+## THE LIMITS CAMPAIGN — MEASURED (G-57..G-62); fronts opened, ruling owed
 
-**Owner ruling 2026-08-28: the trio flip is DEFERRED** — "study/
-understand better the limitations of what we have first... to
-understand what we're missing from the engine itself." Six
-Gedankenexperimente registered (all open, no code): G-57 anvil ladder
-(density ratios to 96:1 — solver convergence knee), G-58 ice rink
-(mu dial — 1/mu grindstone law, absolute velocity floors), G-59 size
-ladder (0.1/1/3 m — absolute-unit constants as latent size policies),
-G-60 unequal footprint (patch vs face radius), G-61 particle floor
-(the tower on tiles — the internal-edge wound, the scary one), G-62
-slip joint (one icy interface — per-interface independence).
-Instrument order is the owner's pick; each lands as a rung-style
-instrument with derivable bands, red-where-informative.
+**Owner ruling 2026-08-28: the trio flip is DEFERRED for this study.**
+Six probes built TDD-headless the same day (shared scene + evaluator
+`tests/scenes/scene_limits.h`, six `test_limits_*` drivers, all
+probing the TRIO world, red-where-informative). The map:
+
+- **THE MASS-RATIO KNEE (G-57, the headline): between 5:1 and
+  15.6:1.** Stone-on-softwood is perfect; iron-on-softwood TUNNELS a
+  full metre through its supporter and stands inside it; at 96.5:1
+  the bodies SWAP order. G-60 confirms the same knee by size (2500 kg
+  spinner sinks 0.242 m into its 160 kg pedestal). RCA owed.
+- **Real ground reopens standing penetration (G-61)**: the spin
+  tower stands 25-41 mm low on a tile raft (turtle twin: sub-mm);
+  tiles themselves perfect, no lateral seam catch.
+- **The small end has a floor (G-59)**: a 10 cm die stops 2-3x
+  slower than the linear-in-L law; the 3 m boulder is exact.
+- **Low-mu sublinearity (G-58, marginal)**: a 10x friction drop buys
+  9.1x spin time (1.983 s vs >= 2.0 exact); rubber and the mu*g
+  glide are exact, and the glide SLEEPS. Cross-note: turtle vs
+  box-box interface differ 14% at equal mu.
+- **CERTIFIED (G-62, G-60): per-interface friction independence and
+  the patch-radius law, both ways.**
+
+Ruling owed: which limit gets its RCA first. Board recommendation:
+the mass-ratio knee (G-57) — it is the one a game hits on day one and
+G-60 shows it is not exotic. The interactive twin (test_limits_visual)
+carries all cases for QA.
 
 ## Mode-aware panels everywhere (CLEAN NOW, small, no physics)
 

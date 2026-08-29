@@ -1360,6 +1360,23 @@ target_include_directories(test_mixed_mass_stands PRIVATE
 )
 target_compile_features(test_mixed_mass_stands PRIVATE cxx_std_17)
 
+# THE LIMITS CAMPAIGN (G-57..G-62, owner ruling 2026-08-28): six
+# single-purpose probes of the trio world's envelope - masses,
+# frictions, sizes, footprints, a slip joint, a particle floor.
+# Shared scene + evaluator in tests/scenes/scene_limits.h.
+foreach(limits_probe ice anvil size footprint slipjoint floor)
+    add_executable(test_limits_${limits_probe}
+        tests/test_limits_${limits_probe}.cpp)
+    target_link_libraries(test_limits_${limits_probe} PRIVATE
+        logosphere_dynamics logosphere_physics logosphere_core
+        logosphere_dynamics)
+    target_include_directories(test_limits_${limits_probe} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_compile_features(test_limits_${limits_probe} PRIVATE cxx_std_17)
+endforeach()
+
 # D7, born red: what slows a spinning body down? Today, a constant.
 # ANGULAR_DRAG is multiplied into omega four times a frame for every
 # body in every surrounding, so a cube spinning in vacuum stops in a
