@@ -1954,3 +1954,19 @@ braked ~5x harder than R1's, dying in 4 frames - born at 5x
 (15 rad/s) per the lecture rule, episode 0.15 s with the tower above
 visibly dragged; every law and every count unchanged in both worlds
 (re-measured). Owner verdict on the third window: "perfect."
+
+## 2026-08-28 (later) — RULED: study the limits BEFORE the flip
+
+Owner, on being offered the trio flip: "no, I think we should
+study/understand better the limitations of what we have first, so I'd
+play with Gedankenexperimenten on different cube masses/frictions/
+sizes and floors and combinations, to understand what we're missing
+from the engine itself." The flip ruling is DEFERRED until the limits
+campaign reports. Registered before any code, all status open:
+G-57 the anvil ladder (pure density ratios to 96:1), G-58 the ice
+rink (mu dial, 1/mu stop-time law, absolute velocity floors), G-59
+the size ladder (0.1/1/3 m, absolute-unit constants as latent size
+policies), G-60 the unequal footprint (patch vs face), G-61 the
+particle floor (the tower on tiles - the internal-edge wound), G-62
+the slip joint (one icy interface, per-interface independence).
+Instrument order is the owner's pick.

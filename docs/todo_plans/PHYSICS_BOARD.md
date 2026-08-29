@@ -568,6 +568,21 @@ reds; sweep new-red 0. Consequence: FRICTION_TWIST / WARM_LEARN /
 MANIFOLD_SPAN are ONE COLUMN for the flip ruling; TURTLE_PRICED
 remains its own question.
 
+## THE LIMITS CAMPAIGN — study before the flip (NEEDS DESIGN, G-57..G-62)
+
+**Owner ruling 2026-08-28: the trio flip is DEFERRED** — "study/
+understand better the limitations of what we have first... to
+understand what we're missing from the engine itself." Six
+Gedankenexperimente registered (all open, no code): G-57 anvil ladder
+(density ratios to 96:1 — solver convergence knee), G-58 ice rink
+(mu dial — 1/mu grindstone law, absolute velocity floors), G-59 size
+ladder (0.1/1/3 m — absolute-unit constants as latent size policies),
+G-60 unequal footprint (patch vs face radius), G-61 particle floor
+(the tower on tiles — the internal-edge wound, the scary one), G-62
+slip joint (one icy interface — per-interface independence).
+Instrument order is the owner's pick; each lands as a rung-style
+instrument with derivable bands, red-where-informative.
+
 ## Mode-aware panels everywhere (CLEAN NOW, small, no physics)
 
 Owner correction 2026-08-28 ("it needs to be in the test"): the
