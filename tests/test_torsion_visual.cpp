@@ -9,6 +9,8 @@
 //   R1 one spinning cube: the spin dies, nothing is created.
 //   R2 spinner UNDER a free passenger: the passenger MUST be dragged.
 //   R3 spinner ON a carrier: the turtle anchor WINS.
+//   R4 three cubes, middle spins (G-56): the 49 kN bracket.
+//   R5 four cubes, box1 spins (G-56): the 73.5 kN grind interface.
 //
 // ESC or the red X quits. SPACE advances the rung. Z zooms.
 // =============================================================================
@@ -78,7 +80,7 @@ int main() {
     // the active rung only.
     Scene rungs[N_RUNGS];
     int nb[N_RUNGS];
-    const float RUNG_X[N_RUNGS] = { -8.0f, 0.0f, +8.0f };
+    const float RUNG_X[N_RUNGS] = { -16.0f, -8.0f, 0.0f, +8.0f, +16.0f };
     for (int r = 0; r < N_RUNGS; ++r) {
         nb[r] = rungs[r].build_rung(ps, r, RUNG_X[r]);
         make_lamps(ps, RUNG_X[r], 0.0f, 1.5f);
@@ -130,10 +132,18 @@ int main() {
             l_demo->set_text("DEMONSTRATING: the passenger (G-53).");
             l_demo2->set_text("A FREE cube rides the spinner: nothing "
                               "anchors it, so it MUST be dragged.");
-        } else {
+        } else if (r == 2) {
             l_demo->set_text("DEMONSTRATING: the carrier (G-53).");
             l_demo2->set_text("The spinner rides a cube the turtle holds: "
                               "the anchor WINS, the carrier barely moves.");
+        } else if (r == 3) {
+            l_demo->set_text("DEMONSTRATING: the bracket (G-56).");
+            l_demo2->set_text("Three cubes, the middle one spins: 49 kN "
+                              "on its face. Grind here halves the bracket.");
+        } else {
+            l_demo->set_text("DEMONSTRATING: the reproduction (G-56).");
+            l_demo2->set_text("Four cubes, box1 spins: 73.5 kN, the "
+                              "interface that ground 0.232 m pre-G-55.");
         }
         const int sp = SPINNER_OF[r];
         panel.push_back({"G-53: the spinner's spin DIES",
@@ -149,7 +159,9 @@ int main() {
         if (r == 2)
             panel.push_back({"G-53: the ANCHORED carrier is NOT dragged strongly",
                 [&]{ return peak_signed_wz[PARTNER_OF[2]] < CARRIER_MAX; }});
-        panel.push_back({"G-48/INV-4: everything stands at static height",
+        panel.push_back({r >= 3
+                ? "G-56/INV-4: everything stands (the grind assert)"
+                : "G-48/INV-4: everything stands at static height",
             [&]{ for (int i = 0; i < nb[rung]; ++i)
                      if (std::fabs(rungs[rung].box_z(ps, i)
                                    - rungs[rung].static_z(i)) >= REST_TOL)
@@ -161,7 +173,9 @@ int main() {
                              >= SPEED_MAX)
                          return false;
                  return true; }});
-        cam.set_position(RUNG_X[r], 0.0f, 1.0f);
+        // Taller columns centre higher; rungs 1-3 keep the QA'd frame.
+        cam.set_position(RUNG_X[r], 0.0f,
+                         r <= 2 ? 1.0f : 0.5f * (float)nb[r] + 0.5f);
     };
     load_rung(0);
 

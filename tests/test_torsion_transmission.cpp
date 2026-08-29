@@ -128,9 +128,13 @@ int main() {
             check(peak_signed_wz[PARTNER_OF[rung]] < CARRIER_MAX, buf);
         }
         for (int i = 0; i < n; ++i) {
+            // On the pressure rungs (G-56) this height check IS the
+            // grind assert: REST_TOL is 12x tighter than the 0.232 m
+            // grind measured at the 73.5 kN interface.
             std::snprintf(buf, sizeof(buf),
-                          "G-48/INV-4: box%d stands at its static height "
-                          "(%.4f vs %.1f, tol %.2f)", i,
+                          "%s/INV-4: box%d stands at its static height "
+                          "(%.4f vs %.1f, tol %.2f)",
+                          rung >= 3 ? "G-56" : "G-48", i,
                           scene.box_z(ps, i), scene.static_z(i), REST_TOL);
             check(std::fabs(scene.box_z(ps, i) - scene.static_z(i)) < REST_TOL,
                   buf);

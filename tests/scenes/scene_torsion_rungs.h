@@ -24,6 +24,24 @@
 // The four-cube sandwich (both directions at once, higher loads)
 // retires until a rung needs it. Per-rung static heights localize the
 // spinning-interface grind by pressure if it reproduces.
+//
+// G-56 (2026-08-28, the grind RCA): the ladder grows two rungs of
+// pure pressure. The 0.232 m grind was measured (pre-G-55) at the
+// four-cube column's 73.5 kN box-box interface; box-box 24.5 kN is
+// green (R2/R3, owner QA'd). The bracket:
+//
+// R4 THE BRACKET — three cubes, the MIDDLE one spinning. Its bottom
+//    face carries 49 kN: the untested pressure between green and
+//    grind. Either outcome is informative.
+//
+// R5 THE REPRODUCTION — four cubes, second-from-bottom spinning. Its
+//    bottom face carries 73.5 kN, the measured grind interface. Open
+//    under FRICTION_TWIST (the lever replaced this interface's
+//    friction rows after the measurement).
+//
+// No stop-time band above R1 (the grindstone RATE law is R1's;
+// loaded rungs die faster by N scaling). INV-4 heights are the grind
+// asserts: REST_TOL is 12x tighter than the measured grind.
 // =============================================================================
 #pragma once
 
@@ -40,8 +58,14 @@ namespace scene_torsion_rungs {
 constexpr float BODY       = 1.0f;
 constexpr float DT         = 1.0f / 60.0f;
 constexpr int   RUN_FRAMES = 300;     // 5 s: spin, transmit, die, settle
-constexpr int   N_RUNGS    = 3;
-constexpr float OMEGA0     = 3.0f;    // rad/s about +Z at birth
+constexpr int   N_RUNGS    = 5;
+// rad/s about +Z at birth. TORSION_OMEGA0 env overrides it for RCA
+// controls only (e.g. =0 isolates the column's statics from the spin
+// episode's legacy); the asserted worlds always run the default.
+inline const float OMEGA0 = [] {
+    const char* e = std::getenv("TORSION_OMEGA0");
+    return e ? (float)std::atof(e) : 3.0f;
+}();
 constexpr float REST_TOL       = 0.02f;   // m (INV-4)
 constexpr float SPIN_NOISE_MAX = 0.05f;   // rad/s at the end (INV-24 class)
 constexpr float SPEED_MAX      = 10.0f;   // m/s (INV-3)
@@ -56,11 +80,14 @@ constexpr float CARRIER_MAX    = 0.3f;    // R3: the anchor wins, from above
 constexpr float STOP_TIME_MIN  = 0.2f;    // s
 constexpr float STOP_TIME_MAX  = 0.6f;    // s
 inline const char* RUNG_NAMES[N_RUNGS] = {
-    "R1 THE IRREDUCIBLE CASE", "R2 THE PASSENGER", "R3 THE CARRIER" };
+    "R1 THE IRREDUCIBLE CASE", "R2 THE PASSENGER", "R3 THE CARRIER",
+    "R4 THE BRACKET (49 kN)", "R5 THE REPRODUCTION (73.5 kN)" };
 // Which body spins at birth, per rung (index into boxes).
-inline const int SPINNER_OF[N_RUNGS] = { 0, 0, 1 };
+inline const int SPINNER_OF[N_RUNGS] = { 0, 0, 1, 1, 1 };
 // The witness body of the rung's transmission claim (-1 = none).
-inline const int PARTNER_OF[N_RUNGS] = { -1, 1, 0 };
+// R4/R5 are pressure rungs (G-56): transmission is R2/R3's proven
+// ground, the law here is INV-4 heights under a spinning interface.
+inline const int PARTNER_OF[N_RUNGS] = { -1, 1, 0, -1, -1 };
 
 struct Scene {
     logosphere::Argus argus;
@@ -68,7 +95,8 @@ struct Scene {
     int   rung     = 0;
     float x_offset = 0.0f;
 
-    int n_boxes() const { return rung == 0 ? 1 : 2; }
+    // R1: 1 box.  R2/R3: 2 boxes.  R4: 3 boxes.  R5: 4 boxes.
+    int n_boxes() const { return rung == 0 ? 1 : rung <= 2 ? 2 : rung; }
 
     int build_rung(ParticleSystem& ps, int which, float x_off = 0.0f) {
         boxes.clear();

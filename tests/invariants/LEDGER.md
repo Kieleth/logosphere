@@ -1906,3 +1906,37 @@ the four levers (FRICTION_TWIST / WARM_LEARN / MANIFOLD_SPAN /
 TURTLE_PRICED — the INV-32 default component stays held by G-47 per
 item 6), the grind RCA at the 73.5 kN interface (3-cube bracket), and
 the R3 combined-world marginal.
+
+## 2026-08-28 — THE GRIND RCA (G-56): one disease, one existing cure
+
+Owner: "RCA for sure." GEDANKEN-56 registered before code; the ladder
+grew R4 THE BRACKET (3 cubes, middle spinner, 49 kN face) and R5 THE
+REPRODUCTION (4 cubes, box1 spinner, 73.5 kN — the measured grind
+interface). Measured same day:
+
+- Default world: R4 green, R5 grinds 0.52 m and stands — onset in
+  (49, 73.5]. FRICTION_TWIST: 0.28 m. +WARM_LEARN: 28 mm plus a
+  permanent wobble — the column never sleeps for the full 5 s.
+- Control (TORSION_OMEGA0=0, combo world): fully green, asleep. The
+  statics are sound; the defect is the spin episode's legacy.
+- Canary at steady state (P1, F400-F415): suspects (a) row budget and
+  (b) capture bound REFUTED with numbers (caps 4x above accumulated;
+  warm start carries the exact 309 N*s static load). The velocity
+  rows reach complementarity with the CENTER still falling ~0.10 m/s:
+  the box ROCKS about one edge, gravity re-pumps each substep, the
+  split pass treadmills it back, sleep never latches. The manifold
+  shows why: all four points on two edges of the micro-tilted face —
+  the support polygon excludes the weight line. G-51's rocking clock
+  at depth.
+- MANIFOLD_SPAN=1 joins the pair: R5 FULLY GREEN sub-mm, spins
+  0.0000 — and the R3 combined-world marginal (same residual class)
+  closes with it. Battery under the trio: stack, mixed, strike,
+  refused-ledger 0 failures; ladder and ramp at their booked reds;
+  sweep new-red 0.
+
+Consequence for the flip ruling: FRICTION_TWIST, WARM_LEARN and
+MANIFOLD_SPAN are one column and travel together; TURTLE_PRICED
+remains its own question. Audit correction booked in
+TEST_AUDIT: the twin's earlier "FRICTION_TWIST=1 fully green" row had
+measured the combo world (numbers match to four decimals);
+FRICTION_TWIST alone leaves warm-freeze residuals red.

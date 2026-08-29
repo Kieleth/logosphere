@@ -545,19 +545,28 @@ informative, all booked in G-53:
   windows at 5dd8168, 0 red at close; ledger). Evidence complete;
   the flip ruling waits only on the decision.
 
-## G-53 tail — THE SPINNING-INTERFACE GRIND (NEEDS RCA, booked red)
+## G-53 tail — THE SPINNING-INTERFACE GRIND: SOLVED BEHIND LEVERS (G-56)
 
-A real mechanism, now PRESSURE-LOCALIZED by the rung ladder: at
-two-cube loads (24.5/49 kN interfaces) every rung's heights are green;
-at the four-cube column's 73.5 kN interface a cube spinning 3 rad/s
-grinds 0.232 m INTO the box below during the ~1 s episode and the
-interpenetration STANDS (default world compounds it to half a metre;
-measured 2026-08-26 on the retired sandwich case). The 3-cube rung is
-the bracketing experiment when this RCA runs ("three cubes if
-needed" — this is the need). Suspects, in evidence order: friction-row
-budget starving the normal rows at the shared iteration cap; the
-capture-bounded max_impulse under the rotating tangent set; the
-position pass losing against the grind re-compression.
+**RCA opened and CLOSED 2026-08-28 (owner: "RCA for sure"; full trail
+in the G-56 record and the ledger).** GEDANKEN-56 registered before
+code; the ladder grew R4 THE BRACKET (3-cube, 49 kN — green in every
+world, onset bracketed to (49, 73.5]) and R5 THE REPRODUCTION
+(4-cube, 73.5 kN — default grinds 0.52 m and stands; under
+FRICTION_TWIST+WARM_LEARN 28 mm plus a never-sleeping wobble). The
+no-spin control is fully green: the statics are sound, the defect is
+the spin episode's legacy. Canary refuted suspects (a) row budget and
+(b) capture bound with numbers; the mechanism is **G-51's rocking
+clock at depth**: the deepest-4 reduction puts all four manifold
+points on two edges of the micro-tilted face, the support polygon
+excludes the weight line, the velocity rows reach complementarity
+with the centre still falling, gravity re-pumps the rock each substep
+and the split pass treadmills it back — sleep never latches.
+**MANIFOLD_SPAN=1 joining the pair kills it**: R5 fully green sub-mm,
+spins 0.0000, and the R3 combined-world marginal (same residual
+class) closed with it. Battery under the trio at exactly its booked
+reds; sweep new-red 0. Consequence: FRICTION_TWIST / WARM_LEARN /
+MANIFOLD_SPAN are ONE COLUMN for the flip ruling; TURTLE_PRICED
+remains its own question.
 
 ## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
 

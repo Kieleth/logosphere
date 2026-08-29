@@ -47,6 +47,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   that never died now dying. Speculative contacts transmit no torsion
   (the same law as linear friction), and spheres keep their rolling
   torque. Default behavior unchanged with the lever off.
+- **Physics: the spinning-interface grind root-caused; two pressure
+  rungs join the torsion ladder.** `test_torsion_transmission` grows
+  R4 (three cubes, the middle one spinning — 49 kN on its face) and
+  R5 (four cubes — 73.5 kN, where a spinner ground half a metre into
+  its support and the overlap stood). The cause is the deepest-4
+  manifold clustering support on two edges of a micro-tilted face, so
+  the column rocks forever instead of resting; with `MANIFOLD_SPAN=1`
+  joined to `WARM_LEARN=1` and `FRICTION_TWIST=1` all five rungs are
+  fully green and the column sleeps. Default behavior unchanged.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
