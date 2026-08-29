@@ -101,6 +101,13 @@ std::string trimmed(const std::string& text) {
 // referee that fails still stops the run.
 std::vector<std::string> g_allowed;
 
+// The numeric bounds a free-form answer must respect, as the graph
+// states them, handed over the same way as g_allowed and for the same
+// reason: the generator must answer inside the rules without this
+// file spelling a rule value.
+std::string g_low;
+std::string g_high;
+
 std::string synthetic(const replay::Ask& ask, uint64_t roll) {
     if (ask.site == "referee.background") {
         // NOT a stand-in narration. It says what it is, on screen, so a
@@ -121,6 +128,35 @@ std::string synthetic(const replay::Ask& ask, uint64_t roll) {
             out << g_allowed[at] << " | offered by the generator\n";
         }
         return out.str();
+    }
+    if (ask.site == "referee.moment") {
+        if (g_allowed.empty() || g_low.empty() || g_high.empty()) {
+            return {};
+        }
+        // A kind from the graph's own set, a chance inside the graph's
+        // own bounds, both picked by the seed. The prose names itself
+        // machine-made, as the background does.
+        double low = 0.0, high = 0.0;
+        try {
+            low = std::stod(g_low);
+            high = std::stod(g_high);
+        } catch (...) {
+            return {};
+        }
+        const double chance =
+            low + (high - low) *
+                      (static_cast<double>(roll % 101) / 100.0);
+        std::ostringstream out;
+        out.setf(std::ios::fixed);
+        out.precision(2);
+        out << g_allowed[roll % g_allowed.size()] << " | " << chance
+            << "\n(no referee: a situation invented by the seeded "
+               "generator, which writes no prose)";
+        return out.str();
+    }
+    if (ask.site == "referee.moment.aftermath") {
+        return "(no referee: an outcome named by the seeded generator, "
+               "which tells no story)";
     }
     return {};
 }
@@ -278,16 +314,16 @@ int main(int argc, char** argv) {
                 question.site = ask.site;
                 question.prompt = ask.prompt;
                 question.allowed = ask.offered;
-                if (ask.site == "chargen.career") {
+                if (ask.site == "chargen.door") {
                     // The model stops being the referee here and
                     // becomes the player: one door, taken.
                     std::ostringstream prompt;
                     prompt << "You are the PLAYER now, not the referee. "
                               "One of these doors is yours.\n\n"
                            << ask.prompt
-                           << "\n\nAnswer with the career name alone, "
-                              "exactly as it is written above, and "
-                              "nothing else.";
+                           << "\n\nAnswer with one key alone, exactly "
+                              "as it is written above, and nothing "
+                              "else.";
                     question.prompt = prompt.str();
                 }
                 std::string reply;
@@ -400,6 +436,8 @@ int main(int argc, char** argv) {
             // against a single answer. What a synthetic source may draw
             // from goes through g_allowed instead.
             g_allowed = question.allowed;
+            g_low = question.low;
+            g_high = question.high;
             return tape.ask(ask, answer, error);
         });
 
@@ -419,7 +457,7 @@ int main(int argc, char** argv) {
         // which is never matched on. This is the ask that carries the
         // model-authored option set into the tape.
         replay::Ask ask;
-        ask.site = "chargen.career";
+        ask.site = "chargen.door";
         std::ostringstream prompt;
         prompt << session.prompt();
         for (const auto& choice : session.choices()) {

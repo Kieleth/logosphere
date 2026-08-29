@@ -1111,7 +1111,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("RollableTable", "requires_attribute", kg::PropertyValueKind::String, false);
     reg.addProperty("RollableTable", "requires_minimum", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("RollableTable", "dice", true, "DiceExpression");
-    reg.addProperty("RuleConstant", "constant_value", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("RuleConstant", "constant_value", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("RuntimeContext", "context_kind", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/packs/rulebook");

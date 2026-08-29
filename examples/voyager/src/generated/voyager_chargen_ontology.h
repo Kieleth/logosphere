@@ -1132,6 +1132,25 @@ inline bool from_string(const char* str, SeasonModeKey& out) {
     return false;
 }
 
+/// Typed links from a character to what their life holds.
+enum class VoyagerLifeRelationType {
+    LIVED
+};
+
+/// Convert VoyagerLifeRelationType to its string representation.
+inline const char* to_string(VoyagerLifeRelationType value) {
+    switch (value) {
+        case VoyagerLifeRelationType::LIVED: return "LIVED";
+    }
+    return "unknown";
+}
+
+/// Parse a string into VoyagerLifeRelationType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, VoyagerLifeRelationType& out) {
+    if (std::strcmp(str, "LIVED") == 0) { out = VoyagerLifeRelationType::LIVED; return true; }
+    return false;
+}
+
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
     std::optional<float> position_x = std::nullopt;
@@ -2854,8 +2873,8 @@ struct OutcomeOption : public Entity, public Cited {
 
 /// A number the book fixes in prose: the age of majority is 18, each prior career is DM-2 on qualification, seven terms is the cap. Captured as data so a rule can point at it and the quote can prove it; code primitives read it, never re-hardcode it.
 struct RuleConstant : public Entity, public Cited {
-    /// The value the book fixes; signed.
-    std::optional<int32_t> constant_value = std::nullopt;
+    /// The value the book fixes; signed. Float rather than integer since 2026-08-30, because a book may fix a probability, and a probability written as the physicist writes it is not a whole number. Every integer the packs ever seeded still validates; readers that need a whole number keep parsing one and refuse a fraction where a fraction makes no sense.
+    std::optional<float> constant_value = std::nullopt;
 };
 
 
@@ -3159,6 +3178,38 @@ struct MomentKind : public Entity, public Cited {
 struct SeasonMode : public Entity, public Cited {
     /// Which of the three ways of spending a season this is.
     SeasonModeKey season_mode_key = {};
+};
+
+
+/// One season spent, as the character spent it: which of the three ways, and the year of the life it occupied. The record IS the choice's provenance; the sheet's age is derived through the season_standard_years constant, never written as a literal [02-seasons-and-moments-in-play.md "What a season costs"].
+struct SeasonLived : public Event {
+    /// Which of the three ways this season was spent. An entity reference, so a way the book never wrote cannot be recorded.
+    SeasonMode season_mode = {};
+    /// The age this season completed at.
+    int32_t lived_year = {};
+};
+
+
+/// One moment faced, exactly as the book requires it recorded: "its kind, the chance as it was stated, what was drawn, and what it did" [02-seasons-and-moments-in-play.md "What a moment risks"].
+/// This record is also what stage IS: stage is never stored, it is counted, kind by kind, from these [02-seasons-and-moments-in-play.md "What stage is"]. A stored stage would be a second copy that can drift; a counted one cannot.
+struct MomentFaced : public Event {
+    /// Which kind this moment was. An entity reference, so a kind the book never defined cannot be recorded.
+    MomentKind moment_kind = {};
+    /// The probability of the moment going against the character, as the referee stated it. The book's own bounds (tighter than this slot's) are RuleConstants read where the chance is accepted [02-seasons-and-moments-in-play.md "What a moment risks"].
+    float moment_chance = {};
+    /// What the engine drew against that chance.
+    float moment_draw = {};
+    /// Whether the draw went against the character.
+    bool moment_went_against = {};
+    /// The situation, as the referee described it.
+    std::string moment_situation = {};
+    /// What it did, as the referee told it afterwards.
+    std::string moment_outcome = {};
+};
+
+
+/// A character LIVED an event: a season spent, a moment faced. The generic part-of link accepts entities and these records are EVENTS, which is correct twice over: a moment is not a part of a person, it is something that happened to one, and the stage query counts what happened, never what is attached. One relation name, target range Event, so the next kind of lived record is a row in the graph rather than a new link type.
+struct LivedRelation : public Relation {
 };
 
 

@@ -48,6 +48,13 @@ struct RefereeQuestion {
     // has none. Handing over the set is what lets a driver with no
     // model answer at all without this class inventing a fallback.
     std::vector<std::string> allowed;
+    // When the answer must carry a number, the bounds the rules put on
+    // it, as the graph states them. Empty when no number is asked for.
+    // Handed over for the same reason as `allowed`: a driver with no
+    // model must be able to answer inside the rules without this class
+    // spelling a rule value into code.
+    std::string low;
+    std::string high;
 };
 
 using Referee = std::function<bool(const RefereeQuestion& question,
@@ -103,12 +110,22 @@ private:
     Result roll_characteristics(const Context& context);
     Result narrate_background(const Context& context);
     Result choose_career(const Context& context);
+    Result spend_season(const Context& context);
+    Result face_moment(const Context& context);
 
     // A number the book fixes, read where it is used. The NAME is the
     // key; the VALUE is the graph's. A primitive that spelled the value
     // out would be exactly the leak this game exists to not have.
     bool constant(const std::string& name, long long& value,
                   std::string& error) const;
+
+    // The same, for a number the book writes as the physicist does.
+    bool constant_real(const std::string& name, double& value,
+                       std::string& error) const;
+
+    // Stage, counted and never stored: how many moments of this kind
+    // the character has faced, read off the MomentFaced records.
+    size_t stage_count(kg::EntityID kind) const;
 
     // A throw as the book prints it, assembled from the throw's own
     // parts: the short name comes off the characteristic the throw
@@ -135,12 +152,19 @@ private:
     // say what the field was. Cleared when the question is answered.
     std::vector<std::string>         offered_;
     std::string                      question_asked_;
+    // Which procedure is running. Character creation comes from the
+    // published book's checklist; the season and its moment come from
+    // the game's own book; the seam between them is here, because a
+    // seed cites one file and the two flows cite different books.
+    bool                             in_life_ = false;
 };
 
-// The name of the Procedure this game walks. Named here rather than in
-// the seed loader because it is the game's entry point into its own
-// rules, and a game with two procedures would name both.
+// The two Procedures this game walks, in order: creation from the
+// published book's checklist, then a season of the game's own book.
+// Named here rather than in the seed loader because they are the
+// game's entry points into its own rules.
 inline constexpr const char* kProcedureName = "voyager_chargen";
+inline constexpr const char* kLifeProcedureName = "voyager_life";
 
 }  // namespace voyager
 

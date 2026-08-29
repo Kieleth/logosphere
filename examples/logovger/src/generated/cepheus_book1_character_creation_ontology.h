@@ -2798,8 +2798,8 @@ struct OutcomeOption : public Entity, public Cited {
 
 /// A number the book fixes in prose: the age of majority is 18, each prior career is DM-2 on qualification, seven terms is the cap. Captured as data so a rule can point at it and the quote can prove it; code primitives read it, never re-hardcode it.
 struct RuleConstant : public Entity, public Cited {
-    /// The value the book fixes; signed.
-    std::optional<int32_t> constant_value = std::nullopt;
+    /// The value the book fixes; signed. Float rather than integer since 2026-08-30, because a book may fix a probability, and a probability written as the physicist writes it is not a whole number. Every integer the packs ever seeded still validates; readers that need a whole number keep parsing one and refuse a fraction where a fraction makes no sense.
+    std::optional<float> constant_value = std::nullopt;
 };
 
 

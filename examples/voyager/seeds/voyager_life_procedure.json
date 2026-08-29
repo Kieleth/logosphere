@@ -1,0 +1,69 @@
+{
+  "source": {
+    "file": "02-seasons-and-moments-in-play.md",
+    "commit": "sha256:2856c7f71f9b34dfef4d3592de2679a3fbda7147790034f1366a47af04c1e3cd"
+  },
+  "layer": "voyager-book",
+  "generated_by": "examples/voyager/tools/extract_book.py",
+  "invariants": {
+    "count_of_type": {
+      "Procedure": 1,
+      "ProcedureStep": 2
+    },
+    "unique_name_per_type": [
+      "Procedure",
+      "ProcedureStep"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "Procedure",
+      "as": "@voyager_life",
+      "properties": {
+        "name": "voyager_life",
+        "source_section": "What a season costs",
+        "source_kind": "heading",
+        "source_quote": "What a season costs"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@spend_season",
+      "properties": {
+        "name": "spend_season",
+        "step_index": "0",
+        "primitive_ref": "spend_season",
+        "source_section": "What a season costs",
+        "source_kind": "sentence",
+        "source_quote": "Choosing how a season is spent is the player's, always."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@face_moment",
+      "properties": {
+        "name": "face_moment",
+        "step_index": "1",
+        "primitive_ref": "face_moment",
+        "source_section": "What stage is",
+        "source_kind": "sentence",
+        "source_quote": "A kind you have never faced arrives as fate."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@voyager_life",
+      "relation": "HAS_PART",
+      "to": "@spend_season"
+    },
+    {
+      "op": "set_relation",
+      "from": "@voyager_life",
+      "relation": "HAS_PART",
+      "to": "@face_moment"
+    }
+  ]
+}

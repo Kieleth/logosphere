@@ -198,6 +198,26 @@ int main() {
                          question.allowed.back() + " | the stranger one";
                 return true;
             }
+            if (question.site == "moment") {
+                CHECK(question.allowed.size() ==
+                          world.findByType("MomentKind").size(),
+                      "the referee was offered "
+                          << question.allowed.size()
+                          << " kinds and the graph holds "
+                          << world.findByType("MomentKind").size());
+                CHECK(!question.low.empty() && !question.high.empty(),
+                      "the moment ask carries no bounds, so the referee "
+                      "cannot know the book's limits");
+                // The FLOOR itself: the book says between, inclusive,
+                // and answering exactly at the bound proves it.
+                answer = question.allowed.front() + " | " + question.low +
+                         "\nA situation arrives, as situations do.";
+                return true;
+            }
+            if (question.site == "moment.aftermath") {
+                answer = "It passed, and left a mark that can be read.";
+                return true;
+            }
             why = "the test referee was asked '" + question.site + "'";
             return false;
         });
@@ -222,7 +242,25 @@ int main() {
         CHECK(session.choose(offered_first, error),
               "the offered door was refused: " << error);
     }
-    CHECK(session.finished(), "the slice did not end at the first door");
+
+    // The life continues past the career door: a season to spend, its
+    // ways read from the game's own book, then a moment that breaks it.
+    CHECK(!session.finished(),
+          "the game ended at the career door; the life procedure never "
+          "started");
+    const size_t ways = world.findByType("SeasonMode").size();
+    CHECK(session.choices().size() == ways,
+          "the book fixes " << ways << " ways to spend a season and the "
+          "session offers " << session.choices().size());
+    if (!session.choices().empty()) {
+        std::string refused;
+        CHECK(!session.choose("a fourth way", refused),
+              "a way the book never fixed was accepted");
+        CHECK(session.choose(session.choices().front().key, error),
+              "the season choice was refused: " << error);
+    }
+    CHECK(session.finished(),
+          "the life did not reach the end of what is written");
 
     voyager::Sheet sheet;
     CHECK(voyager::read_sheet(world, session.character(), sheet, error),
@@ -242,6 +280,105 @@ int main() {
           "the character carries no background, so the screen cannot be "
           "rebuilt from the graph");
     CHECK(!sheet.age.empty(), "the character has no age");
+
+    // The season cost exactly what the book fixes, derived through the
+    // constants and never through a literal here: majority plus one
+    // season, both read from the graph.
+    {
+        long long majority = 0;
+        long long season = 0;
+        for (const kg::EntityID id : world.findByType("RuleConstant")) {
+            const std::string name = world.getProperty(id, "name");
+            long long value = 0;
+            if (!as_int(world.getProperty(id, "constant_value"), value)) {
+                continue;
+            }
+            if (name == "age_of_majority") majority = value;
+            if (name == "season_standard_years") season = value;
+        }
+        CHECK(majority > 0 && season > 0,
+              "the constants this check derives from did not read back");
+        CHECK(sheet.age == std::to_string(majority + season),
+              "one season from majority should age to "
+                  << (majority + season) << " and the sheet says "
+                  << sheet.age);
+    }
+
+    // Stage is a QUERY: one moment faced, one row on the record,
+    // counted from what happened rather than stored anywhere.
+    CHECK(sheet.record.size() == 1,
+          "one moment was faced and the record shows "
+              << sheet.record.size() << " kinds lived");
+    if (!sheet.record.empty()) {
+        CHECK(sheet.record.front().count == "x1",
+              "the one kind lived counts '" << sheet.record.front().count
+                                            << "', not x1");
+    }
+
+    // The book's bounds bite: a chance outside them is refused, and
+    // the run stops rather than playing a moment the rules forbid.
+    {
+        logosphere::dice::DiceService loose_dice;
+        loose_dice.seed_stream("chargen", 3);
+        voyager::Session loose(world, loose_dice);
+        loose.set_arbiter("test_voyager_rules");
+        loose.set_referee(
+            [&](const voyager::RefereeQuestion& question,
+                std::string& answer, std::string& why) {
+                (void)why;
+                if (question.site == "background") {
+                    answer = "Someone.";
+                } else if (question.site == "careers") {
+                    answer = question.allowed.front() + " | a door";
+                } else if (question.site == "moment") {
+                    // No probability ceiling admits one and a half.
+                    answer = question.allowed.front() +
+                             " | 1.5\nA situation.";
+                } else {
+                    answer = "It ended.";
+                }
+                return true;
+            });
+        std::string why;
+        CHECK(loose.begin(why), "the loose session did not begin: " << why);
+        CHECK(loose.choose(loose.choices().front().key, why),
+              "the loose career choice was refused: " << why);
+        CHECK(!loose.choose(loose.choices().front().key, why),
+              "a chance outside the book's bounds was accepted");
+        CHECK(why.find("outside the book's bounds") != std::string::npos,
+              "the refusal does not name the bounds: " << why);
+    }
+
+    // And a kind the book never defined is refused the same way.
+    {
+        logosphere::dice::DiceService alien_dice;
+        alien_dice.seed_stream("chargen", 4);
+        voyager::Session alien(world, alien_dice);
+        alien.set_arbiter("test_voyager_rules");
+        alien.set_referee(
+            [&](const voyager::RefereeQuestion& question,
+                std::string& answer, std::string& why) {
+                (void)why;
+                if (question.site == "background") {
+                    answer = "Someone.";
+                } else if (question.site == "careers") {
+                    answer = question.allowed.front() + " | a door";
+                } else if (question.site == "moment") {
+                    answer = "weather | 0.5\nA storm arrives.";
+                } else {
+                    answer = "It ended.";
+                }
+                return true;
+            });
+        std::string why;
+        CHECK(alien.begin(why), "the alien session did not begin: " << why);
+        CHECK(alien.choose(alien.choices().front().key, why),
+              "the alien career choice was refused: " << why);
+        CHECK(!alien.choose(alien.choices().front().key, why),
+              "a kind the book never defined was accepted");
+        CHECK(why.find("not a kind the book defines") != std::string::npos,
+              "the refusal does not name the kind: " << why);
+    }
 
     // The refusals, which are the part that has to be loud.
     {
@@ -330,6 +467,12 @@ int main() {
         CHECK(code.find("\"" + name + "\"") != std::string::npos,
               "the rule constant '" << name << "' is seeded and no shipping "
               "source names it, so nothing reads it");
+        // A single-character value cannot be discriminated by a text
+        // scan: every loop writes a bare 1 and every array a bare 0,
+        // so scanning for them would flag arithmetic, not leaks. The
+        // reader requirement above still binds such a constant; only
+        // this literal hunt stands down, and says so.
+        if (value.size() < 2) continue;
         CHECK(!voyager_test::names_word(code, value),
               "the value of '" << name << "' (" << value << ") appears as a "
               "literal in shipping code, which is the leak the constant "

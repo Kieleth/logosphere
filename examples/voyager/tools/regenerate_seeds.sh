@@ -34,7 +34,7 @@ python3 "$here/extract_chargen.py" \
 # disagreeing, which is the loop working.
 python3 "$here/extract_book.py" \
     --corpus "$book" \
-    --out "$game/seeds/voyager_book_rules.json"
+    --out-dir "$game/seeds"
 
 echo "seeds/voyager_chargen_procedure.json is hand-authored (no"
 echo "generated_by): the order of the steps is a composition decision,"

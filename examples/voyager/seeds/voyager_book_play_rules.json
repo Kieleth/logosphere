@@ -1,0 +1,80 @@
+{
+  "source": {
+    "file": "02-seasons-and-moments-in-play.md",
+    "commit": "sha256:2856c7f71f9b34dfef4d3592de2679a3fbda7147790034f1366a47af04c1e3cd"
+  },
+  "layer": "voyager-book",
+  "generated_by": "examples/voyager/tools/extract_book.py",
+  "invariants": {
+    "count_of_type": {
+      "RuleConstant": 3,
+      "UnsettledQuestion": 2
+    },
+    "unique_name_per_type": [
+      "RuleConstant",
+      "UnsettledQuestion"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@season_standard_years",
+      "properties": {
+        "name": "season_standard_years",
+        "constant_value": "1",
+        "source_section": "What a season costs",
+        "source_kind": "sentence",
+        "source_quote": "Where no world states its own reckoning, the standard year holds, and a season of it ages a character by 1 year."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@moment_chance_floor",
+      "properties": {
+        "name": "moment_chance_floor",
+        "constant_value": "0.05",
+        "source_section": "What a moment risks",
+        "source_kind": "sentence",
+        "source_quote": "Every moment carries a probability of going against you, written as the physicist writes it, and the referee who sets it for the situation must keep it between 0.05 and 0.95."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@moment_chance_ceiling",
+      "properties": {
+        "name": "moment_chance_ceiling",
+        "constant_value": "0.95",
+        "source_section": "What a moment risks",
+        "source_kind": "sentence",
+        "source_quote": "Every moment carries a probability of going against you, written as the physicist writes it, and the referee who sets it for the situation must keep it between 0.05 and 0.95."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_02_1",
+      "properties": {
+        "name": "unsettled 02-1",
+        "question_text": "- What a season of preparation or pursuit yields, beyond the year it costs. The yield belongs to the chapter that gives characters capabilities, and it is not written yet.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- What a season of preparation or pursuit yields, beyond the year it costs. The yield belongs to the chapter that gives characters capabilities, and it is not written yet."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_02_2",
+      "properties": {
+        "name": "unsettled 02-2",
+        "question_text": "- Whether the at-least-once threshold for an open moment stays, or grows into a graded eye as stage deepens.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- Whether the at-least-once threshold for an open moment stays, or grows into a graded eye as stage deepens."
+      }
+    }
+  ]
+}

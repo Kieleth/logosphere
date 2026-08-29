@@ -54,6 +54,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("TerrainKind", {"LAYERED", "SLAB"});
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumType("VoyagerLifeRelationType", {"LIVED"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("WorldEventType", {"COLLISION", "CONSTRAINT_BREAK", "DAMAGE", "DEATH", "GROWTH", "PERCEPTION", "RELATION_CREATED", "RELATION_REMOVED", "SPAWN", "STATE_CHANGE"});
     reg.addEnumType("WorldRelationType", {"BONDED_TO", "BURNS", "CONTAINS", "HAS_CONSTRAINT", "HAS_PART", "HAS_REGIONAL_PART", "ILLUMINATES", "MANAGES", "PERCEIVES", "SPECIALIZES", "SUPPORTS"});
 
@@ -465,6 +468,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("ModifyAttribute", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("ModifyAttributesInGroup", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("MomentFaced", {"Event", "Identifiable", "Temporal"});
     reg.addAncestors("MomentKind", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("Narration", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -544,6 +548,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("SceneChunk", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("SeasonLived", {"Event", "Identifiable", "Temporal"});
     reg.addAncestors("SeasonMode", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Segment", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -627,9 +632,14 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("DiceRollEvent", "WorldEvent", false);
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Event", "", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("MomentFaced", "Event", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("PerceptionEvent", "WorldEvent", false);
     reg.addEntityType("RelationEvent", "WorldEvent", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("SeasonLived", "Event", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("SpawnEvent", "WorldEvent", false);
     reg.addEntityType("TransformationEvent", "WorldEvent", false);
     reg.addEntityType("VolumeEvent", "WorldEvent", false);
@@ -669,6 +679,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("ModifyAttribute", {"rulebook"});
     reg.addFacets("ModifyAttributesInGroup", {"rulebook"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("MomentFaced", {"voyager-book"});
     reg.addFacets("MomentKind", {"voyager-book"});
     reg.addFacets("Narration", {"rulebook"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -691,6 +702,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("RollableTable", {"rulebook"});
     reg.addFacets("RuleConstant", {"rulebook"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("SeasonLived", {"voyager-book"});
     reg.addFacets("SeasonMode", {"voyager-book"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("SkillRating", {"rulebook"});
@@ -730,6 +742,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addRelationType("ILLUMINATES", {"LightSource"}, {"WorldEntity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addRelationType("LET_EXPRESSION_HAS_BINDING", {"Expression"}, {"LocalBinding"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addRelationType("LIVED", {"Character"}, {"Event"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addRelationType("MANAGES", {"Entity"}, {"Entity"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -1124,6 +1138,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_delta_dice", false, "DiceExpression");
     reg.addProperty("ModifyAttributesInGroup", "attribute_delta_reduces", kg::PropertyValueKind::Boolean, false);
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addRefProperty("MomentFaced", "moment_kind", true, "MomentKind");
+    reg.addProperty("MomentFaced", "moment_chance", kg::PropertyValueKind::Float, true, true, 0.0, true, 1.0);
+    reg.addProperty("MomentFaced", "moment_draw", kg::PropertyValueKind::Float, true, true, 0.0, true, 1.0);
+    reg.addProperty("MomentFaced", "moment_went_against", kg::PropertyValueKind::Boolean, true);
+    reg.addProperty("MomentFaced", "moment_situation", kg::PropertyValueKind::String, true);
+    reg.addProperty("MomentFaced", "moment_outcome", kg::PropertyValueKind::String, true);
     reg.addEnumProperty("MomentKind", "moment_kind_key", "MomentKindKey", true);
     reg.addProperty("Narration", "narration_text", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -1182,10 +1202,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("RollableTable", "requires_attribute", kg::PropertyValueKind::String, false);
     reg.addProperty("RollableTable", "requires_minimum", kg::PropertyValueKind::Integer, false);
     reg.addRefProperty("RollableTable", "dice", true, "DiceExpression");
-    reg.addProperty("RuleConstant", "constant_value", kg::PropertyValueKind::Integer, false);
+    reg.addProperty("RuleConstant", "constant_value", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addProperty("RuntimeContext", "context_kind", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addRefProperty("SeasonLived", "season_mode", true, "SeasonMode");
+    reg.addProperty("SeasonLived", "lived_year", kg::PropertyValueKind::Integer, true, true, 0.0, false, 0.0);
     reg.addEnumProperty("SeasonMode", "season_mode_key", "SeasonModeKey", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addRefProperty("SkillRating", "skill", true, "Entity");

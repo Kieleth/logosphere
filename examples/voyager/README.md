@@ -1,8 +1,11 @@
 # Voyager
 
 One screen. Six numbers are rolled, a referee says where that person
-came from, a handful of careers are offered, you take one, and it tells
-you to start over. That is the whole game, on purpose.
+came from, a handful of careers are offered, you take one. Then the
+game's own book takes over: you choose how a season is spent, the
+season breaks, a moment arrives with a stated chance, the engine draws
+against it, and the telling lands on your sheet. Then it tells you to
+start over. That is as far as the book is written, on purpose.
 
 It is plumbing, and the plumbing is the point: everything the rulebook
 fixes lives in the knowledge graph and is read from where it is used,

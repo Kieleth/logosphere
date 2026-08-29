@@ -1,4 +1,4 @@
-# Voyager — one screen, one character, and it stops at the first door.
+# Voyager — one screen, one character, as far as the book is written.
 # The characteristics, the careers and their throws all come out of the
 # knowledge graph; the dice come from the engine; the two things the
 # rules leave open go to a referee. Nothing in this target's C++ knows

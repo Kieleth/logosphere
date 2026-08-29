@@ -147,10 +147,41 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
         out.career = world.getProperty(
             static_cast<kg::EntityID>(career_id), "name");
     }
+    // The prose, in the order it was lived: narrations first, then
+    // each moment's situation and what it did, read straight off the
+    // records rather than from a display copy that could drift.
+    const auto append_prose = [&out](const std::string& text) {
+        if (text.empty()) return;
+        if (!out.background.empty()) out.background += "\n\n";
+        out.background += text;
+    };
     for (const kg::EntityID part : world.getRelated(character, "HAS_PART")) {
         if (world.getType(part) != "Narration") continue;
-        out.background = world.getProperty(part, "narration_text");
-        break;
+        append_prose(world.getProperty(part, "narration_text"));
+    }
+    for (const kg::EntityID lived : world.getRelated(character, "LIVED")) {
+        if (world.getType(lived) != "MomentFaced") continue;
+        append_prose(world.getProperty(lived, "moment_situation"));
+        append_prose(world.getProperty(lived, "moment_outcome"));
+    }
+
+    // Stage, counted and never stored: one row per kind of moment this
+    // character has faced, labelled as the graph labels the kind. A
+    // kind never faced has no row, exactly as it has no stage.
+    for (const kg::EntityID kind : world.findByType("MomentKind")) {
+        size_t faced = 0;
+        for (const kg::EntityID part :
+             world.getRelated(character, "LIVED")) {
+            if (world.getType(part) != "MomentFaced") continue;
+            long long ref = 0;
+            if (as_int(world.getProperty(part, "moment_kind"), ref) &&
+                static_cast<kg::EntityID>(ref) == kind) {
+                ++faced;
+            }
+        }
+        if (faced == 0) continue;
+        out.record.push_back({world.getProperty(kind, "name"),
+                              "x" + std::to_string(faced)});
     }
     return true;
 }

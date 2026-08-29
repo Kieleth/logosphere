@@ -110,6 +110,40 @@ void Session::bind_primitives() {
     bind("roll_characteristics", &Session::roll_characteristics);
     bind("narrate_background", &Session::narrate_background);
     bind("choose_career", &Session::choose_career);
+    bind("spend_season", &Session::spend_season);
+    bind("face_moment", &Session::face_moment);
+}
+
+bool Session::constant_real(const std::string& name, double& value,
+                            std::string& error) const {
+    for (const kg::EntityID id : world_.findByType("RuleConstant")) {
+        if (world_.getProperty(id, "name") != name) continue;
+        const std::string text = world_.getProperty(id, "constant_value");
+        try {
+            size_t end = 0;
+            value = std::stod(text, &end);
+            if (end == text.size()) return true;
+        } catch (...) {
+        }
+        error = "the rule constant '" + name + "' holds no readable number";
+        return false;
+    }
+    error = "the rules fix no constant named '" + name + "'";
+    return false;
+}
+
+size_t Session::stage_count(kg::EntityID kind) const {
+    size_t count = 0;
+    for (const kg::EntityID part :
+         world_.getRelated(character_, "LIVED")) {
+        if (world_.getType(part) != "MomentFaced") continue;
+        long long ref = 0;
+        if (as_int(world_.getProperty(part, "moment_kind"), ref) &&
+            static_cast<kg::EntityID>(ref) == kind) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 bool Session::constant(const std::string& name, long long& value,
@@ -148,6 +182,7 @@ bool Session::throw_text(kg::EntityID check, std::string& text,
 bool Session::begin(std::string& error) {
     error.clear();
     finished_ = false;
+    in_life_ = false;
     character_ = kg::INVALID_ENTITY;
     procedure_ = kg::INVALID_ENTITY;
     cursor_ = {};
@@ -212,6 +247,28 @@ bool Session::accept(logosphere::rules::ProcedureResult result,
         for (const auto& choice : choices_) offered_.push_back(choice.key);
         question_asked_ = prompt_;
         return true;
+    }
+    // Creation is complete. The life is a second procedure from the
+    // game's OWN book, chained here because a seed cites one file and
+    // the two flows cite different books. A world holding creation
+    // rules but no life procedure is a broken load, not an ending.
+    if (!in_life_) {
+        in_life_ = true;
+        kg::EntityID life = kg::INVALID_ENTITY;
+        for (const kg::EntityID id : world_.findByType("Procedure")) {
+            if (world_.getProperty(id, "name") != kLifeProcedureName) {
+                continue;
+            }
+            life = id;
+            break;
+        }
+        if (life == kg::INVALID_ENTITY) {
+            error = std::string("the world holds no Procedure named '") +
+                    kLifeProcedureName + "'; load the game's own book";
+            return false;
+        }
+        if (!runner_.validate(life, error)) return false;
+        return accept(runner_.start(life, character_), error);
     }
     finished_ = true;
     choices_.clear();
@@ -512,6 +569,291 @@ Session::Result Session::choose_career(const Context& context) {
             std::to_string(legal.size()) + " careers.");
     }
     return Result::pending("Which door do you take?", std::move(offered));
+}
+
+Session::Result Session::spend_season(const Context& context) {
+    struct Mode {
+        kg::EntityID id = kg::INVALID_ENTITY;
+        std::string  name;
+        std::string  quote;
+    };
+    std::vector<Mode> modes;
+    for (const kg::EntityID id : world_.findByType("SeasonMode")) {
+        modes.push_back({id, world_.getProperty(id, "name"),
+                         world_.getProperty(id, "source_quote")});
+    }
+    if (modes.empty()) {
+        return Result::failed(
+            "the world holds no way to spend a season; load the game's "
+            "own book");
+    }
+
+    // Resuming: the answer is a way the book fixed.
+    if (context.input.has_value()) {
+        const std::string& answer = *context.input;
+        const Mode* taken = nullptr;
+        for (const auto& mode : modes) {
+            if (mode.name == answer) taken = &mode;
+        }
+        if (!taken) {
+            return Result::failed("'" + answer +
+                                  "' is not a way the book fixes for "
+                                  "spending a season");
+        }
+        long long years = 0;
+        long long age = 0;
+        std::string error;
+        if (!constant("season_standard_years", years, error)) {
+            return Result::failed(error);
+        }
+        if (!as_int(world_.getProperty(context.target, "age_years"), age)) {
+            return Result::failed(
+                "the character has no readable age to add a season to");
+        }
+        const long long after = age + years;
+        kg::KGOpBatchReport report;
+        const std::vector<kg::KGOp> ops = {
+            create_entity("SeasonLived", "season",
+                          {{"name",
+                            "season at " + std::to_string(after)},
+                           {"event_type", "SEASON_LIVED"},
+                           {"season_mode", std::to_string(taken->id)},
+                           {"lived_year", std::to_string(after)}}),
+            relate(context.target, "LIVED", "season"),
+            set_property(context.target, "age_years",
+                         std::to_string(after)),
+        };
+        if (!kg::apply_kg_ops_atomically(ops, world_, report)) {
+            return Result::failed("the season was refused: " +
+                                  report.error);
+        }
+        log_.push_back("a season spent in " + taken->name);
+        return Result::advance();
+    }
+
+    // Asking: the ways come from the graph, the sentence that fixes
+    // them is the prompt, and this code knows neither the count nor
+    // the names.
+    std::vector<Choice> ways;
+    for (const auto& mode : modes) {
+        Choice way;
+        way.key = mode.name;
+        way.label = mode.name;
+        way.subject = mode.id;
+        ways.push_back(std::move(way));
+    }
+    return Result::pending(modes.front().quote + "\n\nHow is this season "
+                           "spent?", std::move(ways));
+}
+
+Session::Result Session::face_moment(const Context& context) {
+    struct Kind {
+        kg::EntityID id = kg::INVALID_ENTITY;
+        std::string  key;
+        std::string  name;
+        std::string  quote;
+    };
+    std::vector<Kind> kinds;
+    for (const kg::EntityID id : world_.findByType("MomentKind")) {
+        kinds.push_back({id, world_.getProperty(id, "moment_kind_key"),
+                         world_.getProperty(id, "name"),
+                         world_.getProperty(id, "source_quote")});
+    }
+    if (kinds.empty()) {
+        return Result::failed(
+            "the world holds no kind a moment could be; load the game's "
+            "own book");
+    }
+
+    std::string error;
+    double floor = 0.0;
+    double ceiling = 0.0;
+    std::string floor_text;
+    std::string ceiling_text;
+    if (!constant_real("moment_chance_floor", floor, error) ||
+        !constant_real("moment_chance_ceiling", ceiling, error)) {
+        return Result::failed(error);
+    }
+    for (const kg::EntityID id : world_.findByType("RuleConstant")) {
+        const std::string name = world_.getProperty(id, "name");
+        if (name == "moment_chance_floor") {
+            floor_text = world_.getProperty(id, "constant_value");
+        } else if (name == "moment_chance_ceiling") {
+            ceiling_text = world_.getProperty(id, "constant_value");
+        }
+    }
+
+    Sheet sheet;
+    if (!read_sheet(world_, context.target, sheet, error)) {
+        return Result::failed(error);
+    }
+    std::string last_season;
+    for (const kg::EntityID part :
+         world_.getRelated(context.target, "LIVED")) {
+        if (world_.getType(part) != "SeasonLived") continue;
+        long long mode = 0;
+        if (as_int(world_.getProperty(part, "season_mode"), mode)) {
+            last_season = world_.getProperty(
+                static_cast<kg::EntityID>(mode), "name");
+        }
+    }
+
+    std::ostringstream prompt;
+    prompt << "THIS PERSON, as the dice made them:\n";
+    for (const auto& line : sheet.lines) {
+        if (line.value.empty()) continue;
+        prompt << "  " << line.label << " " << line.value << " ("
+               << line.modifier << ")\n";
+    }
+    prompt << "\nWHERE THEY COME FROM:\n" << sheet.background << "\n";
+    prompt << "\nTHE CAREER THEY ENTERED: " << sheet.career << "\n";
+    prompt << "THE SEASON JUST SPENT: " << last_season << "\n";
+    prompt << "\nTHE KINDS A MOMENT CAN BE, in the book's words:\n";
+    RefereeQuestion question;
+    question.site = "moment";
+    question.low = floor_text;
+    question.high = ceiling_text;
+    for (const auto& kind : kinds) {
+        prompt << "  " << kind.key << " | " << kind.quote << "\n";
+        question.allowed.push_back(kind.key);
+    }
+    prompt << "\nWHAT THEY HAVE LIVED:";
+    bool lived_any = false;
+    for (const auto& kind : kinds) {
+        const size_t lived = stage_count(kind.id);
+        if (lived == 0) continue;
+        prompt << " " << kind.key << " x" << lived;
+        lived_any = true;
+    }
+    if (!lived_any) prompt << " nothing yet";
+    prompt << "\n\nTheir season breaks. Pick the kind of trouble this "
+              "life and this career invite, copying its key exactly "
+              "from the list. Set the chance of it going against them, "
+              "a probability between " << floor_text << " and "
+           << ceiling_text << " inclusive. Then describe the situation "
+              "arriving: present tense, two or three sentences, no "
+              "numbers, no chances. They have not seen it coming.\n"
+              "Answer as one line and then the situation:\n"
+              "  <kind key> | <chance>\n"
+              "  <the situation, on the following lines>";
+    question.prompt = prompt.str();
+
+    std::string answer;
+    if (!referee_(question, answer, error)) {
+        return Result::failed("the referee did not answer: " + error);
+    }
+    std::istringstream reply(trimmed(answer));
+    std::string header;
+    while (std::getline(reply, header) && trimmed(header).empty()) {
+    }
+    const size_t bar = header.find('|');
+    if (bar == std::string::npos) {
+        return Result::failed(
+            "the referee's moment names no chance; a moment without "
+            "odds is not a moment, and the run stops here");
+    }
+    const std::string key = trimmed(header.substr(0, bar));
+    const std::string chance_text = trimmed(header.substr(bar + 1));
+    const Kind* kind = nullptr;
+    for (const auto& candidate : kinds) {
+        if (candidate.key == key) kind = &candidate;
+    }
+    if (!kind) {
+        return Result::failed("the referee offered '" + key +
+                              "', which is not a kind the book defines");
+    }
+    double chance = 0.0;
+    try {
+        size_t end = 0;
+        chance = std::stod(chance_text, &end);
+        if (end != chance_text.size()) throw std::invalid_argument("");
+    } catch (...) {
+        return Result::failed("the referee's chance '" + chance_text +
+                              "' is not a probability");
+    }
+    if (chance < floor || chance > ceiling) {
+        return Result::failed(
+            "the referee set the chance at " + chance_text +
+            ", outside the book's bounds of " + floor_text + " to " +
+            ceiling_text + "; certainty is not on offer, in either "
+            "direction");
+    }
+    std::string situation;
+    std::string line;
+    while (std::getline(reply, line)) {
+        if (!situation.empty()) situation += "\n";
+        situation += line;
+    }
+    situation = trimmed(situation);
+    if (situation.empty()) {
+        return Result::failed(
+            "the referee's moment has no situation; a chance with no "
+            "scene is a die with no game");
+    }
+
+    // The engine draws; the referee never does. The granularity is
+    // mechanism, not a number the book fixes: any sufficiently fine
+    // uniform draw implements a probability, and one part in a
+    // thousand is finer than any chance the referee states.
+    const logosphere::dice::DiceExpression draw_die{1, 1000, 0, 1};
+    const auto roll = dice_.roll(draw_die, "moment", "the draw",
+                                 kind->id);
+    if (roll.id == 0) {
+        return Result::failed("the draw could not be made");
+    }
+    const double draw = static_cast<double>(roll.total) / 1000.0;
+    const bool went_against = draw <= chance;
+    std::ostringstream drawn;
+    drawn.setf(std::ios::fixed);
+    drawn.precision(3);
+    drawn << draw;
+
+    RefereeQuestion aftermath;
+    aftermath.site = "moment.aftermath";
+    aftermath.prompt =
+        "THE SITUATION:\n" + situation + "\n\nThe chance of it going "
+        "against them was " + chance_text + ". The engine drew " +
+        drawn.str() + ": it " +
+        (went_against ? "went against them" : "spared them") +
+        ". Tell what it did, past tense, two sentences at most. No "
+        "numbers, no dice, no chances in the telling.";
+    std::string outcome;
+    if (!referee_(aftermath, outcome, error)) {
+        return Result::failed("the referee did not answer: " + error);
+    }
+    outcome = trimmed(outcome);
+    if (outcome.empty()) {
+        return Result::failed(
+            "the referee told nothing of the outcome; a moment that "
+            "leaves no telling leaves no record");
+    }
+
+    // The record the book requires: its kind, the chance as it was
+    // stated, what was drawn, and what it did. Stage will be counted
+    // from these and stored nowhere.
+    kg::KGOpBatchReport report;
+    const std::vector<kg::KGOp> ops = {
+        create_entity("MomentFaced", "moment",
+                      {{"name", "moment of " + kind->name},
+                       {"event_type", "MOMENT_FACED"},
+                       {"moment_kind", std::to_string(kind->id)},
+                       {"moment_chance", chance_text},
+                       {"moment_draw", drawn.str()},
+                       {"moment_went_against",
+                        went_against ? "true" : "false"},
+                       {"moment_situation", situation},
+                       {"moment_outcome", outcome}}),
+        relate(context.target, "LIVED", "moment"),
+    };
+    if (!kg::apply_kg_ops_atomically(ops, world_, report)) {
+        return Result::failed("the moment was refused: " + report.error);
+    }
+    log_.push_back("the season breaks: " + kind->name + " (chance " +
+                   chance_text + ", drew " + drawn.str() +
+                   (went_against ? ", against them)" : ", spared them)"));
+    log_.push_back(situation);
+    log_.push_back(outcome);
+    return Result::complete();
 }
 
 }  // namespace voyager

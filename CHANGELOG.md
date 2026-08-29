@@ -7,7 +7,30 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Changed
+- **`RuleConstant.constant_value` widens from integer to float.** A
+  book may fix a probability, and a probability written as the
+  physicist writes it is not a whole number. Every integer the packs
+  ever seeded still validates; game registries regenerate mechanically.
+- **The seed verifier's number tokenizer reads decimals as one
+  token.** "0.05" in a quote is one number, never a 0 and a 5. Before
+  this, a bogus 5 could prove itself against "2.5 meters" and a real
+  0.05 could not prove itself at all; `test_seed_verifier` now locks
+  both directions.
+
 ### Added
+- **`examples/voyager`: the season and the moment, played from the
+  game's own book.** Chapter Two fixes what a season costs (a year,
+  world-relative, standard reckoning as the fallback), what a moment
+  risks (a probability, referee-set within book-cited bounds the game
+  refuses to cross), and what stage is (counted per kind from the
+  `MomentFaced` records, stored nowhere). After the career door the
+  player chooses how the season is spent, the season breaks, the
+  engine draws against the stated chance, and the referee's situation
+  and telling land on the sheet, which now also shows the lived
+  record. Characters link their lived events through a typed `LIVED`
+  relation. Everything is taped: a recorded life replays bit-identical
+  with no model, seven decisions deep.
 - **`corpora/voyager-book`: Voyager's own rulebook, chapter one.** The
   game stops following the published book's structure (terms are out)
   and gets a book of its own, authored in-repo and ingested through

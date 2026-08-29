@@ -1,7 +1,7 @@
 {
   "source": {
     "file": "01-the-shape-of-a-career.md",
-    "commit": "sha256:fec9fb44bc8229adaa6b6382fcfae197e8dc870f11fcc8b322e72d812803ae5f"
+    "commit": "sha256:2856c7f71f9b34dfef4d3592de2679a3fbda7147790034f1366a47af04c1e3cd"
   },
   "layer": "voyager-book",
   "generated_by": "examples/voyager/tools/extract_book.py",
@@ -117,9 +117,9 @@
     {
       "op": "create_entity",
       "type": "UnsettledQuestion",
-      "as": "@unsettled_1",
+      "as": "@unsettled_01_1",
       "properties": {
-        "name": "unsettled 1",
+        "name": "unsettled 01-1",
         "question_text": "- Whether one moment can carry two kinds at once, a betrayal inside a firefight, or whether the fiercest kind claims it whole.",
         "source_section": "Unsettled",
         "source_kind": "list_item",
@@ -129,9 +129,9 @@
     {
       "op": "create_entity",
       "type": "UnsettledQuestion",
-      "as": "@unsettled_2",
+      "as": "@unsettled_01_2",
       "properties": {
-        "name": "unsettled 2",
+        "name": "unsettled 01-2",
         "question_text": "- Whether the open door can drag a moment from one kind into another, the scientist turning a firefight into a judgment problem.",
         "source_section": "Unsettled",
         "source_kind": "list_item",

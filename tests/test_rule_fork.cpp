@@ -127,8 +127,11 @@ void invalid_forks_fail_atomically() {
         fixture.world,
         {fixture.source, fixture.runtime, "bad-value",
          {{"constant_value", "banana"}}});
+    // "expected float" since constant_value widened for probabilities
+    // (2026-08-30); what matters is that a non-number is refused with
+    // the schema's own reason.
     REQUIRE(!bad_value.ok &&
-                bad_value.error.find("expected integer") != std::string::npos,
+                bad_value.error.find("expected float") != std::string::npos,
             "invalid override is rejected with the schema reason");
 
     const auto forged_origin = logosphere::rules::fork_rule(

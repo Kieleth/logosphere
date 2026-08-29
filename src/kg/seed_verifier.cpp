@@ -103,7 +103,12 @@ bool quote_occurs_in_section(const std::string& text,
 }
 
 // Number tokens of a quote: maximal digit runs, with thousands-
-// commas inside a run absorbed ("10,000" tokenizes as "10000").
+// commas inside a run absorbed ("10,000" tokenizes as "10000") and
+// one decimal point absorbed when digits continue past it ("0.05" is
+// ONE token, never a 0 and a 5: a book that fixes a probability
+// writes it as the physicist does, and splitting it would prove the
+// wrong numbers present). A dot with no digit after it still ends the
+// run, so a sentence's full stop never joins two numbers.
 // The VALUE check requires a slot's absolute digit string to EQUAL
 // one token - substring matching would accept 5 against "Dex 15+".
 std::vector<std::string> number_tokens(const std::string& q) {
@@ -122,6 +127,11 @@ std::vector<std::string> number_tokens(const std::string& q) {
             } else if (q[i] == ',' && i + 1 < q.size() &&
                        std::isdigit(static_cast<unsigned char>(q[i + 1]))) {
                 ++i;  // comma inside a number: skip, keep the run going
+            } else if (q[i] == '.' && i + 1 < q.size() &&
+                       std::isdigit(static_cast<unsigned char>(q[i + 1])) &&
+                       tok.find('.') == std::string::npos) {
+                tok += '.';  // decimal point: at most one per token
+                ++i;
             } else {
                 break;
             }

@@ -138,10 +138,13 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
         return;
     }
 
-    // The sheet, one line per characteristic the GRAPH holds. Labels
-    // are grown to fit rather than fixed, so a seventh characteristic
-    // gets a seventh line instead of falling off the end.
-    const size_t rows = sheet.lines.size() + 2;   // plus age and career
+    // The sheet, one line per characteristic the GRAPH holds, and one
+    // per kind of moment this life has faced. Labels are grown to fit
+    // rather than fixed, so a seventh characteristic or a first-lived
+    // kind gets its line instead of falling off the end.
+    const size_t rows = sheet.lines.size() + 2 +   // age and career
+                        (sheet.record.empty() ? 0
+                                              : sheet.record.size() + 1);
     while (sheet_.size() < rows) {
         sheet_.push_back(make_label(
             right_, 0,
@@ -162,6 +165,13 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
     std::string tail = "AGE  " + sheet.age;
     if (!sheet.career.empty()) tail += "    " + renderable(sheet.career);
     sheet_[at++]->set_text(tail);
+    if (!sheet.record.empty()) {
+        sheet_[at++]->set_text("");
+        for (const auto& line : sheet.record) {
+            sheet_[at++]->set_text(renderable(line.label) + "  " +
+                                   line.count);
+        }
+    }
     for (size_t i = at; i < sheet_.size(); ++i) sheet_[i]->set_text("");
 
     set_prose(sheet.background);
@@ -181,10 +191,11 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
 
 void Screen::close_out(const std::string& career) {
     if (!prompt_) return;
-    prompt_->set_text(career.empty()
-                          ? "That is as far as this goes. Start over."
-                          : renderable(career) +
-                                ". That is as far as this goes. Start over.");
+    prompt_->set_text(
+        career.empty()
+            ? "That is as far as the book is written. Start over."
+            : renderable(career) +
+                  ". That is as far as the book is written. Start over.");
     if (doors_) doors_->clear_items();
 }
 

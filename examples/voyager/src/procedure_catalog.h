@@ -43,6 +43,13 @@ make_procedure_registry() {
     // Build the legal set from the graph, let the referee narrow it,
     // and suspend until somebody picks.
     add("choose_career");
+    // Offer the ways the book fixes for spending a season, suspend
+    // until somebody picks, and record the year it costs.
+    add("spend_season");
+    // Break the season: the referee sets the situation and its chance
+    // within the book's bounds, the engine draws, the referee tells
+    // what it did, and the record is what stage will be counted from.
+    add("face_moment");
     return registry;
 }
 

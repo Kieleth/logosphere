@@ -45,9 +45,12 @@ inline constexpr const char* kCepheusFiles[] = {
 };
 inline constexpr const char* kBookSeeds[] = {
     "seeds/voyager_book_rules.json",
+    "seeds/voyager_book_play_rules.json",
+    "seeds/voyager_life_procedure.json",
 };
 inline constexpr const char* kBookFiles[] = {
     "01-the-shape-of-a-career.md",
+    "02-seasons-and-moments-in-play.md",
 };
 
 // One corpus and everything this game reads from it. A third book is

@@ -35,12 +35,21 @@ struct SheetLine {
     kg::EntityID characteristic = kg::INVALID_ENTITY;
 };
 
+// One row of the lived record: a kind of moment faced, and how often.
+// The label is the graph's; the count is derived from the MomentFaced
+// records at the time of asking. Stage is a QUERY, never a store.
+struct SheetRecordLine {
+    std::string label;
+    std::string count;
+};
+
 struct Sheet {
     kg::EntityID            character = kg::INVALID_ENTITY;
     std::vector<SheetLine>  lines;
     std::string             age;          // empty until the rule sets it
     std::string             career;       // empty until one is entered
-    std::string             background;   // the referee's prose, if any
+    std::string             background;   // the prose, as it was lived
+    std::vector<SheetRecordLine> record;  // stage, counted on demand
 };
 
 // Every Characteristic in the graph, in the order the graph declares,
