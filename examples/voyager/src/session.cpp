@@ -676,8 +676,10 @@ bool Session::ask_in_shape(
         if (accept(reply, why)) return true;
         log_.push_back("the director's answer was refused: " + why);
         question.prompt += "\n\nYOUR LAST ANSWER WAS REFUSED: " + why +
-                           "\nAnswer again, exactly in the shape asked, "
-                           "and nothing else.";
+                           "\nAnswer again, whole, exactly in the shape "
+                           "asked: every part of the shape, every time, "
+                           "with only the refused part changed, and "
+                           "nothing else.";
     }
     error = "the director could not answer in shape after three attempts; "
             "the last refusal: " + why;
@@ -1253,11 +1255,16 @@ Session::Result Session::face_moment(const Context& context) {
               "against them, between " << floor_text << " and " << ceiling_text
            << ", what it risks and what it reaches for, as effects the "
               "rung permits.\nAnswer exactly in this shape:\n"
-              "  weight | <weight key>\n  situation\n  <the situation>\n"
-              "  door | <door key> | <chance> | <one clause, the door as "
-              "it is for them>\n  risk | <effect>\n  reach | <effect>\n"
+              "  weight | <one of:";
+    for (const auto& w : question.vocab["weights"]) prompt << " " << w;
+    prompt << ">\n  situation\n  <the situation>\n"
+              "  door | <one of:";
+    for (const auto& d : question.vocab["doors"]) prompt << " " << d;
+    prompt << "> | <chance> | <one clause, the door as it is for them>\n"
+              "  risk | <effect>\n  reach | <effect>\n"
               "(the door, risk and reach lines repeat for every door "
-              "listed above)";
+              "listed above; every door listed above appears exactly "
+              "once, in every answer)";
     question.prompt = prompt.str();
 
     const auto accept = [&](const std::string& reply, std::string& why) {
