@@ -2038,3 +2038,29 @@ down, treadmilling at -0.066 m/s, never asleep. The defect's law:
 the solver resolves heavy-on-light by EVICTING the light body from
 the load path. Implication for the owed fix ruling: a contact must
 always be able to carry the static load of what stands on it.
+
+## 2026-08-31 — RULED: THE SINGLE LAW OF CONTACT (owner: "this is the way")
+
+Presented: the fundamentally correct fix for the support ceiling.
+Owner rejected the two-ledger formulation ("we should have one single
+job that does two functions by allowing it to be deep enough to
+capture it") and ruled the single-law direction: a contact is ONE
+unilateral constraint - the impulse is whatever complementarity
+demands, bounded by nothing but the material. The velocity-priced cap
+(eff x (approach + CONTACT_CAPTURE_CUSHION)) is scaffolding for a
+shallow sequential solve and is to be REMOVED, not resized - earned
+by making the solve deep: the manifold solved as a block. Passivity
+becomes a property of convergence; INV-17, the energy ledger, the
+explosion detector and the refused-momentum ledger become the JURY,
+not the mechanism. The only ceiling left is material compressive
+strength, beyond which the correct behavior is crushing (damage),
+not tunnelling.
+
+Sequence fixed by dependency, not preference: 1) manifold BLOCK
+SOLVE behind a lever (prior art feat/joint-block-solver, stalls
+-96%; the same mechanism G-47 already owes - two fronts, one
+mechanism); 2) cap removal behind the SAME lever; 3) the strike
+battery must stay clean ON MERIT (the #47 detonation class stays
+dead without its crutch); acceptance = the anvil ladder green at
+every ratio. G-63 registered before code. The G-57 ceiling front and
+G-47's block-solve debt MERGE into this front.

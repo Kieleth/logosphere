@@ -568,6 +568,21 @@ reds; sweep new-red 0. Consequence: FRICTION_TWIST / WARM_LEARN /
 MANIFOLD_SPAN are ONE COLUMN for the flip ruling; TURTLE_PRICED
 remains its own question.
 
+## THE SINGLE LAW OF CONTACT — G-63, RULED 2026-08-31 ("this is the way")
+
+The G-57 support-ceiling front and G-47's block-solve debt MERGE
+here: one missing mechanism, two measured defects. The ruling: a
+contact is ONE unilateral constraint; the velocity-priced cap is
+scaffolding for a shallow solve and is REMOVED, not resized — earned
+by the manifold BLOCK SOLVE (prior art feat/joint-block-solver,
+stalls -96%). Passivity becomes a property of convergence; INV-17 +
+both ledgers + the explosion detector are the JURY. Acceptance: the
+anvil ladder green at every ratio AND the strike battery clean on
+merit. Horizon: material compressive strength as the only ceiling,
+crushing (damage) beyond it. Sequence: block solve behind a lever ->
+cap removal behind the SAME lever -> battery -> owner QA. Full
+derivation in the G-63 record; ruling in the ledger.
+
 ## THE LIMITS CAMPAIGN — MEASURED (G-57..G-62); fronts opened, ruling owed
 
 **Owner ruling 2026-08-28: the trio flip is DEFERRED for this study.**
