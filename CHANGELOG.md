@@ -228,7 +228,15 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   ones at any mass ratio measured (to 96:1), a spun body brakes at
   the face-integral rate, and a tile floor carries a tower at height.
   The two born-red ladders (walking wheels, the out-rolling sphere)
-  are unchanged and remain open fronts.
+  are unchanged and remain open fronts. KNOWN REGRESSIONS under the
+  new default, kept deliberately as born-red flags while they are
+  fixed at mechanism: bonds between very unequal masses (500:1 and
+  beyond) can tear on impact instead of ringing down; a body walking
+  through grass can sever blade bonds; a three-axis PD joint drive
+  holds its target outside its 10% band; a bonded rock aggregate
+  drifts on the ground. Each has its cause isolated and its own
+  audited red; `SINGLE_LAW=0` (or the individual `*=0` switches)
+  restores the previous behavior for A/B.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
