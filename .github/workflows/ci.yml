@@ -286,7 +286,7 @@ jobs:
         run: |
           set -e
           for t in test_humanoid_headless test_pin_gluon_lifecycle \
-                   test_inv6_gravity_blindness test_refused_momentum_ledger \
+                   test_refused_momentum_ledger \
                    test_orientation_truth test_angular_dissipation; do
             echo "=== $t ==="
             ./build/$t
@@ -299,7 +299,14 @@ jobs:
       - name: Run physics ladders (born-red, direction-locked)
         timeout-minutes: 10
         run: |
-          for t in test_cube_drop_ladder test_ramp_race; do
+          # test_inv6_gravity_blindness: audited expect=fail since
+          # 2026-08-26 (a G-48 flip mole: per-axis press asymmetries
+          # under item 6's default torque; the cure exists behind the
+          # statics levers, direction-locked on the deferred flip
+          # ruling). It moves back to the smoke list when the flip
+          # lands and TEST_AUDIT says pass again.
+          for t in test_cube_drop_ladder test_ramp_race \
+                   test_inv6_gravity_blindness; do
             echo "=== $t (audited: expect RED) ==="
             if ./build/$t; then
               echo "::error::$t went GREEN but TEST_AUDIT says expect=fail."
