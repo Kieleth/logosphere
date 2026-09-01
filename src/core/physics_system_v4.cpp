@@ -4458,8 +4458,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // The twist's law is mu * N_TOTAL * <r> (summed below),
                 // so the carrier's OWN impulse must not gate the group.
                 // The default world keeps the old gate byte-identically.
+                // ...and the single-law form of the same gate is
+                // G-45 stated directly: torsion transmits only through
+                // REAL contact. bias < 0 IS the engine's own speculative
+                // marker (see the split-impulse comment at the solve),
+                // and a predicted-pose face manifold can carry
+                // twist_carrier with the true gap 76 mm open (measured:
+                // the ladder hero's spin died 51 mm above the slab, F78
+                // canary pen = -75.9 mm). The capture rows may stop the
+                // approach; they transmit no torsion.
+                // The single-law world RESTS slightly separated (the
+                // speculative persistent rows hold bodies ~0.2 mm off),
+                // so bias >= 0 excluded rest itself and the landed cube
+                // spun forever. SLOP is the engine's own statement of
+                // which gap is not real: within SLOP is touching, beyond
+                // it is G-45's open gap.
                 if (c.twist_carrier && c.twist_r > 0.0f &&
-                    (friction_limit > 0.0f || single_law) &&
+                    (single_law ? c.penetration > -PhysicsV4::SLOP
+                                : friction_limit > 0.0f) &&
                     (!c.is_turtle_contact || c.penetration > 0.0f)) {
                     const float nx = c.jx, ny = c.jy, nz = c.jz;
                     float w_rel = pa.omega_x*nx + pa.omega_y*ny
@@ -4494,18 +4510,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                        c.is_turtle_contact &&
                                    !g.is_angular;
                         };
+                        // Under the single law, speculative rows
+                        // (bias < 0) contribute NO normal force to the
+                        // twist limit - capture is not contact (G-45).
+                        auto n_of = [&](const Constraint& g) {
+                            if (single_law &&
+                                g.penetration <= -PhysicsV4::SLOP)
+                                return 0.0f;   // open gap: capture, not contact
+                            return std::fmax(0.0f, g.accumulated_impulse);
+                        };
                         float n_total = 0.0f;
                         for (size_t gj = ci;; --gj) {
                             if (!same_group(constraints[gj])) break;
-                            n_total += std::fmax(
-                                0.0f, constraints[gj].accumulated_impulse);
+                            n_total += n_of(constraints[gj]);
                             if (gj == 0) break;
                         }
                         for (size_t gj = ci + 1;
                              gj < constraints.size() &&
                              same_group(constraints[gj]); ++gj)
-                            n_total += std::fmax(
-                                0.0f, constraints[gj].accumulated_impulse);
+                            n_total += n_of(constraints[gj]);
                         const float t_limit =
                             combined_friction * n_total * c.twist_r;
                         float t_imp = -w_rel / k_tw;

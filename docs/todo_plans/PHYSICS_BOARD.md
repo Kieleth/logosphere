@@ -616,12 +616,14 @@ twist gate became group-aware. THE FLOOR IS FULLY GREEN (G-61
 settled - the tile class was the manifold LCP). Red harvester
 scripts/harvest_reds.py with the rebuild-first guardrail is the
 standing instrument. OPEN: the chain rate at anvil extremes
-(4.5/35.4 mm - shock ordering / pair-chain block); OWNER RULING owed
-on the impact-torsion law (ladder R2: mu*N_impact*r legitimately
-eats a flat-landing spin; the old law assumed capped impacts); the
-DEFAULT world's unwired plateau guard; the position pass's own slop
-gate (dead zone 3.5 mm vs INV-2's 1 mm, arithmetic in the G-60
-trail).
+(4.5/35.4 mm - shock ordering / pair-chain block); the DEFAULT
+world's unwired plateau guard; the position pass's own slop gate
+(dead zone 3.5 mm vs INV-2's 1 mm, arithmetic in the G-60 trail).
+RESOLVED 2026-09-01: the impact-torsion 'law question' was the G-45
+class (pre-touch twist through a pen=-76 mm predicted-pose manifold)
+- fixed with SLOP as the touching discriminator; ladder R2/R3/R4
+green, no ruling needed. MERGED: PR #161 squash-landed on main;
+green campaign continues on feat/physics-green-campaign.
 
 ## THE LIMITS CAMPAIGN — MEASURED (G-57..G-62); fronts opened, ruling owed
 

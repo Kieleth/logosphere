@@ -2142,3 +2142,25 @@ plus ONE question of law: at slam-down mu * N_impact * r
 legitimately eats most of a spinning cube's spin (a real die loses
 its spin landing flat) - the "flight barely taxes it" law was
 derived under capped impacts. OWNER RULING owed on that law.
+
+## 2026-09-01 (later) — MERGED to main; the pre-touch bite falls; the map is clean
+
+PR #161 squash-merged (all checks green) after two mechanical gate
+fixes: the POSIX setenv shim in the headless manifold test, and CI's
+smoke list realigned with TEST_AUDIT (inv6 has been a booked G-48
+flip mole since 2026-08-26; it now sits in CI's direction-locked red
+list per the workflow's own contract). Work continues on
+feat/physics-green-campaign.
+
+First probe of the green campaign: the ladder R2/R3 'impact-torsion
+law question' resolved as a BUG (G-45 class). The spin died 51 mm
+above the slab; the canary showed a predicted-pose face manifold at
+pen = -75.9 mm carrying twist_carrier, its uncapped capture rows
+feeding the twist across the open gap. Fixed at the law: under the
+single law torsion transmits only through rows within SLOP of
+touching (bias>=0 alone excluded REST - this world rests ~0.2 mm
+separated on speculative rows), and n_total counts only such rows.
+Ladder now at exactly its booked R5/R6. The single-law world map:
+all green except the anvil extremes (the chain-rate rung) and the
+pre-existing booked reds. No owner ruling needed on the impact law -
+the question dissolved with the bug.
