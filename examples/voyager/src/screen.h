@@ -25,6 +25,7 @@
 
 #include "logosphere/kg/kg_module.h"
 
+#include "door_list.h"
 #include "screen_layout.h"
 #include "session.h"
 
@@ -64,7 +65,7 @@ private:
     ui::Panel*   left_ = nullptr;
     ui::Panel*   right_ = nullptr;
     ui::Label*   title_ = nullptr;
-    ui::ListMenu* doors_ = nullptr;
+    DoorList*    doors_ = nullptr;
     std::vector<ui::Label*> prose_;
     std::vector<ui::Label*> prompt_;
     std::vector<ui::Label*> note_;

@@ -52,13 +52,6 @@ HoverLabel* make_hover_label(ui::Container* parent, int x, int y, int w,
     return label;
 }
 
-// Fit a row of the doors list to the list's width, so a long door
-// never runs off the window; the whole of it is in the row's note.
-std::string fitted(const std::string& text, size_t columns) {
-    if (text.size() <= columns) return text;
-    if (columns < 4) return text.substr(0, columns);
-    return text.substr(0, columns - 3) + "...";
-}
 
 // The engine's bitmap font draws bytes it does not know as blanks, and
 // the book is full of en dashes and typographic quotes. Show them as
@@ -147,20 +140,21 @@ void Screen::build(UISystem& ui, int screen_w, int screen_h) {
             layout_.right.w, kDimR, kDimG, kDimB));
     }
 
-    // A root widget, not a child: a list must receive its own clicks
-    // and scrolls without a panel in front of it swallowing them.
-    doors_ = new ui::ListMenu("voyager_doors");
+    // A root widget, not a child: the doors must receive their own
+    // clicks and keys without a panel in front of them swallowing them.
+    doors_ = new DoorList("voyager_doors", kLine, kLine / 2);
     doors_->set_position(layout_.doors.x, layout_.doors.y);
     doors_->set_size(layout_.doors.w, layout_.doors.h);
     doors_->set_ui_system(&ui);
-    doors_->on_item_activated = [this](const std::string& data) {
-        if (on_choice) on_choice(data);
+    doors_->set_colors(kInkR, kInkG, kInkB, 40, 40, 52);
+    doors_->on_taken = [this](const std::string& key) {
+        if (on_choice) on_choice(key);
     };
-    // A selected row explains itself in the notes: the whole door,
+    // A selected door explains itself in the notes: the whole door,
     // its chance and its two lists, or the plan behind a way to spend
-    // a season. Arrow keys or one click select; Enter or a double
-    // click take the door.
-    doors_->on_selection_changed = [this](int index) {
+    // a season. Arrow keys or one click select; Enter or a second
+    // click take it.
+    doors_->on_selected = [this](int index) {
         if (index >= 0 && index < static_cast<int>(door_notes_.size())) {
             set_note(door_notes_[static_cast<size_t>(index)]);
         }
@@ -220,7 +214,7 @@ void Screen::set_prose(const std::string& text) {
 void Screen::say(const std::string& text) {
     set_prose(text);
     set_prompt("");
-    if (doors_) doors_->clear_items();
+    if (doors_) doors_->clear();
 }
 
 void Screen::show(const kg::KGModule& world, const Session& session) {
@@ -261,29 +255,37 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
         for (const auto& line : sheet.record) {
             std::string text = renderable(line.label);
             if (!line.count.empty()) text += "  " + renderable(line.count);
-            row(fitted(text, static_cast<size_t>(layout_.note_columns)),
-                line.note);
+            // Wrapped over as many rows as it needs, never cut; every
+            // row of it carries the same note.
+            for (const auto& part :
+                 wrap(text, static_cast<size_t>(layout_.note_columns))) {
+                row(part, line.note);
+            }
         }
     }
     for (size_t i = at; i < sheet_.size(); ++i) sheet_[i]->set_text("");
 
     set_prose(sheet.background);
 
-    doors_->clear_items();
+    doors_->clear();
     if (session.finished()) {
         close_out(sheet.career);
         return;
     }
     set_prompt(session.prompt());
     door_notes_.clear();
-    const auto columns = static_cast<size_t>(layout_.doors.w / kGlyphW) - 2;
+    // Every door whole, wrapped to the list's width, never cut.
+    const auto columns =
+        static_cast<size_t>((layout_.doors.w - kLine) / kGlyphW);
+    std::vector<DoorList::Door> doors;
     for (const auto& choice : session.choices()) {
         std::string text = choice.label;
         if (!choice.detail.empty()) text += "   " + choice.detail;
-        doors_->add_item(fitted(renderable(text), columns), choice.key);
+        doors.push_back({choice.key, wrap(renderable(text), columns)});
         door_notes_.push_back(choice.label +
                               (choice.detail.empty() ? "" : "\n" + choice.detail));
     }
+    doors_->set_doors(std::move(doors));
     // The player's own door takes the player's own words, through the
     // engine's text field. It shows only while those words are wanted.
     if (ui_) ui_->set_chat_visible(session.awaiting_plan());
@@ -295,7 +297,7 @@ void Screen::close_out(const std::string& career) {
                    : renderable(career) +
                          ". That is as far as the book is written. Start "
                          "over.");
-    if (doors_) doors_->clear_items();
+    if (doors_) doors_->clear();
     if (ui_) ui_->set_chat_visible(false);
 }
 

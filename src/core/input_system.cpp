@@ -256,14 +256,25 @@ void InputSystem::on_mouse_button(Platform::MouseButton button, bool pressed, co
     handle_mouse_button_callback(nullptr, glfw_button, glfw_action, glfw_mods);
 }
 
+void InputSystem::to_ui_space(double& x, double& y) const {
+    if (!engine_) return;
+    const auto& res = engine_->get_resolution_manager();
+    if (res.get_window_width() <= 0 || res.get_window_height() <= 0) return;
+    x = x * res.get_render_width() / res.get_window_width();
+    y = y * res.get_render_height() / res.get_window_height();
+}
+
 void InputSystem::on_mouse_scroll(double x_offset, double y_offset) {
     if (!engine_) return;
 
     // UI first: the widget under the cursor may want the scroll
     // (chat scrollback). Widgets that don't care return false.
     auto* ui = engine_->get_ui_system();
-    if (ui && ui->handle_mouse_scroll(static_cast<int>(input_state.mouse_x),
-                                      static_cast<int>(input_state.mouse_y),
+    double ui_x = input_state.mouse_x;
+    double ui_y = input_state.mouse_y;
+    to_ui_space(ui_x, ui_y);
+    if (ui && ui->handle_mouse_scroll(static_cast<int>(ui_x),
+                                      static_cast<int>(ui_y),
                                       x_offset, y_offset)) {
         return;
     }
@@ -290,9 +301,13 @@ void InputSystem::handle_cursor_position_callback(GLFWwindow* window, double xpo
     // This decouples from mouse callback (1000+ Hz) to game loop (60-120 Hz)
     // See docs/mouse_hover_performance.md for rationale
 
-    // Route to UISystem for widget interactions (dragging, hover, etc.)
+    // Route to UISystem for widget interactions (dragging, hover, etc.),
+    // in the UI's own coordinates.
     if (engine_ && engine_->get_ui_system()) {
-        engine_->get_ui_system()->handle_mouse_move(static_cast<int>(xpos), static_cast<int>(ypos));
+        double ui_x = xpos;
+        double ui_y = ypos;
+        to_ui_space(ui_x, ui_y);
+        engine_->get_ui_system()->handle_mouse_move(static_cast<int>(ui_x), static_cast<int>(ui_y));
     }
 
     // Forward to camera controller if available
@@ -372,8 +387,9 @@ void InputSystem::handle_mouse_button_callback(GLFWwindow* window, int button, i
         GLFWwindow* glfw_window = static_cast<GLFWwindow*>(engine_->get_platform()->get_native_window_handle());
         double mouse_x, mouse_y;
         glfwGetCursorPos(glfw_window, &mouse_x, &mouse_y);
+        to_ui_space(mouse_x, mouse_y);
 
-        // Route to UISystem
+        // Route to UISystem, in the UI's own coordinates
         if (action == GLFW_PRESS) {
             if (engine_->get_ui_system()->handle_mouse_down(static_cast<int>(mouse_x), static_cast<int>(mouse_y), button)) {
                 // UI handled the click - don't forward to game
