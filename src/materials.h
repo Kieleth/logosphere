@@ -30,6 +30,8 @@ enum class Type {
     BRICK,          // ~1800 kg/m³
     SAND,           // ~1600 kg/m³
     DIRT,           // ~1500 kg/m³
+    ICE,            // ~917 kg/m³ (owner order 2026-08-28: ice is REAL —
+                    //  a material, not a friction number on a surface)
 
     // Metal
     IRON,           // ~7800 kg/m³
@@ -71,6 +73,7 @@ constexpr float GetDensity(Type type) {
         case Type::BRICK:        return 1800.0f;
         case Type::SAND:         return 1600.0f;
         case Type::DIRT:         return 1500.0f;
+        case Type::ICE:          return  917.0f;
         case Type::IRON:         return 7800.0f;
         case Type::STEEL:        return 8000.0f;
         case Type::ALUMINUM:     return 2700.0f;
@@ -96,6 +99,7 @@ constexpr const char* GetName(Type type) {
         case Type::BRICK:        return "brick";
         case Type::SAND:         return "sand";
         case Type::DIRT:         return "dirt";
+        case Type::ICE:          return "ice";
         case Type::IRON:         return "iron";
         case Type::STEEL:        return "steel";
         case Type::ALUMINUM:     return "aluminum";
@@ -131,6 +135,7 @@ constexpr float GetDamping(Type type) {
         // Granular - very high damping (inter-particle friction)
         case Type::SAND:         return 0.50f;  // Loose particles, maximum damping
         case Type::DIRT:         return 0.45f;  // Compacted granular
+        case Type::ICE:          return 0.40f;  // Rigid crystalline, mineral class
 
         // Mineral - medium damping (rigid but heavy, need to settle stacks)
         case Type::STONE:        return 0.40f;  // V4.9: increased for stacked settling
@@ -213,6 +218,7 @@ constexpr float GetYoungsModulus(Type type) {
         case Type::BRICK:        return  15.0e9f;  // fired clay
         case Type::SAND:         return  30.0e6f;  // ESTIMATE: soil stiffness, not E
         case Type::DIRT:         return  30.0e6f;  // ESTIMATE: compacted soil
+        case Type::ICE:          return   9.0e9f;  // polycrystalline ice
         case Type::IRON:         return 110.0e9f;  // cast iron
         case Type::STEEL:        return 200.0e9f;  // mild steel
         case Type::ALUMINUM:     return  69.0e9f;
@@ -241,6 +247,7 @@ constexpr float GetPoissonRatio(Type type) {
         case Type::BRICK:        return 0.15f;
         case Type::SAND:         return 0.30f;
         case Type::DIRT:         return 0.35f;
+        case Type::ICE:          return 0.33f;
         case Type::IRON:         return 0.26f;
         case Type::STEEL:        return 0.30f;
         case Type::ALUMINUM:     return 0.33f;
@@ -271,6 +278,7 @@ constexpr float GetTensileStrength(Type type) {
         case Type::BRICK:        return   2.0e6f;
         case Type::SAND:         return   0.0f;    // cohesionless: genuinely zero
         case Type::DIRT:         return  20.0e3f;  // ESTIMATE: slight cohesion
+        case Type::ICE:          return   1.5e6f;  // brittle in tension
         case Type::IRON:         return 200.0e6f;  // cast iron, weak in tension
         case Type::STEEL:        return 400.0e6f;  // mild steel
         case Type::ALUMINUM:     return 310.0e6f;  // 6061-T6
@@ -297,6 +305,7 @@ constexpr float GetCompressiveStrength(Type type) {
         case Type::BRICK:        return  20.0e6f;
         case Type::SAND:         return 100.0e3f;  // ESTIMATE: confinement-dependent
         case Type::DIRT:         return 200.0e3f;  // ESTIMATE
+        case Type::ICE:          return  10.0e6f;  // rate-dependent; mid value
         case Type::IRON:         return 700.0e6f;  // cast iron: strong in compression
         case Type::STEEL:        return 400.0e6f;  // ductile: symmetric
         case Type::ALUMINUM:     return 310.0e6f;  // ductile: symmetric
@@ -323,6 +332,7 @@ constexpr float GetShearStrength(Type type) {
         case Type::BRICK:        return   3.0e6f;
         case Type::SAND:         return   0.0f;    // cohesionless
         case Type::DIRT:         return  15.0e3f;  // ESTIMATE
+        case Type::ICE:          return   3.0e6f;
         case Type::IRON:         return 170.0e6f;
         case Type::STEEL:        return 250.0e6f;  // ~0.6x tensile, ductile metals
         case Type::ALUMINUM:     return 207.0e6f;
@@ -351,6 +361,7 @@ constexpr float GetLossFactor(Type type) {
         case Type::BRICK:        return 0.020f;
         case Type::SAND:         return 0.50f;    // ESTIMATE: inter-grain friction
         case Type::DIRT:         return 0.40f;    // ESTIMATE
+        case Type::ICE:          return 0.030f;   // ESTIMATE: creeps more than granite
         case Type::IRON:         return 0.0020f;  // cast iron: graphite flakes damp
         case Type::STEEL:        return 0.0005f;  // rings
         case Type::ALUMINUM:     return 0.0005f;

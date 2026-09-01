@@ -93,17 +93,35 @@ while IFS= read -r file; do
     # committer-time always arrive as a pair (plain --porcelain emits the
     # header only the first time a commit appears, which silently
     # mis-pairs them).
+    # A LANDED COMMIT CAN BE THE BRANCH'S OWN WORK. In the squash-merge
+    # workflow (Git integration policy rule 3) a branch's lineage returns
+    # to it as ONE squash commit on main - and after a second squash lands
+    # that first one is merely an ancestor of the merge-base. Every later
+    # edit of the branch's own files blames to such a squash with a fresh
+    # committer-time, which read as deleting someone else's merged work
+    # (measured 2026-09-01, twice: against its own squash, then against
+    # its own OLDER squash once a newer one became the merge-base). The
+    # commit's identity is not the discriminator - authorship is: a
+    # culprit commit's removed lines are own work only if EVERY one of
+    # them was added by this branch's own non-merge commits. A stale
+    # branch never added the merged PR's lines (suite case 1 fires); a
+    # squashed branch added all of its own (cases 4 and 5 stay quiet).
+    own_added="$(mktemp)"
+    git log -p --no-merges --format= "$MERGE_BASE..$HEAD_REF" -- "$file" 2>/dev/null \
+        | awk '/^\+/ && !/^\+\+\+/ { print substr($0, 2) }' > "$own_added"
+
     culprits="$(git blame --line-porcelain "${blame_args[@]}" "$MERGE_BASE" -- "$file" 2>/dev/null \
-        | awk -v cutoff="$BRANCH_START" '
+        | awk -v cutoff="$BRANCH_START" -v ownfile="$own_added" '
+            BEGIN { while ((getline l < ownfile) > 0) own[l] = 1 }
             /^[0-9a-f]{40} / { sha = $1 }
             /^committer-time / { ct = $2 }
-            /^summary / {
-                sub(/^summary /, "")
-                if (ct + 0 > cutoff + 0 && !(sha in seen)) {
-                    seen[sha] = 1
-                    print substr(sha, 1, 9) "  " $0
-                }
-            }')"
+            /^summary / { sub(/^summary /, ""); summ[sha] = $0 }
+            /^\t/ {
+                content = substr($0, 2)
+                if (ct + 0 > cutoff + 0 && !(content in own)) foreign[sha] = 1
+            }
+            END { for (s in foreign) print substr(s, 1, 9) "  " summ[s] }')"
+    rm -f "$own_added"
 
     if [ -n "$culprits" ]; then
         findings=$((findings + 1))

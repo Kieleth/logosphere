@@ -1692,3 +1692,520 @@ still unruled). Rotation item 4 closed.
    themselves." Panel and headless assert texts now carry their
    registry IDs (INV-x / G-x); a claim with no registry entry gets one
    BEFORE its assert lands. Skill updated in the same commit.
+
+## 2026-08-21 — Owner ratifies the migration's three proposals ("add these for sure")
+
+INV-33 finite-state (NaN disables three laws silently), INV-34
+rest-is-reached (an untouched scene settles and stays settled; the
+tree oscillation and test_physics_minimal's accepted wiggle are the
+first known violations), INV-35 one-position-writer (the 2x
+displacement RCA). All three aspirational with mechanisms owed, listed
+in each record. The eight to-investigate tests go to a dedicated
+review agent whose dispositions come back to the owner in chat.
+
+## 2026-08-21 — Owner rules R8/R9/R10 and case 5
+
+**R8 (overlap at birth)**: a generator that overlaps bodies is a BUG,
+full stop. Owner: "the generator should NOT put things overlapping...
+I'd not fix for penetration, I'd just avoid it fully... the only
+penetration I'd allow is in the physics delta in extreme cases where
+things are super fast and the tic does not allow to capture it...
+enforce nothing that is created, ever, can coexist — particles are
+always, 100% guaranteed not to overlap in 3d, ever. Solve that, and do
+not care about that in our physics engine, reducing complexity, and
+just simply refuse to run — raise exception... or even just raise and
+exit(1) catastrophically with full detail." INV-30 stands strengthened:
+the mechanism is a CREATION DOOR (doors-not-fallbacks), refusing loudly
+at spawn; the physics engine carries no creation-overlap tolerance.
+Subagent dispatched: the door, the fallen-tree generator fix (C10), the
+two overlapping foliage placements, and test_no_overlap_at_creation
+made real. The 2026-08-02 "minimal overlap accepted" position is hereby
+recorded as SUPERSEDED (its only prior carrier was a test comment).
+
+**R9**: test_sleep_diagnostics — owner: "delete". Retired fully: it
+asserted nothing and prescribed a mechanism eradicated 2026-08-14. Its
+story stays in the audit row and G-44.
+
+**R10**: test_tree_wiggly — owner: "delete... and create a new battery
+of tests whenever we start to work on controlled movement, like wind."
+Owner hypothesis, recorded: the tree wiggle is RELATED TO R8 — bodies
+born overlapping are compressed springs, and the G-44 unmasked
+oscillation may be birth energy. To test the day the creation door
+lands. The G-44 oak-oscillation RCA front stays on the board; its
+tripwire moves from the deleted test to the board entry until the wind
+battery exists.
+
+**Case 5**: regression adjudication stands; owner: "if we need to
+rename, do it" — renamed so the file's name stops calling itself a
+diagnostic while carrying a verdict.
+
+## 2026-08-26 — G-48 step 2 executed: the stack pump was two mechanisms, both levered
+
+The owner-ratified plan's step 2 ("examine manifold persistence") ran
+as an examination, and the examination found the pump was not the
+per-substep rebuild itself but two defects underneath it, each now a
+registered law with its code behind a default-off lever:
+
+**G-51, the support spans the face** (`MANIFOLD_SPAN=1`). Witnessed at
+substep granularity via the canary instrument extended to print
+manifold point positions and warm anchors: the deepest-4 reduction
+(narrow_phase.cpp) clusters all four points on the downhill edge of a
+micro-tilted interface (tilts ~3e-4 rad, depth spread ~0.3 mm across a
+metre of face), the warm start pushes its constant 86.9 N*s through
+centroids alternating +-0.25..0.45 m side to side on CONSECUTIVE
+substeps, injecting 22-40 N*m*s of alternating torque against a 0.15
+noise floor. Delta-omega per injection 0.070 rad/s = the measured
+wobble band. Mechanism: spanning reduction (deepest + farthest +
+max-area completion, constant-free argmax). Unit instrument
+test_manifold_reduction born red at 0.3774 m worst centroid offset,
+green at 0.0001 the same day. Default bit-identical.
+
+**G-52, the cache learns what sustains** (`WARM_LEARN=1`). The store
+side's V4.6 equilibrium-freeze writes a warm-started row's own warm
+share back, so a cached key can never learn: the canary shows the
+iterations rebuilding the true static support EVERY substep
+(accumulated ~290-305 N*s, analytic need 306.25) and the store
+discarding it, keeping the frozen first-touch 86.9 for ever. Under the
+lever the cache converges to 0.3% of analytic, the column and pile
+stand to sub-mm, spins read 0.0000, the world reaches true rest and
+SLEEPS, and the energy ledger goes flat zero. The freeze's own reason
+(bias-contaminated totals) predates split impulse, under which the
+accumulated impulse is pure. The raw learn rule's one measured cost -
+the ramp's tumbling cube caching its corner-strike captures, +5.8%
+travel - fell to +2.2% under the refined store (accumulated minus the
+approach-cancellation part, recovered from the row's own capture
+bound). Protocol honesty per the GEDANKEN-11 rule: the measurement
+lever preceded the G-52 record by hours; the record says so.
+
+**Evidence state**: test_stack_stands FULLY GREEN under WARM_LEARN in
+every lever combination (span, priced boundary, both); ladder, square
+strike, refused ledger, ramp show fail sets identical to default; the
+combined harness is green in BOTH worlds. Defaults untouched
+(stack measures byte-identical with levers off).
+
+**Owed to the owner**: QA (a windowed stack scene with the live assert
+panel, being built next) and the flip ruling for the three levers
+(WARM_LEARN / MANIFOLD_SPAN / TURTLE_PRICED) plus INV-32's default,
+which G-48 holds until the column stands in the DEFAULT world.
+
+**Sweep addendum, same day**: the sweep (run alone, fresh binaries)
+returned new-red 3: test_physics_battery, test_rotated_box_contact,
+test_inv6_gravity_blindness — exactly the three flip moles the board
+had classified as "ONE front" (G-48) when the INV-32 gates flipped,
+whose audit rows were never moved. That was a miss in the flip slice:
+the board and the registry carried the classification, the audit did
+not, so the sweep verdict could not read clean. All three rows now
+carry expect: fail with G-48-citing known_open, direction-locked on
+the flip ruling. The 41 unaudited moles are the boarded rules-lane
+debt, unchanged.
+
+## 2026-08-26 (later) — the contrast controls: torsion and mixed masses (owner order)
+
+Owner: a case "where some of the cubes are expected to have rotation
+and check for torsion on other cubes, and another more complex one
+where cubes of different sizes/masses are combined to produce
+different torsions and effects... ok to be red if its informative."
+
+Registered G-53 (torsion walks the column) and G-54 (mixed masses,
+mixed verdicts) BEFORE the cases; the stack instrument grew to four
+cases and the window to three SPACE-advanced views, each re-armed via
+the teleport law. First measurements, WARM_LEARN world:
+
+- **G-54 fully green, and the verdicts are real**: the centred 8:1
+  pair stands, the overhung cube DEPARTS its perch and lands flat on
+  the turtle (z 0.7002, bounded at 2.6 m/s), stone-on-soft-wood stands
+  to 3 mm. No phantom support.
+- **G-53 mostly green**: the spinner brakes 3.0 -> 0.09 rad/s, L_z is
+  never created (peak exactly = initial 937.5), the turtle drains it
+  to 9.2, and torsion transmits BOTH ways with the asymmetry the
+  anchoring derivation predicts (above 0.46, below 0.073; the original
+  symmetric 0.10 threshold was an underived guess, corrected in the
+  record with the derivation - the below box sits under the full
+  column's turtle anchor).
+- **ONE new front, booked red**: the SPINNING-INTERFACE GRIND. During
+  the spin episode the box0-box1 interface loses 0.232 m of normal
+  separation and the interpenetration STANDS at run end; everything
+  above rides it down. Spinning under load destroys normal support -
+  invisible to the null case, exactly the class of finding the owner
+  ordered these controls to catch. RCA owed.
+- Default world contrast: torsion sink compounds to half a metre;
+  mixed masses amplify the frozen-cache deficit (0.41 m and 0.94 m of
+  standing crush) while the overhung cube still departs.
+
+## 2026-08-27 — RULED: KISS. The torsion experiment rebuilds from the irreducible case
+
+Owner: "let's make all this simpler in a 2 cube first, asserts in
+place, and then three cubes if needed, and more single-purposed tests,
+instead of that complex one please, KISS."
+
+This is the Gedanken method's own rule 1 applied to me: I jumped to
+the four-cube sandwich (the interesting case) instead of the
+irreducible one. Executed as:
+
+- **test_stack_stands returns to the statics pair only** (G-48's
+  single purpose: no torque exists, none may be invented).
+- **test_torsion_transmission, new, single-purpose (G-53
+  restructured as a rung ladder)**: R1 one cube spinning on the
+  turtle (brake, no creation, stands); R2 spinner UNDER a free
+  passenger (no anchor above - being dragged is GUARANTEED,
+  assertable from below); R3 spinner ON a carrier (the turtle anchor
+  wins - the guaranteed physics is an UPPER bound on the carrier's
+  motion). The four-cube sandwich retires until a rung needs it.
+- **test_mixed_mass_stands, new, single-purpose (G-54)**: the three
+  verdicts, stand / FALL / stand.
+- **The pending threshold question DISSOLVES**: the disputed
+  "transmits below >= 0.05" assert demanded something sub-unity
+  physics never guarantees (static friction may hold the carrier at
+  exactly zero). The rung form asserts only what each configuration
+  guarantees. The 0.10-vs-0.05 split and its post-hoc derivation are
+  retired with the sandwich case; no ruling needed.
+
+## 2026-08-27 (later) — RULED: the 50 ms episode is the root; make it realistic
+
+Owner, on the R2 Argus verdict ("the whole experiment lasts 50
+milliseconds, three frames"): "correct, this is the root, change this,
+make it realistic." The braking rate is the defect: a real stone cube
+spun at 3 rad/s dies in ~0.33 s (face-integral Coulomb friction, mean
+radius 0.3826 L, alpha ~ 9 rad/s^2), the engine kills it in ~0.05 s.
+Registered as G-55 (the grindstone law) with the derivation and the
+three compounding causes measured by the RCA: corner anchors (1.85x),
+the box friction cone (up to 1.41x), per-row normal inflation under
+spin. Mechanism lands behind FRICTION_TWIST=1, default off: face
+contacts get a dedicated twist-friction row limited by mu*N*<r>, their
+tangent rows go linear-only, and the tangent pair is clamped as a
+vector (circular cone). Born-red assert: R1's stop time inside
+[0.2, 0.6] s. The engine's box I_z (legacy cylinder 0.125 m L^2 vs the
+true m L^2/6) is booked as its OWN front - correcting it moves every
+rotation number in the battery and deserves a deliberate campaign
+slice, not a rider.
+
+**G-55 landed, same day.** The grindstone law's mechanism went in
+behind FRICTION_TWIST=1: face contacts (>= 3-point patches only) get a
+twist-friction row limited by mu * N_total * <r> with N summed exactly
+over the pair's rows, their tangents go linear-only, and the tangent
+pair closes the friction cone as a vector. R1 now brakes in a
+perfectly linear Coulomb decay to a 0.217 s stop (band [0.2, 0.6]);
+BOTH of G-53's booked reds fell out of the same mechanism (passenger
+0.6666, residual dead). Two laws re-learned and guarded on the way,
+each caught by the audited battery within minutes: G-45 binds the
+twist row (no torsion across an open gap - airborne spin died until
+gated), and a face treatment needs a face patch (a sphere's one-point
+"face" lost its rolling torque until the gate demanded >= 3 points).
+Default byte-identical; harness green under the lever; one booked
+marginal in the visual's combined world (R3 tail just above noise).
+
+## 2026-08-28 — OWNER QA VERDICT: the grindstone window is GOOD
+
+Owner ran the torsion visual at 5dd8168 under FRICTION_TWIST=1
+WARM_LEARN=1, two windows (/tmp/torsion_qa2.log, /tmp/torsion_qa3.log),
+both closed with 0 red on the panel. Verdict: "is good." G-55's QA
+loop is CLOSED: R1's quarter-second Coulomb spin-down, R2's watchable
+passenger ride, R3's anchored carrier all owner-witnessed. What
+remains on this front is decisions, not evidence: the flip ruling on
+the four levers (FRICTION_TWIST / WARM_LEARN / MANIFOLD_SPAN /
+TURTLE_PRICED — the INV-32 default component stays held by G-47 per
+item 6), the grind RCA at the 73.5 kN interface (3-cube bracket), and
+the R3 combined-world marginal.
+
+## 2026-08-28 — THE GRIND RCA (G-56): one disease, one existing cure
+
+Owner: "RCA for sure." GEDANKEN-56 registered before code; the ladder
+grew R4 THE BRACKET (3 cubes, middle spinner, 49 kN face) and R5 THE
+REPRODUCTION (4 cubes, box1 spinner, 73.5 kN — the measured grind
+interface). Measured same day:
+
+- Default world: R4 green, R5 grinds 0.52 m and stands — onset in
+  (49, 73.5]. FRICTION_TWIST: 0.28 m. +WARM_LEARN: 28 mm plus a
+  permanent wobble — the column never sleeps for the full 5 s.
+- Control (TORSION_OMEGA0=0, combo world): fully green, asleep. The
+  statics are sound; the defect is the spin episode's legacy.
+- Canary at steady state (P1, F400-F415): suspects (a) row budget and
+  (b) capture bound REFUTED with numbers (caps 4x above accumulated;
+  warm start carries the exact 309 N*s static load). The velocity
+  rows reach complementarity with the CENTER still falling ~0.10 m/s:
+  the box ROCKS about one edge, gravity re-pumps each substep, the
+  split pass treadmills it back, sleep never latches. The manifold
+  shows why: all four points on two edges of the micro-tilted face —
+  the support polygon excludes the weight line. G-51's rocking clock
+  at depth.
+- MANIFOLD_SPAN=1 joins the pair: R5 FULLY GREEN sub-mm, spins
+  0.0000 — and the R3 combined-world marginal (same residual class)
+  closes with it. Battery under the trio: stack, mixed, strike,
+  refused-ledger 0 failures; ladder and ramp at their booked reds;
+  sweep new-red 0.
+
+Consequence for the flip ruling: FRICTION_TWIST, WARM_LEARN and
+MANIFOLD_SPAN are one column and travel together; TURTLE_PRICED
+remains its own question. Audit correction booked in
+TEST_AUDIT: the twin's earlier "FRICTION_TWIST=1 fully green" row had
+measured the combo world (numbers match to four decimals);
+FRICTION_TWIST alone leaves warm-freeze residuals red.
+
+## 2026-08-28 (later) — OWNER QA: the teaching window, "perfect"
+
+Owner correction on the first G-56 window ("it needs to be in the
+test, re-read the skill"): the education lived in chat, not on the
+panel. Fixed per the logosphere-tests skill: plain DEMONSTRATING +
+WATCH lines per rung, and the mode-aware WORLD line the skill orders
+(trio = "the cure - every line must end [V] green"; default = "the
+booked reds stay [X] on purpose"), printed by both modes. Second
+correction ("last needs to spin just a tad more"): R5's spinner is
+braked ~5x harder than R1's, dying in 4 frames - born at 5x
+(15 rad/s) per the lecture rule, episode 0.15 s with the tower above
+visibly dragged; every law and every count unchanged in both worlds
+(re-measured). Owner verdict on the third window: "perfect."
+
+## 2026-08-28 (later) — RULED: study the limits BEFORE the flip
+
+Owner, on being offered the trio flip: "no, I think we should
+study/understand better the limitations of what we have first, so I'd
+play with Gedankenexperimenten on different cube masses/frictions/
+sizes and floors and combinations, to understand what we're missing
+from the engine itself." The flip ruling is DEFERRED until the limits
+campaign reports. Registered before any code, all status open:
+G-57 the anvil ladder (pure density ratios to 96:1), G-58 the ice
+rink (mu dial, 1/mu stop-time law, absolute velocity floors), G-59
+the size ladder (0.1/1/3 m, absolute-unit constants as latent size
+policies), G-60 the unequal footprint (patch vs face), G-61 the
+particle floor (the tower on tiles - the internal-edge wound), G-62
+the slip joint (one icy interface, per-interface independence).
+Instrument order is the owner's pick.
+
+## 2026-08-28 (later) — RULED: the compactions are DEFECTS; the INV link is law
+
+Owner, on the campaign window: "argus this, some of them are totally
+wrong, like compacting, and.. uf, make sure they are linked to INVs
+please, I feel we've lost that link." Two orders, both executed:
+
+**The link, restored.** The citation audit found real drift: the
+campaign (and the torsion instruments before it) cited INV-4 for
+"stands at static height" — INV-4 is the frame-zero bond-strain law.
+The compactions are INV-2 violations ("no two bodies interpenetrate
+beyond SLOP in steady state... never accepted as rest state").
+Rewired: stands/overlap → INV-2, settling/sleep → INV-34, L_z →
+INV-17 (contacts are passive), speeds → INV-11. INV-2 is now
+MEASURED DIRECTLY: a per-pair overlap instrument (end-state assert
+at 2x SLOP; transit peak measured and printed, its assert bar owed a
+derivation — the 96.5:1 swap ends legal after a 990 mm transit).
+The torsion/stack instruments carry the same stale tags; boarded
+with the panel sweep, not churned this round.
+
+**The Argus, delivered (G-57 record).** The compaction mechanism is
+THE SUPPORT CEILING: every contact row's budget is
+eff x (approach + CONTACT_CAPTURE_CUSHION 4.0 m/s), eff priced on
+the PAIR — the light supporter dominates. Measured on the iron
+anvil: all rows pinned at cap 95.9, ceiling ~379 N*s/substep, FLAT,
+independent of the supported weight. Hover demands: stone 102
+(green), iron 318.5 (19% margin — sinks as depth degrades the
+manifold), gold 788 (over the ceiling from birth — pass-through,
+side-slip, swap). The tile tower books to the same class. Cause-law:
+INV-10/INV-8 — a fixed velocity cushion is a momentum budget whose
+meaning changes with mass. Distinct from G-56's rocking (equal
+masses, huge pair ceiling). The fix direction — a ceiling that
+scales with the load — is the owner's ruling to make.
+
+## 2026-08-28 (later) — RULED: demos are REAL in all senses; the rule found physics
+
+Owner, on the campaign window: "I need no turtle support for these,
+if we're doing ice, needs to be a white particle large, 'icy' so add
+this to the skill spec, demos need to be 'real' in all senses."
+Executed: ICE is a real material now (materials.h, density 917, full
+property set); every limits case stands on a 6x6x0.4 m slab BODY and
+only the slab touches the turtle; colors are material-true (ice
+white, gold gold, wood brown); the rule is in the logosphere-tests
+skill and VISUAL_TEST_PATTERNS.md.
+
+The rule was LOAD-BEARING PHYSICS: on real ground the 15.6:1 anvil
+tunnel collapses 993 -> 4.6 mm, the footprint sink 242 -> 6 mm, and
+the die's stop anomaly dissolves (0.033 s, in band - G-59's booked
+red RESOLVED, the floor was the turtle interface). Gold still crushes
+through (604-606 mm standing, supporter driven into the slab): the
+support ceiling stands as the defect, now cleanly separated from the
+turtle-stage aggravation. Open hypothesis, unverified: the trio runs
+TURTLE_PRICED off - unpriced turtle rows may BE the aggravation; one
+lever run discriminates. test_limits_size flips to expect: pass.
+
+## 2026-08-28 (later) — case 6 Argus'd: the eviction law
+
+Owner: "6/13 is totally wrong argus it." Delivered (G-57 record,
+canary F1150): the 38.6:1 crush is a TWO-INTERFACE CEILING CASCADE -
+both pairs wood-dominated, both ceilings ~380-490 N*s/substep vs the
+gold's 788 demand; the gold falls at ~4.3 m/s^2 net pressing the
+wood into the slab from frame 0. Terminal state: the gold rests
+directly ON THE SLAB through the wood; the wood is WEDGED between a
+394 mm violation pushing it up and a 606 mm violation pushing it
+down, treadmilling at -0.066 m/s, never asleep. The defect's law:
+the solver resolves heavy-on-light by EVICTING the light body from
+the load path. Implication for the owed fix ruling: a contact must
+always be able to carry the static load of what stands on it.
+
+## 2026-08-31 — RULED: THE SINGLE LAW OF CONTACT (owner: "this is the way")
+
+Presented: the fundamentally correct fix for the support ceiling.
+Owner rejected the two-ledger formulation ("we should have one single
+job that does two functions by allowing it to be deep enough to
+capture it") and ruled the single-law direction: a contact is ONE
+unilateral constraint - the impulse is whatever complementarity
+demands, bounded by nothing but the material. The velocity-priced cap
+(eff x (approach + CONTACT_CAPTURE_CUSHION)) is scaffolding for a
+shallow sequential solve and is to be REMOVED, not resized - earned
+by making the solve deep: the manifold solved as a block. Passivity
+becomes a property of convergence; INV-17, the energy ledger, the
+explosion detector and the refused-momentum ledger become the JURY,
+not the mechanism. The only ceiling left is material compressive
+strength, beyond which the correct behavior is crushing (damage),
+not tunnelling.
+
+Sequence fixed by dependency, not preference: 1) manifold BLOCK
+SOLVE behind a lever (prior art feat/joint-block-solver, stalls
+-96%; the same mechanism G-47 already owes - two fronts, one
+mechanism); 2) cap removal behind the SAME lever; 3) the strike
+battery must stay clean ON MERIT (the #47 detonation class stays
+dead without its crutch); acceptance = the anvil ladder green at
+every ratio. G-63 registered before code. The G-57 ceiling front and
+G-47's block-solve debt MERGE into this front.
+
+## 2026-08-31 (later) — G-63 FIRST CONTACT: the tunnel is dead, the jury is clean
+
+SINGLE_LAW=1 landed same day as the ruling: the contact manifold
+block solve (pattern from feat/joint-block-solver, mirrored gates)
+plus cap removal at all four sites, warm store guarded (true total
+under the lever). Default world byte-identical counts everywhere
+tested. Side (b): the strike jury FULLY CLEAN ON MERIT - the #47
+class stays dead without its crutch. Side (a): 5:1 perfect to
+0.1 mm; 15.6:1 FULLY GREEN (1.2 mm, asleep); 38.6:1 down to 22.3 mm
+with the failing interface MOVED to supporter-slab (the residual
+shallowness is ACROSS pairs; TURTLE_PRICED discriminated - not the
+cause); 96.5:1 leaves stand perfectly, gold holds 496 mm inside them
+(position-pass sequential depth). Cross-findings: the crush-transit
+energy flag is PRE-EXISTING and larger WITHOUT the lever (+337 vs
++266 J; unpriced turtle free-lift, G-50); the tile-tower class never
+touched its caps - not the ceiling disease, owes its own RCA.
+G-63 stays open on the across-pair rung.
+
+## 2026-09-01 — TWO ARGUS ORDERS DELIVERED: the affine law and the door guard
+
+Owner, on the single-law window: "argus this, first case is red but I
+think it's ok, and then we have sinking-penetration in a couple of
+them."
+
+**The ice red (G-58): the owner was right, now with the derivation.**
+The decay is perfectly linear at every mu; the three-point fit gives
+the AFFINE grindstone law alpha = 26.9*mu + 0.15 - exact mu-linearity
+plus a mu-independent 0.15 rad/s^2 channel through the anchor-coupled
+normal rows (dissipative, legal). Bands re-derived from the law:
+ice and slipjoint fully green. Correction booked: the 96.5 first-
+contact prose misread the leaves as on-slab; the assert had honestly
+failed (400 mm into the slab).
+
+**The sinking (G-63): the plateau door was quitting at 9 of 32.**
+Canary: two blocks exchanging constant ~20 N*s on the light middle
+body reads as a plateau to the rate test while the wood still moves
+at -0.164 m/s. The registry had ALWAYS documented the missing guard -
+VELOCITY_PLATEAU_FLOOR on the plateau exit - and the code never
+enforced it: doc-vs-code drift, wired under the lever (default keeps
+the drift, boarded as its own small front). Effect: 38.6:1 22.3 ->
+4.5 mm with the gold ASLEEP; 96.5:1 496 -> 35 mm, peak transit 36
+where it was 990. Eleven of thirteen window cases fully green under
+SINGLE_LAW. Remaining at the extremes: the pure chain rate - the
+shock-ordering rung, open in G-63. Jury re-run after the guard:
+clean at every expectation.
+
+## 2026-09-01 (later) — THE HARVESTER, THE CONFESSION, AND THE FLOOR FALLS GREEN
+
+Owner: "argus this properly please, have a way to gather/harvest red
+cases quickly." Both delivered, and the harvest's first catch was my
+own process: byte-identical results across a solver change exposed
+STALE BINARIES - the earlier "jury clean on merit" ran pre-lever
+executables for everything but anvil/ice/slipjoint/visual. Withdrawn:
+that jury claim, the "floor is lever-insensitive" cross-finding, the
+footprint "composition marginal". scripts/harvest_reds.py now
+REBUILDS its targets before measuring (the stale-build guardrail,
+owed since the build-profiles lesson, landed mechanically).
+
+The fresh single-law world then showed its true first contact:
+DETONATIONS (tiles at 99 m/s, towers at 340 m, the ramp cube flying
+204 m) - G-63's side (b) red, fixed at mechanism, never re-capped:
+(1) the capless warm store had dropped G-52's approach subtraction
+(rows now carry build_approach); (2) THE DETONATOR: clamp-after-solve
+on a unilateral near-singular block - replaced with the exact
+active-set LCP, n <= 4, at most 16 subsets; (3) the twist gate read
+the carrier row's own impulse, which the exact LCP legitimately
+zeroes - now group-aware under the lever.
+
+VERDICT AFTER THE FIXES (all fresh, full battery): limits green
+except the two anvil extremes (4.5/35.4 mm, the chain-rate rung);
+THE FLOOR FULLY GREEN - G-61's 25 mm tile class was the manifold-LCP
+disease all along, record settled; torsion/stack/mixed/strike/
+refused-ledger green; ramp at its booked G-46 pair; ladder at R5/R6
+plus ONE question of law: at slam-down mu * N_impact * r
+legitimately eats most of a spinning cube's spin (a real die loses
+its spin landing flat) - the "flight barely taxes it" law was
+derived under capped impacts. OWNER RULING owed on that law.
+
+## 2026-09-01 (later) — MERGED to main; the pre-touch bite falls; the map is clean
+
+PR #161 squash-merged (all checks green) after two mechanical gate
+fixes: the POSIX setenv shim in the headless manifold test, and CI's
+smoke list realigned with TEST_AUDIT (inv6 has been a booked G-48
+flip mole since 2026-08-26; it now sits in CI's direction-locked red
+list per the workflow's own contract). Work continues on
+feat/physics-green-campaign.
+
+First probe of the green campaign: the ladder R2/R3 'impact-torsion
+law question' resolved as a BUG (G-45 class). The spin died 51 mm
+above the slab; the canary showed a predicted-pose face manifold at
+pen = -75.9 mm carrying twist_carrier, its uncapped capture rows
+feeding the twist across the open gap. Fixed at the law: under the
+single law torsion transmits only through rows within SLOP of
+touching (bias>=0 alone excluded REST - this world rests ~0.2 mm
+separated on speculative rows), and n_total counts only such rows.
+Ladder now at exactly its booked R5/R6. The single-law world map:
+all green except the anvil extremes (the chain-rate rung) and the
+pre-existing booked reds. No owner ruling needed on the impact law -
+the question dissolved with the bug.
+
+## 2026-09-01 (later) — the extremes split: a gate dead zone and a velocity chain
+
+Two canaries on the last anvil reds. 96.5:1 is the velocity chain:
+32 of 32 iterations spent, the 200 kg leaves still end the substep at
+-0.106 m/s, the split pass lifts 0.48 mm/substep and the sink cancels
+it at 36 mm. 38.6:1 was never the chain - its velocity converged; its
+4.5 mm was the position pass's slop gate quitting at
+SLOP*(1+1/BETA) = 3.5 mm (a BETA-scaled correction compared to the
+error tolerance). Fixed under the lever: the gate now stops when the
+ERROR is under SLOP (correction < BETA*SLOP). 38.6 -> 2.7 mm, heights
+green, asleep. Full battery clean at every expectation. OWNER RULING
+owed on the chain mechanism (shock ordering vs island LCP).
+
+## 2026-09-01 (later) — RULED: shock propagation now (G-64 option A)
+
+Owner: "shock now." Contact blocks are ordered by contact-graph
+distance from the immovable roots (INV-7's one predicate: bodies that
+cannot take momentum, plus turtle-touching bodies at depth 1; never
+world-up, INV-6) and solved bottom-up each iteration; after the loop
+one shock sweep re-solves each block with its lower body held
+immovable, so support propagates up a stack in one pass. Inside the
+single law: ordering and mass model only, no impulse bound. Jury:
+the strike battery and both ledgers (the shock sweep's known bias is
+momentum exchange favouring stability). Acceptance: the 96.5:1 anvil
+green. Island LCP (option B) stays the horizon.
+
+## 2026-09-01 (later) — G-64 landed: the anvil ladder is fully green
+
+Shock propagation under SINGLE_LAW: blocks ordered by contact-graph
+depth from the immovable roots and solved bottom-up; one shock sweep
+after the loop with each lower body held immovable. Measured: every
+ratio on the anvil ladder - 5:1 through 96.5:1 - rests at z 1.9000
+exactly, 0.0 mm peak transit overlap, asleep. The full single-law
+battery is green except the pre-existing booked pairs (ladder R5/R6,
+ramp G-46). The support ceiling (G-57) is solved under the lever;
+G-63's two sides are both green; the flip ruling on the single-law
+world now has a green battery behind it.
+
+## 2026-09-01 (later) — OWNER QA: the shock-propagation window is GREEN
+
+Owner watched the thirteen-case campaign window under SINGLE_LAW
+with shock propagation: "ok, green." The anvil ladder stands at every
+ratio on screen. Branch feat/physics-green-campaign goes to main by
+squash PR; the flip ruling and the next front are decided in chat.

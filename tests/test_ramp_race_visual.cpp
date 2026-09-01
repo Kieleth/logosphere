@@ -105,7 +105,7 @@ int main() {
     // THE LIVE ASSERT PANEL (owner order 2026-08-21): what this test
     // demonstrates, and EVERY assert as its own [V]/[X] line, evaluated
     // each frame from the SAME scene helpers the headless asserts read.
-    static const bool lever_ui = std::getenv("CONTACT_TORQUE") != nullptr;
+    static const bool lever_ui = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
     auto* l_demo = add_line(engine, 3, 190, 220, 255);
     l_demo->set_position(PANEL_X, 40);
     auto* l_demo2 = add_line(engine, 5, 190, 220, 255);

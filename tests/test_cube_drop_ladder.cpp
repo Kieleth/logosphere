@@ -101,7 +101,7 @@ int main() {
         std::printf("  [measure] peak |omega_y| %.4f rad/s, touchdown frame %d\n",
                     scene.peak_omega_y, scene.touchdown_frame);
 
-        static const bool lever = std::getenv("CONTACT_TORQUE") != nullptr;
+        static const bool lever = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
         if (r == 0) {
             if (!lever) {
                 check(scene.settled_rot_y(ps) < CONTROL_ROT_MAX &&
@@ -152,7 +152,7 @@ int main() {
                         scene.settled_z(ps, H), scene.rest_z,
                         (r == 7 ? 0.0f : FLOOR_TOP) + HERO * 0.5f,
                         scene.argus.peak_spin(H));
-            static const bool lever7 = std::getenv("CONTACT_TORQUE") != nullptr;
+            static const bool lever7 = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
             // R8 runs on the bare turtle: fallen-face height has no slab
             const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
                                               : CORNER_FALLEN_Z_MAX;
@@ -202,7 +202,7 @@ int main() {
             check(std::fabs(twin_dx) < 0.02f && std::fabs(twin_dy) < 0.02f,
                   "G-41 control: the still twin STAYS still (whatever moved "
                   "the hero, it was the spin)");
-            static const bool lever2 = std::getenv("CONTACT_TORQUE") != nullptr;
+            static const bool lever2 = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
             if (lever2 && r == 3)
                 check(std::fabs(dx) < 0.05f && std::fabs(dy) < 0.05f &&
                       scene.settled_spin(ps, H) < 0.1f,
@@ -253,7 +253,7 @@ int main() {
         Scene scene;
         scene.build(ps);
         scene.add_backdrop(ps);   // criterion b: same bodies as the window
-        static const bool lever_seq = std::getenv("CONTACT_TORQUE") != nullptr;
+        static const bool lever_seq = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
         for (int r = 0; r < RUNG_COUNT; ++r) {
             const RungSpec& spec = RUNGS[r];
             scene.arm(ps, physics, spec, r);

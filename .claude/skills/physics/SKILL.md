@@ -216,6 +216,32 @@ Read-only over particles by construction: the witness cannot perturb
 the experiment. Zero cost unwatched. Engine-wide by owner ruling —
 combat and AI observe through the same eyes.
 
+## PHYSICS TDD (owner ruling, 2026-08-21 — "this is the way")
+
+New physics behavior is built law-first, in this exact order:
+
+1. **DECLARE**: one sentence naming the behavior and where it fits —
+   which INV it serves, amends, or creates; which G's discriminate it.
+2. **REGISTER FIRST**: the law enters the registry before any code —
+   a new INV (aspirational, born red) or G record carrying the
+   derivation (do the math first; the record holds it, the assert
+   cites it).
+3. **TDD**: the assert lands born red in an existing or new test,
+   naming its law ID, in the mode the claim is made for. Never write
+   the mechanism before the red assert exists.
+4. **GREEN VIA ARGUS**: the mechanism is worked until the witness
+   shows the claimed physics and the assert flips — narration first
+   when the shape of the failure is unknown.
+5. **VISIBLE**: the law-tagged assert appears on the live panel of the
+   test's window, [V]/[X], per the panel protocol.
+
+The migration of pre-protocol tests follows the same shape: link every
+existing assert to its law; a claim with no registry home becomes an
+INV PROPOSAL (a review file for the owner, never a direct law edit); a
+test asserting physically wrong behavior is marked skipped and BOOKED
+to-investigate in TEST_AUDIT, for owner-led study one by one — never
+silently deleted, never quietly weakened.
+
 ## EVERY ASSERT NAMES ITS LAW (owner order, 2026-08-21)
 
 "Any physics requirement/law should be registered and maintained, and

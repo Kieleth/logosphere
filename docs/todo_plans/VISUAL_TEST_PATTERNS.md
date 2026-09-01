@@ -1381,3 +1381,15 @@ Three of its claims no longer match the code:
 
 Its skeleton also uses `while (engine.is_running())`, which is the loop
 that cannot be closed. That line should become `while (alive(engine))`.
+
+## Demos are real in all senses (owner order, 2026-08-28)
+
+No demo subject stands on the bare turtle: the ground is a real body
+(slab, tile raft) and only the ground touches the turtle. Materials
+are themselves — ice is an ICE particle (density 917), large and
+white; color by material, never by role. A dialed property (mu, mass)
+gets a real carrier on stage. The rule is load-bearing physics: moving
+the limits demos from turtle ground to slab bodies collapsed the
+15.6:1 anvil tunnel from 993 mm to 4.6 mm and dissolved the die's
+stop anomaly — the turtle interface was part of the finding. Full
+text in the logosphere-tests skill.

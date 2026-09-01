@@ -14,8 +14,17 @@
 #                       whose work started after the commit landed. The
 #                       author saw the code and meant to remove it.
 #   CASE 3 (must be QUIET) a branch that only adds lines.
+#   CASE 4 (must be QUIET) the squash workflow: a branch's own lines
+#                       return to it as one squash commit on main; after
+#                       merging main in, the branch edits those lines.
+#                       They blame to the merge-base, but the branch
+#                       authored them (measured 2026-09-01: a real branch
+#                       refused against its own squash).
 #
-# Prints what it measured. Exit 0 = all three behaved.
+#   CASE 5 (must be QUIET) the same after a NEWER squash: the branch's
+#                       own squash is only an ancestor of the merge-base.
+#
+# Prints what it measured. Exit 0 = all five behaved.
 
 set -uo pipefail
 
@@ -102,9 +111,62 @@ git add shared.txt
 commit_at "$T_OLD" "add a line, delete nothing"
 check "case 3 additive branch" additive quiet
 
+# CASE 4: the squash workflow. A branch adds its own lines; main gains a
+# squash commit with that exact content (later date); the branch merges
+# main in and then edits its own lines. Every removed line blames to the
+# merge-base (the squash) with a fresh date - and every one of them was
+# added by the branch's own commits. Must be QUIET.
+git checkout -q -b squashed "$BASE_SHA"
+printf 'alpha\nbeta\ngamma\nOWN-LINE-1\nOWN-LINE-2\n' > shared.txt
+git add shared.txt
+commit_at "$T_OLD" "feat: the branch writes its own lines"
+git checkout -q main
+git checkout -q -b main-with-squash "$BASE_SHA"
+printf 'alpha\nbeta\ngamma\nOWN-LINE-1\nOWN-LINE-2\n' > shared.txt
+git add shared.txt
+commit_at "$T_LANDED" "feat: squash of the branch (#1)"
+git checkout -q squashed
+git merge -q --no-edit main-with-squash
+printf 'alpha\nbeta\ngamma\nOWN-LINE-1-EDITED\nOWN-LINE-2\n' > shared.txt
+git add shared.txt
+commit_at "$T_NEW" "edit my own line after the squash"
+out4="$("$CHECKER" main-with-squash squashed 2>&1)"; rc4=$?
+if [ "$rc4" -eq 0 ]; then
+    echo "PASS  case 4 squashed branch edits its own lines: expected quiet, got quiet (exit 0)"
+else
+    echo "FAIL  case 4 squashed branch edits its own lines: expected quiet, got fire (exit $rc4)"
+    echo "$out4" | sed 's/^/        /'
+    failures=$((failures + 1))
+fi
+
+# CASE 5: two squashes. The branch's lines landed as an EARLIER squash;
+# main then gained an unrelated commit, so after merging main the
+# branch's own squash is only an ancestor of the merge-base. Editing its
+# own lines must still be QUIET (measured 2026-09-01 on a real branch).
+git checkout -q main-with-squash
+printf 'alpha\nbeta\ngamma\nOWN-LINE-1\nOWN-LINE-2\nUNRELATED-LATER\n' > shared.txt
+git add shared.txt
+commit_at "$((T_LANDED + DAY))" "feat: an unrelated later commit on main"
+git checkout -q -b squashed-twice "$BASE_SHA"
+printf 'alpha\nbeta\ngamma\nOWN-LINE-1\nOWN-LINE-2\n' > shared.txt
+git add shared.txt
+commit_at "$T_OLD" "feat: the branch writes its own lines (again)"
+git merge -q --no-edit main-with-squash
+printf 'alpha\nbeta\ngamma\nOWN-LINE-1-EDITED\nOWN-LINE-2\nUNRELATED-LATER\n' > shared.txt
+git add shared.txt
+commit_at "$T_NEW" "edit my own line under a newer merge-base"
+out5="$("$CHECKER" main-with-squash squashed-twice 2>&1)"; rc5=$?
+if [ "$rc5" -eq 0 ]; then
+    echo "PASS  case 5 own lines under a newer merge-base: expected quiet, got quiet (exit 0)"
+else
+    echo "FAIL  case 5 own lines under a newer merge-base: expected quiet, got fire (exit $rc5)"
+    echo "$out5" | sed 's/^/        /'
+    failures=$((failures + 1))
+fi
+
 echo
 if [ "$failures" -eq 0 ]; then
-    echo "merged-work detector: 3/3 cases behaved (fires on the accident, quiet on the control)"
+    echo "merged-work detector: 5/5 cases behaved (fires on the accident, quiet on the controls)"
     exit 0
 fi
 echo "merged-work detector: $failures case(s) wrong"

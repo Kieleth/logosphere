@@ -439,6 +439,277 @@ Also derived from the witness: a face-spinning top DIES FAST at contact
 G-36's own arithmetic. Real tops last by spinning on a POINT; the
 long-spin drama belongs to the ICE floor of the materials matrix.
 
+## Creation door DELIVERED (feat/creation-overlap-door) — merge notes
+
+The door: BVH-owned audit at flush start, O(n log n), 20.4 ms once for
+12440 Eden bodies. C10's root cause INVERTED: the fallen-tree generator
+was right and the spawn turtle doors were rotation-blind; the generator
+had been bent to satisfy the blind check. Two owner decisions surfaced:
+(a) THE STRUCTURAL BAND: the crown generator draws branches through
+siblings on purpose (51 pairs, deepest 0.85 m; Eden 2204) inside one
+bonded structure whose contact rows the solver already denies — strict
+refusal today stops every tree from being born; closing it is a crown
+redesign. (b) EVA IS 23 UNBONDED PENETRATING BOXES:
+load_constraints_from_kg() is an EMPTY STUB that prints "Loaded
+constraints" — whether humanoids get real gluon bonds is a design
+question, boarded. Abort stays behind LOGOSPHERE_CREATION_STRICT until
+both classes read zero. MERGE CHORES: the agent's registry record
+collides with GEDANKEN-48 (the stack) — renumber the agent's to G-49
+at merge (mine is cited in code and audits); fold the agent's suggested
+mechanism sentence into INV-30. CONVERGENCE, two independent hunts:
+the door's oriented turtle reading exposed tilted grass blades lifted
+FREE by the turtle every substep — the same unpriced boundary lift the
+energy ledger caught powering the stack pump. Step 3 (priced boundary)
+now has two witnesses.
+
+## G-47 tail: the TUMBLE MIRROR LEAK (small open front)
+
+Single strikes hold the y-mirror EXACTLY in every pose (aligned and
+pitched, 1-9 m/s: test_square_strike, all green). The 40-frame chaotic
+tumble in the refused-momentum ledger leaks roll 0.3353 rad/s — no
+minimal repro yet. Ledger holds a labeled ratchet (<0.40). Also: argus
+peak spin 7.28 observed mid-tumble vs MAX_OMEGA 6.28 — the cap is
+enforced somewhere the peak sampler beats. Both worth one focused hunt.
+
+## G-48 — stacks under torque: SOLVED BEHIND LEVERS (OWNER RULING owed)
+
+**2026-08-26: the pump is found, named, and dead under levers.** The
+owner-ratified step 2 ("examine manifold persistence") decomposed the
+pump into two registered laws, each with its mechanism behind a
+default-off lever:
+
+- **G-51 `MANIFOLD_SPAN=1`** — the deepest-4 manifold reduction
+  clusters the support on the downhill edge of a micro-tilted face;
+  the warm start's constant 86.9 N*s through side-flipping centroids
+  injected 22-40 N*m*s of alternating torque per substep (witnessed at
+  substep granularity, canary). Spanning reduction (deepest + farthest
+  + max-area, constant-free). Unit instrument test_manifold_reduction:
+  born red 0.3774 m, green 0.0001 m same day.
+- **G-52 `WARM_LEARN=1`** — the warm cache's V4.6 equilibrium-freeze:
+  iterations rebuild the true 305 N*s static support every substep,
+  the store discards it and keeps the frozen first-touch 86.9. Under
+  the lever the cache converges to 0.3% of analytic and
+  **test_stack_stands is FULLY GREEN**: column and pile sub-mm of
+  static, spins 0.0000, true rest, sleep, energy ledger flat zero.
+  Refined store (subtract the approach-cancellation part) cut the
+  impact-capture contamination the freeze guarded against to +2.2%
+  cube travel on the ramp (was +5.8% raw, 0 frozen).
+
+Harness green in BOTH worlds; every instrument's fail set identical to
+default; defaults byte-identical. Remaining here: the flip ruling on
+the three levers (WARM_LEARN / MANIFOLD_SPAN / TURTLE_PRICED, and with
+them INV-32's default). The 26 mm plate and per-axis press asymmetries
+re-measure after the ruling. Step 3 (contact block solve) NOT needed
+for statics on this evidence.
+
+**CONTRAST CONTROLS LANDED 2026-08-26 (owner order, G-53/G-54).** The
+instrument grew to four cases; the window to three SPACE-advanced
+views (statics pair, torsion column, mixed masses), each re-armed via
+the teleport law, live panel per view. WARM_LEARN world: G-54 fully
+green (stand / FALL / stand — the overhung 8:1 cube departs its perch,
+no phantom support); G-53 green on braking, both-ways transmission
+(asymmetric per the anchoring derivation) and the L_z ledger (peak
+exactly = initial, drained by the turtle).
+
+## G-53 — torsion rebuilt as a rung ladder (owner KISS ruling 2026-08-27)
+
+Owner: "simpler in a 2 cube first, asserts in place, and then three
+cubes if needed, and more single-purposed tests." Executed: the
+four-case instrument split into test_stack_stands (statics pair only),
+test_torsion_transmission (rungs R1 lone spinner / R2 free passenger /
+R3 anchored carrier, each with a one-line derivable expectation) and
+test_mixed_mass_stands (G-54's three verdicts); windowed twins with
+per-rung live panels. The disputed sub-unity transmission threshold
+DISSOLVED: R3 asserts the anchor's victory (an upper bound), never a
+floor physics does not guarantee. First measurements, red where
+informative, all booked in G-53:
+
+- **R1 perfect in both worlds** (3 -> 0.0000, L_z fully drained,
+  stands at exactly 0.5000).
+- **R2 under-transmission and R3's residual: BOTH SOLVED BY G-55**
+  (2026-08-27, lever FRICTION_TWIST=1). The owner ruled the 50 ms
+  episode the root ("make it realistic"); the grindstone law landed:
+  face contacts get a twist-friction row at the face-integral limit
+  (mu * N_total * 0.3826 L, N summed exactly over the pair's rows),
+  linear-only tangents, vector-closed friction cone. R1 stops in
+  0.217 s (band [0.2, 0.6], perfectly linear Coulomb decay); the
+  passenger reaches 0.6666 (lock arithmetic 0.75); the residual dies
+  at 0.036. Two guards re-learned from the battery: G-45 binds the
+  twist row (no torsion across an open gap), and a face treatment
+  needs >= 3 manifold points (a sphere's one-point "face" must keep
+  its rolling torque). Default byte-identical; harness green under
+  the lever. Booked marginal: the torsion visual's combined world
+  leaves R3's tail just above the 0.05 noise line. OWNER RULING now
+  owed on FOUR levers: FRICTION_TWIST joins WARM_LEARN /
+  MANIFOLD_SPAN / TURTLE_PRICED. **OWNER QA 2026-08-28: GOOD** (two
+  windows at 5dd8168, 0 red at close; ledger). Evidence complete;
+  the flip ruling waits only on the decision.
+
+## G-53 tail — THE SPINNING-INTERFACE GRIND: SOLVED BEHIND LEVERS (G-56)
+
+**RCA opened and CLOSED 2026-08-28 (owner: "RCA for sure"; full trail
+in the G-56 record and the ledger).** GEDANKEN-56 registered before
+code; the ladder grew R4 THE BRACKET (3-cube, 49 kN — green in every
+world, onset bracketed to (49, 73.5]) and R5 THE REPRODUCTION
+(4-cube, 73.5 kN — default grinds 0.52 m and stands; under
+FRICTION_TWIST+WARM_LEARN 28 mm plus a never-sleeping wobble). The
+no-spin control is fully green: the statics are sound, the defect is
+the spin episode's legacy. Canary refuted suspects (a) row budget and
+(b) capture bound with numbers; the mechanism is **G-51's rocking
+clock at depth**: the deepest-4 reduction puts all four manifold
+points on two edges of the micro-tilted face, the support polygon
+excludes the weight line, the velocity rows reach complementarity
+with the centre still falling, gravity re-pumps the rock each substep
+and the split pass treadmills it back — sleep never latches.
+**MANIFOLD_SPAN=1 joining the pair kills it**: R5 fully green sub-mm,
+spins 0.0000, and the R3 combined-world marginal (same residual
+class) closed with it. Battery under the trio at exactly its booked
+reds; sweep new-red 0. Consequence: FRICTION_TWIST / WARM_LEARN /
+MANIFOLD_SPAN are ONE COLUMN for the flip ruling; TURTLE_PRICED
+remains its own question.
+
+## THE SINGLE LAW OF CONTACT — G-63, RULED 2026-08-31 ("this is the way")
+
+The G-57 support-ceiling front and G-47's block-solve debt MERGE
+here: one missing mechanism, two measured defects. The ruling: a
+contact is ONE unilateral constraint; the velocity-priced cap is
+scaffolding for a shallow solve and is REMOVED, not resized — earned
+by the manifold BLOCK SOLVE (prior art feat/joint-block-solver,
+stalls -96%). Passivity becomes a property of convergence; INV-17 +
+both ledgers + the explosion detector are the JURY. Acceptance: the
+anvil ladder green at every ratio AND the strike battery clean on
+merit. Horizon: material compressive strength as the only ceiling,
+crushing (damage) beyond it. Sequence: block solve behind a lever ->
+cap removal behind the SAME lever -> battery -> owner QA. Full
+derivation in the G-63 record; ruling in the ledger.
+
+**FIRST CONTACT LANDED 2026-08-31 (`SINGLE_LAW=1`)**: manifold block
+solve + caps removed, default byte-identical. The strike jury is
+FULLY CLEAN ON MERIT (#47 stays dead without its crutch); 15.6:1 is
+fully green (the tunnel is dead, 1.2 mm, asleep); 38.6/96.5 residuals
+remain and the failing interface MOVED down the chain — the leftover
+shallowness is ACROSS pairs (TURTLE_PRICED discriminated: not the
+cause) and in the position pass's own sequential depth. Next rung:
+chain/shock ordering or a pair-chain block, + position-pass depth.
+Cross-findings booked: the crush-transit energy flag is PRE-EXISTING
+(unpriced turtle free-lift, G-50's wound, lever-off world creates
+MORE); the 25 mm tile class never touched its caps — NOT the ceiling
+disease, owes its own RCA (G-61).
+
+**THE DOOR GUARD (2026-09-01)**: the plateau exit was quitting at 9
+of 32 on a constant-amplitude ping-pong; the registry's OWN
+documented guard (VELOCITY_PLATEAU_FLOOR on the plateau door) was
+never enforced — doc-vs-code drift, wired under the lever. 38.6:1
+falls to 4.5 mm (gold asleep), 96.5:1 to 35 mm with transit 36 (was
+990). Eleven of thirteen window cases fully green under SINGLE_LAW.
+G-58's ice red resolved by the measured AFFINE grindstone law
+(alpha = 26.9 mu + 0.15; the floor is the anchor-coupled normal
+channel).
+
+**2026-09-01, THE TRUE FIRST CONTACT (stale-build confession + three
+mechanisms; full trail in G-63/ledger)**: the earlier jury ran stale
+binaries; fresh, the uncapped world detonated until (1) the capless
+warm store regained G-52's subtraction (build_approach on the row),
+(2) the block became an exact active-set LCP (the detonator was
+clamp-after-solve on unilateral near-singular manifolds), (3) the
+twist gate became group-aware. THE FLOOR IS FULLY GREEN (G-61
+settled - the tile class was the manifold LCP). Red harvester
+scripts/harvest_reds.py with the rebuild-first guardrail is the
+standing instrument. **G-64 LANDED 2026-09-01 (owner: "shock now")**: contact blocks
+ordered by contact-graph depth from the immovable roots, one shock
+sweep after the loop - THE ANVIL LADDER IS FULLY GREEN (z 1.9000 at
+every ratio, 0.0 mm transit, asleep). The single-law battery's only
+reds are other fronts' booked pairs (ladder R5/R6, ramp G-46).
+OPEN: the DEFAULT world's unwired plateau guard (rides the flip);
+island LCP as the horizon. OWNER RULING now available: the flip of
+the single-law world (trio + SINGLE_LAW) to default, with a green
+battery behind it. RESOLVED under the lever 2026-09-01:
+the position pass's slop gate (dead zone 3.5 mm -> error < SLOP;
+38.6:1 4.5 -> 2.7 mm, asleep).
+RESOLVED 2026-09-01: the impact-torsion 'law question' was the G-45
+class (pre-touch twist through a pen=-76 mm predicted-pose manifold)
+- fixed with SLOP as the touching discriminator; ladder R2/R3/R4
+green, no ruling needed. MERGED: PR #161 squash-landed on main;
+green campaign continues on feat/physics-green-campaign.
+
+## THE LIMITS CAMPAIGN — MEASURED (G-57..G-62); fronts opened, ruling owed
+
+**Owner ruling 2026-08-28: the trio flip is DEFERRED for this study.**
+Six probes built TDD-headless the same day (shared scene + evaluator
+`tests/scenes/scene_limits.h`, six `test_limits_*` drivers, all
+probing the TRIO world, red-where-informative). The map:
+
+- **THE MASS-RATIO KNEE (G-57): MECHANISM NAMED, ruling owed.**
+  Owner ruled the compactions DEFECTS ("totally wrong"); Argus
+  delivered THE SUPPORT CEILING: every row's budget is
+  eff x (approach + CONTACT_CAPTURE_CUSHION 4.0 m/s), eff priced on
+  the pair the LIGHT body dominates — a ceiling constant vs the
+  supported weight (~379 N*s/substep here). Stone demands 102
+  (green), iron 318.5 (19% margin, sinks), gold 788 (over the
+  ceiling from birth: pass-through/side-slip/swap; transit overlap
+  990-996 mm measured). G-60's sink and G-61's 25 mm are the same
+  class. Cause-law INV-10/INV-8; the violations are INV-2, now
+  measured DIRECTLY by the campaign's per-pair overlap instrument.
+  OWNER RULING owed: the fix direction (a ceiling that scales with
+  the load it carries). Open sublayer: what degrades the iron
+  manifold with depth (the 19%-margin case decelerates toward hover
+  early, then loses).
+  **REAL-GROUND REVISION (owner order, same day)**: on slab bodies
+  instead of the turtle, 15.6:1 collapses 993 -> 4.6 mm, the
+  footprint sink 242 -> 6 mm, and G-59's die anomaly DISSOLVES
+  (turtle-interface artifact; test_limits_size now expect: pass).
+  Gold still crushes through (604-606 mm) — the ceiling is the
+  remaining defect. Open, unverified: TURTLE_PRICED off in the trio
+  may BE the turtle-stage aggravation; one lever run discriminates.
+  ICE is a real material now; the real-stage rule is skill spec.
+- **Real ground reopens standing penetration (G-61)**: the spin
+  tower stands 25-41 mm low on a tile raft (turtle twin: sub-mm);
+  tiles themselves perfect, no lateral seam catch.
+- **The small end has a floor (G-59)**: a 10 cm die stops 2-3x
+  slower than the linear-in-L law; the 3 m boulder is exact.
+- **Low-mu sublinearity (G-58, marginal)**: a 10x friction drop buys
+  9.1x spin time (1.983 s vs >= 2.0 exact); rubber and the mu*g
+  glide are exact, and the glide SLEEPS. Cross-note: turtle vs
+  box-box interface differ 14% at equal mu.
+- **CERTIFIED (G-62, G-60): per-interface friction independence and
+  the patch-radius law, both ways.**
+
+Ruling owed: which limit gets its RCA first. Board recommendation:
+the mass-ratio knee (G-57) — it is the one a game hits on day one and
+G-60 shows it is not exotic. The interactive twin (test_limits_visual)
+carries all cases for QA.
+
+## Mode-aware panels + INV citation sweep (CLEAN NOW, small, no physics)
+
+Owner correction 2026-08-28 ("it needs to be in the test"): the
+torsion window now carries plain DEMONSTRATING + WATCH lines and the
+mode-aware WORLD line the logosphere-tests skill orders (owner QA:
+"perfect"). The other windowed twins (stack, mixed mass, ramp,
+ladder) predate the pattern and say nothing about which world is on
+stage. Sweep them to the same three lines. Pure test-UI; no physics,
+no thresholds.
+
+SAME SWEEP, second order (owner 2026-08-28: "make sure they are
+linked to INVs... we've lost that link"): the citation audit that
+rewired the limits campaign (INV-4-as-stands is a mis-cite; the law
+is INV-2, settling is INV-34, L_z is INV-17, speeds INV-11) applies
+to the older instruments too — torsion, stack, mixed-mass still
+carry the stale tags. Mechanical retag, same visit as the panels.
+
+## Item 6 UNBLOCKED of G-47 — G-48 now holds it; was: ONE blocker
+
+INV-32 (contacts exert torque by default; CONTACT_TORQUE=0 becomes the
+kill switch) registered aspirational; all 11 gate sites flipped on
+feat/physics-tdd-item6. Default-world battery: ladder 2 expected reds
+(R5/R6 walk), ramp 1 (G-46), harness green, angular dissipation and
+orientation truth green. BLOCKER: the refused-momentum ledger (CI
+smoke) reds under default torque — a dead-square 9 m/s strike leaves
+with 2.99 rad/s spin (G-47: sequential per-point manifold solving
+seeds spin that a violent strike carries away before it can
+rebalance). Mechanism owed: the manifold BLOCK SOLVE (prior art
+feat/joint-block-solver, stalls -96%). The flip does not ship until
+G-47's asserts are green; this also retires item 5's residual seed.
+
 ## G-46 — the sphere must out-roll the cube (ENHANCEMENT, born red)
 
 Owner order with the math done first (registry has the derivation):
