@@ -2064,3 +2064,21 @@ battery must stay clean ON MERIT (the #47 detonation class stays
 dead without its crutch); acceptance = the anvil ladder green at
 every ratio. G-63 registered before code. The G-57 ceiling front and
 G-47's block-solve debt MERGE into this front.
+
+## 2026-08-31 (later) — G-63 FIRST CONTACT: the tunnel is dead, the jury is clean
+
+SINGLE_LAW=1 landed same day as the ruling: the contact manifold
+block solve (pattern from feat/joint-block-solver, mirrored gates)
+plus cap removal at all four sites, warm store guarded (true total
+under the lever). Default world byte-identical counts everywhere
+tested. Side (b): the strike jury FULLY CLEAN ON MERIT - the #47
+class stays dead without its crutch. Side (a): 5:1 perfect to
+0.1 mm; 15.6:1 FULLY GREEN (1.2 mm, asleep); 38.6:1 down to 22.3 mm
+with the failing interface MOVED to supporter-slab (the residual
+shallowness is ACROSS pairs; TURTLE_PRICED discriminated - not the
+cause); 96.5:1 leaves stand perfectly, gold holds 496 mm inside them
+(position-pass sequential depth). Cross-findings: the crush-transit
+energy flag is PRE-EXISTING and larger WITHOUT the lever (+337 vs
++266 J; unpriced turtle free-lift, G-50); the tile-tower class never
+touched its caps - not the ceiling disease, owes its own RCA.
+G-63 stays open on the across-pair rung.

@@ -583,6 +583,19 @@ crushing (damage) beyond it. Sequence: block solve behind a lever ->
 cap removal behind the SAME lever -> battery -> owner QA. Full
 derivation in the G-63 record; ruling in the ledger.
 
+**FIRST CONTACT LANDED 2026-08-31 (`SINGLE_LAW=1`)**: manifold block
+solve + caps removed, default byte-identical. The strike jury is
+FULLY CLEAN ON MERIT (#47 stays dead without its crutch); 15.6:1 is
+fully green (the tunnel is dead, 1.2 mm, asleep); 38.6/96.5 residuals
+remain and the failing interface MOVED down the chain — the leftover
+shallowness is ACROSS pairs (TURTLE_PRICED discriminated: not the
+cause) and in the position pass's own sequential depth. Next rung:
+chain/shock ordering or a pair-chain block, + position-pass depth.
+Cross-findings booked: the crush-transit energy flag is PRE-EXISTING
+(unpriced turtle free-lift, G-50's wound, lever-off world creates
+MORE); the 25 mm tile class never touched its caps — NOT the ceiling
+disease, owes its own RCA (G-61).
+
 ## THE LIMITS CAMPAIGN — MEASURED (G-57..G-62); fronts opened, ruling owed
 
 **Owner ruling 2026-08-28: the trio flip is DEFERRED for this study.**

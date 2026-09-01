@@ -79,6 +79,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   impulse budget is capped by a fixed velocity cushion priced on the
   pair, a support ceiling that does not grow with the supported
   weight (fix pending a design ruling).
+- **Physics: the single law of contact, behind `SINGLE_LAW=1`
+  (default off).** A contact manifold's normal rows are now solved as
+  one block per iteration (a 4x4 coupled solve instead of one row at
+  a time), and the velocity-priced capture cap on contact impulses is
+  removed under the lever — a contact may deliver whatever
+  non-penetration demands, with passivity guarded by the energy and
+  refused-momentum ledgers instead of a clamp. Measured: an iron
+  block on a wooden crate, which previously tunnelled a full metre
+  through it, now stands at millimetre accuracy and sleeps; the
+  strike and symmetry batteries stay clean without the cap. Extreme
+  ratios (39:1 and beyond) still leave residual overlap — the
+  remaining depth is across body chains, tracked. Default behavior
+  unchanged with the lever off.
 - **Materials: ICE.** A real material (density 917 kg/m³, full
   elastic and strength property set) joining the mineral group. The
   limits demos now stage friction experiments on an actual white ice
