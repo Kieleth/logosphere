@@ -96,22 +96,30 @@ int main() {
     // the lever world and the default world demonstrate different
     // things and the window must say which one is on stage.
     auto* l_world = add_line(engine, "world", PANEL_X, 84, 255, 190, 110);
-    const bool lv_twist = std::getenv("FRICTION_TWIST") != nullptr;
-    const bool lv_learn = std::getenv("WARM_LEARN") != nullptr;
-    const bool lv_span  = std::getenv("MANIFOLD_SPAN") != nullptr;
-    const bool trio = lv_twist && lv_learn && lv_span;
+    // INV-36 (the flip, 2026-09-01): the levers are ON by default and
+    // "=0" is a kill switch, so the window reads the SAME predicate the
+    // engine reads.
+    auto lever_on = [](const char* name) {
+        const char* e = std::getenv(name);
+        return !(e && e[0] == '0' && e[1] == '\0');
+    };
+    const bool lv_twist = lever_on("FRICTION_TWIST");
+    const bool lv_learn = lever_on("WARM_LEARN");
+    const bool lv_span  = lever_on("MANIFOLD_SPAN");
+    const bool lv_law   = lever_on("SINGLE_LAW");
+    const bool cure = lv_twist && lv_learn && lv_span && lv_law;
     std::string world_text;
-    if (trio) {
-        world_text = "WORLD: all 3 levers ON (the cure) - every line "
-                     "must end [V] green";
+    if (cure) {
+        world_text = "WORLD: DEFAULT = the single law (INV-36) - every "
+                     "line must end [V] green";
         l_world->set_color(120, 230, 140);
-    } else if (!lv_twist && !lv_learn && !lv_span) {
-        world_text = "WORLD: DEFAULT (no levers) - the booked reds stay "
-                     "[X] on purpose";
+    } else if (!lv_twist && !lv_learn && !lv_span && !lv_law) {
+        world_text = "WORLD: LEGACY (all levers =0) - the old reds "
+                     "return [X] on purpose";
     } else {
-        world_text = std::string("WORLD: partial levers (") +
-                     (lv_twist ? " twist" : "") + (lv_learn ? " learn" : "") +
-                     (lv_span ? " span" : "") +
+        world_text = std::string("WORLD: partial kill switches (") +
+                     (lv_twist ? "" : " twist=0") + (lv_learn ? "" : " learn=0") +
+                     (lv_span ? "" : " span=0") + (lv_law ? "" : " law=0") +
                      " ) - some lines stay [X] by design";
     }
     l_world->set_text(world_text);

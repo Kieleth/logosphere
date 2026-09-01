@@ -34,12 +34,13 @@ BATTERY = ["test_torsion_transmission", "test_stack_stands",
            "test_refused_momentum_ledger", "test_cube_drop_ladder",
            "test_ramp_race"]
 
+# INV-36 (the flip, 2026-09-01): the single law is the default; the
+# other worlds are kill-switch A/B configurations.
 WORLDS = {
     "default": {},
-    "trio": {"FRICTION_TWIST": "1", "WARM_LEARN": "1", "MANIFOLD_SPAN": "1"},
-    # The limits probes force the trio themselves; SINGLE_LAW rides on top.
-    "single-law": {"FRICTION_TWIST": "1", "WARM_LEARN": "1",
-                   "MANIFOLD_SPAN": "1", "SINGLE_LAW": "1"},
+    "trio": {"SINGLE_LAW": "0"},
+    "legacy": {"FRICTION_TWIST": "0", "WARM_LEARN": "0",
+               "MANIFOLD_SPAN": "0", "SINGLE_LAW": "0"},
 }
 
 
@@ -89,7 +90,7 @@ def harvest(text):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--world", choices=sorted(WORLDS), default="single-law")
+    ap.add_argument("--world", choices=sorted(WORLDS), default="default")
     ap.add_argument("--full", action="store_true",
                     help="also run the strike/torsion/stack battery")
     args = ap.parse_args()

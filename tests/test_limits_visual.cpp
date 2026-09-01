@@ -109,8 +109,8 @@ int main() {
     auto* l_demo  = add_line(engine, "demo",  PANEL_X, 40, 190, 220, 255);
     auto* l_demo2 = add_line(engine, "demo2", PANEL_X, 62, 190, 220, 255);
     auto* l_world = add_line(engine, "world", PANEL_X, 84, 120, 230, 140);
-    l_world->set_text("WORLD: trio, set by the test (the candidate default) "
-                      "- reds here are BOOKED LIMITS");
+    l_world->set_text("WORLD: DEFAULT = the single law (INV-36) - every "
+                      "line must end [V] green");
 
     struct LiveAssert { std::string text; std::function<bool()> eval; };
     constexpr int PANEL_ROWS = 8;

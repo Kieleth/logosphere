@@ -123,6 +123,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   of leaves on a slab, a 96:1 mass ratio that previously stood 35 mm
   inside its support, now rests exactly at height and sleeps; the
   whole heavy-on-light ladder is green. Default behavior unchanged.
+- **Tooling: the physics sweep builds before it judges.**
+  `scripts/physics_sweep.py` now configures and builds the release
+  tree and refuses to measure if the build fails; it previously judged
+  whatever binaries were present, which let a stale tree report old
+  physics as the current verdict.
 - **Tooling: `scripts/harvest_reds.py`.** One command that rebuilds
   its targets (a stale-build guardrail, learned the hard way — a
   static-lib change measures as byte-identical physics until every
@@ -209,6 +214,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   scratch repository and requires the refusal, including the case where
   the checker sees no translation unit at all and would otherwise pass
   for the wrong reason.
+
+### Changed
+- **Physics: the single law of contact is the default.** The contact
+  machinery landed behind levers over the last two weeks now ships on:
+  the spanning manifold reduction, the learning warm cache, the
+  face-integral torsional friction row, and the single-law solve
+  (exact manifold LCPs, no capture caps, the registered plateau floor,
+  the corrected position gate, shock propagation). `MANIFOLD_SPAN=0`,
+  `WARM_LEARN=0`, `FRICTION_TWIST=0` and `SINGLE_LAW=0` remain as kill
+  switches for A/B isolation. What changes for a user of the engine:
+  stacks of boxes stand still and sleep, heavy blocks rest on light
+  ones at any mass ratio measured (to 96:1), a spun body brakes at
+  the face-integral rate, and a tile floor carries a tower at height.
+  The two born-red ladders (walking wheels, the out-rolling sphere)
+  are unchanged and remain open fronts.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs

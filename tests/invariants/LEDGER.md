@@ -2209,3 +2209,52 @@ Owner watched the thirteen-case campaign window under SINGLE_LAW
 with shock propagation: "ok, green." The anvil ladder stands at every
 ratio on screen. Branch feat/physics-green-campaign goes to main by
 squash PR; the flip ruling and the next front are decided in chat.
+
+## 2026-09-01 (later) — RULED: THE FLIP. The single law is the default (INV-36)
+
+Owner: "1 flip and I'd say, lets run headless ALL our physics tests.
+and then the others in this order... remember physics-TDD-argusable
+as we have, new test I think the one we have is beefy now."
+Executed: FRICTION_TWIST, WARM_LEARN, MANIFOLD_SPAN and SINGLE_LAW
+are ON by default; "=0" is each one's kill switch for A/B, never a
+shipping mode (INV-32's pattern). INV-36 registered as owner decree.
+The probes no longer set levers; the windows read the engine's own
+predicate for their WORLD line; harvest_reds.py's worlds are default
+/ trio (SINGLE_LAW=0) / legacy (all =0). Full battery under no env:
+green except the pre-existing booked pairs (ladder R5/R6, ramp G-46).
+The sweep's gone-green list drives the audit-row flips. TURTLE_PRICED
+was not part of the ruled column and stays opt-in. Next, in the
+owner's order: rolling contact (R5/R6, G-46), the turtle free-lift,
+island LCP parked, the small clean items.
+
+## 2026-09-01 (later) — the sweep never built; the flip cured all three flip moles
+
+While flipping, the sweep read "gone-green 0" where nine audit rows
+should have gone green. Cause: scripts/physics_sweep.py had no build
+step - it judged whatever binaries sat in build-release, a tree never
+re-configured since the campaign's tests were added (they were absent)
+and whose inv6 binary carried pre-flip physics (spread 1.4 mm, 6
+failures) while a fresh build reads 0.000000, INV-6 WITNESSED. Every
+"sweep new-red 0" on the flip until this point was measured against
+old physics. The owed guardrail landed: the sweep configures, builds
+everything and refuses to measure on build failure. Fresh evidence:
+all three G-48 flip moles are green under the shipped default
+(test_physics_battery, test_rotated_box_contact 21/21, inv6
+witnessed); nine campaign rows flip to expect pass; inv6 returns to
+CI's smoke list; both windows headless 0 red.
+
+## 2026-09-01 (later) — RULED: the flip stays; the broken tests are TDD flags
+
+The honest sweep (rebuilt tree, campaign tests present) showed the
+flipped default breaks the BOND world: light-body ringing (caps
+removal + FRICTION_TWIST), grass bends-not-tears (the exact block),
+the 3-axis drive (the position gate on gluon rows), the rock (a trio
+interaction, 0.165 m drift). Two more were red on main before the
+flip (shoulder drive, strata) - stale audit rows. Owner: "I'd leave
+the flip and use the broken as TDD flags we need to 1) understand the
+test, argus-assert-INV convert each test (you can send subagents for
+this) and then 2) fix one by one when fixing is needed." Executed:
+every red booked in TEST_AUDIT with its isolated mechanism; RCA
+kill-switch sub-levers (SINGLE_LAW_DOOR/GATE/CAPS/BLOCKS) kept as
+diagnostics; the conversion of the six tests to Argus/INV form
+dispatched; fixes follow one by one, at mechanism, never by re-cap.
