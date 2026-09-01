@@ -93,13 +93,25 @@ while IFS= read -r file; do
     # committer-time always arrive as a pair (plain --porcelain emits the
     # header only the first time a commit appears, which silently
     # mis-pairs them).
+    # THE MERGE-BASE ITSELF IS NEVER FOREIGN WORK. In the squash-merge
+    # workflow (Git integration policy rule 3) a branch's own lineage
+    # returns to it as ONE squash commit on main; after the prescribed
+    # "merge main in" (remedy (b) below) that squash IS the merge-base,
+    # and every later edit of the branch's own files blames to it with
+    # a fresh committer-time - which read as deleting someone else's
+    # merged work (measured 2026-09-01: feat/physics-green-campaign
+    # editing its own hour-old lines refused against squash aaf40f3).
+    # A line blaming to the merge-base is the base the author built on
+    # and diffs as a deliberate change against current main - exactly
+    # what this guard's own remedy asks for. Foreign-PR deletions still
+    # refuse: their lines blame to OTHER commits at or before the base.
     culprits="$(git blame --line-porcelain "${blame_args[@]}" "$MERGE_BASE" -- "$file" 2>/dev/null \
-        | awk -v cutoff="$BRANCH_START" '
+        | awk -v cutoff="$BRANCH_START" -v mb="$MERGE_BASE" '
             /^[0-9a-f]{40} / { sha = $1 }
             /^committer-time / { ct = $2 }
             /^summary / {
                 sub(/^summary /, "")
-                if (ct + 0 > cutoff + 0 && !(sha in seen)) {
+                if (sha != mb && ct + 0 > cutoff + 0 && !(sha in seen)) {
                     seen[sha] = 1
                     print substr(sha, 1, 9) "  " $0
                 }
