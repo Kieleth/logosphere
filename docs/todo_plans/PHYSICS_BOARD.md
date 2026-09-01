@@ -634,7 +634,14 @@ audit rows red before the flip (shoulder drive, strata). Owner ruling
 (subagents), then fix one by one at mechanism. Light bonded bodies vs
 exact/uncapped contact impulses is the family (island LCP is the
 horizon; the tear check on within-sweep transients the first
-suspect). TURTLE_PRICED stays opt-in (its own
+suspect). CONVERSIONS LANDED (drives, 2026-09-01): the shoulder
+drive is GREEN - its red was an out-of-bounds read in the test (a
+late swap callback); ENGINE HAZARD boarded: ParticleSystem::ReadView
+operator[] is unchecked (a guardrail candidate). The 3-axis drive's
+'hold' spans a 9.68 m/s turtle strike of an unsupported pair - OWNER
+RULING: test-design defect (support the pair) vs keep as the
+'drive survives an impact' flag; either way the single law changes
+post-impact ring-down amplitude 0.045 -> 0.067 rad (measured). TURTLE_PRICED stays opt-in (its own
 question, the turtle free-lift). Island LCP is the horizon. NEXT in
 the owner's order: rolling contact (R5/R6 + G-46), the turtle
 free-lift, then the small clean items. RESOLVED under the lever 2026-09-01:
