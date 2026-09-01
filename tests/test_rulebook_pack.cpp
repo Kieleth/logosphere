@@ -2,7 +2,7 @@
 //
 // Design under test: docs/RPG_MODULE.md. The pack earns its classes
 // by the rule of two, so this test instantiates each class from the
-// Cepheus SRD chapter 1 (examples/logovger/srd/cepheus), with the
+// Cepheus SRD chapter 1 (corpora/cepheus-srd), with the
 // verbatim quotes the classes were justified by. Three contracts:
 //
 //   1. LAYERING - the vocabulary exists only when the pack is
@@ -1141,7 +1141,7 @@ void test_every_quote_is_verbatim() {
         }
         if (!files.count(file))
             files[file] = slurp(std::string(LOGOSPHERE_SOURCE_DIR) +
-                                "/examples/logovger/srd/cepheus/" + file);
+                                "/corpora/cepheus-srd/" + file);
         if (files[file].find(quote) == std::string::npos) {
             all = false;
             std::cout << "  [measure] NOT VERBATIM (" << rec.label

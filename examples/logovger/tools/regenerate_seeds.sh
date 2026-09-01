@@ -15,7 +15,7 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../../.." && pwd)"
-srd="$repo/examples/logovger/srd/cepheus"
+srd="$repo/corpora/cepheus-srd"
 seeds="$repo/examples/logovger/seeds"
 
 python3 "$here/extract_skills.py" "$srd" \

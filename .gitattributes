@@ -1,5 +1,7 @@
 # SourceTarget byte ranges address the Git object bytes. Platform checkout
 # conversion would change those identities, so repository-backed UTF-8
 # sources and their exact-byte fixtures stay LF.
-examples/logovger/srd/cepheus/**/*.md text eol=lf
+# Every vendored corpus, not one game's copy of one: corpora/ is where
+# they all live and a new one must not have to remember this line.
+corpora/**/*.md text eol=lf
 tests/fixtures/source_partition/*.md text eol=lf

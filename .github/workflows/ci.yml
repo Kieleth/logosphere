@@ -199,8 +199,30 @@ jobs:
 
       # The seed extractors have contract tests too, and nothing ran
       # them. Written when the career extractor was, never wired up.
-      - name: Run seed extractor contract tests
+      - name: Run seed extractor contract tests (logovger)
         run: python -m unittest discover -s examples/logovger/tools -p 'test_*.py'
+
+      # A corpus belongs to no game, so neither does the check that its
+      # bytes survive a checkout. It used to live in one game's tools/.
+      - name: Vendored corpora keep their Git object line endings
+        run: python -m unittest scripts/test_corpus_checkout_contract.py
+
+      # A game compiles its own files, the engine's, and the corpora it
+      # declares. Nothing else. Cepheus chargen is frozen and its
+      # successor is written beside it, so an include reaching across
+      # has to fail somewhere; here is somewhere. The text half runs
+      # in this lane because it needs no build. The half that reads what
+      # the COMPILER opens runs in headless-linux, where one exists.
+      - name: No game reads another game's files (text)
+        run: python scripts/check_game_isolation.py
+
+      # A gate nobody has watched fail is a gate nobody knows is
+      # connected. This breaks each rule in a scratch repository and
+      # requires a refusal, including the case where the checker sees no
+      # translation unit at all and would otherwise pass for the wrong
+      # reason.
+      - name: The isolation gate is not vacuous
+        run: python -m unittest scripts/test_check_game_isolation.py
 
       - name: Regenerate ontology outputs
         run: python scripts/generate_ontology.py
@@ -209,8 +231,15 @@ jobs:
       # marked "generated_by" are their extractor's output; two PRs
       # hand-edited one because nothing said so and nothing checked.
       # Regenerating it would have dropped fifteen ops in silence.
-      - name: Regenerate rule seeds from the vendored SRD
+      - name: Regenerate rule seeds from the vendored SRD (logovger)
         run: ./examples/logovger/tools/regenerate_seeds.sh
+
+      # Same gate, second game. A generated seed that no lane
+      # regenerates is a generated seed nobody can tell has been hand
+      # edited, and the rule is about generated seeds rather than about
+      # the game that happened to have one first.
+      - name: Regenerate rule seeds from the vendored SRD (voyager)
+        run: ./examples/voyager/tools/regenerate_seeds.sh
 
       # `git diff` is blind to files that did not exist before it ran, so
       # a NEW schema emits new generated output and this step stays green
@@ -303,12 +332,27 @@ jobs:
 
       - name: Configure (headless-only)
         run: |
+          # compile_commands.json so the isolation gate can ask the
+          # compiler what each game's translation units actually open,
+          # rather than asking the source what it claims.
           cmake -S . -B build -G Ninja \
             -DLOGOSPHERE_HEADLESS_ONLY=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build logosphere_core + headless tests
         run: cmake --build build -j $(nproc)
+
+      # The strong half of the isolation gate: every translation unit
+      # under examples/ re-run through the preprocessor's dependency
+      # mode, with the rule that its header closure may not contain
+      # another game's file, and that it may not even carry an include
+      # path into one. Repo-wide and unregistered: a game added tomorrow
+      # is covered the moment it has a translation unit.
+      - name: No game compiles another game's files
+        run: |
+          python3 scripts/check_game_isolation.py \
+            --compile-commands build/compile_commands.json
 
       # Every test registered in this profile, through ctest.
       # Deliberately NOT a hand-maintained list: the list this replaced
@@ -623,8 +667,18 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCMAKE_OSX_ARCHITECTURES="arm64" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j $(sysctl -n hw.ncpu)
+
+      # The isolation gate again, over the WINDOWED game targets. This
+      # is the only lane that compiles them, so it is the only lane that
+      # can see an include reaching across there. 223 translation units
+      # against headless-linux's 82, measured on the dev machine.
+      - name: No game compiles another game's files (windowed targets)
+        run: |
+          python3 scripts/check_game_isolation.py \
+            --compile-commands build/compile_commands.json
 
       - name: Run unit tests
         timeout-minutes: 1

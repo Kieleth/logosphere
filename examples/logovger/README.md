@@ -164,14 +164,19 @@ the failure modes we hit so you can skip them.
 | Cepheus Engine SRD | OGL 1.0a | Classic-flavor base text |
 | Mongoose Traveller SRD | ORC | Current-rules cross-reference |
 
-Both license texts ship in `srd/` alongside the material they cover.
+Both license texts ship in `corpora/cepheus-srd/` alongside the material
+they cover. The vendored text sits at the repository root rather than
+inside this game: it is bytes as published, shared by whoever cites
+them, and this game declares that it reads them by name
+(`logosphere_game_corpus(<target> cepheus-srd LOGOVGER)`, see
+`corpora/README.md`).
 
 **Credit where it is due.** The Cepheus Engine SRD is by Jason "Flynn"
 Kemp, Samardan Press, 2016. Our vendored copy comes from the mdBook
 conversion maintained by Steve Simenic ([orffen/cepheus-srd on
 GitHub](https://github.com/orffen/cepheus-srd), rendered at
 [orffenspace.com/cepheus-srd](https://www.orffenspace.com/cepheus-srd/)),
-pinned by commit in `srd/cepheus/SOURCE_COMMIT`. The markdown-source
+pinned by commit in `corpora/cepheus-srd/SOURCE_COMMIT`. The markdown-source
 conversion is what makes citation-grade absorption possible, and this
 project would be poorer without it.
 

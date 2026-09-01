@@ -28,10 +28,17 @@ target_include_directories(logovger PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/generated
 )
 
-# The rules and the vendored source text are data the app reads at
-# run time, so it needs to know where its own directory is.
+# The rules are the game's own data, so it needs to know where its own
+# directory is.
 target_compile_definitions(logovger PRIVATE
     LOGOVGER_GAME_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# The vendored source text is NOT the game's. It is bytes as published,
+# vendored once under corpora/ and read by whoever cites them, so the
+# game DECLARES the corpus it reads BY NAME rather than deriving a path
+# from its own directory. A second game naming cepheus-srd here reads
+# the same bytes and needs nothing new.
+logosphere_game_corpus(logovger cepheus-srd LOGOVGER)
 
 target_link_libraries(logovger PRIVATE
     logosphere

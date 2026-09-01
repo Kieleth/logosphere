@@ -1,0 +1,306 @@
+id: https://logosphere.dev/voyager/chargen
+name: voyager_chargen
+title: Voyager — what a character is before a career starts
+description: >-
+  The one pack this game owns. It declares the SHAPE of the three
+  things a character-creation slice needs and nothing else: the person
+  being made, the characteristics the book rolls for them, and the
+  careers the book offers.
+
+  THE RULE THIS FILE EXISTS TO KEEP. What the book fixes lives in the
+  graph and is read from where it is used. So this pack declares no
+  characteristic; it declares what a Characteristic IS, and the six
+  instances arrive from the extractor as data cited to the page that
+  prints them. The C++ never names one. Adding a seventh is a row in
+  the graph, and the screen grows a line without a recompile — which
+  is the property test_characteristics_from_graph measures rather than
+  asserts by inspection.
+
+  Everything mechanical is the engine's already: a throw is a
+  rulebook TaskCheck, a number the book fixes is a RuleConstant, an
+  ordered walk is a Procedure of ProcedureSteps, and a question a rule
+  left open with the answer somebody gave it is an ArbiterDecision.
+  None of that is redeclared here.
+
+default_range: string
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  voyager: https://logosphere.dev/voyager/
+  logosphere: https://logosphere.dev/schema/
+
+imports:
+  - linkml:types
+  - logosphere
+  - rulebook
+
+classes:
+  Character:
+    is_a: LivingEntity
+    description: >-
+      The person being made. Its characteristic scores are ORDINARY
+      PROPERTIES named by the graph: a Characteristic entity carries
+      the slot it writes to in attribute_ref, and every reader — the
+      roller, the screen, the referee's brief — goes through that
+      indirection. Nothing in the C++ says "strength".
+
+      Not Cited. A character is a player's, not the book's. Only the
+      SLOTS below are the book's, and each cites the page that names
+      it.
+
+      strength is a class-local attribute rather than a shared slot
+      because the malleus root already declares a `strength` slot
+      meaning relation confidence, and one name cannot mean two things
+      in one merged registry.
+    attributes:
+      strength:
+        range: integer
+        minimum_value: 0
+        maximum_value: 33
+        description: >-
+          Str, position 1 of the UPP
+          [book1/character-creation.md "The Explanation"].
+    slots:
+      - dexterity
+      - endurance
+      - intelligence
+      - education
+      - social_standing
+      - psionic_strength
+      - age_years
+      - chosen_career
+      - career_decision
+
+  Characteristic:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One characteristic the book names, in the order the book prints
+      it [book1/character-creation.md "The Explanation"]. It is the
+      whole of what the C++ knows about characteristics: which slot on
+      Character holds the score (attribute_ref), what to call it on
+      screen (characteristic_abbreviation), and where it sits in the
+      profile (characteristic_index).
+
+      Cited, because its instances come out of the book. The book
+      prints seven and character creation rolls six; the seventh,
+      Psionic Strength, is not rolled at creation, so the extractor
+      does not seed it. Nothing in the C++ knows either number.
+
+      characteristic_index is a printing position in a fixed profile,
+      not a rung of a ladder: nothing advances along it and nothing
+      adds one to it, so it does not have the shape that made rank an
+      arithmetic bug.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      attribute_ref:
+        required: true
+      characteristic_abbreviation:
+        required: true
+      characteristic_index:
+        required: true
+      characteristic_dice:
+        required: true
+    slots:
+      - attribute_ref
+      - characteristic_abbreviation
+      - characteristic_index
+      - characteristic_dice
+
+  Career:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One career the book offers, with the two throws this slice needs
+      [book1/character-creation.md "Career Descriptions", "Career
+      Tables"]. Each throw is its own TaskCheck so it can cite the cell
+      it was printed in; one entity carrying both numbers could only
+      ever prove one of them.
+
+      career_summary is the book's own description sentence, kept
+      because it is what makes a referee's narrowing about the career
+      rather than about its name.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      qualification_check:
+        required: true
+      survival_check:
+        required: true
+    slots:
+      - qualification_check
+      - survival_check
+      - career_summary
+
+  CharacteristicModifierEntry:
+    is_a: LookupEntry
+    description: >-
+      One row of the Characteristic Modifier by Score Range table
+      [book1/character-creation.md "Characteristic Modifiers"]. The
+      inherited key band is the score range; the one result column is
+      the modifier that score contributes to a throw.
+
+      It is here because the ontology will not let a throw name a
+      characteristic without also naming the lookup that turns a score
+      into a modifier: "a throw is modified by a characteristic through
+      a lookup, or by neither". Which is correct, and it is also what
+      lets the screen and the referee's brief state the odds rather
+      than the raw score. Both read this table; neither computes the
+      arithmetic the book prints beside it.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      characteristic_modifier:
+        required: true
+    slots:
+      - characteristic_modifier
+
+  Narration:
+    is_a: Entity
+    description: >-
+      Prose a referee wrote about a character, held by the character it
+      is about (HAS_PART).
+
+      NOT Cited, and for the same reason SkillRating is not: the rule
+      is the book's, what happened is not. It exists so the screen can
+      be a view. A background sentence held only in a C++ member is a
+      second copy of state that can drift from the graph, and this
+      module has already paid for three of those.
+    annotations:
+      facets: rulebook
+    slot_usage:
+      narration_text:
+        required: true
+    slots:
+      - narration_text
+
+slots:
+  # The characteristic score slots. Each is cited in its description to
+  # the ordered list the book prints under "The Explanation"; the
+  # Characteristic instances in the graph are what point at them.
+  # 2D6 at creation, and a player-character score "may not typically
+  # exceed a maximum of 15" — but the modifier table the book prints
+  # runs to 33 and beyond, so the slot range is the table's, not the
+  # cap's.
+  dexterity:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Dex, position 2 of the UPP.
+  endurance:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: End, position 3 of the UPP.
+  intelligence:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Int, position 4 of the UPP.
+  education:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Edu, position 5 of the UPP.
+  social_standing:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: Soc, position 6 of the UPP.
+  psionic_strength:
+    range: integer
+    minimum_value: 0
+    maximum_value: 33
+    description: >-
+      Psi, position 7 of the UPP. The book prints it in the same
+      ordered list as the other six and then says it "cannot be rolled
+      or bought during character creation without the Referee's
+      permission" [book1/character-creation.md "Psionic Strength, the
+      Seventh Characteristic"], so this slice never rolls it.
+
+      It is declared anyway, and that is deliberate. The ontology says
+      what MAY exist; the graph says what DOES. A seventh characteristic
+      is one row away, and the test that proves the screen reads the
+      graph adds exactly that row.
+  age_years:
+    range: integer
+    minimum_value: 0
+    description: >-
+      How old the character is. Set from the age-of-majority
+      RuleConstant, read where it is used, never written as a literal.
+  chosen_career:
+    range: Career
+    description: >-
+      The career this character entered. An entity reference, so the
+      set of legal values is the set of careers in the graph and a
+      career the rules never issued cannot be written here.
+  career_decision:
+    range: ArbiterDecision
+    description: >-
+      The record of the choice that put this character in that career:
+      what was asked, everything that was on offer, what was taken and
+      who took it.
+
+      It points from the state to the event that produced it, which is
+      the direction that can be checked. A decision entity with nothing
+      pointing at it is a record nobody can find from the thing it
+      explains, and every other value on this sheet traces to a rule
+      and a roll.
+  characteristic_abbreviation:
+    range: string
+    description: >-
+      What the book calls this characteristic in short — "Str", "Soc",
+      "Psi" — printed in the same parentheses that name it. It is what
+      the screen writes, so the screen has no list of its own.
+  characteristic_index:
+    range: integer
+    minimum_value: 1
+    description: >-
+      Position in the profile the book prints, 1-based, as the numbered
+      list under "The Explanation" states it.
+  qualification_check:
+    range: TaskCheck
+    description: >-
+      The throw to enter this career
+      [book1/character-creation.md "Career Tables", Qualifications row].
+  survival_check:
+    range: TaskCheck
+    description: >-
+      The throw to survive a term in it
+      [book1/character-creation.md "Career Tables", Survival row].
+  career_summary:
+    range: string
+    description: >-
+      What the book says this career is, in the book's own sentence
+      [book1/character-creation.md "Career Descriptions"].
+  characteristic_dice:
+    range: DiceExpression
+    description: >-
+      What this characteristic is rolled with: "Roll your six
+      characteristics using 2D6"
+      [book1/character-creation.md "Generating Characteristic Scores"].
+
+      It lives on the characteristic rather than on the step so the step
+      does not have to assume the graph holds exactly one dice
+      expression, which is the kind of assumption that is silently true
+      until it is silently wrong. A book that rolls one characteristic
+      differently from the rest needs no code change.
+
+      A note on its provenance, because it is worth arguing with. The
+      entity is cited to the numbered list that names it, and that list
+      says nothing about dice; the dice come from the sentence that says
+      what to roll, two sections earlier. An entity reference carries no
+      number for the value check to prove either way. The alternative
+      was a uniqueness assumption living in a primitive, unstated and
+      unproven, and this is the smaller debt of the two.
+  characteristic_modifier:
+    range: integer
+    description: >-
+      The modifier a score in this row contributes to a throw
+      [book1/character-creation.md "Characteristic Modifiers"].
+  narration_text:
+    range: string
+    description: The prose, as the referee wrote it.

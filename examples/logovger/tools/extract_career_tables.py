@@ -28,7 +28,7 @@ prove it.
 
 Usage:
     python3 examples/logovger/tools/extract_career_tables.py \
-        examples/logovger/srd/cepheus \
+        corpora/cepheus-srd \
         examples/logovger/seeds/cepheus_book1_skill_vocabulary.json \
         examples/logovger/seeds/<out>.json
 """

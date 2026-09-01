@@ -101,6 +101,12 @@ bool has_legacy_locator(const kg::KGModule& world, kg::EntityID entity) {
 void test_production_rules_use_exact_edition_identity() {
     const std::string game_root =
         std::string(LOGOSPHERE_SOURCE_DIR) + "/examples/logovger";
+    // The corpus is DECLARED by the build, not derived from game_root:
+    // the vendored book belongs to no game (cmake/corpora.cmake).
+#ifndef LOGOVGER_CORPUS_DIR
+#error "LOGOVGER_CORPUS_DIR undefined: declare the corpus this game reads"
+#endif
+    const std::string corpus_root = LOGOVGER_CORPUS_DIR;
     std::vector<kg::SeedEnvelope> seeds;
     std::string error;
     CHECK(logovger::parse_rule_seeds(game_root, seeds, error),
@@ -139,7 +145,8 @@ void test_production_rules_use_exact_edition_identity() {
     kg::KGModule world(game_registry());
     world.setMode(kg::KGMode::MINIMAL);
     const auto procedures = logovger::make_chargen_procedure_registry();
-    CHECK(logovger::load_rule_seeds(world, game_root, procedures, error),
+    CHECK(logovger::load_rule_seeds(world, game_root, corpus_root,
+                                    procedures, error),
           "the production rules load for identity inspection: " + error);
 
     const auto editions = world.findByType("IngestionEditionContext");
@@ -219,9 +226,9 @@ void test_production_rules_use_exact_edition_identity() {
           "production ledger types no longer claim to have no instances");
 
     const std::string character_chapter =
-        slurp(game_root + "/srd/cepheus/book1/character-creation.md");
+        slurp(corpus_root + "/book1/character-creation.md");
     const std::string skills_chapter =
-        slurp(game_root + "/srd/cepheus/book1/skills.md");
+        slurp(corpus_root + "/book1/skills.md");
     std::multiset<std::string> selected;
     bool targets_resolve = targets.size() == 2057;
     std::size_t character_targets = 0;

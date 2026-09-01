@@ -56,8 +56,11 @@ API = "https://api.anthropic.com/v1/messages"
 BATCH = 4
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CHAPTER = os.path.join(HERE, "..", "srd", "cepheus",
-                       "book1", "character-creation.md")
+# The corpus is vendored at the repository root, outside every
+# game (cmake/corpora.cmake).
+CHAPTER = os.path.join(HERE, "..", "..", "..", "corpora",
+                       "cepheus-srd", "book1",
+                       "character-creation.md")
 
 # What we believe chapter 1 does. Deliberately written as CLAIMS, so a
 # violation is a disagreement between this list and the generated life,

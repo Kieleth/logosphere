@@ -119,6 +119,80 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   invisible turtle plane — a change that itself moved the physics:
   the turtle interface was aggravating the heavy-on-light failures
   and masking the small-size behavior.
+- **`examples/voyager`: character creation up to the first door, with
+  nothing the book fixes written in C++.** One screen, no frames. Six
+  characteristics are rolled by the engine's dice, a referee says where
+  that person came from, the same referee narrows the twenty-four
+  careers to the few that fit them, you take one, and it stops.
+
+  What is new is not the slice, it is where the slice keeps its rules.
+  The characteristics are `Characteristic` entities in the graph
+  carrying their own order, short name and target attribute; the
+  careers and both their throws are extracted and cited cell by cell;
+  the age of majority is a `RuleConstant` read where it is used; the
+  flow is a `Procedure` of three `ProcedureStep`s naming three
+  primitives. No characteristic is named anywhere in the game's C++,
+  and `test_characteristics_from_graph` proves it two ways: it adds a
+  seventh characteristic to the graph at run time and fails if the
+  sheet does not grow, and it scans every shipping source for the words
+  the graph owns so the first check cannot pass against a hardcoded
+  list.
+
+  `voyager-headless` shares every line of logic with the window and
+  supports `--random N` (no key, reproducible), `--record FILE` (a
+  model plays, every answer taped), `--replay FILE` (the same character
+  exactly, offline, no model call), plus `--forks` and `--fork`. The
+  model-authored option set reaches the tape through `Ask.offered`, so
+  a recorded character can be branched at the door it took. The
+  background narration is model-authored and not derivable from a seed,
+  so it is taped at a free-form site rather than regenerated.
+
+  No API, no game: the referee answers two questions the rules leave
+  open, so a missing key stops the run with the reason on screen rather
+  than starting in a reduced mode. A referee that offers a career the
+  rules never issued, or offers nothing, ends the run instead of
+  falling back to the full list.
+
+  Voyager reads the shared `corpora/cepheus-srd` through
+  `logosphere_game_corpus()` and owns its own extractor, seeds and
+  schema pack. `scripts/check_game_isolation.py` already declared the
+  `logovger <-> voyager` pair; it now has both sides to check and
+  passes with nine games and 242 translation units enumerated.
+- **Corpora: vendored source text lives outside every game, and a game
+  declares which one it reads.** The Cepheus SRD moved from
+  `examples/logovger/srd/cepheus` to `corpora/cepheus-srd`. A game no
+  longer derives the corpus path from its own directory; it names the
+  corpus and the build hands it the root:
+
+      logosphere_game_corpus(<target> cepheus-srd <PREFIX>)
+
+  which defines `<PREFIX>_CORPUS_DIR` beside the `<PREFIX>_GAME_DIR` a
+  game already gets for its own data. `logovger::load_rule_seeds` now
+  takes the corpus root as its own argument instead of appending
+  `/srd/cepheus` to the game root. A second game reading the same book
+  calls the same function with the same name: no new mechanism, no path
+  to copy, no directory to duplicate. An undeclared corpus is a
+  configure-time error, and game code compiled without the define fails
+  to build rather than silently reading nothing.
+
+  Citations are unaffected. Seeds address files *inside* a corpus
+  (`book1/skills.md` plus a byte range), so moving the root changes no
+  seed, no quote and no ingestion-edition identity.
+- **A mechanical gate that games do not read each other**
+  (`scripts/check_game_isolation.py`). It re-runs every translation unit
+  under `examples/` through the preprocessor's dependency mode and
+  refuses a header closure containing another game's file, an `-I` or
+  `-isystem` directory inside another game even when nothing has reached
+  through it, and, for declared pairs, another game's path or name in
+  any text. `corpora/` is the only shared path, and only through
+  `logosphere_game_corpus()`. The compiler pass is repo-wide and needs
+  no registration, so a game added later is covered the moment it has a
+  translation unit; a declared pair may name a directory that does not
+  exist yet, which is how the rule stands before there is anything to
+  break it. `scripts/test_check_game_isolation.py` breaks each rule in a
+  scratch repository and requires the refusal, including the case where
+  the checker sees no translation unit at all and would otherwise pass
+  for the wrong reason.
 
 ### Fixed
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
